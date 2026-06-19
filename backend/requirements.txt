@@ -9,3 +9,4 @@ passlib[bcrypt]
 python-dotenv
 opencv-python-headless
 psutil
+python-multipart
