@@ -164,6 +164,7 @@ export default function App() {
   // App Navigation & Modal State
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Phase 5 States
   const [diagnosticWarnings, setDiagnosticWarnings] = useState({ lighting: '', distance: '' });
@@ -2854,8 +2855,24 @@ export default function App() {
     <div className="app-container">
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
+      
+      {/* Mobile Sidebar Backdrop */}
+      {mobileSidebarOpen && (
+        <div 
+          className="sidebar-backdrop" 
+          onClick={() => setMobileSidebarOpen(false)} 
+        />
+      )}
+
       {/* Sidebar navigation */}
-      <aside className="sidebar">
+      <aside 
+        className={`sidebar ${mobileSidebarOpen ? 'open' : ''}`}
+        onClick={(e) => {
+          if (e.target.closest('.nav-item')) {
+            setMobileSidebarOpen(false);
+          }
+        }}
+      >
         <div className="sidebar-logo">
           <div style={{
             background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(79, 172, 254, 0.15) 100%)',
@@ -3010,32 +3027,44 @@ export default function App() {
       {/* Main Panel */}
       <main className="main-content">
         {/* Header */}
-        <header className="flex-between" style={{ marginBottom: '40px' }}>
-          <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>
-              {activeTab === 'dashboard' && 'Welcome Admin'}
-              {activeTab === 'students' && 'Student Directory'}
-              {activeTab === 'teachers' && 'Teacher Directory'}
-              {activeTab === 'logs' && 'Real-time Logs'}
-              {activeTab === 'attendance' && 'Live Scanner'}
-              {activeTab === 'reports' && 'Attendance Reports & Alerts'}
-              {activeTab === 'session-history' && 'Session-wise History'}
-              {activeTab === 'student-attendance' && `Welcome, ${currentUser?.name || 'Student'}`}
-              {activeTab === 'student-profile' && 'My Academic Profile'}
-              {activeTab === 'settings' && 'Security & System Settings'}
-            </h1>
-            <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>
-              {activeTab === 'dashboard' && 'Visualizing attendance logs and statistics'}
-              {activeTab === 'students' && 'Manage registered students and profiles'}
-              {activeTab === 'teachers' && 'Manage registered teaching staff and weekly timetables'}
-              {activeTab === 'logs' && 'View and download student attendance registers'}
-              {activeTab === 'attendance' && 'Log attendance using live facial recognition scanner'}
-              {activeTab === 'reports' && 'Generate academic reports, analytics, and attendance alerts'}
-              {activeTab === 'session-history' && 'Track day-by-day session registers and student present/absent statuses'}
-              {activeTab === 'student-attendance' && 'Track your attendance history and metrics'}
-              {activeTab === 'student-profile' && 'View and manage your personal credentials'}
-              {activeTab === 'settings' && 'Manage campus geofencing and IP subnet restriction boundaries'}
-            </p>
+        <header className="flex-between header-container" style={{ marginBottom: '40px' }}>
+          <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button 
+              className="hamburger-btn" 
+              onClick={() => { setMobileSidebarOpen(true); playCyberSound('click'); }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+            <div>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>
+                {activeTab === 'dashboard' && 'Welcome Admin'}
+                {activeTab === 'students' && 'Student Directory'}
+                {activeTab === 'teachers' && 'Teacher Directory'}
+                {activeTab === 'logs' && 'Real-time Logs'}
+                {activeTab === 'attendance' && 'Live Scanner'}
+                {activeTab === 'reports' && 'Attendance Reports & Alerts'}
+                {activeTab === 'session-history' && 'Session-wise History'}
+                {activeTab === 'student-attendance' && `Welcome, ${currentUser?.name || 'Student'}`}
+                {activeTab === 'student-profile' && 'My Academic Profile'}
+                {activeTab === 'settings' && 'Security & System Settings'}
+              </h1>
+              <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>
+                {activeTab === 'dashboard' && 'Visualizing attendance logs and statistics'}
+                {activeTab === 'students' && 'Manage registered students and profiles'}
+                {activeTab === 'teachers' && 'Manage registered teaching staff and weekly timetables'}
+                {activeTab === 'logs' && 'View and download student attendance registers'}
+                {activeTab === 'attendance' && 'Log attendance using live facial recognition scanner'}
+                {activeTab === 'reports' && 'Generate academic reports, analytics, and attendance alerts'}
+                {activeTab === 'session-history' && 'Track day-by-day session registers and student present/absent statuses'}
+                {activeTab === 'student-attendance' && 'Track your attendance history and metrics'}
+                {activeTab === 'student-profile' && 'View and manage your personal credentials'}
+                {activeTab === 'settings' && 'Manage campus geofencing and IP subnet restriction boundaries'}
+              </p>
+            </div>
           </div>
           
           <div style={{ display: 'flex', gap: '12px' }}>
