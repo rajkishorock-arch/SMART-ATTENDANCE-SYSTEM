@@ -780,3 +780,75 @@ select.form-input {
 .glitch-text-hover:hover {
   animation: glitchText 0.2s infinite;
 }
+
+/* Responsive Mobile & Tablet Layouts */
+@media (max-width: 992px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 20px 15px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .sidebar-logo {
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+
+  .nav-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .nav-item {
+    width: auto;
+    padding: 10px 15px;
+    font-size: 0.85rem;
+    justify-content: center;
+    transform: none !important;
+  }
+
+  .nav-item.active {
+    border-left: 1px solid rgba(0, 242, 254, 0.15);
+    border-bottom: 3px solid var(--color-primary);
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 25px 15px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .metric-card {
+    padding: 18px;
+  }
+  
+  .metric-info p {
+    font-size: 1.5rem;
+  }
+
+  .glass-panel {
+    padding: 16px !important;
+    border-radius: 12px;
+  }
+
+  .scanner-bracket {
+    width: 16px;
+    height: 16px;
+  }
+}
+
