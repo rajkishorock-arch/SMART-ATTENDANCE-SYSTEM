@@ -816,6 +816,17 @@ select.form-input {
   animation: fadeIn 0.25s ease-out;
 }
 
+/* Global Responsive Overrides for Media & Viewports */
+img, video, canvas {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+html, body {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
 /* Responsive Mobile & Tablet Layouts */
 @media (max-width: 992px) {
   .hamburger-btn {
@@ -878,31 +889,93 @@ select.form-input {
     gap: 12px;
   }
 
-  /* Wrap flex layouts that are side-by-side on mobile */
+  /* Force side-by-side flex components to wrap safely */
   div[style*="display: flex"][style*="gap: 16px"],
   div[style*="display: flex"][style*="gap: 12px"],
   div[style*="display: flex"][style*="gap: 10px"],
-  div[style*="display: flex"][style*="gap: 24px"] {
+  div[style*="display: flex"][style*="gap: 24px"],
+  header[style*="display: flex"] {
     flex-wrap: wrap !important;
   }
 
-  /* Make flex child buttons or inputs stretch nicely on small screens */
-  div[style*="display: flex"][style*="gap: 16px"] > button,
-  div[style*="display: flex"][style*="gap: 12px"] > button,
-  div[style*="display: flex"][style*="gap: 16px"] > select,
-  div[style*="display: flex"][style*="gap: 16px"] > input,
-  div[style*="display: flex"][style*="gap: 16px"] > div {
-    flex: 1 1 auto !important;
-    width: 100% !important;
-    min-width: 120px !important;
-  }
-
-  /* Stack split layouts on mobile (exclude repeat-based grids like card list or seats) */
+  /* Prevent split columns from causing horizontal overflow */
   div[style*="display: grid"][style*="gridTemplateColumns"]:not([style*="repeat"]),
   div[style*="display: grid"][style*="grid-template-columns"]:not([style*="repeat"]),
   div[style*="display: grid"][style*="1.8fr 1.2fr"] {
     grid-template-columns: 1fr !important;
     gap: 20px !important;
+    width: 100% !important;
+  }
+
+  /* Override fixed widths on form inputs & selects to match viewport */
+  div[style*="display: flex"] > select,
+  div[style*="display: flex"] > input {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Center and stack flex elements to avoid collision */
+  .flex-between:not(.header-container) {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 16px !important;
+  }
+
+  .metric-card {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  /* Force modals with hardcoded inline widths to be responsive */
+  div[style*="width: 600px"],
+  div[style*="width: 500px"],
+  div[style*="width: 650px"],
+  div[style*="width: 800px"],
+  div[style*="width: 550px"] {
+    width: 95% !important;
+    max-width: 95vw !important;
+    margin: 15px auto !important;
+    padding: 20px 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Form layouts centering and responsive spacing */
+  form {
+    width: 100% !important;
+  }
+  
+  form div[style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Adjust camera telemetry viewport text sizes */
+  .scanner-container div[style*="position: absolute"] {
+    font-size: 0.8rem !important;
+    padding: 4px 10px !important;
+  }
+  
+  /* Centering card grids and seat maps */
+  div[style*="repeat(auto-fill"] {
+    justify-content: center !important;
+  }
+
+  /* Table styling enhancements */
+  .table-container {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .custom-table th, .custom-table td {
+    padding: 10px 12px !important;
+    font-size: 0.8rem !important;
   }
 }
 
@@ -925,7 +998,6 @@ select.form-input {
     height: 16px;
   }
   
-  /* Make lists and inputs cleaner on small viewports */
   .header-title-area h1 {
     font-size: 1.35rem !important;
   }
@@ -938,4 +1010,147 @@ select.form-input {
     gap: 12px !important;
   }
 }
+
+/* ==========================================================================
+   PREMIUM PROFESSIONAL INTERACTIVE ANIMATIONS & RESPONSIVE CORRECTIONS
+   ========================================================================== */
+
+/* 1. Snappy tactile press animations on interactive items */
+button:active,
+.btn-secondary:active,
+.btn-danger:active,
+.bg-gradient-btn:active,
+.nav-item:active,
+.metric-card:active {
+  transform: scale(0.95) !important;
+  transition: transform 0.08s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* 2. Premium elastic spring-like entry animation for tab contents */
+@keyframes pageSpringEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.main-content > div {
+  animation: pageSpringEntrance 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+/* 3. Smooth sidebar drawer spring curves */
+.sidebar {
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease !important;
+}
+
+/* 4. Input focuses hover transformations */
+.form-input {
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+.form-input:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 5. Mobile & Tablet Overrides to avoid squeezed elements and overlaps */
+@media (max-width: 768px) {
+  /* Prevent split columns from squeezing input forms */
+  div[style*="grid-template-columns: 1fr 1fr"],
+  div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="1.8fr 1.2fr"],
+  div[style*="1.2fr 1.8fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    width: 100% !important;
+  }
+
+  /* Force dashboard graphs to stack instead of horizontal squeezing */
+  div[style*="minmax(400px"] {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    gap: 20px !important;
+  }
+
+  /* Force stack filters and flex elements that would overlap */
+  .reports-section div[style*="display: flex"][style*="gap:"],
+  .student-dashboard div[style*="display: flex"][style*="gap:"],
+  div[style*="display: flex"][style*="gap: 16px"],
+  div[style*="display: flex"][style*="gap: 20px"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  /* Reset sub-tab navigation and buttons inside flex wrappers */
+  div[style*="display: flex"][style*="gap: 16px"] button,
+  div[style*="display: flex"][style*="gap: 16px"] a,
+  div[style*="display: flex"][style*="gap: 20px"] button {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 12px 20px !important;
+  }
+
+  /* Ensure all forms take full width */
+  form, .form-container {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  /* Override inline fixed widths on select dropdowns, dates, and text inputs */
+  .main-content input[style*="width:"],
+  .main-content select[style*="width:"],
+  .main-content div[style*="min-width:"],
+  .main-content input,
+  .main-content select {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Custom styling for relative container items like absolute icon inputs */
+  div[style*="position: relative"] {
+    width: 100% !important;
+  }
+
+  /* Make sure log filter buttons span evenly and stack */
+  div[style*="background: rgba(8, 12, 20, 0.5)"][style*="display: flex"] {
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 8px !important;
+    gap: 6px !important;
+  }
+  
+  div[style*="background: rgba(8, 12, 20, 0.5)"][style*="display: flex"] button {
+    width: 100% !important;
+    border-radius: 6px !important;
+    padding: 10px !important;
+  }
+
+  /* Table styling enhancements and horizontal swiping */
+  .table-container {
+    margin-top: 15px !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+  }
+
+  /* Centering card grids and seat maps */
+  .seating-grid {
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)) !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+}
+
 
