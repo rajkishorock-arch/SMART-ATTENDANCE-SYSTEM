@@ -3946,8 +3946,9 @@ export default function App() {
                     Click on any empty cell to pre-populate day and period details for creating a schedule rule.
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* Grid Headers */}
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+                    <div style={{ minWidth: '720px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {/* Grid Headers */}
                     <div style={{ display: 'grid', gridTemplateColumns: '100px repeat(6, 1fr)', gap: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                       <div>DAY</div>
                       <div>P1<br/><span style={{ fontSize: '0.6rem', fontWeight: 'normal' }}>09-10 AM</span></div>
@@ -4039,6 +4040,7 @@ export default function App() {
                         })}
                       </div>
                     ))}
+                    </div>
                   </div>
                 </div>
 

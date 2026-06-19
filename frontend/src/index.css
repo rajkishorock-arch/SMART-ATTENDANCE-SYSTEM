@@ -833,7 +833,7 @@ select.form-input {
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
     border-right: 1px solid var(--border-color) !important;
     border-bottom: none !important;
-    background: rgba(13, 18, 31, 0.95) !important;
+    background: rgba(13, 18, 31, 0.96) !important;
     box-shadow: 10px 0 40px rgba(0, 0, 0, 0.8) !important;
   }
 
@@ -876,6 +876,33 @@ select.form-input {
     align-items: center !important;
     justify-content: space-between !important;
     gap: 12px;
+  }
+
+  /* Wrap flex layouts that are side-by-side on mobile */
+  div[style*="display: flex"][style*="gap: 16px"],
+  div[style*="display: flex"][style*="gap: 12px"],
+  div[style*="display: flex"][style*="gap: 10px"],
+  div[style*="display: flex"][style*="gap: 24px"] {
+    flex-wrap: wrap !important;
+  }
+
+  /* Make flex child buttons or inputs stretch nicely on small screens */
+  div[style*="display: flex"][style*="gap: 16px"] > button,
+  div[style*="display: flex"][style*="gap: 12px"] > button,
+  div[style*="display: flex"][style*="gap: 16px"] > select,
+  div[style*="display: flex"][style*="gap: 16px"] > input,
+  div[style*="display: flex"][style*="gap: 16px"] > div {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 120px !important;
+  }
+
+  /* Stack split layouts on mobile (exclude repeat-based grids like card list or seats) */
+  div[style*="display: grid"][style*="gridTemplateColumns"]:not([style*="repeat"]),
+  div[style*="display: grid"][style*="grid-template-columns"]:not([style*="repeat"]),
+  div[style*="display: grid"][style*="1.8fr 1.2fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
   }
 }
 
