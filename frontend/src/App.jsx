@@ -5365,9 +5365,11 @@ export default function App() {
                       const sMode = sessionViewModes[sessionKey] || "manifest";
 
                       const filteredStudents = session.students.filter(st => {
-                        const matchesSearch = st.name.toLowerCase().includes(sSearch.toLowerCase()) || st.roll.toLowerCase().includes(sSearch.toLowerCase());
-                        const matchesStatus = sFilter === 'all' || (sFilter === 'present' && st.status === 'Present') || (sFilter === 'absent' && st.status === 'Absent');
-                        return matchesSearch && matchesStatus && (st.status === 'Present' || st.status === 'Absent');
+                        const matchesSearch = (st.name || '').toLowerCase().includes(sSearch.toLowerCase()) || (st.roll || '').toLowerCase().includes(sSearch.toLowerCase());
+                        const matchesStatus = sFilter === 'all' || 
+                          (sFilter === 'present' && st.status === 'Present') || 
+                          (sFilter === 'absent' && st.status === 'Absent');
+                        return matchesSearch && matchesStatus;
                       });
 
                       return (

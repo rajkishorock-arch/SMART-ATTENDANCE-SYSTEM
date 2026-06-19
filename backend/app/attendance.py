@@ -497,13 +497,37 @@ def get_attendance_sessions_history(
             if not subject:
                 return []
                 
-    # Fetch all students in the subject's branch/department
-    students = db.query(models.StudentModel).filter(models.StudentModel.dep == subject.department).all()
-    
-    # Query all attendance logs for this subject
+    # Collect all unique student IDs from attendance logs for this subject
     logs = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.subject_id == subject_id
     ).all()
+    
+    # Get all student IDs that appear in logs
+    logged_student_ids = set(log.id for log in logs)
+    
+    # Fetch students from DB: 
+    # 1. All students from the subject's department (exact match)
+    # 2. PLUS any students who actually have attendance logs (regardless of department)
+    dept_students = db.query(models.StudentModel).filter(
+        models.StudentModel.dep == subject.department
+    ).all()
+    dept_student_ids = set(str(s.id) for s in dept_students)
+    
+    # Students in logs but not in dept list (department mismatch case)
+    extra_ids = logged_student_ids - dept_student_ids
+    extra_students = []
+    if extra_ids:
+        extra_ids_int = [int(sid) for sid in extra_ids if sid.isdigit()]
+        if extra_ids_int:
+            extra_students = db.query(models.StudentModel).filter(
+                models.StudentModel.id.in_(extra_ids_int)
+            ).all()
+    
+    students = dept_students + extra_students
+    
+    # If no department students found, fall back to ALL students (robust fallback)
+    if not students:
+        students = db.query(models.StudentModel).all()
     
     # Group logs by (date, time) where time is the Period
     sessions_map = {}
@@ -542,11 +566,11 @@ def get_attendance_sessions_history(
                 "name": s.name,
                 "roll": s.roll,
                 "dep": s.dep,
-                "course": s.course,
-                "year": s.year,
-                "semester": s.semester,
-                "email": s.email,
-                "phone": s.phone,
+                "course": s.course or "",
+                "year": s.year or "",
+                "semester": s.semester or "",
+                "email": s.email or "",
+                "phone": s.phone or "",
                 "status": "Present" if is_present else "Absent"
             })
             
@@ -559,4 +583,5 @@ def get_attendance_sessions_history(
         })
         
     return history
+
 

@@ -94,3 +94,56 @@ def calculate_ear(landmarks, eye_indices):
     except Exception:
         return 0.0
 
+
+def get_db_connection():
+    """
+    Parses DATABASE_URL from .env file and returns a MySQL connection.
+    Falls back to local connection if DATABASE_URL is not set or invalid.
+    """
+    import os
+    import mysql.connector
+    from urllib.parse import urlparse, unquote
+    from dotenv import load_dotenv
+    
+    # Load .env variables from current or parent directories
+    load_dotenv()
+    
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        print("DATABASE_URL environment variable is missing, falling back to local database.")
+        return mysql.connector.connect(
+            host="localhost",
+            username="root",
+            password="raj@9211",
+            database="face"
+        )
+        
+    try:
+        cleaned_url = db_url
+        if cleaned_url.startswith("mysql+mysqlconnector://"):
+            cleaned_url = cleaned_url.replace("mysql+mysqlconnector://", "mysql://", 1)
+        
+        parsed = urlparse(cleaned_url)
+        username = unquote(parsed.username) if parsed.username else ""
+        password = unquote(parsed.password) if parsed.password else ""
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 3306
+        database = parsed.path.lstrip('/') if parsed.path else ""
+        
+        return mysql.connector.connect(
+            host=host,
+            port=port,
+            user=username,
+            password=password,
+            database=database
+        )
+    except Exception as e:
+        print(f"Error connecting to Aiven Cloud database: {e}. Falling back to local database.")
+        return mysql.connector.connect(
+            host="localhost",
+            username="root",
+            password="raj@9211",
+            database="face"
+        )
+
+

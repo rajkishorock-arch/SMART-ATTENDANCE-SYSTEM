@@ -264,12 +264,12 @@ def get_attendance_report(
         except ValueError:
             return None
 
-    # Fetch unique working dates across the entire system within the range for this subject
+    # Fetch attendance logs for this subject
     attendance_query = db.query(models.AttendanceModel).filter(models.AttendanceModel.attendance == "Present")
-    if department:
-        attendance_query = attendance_query.filter(models.AttendanceModel.department == department)
     if subject_id is not None:
         attendance_query = attendance_query.filter(models.AttendanceModel.subject_id == subject_id)
+    elif department:
+        attendance_query = attendance_query.filter(models.AttendanceModel.department == department)
         
     all_logs = attendance_query.all()
     
@@ -285,11 +285,23 @@ def get_attendance_report(
 
     total_working_days = len(system_dates)
 
-    # Fetch all students optionally filtered by department
+    # Fetch students: first try by department, then fall back to students from attendance logs
     student_query = db.query(models.StudentModel)
     if department:
-        student_query = student_query.filter(models.StudentModel.dep == department)
-    students = student_query.all()
+        students = student_query.filter(models.StudentModel.dep == department).all()
+        # Fallback: if no dept match, get students from attendance logs
+        if not students and subject_id is not None:
+            logged_ids_raw = [log.id for log in all_logs if log.id and log.id.isdigit()]
+            logged_ids = list(set(int(i) for i in logged_ids_raw))
+            if logged_ids:
+                students = db.query(models.StudentModel).filter(
+                    models.StudentModel.id.in_(logged_ids)
+                ).all()
+        # Last resort: all students
+        if not students:
+            students = student_query.all()
+    else:
+        students = student_query.all()
 
     from collections import Counter
     presents_count = Counter()

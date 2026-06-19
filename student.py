@@ -6,7 +6,7 @@ from PIL import Image, ImageTk
 from tkinter import messagebox
 import mysql.connector
 import cv2
-from face_utils import open_camera, preprocess_face
+from face_utils import open_camera, preprocess_face, get_db_connection
 
 class Student:
     def __init__(self, root):
@@ -367,9 +367,11 @@ class Student:
             messagebox.showerror("Error", "All fields are required", parent=self.root)
         else:
             try:
-                conn=mysql.connector.connect(host="localhost", username="root", password="raj@9211", database="face")
+                conn=get_db_connection()
                 my_cursor=conn.cursor()
-                my_cursor.execute("insert into student values(  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s,%s)", (
+                my_cursor.execute(
+                    "INSERT INTO student (`dep`, `course`, `year`, `semester`, `id`, `name`, `div`, `roll`, `gender`, `dob`, `email`, `phone`, `address`, `teacher`, `photo`) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (
                     self.var_dep.get(),
                     self.var_course.get(),
                     self.var_year.get(),
@@ -396,9 +398,9 @@ class Student:
 
     #fetch data
     def fetch_data(self):
-        conn=mysql.connector.connect(host="localhost", username="root", password="raj@9211", database="face")
+        conn=get_db_connection()
         my_cursor=conn.cursor()
-        my_cursor.execute("select * from student")
+        my_cursor.execute("select `dep`, `course`, `year`, `semester`, `id`, `name`, `div`, `roll`, `gender`, `dob`, `email`, `phone`, `address`, `teacher`, `photo` from student")
         data=my_cursor.fetchall()
 
         if len(data) != 0:
@@ -440,7 +442,7 @@ class Student:
             try:
                 Update = messagebox.askyesno("Update", "Do you want to update this student details?", parent=self.root)
                 if Update > 0:
-                    conn=mysql.connector.connect(host="localhost", username="root", password="raj@9211", database="face")
+                    conn=get_db_connection()
                     my_cursor=conn.cursor()
                     print("UPDATE BUTTON CLICKED")
                     print("ID =", self.var_id.get())
@@ -479,7 +481,7 @@ class Student:
             try:
                 delete = messagebox.askyesno("Delete", "Do you want to delete this student details?", parent=self.root)
                 if delete > 0:
-                    conn=mysql.connector.connect(host="localhost", username="root", password="raj@9211", database="face")
+                    conn=get_db_connection()
                     my_cursor=conn.cursor()
                     sql = "delete from student where id=%s"
                     val = (self.var_id.get(),)
@@ -518,9 +520,9 @@ class Student:
             messagebox.showerror("Error", "All fields are required", parent=self.root)  
         else:
             try:
-                conn=mysql.connector.connect(host="localhost", username="root", password="raj@9211", database="face")
+                conn=get_db_connection()
                 my_cursor=conn.cursor()
-                my_cursor.execute("select * from student where  id=%s", (self.var_id.get(),))
+                my_cursor.execute("select `id` from student where id=%s", (self.var_id.get(),))
                 myresult=my_cursor.fetchall()
                 id = 0
                 for x in myresult:

@@ -23,6 +23,7 @@ from face_utils import (
     RIGHT_EYE_EAR_INDICES,
     EAR_THRESHOLD,
     calculate_ear,
+    get_db_connection,
 )
 
 class Face_Recognition:
@@ -375,12 +376,7 @@ class Face_Recognition:
             return
 
         try:
-            conn = mysql.connector.connect(
-                host="localhost",
-                username="root",
-                password="raj@9211",
-                database="face",
-            )
+            conn = get_db_connection()
             my_cursor = conn.cursor()
             my_cursor.execute("select `id`, `name`, `roll`, `dep` from student")
             student_records = {
@@ -479,12 +475,7 @@ class Face_Recognition:
 
         # Write to MySQL DB
         try:
-            conn = mysql.connector.connect(
-                host="localhost",
-                username="root",
-                password="raj@9211",
-                database="face",
-            )
+            conn = get_db_connection()
             my_cursor = conn.cursor()
             my_cursor.execute("select id from attendence where id = %s and date = %s", (str(student_id), date_string))
             existing_db = my_cursor.fetchone()

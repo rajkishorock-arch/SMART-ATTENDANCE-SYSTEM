@@ -178,7 +178,8 @@ class Attendence:
         self.fetchData()
 
     def connectDb(self):
-        return mysql.connector.connect(host="localhost", username="root", password="raj@9211", database="face")
+        from face_utils import get_db_connection
+        return get_db_connection()
 
     def createAttendanceTable(self):
         try:

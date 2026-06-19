@@ -427,11 +427,36 @@ def list_students(
     if current_user.role == "teacher":
         teacher_subjects = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).all()
         if not teacher_subjects:
-            return []
+            # No subject assigned to teacher yet - return all students as fallback
+            return crud.get_students(db)
         teacher_departments = [s.department for s in teacher_subjects]
-        return db.query(models.StudentModel).filter(models.StudentModel.dep.in_(teacher_departments)).all()
+        
+        # Primary: filter by department name
+        students = db.query(models.StudentModel).filter(
+            models.StudentModel.dep.in_(teacher_departments)
+        ).all()
+        
+        # Fallback: if no students found by dept (mismatch), return students who attended teacher's sessions
+        if not students:
+            subject_ids = [s.id for s in teacher_subjects]
+            from sqlalchemy import or_
+            attended_ids_raw = db.query(models.AttendanceModel.id).filter(
+                models.AttendanceModel.subject_id.in_(subject_ids)
+            ).distinct().all()
+            attended_ids = [int(r[0]) for r in attended_ids_raw if r[0] and r[0].isdigit()]
+            if attended_ids:
+                students = db.query(models.StudentModel).filter(
+                    models.StudentModel.id.in_(attended_ids)
+                ).all()
+        
+        # Last resort fallback: return all students if still empty
+        if not students:
+            return crud.get_students(db)
+            
+        return students
         
     return crud.get_students(db)
+
 
 @router.post("/students", response_model=schemas.Student, status_code=status.HTTP_201_CREATED)
 def add_student(
