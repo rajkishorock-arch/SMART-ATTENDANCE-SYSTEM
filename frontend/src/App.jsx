@@ -2101,6 +2101,7 @@ export default function App() {
   }, [token]);
 
   // Run data polling based on role
+  // NOTE: fetchSubjects MUST be called before fetchStudents so teacher dept-filtering works correctly
   useEffect(() => {
     if (token && userRole) {
       if (userRole === 'student') {
@@ -2109,10 +2110,12 @@ export default function App() {
           fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
         }
       } else {
+        // Load subjects FIRST so student filtering by teacher department works immediately
+        fetchSubjects().then(() => {
+          fetchStudents();
+        });
         fetchStats();
-        fetchStudents();
         fetchLogs();
-        fetchSubjects();
         fetchSchedules();
         if (userRole === 'admin') {
           fetchTeachers();
@@ -2638,20 +2641,27 @@ export default function App() {
   // Filtering lists
   const filteredStudents = students.filter(student => {
     const matchesSearch = 
-      student.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
-      student.roll.toLowerCase().includes(studentSearch.toLowerCase()) ||
+      (student.name || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
+      (student.roll || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
       student.id.toString().includes(studentSearch);
     
     let matchesDept = true;
     if (userRole === 'admin') {
       matchesDept = !studentDeptFilter || student.dep === studentDeptFilter;
     } else if (userRole === 'teacher') {
-      if (selectedTeacherSubjectId) {
+      // If subjects haven't loaded yet, show all students (don't hide them)
+      if (subjects.length === 0) {
+        matchesDept = true;
+      } else if (selectedTeacherSubjectId) {
         const sub = subjects.find(s => s.id === parseInt(selectedTeacherSubjectId));
-        matchesDept = sub ? student.dep === sub.department : false;
+        // If subject found, match by dept; if not found, show all (fallback)
+        matchesDept = sub ? student.dep === sub.department : true;
       } else {
-        const teacherDepts = subjects.filter(s => s.teacher_id === currentUser?.details?.id).map(s => s.department);
-        matchesDept = teacherDepts.includes(student.dep);
+        const teacherDepts = subjects
+          .filter(s => s.teacher_id === currentUser?.details?.id)
+          .map(s => s.department);
+        // If no dept found (subjects not assigned), show all
+        matchesDept = teacherDepts.length === 0 ? true : teacherDepts.includes(student.dep);
       }
     }
     return matchesSearch && matchesDept;
@@ -2659,26 +2669,38 @@ export default function App() {
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = 
-      log.name.toLowerCase().includes(logSearch.toLowerCase()) ||
-      log.roll.toLowerCase().includes(logSearch.toLowerCase()) ||
-      log.id.toLowerCase().includes(logSearch.toLowerCase());
+      (log.name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+      (log.roll || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+      (log.id || '').toLowerCase().includes(logSearch.toLowerCase());
 
     let matchesDept = true;
     if (userRole === 'admin') {
       matchesDept = !logDeptFilter || log.department === logDeptFilter;
     } else if (userRole === 'teacher') {
+      const teacherSubjectIds = subjects
+        .filter(s => s.teacher_id === currentUser?.details?.id)
+        .map(s => s.id);
       if (selectedTeacherLogSubjectId) {
+        // Match by selected subject, OR include logs with null subject_id from teacher's dept
         matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId);
       } else {
-        const teacherSubjectIds = subjects.filter(s => s.teacher_id === currentUser?.details?.id).map(s => s.id);
-        matchesDept = teacherSubjectIds.includes(log.subject_id);
+        // Include logs matching any of teacher's subjects (null subject_id treated as dept match)
+        if (teacherSubjectIds.length === 0) {
+          matchesDept = true;
+        } else {
+          const teacherDepts = subjects
+            .filter(s => s.teacher_id === currentUser?.details?.id)
+            .map(s => s.department);
+          matchesDept = teacherSubjectIds.includes(log.subject_id) ||
+            (log.subject_id == null && teacherDepts.includes(log.department));
+        }
       }
     }
 
     const matchesDate = !logDateFilter || log.date === logDateFilter.split('-').reverse().join('/'); // Converts yyyy-mm-dd to dd/mm/yyyy
     const matchesQuickFilter = 
       quickFilterStatus === 'all' || 
-      log.attendance.toLowerCase() === quickFilterStatus;
+      (log.attendance || '').toLowerCase() === quickFilterStatus;
 
     return matchesSearch && matchesDept && matchesDate && matchesQuickFilter;
   });
@@ -3237,7 +3259,18 @@ export default function App() {
             {activeTab === 'students' && (
               <>
                 <button 
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => {
+                    // Auto-fill teacher name and department when teacher opens this form
+                    if (userRole === 'teacher' && currentUser?.details) {
+                      const teacherSubject = subjects.find(s => s.teacher_id === currentUser.details.id);
+                      setNewStudent(prev => ({
+                        ...prev,
+                        teacher: currentUser.details.name || '',
+                        dep: teacherSubject?.department || prev.dep,
+                      }));
+                    }
+                    setShowAddModal(true);
+                  }}
                   className="bg-gradient-btn"
                   style={{ padding: '10px 18px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}
                 >

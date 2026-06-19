@@ -85,9 +85,10 @@ def get_attendance_logs(
     department: Optional[str] = None, 
     attendance_status: Optional[str] = None, 
     skip: int = 0, 
-    limit: int = 100,
+    limit: int = 200,
     subject_ids: Optional[list] = None
 ):
+    from sqlalchemy import or_
     query = db.query(models.AttendanceModel)
     if date_str:
         query = query.filter(models.AttendanceModel.date == date_str)
@@ -96,7 +97,13 @@ def get_attendance_logs(
     if attendance_status:
         query = query.filter(models.AttendanceModel.attendance == attendance_status)
     if subject_ids is not None:
-        query = query.filter(models.AttendanceModel.subject_id.in_(subject_ids))
+        # Include records matching subject_ids OR records with null subject_id (legacy attendance)
+        query = query.filter(
+            or_(
+                models.AttendanceModel.subject_id.in_(subject_ids),
+                models.AttendanceModel.subject_id == None
+            )
+        )
     return query.order_by(models.AttendanceModel.date.desc(), models.AttendanceModel.time.desc()).offset(skip).limit(limit).all()
 
 def get_dashboard_stats(db: Session):

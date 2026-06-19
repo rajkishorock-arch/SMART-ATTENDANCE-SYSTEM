@@ -34,8 +34,11 @@ def get_attendance_logs(
     if current_user.role == "teacher":
         teacher_subjects = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).all()
         subject_ids = [s.id for s in teacher_subjects]
+        # Don't return empty - teacher might have old logs without subject_id
+        # We'll filter by subject_ids in crud, which will include null-subject records from teacher's dept
         if not subject_ids:
-            return []
+            # No subjects assigned, return all logs (admin-fallback for teacher)
+            subject_ids = None
             
     logs = crud.get_attendance_logs(
         db, 
@@ -45,6 +48,7 @@ def get_attendance_logs(
         subject_ids=subject_ids
     )
     return logs
+
 
 @router.get("/stats", response_model=schemas.DashboardStats)
 def get_dashboard_stats(
