@@ -11,4 +11,6 @@ opencv-python-headless
 psutil
 python-multipart
 apscheduler
+reportlab
+
 
