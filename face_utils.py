@@ -147,3 +147,99 @@ def get_db_connection():
         )
 
 
+def draw_hud_boundary(img, x, y, w, h, color, text_label, tracking_info=None):
+    """
+    Draws a futuristic sci-fi face scanning HUD around the bounding box (x, y, w, h).
+    Includes corner brackets, animated scan line, and an overlay info panel.
+    """
+    import time
+    import math
+
+    # 1. Draw a thin boundary rectangle
+    cv2.rectangle(img, (x, y), (x + w, y + h), color, 1, lineType=cv2.LINE_AA)
+
+    # 2. Draw futuristic L-shaped corner brackets (thick)
+    thickness = 3
+    length = int(min(w, h) * 0.15)  # 15% of face size
+    
+    # Top-Left corner
+    cv2.line(img, (x, y), (x + length, y), color, thickness)
+    cv2.line(img, (x, y), (x, y + length), color, thickness)
+    # Top-Right corner
+    cv2.line(img, (x + w, y), (x + w - length, y), color, thickness)
+    cv2.line(img, (x + w, y), (x + w, y + length), color, thickness)
+    # Bottom-Left corner
+    cv2.line(img, (x, y + h), (x + length, y + h), color, thickness)
+    cv2.line(img, (x, y + h), (x, y + h - length), color, thickness)
+    # Bottom-Right corner
+    cv2.line(img, (x + w, y + h), (x + w - length, y + h), color, thickness)
+    cv2.line(img, (x + w, y + h), (x + w, y + h - length), color, thickness)
+
+    # 3. Animated horizontal scanning line (oscillating)
+    scan_speed = 4.0
+    pos = (math.sin(time.time() * scan_speed) + 1.0) / 2.0
+    scan_y = int(y + pos * h)
+    
+    # Draw laser line
+    cv2.line(img, (x, scan_y), (x + w, scan_y), color, 2, lineType=cv2.LINE_AA)
+    # Edge glowing circles
+    cv2.circle(img, (x, scan_y), 4, color, -1)
+    cv2.circle(img, (x + w, scan_y), 4, color, -1)
+
+    # 4. Translucent Info Panel (HUD details)
+    lines = []
+    if tracking_info:
+        lines.append(f"NAME: {tracking_info.get('name', 'Unknown')}")
+        lines.append(f"ROLL: {tracking_info.get('roll', 'Unknown')}")
+        lines.append(f"DEPT: {tracking_info.get('dep', 'Unknown')}")
+        lines.append(f"DIST: {tracking_info.get('dist', 0.0):.1f}")
+        lines.append(f"LIVENESS: {tracking_info.get('liveness', 'Pending')}")
+    else:
+        lines.append(f"STATUS: {text_label}")
+        lines.append("LIVENESS: PENDING")
+
+    # Determine layout of text box
+    panel_padding = 8
+    line_height = 16
+    panel_w = int(w * 1.1)
+    if panel_w < 180:
+        panel_w = 180
+    panel_h = len(lines) * line_height + (panel_padding * 2)
+
+    # Align panel to the side or top of the scanning box
+    panel_x1 = x + w + 10
+    panel_y1 = y
+    
+    # Check if panel goes off-screen right
+    frame_h, frame_w, _ = img.shape
+    if panel_x1 + panel_w > frame_w:
+        # Fallback to drawing above the box
+        panel_x1 = x
+        panel_y1 = max(10, y - panel_h - 10)
+        
+    panel_x2 = panel_x1 + panel_w
+    panel_y2 = panel_y1 + panel_h
+
+    # Ensure coordinates are within image boundaries
+    panel_x1 = max(0, min(panel_x1, frame_w - 1))
+    panel_x2 = max(0, min(panel_x2, frame_w - 1))
+    panel_y1 = max(0, min(panel_y1, frame_h - 1))
+    panel_y2 = max(0, min(panel_y2, frame_h - 1))
+
+    if panel_x2 > panel_x1 and panel_y2 > panel_y1:
+        # Draw translucent background panel
+        overlay = img.copy()
+        cv2.rectangle(overlay, (panel_x1, panel_y1), (panel_x2, panel_y2), (0, 0, 0), -1)
+        cv2.addWeighted(overlay, 0.45, img, 0.55, 0, img)
+        
+        # Draw thin border around panel
+        cv2.rectangle(img, (panel_x1, panel_y1), (panel_x2, panel_y2), color, 1, lineType=cv2.LINE_AA)
+        
+        # Render text list
+        current_y = panel_y1 + panel_padding + 10
+        for line in lines:
+            cv2.putText(img, line, (panel_x1 + 10, current_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+            current_y += line_height
+
+
+

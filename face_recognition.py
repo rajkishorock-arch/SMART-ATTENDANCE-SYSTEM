@@ -24,6 +24,7 @@ from face_utils import (
     EAR_THRESHOLD,
     calculate_ear,
     get_db_connection,
+    draw_hud_boundary,
 )
 
 class Face_Recognition:
@@ -286,42 +287,30 @@ class Face_Recognition:
                     if last_dist is not None and last_dist > 80.0:
                         continue
 
-                    cv2.rectangle(
-                        img, (x, y), (x + w, y + h), (0, 0, 255), 3
-                    )
-                    cv2.putText(
-                        img,
-                        "Scanning...",
-                        (x, max(25, y - 8)),
-                        cv2.FONT_HERSHEY_COMPLEX,
-                        0.8,
-                        (255, 255, 255),
-                        2,
-                    )
+                    draw_hud_boundary(img, x, y, w, h, (0, 0, 255), "SCANNING...")
                     continue
 
                 n, r, d = student_records[stable_id]
                 is_verified = track.get("liveness_verified", False)
                 blinks = track.get("blink_count", 0)
+                last_dist = track.get("last_distance", 0.0)
 
                 if is_verified:
                     color = (0, 255, 0)
-                    status_str = "Liveness: Verified"
+                    status_str = "Verified"
                 else:
                     color = (255, 120, 0)
-                    status_str = f"Liveness: Checking (Blinks: {blinks}/2)"
+                    status_str = f"Checking Blinks ({blinks}/2)"
 
-                cv2.rectangle(
-                    img, (x, y), (x + w, y + h), color, 3
-                )
-                text_y = max(25, y - 105)
-                last_dist = track.get("last_distance")
-                cv2.putText(img, f"ID: {stable_id}", (x, text_y), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(img, f"Dist: {last_dist:.1f}" if isinstance(last_dist, (int, float)) else f"Dist: {last_dist}", (x, text_y + 20), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(img, f"Roll: {r}", (x, text_y + 40), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(img, f"Name: {n}", (x, text_y + 60), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(img, f"Dept: {d}", (x, text_y + 80), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(img, status_str, (x, text_y + 100), cv2.FONT_HERSHEY_COMPLEX, 0.7, color, 2)
+                tracking_info = {
+                    "name": n,
+                    "roll": r,
+                    "dep": d,
+                    "dist": last_dist,
+                    "liveness": status_str
+                }
+
+                draw_hud_boundary(img, x, y, w, h, color, f"ID: {stable_id}", tracking_info)
 
                 if is_verified and stable_id not in attendance_marked_ids:
                     self.mark_attendance(stable_id, r, n, d)
