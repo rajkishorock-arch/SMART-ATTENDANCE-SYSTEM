@@ -1,4 +1,5 @@
 import cv2
+from tkinter import Canvas, ARC
 
 
 FACE_SIZE = (200, 200)
@@ -237,9 +238,182 @@ def draw_hud_boundary(img, x, y, w, h, color, text_label, tracking_info=None):
         
         # Render text list
         current_y = panel_y1 + panel_padding + 10
+        # Render text list
+        current_y = panel_y1 + panel_padding + 10
         for line in lines:
             cv2.putText(img, line, (panel_x1 + 10, current_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
             current_y += line_height
 
+
+class TechRadarCanvas(Canvas):
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.angle = 0
+        self.pulse = 0
+        self.draw_radar()
+        
+    def draw_radar(self):
+        try:
+            self.delete("all")
+            width = int(self.cget("width"))
+            height = int(self.cget("height"))
+            cx, cy = width // 2, height // 2
+            r = min(cx, cy) - 35
+            
+            # Draw radar background (dark green circular sweeps)
+            self.create_oval(cx-r, cy-r, cx+r, cy+r, outline="#003300", width=1)
+            self.create_oval(cx-r*0.6, cy-r*0.6, cx+r*0.6, cy+r*0.6, outline="#003300", width=1, dash=(5,5))
+            self.create_oval(cx-r*0.3, cy-r*0.3, cx+r*0.3, cy+r*0.3, outline="#003300", width=1, dash=(3,3))
+            
+            self.create_line(cx-r, cy, cx+r, cy, fill="#003300", width=1)
+            self.create_line(cx, cy-r, cx, cy+r, fill="#003300", width=1)
+            
+            # Draw pulsing ring (neon cyan)
+            self.pulse = (self.pulse + 1.5) % r
+            pulse_color = "#00ffff"
+            self.create_oval(cx-self.pulse, cy-self.pulse, cx+self.pulse, cy+self.pulse, outline=pulse_color, width=2)
+            
+            # Draw rotating sweep line
+            import math
+            rad = math.radians(self.angle)
+            sx = cx + r * math.cos(rad)
+            sy = cy - r * math.sin(rad)
+            self.create_line(cx, cy, sx, sy, fill="#00ff00", width=2)
+            
+            # Draw sweeping arc fading gradient
+            self.create_arc(cx-r, cy-r, cx+r, cy+r, start=self.angle, extent=-45, fill="", outline="#00ff00", width=1, style=ARC)
+            
+            # Core glowing indicator
+            self.create_oval(cx-4, cy-4, cx+4, cy+4, fill="#00ffff", outline="")
+            
+            # Tech HUD labels
+            self.create_text(cx, cy - r - 15, text="SYSTEM STATUS: ENGAGED", fill="#00ff00", font=("Courier", 8, "bold"))
+            self.create_text(cx, cy + r + 15, text="SCAN RETICLE ACTIVE", fill="#00ffff", font=("Courier", 8, "bold"))
+            
+            self.angle = (self.angle + 3) % 360
+            self.after(30, self.draw_radar)
+        except Exception:
+            pass
+
+
+def animate_typewriter(label, text, delay=35, index=0):
+    """
+    Types text sequentially character by character on a Tkinter Label.
+    """
+    try:
+        if index <= len(text):
+            label.config(text=text[:index])
+            label.after(delay, lambda: animate_typewriter(label, text, delay, index + 1))
+    except Exception:
+        pass
+
+
+def animate_neon_pulse(label, colors=None, delay=1200, index=0):
+    """
+    Slowly transitions label text color through tech/neon tones.
+    """
+    if colors is None:
+        colors = ["#00ffff", "#00ff00", "#ff00ff", "#ffffff", "#0088ff"]
+    try:
+        current_color = colors[index % len(colors)]
+        label.config(fg=current_color)
+        label.after(delay, lambda: animate_neon_pulse(label, colors, delay, index + 1))
+    except Exception:
+        pass
+
+
+def bind_button_glow(button, hover_bg="#00ff00", hover_fg="black", normal_bg="darkblue", normal_fg="white"):
+    """
+    Adds interactive hover glowing effect to any button.
+    """
+    try:
+        button.config(bg=normal_bg, fg=normal_fg, activebackground=hover_bg, activeforeground=hover_fg)
+        button.bind("<Enter>", lambda e: button.config(bg=hover_bg, fg=hover_fg))
+        button.bind("<Leave>", lambda e: button.config(bg=normal_bg, fg=normal_fg))
+    except Exception:
+        pass
+
+
+def draw_robotic_boot_frame(width, height, progress, status_line, tick=0):
+    """Draws a single sci-fi boot frame for camera startup."""
+    import math
+    import numpy as np
+
+    frame = np.zeros((height, width, 3), dtype=np.uint8)
+    frame[:] = (8, 12, 18)
+
+    grid_color = (20, 45, 55)
+    for x in range(0, width, 32):
+        cv2.line(frame, (x, 0), (x, height), grid_color, 1, lineType=cv2.LINE_AA)
+    for y in range(0, height, 32):
+        cv2.line(frame, (0, y), (width, y), grid_color, 1, lineType=cv2.LINE_AA)
+
+    cx, cy = width // 2, height // 2 - 40
+    for radius in (90, 65, 40):
+        cv2.circle(frame, (cx, cy), radius, (0, 180, 200), 1, lineType=cv2.LINE_AA)
+
+    sweep_angle = (tick * 8) % 360
+    rad = math.radians(sweep_angle)
+    sx = int(cx + 90 * math.cos(rad))
+    sy = int(cy - 90 * math.sin(rad))
+    cv2.line(frame, (cx, cy), (sx, sy), (0, 255, 180), 2, lineType=cv2.LINE_AA)
+    cv2.circle(frame, (cx, cy), 4, (0, 255, 255), -1, lineType=cv2.LINE_AA)
+
+    bracket_len = 28
+    margin = 24
+    corners = [
+        ((margin, margin), (margin + bracket_len, margin), (margin, margin + bracket_len)),
+        ((width - margin, margin), (width - margin - bracket_len, margin), (width - margin, margin + bracket_len)),
+        ((margin, height - margin), (margin + bracket_len, height - margin), (margin, height - margin - bracket_len)),
+        ((width - margin, height - margin), (width - margin - bracket_len, height - margin), (width - margin, height - margin - bracket_len)),
+    ]
+    for p1, p2, p3 in corners:
+        cv2.line(frame, p1, p2, (0, 220, 255), 2, lineType=cv2.LINE_AA)
+        cv2.line(frame, p1, p3, (0, 220, 255), 2, lineType=cv2.LINE_AA)
+
+    cv2.putText(frame, "ROBOTIC SCANNER v2.0", (margin, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 220, 255), 1, cv2.LINE_AA)
+    cv2.putText(frame, "SEC_CAM_DESKTOP", (width - 220, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 140), 1, cv2.LINE_AA)
+    cv2.putText(frame, f"> {status_line}", (margin, height - 90), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (180, 255, 255), 1, cv2.LINE_AA)
+
+    bar_x, bar_y, bar_w, bar_h = margin, height - 52, width - (margin * 2), 12
+    cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_w, bar_y + bar_h), (30, 60, 70), 1, lineType=cv2.LINE_AA)
+    fill_w = int(bar_w * max(0.0, min(progress, 1.0)))
+    if fill_w > 0:
+        cv2.rectangle(frame, (bar_x, bar_y), (bar_x + fill_w, bar_y + bar_h), (0, 220, 255), -1, lineType=cv2.LINE_AA)
+    cv2.putText(frame, f"SYSTEM BOOT {int(progress * 100)}%", (bar_x, bar_y - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (140, 170, 180), 1, cv2.LINE_AA)
+
+    scan_y = int((math.sin(tick * 0.18) + 1) * 0.5 * (height - 40)) + 20
+    cv2.line(frame, (margin, scan_y), (width - margin, scan_y), (0, 180, 220), 1, lineType=cv2.LINE_AA)
+
+    return frame
+
+
+def play_camera_boot_sequence(window_name="Welcome to Face Recognition", duration_sec=2.8):
+    """Shows a short robotic boot animation before live camera feed."""
+    boot_lines = [
+        "INITIALIZING OPTICAL FEED...",
+        "CALIBRATING BIOMETRIC SENSORS...",
+        "LOADING LBPH NEURAL ENGINE...",
+        "ACTIVATING LIVENESS PROTOCOL...",
+        "SEC_CAM ONLINE — AWAITING SUBJECT",
+    ]
+    width, height = 960, 540
+    total_frames = max(30, int(duration_sec * 30))
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+
+    for tick in range(total_frames):
+        progress = tick / float(total_frames - 1)
+        line_idx = min(len(boot_lines) - 1, int(progress * len(boot_lines)))
+        frame = draw_robotic_boot_frame(width, height, progress, boot_lines[line_idx], tick)
+        cv2.imshow(window_name, frame)
+        if cv2.waitKey(33) in (13, 27):
+            break
+
+    for glitch_tick in range(6):
+        frame = draw_robotic_boot_frame(width, height, 1.0, boot_lines[-1], tick + glitch_tick)
+        if glitch_tick % 2 == 0:
+            frame = cv2.convertScaleAbs(frame, alpha=1.2, beta=20)
+        cv2.imshow(window_name, frame)
+        cv2.waitKey(40)
 
 

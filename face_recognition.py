@@ -25,6 +25,7 @@ from face_utils import (
     calculate_ear,
     get_db_connection,
     draw_hud_boundary,
+    play_camera_boot_sequence,
 )
 
 class Face_Recognition:
@@ -403,6 +404,8 @@ class Face_Recognition:
             return
 
         print(f"Using camera index: {camera_index}")
+
+        play_camera_boot_sequence("Welcome to Face Recognition")
 
         while True:
             ret, img = video_cap.read()

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import ScannerBootOverlay from './ScannerBootOverlay';
 import { 
   Users, 
   CheckCircle2, 
@@ -196,6 +197,9 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState('Camera Offline');
   const [showScannerModal, setShowScannerModal] = useState(false);
+  const [scannerBootActive, setScannerBootActive] = useState(false);
+  const [webcamBootActive, setWebcamBootActive] = useState(false);
+  const [studentWebcamBootActive, setStudentWebcamBootActive] = useState(false);
 
   // Voice Assistant States
   const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -748,6 +752,7 @@ export default function App() {
 
   const startWebcam = async () => {
     setWebcamError('');
+    setWebcamBootActive(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 640, height: 480, facingMode: 'user' } 
@@ -756,11 +761,18 @@ export default function App() {
         videoRef.current.srcObject = stream;
       }
       streamRef.current = stream;
-      setWebcamActive(true);
     } catch (err) {
+      setWebcamBootActive(false);
       setWebcamError('Unable to access webcam. Please check permissions.');
     }
   };
+
+  const handleWebcamBootComplete = useCallback(() => {
+    setWebcamBootActive(false);
+    setWebcamActive(true);
+    playCyberSound('success');
+    addDiagnosticLog('Admin capture optics online.');
+  }, []);
 
   const stopWebcam = () => {
     if (streamRef.current) {
@@ -770,6 +782,7 @@ export default function App() {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+    setWebcamBootActive(false);
     setWebcamActive(false);
     setIsCapturing(false);
   };
@@ -815,6 +828,7 @@ export default function App() {
       addDiagnosticLog('WARN: Geolocation not supported by client.');
     }
 
+    setScannerBootActive(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 640, height: 480, facingMode: 'user' } 
@@ -823,21 +837,29 @@ export default function App() {
         attendanceVideoRef.current.srcObject = stream;
       }
       attendanceStreamRef.current = stream;
-      setAttendanceActive(true);
-      setScanStatus('Scanning...');
-      addDiagnosticLog('Secure optical feed active: SEC_CAM_01');
-      addDiagnosticLog('Initializing FaceMesh coordinate mapping...');
-      handleSpeak(
-        "Scanner started. Ready for scanning.",
-        "स्कैनर शुरू हो गया है। कृपया कैमरे की तरफ देखें।",
-        "Scanner start ho gaya hai. Please camera ki taraf dekhein."
-      );
+      setScanStatus('Boot sequence...');
+      addDiagnosticLog('Optical array initializing: SEC_CAM_01');
     } catch (err) {
+      setScannerBootActive(false);
       setAttendanceError('Unable to access webcam. Please check permissions.');
       setScanStatus('Camera Error');
       addDiagnosticLog('ERROR: Camera interface binding failed.');
     }
   };
+
+  const handleScannerBootComplete = useCallback(() => {
+    setScannerBootActive(false);
+    setAttendanceActive(true);
+    setScanStatus('Scanning...');
+    playCyberSound('success');
+    addDiagnosticLog('Secure optical feed active: SEC_CAM_01');
+    addDiagnosticLog('Initializing FaceMesh coordinate mapping...');
+    handleSpeak(
+      "Scanner started. Ready for scanning.",
+      "स्कैनर शुरू हो गया है। कृपया कैमरे की तरफ देखें।",
+      "Scanner start ho gaya hai. Please camera ki taraf dekhein."
+    );
+  }, []);
 
   const stopAttendanceCam = () => {
     playCyberSound('click');
@@ -853,6 +875,7 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
+    setScannerBootActive(false);
     setAttendanceActive(false);
     setUserCoords(null);
     setGeoTrackingError('');
@@ -2003,6 +2026,7 @@ export default function App() {
   const startStudentWebcam = async () => {
     setSelfieError('');
     setSelfieSuccess('');
+    setStudentWebcamBootActive(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 640, height: 480, facingMode: 'user' } 
@@ -2011,11 +2035,17 @@ export default function App() {
         studentVideoRef.current.srcObject = stream;
       }
       studentStreamRef.current = stream;
-      setStudentWebcamActive(true);
     } catch (err) {
+      setStudentWebcamBootActive(false);
       setSelfieError('Unable to access webcam. Please check permissions.');
     }
   };
+
+  const handleStudentWebcamBootComplete = useCallback(() => {
+    setStudentWebcamBootActive(false);
+    setStudentWebcamActive(true);
+    playCyberSound('success');
+  }, []);
 
   const stopStudentWebcam = () => {
     if (studentStreamRef.current) {
@@ -2025,6 +2055,7 @@ export default function App() {
     if (studentVideoRef.current) {
       studentVideoRef.current.srcObject = null;
     }
+    setStudentWebcamBootActive(false);
     setStudentWebcamActive(false);
   };
 
@@ -2948,12 +2979,28 @@ export default function App() {
             <div style={{ position: 'absolute', bottom: 12, right: 12, width: 28, height: 28, borderBottom: '3px solid #00f2fe', borderRight: '3px solid #00f2fe', borderRadius: '0 0 3px 0', zIndex: 10, opacity: 0.8 }} />
 
             {/* Scanning line animation */}
-            {attendanceActive && (
+            {attendanceActive && !scannerBootActive && (
               <div style={{
                 position: 'absolute', left: 0, right: 0, height: '2px',
                 background: 'linear-gradient(90deg, transparent, #00f2fe, transparent)',
                 zIndex: 10, animation: 'scanLine 3s linear infinite', opacity: 0.7,
               }} />
+            )}
+
+            {/* Robotic boot sequence */}
+            <ScannerBootOverlay
+              active={scannerBootActive}
+              onComplete={handleScannerBootComplete}
+              label="SEC_CAM_01"
+            />
+
+            {/* Live HUD after boot */}
+            {attendanceActive && !scannerBootActive && (
+              <div className="scanner-live-hud">
+                <div className="scanner-live-grid" />
+                <div className="scanner-live-radar-mini" />
+                <div className="scanner-live-status">● BIOMETRIC SCAN ACTIVE</div>
+              </div>
             )}
 
             {/* Video element */}
@@ -2962,16 +3009,17 @@ export default function App() {
               autoPlay
               playsInline
               muted
+              className={scannerBootActive ? 'scanner-video-booting' : ''}
               style={{
                 width: '100%', height: '100%', objectFit: 'cover',
                 transform: 'scaleX(-1)',
-                display: attendanceActive ? 'block' : 'none',
+                display: (attendanceActive || scannerBootActive) ? 'block' : 'none',
               }}
             />
             <canvas ref={attendanceCanvasRef} style={{ display: 'none' }} />
 
             {/* Offline placeholder */}
-            {!attendanceActive && (
+            {!attendanceActive && !scannerBootActive && (
               <div style={{
                 position: 'absolute', inset: 0,
                 display: 'flex', flexDirection: 'column',
@@ -2992,7 +3040,7 @@ export default function App() {
             padding: '16px 20px',
             display: 'flex', gap: '12px', justifyContent: 'center',
           }}>
-            {!attendanceActive ? (
+            {!attendanceActive && !scannerBootActive ? (
               <button
                 onClick={startAttendanceCam}
                 style={{
@@ -5152,7 +5200,7 @@ export default function App() {
                       color: attendanceActive ? '#10b981' : '#9ca3af',
                       borderRadius: '8px', padding: '3px 12px',
                       fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
-                    }}>{attendanceActive ? '● LIVE' : '○ OFFLINE'}</span>
+                    }}>{(attendanceActive || scannerBootActive) ? (scannerBootActive ? '◌ BOOTING' : '● LIVE') : '○ OFFLINE'}</span>
                   </div>
 
                   {/* Stats row */}
@@ -7123,17 +7171,40 @@ export default function App() {
                   </div>
                 )}
 
-                {studentWebcamActive ? (
+                {(studentWebcamActive || studentWebcamBootActive) ? (
                   <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                     <div className="scanner-container" style={{ position: 'relative', width: '100%', maxWidth: '400px', margin: '0 auto', aspectRatio: '4/3', background: '#111827', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
                       <div className="scanner-bracket bracket-tl" />
                       <div className="scanner-bracket bracket-tr" />
                       <div className="scanner-bracket bracket-bl" />
                       <div className="scanner-bracket bracket-br" />
-                      <div style={{ position: 'absolute', left: 0, width: '100%', height: '2px', background: 'var(--color-primary)', boxShadow: '0 0 8px var(--color-primary)', zIndex: 5, animation: 'scan 3s linear infinite' }} />
+                      {studentWebcamActive && !studentWebcamBootActive && (
+                        <div style={{ position: 'absolute', left: 0, width: '100%', height: '2px', background: 'var(--color-primary)', boxShadow: '0 0 8px var(--color-primary)', zIndex: 5, animation: 'scan 3s linear infinite' }} />
+                      )}
+
+                      <ScannerBootOverlay
+                        active={studentWebcamBootActive}
+                        onComplete={handleStudentWebcamBootComplete}
+                        label="STUD_REG_02"
+                        lines={[
+                          'INITIALIZING SELFIE OPTICS...',
+                          'VALIDATING LIGHTING MATRIX...',
+                          'LOADING FACE MESH ENGINE...',
+                          'PREPARING BIOMETRIC CAPTURE...',
+                          'STUD_REG_02 ONLINE — READY',
+                        ]}
+                      />
+
+                      {studentWebcamActive && !studentWebcamBootActive && (
+                        <div className="scanner-live-hud">
+                          <div className="scanner-live-grid" />
+                          <div className="scanner-live-radar-mini" />
+                          <div className="scanner-live-status">● SELFIE CAPTURE MODE</div>
+                        </div>
+                      )}
                       
                       {/* HUD Sci-Fi telemetry overlay */}
-                      {studentWebcamActive && (
+                      {studentWebcamActive && !studentWebcamBootActive && (
                         <>
                           <div style={{
                             position: 'absolute',
@@ -7184,7 +7255,14 @@ export default function App() {
                         autoPlay 
                         playsInline 
                         muted 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} 
+                        className={studentWebcamBootActive ? 'scanner-video-booting' : ''}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transform: 'scaleX(-1)',
+                          display: (studentWebcamActive || studentWebcamBootActive) ? 'block' : 'none',
+                        }} 
                       />
                       <canvas ref={studentCanvasRef} style={{ display: 'none' }} />
                     </div>
@@ -7831,10 +7909,31 @@ export default function App() {
               <div className="scanner-bracket bracket-tr" />
               <div className="scanner-bracket bracket-bl" />
               <div className="scanner-bracket bracket-br" />
-              <div style={{ position: 'absolute', left: 0, width: '100%', height: '2px', background: 'var(--color-primary)', boxShadow: '0 0 8px var(--color-primary)', zIndex: 5, animation: 'scan 3s linear infinite' }} />
+              <div style={{ position: 'absolute', left: 0, width: '100%', height: '2px', background: 'var(--color-primary)', boxShadow: '0 0 8px var(--color-primary)', zIndex: 5, animation: (webcamActive && !webcamBootActive) ? 'scan 3s linear infinite' : 'none', opacity: (webcamActive && !webcamBootActive) ? 1 : 0 }} />
+
+              <ScannerBootOverlay
+                active={webcamBootActive}
+                onComplete={handleWebcamBootComplete}
+                label="ADMIN_SEC_01"
+                lines={[
+                  'INITIALIZING ADMIN OPTICS...',
+                  'LOADING FACE SAMPLING ENGINE...',
+                  'CALIBRATING CAPTURE MATRIX...',
+                  'SYNCING STUDENT BIOMETRICS...',
+                  'ADMIN_SEC_01 ONLINE — READY',
+                ]}
+              />
+
+              {webcamActive && !webcamBootActive && (
+                <div className="scanner-live-hud">
+                  <div className="scanner-live-grid" />
+                  <div className="scanner-live-radar-mini" />
+                  <div className="scanner-live-status">● ADMIN SAMPLING ACTIVE</div>
+                </div>
+              )}
               
               {/* HUD Sci-Fi telemetry overlay */}
-              {webcamActive && (
+              {webcamActive && !webcamBootActive && (
                 <>
                   <div style={{
                     position: 'absolute',
@@ -7885,7 +7984,14 @@ export default function App() {
                 autoPlay 
                 playsInline 
                 muted 
-                style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} 
+                className={webcamBootActive ? 'scanner-video-booting' : ''}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  transform: 'scaleX(-1)',
+                  display: (webcamActive || webcamBootActive) ? 'block' : 'none',
+                }} 
               />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
 
@@ -7894,7 +8000,7 @@ export default function App() {
                 <div style={{ position: 'absolute', inset: 0, border: '4px solid #00f2fe', animation: 'pulse 1.5s infinite', pointerEvents: 'none', borderRadius: '10px' }} />
               )}
 
-              {!webcamActive && (
+              {!webcamActive && !webcamBootActive && (
                 <div className="flex-center" style={{ position: 'absolute', inset: 0, flexDirection: 'column', gap: '12px', color: '#9ca3af' }}>
                   <Video size={48} />
                   <span>Webcam is currently disabled</span>
@@ -7914,7 +8020,7 @@ export default function App() {
                 Cancel
               </button>
 
-              {!webcamActive ? (
+              {!webcamActive && !webcamBootActive ? (
                 <button 
                   type="button" 
                   onClick={startWebcam} 

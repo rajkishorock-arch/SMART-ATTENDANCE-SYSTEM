@@ -1160,4 +1160,335 @@ button:active,
   }
 }
 
+/* ===== Robotic Camera Boot Overlay ===== */
+.scanner-boot-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(0, 20, 30, 0.92) 0%, rgba(0, 0, 0, 0.97) 70%);
+  overflow: hidden;
+  animation: bootFadeIn 0.35s ease both;
+}
+
+.scanner-boot-glitch {
+  animation: bootGlitch 0.35s steps(3) both;
+}
+
+.scanner-boot-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 254, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  animation: bootGridPulse 2s ease-in-out infinite;
+}
+
+.scanner-boot-vignette {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.scanner-boot-radar {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.scanner-boot-radar-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: 50%;
+}
+
+.scanner-boot-radar-ring-2 {
+  inset: 18px;
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.scanner-boot-radar-ring-3 {
+  inset: 36px;
+  opacity: 0.4;
+}
+
+.scanner-boot-radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(0, 242, 254, 0.35) 40deg, transparent 80deg);
+  animation: radarSweep 1.8s linear infinite;
+}
+
+.scanner-boot-radar-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: #00f2fe;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #00f2fe, 0 0 24px rgba(0, 242, 254, 0.5);
+  animation: radarPulse 1.2s ease-in-out infinite;
+}
+
+.scanner-boot-reticle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scanner-boot-reticle-h,
+.scanner-boot-reticle-v {
+  position: absolute;
+  background: rgba(0, 242, 254, 0.15);
+}
+
+.scanner-boot-reticle-h {
+  top: 50%;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.scanner-boot-reticle-v {
+  left: 50%;
+  top: 8%;
+  bottom: 8%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.scanner-boot-reticle-corner {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-color: #00f2fe;
+  border-style: solid;
+  opacity: 0.7;
+  animation: reticlePulse 1.5s ease-in-out infinite;
+}
+
+.scanner-boot-reticle-tl { top: 14px; left: 14px; border-width: 2px 0 0 2px; }
+.scanner-boot-reticle-tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; }
+.scanner-boot-reticle-bl { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; }
+.scanner-boot-reticle-br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; }
+
+.scanner-boot-header {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Courier New', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: rgba(0, 242, 254, 0.8);
+  z-index: 2;
+}
+
+.scanner-boot-label {
+  font-weight: 700;
+}
+
+.scanner-boot-id {
+  color: rgba(16, 185, 129, 0.9);
+  font-weight: 700;
+}
+
+.scanner-boot-log {
+  position: absolute;
+  bottom: 56px;
+  left: 16px;
+  right: 16px;
+  max-height: 120px;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  font-size: 0.68rem;
+  color: rgba(0, 242, 254, 0.85);
+  z-index: 2;
+}
+
+.scanner-boot-log-line {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+  animation: bootLineIn 0.25s ease both;
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+}
+
+.scanner-boot-prompt {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.scanner-boot-cursor {
+  animation: bootCursorBlink 0.8s step-end infinite;
+  color: #00f2fe;
+}
+
+.scanner-boot-progress-wrap {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 2;
+}
+
+.scanner-boot-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Courier New', monospace;
+  font-size: 0.62rem;
+  color: rgba(148, 163, 184, 0.9);
+  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+}
+
+.scanner-boot-progress-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 242, 254, 0.15);
+}
+
+.scanner-boot-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00f2fe, #10b981);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+  transition: width 0.05s linear;
+}
+
+.scanner-boot-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.5), transparent);
+  animation: scanLine 2.5s linear infinite;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Live camera HUD (post-boot) */
+.scanner-live-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+}
+
+.scanner-live-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 242, 254, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 254, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  animation: bootGridPulse 3s ease-in-out infinite;
+}
+
+.scanner-live-radar-mini {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.scanner-live-radar-mini::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(0, 242, 254, 0.4) 50deg, transparent 100deg);
+  animation: radarSweep 2s linear infinite;
+}
+
+.scanner-live-radar-mini::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  background: #00f2fe;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #00f2fe;
+}
+
+.scanner-live-status {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.62rem;
+  color: rgba(16, 185, 129, 0.9);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  animation: reticlePulse 2s ease-in-out infinite;
+}
+
+.scanner-video-booting {
+  filter: blur(6px) brightness(0.4);
+  opacity: 0.5;
+}
+
+@keyframes bootFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes bootGlitch {
+  0% { opacity: 1; transform: translate(0); filter: none; }
+  25% { opacity: 0.85; transform: translate(-3px, 1px); filter: hue-rotate(90deg); }
+  50% { opacity: 0.9; transform: translate(3px, -1px); filter: saturate(2); }
+  75% { opacity: 0.95; transform: translate(-1px, 2px); }
+  100% { opacity: 0; transform: translate(0); }
+}
+
+@keyframes bootGridPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes bootLineIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes bootCursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes reticlePulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes scannerPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
 
