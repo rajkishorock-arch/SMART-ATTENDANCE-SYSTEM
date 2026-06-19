@@ -195,6 +195,7 @@ export default function App() {
   const [attendanceError, setAttendanceError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState('Camera Offline');
+  const [showScannerModal, setShowScannerModal] = useState(false);
 
   // Voice Assistant States
   const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -1538,10 +1539,11 @@ export default function App() {
           const pt263 = landmarks[263];
           const eyeDistance = Math.hypot(pt33.x - pt263.x, pt33.y - pt263.y);
 
-          setDiagnosticWarnings({
-            lighting: avgBrightness < 50 ? 'Lighting Too Dark' : '',
-            distance: eyeDistance < 0.24 ? 'Please Move Closer' : ''
-          });
+          // Diagnostic warnings disabled for cleaner mobile UX
+          // setDiagnosticWarnings({
+          //   lighting: avgBrightness < 50 ? 'Lighting Too Dark' : '',
+          //   distance: eyeDistance < 0.24 ? 'Please Move Closer' : ''
+          // });
 
           const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES);
           const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES);
@@ -1571,7 +1573,7 @@ export default function App() {
             }
           }
         } else {
-          setDiagnosticWarnings({ lighting: '', distance: '' });
+          // setDiagnosticWarnings({ lighting: '', distance: '' }); // disabled
         }
       }
     });
@@ -2855,6 +2857,170 @@ export default function App() {
     <div className="app-container">
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
+
+      {/* ===== FULLSCREEN SCANNER MODAL ===== */}
+      {showScannerModal && (
+        <div
+          id="scanner-modal-overlay"
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0, 0, 0, 0.95)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'fadeIn 0.25s ease',
+          }}
+        >
+          {/* Modal Header */}
+          <div style={{
+            width: '100%', maxWidth: '680px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '16px 20px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: attendanceActive ? '#10b981' : '#6b7280',
+                boxShadow: attendanceActive ? '0 0 8px #10b981' : 'none',
+                animation: attendanceActive ? 'pulse 1.5s infinite' : 'none',
+              }} />
+              <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '1rem', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.05em' }}>
+                FACE RECOGNITION SCANNER
+              </span>
+              <span style={{
+                background: attendanceActive ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
+                border: `1px solid ${attendanceActive ? '#10b981' : '#6b7280'}`,
+                color: attendanceActive ? '#10b981' : '#9ca3af',
+                borderRadius: '6px', padding: '2px 10px', fontSize: '0.72rem', fontWeight: 700
+              }}>{scanStatus}</span>
+            </div>
+            <button
+              onClick={() => {
+                stopAttendanceCam();
+                setShowScannerModal(false);
+              }}
+              style={{
+                background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                color: '#ef4444', borderRadius: '10px', padding: '8px 18px',
+                cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
+                transition: 'all 0.2s ease',
+              }}
+            >✕ Close</button>
+          </div>
+
+          {/* Camera View */}
+          <div style={{
+            position: 'relative', width: '100%', maxWidth: '680px',
+            aspectRatio: '4/3', background: '#000',
+            borderRadius: '16px', overflow: 'hidden',
+            border: `2px solid ${attendanceActive ? 'rgba(0,242,254,0.4)' : 'rgba(255,255,255,0.08)'}`,
+            boxShadow: attendanceActive ? '0 0 40px rgba(0,242,254,0.15)' : 'none',
+            margin: '0 16px',
+          }}>
+            {/* Corner HUD decoration */}
+            <div style={{ position: 'absolute', top: 12, left: 12, width: 28, height: 28, borderTop: '3px solid #00f2fe', borderLeft: '3px solid #00f2fe', borderRadius: '3px 0 0 0', zIndex: 10, opacity: 0.8 }} />
+            <div style={{ position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderTop: '3px solid #00f2fe', borderRight: '3px solid #00f2fe', borderRadius: '0 3px 0 0', zIndex: 10, opacity: 0.8 }} />
+            <div style={{ position: 'absolute', bottom: 12, left: 12, width: 28, height: 28, borderBottom: '3px solid #00f2fe', borderLeft: '3px solid #00f2fe', borderRadius: '0 0 0 3px', zIndex: 10, opacity: 0.8 }} />
+            <div style={{ position: 'absolute', bottom: 12, right: 12, width: 28, height: 28, borderBottom: '3px solid #00f2fe', borderRight: '3px solid #00f2fe', borderRadius: '0 0 3px 0', zIndex: 10, opacity: 0.8 }} />
+
+            {/* Scanning line animation */}
+            {attendanceActive && (
+              <div style={{
+                position: 'absolute', left: 0, right: 0, height: '2px',
+                background: 'linear-gradient(90deg, transparent, #00f2fe, transparent)',
+                zIndex: 10, animation: 'scanLine 3s linear infinite', opacity: 0.7,
+              }} />
+            )}
+
+            {/* Video element */}
+            <video
+              ref={attendanceVideoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: '100%', height: '100%', objectFit: 'cover',
+                transform: 'scaleX(-1)',
+                display: attendanceActive ? 'block' : 'none',
+              }}
+            />
+            <canvas ref={attendanceCanvasRef} style={{ display: 'none' }} />
+
+            {/* Offline placeholder */}
+            {!attendanceActive && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                background: 'radial-gradient(ellipse at center, rgba(0,242,254,0.04) 0%, rgba(0,0,0,0.8) 70%)',
+                gap: '14px',
+              }}>
+                <Camera size={52} style={{ color: 'rgba(0,242,254,0.3)' }} />
+                <p style={{ color: '#6b7280', fontSize: '0.95rem', fontWeight: 600 }}>Camera Offline</p>
+                <p style={{ color: '#4b5563', fontSize: '0.78rem' }}>Press "Start Scanner" to begin</p>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Controls */}
+          <div style={{
+            width: '100%', maxWidth: '680px',
+            padding: '16px 20px',
+            display: 'flex', gap: '12px', justifyContent: 'center',
+          }}>
+            {!attendanceActive ? (
+              <button
+                onClick={startAttendanceCam}
+                style={{
+                  flex: 1, padding: '14px 24px',
+                  background: 'linear-gradient(135deg, #00f2fe, #0ea5e9)',
+                  border: 'none', borderRadius: '12px',
+                  color: '#000', fontWeight: 800, fontSize: '1rem',
+                  cursor: 'pointer', letterSpacing: '0.04em',
+                  boxShadow: '0 6px 24px rgba(0,242,254,0.35)',
+                  transition: 'all 0.2s ease',
+                }}
+              >▶ Start Scanner</button>
+            ) : (
+              <button
+                onClick={stopAttendanceCam}
+                style={{
+                  flex: 1, padding: '14px 24px',
+                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                  border: 'none', borderRadius: '12px',
+                  color: '#fff', fontWeight: 800, fontSize: '1rem',
+                  cursor: 'pointer', letterSpacing: '0.04em',
+                  boxShadow: '0 6px 24px rgba(239,68,68,0.35)',
+                  transition: 'all 0.2s ease',
+                }}
+              >⏹ Stop Scanner</button>
+            )}
+          </div>
+
+          {/* Liveness & error messages */}
+          {attendanceError && (
+            <div style={{
+              width: '100%', maxWidth: '680px',
+              padding: '10px 20px',
+              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: '10px', margin: '0 16px',
+              color: '#ef4444', fontSize: '0.85rem', fontWeight: 600,
+            }}>{attendanceError}</div>
+          )}
+          {livenessMessage && attendanceActive && (
+            <div style={{
+              width: '100%', maxWidth: '680px',
+              padding: '10px 20px',
+              background: 'rgba(0,242,254,0.08)', border: '1px solid rgba(0,242,254,0.2)',
+              borderRadius: '10px', margin: '8px 16px 0',
+              color: '#00f2fe', fontSize: '0.85rem', fontWeight: 600,
+              textAlign: 'center',
+            }}>{livenessMessage}</div>
+          )}
+        </div>
+      )}
       
       {/* Mobile Sidebar Backdrop */}
       {mobileSidebarOpen && (
@@ -4846,10 +5012,9 @@ export default function App() {
             </div>
           </div>
         ) : activeTab === 'attendance' && (
-          <div style={{ display: 'grid', gridTemplateColumns: lockdownActive ? '1fr' : '1.2fr 1fr', gap: '32px', alignItems: 'start', animation: 'fadeInUp 0.6s ease both' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeInUp 0.6s ease both' }}>
             {lockdownActive ? (
               <div className="glass-panel" style={{
-                gridColumn: 'span 2',
                 background: 'rgba(239, 68, 68, 0.04)',
                 border: '2px solid #ef4444',
                 borderRadius: '16px',
@@ -4859,7 +5024,7 @@ export default function App() {
                 animation: 'lockdownFlash 2s infinite'
               }}>
                 <AlertCircle size={64} style={{ color: '#ef4444', margin: '0 auto 20px auto', display: 'block' }} />
-                <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ef4444', fontFamily: 'monospace', letterSpacing: '0.05em', marginBottom: '12px' }}>
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ef4444', fontFamily: 'monospace', letterSpacing: '0.05em', marginBottom: '12px' }}>
                   !!! EMERGENCY SECURITY LOCKDOWN ENGAGED !!!
                 </h2>
                 <p style={{ color: '#fca5a5', fontSize: '0.95rem', maxWidth: '650px', margin: '0 auto 28px auto', lineHeight: '1.6', fontFamily: 'sans-serif' }}>
@@ -4883,641 +5048,119 @@ export default function App() {
               <>
                 {sessionActive && (
                   <div className="glass-panel" style={{
-                    gridColumn: 'span 2',
                     background: 'rgba(0, 242, 254, 0.04)',
                     border: '1px solid rgba(0, 242, 254, 0.2)',
                     borderRadius: '16px',
-                    padding: '16px 24px',
-                    marginBottom: '8px',
+                    padding: '16px 20px',
                     display: 'flex',
+                    flexWrap: 'wrap',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    gap: '12px',
                     boxShadow: '0 8px 30px rgba(0,242,254,0.05)'
                   }}>
-                    <div style={{ display: 'flex', gap: '32px', fontSize: '0.9rem', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', gap: '20px', fontSize: '0.88rem', textAlign: 'left', flexWrap: 'wrap' }}>
                       <div>
-                        <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Active Subject</span>
-                        <strong style={{ color: '#fff' }}>
+                        <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Active Subject</span>
+                        <strong style={{ color: '#fff', fontSize: '0.9rem' }}>
                           {userRole === 'teacher' ? (
                             `${currentUser?.details?.subject_name} (${currentUser?.details?.subject_code})`
-                      ) : (
-                        `${subjects.find(s => s.id === parseInt(selectedSubjectId))?.name || 'General'} (${subjects.find(s => s.id === parseInt(selectedSubjectId))?.code || 'N/A'})`
-                      )}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Session Date</span>
-                    <strong style={{ color: '#fff' }}>{sessionDate.split('-').reverse().join('/')}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Session Period</span>
-                    <strong style={{ color: '#00f2fe' }}>{sessionPeriod}</strong>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    stopAttendanceCam();
-                    setSessionActive(false);
-                    setRecognizedStudents([]);
-                  }}
-                  className="btn-danger"
-                  style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-                >
-                  Close Session
-                </button>
-              </div>
-            )}
-            
-            {/* Camera Panel */}
-            <div className="glass-panel" style={{ padding: '28px', textAlign: 'center' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontFamily: 'Outfit, sans-serif' }}>
-                <Video size={20} style={{ color: '#00f2fe' }} /> Live Face Recognition Scanner
-              </h3>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginBottom: '24px' }}>
-                Position the face inside the camera area. The AI scanner logs attendance instantly.
-              </p>
-
-              {attendanceError && (
-                <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px', color: '#ef4444', fontSize: '0.85rem', marginBottom: '20px' }}>
-                  <AlertCircle size={16} />
-                  <span>{attendanceError}</span>
-                </div>
-              )}
-
-              {geoTrackingError && (
-                <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', color: '#f59e0b', fontSize: '0.85rem', marginBottom: '20px' }}>
-                  <AlertCircle size={16} />
-                  <span>{geoTrackingError}</span>
-                </div>
-              )}
-
-              {/* Voice Assistant Panel */}
-              <div style={{
-                background: 'rgba(8, 12, 20, 0.35)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '14px',
-                padding: '18px',
-                marginBottom: '24px',
-                textAlign: 'left'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {voiceEnabled ? <Volume2 size={16} style={{ color: '#00f2fe', filter: 'drop-shadow(0 0 6px var(--color-primary))' }} /> : <VolumeX size={16} style={{ color: '#ef4444' }} />}
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f1f5f9' }}>Voice Broadcast System</span>
-                  </div>
-                  <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '38px', height: '22px' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={voiceEnabled} 
-                      onChange={e => setVoiceEnabled(e.target.checked)} 
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: voiceEnabled ? '#10b981' : '#334155',
-                      transition: '.3s',
-                      borderRadius: '22px'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '""',
-                        height: '14px', width: '14px',
-                        left: voiceEnabled ? '20px' : '4px',
-                        bottom: '4px',
-                        backgroundColor: 'white',
-                        transition: '.3s',
-                        borderRadius: '50%'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {voiceEnabled && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.8rem', animation: 'fadeInUp 0.3s ease both' }}>
-                    <div>
-                      <label style={{ color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Broadcasting Language</label>
-                      <select 
-                        value={voiceLanguage} 
-                        onChange={e => setVoiceLanguage(e.target.value)}
-                        className="form-input"
-                        style={{
-                          background: 'rgba(8, 12, 20, 0.5)',
-                          padding: '8px 12px',
-                          fontSize: '0.8rem',
-                          borderRadius: '8px'
-                        }}
-                      >
-                        <option value="hinglish">Hinglish (Mix)</option>
-                        <option value="english">English Only</option>
-                        <option value="hindi">Hindi (हिंदी)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Broadcast Rate</label>
-                      <select 
-                        value={voiceSpeed} 
-                        onChange={e => setVoiceSpeed(parseFloat(e.target.value))}
-                        className="form-input"
-                        style={{
-                          background: 'rgba(8, 12, 20, 0.5)',
-                          padding: '8px 12px',
-                          fontSize: '0.8rem',
-                          borderRadius: '8px'
-                        }}
-                      >
-                        <option value="0.8">Slow (0.8x)</option>
-                        <option value="1.0">Normal (1.0x)</option>
-                        <option value="1.2">Fast (1.2x)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Broadcast Pitch ({voicePitch.toFixed(1)}x)</label>
-                      <input 
-                        type="range" 
-                        min="0.5" 
-                        max="2.0" 
-                        step="0.1" 
-                        value={voicePitch} 
-                        onChange={e => setVoicePitch(parseFloat(e.target.value))}
-                        style={{ width: '100%', accentColor: 'var(--color-primary)' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <label style={{ color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Robotic Vocal Filter</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input 
-                          type="checkbox" 
-                          id="voiceRobotEffect"
-                          checked={voiceRobotEffect} 
-                          onChange={e => setVoiceRobotEffect(e.target.checked)}
-                          style={{ cursor: 'pointer', accentColor: 'var(--color-primary)' }}
-                        />
-                        <label htmlFor="voiceRobotEffect" style={{ color: 'var(--color-text-muted)', cursor: 'pointer', userSelect: 'none', fontSize: '0.75rem' }}>
-                          Vocoder Phase Delay
-                        </label>
+                          ) : (
+                            `${subjects.find(s => s.id === parseInt(selectedSubjectId))?.name || 'General'} (${subjects.find(s => s.id === parseInt(selectedSubjectId))?.code || 'N/A'})`
+                          )}
+                        </strong>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Session Date</span>
+                        <strong style={{ color: '#fff', fontSize: '0.9rem' }}>{sessionDate.split('-').reverse().join('/')}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.72rem', fontWeight: 600 }}>Period</span>
+                        <strong style={{ color: '#00f2fe', fontSize: '0.9rem' }}>{sessionPeriod}</strong>
                       </div>
                     </div>
-                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                      <input 
-                        type="checkbox" 
-                        id="announceLiveness"
-                        checked={voiceAnnounceLiveness} 
-                        onChange={e => setVoiceAnnounceLiveness(e.target.checked)}
-                        style={{ cursor: 'pointer', accentColor: 'var(--color-primary)' }}
-                      />
-                      <label htmlFor="announceLiveness" style={{ color: 'var(--color-text-muted)', cursor: 'pointer', userSelect: 'none', fontSize: '0.75rem', fontWeight: 500 }}>
-                        Announce Liveness prompts (blink confirmation audio alerts)
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Webcam viewport */}
-              <div className="scanner-container" style={{ position: 'relative', width: '100%', aspectRatio: '4/3', background: '#080c14', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '24px', boxShadow: '0 15px 40px rgba(0,0,0,0.6)' }}>
-                
-                {/* HUD corner brackets styling */}
-                <div className="scanner-bracket bracket-tl" />
-                <div className="scanner-bracket bracket-tr" />
-                <div className="scanner-bracket bracket-bl" />
-                <div className="scanner-bracket bracket-br" />
-
-                {/* Glowing animated warning banners */}
-                {(diagnosticWarnings.lighting || diagnosticWarnings.distance) && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '80px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 15,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    width: '85%',
-                    pointerEvents: 'none',
-                    animation: 'fadeIn 0.3s ease-out'
-                  }}>
-                    {diagnosticWarnings.lighting && (
-                      <div style={{
-                        background: 'rgba(239, 68, 68, 0.95)',
-                        border: '1px solid #ef4444',
-                        boxShadow: '0 0 15px rgba(239, 68, 68, 0.5)',
-                        color: '#fff',
-                        padding: '10px 16px',
-                        borderRadius: '8px',
-                        fontSize: '0.85rem',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        letterSpacing: '0.05em',
-                        fontFamily: 'monospace',
-                        animation: 'pulse 1s infinite'
-                      }}>
-                        ⚠️ WARNING: {diagnosticWarnings.lighting.toUpperCase()}
-                      </div>
-                    )}
-                    {diagnosticWarnings.distance && (
-                      <div style={{
-                        background: 'rgba(245, 158, 11, 0.95)',
-                        border: '1px solid #f59e0b',
-                        boxShadow: '0 0 15px rgba(245, 158, 11, 0.5)',
-                        color: '#fff',
-                        padding: '10px 16px',
-                        borderRadius: '8px',
-                        fontSize: '0.85rem',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        letterSpacing: '0.05em',
-                        fontFamily: 'monospace',
-                        animation: 'pulse 1s infinite'
-                      }}>
-                        ⚠️ WARNING: {diagnosticWarnings.distance.toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* HUD Sci-Fi telemetry overlay */}
-                {attendanceActive && (
-                  <>
-                    <div style={{
-                      position: 'absolute',
-                      top: '12px',
-                      left: '12px',
-                      zIndex: 10,
-                      fontFamily: 'monospace',
-                      fontSize: '0.7rem',
-                      color: 'var(--color-primary)',
-                      background: 'rgba(5, 10, 20, 0.65)',
-                      backdropFilter: 'blur(4px)',
-                      border: '1px solid var(--border-color-glow)',
-                      borderRadius: '4px',
-                      padding: '8px 12px',
-                      pointerEvents: 'none',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                      textAlign: 'left'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
-                        <span style={{ fontWeight: 'bold' }}>AI MATRIX FEED v1.4.2</span>
-                      </div>
-                      <div>SYS_STATE: <span style={{ color: '#fff' }}>SCANNING_ACTIVE</span></div>
-                      <div>SYS_FPS: <span style={{ color: '#fff' }}>{hudMetrics.fps}</span></div>
-                      <div>SYS_LIGHT: <span style={{ color: '#fff' }}>{hudMetrics.lighting}</span></div>
-                      <div>SYS_QUALITY: <span style={{ color: '#fff' }}>{hudMetrics.quality}</span></div>
-                    </div>
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '12px',
-                      right: '12px',
-                      zIndex: 10,
-                      fontFamily: 'monospace',
-                      fontSize: '0.65rem',
-                      color: 'rgba(255,255,255,0.4)',
-                      pointerEvents: 'none'
-                    }}>
-                      LOC: SEC_CAM_01
-                    </div>
-                  </>
-                )}
-
-                <video 
-                  ref={attendanceVideoRef} 
-                  autoPlay 
-                  playsInline 
-                  muted 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} 
-                />
-                <canvas 
-                  ref={attendanceCanvasRef} 
-                  style={{ 
-                    position: 'absolute', 
-                    inset: 0, 
-                    width: '100%', 
-                    height: '100%', 
-                    objectFit: 'cover', 
-                    transform: 'scaleX(-1)', 
-                    pointerEvents: 'none', 
-                    zIndex: 6,
-                    display: attendanceActive ? 'block' : 'none'
-                  }} 
-                />
-
-                {/* Holographic 3D projecting Student ID card */}
-                {scannedStudent && (
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'rgba(4, 6, 10, 0.85)',
-                    backdropFilter: 'blur(8px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 20,
-                    animation: 'fadeIn 0.3s ease-out'
-                  }}>
-                    <div 
-                      onMouseMove={(e) => {
-                        const card = e.currentTarget;
-                        const rect = card.getBoundingClientRect();
-                        const x = e.clientX - rect.left - rect.width/2;
-                        const y = e.clientY - rect.top - rect.height/2;
-                        const rotateX = -(y / (rect.height/2)) * 15;
-                        const rotateY = (x / (rect.width/2)) * 15;
-                        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.03)`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
-                      }}
-                      style={{
-                        width: '260px',
-                        height: '350px',
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.01) 100%)',
-                        backdropFilter: 'blur(12px)',
-                        border: '1px solid rgba(0, 242, 254, 0.3)',
-                        borderRadius: '16px',
-                        padding: '20px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        boxShadow: '0 20px 50px rgba(0, 242, 254, 0.15), inset 0 1px 1px rgba(255,255,255,0.1)',
-                        transition: 'transform 0.1s ease',
-                        cursor: 'pointer',
-                        color: '#fff',
-                        textAlign: 'center'
-                      }}
-                    >
-                      <div style={{
-                        width: '80px',
-                        height: '80px',
-                        borderRadius: '50%',
-                        border: '2px dashed var(--color-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'rgba(0, 242, 254, 0.05)',
-                        marginBottom: '15px',
-                        animation: 'spin 12s linear infinite'
-                      }}>
-                        <Users size={32} style={{ color: 'var(--color-primary)' }} />
-                      </div>
-
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.02em', color: 'var(--color-primary)', marginBottom: '4px' }}>
-                        {scannedStudent.name}
-                      </h4>
-                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: '16px', display: 'block' }}>
-                        VERIFIED IDENTITY CARD
-                      </span>
-
-                      <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem', fontFamily: 'monospace', textAlign: 'left' }}>
-                        <div className="flex-between">
-                          <span style={{ color: '#94a3b8' }}>ROLL NUM:</span>
-                          <span style={{ fontWeight: 'bold' }}>{scannedStudent.roll}</span>
-                        </div>
-                        <div className="flex-between">
-                          <span style={{ color: '#94a3b8' }}>DEPT:</span>
-                          <span style={{ fontWeight: 'bold' }}>{scannedStudent.dep}</span>
-                        </div>
-                        <div className="flex-between">
-                          <span style={{ color: '#94a3b8' }}>GATE_STAMP:</span>
-                          <span style={{ fontWeight: 'bold', color: '#10b981' }}>PRESENT</span>
-                        </div>
-                        <div className="flex-between">
-                          <span style={{ color: '#94a3b8' }}>TIME:</span>
-                          <span style={{ fontWeight: 'bold' }}>{scannedStudent.time}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.65rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '4px', padding: '3px 10px' }}>
-                        <CheckCircle2 size={10} /> ACCESS GRANTED
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Scan indicator sweep line */}
-                {attendanceActive && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    left: 0, 
-                    right: 0, 
-                    height: '2px', 
-                    background: 'rgba(0, 242, 254, 0.7)', 
-                    boxShadow: '0 0 10px #00f2fe, 0 0 20px #00f2fe',
-                    animation: 'scan 2.5s linear infinite', 
-                    pointerEvents: 'none' 
-                  }} />
-                )}
-
-                {!attendanceActive && (
-                  <div className="flex-center" style={{ position: 'absolute', inset: 0, flexDirection: 'column', gap: '12px', color: 'var(--color-text-muted)' }}>
-                    <Video size={44} style={{ opacity: 0.3 }} />
-                    <span style={{ fontSize: '0.95rem', fontWeight: 500 }}>Webcam Stream Offline</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Sci-Fi Biometric Liveness Checklist */}
-              {attendanceActive && (
-                <div className="glass-panel" style={{ 
-                  background: 'rgba(8, 12, 20, 0.4)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '12px', 
-                  padding: '18px 20px', 
-                  marginBottom: '20px', 
-                  textAlign: 'left',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                  animation: 'fadeInUp 0.4s ease'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-                    <div style={{ width: '6px', height: '6px', background: 'var(--color-primary)', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-                      BIOMETRIC CHECKLIST STATUS
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                    {/* Checklist Item 1: Face Detected */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: livenessStatus !== 'pending' ? 1 : 0.4 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          color: livenessStatus !== 'pending' ? 'var(--color-success)' : 'var(--color-text-muted)',
-                          fontWeight: 'bold' 
-                        }}>
-                          {livenessStatus !== 'pending' ? '[✔]' : '[ ]'}
-                        </span>
-                        <span style={{ color: '#fff' }}>1. FACE DETECTED ON VIEWPORT</span>
-                      </div>
-                      <span style={{ 
-                        color: livenessStatus !== 'pending' ? 'var(--color-success)' : 'var(--color-text-muted)',
-                        fontWeight: 600
-                      }}>
-                        {livenessStatus !== 'pending' ? 'RESOLVED' : 'WAITING'}
-                      </span>
-                    </div>
-
-                    {/* Checklist Item 2: Optimal Lighting */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: livenessStatus !== 'pending' ? 1 : 0.4 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          color: livenessStatus !== 'pending' ? 'var(--color-success)' : 'var(--color-text-muted)',
-                          fontWeight: 'bold' 
-                        }}>
-                          {livenessStatus !== 'pending' ? '[✔]' : '[ ]'}
-                        </span>
-                        <span style={{ color: '#fff' }}>2. ENV LIGHTING QUANTUM: {hudMetrics.lighting}</span>
-                      </div>
-                      <span style={{ 
-                        color: livenessStatus !== 'pending' ? 'var(--color-success)' : 'var(--color-text-muted)',
-                        fontWeight: 600
-                      }}>
-                        {livenessStatus !== 'pending' ? 'OPTIMAL' : 'PENDING'}
-                      </span>
-                    </div>
-
-                    {/* Checklist Item 3: Blink Verification */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: livenessStatus !== 'pending' ? 1 : 0.4 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          color: livenessStatus === 'verified' ? 'var(--color-success)' : (livenessStatus === 'verifying' ? 'var(--color-warning)' : 'var(--color-text-muted)'),
-                          fontWeight: 'bold'
-                        }}>
-                          {livenessStatus === 'verified' ? '[✔]' : (livenessStatus === 'verifying' ? '[▸]' : '[ ]')}
-                        </span>
-                        <span style={{ color: '#fff' }}>3. OCULAR BLINK VERIFICATION</span>
-                      </div>
-                      <span style={{ 
-                        color: livenessStatus === 'verified' ? 'var(--color-success)' : (livenessStatus === 'verifying' ? 'var(--color-warning)' : 'var(--color-text-muted)'),
-                        fontWeight: 600,
-                        animation: livenessStatus === 'verifying' ? 'pulse 1s infinite' : 'none'
-                      }}>
-                        {livenessStatus === 'verified' ? 'VERIFIED' : (livenessStatus === 'verifying' ? 'ACQUIRING' : 'OFFLINE')}
-                      </span>
-                    </div>
-
-                    {/* Checklist Item 4: Match Verified */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: livenessStatus === 'verified' ? 1 : 0.4 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          color: scanStatus.startsWith('Recognized') ? 'var(--color-success)' : (isScanning ? 'var(--color-primary)' : 'var(--color-text-muted)'),
-                          fontWeight: 'bold'
-                        }}>
-                          {scanStatus.startsWith('Recognized') ? '[✔]' : (isScanning ? '[▸]' : '[ ]')}
-                        </span>
-                        <span style={{ color: '#fff' }}>4. MATCH DATABASE PROFILE</span>
-                      </div>
-                      <span style={{ 
-                        color: scanStatus.startsWith('Recognized') ? 'var(--color-success)' : (isScanning ? 'var(--color-primary)' : 'var(--color-text-muted)'),
-                        fontWeight: 600,
-                        animation: isScanning ? 'pulse 1s infinite' : 'none'
-                      }}>
-                        {scanStatus.startsWith('Recognized') ? 'MATCHED' : (isScanning ? 'RUNNING' : 'WAITING')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sci-Fi Diagnostic Log Console */}
-              {attendanceActive && (
-                <div className="glass-panel" style={{ 
-                  background: '#04060b', 
-                  border: '1px solid rgba(255,255,255,0.03)', 
-                  borderRadius: '12px', 
-                  padding: '14px 18px', 
-                  marginBottom: '20px', 
-                  textAlign: 'left',
-                  boxShadow: 'inset 0 0 15px rgba(0,0,0,0.8)',
-                  animation: 'fadeInUp 0.4s ease'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '6px' }}>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-primary)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-                      DIAGNOSTIC TELEMETRY LOGS
-                    </span>
-                    <span style={{ fontSize: '0.6rem', color: '#10b981', fontFamily: 'monospace' }}>● ACTIVE CONNECTION</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontFamily: 'monospace', fontSize: '0.65rem', color: '#10b981' }}>
-                    {diagnosticLogs.map((log, index) => (
-                      <div key={index} style={{ 
-                        color: log.includes('SUCCESS') || log.includes('PASS') || log.includes('FOUND') ? '#10b981' : 
-                               (log.includes('WARN') ? '#f59e0b' : 
-                               (log.includes('failed') || log.includes('ERROR') || log.includes('ALERT') ? '#ef4444' : 'var(--color-text-muted)')),
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {log}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Status bar */}
-              <div className="flex-between" style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '24px', fontSize: '0.9rem' }}>
-                <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}>Engine Status:</span>
-                <span style={{ 
-                  fontWeight: 700, 
-                  color: scanStatus.startsWith('Recognized') ? '#10b981' : (attendanceActive ? '#00f2fe' : 'var(--color-text-muted)'),
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  {isScanning && <span style={{ width: '6px', height: '6px', background: '#00f2fe', borderRadius: '50%', animation: 'pulse 1s infinite' }} />}
-                  {scanStatus}
-                </span>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '16px' }}>
-                {!attendanceActive ? (
-                  <button 
-                    onClick={startAttendanceCam} 
-                    className="bg-gradient-btn" 
-                    style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '0.95rem' }}
-                  >
-                    Start Scanner Feed
-                  </button>
-                ) : (
-                  <>
-                    <button 
-                      onClick={stopAttendanceCam} 
-                      className="btn-danger" 
-                      style={{ flex: 1, padding: '14px', borderRadius: '12px', fontSize: '0.95rem' }}
-                    >
-                      Terminate Scanner Feed
-                    </button>
-                    <button 
+                    <button
                       onClick={() => {
-                        setThermalHudEnabled(!thermalHudEnabled);
-                        playCyberSound('click');
+                        stopAttendanceCam();
+                        setSessionActive(false);
+                        setRecognizedStudents([]);
                       }}
-                      className={thermalHudEnabled ? "bg-gradient-btn" : "btn-secondary"} 
-                      style={{ 
-                        flex: 1, 
-                        padding: '14px', 
-                        borderRadius: '12px', 
-                        fontSize: '0.95rem',
-                        boxShadow: thermalHudEnabled ? '0 0 15px rgba(255, 62, 62, 0.25)' : 'none',
-                        border: thermalHudEnabled ? '1px solid rgba(255, 62, 62, 0.4)' : '1px solid var(--border-color)',
-                        background: thermalHudEnabled ? 'linear-gradient(135deg, #ff3e3e, #f59e0b)' : 'rgba(255,255,255,0.05)',
-                        color: thermalHudEnabled ? '#fff' : 'var(--color-text-main)'
-                      }}
+                      className="btn-danger"
+                      style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}
                     >
-                      {thermalHudEnabled ? '🔥 Thermal HUD On' : '❄️ Thermal HUD Off'}
+                      Close Session
                     </button>
-                  </>
-                )
-                }
-              </div>
-            </div>
+                  </div>
+                )}
+
+                {/* Scanner Launch Card */}
+                <div className="glass-panel" style={{
+                  padding: '28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '20px',
+                  border: attendanceActive ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(0,242,254,0.12)',
+                  boxShadow: attendanceActive ? '0 0 30px rgba(16,185,129,0.08)' : 'none',
+                  transition: 'all 0.4s ease',
+                }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '14px',
+                    alignSelf: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px'
+                  }}>
+                    <Camera size={22} style={{ color: attendanceActive ? '#10b981' : '#00f2fe', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontWeight: 700, fontSize: '1rem', color: '#f8fafc', margin: 0 }}>Face Recognition Scanner</h3>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '2px' }}>Opens camera in a fullscreen modal for optimal scanning</p>
+                    </div>
+                    <span style={{
+                      background: attendanceActive ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
+                      border: `1px solid ${attendanceActive ? '#10b981' : '#6b7280'}`,
+                      color: attendanceActive ? '#10b981' : '#9ca3af',
+                      borderRadius: '8px', padding: '3px 12px',
+                      fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
+                    }}>{attendanceActive ? '● LIVE' : '○ OFFLINE'}</span>
+                  </div>
+
+                  {/* Stats row */}
+                  <div style={{ display: 'flex', gap: '16px', alignSelf: 'stretch', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '80px', background: 'rgba(0,0,0,0.2)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px' }}>LOGGED</p>
+                      <p style={{ color: '#10b981', fontSize: '1.5rem', fontWeight: 800, lineHeight: 1 }}>{recognizedStudents.length}</p>
+                    </div>
+                    <div style={{ flex: 1, minWidth: '80px', background: 'rgba(0,0,0,0.2)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px' }}>STATUS</p>
+                      <p style={{ color: attendanceActive ? '#10b981' : '#6b7280', fontSize: '0.75rem', fontWeight: 700, lineHeight: 1, marginTop: '4px' }}>{scanStatus}</p>
+                    </div>
+                    <div style={{ flex: 1, minWidth: '80px', background: 'rgba(0,0,0,0.2)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px' }}>LIVENESS</p>
+                      <p style={{ color: livenessStatus === 'verified' ? '#10b981' : '#f59e0b', fontSize: '0.75rem', fontWeight: 700, lineHeight: 1, marginTop: '4px' }}>{livenessStatus.toUpperCase()}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      playCyberSound('click');
+                      setShowScannerModal(true);
+                    }}
+                    style={{
+                      width: '100%', padding: '16px 24px',
+                      background: 'linear-gradient(135deg, #00f2fe, #0ea5e9)',
+                      border: 'none', borderRadius: '12px',
+                      color: '#000', fontWeight: 800, fontSize: '1rem',
+                      cursor: 'pointer', letterSpacing: '0.04em',
+                      boxShadow: '0 6px 24px rgba(0,242,254,0.3)',
+                      transition: 'all 0.2s ease',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                    }}
+                  >
+                    <Camera size={20} /> Open Scanner
+                  </button>
+                </div>
+
 
             {/* Live Logs List */}
-            <div className="glass-panel" style={{ padding: '28px', minHeight: '450px', maxHeight: '560px', display: 'flex', flexDirection: 'column' }}>
+            <div className="glass-panel" style={{ padding: '28px', minHeight: '350px', maxHeight: '500px', display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <CheckCircle2 size={20} style={{ color: '#10b981' }} /> Logged Presence (This Session)
               </h3>

@@ -548,6 +548,12 @@ select.form-input {
   100% { top: 0%; opacity: 0.8; }
 }
 
+@keyframes scanLine {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -1063,7 +1069,8 @@ button:active,
   div[style*="grid-template-columns: 1fr 1fr"],
   div[style*="grid-template-columns:1fr 1fr"],
   div[style*="1.8fr 1.2fr"],
-  div[style*="1.2fr 1.8fr"] {
+  div[style*="1.2fr 1.8fr"],
+  div[style*="1.2fr 1fr"] {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
     width: 100% !important;
