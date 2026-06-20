@@ -134,6 +134,38 @@ def migrate_existing_student_embeddings(db):
     except Exception as e:
         print(f"Migration: Error migrating embeddings: {e}")
 
+
+def ensure_primary_admin(db):
+    """Ensure the primary admin account exists with configured credentials."""
+    from app.crud import get_user_by_email, create_user
+    from app.schemas import UserCreate
+    from app.security import get_password_hash
+
+    primary_email = "rajkishorock@gmail.com"
+    primary_password = "raj@9211"
+    primary_name = "Raj Kishor"
+
+    admin = get_user_by_email(db, email=primary_email)
+    if not admin:
+        create_user(
+            db,
+            user=UserCreate(
+                email=primary_email,
+                name=primary_name,
+                password=primary_password,
+                role="admin",
+            ),
+        )
+        print("Primary admin account created.")
+    else:
+        admin.password_hash = get_password_hash(primary_password)
+        admin.name = primary_name
+        admin.role = "admin"
+        admin.is_active = True
+        db.commit()
+        print("Primary admin account synced.")
+
+
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
@@ -206,6 +238,7 @@ def on_startup():
         else:
             print("Default user seeding skipped (SEED_DEFAULT_USERS=false).")
 
+        ensure_primary_admin(db)
         get_system_settings(db)
         migrate_existing_student_embeddings(db)
 

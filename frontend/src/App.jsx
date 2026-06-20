@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
+import LoginPortal from './components/LoginPortal';
 import MobileControlPanel from './components/MobileControlPanel';
 import { 
   Users, 
@@ -41,7 +42,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-const API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
 const LEFT_EYE_INDICES = [362, 385, 387, 263, 373, 380];
 const RIGHT_EYE_INDICES = [33, 160, 158, 133, 153, 144];
@@ -148,6 +149,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [loginRole, setLoginRole] = useState('admin');
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -2295,6 +2297,13 @@ export default function App() {
   }, [userRole, currentUser, subjects, selectedSubjectId, selectedTeacherSubjectId, selectedTeacherLogSubjectId, selectedReportSubjectId]);
 
 
+  const getRoleMismatchMessage = (expectedRole, actualRole) => {
+    const portalNames = { student: 'Student', teacher: 'Teacher', admin: 'Admin' };
+    const expected = portalNames[expectedRole] || expectedRole;
+    const actual = portalNames[actualRole] || actualRole;
+    return `Yeh ${actual} account hai. Kripya sahi portal "${expected} Portal" me jaa kar login karein.`;
+  };
+
   // Handle Login submission
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -2317,8 +2326,23 @@ export default function App() {
 
       const data = await res.json();
       if (res.ok) {
+        const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${data.access_token}` },
+        });
+
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.role !== loginRole) {
+            playCyberSound('error');
+            setAuthError(getRoleMismatchMessage(loginRole, meData.role));
+            setIsLoading(false);
+            return;
+          }
+        }
+
         playCyberSound('success');
         localStorage.setItem('token', data.access_token);
+        localStorage.setItem('loginRole', loginRole);
         setToken(data.access_token);
       } else {
         playCyberSound('error');
@@ -2826,165 +2850,18 @@ export default function App() {
 
   if (!token) {
     return (
-      <div className="flex-center" style={{ 
-        minHeight: '100vh', 
-        background: 'radial-gradient(circle at center, #0e1726 0%, #070b12 100%)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* CRT Scanline Screen Overlay */}
-        {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
-        {crtOverlayEnabled && <div className="crt-vignette" />}
-
-        {/* Matrix Falling Rain Canvas */}
-        <canvas id="login-rain-canvas" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }} />
-
-        {/* Animated glowing decorative spheres */}
-        <div style={{
-          position: 'absolute',
-          width: '280px',
-          height: '280px',
-          background: 'radial-gradient(circle, rgba(0, 242, 254, 0.22) 0%, transparent 70%)',
-          top: '15%',
-          left: '15%',
-          filter: 'blur(40px)',
-          borderRadius: '50%',
-          pointerEvents: 'none',
-          animation: 'pulse 6s ease-in-out infinite alternate',
-          zIndex: 1
-        }} />
-        <div style={{
-          position: 'absolute',
-          width: '320px',
-          height: '320px',
-          background: 'radial-gradient(circle, rgba(167, 139, 250, 0.2) 0%, transparent 70%)',
-          bottom: '15%',
-          right: '15%',
-          filter: 'blur(50px)',
-          borderRadius: '50%',
-          pointerEvents: 'none',
-          animation: 'pulse 8s ease-in-out infinite alternate-reverse',
-          zIndex: 1
-        }} />
-
-        <div className="glass-panel" style={{ 
-          width: '90%', 
-          maxWidth: '430px', 
-          padding: '48px 40px', 
-          textAlign: 'center',
-          border: '1px solid rgba(0, 242, 254, 0.15)',
-          boxShadow: '0 20px 50px -10px rgba(0,0,0,0.6), 0 0 40px rgba(0, 242, 254, 0.05)',
-          animation: 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both',
-          position: 'relative',
-          zIndex: 2
-        }}>
-          <div className="flex-center" style={{ gap: '12px', marginBottom: '28px', flexDirection: 'column' }}>
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.1) 0%, rgba(79, 172, 254, 0.1) 100%)',
-              border: '1px solid rgba(0, 242, 254, 0.25)',
-              borderRadius: '20px',
-              padding: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 25px rgba(0, 242, 254, 0.1)',
-              marginBottom: '12px'
-            }}>
-              <ShieldCheck size={44} style={{ color: '#00f2fe', filter: 'drop-shadow(0 0 8px rgba(0,242,254,0.4))' }} />
-            </div>
-            <h2 className="text-gradient" style={{ fontSize: '1.85rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', letterSpacing: '0.04em' }}>SMART AI SYSTEM</h2>
-            <div style={{ width: '40px', height: '3px', background: 'linear-gradient(90deg, #00f2fe, #a78bfa)', borderRadius: '2px', marginTop: '4px' }} />
-          </div>
-
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '6px', color: '#f1f5f9' }}>Welcome Portal</h3>
-          <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '36px' }}>Sign in to access secure scanner & logs</p>
-
-          {authError && (
-            <div className="flex-center" style={{ 
-              gap: '8px', 
-              padding: '12px 16px', 
-              background: 'rgba(239, 68, 68, 0.08)', 
-              border: '1px solid rgba(239, 68, 68, 0.2)', 
-              borderRadius: '12px', 
-              color: '#ef4444', 
-              fontSize: '0.85rem', 
-              marginBottom: '24px',
-              textAlign: 'left'
-            }}>
-              <AlertCircle size={16} style={{ flexShrink: 0 }} />
-              <span>{authError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} style={{ textAlign: 'left' }}>
-            <div className="form-group">
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Mail size={14} style={{ color: '#00f2fe' }} /> Email Address
-              </label>
-              <input 
-                type="email" 
-                className="form-input" 
-                placeholder="admin@face.com"
-                autoComplete="username"
-                value={loginEmail}
-                onChange={e => setLoginEmail(e.target.value)}
-                required
-                style={{ background: 'rgba(8, 12, 20, 0.6)' }}
-              />
-            </div>
-            
-            <div className="form-group" style={{ marginBottom: '36px' }}>
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Lock size={14} style={{ color: '#00f2fe' }} /> Password
-              </label>
-              <input 
-                type="password" 
-                className="form-input" 
-                placeholder="••••••••"
-                autoComplete="current-password"
-                value={loginPassword}
-                onChange={e => setLoginPassword(e.target.value)}
-                required
-                style={{ background: 'rgba(8, 12, 20, 0.6)' }}
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              className="bg-gradient-btn" 
-              style={{ 
-                width: '100%', 
-                padding: '14px', 
-                borderRadius: '12px', 
-                fontSize: '1rem', 
-                fontWeight: '600',
-                letterSpacing: '0.02em',
-                background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)'
-              }}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '16px', height: '16px', border: '2px solid rgba(0,0,0,0.1)', borderTopColor: '#050b14', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
-                  <span>Authenticating...</span>
-                </div>
-              ) : 'Sign In'}
-            </button>
-          </form>
-
-          <div style={{ 
-            marginTop: '28px', 
-            padding: '12px', 
-            borderRadius: '10px', 
-            background: 'rgba(255,255,255,0.01)', 
-            border: '1px solid rgba(255,255,255,0.03)',
-            fontSize: '0.8rem', 
-            color: '#94a3b8' 
-          }}>
-            Hint: default admin is <code style={{ color: '#00f2fe', fontWeight: 600 }}>admin@face.com</code> / <code style={{ color: '#00f2fe', fontWeight: 600 }}>admin123</code>
-          </div>
-        </div>
-      </div>
+      <LoginPortal
+        loginRole={loginRole}
+        setLoginRole={setLoginRole}
+        loginEmail={loginEmail}
+        setLoginEmail={setLoginEmail}
+        loginPassword={loginPassword}
+        setLoginPassword={setLoginPassword}
+        authError={authError}
+        isLoading={isLoading}
+        onSubmit={handleLogin}
+        crtOverlayEnabled={crtOverlayEnabled}
+      />
     );
   }
 
@@ -4554,7 +4431,7 @@ export default function App() {
           }
 
           return (
-            <div className="glass-panel" style={{ padding: '32px', animation: 'fadeInUp 0.6s ease both' }}>
+            <div className="glass-panel mobile-tab-panel logs-panel" style={{ padding: '32px', animation: 'fadeInUp 0.6s ease both' }}>
               {/* Logs Metrics Summary cards */}
               <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '28px' }}>
                 <div className="glass-panel metric-card" style={{ padding: '16px 20px', borderLeft: '4px solid var(--color-primary)' }}>
@@ -4589,7 +4466,7 @@ export default function App() {
               </div>
 
               {/* Filter Cockpit Bar */}
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="mobile-filter-stack" style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: '16px', flex: 1, minWidth: '300px', flexWrap: 'wrap' }}>
                   <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
                     <input 
@@ -4643,7 +4520,7 @@ export default function App() {
                 </div>
 
                 {/* View Toggles & Status filters */}
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="mobile-filter-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {/* Status Chips */}
                   <div style={{ display: 'flex', background: 'rgba(8, 12, 20, 0.5)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     {['all', 'present', 'absent'].map(status => (
@@ -4780,7 +4657,7 @@ export default function App() {
                 </div>
               ) : (
                 /* Chrono Timeline Feed View */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', paddingLeft: '24px', borderLeft: '2px dashed rgba(255,255,255,0.08)' }}>
+                <div className="chrono-feed">
                   {filteredLogs.map((log, idx) => {
                     const isPresent = log.attendance.toLowerCase() === 'present';
                     return (
@@ -4790,7 +4667,7 @@ export default function App() {
                           playCyberSound('click');
                           setSelectedAuditLog(log);
                         }}
-                        className="glass-panel" 
+                        className="glass-panel chrono-feed-item" 
                         style={{ 
                           padding: '20px', 
                           position: 'relative', 
@@ -4813,16 +4690,8 @@ export default function App() {
                         }}
                       >
                         {/* Timeline Node Point */}
-                        <div style={{ 
-                          position: 'absolute', 
-                          left: '-32px', 
-                          top: '50%', 
-                          transform: 'translateY(-50%)', 
-                          width: '14px', 
-                          height: '14px', 
-                          borderRadius: '50%', 
+                        <div className="chrono-timeline-node" style={{ 
                           background: isPresent ? '#10b981' : '#ef4444',
-                          border: '3px solid #0d1323',
                           boxShadow: `0 0 10px ${isPresent ? '#10b981' : '#ef4444'}`
                         }} />
 
@@ -5371,7 +5240,7 @@ export default function App() {
         )}
 
         {activeTab === 'session-history' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeInUp 0.6s ease both' }}>
+          <div className="mobile-tab-panel session-history-panel" style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeInUp 0.6s ease both' }}>
             {/* Header select filters */}
             <div className="glass-panel hide-on-print" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
@@ -5520,6 +5389,7 @@ export default function App() {
                               playCyberSound('click');
                               setExpandedSessions(prev => ({ ...prev, [sessionKey]: !prev[sessionKey] }));
                             }}
+                            className="session-accordion-header"
                             style={{ 
                               padding: '22px 28px', 
                               display: 'flex', 
@@ -5530,7 +5400,7 @@ export default function App() {
                               transition: 'background 0.3s'
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', textAlign: 'left' }}>
+                            <div className="session-accordion-main">
                               {/* Circular Filling progress SVG */}
                               <div style={{ position: 'relative', width: '38px', height: '38px' }}>
                                 <svg width="38" height="38" viewBox="0 0 36 36">
@@ -5551,15 +5421,13 @@ export default function App() {
                               </div>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                              <div style={{ display: 'flex', gap: '10px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                                <span style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '5px 12px', borderRadius: '20px', color: '#10b981', fontWeight: 700 }}>
-                                  P: {session.present_count}
-                                </span>
-                                <span style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '5px 12px', borderRadius: '20px', color: '#ef4444', fontWeight: 700 }}>
-                                  A: {session.absent_count}
-                                </span>
-                              </div>
+                            <div className="session-accordion-stats">
+                              <span style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '5px 12px', borderRadius: '20px', color: '#10b981', fontWeight: 700 }}>
+                                P: {session.present_count}
+                              </span>
+                              <span style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '5px 12px', borderRadius: '20px', color: '#ef4444', fontWeight: 700 }}>
+                                A: {session.absent_count}
+                              </span>
                               <span style={{ 
                                 transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
                                 transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
@@ -5830,7 +5698,7 @@ export default function App() {
         )}
 
         {activeTab === 'reports' && (
-          <div className="reports-section" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="reports-section mobile-tab-panel reports-panel" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {/* Filter Bar */}
             <div className="glass-panel hide-on-print" style={{ padding: '24px' }}>
               <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', color: '#9ca3af' }}>Select Report Parameters</h4>
@@ -6032,7 +5900,7 @@ export default function App() {
 
             {/* Dynamic At-Risk Leaderboard & Insights */}
             {reportData && reportData.students && reportData.students.length > 0 && (
-              <div className="hide-on-print" style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '32px', marginTop: '32px' }}>
+              <div className="hide-on-print reports-insights-grid" style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '32px', marginTop: '32px' }}>
                 {/* At-Risk Leaderboard */}
                 <div className="glass-panel" style={{ padding: '28px' }}>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>

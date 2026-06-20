@@ -1762,4 +1762,491 @@ button:active,
   }
 }
 
+/* ===== Robotic Login Portal ===== */
+.login-portal-root {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: radial-gradient(circle at center, #0e1726 0%, #070b12 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-rain-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.login-portal-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 1;
+}
+
+.login-portal-glow-a {
+  width: 280px;
+  height: 280px;
+  top: 10%;
+  left: 10%;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.22) 0%, transparent 70%);
+  animation: pulse 6s ease-in-out infinite alternate;
+}
+
+.login-portal-glow-b {
+  width: 320px;
+  height: 320px;
+  bottom: 10%;
+  right: 10%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.2) 0%, transparent 70%);
+  animation: pulse 8s ease-in-out infinite alternate-reverse;
+}
+
+.login-portal-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 254, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.login-portal-radar {
+  position: absolute;
+  top: 8%;
+  right: 8%;
+  width: 100px;
+  height: 100px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.login-portal-radar-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: 50%;
+}
+
+.login-portal-radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(0, 242, 254, 0.35) 45deg, transparent 90deg);
+  animation: radarSweep 2s linear infinite;
+}
+
+.login-portal-radar-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: #00f2fe;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00f2fe;
+}
+
+.login-portal-shell {
+  width: 100%;
+  max-width: 480px;
+  position: relative;
+  z-index: 2;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.login-portal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.login-portal-logo {
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.12), rgba(79, 172, 254, 0.12));
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: 16px;
+  padding: 12px;
+  color: #00f2fe;
+  box-shadow: 0 0 25px rgba(0, 242, 254, 0.12);
+}
+
+.login-portal-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #00f2fe, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.login-portal-subtitle {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  margin: 2px 0 0;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.08em;
+}
+
+.login-portal-boot {
+  font-family: 'Courier New', monospace;
+  font-size: 0.68rem;
+  color: #10b981;
+  margin-bottom: 16px;
+  min-height: 18px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.login-portal-prompt { font-weight: 700; }
+.login-portal-cursor { animation: bootCursorBlink 0.8s step-end infinite; color: #00f2fe; }
+
+.login-role-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.login-role-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 20, 0.65);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.login-role-tab.active {
+  border-color: var(--role-color);
+  color: var(--role-color);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 20px var(--role-glow);
+  transform: translateY(-2px);
+}
+
+.login-role-tab-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.login-role-tab-hint {
+  font-size: 0.58rem;
+  opacity: 0.75;
+  text-align: center;
+  line-height: 1.2;
+  display: none;
+}
+
+.login-portal-card {
+  background: rgba(13, 20, 35, 0.92);
+  border: 1px solid rgba(0, 242, 254, 0.15);
+  border-radius: 20px;
+  padding: 24px 20px;
+  backdrop-filter: blur(12px);
+}
+
+.login-portal-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+.login-portal-card-desc {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.login-portal-error {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  color: #ef4444;
+  font-size: 0.82rem;
+  margin-bottom: 16px;
+}
+
+.login-portal-form .form-group { margin-bottom: 16px; }
+.login-portal-input { background: rgba(8, 12, 20, 0.6) !important; width: 100%; }
+
+.login-portal-submit {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  color: #050b14;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.login-portal-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-top-color: #050b14;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.login-portal-footer {
+  text-align: center;
+  margin-top: 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.62rem;
+  color: rgba(148, 163, 184, 0.7);
+  letter-spacing: 0.1em;
+}
+
+@media (min-width: 480px) {
+  .login-role-tab-hint { display: block; }
+}
+
+@media (max-width: 768px) {
+  .login-portal-radar { display: none; }
+  .login-portal-title { font-size: 1.35rem; }
+}
+
+/* ===== Mobile Tab Panels (Logs, Sessions, Reports) ===== */
+.mobile-tab-panel {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.mobile-filter-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mobile-filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.session-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.session-accordion-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.session-accordion-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reports-insights-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 32px;
+}
+
+.chrono-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  padding-left: 24px;
+  border-left: 2px dashed rgba(255, 255, 255, 0.08);
+}
+
+.chrono-feed-item {
+  position: relative;
+}
+
+.chrono-timeline-node {
+  position: absolute;
+  left: -32px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid #0d1323;
+}
+
+@media (max-width: 768px) {
+  .mobile-tab-panel {
+    padding: 16px !important;
+  }
+
+  .mobile-tab-panel .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .mobile-filter-stack {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    margin-bottom: 20px !important;
+  }
+
+  .mobile-filter-stack > div:first-child {
+    flex-direction: column !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .mobile-filter-stack input,
+  .mobile-filter-stack select,
+  .mobile-filter-stack .form-input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .mobile-filter-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .mobile-filter-controls > div {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-tab-panel .table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+  }
+
+  .mobile-tab-panel .custom-table {
+    min-width: 640px;
+  }
+
+  .session-accordion-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 16px !important;
+  }
+
+  .session-accordion-main {
+    width: 100%;
+  }
+
+  .session-accordion-main h4 {
+    font-size: 0.95rem !important;
+    word-break: break-word;
+  }
+
+  .session-accordion-main p {
+    font-size: 0.75rem !important;
+    word-break: break-word;
+  }
+
+  .session-accordion-stats {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .session-history-panel .glass-panel.hide-on-print {
+    padding: 16px !important;
+  }
+
+  .session-history-panel .form-group {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .reports-section .glass-panel.hide-on-print {
+    padding: 16px !important;
+  }
+
+  .reports-section .hide-on-print[style*="grid"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  .reports-insights-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .reports-section .form-group {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .reports-section button {
+    width: 100%;
+  }
+
+  .chrono-feed {
+    padding-left: 0 !important;
+    border-left: none !important;
+  }
+
+  .chrono-timeline-node {
+    display: none !important;
+  }
+
+  .chrono-feed-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .logs-panel .metric-card {
+    padding: 14px 16px !important;
+  }
+}
+
 
