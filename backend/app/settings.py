@@ -12,12 +12,12 @@ def get_system_settings(
     current_user: models.User = Depends(security.get_current_user)
 ):
     """
-    Fetch current security and system settings (Admins and Teachers only).
+    Fetch current security and system settings (Admins only).
     """
-    if current_user.role not in ["admin", "teacher"]:
+    if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view settings."
+            detail="Only administrators can view security settings."
         )
     return crud.get_system_settings(db)
 

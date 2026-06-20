@@ -59,6 +59,9 @@ def update_schema():
 
 
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import CORS_ORIGINS, validate_config, SEED_DEFAULT_USERS
+
+validate_config()
 
 app = FastAPI(
     title="AI-Powered Secure Face Recognition Attendance System",
@@ -66,13 +69,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 def migrate_existing_student_embeddings(db):
@@ -144,74 +146,69 @@ def on_startup():
     except Exception as e:
         print("Error downloading ONNX weights at startup:", e)
         
-    # Seed default admin user if not exists
     from app.database import SessionLocal
-    from app.crud import get_user_by_email, create_user
+    from app.crud import get_user_by_email, create_user, get_system_settings
     from app.schemas import UserCreate
     from app import models
     db = SessionLocal()
     try:
-        admin_email = "admin@face.com"
-        db_user = get_user_by_email(db, email=admin_email)
-        if not db_user:
-            print("Seeding default admin user...")
-            create_user(
-                db,
-                user=UserCreate(
-                    email=admin_email,
-                    name="System Admin",
-                    password="admin123",
-                    role="admin"
+        if SEED_DEFAULT_USERS:
+            admin_email = "admin@face.com"
+            db_user = get_user_by_email(db, email=admin_email)
+            if not db_user:
+                print("Seeding default admin user...")
+                create_user(
+                    db,
+                    user=UserCreate(
+                        email=admin_email,
+                        name="System Admin",
+                        password="admin123",
+                        role="admin"
+                    )
                 )
-            )
-            print("Default admin user created: admin@face.com / admin123")
-        
-        # Seed default teacher user
-        teacher_email = "teacher@face.com"
-        db_teacher = get_user_by_email(db, email=teacher_email)
-        if not db_teacher:
-            print("Seeding default teacher user...")
-            create_user(
-                db,
-                user=UserCreate(
-                    email=teacher_email,
-                    name="Default Teacher",
-                    password="teacher123",
-                    role="teacher"
+                print("Default admin user created.")
+
+            teacher_email = "teacher@face.com"
+            db_teacher = get_user_by_email(db, email=teacher_email)
+            if not db_teacher:
+                print("Seeding default teacher user...")
+                create_user(
+                    db,
+                    user=UserCreate(
+                        email=teacher_email,
+                        name="Default Teacher",
+                        password="teacher123",
+                        role="teacher"
+                    )
                 )
-            )
-            print("Default teacher user created: teacher@face.com / teacher123")
+                print("Default teacher user created.")
 
-        # Seed default student
-        student_email = "student@face.com"
-        db_student = db.query(models.StudentModel).filter(models.StudentModel.email == student_email).first()
-        if not db_student:
-            print("Seeding default student...")
-            from app.security import get_password_hash
-            new_s = models.StudentModel(
-                id=10001,
-                name="Default Student",
-                roll="student123",
-                dep="CSE(IOT)",
-                course="B.Tech",
-                year="2026",
-                semester="1st",
-                email=student_email,
-                password_hash=get_password_hash("student123"),
-                photo="no"
-            )
-            db.add(new_s)
-            db.commit()
-            print("Default student created: student@face.com / student123")
+            student_email = "student@face.com"
+            db_student = db.query(models.StudentModel).filter(models.StudentModel.email == student_email).first()
+            if not db_student:
+                print("Seeding default student...")
+                from app.security import get_password_hash
+                new_s = models.StudentModel(
+                    id=10001,
+                    name="Default Student",
+                    roll="student123",
+                    dep="CSE(IOT)",
+                    course="B.Tech",
+                    year="2026",
+                    semester="1st",
+                    email=student_email,
+                    password_hash=get_password_hash("student123"),
+                    photo="no"
+                )
+                db.add(new_s)
+                db.commit()
+                print("Default student created.")
+        else:
+            print("Default user seeding skipped (SEED_DEFAULT_USERS=false).")
 
-        # Seed default security settings
-        from app.crud import get_system_settings
         get_system_settings(db)
-        
-        # Run SFace embedding migration for existing student photos
         migrate_existing_student_embeddings(db)
-        
-        # Start background reports scheduler
+
         from app import scheduler
         scheduler.start()
     except Exception as e:

@@ -9,6 +9,7 @@ from . import crud, schemas, models, security, security_utils
 from .database import get_db
 from .recognition_service import recognition_service
 from .email_service import send_presence_email, send_absent_email
+from .core import config
 
 router = APIRouter()
 
@@ -115,12 +116,12 @@ async def recognize_and_mark_attendance(
     
     # 1. IP Network Restriction Check
     if settings.ip_restriction_enabled:
-        client_ip = request.client.host
-        forwarded_for = request.headers.get("X-Forwarded-For")
-        if forwarded_for:
-            client_ip = forwarded_for.split(",")[0].strip()
-            
-        if not security_utils.verify_client_ip(client_ip, settings.allowed_ip_ranges):
+        client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
+        if not security_utils.verify_client_ip(
+            client_ip,
+            settings.allowed_ip_ranges,
+            restriction_enabled=True,
+        ):
             raise HTTPException(
                 status_code=403, 
                 detail=f"Access denied: IP restriction is active. Your IP ({client_ip}) is not authorized."
@@ -140,6 +141,10 @@ async def recognize_and_mark_attendance(
             )
 
     contents = await file.read()
+    if len(contents) > config.MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image file too large. Maximum size is 5MB.")
+    if file.content_type and not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image uploads are allowed.")
     nparr = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
@@ -201,38 +206,25 @@ def get_attendance_report(
     department: Optional[str] = None,
     subject_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    token: str = Depends(security.oauth2_scheme)
+    current_user: models.User = Depends(security.get_current_user),
 ):
     """
     Generate cumulative attendance report in a date range for a department and/or subject.
-    If student, filters the list to return only the student's own record.
+    Teachers are scoped to their assigned subjects; students cannot use this endpoint.
     """
-    from jose import jwt, JWTError
-    from .core import config
-    
-    try:
-        payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
-        email: str = payload.get("sub")
-        role: str = payload.get("role")
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
-        )
-        
+    role = current_user.role
+    email = current_user.email
+
     if role == "teacher":
-        user = db.query(models.User).filter(models.User.email == email).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User record not found.")
         if subject_id is not None:
             subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
-            if not subject or subject.teacher_id != user.id:
+            if not subject or subject.teacher_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Unauthorized: You can only view reports for your assigned subject."
                 )
         else:
-            first_subject = db.query(models.Subject).filter(models.Subject.teacher_id == user.id).first()
+            first_subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
             if not first_subject:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -240,15 +232,29 @@ def get_attendance_report(
                 )
             subject_id = first_subject.id
 
-    report = crud.get_attendance_report(db, start_date_str=start_date, end_date_str=end_date, department=department, subject_id=subject_id)
-    
-    if role == "student":
-        student = crud.get_student_by_email(db, email=email)
-        if student:
-            report["students"] = [s for s in report["students"] if s["id"] == student.id]
-        else:
-            report["students"] = []
-            
+    report = crud.get_attendance_report(
+        db,
+        start_date_str=start_date,
+        end_date_str=end_date,
+        department=department,
+        subject_id=subject_id,
+    )
+    return report
+
+
+@router.get("/my-report")
+def get_student_attendance_report(
+    subject_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_student: models.StudentModel = Depends(security.get_current_student),
+):
+    """Student-scoped attendance report for a single subject."""
+    report = crud.get_attendance_report(
+        db,
+        department=current_student.dep,
+        subject_id=subject_id,
+    )
+    report["students"] = [s for s in report["students"] if s["id"] == current_student.id]
     return report
 
 
@@ -350,6 +356,20 @@ def download_attendance_pdf_report(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can download PDF reports."
         )
+
+    if current_user.role == "teacher":
+        if subject_id is None:
+            first_subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
+            if not first_subject:
+                raise HTTPException(status_code=400, detail="No subjects assigned to this teacher.")
+            subject_id = first_subject.id
+        else:
+            subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+            if not subject or subject.teacher_id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Unauthorized: You can only download reports for your assigned subject."
+                )
     """
     Generate and instantly download attendance report as a PDF file.
     """

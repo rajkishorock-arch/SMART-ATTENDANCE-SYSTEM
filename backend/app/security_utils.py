@@ -1,6 +1,17 @@
 import math
 import ipaddress
 
+def get_client_ip(request, trust_proxy_headers: bool = False) -> str:
+    """Resolve client IP safely. Only trust forwarded headers behind a known proxy."""
+    if trust_proxy_headers:
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip.strip()
+    return request.client.host if request.client else "0.0.0.0"
+
 def calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculates the great-circle distance between two points on the Earth's surface
@@ -29,12 +40,16 @@ def verify_geofence(client_lat: float, client_lon: float, center_lat: float, cen
     distance = calculate_haversine_distance(client_lat, client_lon, center_lat, center_lon)
     return distance <= radius_meters
 
-def verify_client_ip(client_ip: str, allowed_ranges_str: str) -> bool:
+def verify_client_ip(client_ip: str, allowed_ranges_str: str, restriction_enabled: bool = False) -> bool:
     """
     Verifies if a client IP address falls within the list of comma-separated allowed IPs or CIDR blocks.
+    When restriction is enabled but allowlist is empty, access is denied.
     """
-    if not allowed_ranges_str:
+    if not restriction_enabled:
         return True
+
+    if not allowed_ranges_str or not allowed_ranges_str.strip():
+        return False
         
     try:
         ip_obj = ipaddress.ip_address(client_ip)

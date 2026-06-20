@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ScannerBootOverlay from './ScannerBootOverlay';
+import BottomNav from './components/BottomNav';
+import MobileControlPanel from './components/MobileControlPanel';
 import { 
   Users, 
   CheckCircle2, 
@@ -166,6 +168,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileControlOpen, setMobileControlOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const sessionInitializedRef = useRef(false);
 
   // Phase 5 States
   const [diagnosticWarnings, setDiagnosticWarnings] = useState({ lighting: '', distance: '' });
@@ -434,7 +439,11 @@ export default function App() {
   const fetchSystemHealth = async () => {
     try {
       const startTime = performance.now();
-      const res = await fetch(`${API_BASE_URL}/health/`);
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      let res = await fetch(`${API_BASE_URL}/health/detailed`, { headers });
+      if (!res.ok) {
+        res = await fetch(`${API_BASE_URL}/health/`);
+      }
       const endTime = performance.now();
       setApiLatency(Math.round(endTime - startTime));
       if (res.ok) {
@@ -538,6 +547,10 @@ export default function App() {
           'Authorization': `Bearer ${token}`
         }
       });
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setSessionHistory(data);
@@ -600,7 +613,11 @@ export default function App() {
       const statsMap = {};
       await Promise.all(subjectsList.map(async (sub) => {
         try {
-          const res = await fetch(`${API_BASE_URL}/attendance/report?department=${encodeURIComponent(studentDept)}&subject_id=${sub.id}`);
+          const res = await fetch(`${API_BASE_URL}/attendance/my-report?subject_id=${sub.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
           if (res.ok) {
             const data = await res.json();
             const myRecord = data.students.find(s => s.id === studentId);
@@ -1107,17 +1124,21 @@ export default function App() {
     };
   }, [token, activeTheme]);
 
-  // Periodic metrics updates for live scanner HUD
+  // Periodic metrics updates for live scanner HUD (only when camera active)
   useEffect(() => {
+    const cameraActive = attendanceActive || webcamActive || studentWebcamActive || scannerBootActive;
+    if (!cameraActive) return undefined;
+
+    const intervalMs = isMobileView ? 2500 : 1000;
     const interval = setInterval(() => {
       setHudMetrics({
         fps: (29.3 + Math.random() * 1.3).toFixed(1),
         lighting: Math.floor(86 + Math.random() * 10) + '%',
         quality: Math.random() > 0.15 ? 'EXCELLENT' : 'OPTIMAL'
       });
-    }, 1000);
+    }, intervalMs);
     return () => clearInterval(interval);
-  }, []);
+  }, [attendanceActive, webcamActive, studentWebcamActive, scannerBootActive, isMobileView]);
 
   // Web Audio Cabin Hum Drone Simulation
   useEffect(() => {
@@ -1924,11 +1945,13 @@ export default function App() {
         setCurrentUser(data);
         localStorage.setItem('userRole', data.role);
         
-        // Redirect based on role
-        if (data.role === 'student') {
-          setActiveTab('student-attendance');
-        } else {
-          setActiveTab('dashboard');
+        if (!sessionInitializedRef.current) {
+          sessionInitializedRef.current = true;
+          if (data.role === 'student') {
+            setActiveTab('student-attendance');
+          } else {
+            setActiveTab('dashboard');
+          }
         }
       } else {
         handleLogout();
@@ -2124,64 +2147,113 @@ export default function App() {
     if (token) {
       fetchSessionInfo(token);
     } else {
+      sessionInitializedRef.current = false;
       setUserRole('');
       setCurrentUser(null);
-      localStorage.removeItem('userRole');
       localStorage.removeItem('userRole');
     }
   }, [token]);
 
-  // Run data polling based on role
-  // NOTE: fetchSubjects MUST be called before fetchStudents so teacher dept-filtering works correctly
   useEffect(() => {
-    if (token && userRole) {
-      if (userRole === 'student') {
-        fetchStudentLogs(token);
-        if (currentUser && currentUser.details) {
-          fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
-        }
-      } else {
-        // Load subjects FIRST so student filtering by teacher department works immediately
-        fetchSubjects().then(() => {
-          fetchStudents();
-        });
-        fetchStats();
-        fetchLogs();
-        fetchSchedules();
-        if (userRole === 'admin') {
-          fetchTeachers();
-        }
-        const interval = setInterval(() => {
-          fetchStats();
-          fetchLogs();
-        }, 5000); // Polling every 5 seconds for real-time dashboard updates
-        return () => clearInterval(interval);
-      }
-    }
-  }, [token, userRole, currentUser]);
+    const updateViewport = () => setIsMobileView(window.innerWidth <= 768);
+    updateViewport();
+    window.addEventListener('resize', updateViewport);
+    return () => window.removeEventListener('resize', updateViewport);
+  }, []);
 
-  // Fetch settings, subjects, schedules, and teachers when settings or teachers tab becomes active
+  const navigateToTab = useCallback((tabId) => {
+    setActiveTab(tabId);
+    setMobileSidebarOpen(false);
+    setMobileControlOpen(false);
+    playCyberSound('click');
+  }, []);
+
+  const handleBottomScan = useCallback(() => {
+    playCyberSound('click');
+    setActiveTab('attendance');
+    setShowScannerModal(true);
+    setMobileControlOpen(false);
+  }, []);
+
+  // Load core data once after login
   useEffect(() => {
-    if (token && userRole === 'admin' && (activeTab === 'settings' || activeTab === 'teachers')) {
-      fetchSystemSettings();
-      fetchSubjects();
-      fetchSchedules();
+    if (!token || !userRole) return;
+
+    if (userRole === 'student') {
+      fetchStudentLogs(token);
+      if (currentUser?.details) {
+        fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
+      }
+      return;
+    }
+
+    fetchSubjects().then(() => fetchStudents());
+    fetchStats();
+    fetchLogs();
+    fetchSchedules();
+    if (userRole === 'admin') {
       fetchTeachers();
     }
-  }, [token, userRole, activeTab]);
+  }, [token, userRole]);
 
-  // Refresh student subject stats when student dashboard becomes active
+  // Refresh data when switching tabs
   useEffect(() => {
-    if (token && userRole === 'student' && currentUser && currentUser.details && activeTab === 'student-attendance') {
-      fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
+    if (!token || !userRole) return;
+
+    switch (activeTab) {
+      case 'dashboard':
+        fetchStats();
+        fetchLogs();
+        break;
+      case 'students':
+        fetchSubjects().then(() => fetchStudents());
+        break;
+      case 'logs':
+        fetchLogs();
+        break;
+      case 'attendance':
+        fetchSubjects();
+        fetchStats();
+        break;
+      case 'reports':
+        fetchReport();
+        break;
+      case 'session-history':
+        fetchSessionHistory();
+        break;
+      case 'settings':
+        if (userRole === 'admin') fetchSystemSettings();
+        break;
+      case 'teachers':
+        if (userRole === 'admin') {
+          fetchTeachers();
+          fetchSchedules();
+          fetchSubjects();
+        }
+        break;
+      case 'student-attendance':
+        fetchStudentLogs(token);
+        if (currentUser?.details) {
+          fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
+        }
+        break;
+      default:
+        break;
     }
-  }, [token, userRole, currentUser, activeTab]);
-  // Fetch session history when session-history tab becomes active
+  }, [activeTab, token, userRole, selectedSubjectId, selectedTeacherSubjectId, selectedReportSubjectId]);
+
+  // Poll only on active dashboard/logs tabs (slower on mobile)
   useEffect(() => {
-    if (token && activeTab === 'session-history') {
-      fetchSessionHistory();
-    }
-  }, [token, activeTab, selectedSubjectId, selectedTeacherSubjectId]);
+    if (!token || !userRole || userRole === 'student') return;
+    if (activeTab !== 'dashboard' && activeTab !== 'logs') return;
+
+    const pollMs = isMobileView ? 12000 : 8000;
+    const interval = setInterval(() => {
+      if (activeTab === 'dashboard') fetchStats();
+      fetchLogs();
+    }, pollMs);
+    return () => clearInterval(interval);
+  }, [token, userRole, activeTab, isMobileView]);
 
   // System Health telemetry loop
   useEffect(() => {
@@ -2265,6 +2337,7 @@ export default function App() {
     playCyberSound('click');
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    sessionInitializedRef.current = false;
     setToken('');
     setUserRole('');
     setCurrentUser(null);
@@ -3277,7 +3350,7 @@ export default function App() {
             </button>
             <div>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>
-                {activeTab === 'dashboard' && 'Welcome Admin'}
+                {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
                 {activeTab === 'students' && 'Student Directory'}
                 {activeTab === 'teachers' && 'Teacher Directory'}
                 {activeTab === 'logs' && 'Real-time Logs'}
@@ -8054,6 +8127,28 @@ export default function App() {
           </h3>
           <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>Scanning datasets, preprocessing images and retraining classifier.xml...</p>
         </div>
+      )}
+
+      <MobileControlPanel
+        open={mobileControlOpen}
+        onClose={() => setMobileControlOpen(false)}
+        userRole={userRole}
+        activeTab={activeTab}
+        onNavigate={navigateToTab}
+        onLogout={handleLogout}
+      />
+
+      {token && userRole && (
+        <BottomNav
+          userRole={userRole}
+          activeTab={activeTab}
+          onNavigate={navigateToTab}
+          onScanPress={handleBottomScan}
+          onMorePress={() => {
+            playCyberSound('click');
+            setMobileControlOpen(true);
+          }}
+        />
       )}
     </div>
   );
