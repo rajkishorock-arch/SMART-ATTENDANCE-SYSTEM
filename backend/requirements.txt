@@ -13,5 +13,4 @@ psutil
 python-multipart
 apscheduler
 reportlab
-
-
+requests
