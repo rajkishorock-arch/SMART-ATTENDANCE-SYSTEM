@@ -1,0 +1,24 @@
+# Ignore backend and ML models for Vercel deployment
+backend/
+data/
+venv/
+.venv/
+env/
+.env/
+__pycache__/
+*.onnx
+*.xml
+*.csv
+haarcascade_frontalface_default.xml
+classifier.xml
+test_login.py
+test_db.py
+attendence.py
+face_recognition.py
+face_utils.py
+student.py
+train.py
+voice_utils.py
+notification_utils.py
+voice_utils.py
+*.pyc

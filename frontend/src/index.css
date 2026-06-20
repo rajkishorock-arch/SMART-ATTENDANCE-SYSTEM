@@ -901,6 +901,8 @@ html, body {
   .main-content {
     margin-left: 0 !important;
     padding: 30px 15px !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .header-container {
@@ -1709,6 +1711,8 @@ button:active,
     margin-left: 0 !important;
     padding: 16px 14px calc(88px + env(safe-area-inset-bottom, 0px)) !important;
     min-height: 100dvh;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .sidebar {
@@ -2663,8 +2667,8 @@ html {
 .main-content {
   flex: 1;
   min-width: 0;
-  width: 100%;
-  max-width: 100%;
+  width: calc(100% - 220px);
+  max-width: calc(100% - 220px);
   overflow-x: hidden;
 }
 
