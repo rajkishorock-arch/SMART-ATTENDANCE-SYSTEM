@@ -80,7 +80,7 @@ def chat_response(
         return {"response": get_fallback_response(user_query)}
         
     # Prepare payload for Gemini API
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     
     # Map history to Gemini role format ('user' and 'model')
     contents = []
