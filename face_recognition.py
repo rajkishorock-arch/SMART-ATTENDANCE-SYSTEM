@@ -27,11 +27,15 @@ from face_utils import (
     draw_hud_boundary,
     play_camera_boot_sequence,
 )
+from notification_utils import send_telegram_message_async
 
 class Face_Recognition:
     def __init__(self, root):
         self.root = root
-        self.root.geometry("1530x790+0+0")
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        self.root.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
+        self.root.state('zoomed')
         self.root.title("Face Recognition System")
 
         # Set up default states
@@ -41,7 +45,7 @@ class Face_Recognition:
         self.classifier_path = os.path.join(script_dir, "classifier.xml")
 
         title_lbl = Label(self.root, text="Face Recognition", font=( "times new roman", 35, "bold"), bg="white", fg="red")
-        title_lbl.place(x=0, y=0, width=1530, height=45)
+        title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
 
         img_top = Image.open(r"C:\Users\rajki\Desktop\New folder\image\face4.jpg")
         img_top = img_top.resize((650, 750), Image.LANCZOS)
@@ -478,6 +482,7 @@ class Face_Recognition:
                 )
                 conn.commit()
                 print(f"Attendance written to MySQL database: {student_id}")
+                send_telegram_message_async(f"✅ Attendance Marked: {name} (ID: {student_id}, Roll: {roll}) at {time_string} on {date_string}")
             conn.close()
         except Exception as error:
             print(f"Unable to save attendance to MySQL database: {error}")

@@ -12,12 +12,15 @@ from face_utils import create_lbph_recognizer, preprocess_face
 class Train:
     def __init__(self, root):
         self.root = root
-        self.root.geometry("1530x790+0+0")
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        self.root.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
+        self.root.state('zoomed')
         self.root.title("Face Recognition System")
 
         title_lbl = Label(self.root, text="TRAIN DATA SET", font=(
             "times new roman", 35, "bold"), bg="white", fg="red")
-        title_lbl.place(x=0, y=0, width=1530, height=45)
+        title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
 
         img_top = Image.open(r"C:\Users\rajki\Desktop\New folder\train.jpg")
         img_top = img_top.resize((1530, 325), Image.LANCZOS)

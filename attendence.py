@@ -11,7 +11,10 @@ mydata = []
 class Attendence:
     def __init__(self, root):
         self.root = root
-        self.root.geometry("1530x790+0+0")
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        self.root.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
+        self.root.state('zoomed')
         self.root.title("Face Recognition System")
 
         #first image

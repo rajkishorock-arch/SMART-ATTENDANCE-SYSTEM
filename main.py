@@ -8,43 +8,51 @@ from train import Train
 from face_recognition import Face_Recognition
 from attendence import Attendence
 from face_utils import TechRadarCanvas, animate_typewriter, animate_neon_pulse, bind_button_glow
+from voice_utils import speak_async, listen_command
+import threading
 
 class FaceRecognition:
     def __init__(self, root):
         self.root = root
-        self.root.geometry("1530x790+0+0")
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        self.root.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
+        self.root.state('zoomed')
         self.root.title("Face Recognition System")
         self.root.configure(bg="#0a0a0a")
 
+        speak_async("Welcome to the advanced face recognition attendance system. System is fully operational.")
+
         # ── Top header images ────────────────────────────────────────────────
+        img_w = self.screen_width // 3
         for path, x in [
             (r"C:\Users\rajki\Desktop\New folder\image\download.jpg", 0),
-            (r"C:\Users\rajki\Desktop\New folder\image\images.jpg",  500),
-            (r"C:\Users\rajki\Desktop\New folder\image\raj.jpg",     1000),
+            (r"C:\Users\rajki\Desktop\New folder\image\images.jpg",  img_w),
+            (r"C:\Users\rajki\Desktop\New folder\image\raj.jpg",     img_w * 2),
         ]:
             try:
-                _img = Image.open(path).resize((500, 130), Image.LANCZOS)
+                _img = Image.open(path).resize((img_w, 130), Image.LANCZOS)
                 ref = ImageTk.PhotoImage(_img)
                 lbl = Label(self.root, image=ref, bg="#0a0a0a")
                 lbl.image = ref          # keep reference
-                lbl.place(x=x, y=0, width=500, height=130)
+                lbl.place(x=x, y=0, width=img_w, height=130)
             except Exception:
                 pass
 
         # ── Background ───────────────────────────────────────────────────────
         try:
-            _bg = Image.open(r"C:\Users\rajki\Desktop\New folder\image\im.jpg").resize((1530, 710), Image.LANCZOS)
+            _bg = Image.open(r"C:\Users\rajki\Desktop\New folder\image\im.jpg").resize((self.screen_width, self.screen_height - 130), Image.LANCZOS)
             self.photoimg3 = ImageTk.PhotoImage(_bg)
             bg = Label(self.root, image=self.photoimg3, bg="#0a0a0a")
         except Exception:
             bg = Label(self.root, bg="#0a0a0a")
-        bg.place(x=0, y=130, width=1530, height=710)
+        bg.place(x=0, y=130, width=self.screen_width, height=self.screen_height - 130)
 
         # ── Animated Typewriter + Neon Title ─────────────────────────────────
         TITLE = "FACE RECOGNITION ATTENDANCE SYSTEM SOFTWARE"
         title_lbl = Label(bg, text="", font=("Courier", 22, "bold"),
                           bg="#000000", fg="#00ff00")
-        title_lbl.place(x=0, y=0, width=1530, height=45)
+        title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
         delay_ms = 40
         total_ms  = len(TITLE) * delay_ms + 300
         self.root.after(300,  lambda: animate_typewriter(title_lbl, TITLE, delay=delay_ms))
@@ -91,11 +99,11 @@ class FaceRecognition:
                  "ATTENDANCE", self.attendence_data,
                  800, 100, "#ff00ff", "black", "#330033", "#ff00ff")
 
-        # HELP button below radar (no image)
-        help_btn = Button(bg, text="HELP", cursor="hand2",
+        # VOICE ASSISTANT button below radar
+        self.voice_btn = Button(bg, text="VOICE ASSIST", cursor="hand2", command=self.activate_voice,
                           font=("Courier", 13, "bold"), relief=FLAT)
-        help_btn.place(x=1100, y=300, width=220, height=40)
-        bind_button_glow(help_btn, "#00ff00", "black", "#001a00", "#00ff00")
+        self.voice_btn.place(x=1100, y=300, width=220, height=40)
+        bind_button_glow(self.voice_btn, "#00ff00", "black", "#001a00", "#00ff00")
 
         make_btn(bg,
                  r"C:\Users\rajki\Desktop\New folder\image\train.jpg",
@@ -140,6 +148,40 @@ class FaceRecognition:
     def attendence_data(self):
         self.new_window = Toplevel(self.root)
         self.app = Attendence(self.new_window)
+
+    def activate_voice(self):
+        self.voice_btn.config(text="LISTENING...", fg="yellow")
+        threading.Thread(target=self._listen_thread, daemon=True).start()
+
+    def _listen_thread(self):
+        speak_async("I am listening. Tell me what to do.")
+        command = listen_command()
+        self.root.after(0, lambda: self.voice_btn.config(text="VOICE ASSIST", fg="#00ff00"))
+        
+        if not command:
+            return
+            
+        if "student" in command or "details" in command:
+            speak_async("Opening student details.")
+            self.root.after(0, self.student_details)
+        elif "detect" in command or "face" in command or "recognition" in command:
+            speak_async("Activating face recognition.")
+            self.root.after(0, self.face_data)
+        elif "attendance" in command:
+            speak_async("Opening attendance records.")
+            self.root.after(0, self.attendence_data)
+        elif "train" in command or "data" in command:
+            speak_async("Opening training module.")
+            self.root.after(0, self.train_data)
+        elif "photo" in command or "image" in command:
+            speak_async("Opening photos folder.")
+            self.root.after(0, self.open_image)
+        elif "exit" in command or "close" in command or "quit" in command:
+            speak_async("Shutting down the system. Goodbye.")
+            self.root.after(2000, self.root.destroy)
+        else:
+            speak_async(f"Sorry, I do not understand the command: {command}")
+
 
 
 if __name__ == "__main__":
