@@ -203,6 +203,7 @@ export default function App() {
   ]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatBottomRef = useRef(null);
+  const [activeTelemetry, setActiveTelemetry] = useState({ total_active: 0, students: 0, teachers: 0, admins: 0 });
 
   // Auto scroll chat to bottom when messages update
   useEffect(() => {
@@ -603,6 +604,39 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error fetching subjects:', err);
+    }
+  };
+
+  // Fetch active users counts (Admins only)
+  const fetchActiveUsers = async () => {
+    if (!token || userRole !== 'admin') return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/active-users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveTelemetry(data);
+      }
+    } catch (err) {
+      console.error('Error fetching active users:', err);
+    }
+  };
+
+  // Send heartbeat ping
+  const sendHeartbeat = async () => {
+    if (!token) return;
+    try {
+      await fetch(`${API_BASE_URL}/auth/heartbeat`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    } catch (err) {
+      console.error('Error sending heartbeat:', err);
     }
   };
 
@@ -2266,6 +2300,34 @@ export default function App() {
     }
   }, [token, userRole]);
 
+  // Heartbeat ping loop for all logged-in users
+  useEffect(() => {
+    if (!token) return undefined;
+    
+    // Send initial heartbeat immediately
+    sendHeartbeat();
+    
+    const interval = setInterval(() => {
+      sendHeartbeat();
+    }, 30000); // every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // Polling loop for active users (Admins only, on Dashboard tab)
+  useEffect(() => {
+    if (!token || userRole !== 'admin' || activeTab !== 'dashboard') return undefined;
+    
+    // Fetch immediately
+    fetchActiveUsers();
+    
+    const interval = setInterval(() => {
+      fetchActiveUsers();
+    }, 15000); // every 15 seconds
+    
+    return () => clearInterval(interval);
+  }, [token, userRole, activeTab]);
+
   // Refresh data when switching tabs
   useEffect(() => {
     if (!token || !userRole) return;
@@ -3658,6 +3720,41 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
             <LiveActivityTicker activities={liveActivities} />
+            {userRole === 'admin' && activeTelemetry && (
+              <div className="glass-panel telemetry-widget-card" style={{ 
+                padding: '20px', 
+                marginBottom: '20px', 
+                animationDelay: '50ms',
+                borderLeft: '4px solid var(--color-primary)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span className="telemetry-live-dot" />
+                    <h3 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--color-text-main)', letterSpacing: '0.06em' }}>
+                      LIVE SYSTEM TELEMETRY
+                    </h3>
+                  </div>
+                  <div className="telemetry-stats-row">
+                    <div className="telemetry-stat-pill total">
+                      <span className="label">ACTIVE USERS:</span>
+                      <span className="val">{activeTelemetry.total_active}</span>
+                    </div>
+                    <div className="telemetry-stat-pill student">
+                      <span className="label">STUDENTS:</span>
+                      <span className="val">{activeTelemetry.students}</span>
+                    </div>
+                    <div className="telemetry-stat-pill teacher">
+                      <span className="label">TEACHERS:</span>
+                      <span className="val">{activeTelemetry.teachers}</span>
+                    </div>
+                    <div className="telemetry-stat-pill admin">
+                      <span className="label">ADMINS:</span>
+                      <span className="val">{activeTelemetry.admins}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Metric Summary Cards */}
             <div className="dashboard-grid">
               <div className="glass-panel metric-card" style={{ 

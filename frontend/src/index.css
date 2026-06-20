@@ -3831,3 +3831,92 @@ html {
   transform: none;
 }
 
+/* Live Telemetry Widget styles */
+.telemetry-widget-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+}
+
+.telemetry-live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+  box-shadow: 0 0 10px var(--color-success);
+  animation: pulse 1.5s infinite;
+  display: inline-block;
+}
+
+.telemetry-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .telemetry-stats-row {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.telemetry-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  background: rgba(8, 12, 20, 0.4);
+}
+
+.telemetry-stat-pill .label {
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.telemetry-stat-pill .val {
+  font-size: 0.95rem;
+  font-family: 'Outfit', sans-serif;
+  color: var(--color-primary);
+}
+
+.telemetry-stat-pill.total {
+  border-color: rgba(0, 242, 254, 0.3);
+  background: rgba(0, 242, 254, 0.05);
+}
+.telemetry-stat-pill.total .val {
+  color: var(--color-primary);
+  text-shadow: 0 0 8px var(--color-primary);
+}
+
+.telemetry-stat-pill.student {
+  border-color: rgba(167, 139, 250, 0.2);
+}
+.telemetry-stat-pill.student .val {
+  color: var(--color-purple);
+}
+
+.telemetry-stat-pill.teacher {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+.telemetry-stat-pill.teacher .val {
+  color: var(--color-success);
+}
+
+.telemetry-stat-pill.admin {
+  border-color: rgba(245, 158, 11, 0.2);
+}
+.telemetry-stat-pill.admin .val {
+  color: var(--color-warning);
+}
+
+

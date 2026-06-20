@@ -11,6 +11,19 @@ from .core import config
 
 router = APIRouter()
 
+import time
+from typing import Dict
+
+# Dictionary to store active user heartbeats
+# Key: email (str), Value: {"role": role, "last_seen": timestamp}
+active_sessions: Dict[str, dict] = {}
+
+def record_active_user(email: str, role: str):
+    active_sessions[email] = {
+        "role": role,
+        "last_seen": time.time()
+    }
+
 _login_attempts = defaultdict(list)
 MAX_LOGIN_ATTEMPTS = 8
 LOGIN_WINDOW_SECONDS = 300
@@ -49,6 +62,7 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
         if not user.is_active:
             raise HTTPException(status_code=400, detail="Inactive user")
 
+        record_active_user(user.email, user.role)
         access_token = security.create_access_token(data={"sub": user.email, "role": user.role})
         crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=user.email, action="Admin/User logged in."))
         return {"access_token": access_token, "token_type": "bearer"}
@@ -71,6 +85,7 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        record_active_user(student.email, "student")
         access_token = security.create_access_token(data={"sub": student.email, "role": "student"})
         crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=student.email, action="Student logged in."))
         return {"access_token": access_token, "token_type": "bearer"}
@@ -96,6 +111,7 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
         role: str = payload.get("role")
         if email is None or not role:
             raise credentials_exception
+        record_active_user(email, role)
     except JWTError:
         raise credentials_exception
 
@@ -139,3 +155,59 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             "subject_department": subject.department if subject else None
         }
     }
+
+
+@router.post("/heartbeat", status_code=status.HTTP_200_OK)
+def user_heartbeat(
+    user_info: dict = Depends(get_current_session_info)
+):
+    """
+    Register a heartbeat ping from the logged-in user to mark them active.
+    """
+    record_active_user(user_info["email"], user_info["role"])
+    return {"status": "ok"}
+
+
+@router.get("/active-users")
+def get_active_users_count(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Get the counts of active users by role. Only accessible to Admins.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can view active users."
+        )
+        
+    # Clean up stale sessions (older than 90 seconds, i.e., 1.5 minutes)
+    now = time.time()
+    stale_keys = [k for k, v in active_sessions.items() if now - v["last_seen"] > 90]
+    for k in stale_keys:
+        active_sessions.pop(k, None)
+        
+    # Compute counts
+    total = 0
+    students_count = 0
+    teachers_count = 0
+    admins_count = 0
+    
+    for email, session in active_sessions.items():
+        total += 1
+        role = session["role"]
+        if role == "student":
+            students_count += 1
+        elif role == "teacher":
+            teachers_count += 1
+        elif role == "admin":
+            admins_count += 1
+            
+    return {
+        "total_active": total,
+        "students": students_count,
+        "teachers": teachers_count,
+        "admins": admins_count
+    }
+
