@@ -19,13 +19,14 @@ def create_db_and_tables():
     print("Tables created.")
 
 def update_schema():
-    from sqlalchemy import text
-    from app.database import SessionLocal
+    from sqlalchemy import text, inspect
+    from app.database import SessionLocal, engine
     db = SessionLocal()
     try:
-        # Check if password_hash column exists in student table
-        result = db.execute(text("SHOW COLUMNS FROM student LIKE 'password_hash'")).fetchone()
-        if not result:
+        inspector = inspect(engine)
+        # Check columns in student table
+        student_columns = [col['name'] for col in inspector.get_columns('student')]
+        if 'password_hash' not in student_columns:
             print("Adding password_hash column to student table...")
             db.execute(text("ALTER TABLE student ADD COLUMN password_hash VARCHAR(255) NULL"))
             db.commit()
@@ -33,9 +34,7 @@ def update_schema():
         else:
             print("Column password_hash already exists in student table.")
 
-        # Check if face_embedding column exists in student table
-        result_emb = db.execute(text("SHOW COLUMNS FROM student LIKE 'face_embedding'")).fetchone()
-        if not result_emb:
+        if 'face_embedding' not in student_columns:
             print("Adding face_embedding column to student table...")
             db.execute(text("ALTER TABLE student ADD COLUMN face_embedding TEXT NULL"))
             db.commit()
@@ -43,9 +42,9 @@ def update_schema():
         else:
             print("Column face_embedding already exists in student table.")
 
-        # Check if subject_id column exists in attendence table
-        result_sub = db.execute(text("SHOW COLUMNS FROM attendence LIKE 'subject_id'")).fetchone()
-        if not result_sub:
+        # Check columns in attendence table
+        attendance_columns = [col['name'] for col in inspector.get_columns('attendence')]
+        if 'subject_id' not in attendance_columns:
             print("Adding subject_id column to attendence table...")
             db.execute(text("ALTER TABLE attendence ADD COLUMN subject_id INT NULL"))
             db.commit()
@@ -53,7 +52,7 @@ def update_schema():
         else:
             print("Column subject_id already exists in attendence table.")
     except Exception as e:
-        print("Schema update check failed or column already exists:", e)
+        print("Schema update check failed:", e)
     finally:
         db.close()
 
