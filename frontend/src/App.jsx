@@ -186,6 +186,8 @@ export default function App() {
   const [feedbackSuccess, setFeedbackSuccess] = useState('');
   const [feedbackError, setFeedbackError] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -455,6 +457,31 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error fetching stats:', err);
+    }
+  };
+
+  // Fetch Feedbacks (Admins Only)
+  const fetchFeedbacks = async () => {
+    if (!token || userRole !== 'admin') return;
+    setIsLoadingFeedbacks(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/feedbacks/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        setFeedbacks(data);
+      }
+    } catch (err) {
+      console.error('Error fetching feedbacks:', err);
+    } finally {
+      setIsLoadingFeedbacks(false);
     }
   };
 
@@ -2213,6 +2240,7 @@ export default function App() {
     fetchSchedules();
     if (userRole === 'admin') {
       fetchTeachers();
+      fetchFeedbacks();
     }
   }, [token, userRole]);
 
@@ -2224,6 +2252,9 @@ export default function App() {
       case 'dashboard':
         fetchStats();
         fetchLogs();
+        if (userRole === 'admin') {
+          fetchFeedbacks();
+        }
         break;
       case 'students':
         fetchSubjects().then(() => fetchStudents());
@@ -2420,7 +2451,10 @@ export default function App() {
         // Refresh logs if currently viewing them to show new audit entry
         if (userRole && userRole !== 'student' && (activeTab === 'logs' || activeTab === 'dashboard')) {
           fetchLogs();
-          if (activeTab === 'dashboard') fetchStats();
+          if (activeTab === 'dashboard') {
+            fetchStats();
+            if (userRole === 'admin') fetchFeedbacks();
+          }
         }
         setTimeout(() => {
           setShowFeedbackModal(false);
@@ -3900,6 +3934,109 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* Feedbacks Section (Admins Only) */}
+            {userRole === 'admin' && (
+              <div className="glass-panel" style={{ 
+                marginTop: '28px', 
+                padding: '28px', 
+                animationDelay: '1000ms',
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100%',
+                overflow: 'hidden'
+              }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <MessageSquare size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} />
+                  <span>User Feedback Submissions</span>
+                </h3>
+                
+                {isLoadingFeedbacks ? (
+                  <div className="flex-center" style={{ padding: '40px', color: 'var(--color-text-muted)' }}>
+                    <div style={{ width: '32px', height: '32px', border: '3px solid rgba(0, 242, 254, 0.1)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ marginLeft: '12px' }}>Loading feedbacks...</span>
+                  </div>
+                ) : feedbacks.length === 0 ? (
+                  <div className="flex-center" style={{ padding: '40px', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '12px' }}>
+                    <AlertCircle size={32} style={{ color: 'var(--color-text-muted)' }} />
+                    <span>No feedbacks submitted yet.</span>
+                  </div>
+                ) : (
+                  <div style={{ width: '100%', overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>USER REF (ID)</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>ROLE</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>CATEGORY</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>RATING</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>MESSAGE</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>DATE</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {feedbacks.map((item) => (
+                          <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
+                            <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                              #{item.user_id !== null && item.user_id !== undefined ? item.user_id : 'N/A'}
+                            </td>
+                            <td style={{ padding: '14px 16px', color: '#f1f5f9' }}>{item.user_email}</td>
+                            <td style={{ padding: '14px 16px' }}>
+                              <span style={{ 
+                                padding: '2px 8px', 
+                                borderRadius: '4px', 
+                                fontSize: '0.75rem', 
+                                fontWeight: 600,
+                                background: item.role === 'student' ? 'rgba(167, 139, 250, 0.12)' : item.role === 'teacher' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(0, 242, 254, 0.12)',
+                                color: item.role === 'student' ? '#a78bfa' : item.role === 'teacher' ? '#10b981' : '#00f2fe'
+                              }}>
+                                {item.role.toUpperCase()}
+                              </span>
+                            </td>
+                            <td style={{ padding: '14px 16px' }}>
+                              <span style={{ 
+                                padding: '2px 8px', 
+                                borderRadius: '4px', 
+                                fontSize: '0.75rem', 
+                                fontWeight: 600,
+                                background: item.type === 'bug' ? 'rgba(239, 68, 68, 0.12)' : item.type === 'suggestion' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                                color: item.type === 'bug' ? '#ef4444' : item.type === 'suggestion' ? '#f59e0b' : '#94a3b8'
+                              }}>
+                                {item.type.toUpperCase()}
+                              </span>
+                            </td>
+                            <td style={{ padding: '14px 16px', color: '#fbbf24', minWidth: '110px' }}>
+                              <div style={{ display: 'flex', gap: '2px' }}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <svg 
+                                    key={star}
+                                    width="14" 
+                                    height="14" 
+                                    viewBox="0 0 24 24" 
+                                    fill={star <= item.rating ? "#fbbf24" : "none"} 
+                                    stroke={star <= item.rating ? "#fbbf24" : "rgba(255, 255, 255, 0.2)"} 
+                                    strokeWidth="2.5"
+                                  >
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                  </svg>
+                                ))}
+                              </div>
+                            </td>
+                            <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.message}>
+                              {item.message}
+                            </td>
+                            <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
         )}

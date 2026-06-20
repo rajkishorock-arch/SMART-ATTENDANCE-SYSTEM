@@ -51,6 +51,15 @@ def update_schema():
             print("Column subject_id added successfully.")
         else:
             print("Column subject_id already exists in attendence table.")
+
+        # Check columns in feedbacks table
+        if 'feedbacks' in inspector.get_table_names():
+            feedback_columns = [col['name'] for col in inspector.get_columns('feedbacks')]
+            if 'user_id' not in feedback_columns:
+                print("Adding user_id column to feedbacks table...")
+                db.execute(text("ALTER TABLE feedbacks ADD COLUMN user_id INT NULL"))
+                db.commit()
+                print("Column user_id added successfully to feedbacks table.")
     except Exception as e:
         print("Schema update check failed:", e)
     finally:

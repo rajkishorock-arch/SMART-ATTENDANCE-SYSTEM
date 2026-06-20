@@ -20,7 +20,18 @@ def get_current_any_user(db: Session = Depends(get_db), token: str = Depends(sec
         role: str = payload.get("role")
         if email is None or role is None:
             raise credentials_exception
-        return {"email": email, "role": role}
+            
+        user_id = None
+        if role == "student":
+            student = crud.get_student_by_email(db, email=email)
+            if student:
+                user_id = student.id
+        else:
+            user = crud.get_user_by_email(db, email=email)
+            if user:
+                user_id = user.id
+                
+        return {"email": email, "role": role, "id": user_id}
     except JWTError:
         raise credentials_exception
 
@@ -42,7 +53,8 @@ def post_feedback(
         db=db,
         feedback=feedback,
         user_email=user_info["email"],
-        role=user_info["role"]
+        role=user_info["role"],
+        user_id=user_info.get("id")
     )
 
 @router.get("/", response_model=list[schemas.FeedbackResponse])

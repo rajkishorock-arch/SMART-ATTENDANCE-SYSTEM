@@ -90,6 +90,7 @@ class SystemSettings(Base):
 class Feedback(Base):
     __tablename__ = "feedbacks"
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=True)
     user_email = Column(String(100), index=True)
     role = Column(String(50))
     type = Column(String(50)) # 'bug', 'suggestion', 'general'

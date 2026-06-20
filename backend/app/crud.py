@@ -411,8 +411,9 @@ def get_schedules(db: Session):
     return db.query(models.Schedule).all()
 
 # --- Feedback ---
-def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: str, role: str):
+def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: str, role: str, user_id: Optional[int] = None):
     db_feedback = models.Feedback(
+        user_id=user_id,
         user_email=user_email,
         role=role,
         type=feedback.type,
@@ -428,7 +429,7 @@ def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: s
         db,
         log=schemas.AuditLogCreate(
             user_email=user_email,
-            action=f"Submitted Feedback ({feedback.type.upper()}, Rating: {feedback.rating}/5): {feedback.message}"
+            action=f"Submitted Feedback (ID: {user_id}, {feedback.type.upper()}, Rating: {feedback.rating}/5): {feedback.message}"
         )
     )
     return db_feedback

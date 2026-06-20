@@ -195,6 +195,7 @@ class FeedbackCreate(BaseModel):
 
 class FeedbackResponse(BaseModel):
     id: int
+    user_id: Optional[int] = None
     user_email: str
     role: str
     type: str
