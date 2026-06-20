@@ -83,8 +83,8 @@ class RecognitionService:
                     best_score = score
                     best_id = student_id
 
-            # SFace standard Cosine threshold is 0.36
-            if best_id is not None and best_score >= 0.36:
+            # Raised Cosine threshold from 0.36 to 0.42 to prevent false matches (strangers)
+            if best_id is not None and best_score >= 0.42:
                 student = self.student_records[best_id]
                 recognized_faces.append({
                     "user_id": best_id,

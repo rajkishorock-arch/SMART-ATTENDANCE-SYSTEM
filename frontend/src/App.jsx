@@ -878,7 +878,7 @@ export default function App() {
     setWebcamBootActive(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 640, height: 480, facingMode: 'user' } 
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -954,7 +954,7 @@ export default function App() {
     setScannerBootActive(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 640, height: 480, facingMode: 'user' } 
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
       });
       if (attendanceVideoRef.current) {
         attendanceVideoRef.current.srcObject = stream;
@@ -2116,7 +2116,7 @@ export default function App() {
     setStudentWebcamBootActive(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 640, height: 480, facingMode: 'user' } 
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
       });
       if (studentVideoRef.current) {
         studentVideoRef.current.srcObject = stream;

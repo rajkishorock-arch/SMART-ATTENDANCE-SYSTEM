@@ -21,6 +21,38 @@ face_classifier = cv2.CascadeClassifier(cascade_path)
 
 router = APIRouter()
 
+def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student_id: int = None) -> bool:
+    """
+    Checks if a face is already registered to another student.
+    Returns True if a duplicate face is found.
+    """
+    import json
+    from . import models
+    from .face_utils import get_face_engines
+    
+    detector, recognizer = get_face_engines()
+    
+    # Query all students who have face embeddings registered
+    query = db.query(models.StudentModel).filter(models.StudentModel.face_embedding != None)
+    if exclude_student_id is not None:
+        query = query.filter(models.StudentModel.id != exclude_student_id)
+        
+    students = query.all()
+    new_feat = new_embedding.reshape(1, -1).astype(np.float32)
+    
+    for s in students:
+        try:
+            emb = json.loads(s.face_embedding)
+            emb_np = np.array(emb, dtype=np.float32).reshape(1, -1)
+            score = recognizer.match(new_feat, emb_np, cv2.FaceRecognizerSF_FR_COSINE)
+            # A cosine similarity score of >= 0.40 indicates it is the same person's face
+            if score >= 0.40:
+                return True
+        except Exception:
+            continue
+            
+    return False
+
 @router.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 def create_new_user(
     user: schemas.UserCreate, 
@@ -370,6 +402,13 @@ async def upload_student_selfie(
     if embedding is None:
         raise HTTPException(status_code=422, detail="Failed to generate face embedding from your selfie.")
 
+    # 5b. Check if this face is already registered to someone else
+    if check_duplicate_face(db, embedding, exclude_student_id=current_student.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="यह चेहरा (face) पहले से ही किसी अन्य छात्र के खाते में पंजीकृत (registered) है। कृपया अपने वास्तविक चेहरे से ही पंजीकरण करें।"
+        )
+
     # Convert embedding numpy array to serializable Python list
     import json
     embedding_json = json.dumps(embedding.tolist())
@@ -565,6 +604,13 @@ async def upload_student_face_sample(
         raise HTTPException(
             status_code=422, 
             detail="No face detected or face image is unclear. Please look straight at the camera and try again."
+        )
+
+    # 2b. Check if this face is already registered to someone else
+    if check_duplicate_face(db, embedding, exclude_student_id=id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="यह चेहरा (face) पहले से ही किसी अन्य छात्र के खाते में पंजीकृत (registered) है। कृपया अपने वास्तविक चेहरे से ही पंजीकरण करें।"
         )
 
     # Convert embedding numpy array to a serializable Python list
