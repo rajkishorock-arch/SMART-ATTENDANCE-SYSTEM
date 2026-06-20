@@ -2639,3 +2639,639 @@ button:active,
   }
 }
 
+/* ===== Universal Responsive Container System ===== */
+html {
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-container {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.header-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header-title-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-title-area h1 {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.header-actions button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dashboard-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+}
+
+.dashboard-charts-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-charts-grid .recharts-responsive-container {
+  min-width: 0 !important;
+}
+
+/* Scanner modal — all screen sizes */
+.scanner-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  box-sizing: border-box;
+  animation: fadeIn 0.25s ease;
+}
+
+.scanner-modal-inner {
+  width: 100%;
+  max-width: min(680px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.scanner-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 4px;
+  width: 100%;
+}
+
+.scanner-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.scanner-modal-title {
+  color: #f8fafc;
+  font-weight: 700;
+  font-size: clamp(0.75rem, 3vw, 1rem);
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.05em;
+  word-break: break-word;
+}
+
+.scanner-modal-camera {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  max-height: min(70vh, 520px);
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.scanner-modal-controls {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 0 4px;
+}
+
+.scanner-modal-controls button {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Notification Center */
+.notification-bell-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.notification-bell-btn:hover {
+  border-color: var(--border-color-glow);
+  background: rgba(0, 242, 254, 0.08);
+  color: var(--color-primary);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-primary);
+}
+
+.notification-panel {
+  position: fixed;
+  top: calc(60px + env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(480px, calc(100dvh - 100px));
+  background: rgba(13, 20, 35, 0.98);
+  border: 1px solid var(--border-color-glow);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeInUp 0.25s ease both;
+}
+
+.notification-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notification-panel-header h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.notification-mark-read {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notification-close-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.notification-list {
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notification-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 0.2s;
+}
+
+.notification-item.unread {
+  background: rgba(0, 242, 254, 0.04);
+}
+
+.notification-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-item-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-bottom: 2px;
+}
+
+.notification-item-msg {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  word-break: break-word;
+}
+
+.notification-item-time {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+  margin-top: 4px;
+  display: block;
+}
+
+.notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* Live Activity Ticker */
+.live-activity-ticker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  background: rgba(0, 242, 254, 0.04);
+  border: 1px solid rgba(0, 242, 254, 0.12);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.live-activity-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #10b981;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+.live-activity-track-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.live-activity-track {
+  display: flex;
+  gap: 0;
+  white-space: nowrap;
+  animation: tickerScroll 30s linear infinite;
+}
+
+.live-activity-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  padding-right: 4px;
+}
+
+.live-activity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.live-activity-dot.present { background: #10b981; }
+.live-activity-dot.absent { background: #ef4444; }
+.live-activity-dot.scan { background: #00f2fe; }
+
+.live-activity-sep {
+  margin: 0 16px;
+  opacity: 0.3;
+}
+
+@keyframes tickerScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Gamification Hub */
+.gamification-hub {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+}
+
+.gamification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.gamification-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.gamification-level-badge {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.gamification-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.gamification-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  padding: 14px;
+  min-width: 0;
+}
+
+.gamification-stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.gamification-stat-label {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+.gamification-xp-bar {
+  margin-bottom: 20px;
+}
+
+.gamification-xp-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.gamification-xp-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gamification-xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00f2fe, #a78bfa);
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gamification-challenge {
+  background: rgba(0, 242, 254, 0.04);
+  border: 1px solid rgba(0, 242, 254, 0.12);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+
+.gamification-challenge-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.gamification-challenge-done {
+  margin-left: auto;
+  color: #10b981;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.gamification-challenge-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.gamification-challenge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #00f2fe);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.gamification-challenge-meta {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.gamification-badges-section h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.gamification-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 100px), 1fr));
+  gap: 10px;
+}
+
+.gamification-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1px solid;
+  background: rgba(255, 255, 255, 0.02);
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.gamification-badge:hover {
+  transform: translateY(-2px);
+}
+
+.gamification-badge-icon {
+  font-size: 1.5rem;
+}
+
+.gamification-badge-name {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  line-height: 1.2;
+}
+
+.gamification-empty {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 16px;
+}
+
+/* Tablet & small laptop */
+@media (max-width: 1100px) {
+  .main-content {
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-container {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: stretch !important;
+  }
+
+  .header-actions button {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    justify-content: center;
+    font-size: 0.8rem !important;
+    padding: 10px 12px !important;
+  }
+
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .gamification-stats-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .notification-panel {
+    top: auto;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  .scanner-modal-camera {
+    max-height: min(55vh, 400px);
+  }
+
+  .scanner-modal-title-group {
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .login-role-tabs {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-info p {
+    font-size: 1.5rem !important;
+  }
+
+  .header-actions button {
+    flex: 1 1 100%;
+  }
+}
+
+/* Fix 100vw horizontal scroll from modals */
+.modal-overlay,
+[class*="modal-overlay"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+}

@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
 import MobileControlPanel from './components/MobileControlPanel';
+import GamificationHub from './components/GamificationHub';
+import NotificationCenter from './components/NotificationCenter';
+import LiveActivityTicker from './components/LiveActivityTicker';
 import AppAmbientLayer from './components/animations/AppAmbientLayer';
 import ClickFxLayer from './components/animations/ClickFxLayer';
 import PageTransitionFlash from './components/animations/PageTransitionFlash';
@@ -176,6 +179,8 @@ export default function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileControlOpen, setMobileControlOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const sessionInitializedRef = useRef(false);
 
   // Phase 5 States
@@ -2780,6 +2785,71 @@ export default function App() {
   // Unique departments for filtering
   const departments = [...new Set(students.map(s => s.dep))];
 
+  const liveActivities = useMemo(() => {
+    const items = [];
+    logs.slice(0, 15).forEach((log, i) => {
+      const isPresent = (log.attendance || '').toLowerCase() === 'present' || (log.attendance || '').toLowerCase() === 'late';
+      items.push({
+        id: `log-${log.id || i}`,
+        type: isPresent ? 'present' : 'absent',
+        text: `${log.name} — ${log.attendance} (${log.date} ${log.time || ''})`,
+      });
+    });
+    recognizedStudents.slice(0, 5).forEach((s, i) => {
+      items.push({
+        id: `scan-${i}`,
+        type: 'scan',
+        text: `${s.name} scanned via face recognition at ${s.time}`,
+      });
+    });
+    if (items.length === 0 && stats.total_present_today > 0) {
+      items.push({ id: 'stat', type: 'present', text: `${stats.total_present_today} students present today` });
+    }
+    return items;
+  }, [logs, recognizedStudents, stats.total_present_today]);
+
+  useEffect(() => {
+    const built = [];
+    logs.slice(0, 12).forEach((log, i) => {
+      const isPresent = (log.attendance || '').toLowerCase() === 'present';
+      built.push({
+        id: `n-log-${log.id || i}`,
+        type: isPresent ? 'success' : 'warning',
+        title: isPresent ? 'Attendance Marked' : 'Absent Recorded',
+        message: `${log.name} (${log.roll}) — ${log.date}`,
+        time: log.time || 'Recently',
+        read: false,
+      });
+    });
+    if (stats.total_absent_today > 5) {
+      built.unshift({
+        id: 'n-alert-absent',
+        type: 'warning',
+        title: 'High Absentee Alert',
+        message: `${stats.total_absent_today} students absent today`,
+        time: 'Today',
+        read: false,
+      });
+    }
+    if (stats.average_attendance_rate >= 90) {
+      built.unshift({
+        id: 'n-rate-good',
+        type: 'success',
+        title: 'Excellent Attendance Rate',
+        message: `Campus average at ${stats.average_attendance_rate}%`,
+        time: 'Today',
+        read: false,
+      });
+    }
+    setNotifications(built);
+  }, [logs, stats.total_absent_today, stats.average_attendance_rate]);
+
+  const unreadNotificationCount = notifications.filter((n) => !n.read).length;
+
+  const markAllNotificationsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
   // Login Page View
   if (token && !currentUser) {
     return (
@@ -2819,40 +2889,25 @@ export default function App() {
 
       {/* ===== FULLSCREEN SCANNER MODAL ===== */}
       {showScannerModal && (
-        <div
-          id="scanner-modal-overlay"
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0, 0, 0, 0.95)',
-            zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            animation: 'fadeIn 0.25s ease',
-          }}
-        >
+        <div id="scanner-modal-overlay" className="scanner-modal-overlay">
+          <div className="scanner-modal-inner">
           {/* Modal Header */}
-          <div style={{
-            width: '100%', maxWidth: '680px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '16px 20px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="scanner-modal-header">
+            <div className="scanner-modal-title-group">
               <div style={{
                 width: '10px', height: '10px', borderRadius: '50%',
                 background: attendanceActive ? '#10b981' : '#6b7280',
                 boxShadow: attendanceActive ? '0 0 8px #10b981' : 'none',
                 animation: attendanceActive ? 'pulse 1.5s infinite' : 'none',
+                flexShrink: 0,
               }} />
-              <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '1rem', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.05em' }}>
-                FACE RECOGNITION SCANNER
-              </span>
+              <span className="scanner-modal-title">FACE RECOGNITION SCANNER</span>
               <span style={{
                 background: attendanceActive ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
                 border: `1px solid ${attendanceActive ? '#10b981' : '#6b7280'}`,
                 color: attendanceActive ? '#10b981' : '#9ca3af',
-                borderRadius: '6px', padding: '2px 10px', fontSize: '0.72rem', fontWeight: 700
+                borderRadius: '6px', padding: '2px 10px', fontSize: '0.72rem', fontWeight: 700,
+                whiteSpace: 'nowrap',
               }}>{scanStatus}</span>
             </div>
             <button
@@ -2864,20 +2919,19 @@ export default function App() {
                 background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
                 color: '#ef4444', borderRadius: '10px', padding: '8px 18px',
                 cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.2s ease', flexShrink: 0,
               }}
             >✕ Close</button>
           </div>
 
           {/* Camera View */}
-          <div style={{
-            position: 'relative', width: '100%', maxWidth: '680px',
-            aspectRatio: '4/3', background: '#000',
-            borderRadius: '16px', overflow: 'hidden',
-            border: `2px solid ${attendanceActive ? 'rgba(0,242,254,0.4)' : 'rgba(255,255,255,0.08)'}`,
-            boxShadow: attendanceActive ? '0 0 40px rgba(0,242,254,0.15)' : 'none',
-            margin: '0 16px',
-          }}>
+          <div
+            className="scanner-modal-camera"
+            style={{
+              border: `2px solid ${attendanceActive ? 'rgba(0,242,254,0.4)' : 'rgba(255,255,255,0.08)'}`,
+              boxShadow: attendanceActive ? '0 0 40px rgba(0,242,254,0.15)' : 'none',
+            }}
+          >
             {/* Corner HUD decoration */}
             <div style={{ position: 'absolute', top: 12, left: 12, width: 28, height: 28, borderTop: '3px solid #00f2fe', borderLeft: '3px solid #00f2fe', borderRadius: '3px 0 0 0', zIndex: 10, opacity: 0.8 }} />
             <div style={{ position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderTop: '3px solid #00f2fe', borderRight: '3px solid #00f2fe', borderRadius: '0 3px 0 0', zIndex: 10, opacity: 0.8 }} />
@@ -2947,11 +3001,7 @@ export default function App() {
           </div>
 
           {/* Modal Controls */}
-          <div style={{
-            width: '100%', maxWidth: '680px',
-            padding: '16px 20px',
-            display: 'flex', gap: '12px', justifyContent: 'center',
-          }}>
+          <div className="scanner-modal-controls">
             {!attendanceActive && !scannerBootActive ? (
               <button
                 onClick={startAttendanceCam}
@@ -2984,23 +3034,26 @@ export default function App() {
           {/* Liveness & error messages */}
           {attendanceError && (
             <div style={{
-              width: '100%', maxWidth: '680px',
-              padding: '10px 20px',
+              width: '100%',
+              padding: '10px 16px',
               background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: '10px', margin: '0 16px',
+              borderRadius: '10px',
               color: '#ef4444', fontSize: '0.85rem', fontWeight: 600,
+              wordBreak: 'break-word',
             }}>{attendanceError}</div>
           )}
           {livenessMessage && attendanceActive && (
             <div style={{
-              width: '100%', maxWidth: '680px',
-              padding: '10px 20px',
+              width: '100%',
+              padding: '10px 16px',
               background: 'rgba(0,242,254,0.08)', border: '1px solid rgba(0,242,254,0.2)',
-              borderRadius: '10px', margin: '8px 16px 0',
+              borderRadius: '10px',
               color: '#00f2fe', fontSize: '0.85rem', fontWeight: 600,
               textAlign: 'center',
+              wordBreak: 'break-word',
             }}>{livenessMessage}</div>
           )}
+          </div>
         </div>
       )}
       
@@ -3215,7 +3268,15 @@ export default function App() {
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="header-actions">
+            <NotificationCenter
+              open={notificationsOpen}
+              onToggle={() => setNotificationsOpen((v) => !v)}
+              onClose={() => setNotificationsOpen(false)}
+              notifications={notifications}
+              onMarkAllRead={markAllNotificationsRead}
+              unreadCount={unreadNotificationCount}
+            />
             {activeTab === 'students' && (
               <>
                 <button 
@@ -3296,6 +3357,7 @@ export default function App() {
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
           <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
+            <LiveActivityTicker activities={liveActivities} />
             {/* Metric Summary Cards */}
             <div className="dashboard-grid">
               <div className="glass-panel metric-card" style={{ 
@@ -3352,7 +3414,7 @@ export default function App() {
             </div>
 
             {/* Graphs Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '32px' }}>
+            <div className="dashboard-charts-grid">
               {/* Weekly Trend Line Area Chart */}
               <div className="glass-panel" style={{ padding: '28px', animationDelay: '500ms' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -6660,6 +6722,7 @@ export default function App() {
 
         {activeTab === 'student-attendance' && (
           <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
+            <GamificationHub logs={studentLogs} />
             {/* Stats Row */}
             <div className="dashboard-grid">
               {/* Card 1: Attendance Percentage */}
