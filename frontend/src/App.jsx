@@ -37,7 +37,9 @@ import {
   Volume2,
   VolumeX,
   ArrowLeft,
-  MessageSquare
+  MessageSquare,
+  Bot,
+  Send
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -188,6 +190,26 @@ export default function App() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
+
+  // AI Chatbot States
+  const [showChatBot, setShowChatBot] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    {
+      id: 1,
+      role: 'model',
+      content: 'Hello! I am your **Smart Attendance System AI Assistant**. How can I help you today? You can ask me anything about the application or ask custom doubts!'
+    }
+  ]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatBottomRef = useRef(null);
+
+  // Auto scroll chat to bottom when messages update
+  useEffect(() => {
+    if (chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isChatLoading]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -2469,6 +2491,79 @@ export default function App() {
       setFeedbackError('Network error. Please try again.');
     } finally {
       setSubmittingFeedback(false);
+    }
+  };
+
+  // Send AI Chatbot Message
+  const handleSendChatMessage = async (customMessage = null) => {
+    const textToSend = customMessage || chatInput;
+    if (!textToSend.trim()) return;
+
+    playCyberSound('click');
+    const userMsgId = Date.now();
+    const newUserMessage = {
+      id: userMsgId,
+      role: 'user',
+      content: textToSend
+    };
+
+    setChatMessages((prev) => [...prev, newUserMessage]);
+    if (!customMessage) setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      // Map existing history to expected backend ChatMessage format
+      const historyPayload = chatMessages.map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const res = await fetch(`${API_BASE_URL}/chat/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: textToSend,
+          history: historyPayload
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        playCyberSound('success');
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: 'model',
+            content: data.response
+          }
+        ]);
+      } else {
+        playCyberSound('error');
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: 'model',
+            content: 'Sorry, I encountered an error communicating with the chat server. Please try again.'
+          }
+        ]);
+      }
+    } catch (err) {
+      playCyberSound('error');
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: 'model',
+          content: 'Network error. Please check your internet connection.'
+        }
+      ]);
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -8564,6 +8659,119 @@ export default function App() {
               </button>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Floating Action Button (FAB) for AI Chatbot - only shown when logged in */}
+      {token && (
+        <button 
+          className="chatbot-fab" 
+          onClick={() => {
+            playCyberSound('click');
+            setShowChatBot(!showChatBot);
+          }}
+          title="Ask AI Assistant"
+          aria-label="Ask AI Assistant"
+        >
+          <Bot size={24} />
+        </button>
+      )}
+
+      {/* AI Chatbot Drawer/Panel */}
+      {token && showChatBot && (
+        <div className="chatbot-window" onClick={(e) => e.stopPropagation()}>
+          <div className="chatbot-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Bot size={20} className="chatbot-header-icon" />
+              <div>
+                <h3 className="chatbot-header-title">AI System Assistant</h3>
+                <span className="chatbot-header-status">● ONLINE</span>
+              </div>
+            </div>
+            <button 
+              className="chatbot-close-btn"
+              onClick={() => {
+                playCyberSound('click');
+                setShowChatBot(false);
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div className="chatbot-body">
+            <div className="chatbot-messages-list">
+              {chatMessages.map((msg) => (
+                <div key={msg.id} className={`chatbot-message-bubble ${msg.role}`}>
+                  {msg.role === 'model' && <Bot size={14} className="chatbot-msg-avatar" />}
+                  <div className="chatbot-msg-text">
+                    {msg.content.split('\n').map((para, i) => (
+                      <p key={i} style={{ marginBottom: i < msg.content.split('\n').length - 1 ? '8px' : 0 }}>
+                        {para.split('**').map((text, idx) => 
+                          idx % 2 === 1 ? <strong key={idx} style={{ color: 'var(--color-primary)' }}>{text}</strong> : text
+                        )}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {isChatLoading && (
+                <div className="chatbot-message-bubble model loading">
+                  <Bot size={14} className="chatbot-msg-avatar" />
+                  <div className="chatbot-typing-indicator">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+          </div>
+
+          {/* Quick suggestion chips */}
+          <div className="chatbot-chips-container">
+            <button type="button" className="chatbot-chip" onClick={() => handleSendChatMessage("How to mark attendance?")}>
+              How to mark attendance?
+            </button>
+            <button type="button" className="chatbot-chip" onClick={() => handleSendChatMessage("What is geofencing?")}>
+              What is geofencing?
+            </button>
+            <button type="button" className="chatbot-chip" onClick={() => handleSendChatMessage("How to change password?")}>
+              How to change password?
+            </button>
+            <button type="button" className="chatbot-chip" onClick={() => handleSendChatMessage("What is default password?")}>
+              What is default password?
+            </button>
+          </div>
+
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendChatMessage();
+            }} 
+            className="chatbot-input-area"
+          >
+            <input
+              type="text"
+              className="chatbot-input-field"
+              placeholder="Ask anything about the system..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              disabled={isChatLoading}
+            />
+            <button 
+              type="submit" 
+              className="chatbot-send-btn"
+              disabled={isChatLoading || !chatInput.trim()}
+            >
+              <Send size={16} />
+            </button>
+          </form>
         </div>
       )}
 

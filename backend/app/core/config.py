@@ -34,6 +34,7 @@ SMTP_SENDER_EMAIL = os.getenv("SMTP_SENDER_EMAIL", "")
 SMTP_SENDER_NAME = os.getenv("SMTP_SENDER_NAME", "SMART AI SYSTEM")
 
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 
 def validate_config():
