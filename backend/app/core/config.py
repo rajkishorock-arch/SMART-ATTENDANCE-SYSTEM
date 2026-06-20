@@ -17,7 +17,7 @@ CORS_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,https://smart-attendance-system-olive-ten.vercel.app",
     ).split(",")
     if origin.strip()
 ]
