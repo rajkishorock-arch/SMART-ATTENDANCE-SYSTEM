@@ -168,6 +168,14 @@ def ensure_primary_admin(db):
 
 @app.on_event("startup")
 def on_startup():
+    from app.core.config import ENV, DATABASE_URL
+    if DATABASE_URL and DATABASE_URL.startswith("sqlite") and ENV != "development":
+        print("=" * 80)
+        print(" WARNING: SQLite is being used in a non-development environment! ".center(80, "*"))
+        print(" All data will be WIPED when this container restarts (ephemeral disk)! ".center(80, "*"))
+        print(" Please configure a persistent cloud database via DATABASE_URL. ".center(80, "*"))
+        print("=" * 80)
+
     create_db_and_tables()
     update_schema()
     

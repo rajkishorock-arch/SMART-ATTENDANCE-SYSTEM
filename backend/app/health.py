@@ -15,9 +15,12 @@ START_TIME = time.time()
 def get_system_health(db: Session = Depends(get_db)):
     """Public health check — minimal info only."""
     db_connected = False
+    db_type = "unknown"
     try:
         db.execute(text("SELECT 1"))
         db_connected = True
+        if db.bind and db.bind.dialect:
+            db_type = db.bind.dialect.name
     except Exception:
         pass
 
@@ -31,6 +34,7 @@ def get_system_health(db: Session = Depends(get_db)):
     return {
         "status": "HEALTHY" if healthy else "DEGRADED",
         "database": "CONNECTED" if db_connected else "DISCONNECTED",
+        "database_type": db_type,
         "models": {
             "yunet": "READY" if yunet_exists else "MISSING",
             "sface": "READY" if sface_exists else "MISSING",
@@ -62,9 +66,12 @@ def get_detailed_health(
         memory_usage = round(42.0 + 4.5 * (t % 11) / 11.0, 1)
 
     db_connected = False
+    db_type = "unknown"
     try:
         db.execute(text("SELECT 1"))
         db_connected = True
+        if db.bind and db.bind.dialect:
+            db_type = db.bind.dialect.name
     except Exception:
         pass
 
@@ -77,6 +84,7 @@ def get_detailed_health(
     return {
         "status": "HEALTHY" if db_connected else "DEGRADED",
         "database": "CONNECTED" if db_connected else "DISCONNECTED",
+        "database_type": db_type,
         "metrics": {
             "cpu_percent": cpu_usage,
             "memory_percent": memory_usage,
