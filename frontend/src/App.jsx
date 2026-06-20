@@ -41,7 +41,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
 const LEFT_EYE_INDICES = [362, 385, 387, 263, 373, 380];
 const RIGHT_EYE_INDICES = [33, 160, 158, 133, 153, 144];
