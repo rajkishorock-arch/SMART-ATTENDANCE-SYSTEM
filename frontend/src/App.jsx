@@ -3228,7 +3228,7 @@ export default function App() {
       {/* Main Panel */}
       <main className="main-content">
         {/* Header */}
-        <header className="flex-between header-container" style={{ marginBottom: '40px' }}>
+        <header className="flex-between header-container" style={{ marginBottom: '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button 
               className="hamburger-btn" 
@@ -3241,7 +3241,7 @@ export default function App() {
               </svg>
             </button>
             <div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>
+              <h1 style={{ fontSize: '1.45rem', fontWeight: 700 }}>
                 {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
                 {activeTab === 'students' && 'Student Directory'}
                 {activeTab === 'teachers' && 'Teacher Directory'}
@@ -3253,7 +3253,7 @@ export default function App() {
                 {activeTab === 'student-profile' && 'My Academic Profile'}
                 {activeTab === 'settings' && 'Security & System Settings'}
               </h1>
-              <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>
+              <p style={{ color: '#9ca3af', fontSize: '0.8rem' }}>
                 {activeTab === 'dashboard' && 'Visualizing attendance logs and statistics'}
                 {activeTab === 'students' && 'Manage registered students and profiles'}
                 {activeTab === 'teachers' && 'Manage registered teaching staff and weekly timetables'}
@@ -3416,11 +3416,11 @@ export default function App() {
             {/* Graphs Grid */}
             <div className="dashboard-charts-grid">
               {/* Weekly Trend Line Area Chart */}
-              <div className="glass-panel" style={{ padding: '28px', animationDelay: '500ms' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="glass-panel" style={{ padding: '20px', animationDelay: '500ms' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Calendar size={18} style={{ color: '#00f2fe' }} /> Weekly Attendance Trends
                 </h3>
-                <div style={{ width: '100%', height: '320px' }}>
+                <div style={{ width: '100%', height: '220px' }}>
                   <ResponsiveContainer>
                     <AreaChart data={stats.weekly_trends}>
                       <defs>
@@ -3446,11 +3446,11 @@ export default function App() {
               </div>
 
               {/* Department distribution Bar Chart */}
-              <div className="glass-panel" style={{ padding: '28px', animationDelay: '600ms' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="glass-panel" style={{ padding: '20px', animationDelay: '600ms' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Layers size={18} style={{ color: '#a78bfa' }} /> Present Today by Dept
                 </h3>
-                <div style={{ width: '100%', height: '320px' }}>
+                <div style={{ width: '100%', height: '220px' }}>
                   {Object.keys(stats.department_stats).length === 0 ? (
                     <div className="flex-center" style={{ height: '100%', color: '#94a3b8', flexDirection: 'column', gap: '12px' }}>
                       <AlertCircle size={32} style={{ color: '#ef4444' }} />

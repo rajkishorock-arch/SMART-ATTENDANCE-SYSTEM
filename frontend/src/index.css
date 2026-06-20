@@ -226,14 +226,14 @@ body::after {
 }
 
 .sidebar {
-  width: 280px;
+  width: 220px;
   background: rgba(13, 18, 31, 0.8);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  padding: 30px 20px;
+  padding: 20px 14px;
   position: fixed;
   height: 100vh;
   z-index: 100;
@@ -241,8 +241,8 @@ body::after {
 
 .main-content {
   flex: 1;
-  margin-left: 280px;
-  padding: 30px 30px;
+  margin-left: 220px;
+  padding: 20px 24px;
   min-height: 100vh;
   background-color: transparent;
   transition: var(--transition);
@@ -264,12 +264,12 @@ body::after {
 }
 
 .sidebar-logo {
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 800;
-  margin-bottom: 45px;
+  margin-bottom: 28px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   letter-spacing: 0.05em;
   font-family: 'Outfit', sans-serif;
 }
@@ -284,13 +284,13 @@ body::after {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
   color: var(--color-text-muted);
   text-decoration: none;
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   cursor: pointer;
   transition: var(--transition);
   border: 1px solid transparent;
@@ -322,43 +322,44 @@ body::after {
 /* Dashboard Grid */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 24px;
-  margin-bottom: 40px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 .metric-card {
-  padding: 26px;
+  padding: 18px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .metric-info h3 {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-weight: 600;
 }
 
 .metric-info p {
-  font-size: 2rem;
+  font-size: 1.7rem;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   letter-spacing: -0.02em;
 }
 
 .metric-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: inset 0 0 10px rgba(255,255,255,0.03);
   transition: var(--transition);
+  flex-shrink: 0;
 }
 
 .metric-card:hover .metric-icon {
@@ -2702,8 +2703,8 @@ html {
 
 .dashboard-charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
   width: 100%;
   min-width: 0;
 }
@@ -2954,8 +2955,8 @@ html {
   background: rgba(0, 242, 254, 0.04);
   border: 1px solid rgba(0, 242, 254, 0.12);
   border-radius: 12px;
-  padding: 10px 14px;
-  margin-bottom: 24px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
   overflow: hidden;
 }
 
