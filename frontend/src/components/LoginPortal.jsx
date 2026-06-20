@@ -8,6 +8,7 @@ import {
   UserCog,
   Crown,
 } from 'lucide-react';
+import RoboticLoginCanvas from './animations/RoboticLoginCanvas';
 
 const ROLES = [
   {
@@ -81,7 +82,7 @@ export default function LoginPortal({
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
 
-      <canvas id="login-rain-canvas" className="login-rain-canvas" />
+      <RoboticLoginCanvas accent={activeRole.color} />
 
       <div className="login-portal-glow login-portal-glow-a" />
       <div className="login-portal-glow login-portal-glow-b" />

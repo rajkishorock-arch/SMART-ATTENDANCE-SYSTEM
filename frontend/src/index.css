@@ -1774,7 +1774,8 @@ button:active,
   overflow: hidden;
 }
 
-.login-rain-canvas {
+.login-rain-canvas,
+.robotic-login-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2249,4 +2250,378 @@ button:active,
   }
 }
 
+/* ===== App-wide ambient & click FX ===== */
+.app-with-fx {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-ambient-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.app-with-fx .sidebar,
+.app-with-fx .main-content,
+.app-with-fx .mobile-bottom-nav {
+  position: relative;
+  z-index: 2;
+}
+
+.click-fx-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.click-fx {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.click-fx-ring {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--fx-color, #00f2fe);
+  border-radius: 50%;
+  animation: clickFxRing 0.85s ease-out forwards;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--fx-color, #00f2fe) 40%, transparent);
+}
+
+.click-fx-burst {
+  width: 10px;
+  height: 10px;
+  background: var(--fx-color, #00f2fe);
+  border-radius: 50%;
+  animation: clickFxBurst 0.75s ease-out forwards;
+  box-shadow: 0 0 24px var(--fx-color, #00f2fe);
+}
+
+.click-fx-scan {
+  width: 64px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--fx-color, #00f2fe), transparent);
+  animation: clickFxScan 0.8s ease-out forwards;
+  box-shadow: 0 0 12px var(--fx-color, #00f2fe);
+}
+
+.click-fx-data {
+  width: 4px;
+  height: 28px;
+  background: var(--fx-color, #00f2fe);
+  animation: clickFxData 0.7s ease-out forwards;
+  box-shadow: 0 0 10px var(--fx-color, #00f2fe);
+}
+
+.click-fx-hex {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--fx-color, #00f2fe);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  animation: clickFxHex 0.85s ease-out forwards;
+}
+
+.click-fx-spark {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--fx-color, #00f2fe);
+  transform: translate(-50%, -50%);
+  animation: clickFxSpark 0.65s ease-out forwards;
+  box-shadow: 0 0 8px var(--fx-color, #00f2fe);
+}
+
+@keyframes clickFxRing {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0; }
+}
+
+@keyframes clickFxBurst {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+}
+
+@keyframes clickFxScan {
+  0% { transform: translate(-50%, -50%) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(3); opacity: 0; }
+}
+
+@keyframes clickFxData {
+  0% { transform: translate(-50%, -50%) scaleY(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleY(2.5); opacity: 0; }
+}
+
+@keyframes clickFxHex {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(0.4); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(90deg) scale(2.2); opacity: 0; }
+}
+
+@keyframes clickFxSpark {
+  0% { transform: translate(-50%, -50%); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--fx-x, 20px)), calc(-50% + var(--fx-y, 0px))); opacity: 0; }
+}
+
+.page-transition-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  animation: pageTabFlash 0.55s ease-out forwards;
+}
+
+.page-flash-dashboard { background: radial-gradient(circle at 50% 40%, rgba(0, 242, 254, 0.12), transparent 65%); }
+.page-flash-students { background: radial-gradient(circle at 30% 60%, rgba(16, 185, 129, 0.12), transparent 65%); }
+.page-flash-teachers { background: radial-gradient(circle at 70% 50%, rgba(167, 139, 250, 0.12), transparent 65%); }
+.page-flash-attendance { background: radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.14), transparent 60%); }
+.page-flash-logs { background: radial-gradient(circle at 40% 30%, rgba(245, 158, 11, 0.12), transparent 65%); }
+.page-flash-session-history { background: radial-gradient(circle at 60% 70%, rgba(139, 92, 246, 0.12), transparent 65%); }
+.page-flash-reports { background: radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.1), transparent 65%); }
+.page-flash-settings { background: radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.1), transparent 65%); }
+.page-flash-student-attendance { background: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.12), transparent 65%); }
+.page-flash-student-profile { background: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.12), transparent 65%); }
+
+@keyframes pageTabFlash {
+  0% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+/* ===== Camera attract HUD ===== */
+.camera-attract-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.camera-attract-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.camera-attract-face-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -52%);
+  width: min(52%, 220px);
+  aspect-ratio: 3 / 4;
+}
+
+.camera-attract-face-ring-pulse {
+  position: absolute;
+  inset: -12px;
+  border: 2px solid rgba(0, 242, 254, 0.35);
+  border-radius: 50% / 46%;
+  animation: cameraFacePulse 2.2s ease-in-out infinite;
+}
+
+.camera-attract-face-oval {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed rgba(0, 242, 254, 0.55);
+  border-radius: 50% / 46%;
+  box-shadow: 0 0 30px rgba(0, 242, 254, 0.15), inset 0 0 20px rgba(0, 242, 254, 0.05);
+}
+
+.camera-attract-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -52%);
+  width: 80px;
+  height: 80px;
+}
+
+.camera-attract-crosshair-h,
+.camera-attract-crosshair-v {
+  position: absolute;
+  background: rgba(0, 242, 254, 0.45);
+}
+
+.camera-attract-crosshair-h {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.camera-attract-crosshair-v {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+.camera-attract-bracket {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-color: #00f2fe;
+  border-style: solid;
+  opacity: 0.85;
+  animation: cameraBracketGlow 2s ease-in-out infinite alternate;
+}
+
+.camera-attract-bracket-tl { top: 14px; left: 14px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.camera-attract-bracket-tr { top: 14px; right: 14px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+.camera-attract-bracket-bl { bottom: 14px; left: 14px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+.camera-attract-bracket-br { bottom: 14px; right: 14px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+.camera-attract-callout {
+  position: absolute;
+  bottom: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(5, 12, 22, 0.75);
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  border-radius: 999px;
+  color: #00f2fe;
+  font-family: monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  animation: cameraCalloutBob 2.5s ease-in-out infinite;
+  box-shadow: 0 0 24px rgba(0, 242, 254, 0.2);
+}
+
+.camera-attract-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: pulse 1.2s infinite;
+  flex-shrink: 0;
+}
+
+.camera-attract-you-label {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.35em;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
+  animation: cameraYouPulse 2s ease-in-out infinite;
+}
+
+.camera-attract-scan-arc {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(70%, 280px);
+  height: min(70%, 280px);
+  transform: translate(-50%, -52%);
+  border: 2px solid transparent;
+  border-top-color: rgba(0, 242, 254, 0.7);
+  border-radius: 50%;
+  animation: cameraScanArc 3s linear infinite;
+}
+
+.camera-attract-mirror-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.06) 50%, transparent 60%);
+  animation: cameraMirrorShine 4s ease-in-out infinite;
+}
+
+.camera-attract-register .camera-attract-face-ring-pulse,
+.camera-attract-register .camera-attract-face-oval,
+.camera-attract-register .camera-attract-bracket {
+  border-color: rgba(167, 139, 250, 0.5);
+}
+
+.camera-attract-register .camera-attract-callout {
+  color: #c084fc;
+  border-color: rgba(167, 139, 250, 0.4);
+  box-shadow: 0 0 24px rgba(167, 139, 250, 0.2);
+}
+
+.camera-attract-register .camera-attract-scan-arc {
+  border-top-color: rgba(167, 139, 250, 0.7);
+}
+
+.camera-attract-selfie .camera-attract-face-ring-pulse,
+.camera-attract-selfie .camera-attract-face-oval,
+.camera-attract-selfie .camera-attract-bracket {
+  border-color: rgba(16, 185, 129, 0.55);
+}
+
+.camera-attract-selfie .camera-attract-callout {
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.2);
+}
+
+.camera-attract-selfie .camera-attract-scan-arc {
+  border-top-color: rgba(16, 185, 129, 0.7);
+}
+
+@keyframes cameraFacePulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+@keyframes cameraBracketGlow {
+  from { filter: drop-shadow(0 0 4px rgba(0, 242, 254, 0.4)); }
+  to { filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.8)); }
+}
+
+@keyframes cameraCalloutBob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-4px); }
+}
+
+@keyframes cameraYouPulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes cameraScanArc {
+  from { transform: translate(-50%, -52%) rotate(0deg); }
+  to { transform: translate(-50%, -52%) rotate(360deg); }
+}
+
+@keyframes cameraMirrorShine {
+  0%, 100% { transform: translateX(-120%); opacity: 0; }
+  40% { opacity: 1; }
+  60% { transform: translateX(120%); opacity: 0; }
+}
+
+@media (max-width: 768px) {
+  .app-ambient-canvas {
+    opacity: 0.35;
+  }
+
+  .camera-attract-callout {
+    font-size: 0.58rem;
+    padding: 6px 12px;
+    bottom: 14%;
+  }
+
+  .camera-attract-you-label {
+    font-size: 0.62rem;
+  }
+}
 

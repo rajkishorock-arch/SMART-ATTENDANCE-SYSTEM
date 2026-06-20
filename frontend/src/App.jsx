@@ -3,6 +3,10 @@ import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
 import MobileControlPanel from './components/MobileControlPanel';
+import AppAmbientLayer from './components/animations/AppAmbientLayer';
+import ClickFxLayer from './components/animations/ClickFxLayer';
+import PageTransitionFlash from './components/animations/PageTransitionFlash';
+import CameraAttractHud from './components/animations/CameraAttractHud';
 import { 
   Users, 
   CheckCircle2, 
@@ -1064,67 +1068,6 @@ export default function App() {
     localStorage.setItem('theme', activeTheme);
     addDiagnosticLog(`Interface theme set to: ${activeTheme.toUpperCase()}`);
   }, [activeTheme]);
-
-  // Matrix falling code rain effect for login page background
-  useEffect(() => {
-    if (token) return;
-    const canvas = document.getElementById('login-rain-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    
-    let resizeTimer;
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    let themeColor = '#00f2fe';
-    if (activeTheme === 'matrix') themeColor = '#00ff46';
-    else if (activeTheme === 'obsidian') themeColor = '#ff3e3e';
-    else if (activeTheme === 'violet') themeColor = '#a855f7';
-    
-    const fontSize = 14;
-    const columns = Math.ceil(window.innerWidth / fontSize) || 80;
-    const rainDrops = Array(columns).fill().map(() => Math.floor(Math.random() * -50));
-    
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ';
-    
-    const draw = () => {
-      ctx.fillStyle = 'rgba(7, 11, 18, 0.12)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.font = `${fontSize}px monospace`;
-      
-      for (let i = 0; i < rainDrops.length; i++) {
-        const char = chars[Math.floor(Math.random() * chars.length)];
-        const x = i * fontSize;
-        const y = rainDrops[i] * fontSize;
-        
-        if (rainDrops[i] === 0) {
-          ctx.fillStyle = '#ffffff';
-        } else {
-          ctx.fillStyle = themeColor;
-        }
-        
-        ctx.fillText(char, x, y);
-        
-        if (y > canvas.height && Math.random() > 0.975) {
-          rainDrops[i] = 0;
-        }
-        rainDrops[i]++;
-      }
-    };
-    
-    const interval = setInterval(draw, 33);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [token, activeTheme]);
 
   // Periodic metrics updates for live scanner HUD (only when camera active)
   useEffect(() => {
@@ -2867,9 +2810,12 @@ export default function App() {
 
   // Dashboard Main View
   return (
-    <div className="app-container">
+    <div className="app-container app-with-fx">
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
+      <AppAmbientLayer activeTab={activeTab} isMobile={isMobileView} />
+      <ClickFxLayer activeTab={activeTab} enabled />
+      <PageTransitionFlash activeTab={activeTab} />
 
       {/* ===== FULLSCREEN SCANNER MODAL ===== */}
       {showScannerModal && (
@@ -2962,6 +2908,12 @@ export default function App() {
                 <div className="scanner-live-status">● BIOMETRIC SCAN ACTIVE</div>
               </div>
             )}
+
+            <CameraAttractHud
+              active={attendanceActive && !scannerBootActive}
+              mode="attendance"
+              livenessStatus={livenessStatus}
+            />
 
             {/* Video element */}
             <video
@@ -7153,6 +7105,11 @@ export default function App() {
                           <div className="scanner-live-status">● SELFIE CAPTURE MODE</div>
                         </div>
                       )}
+
+                      <CameraAttractHud
+                        active={studentWebcamActive && !studentWebcamBootActive}
+                        mode="selfie"
+                      />
                       
                       {/* HUD Sci-Fi telemetry overlay */}
                       {studentWebcamActive && !studentWebcamBootActive && (
@@ -7882,6 +7839,11 @@ export default function App() {
                   <div className="scanner-live-status">● ADMIN SAMPLING ACTIVE</div>
                 </div>
               )}
+
+              <CameraAttractHud
+                active={webcamActive && !webcamBootActive}
+                mode="register"
+              />
               
               {/* HUD Sci-Fi telemetry overlay */}
               {webcamActive && !webcamBootActive && (
