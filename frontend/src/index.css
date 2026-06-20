@@ -242,13 +242,27 @@ body::after {
 .main-content {
   flex: 1;
   margin-left: 280px;
-  padding: 50px 40px;
+  padding: 30px 30px;
   min-height: 100vh;
   background-color: transparent;
   transition: var(--transition);
 }
 
 /* Sidebar Nav Items */
+.attendance-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  width: 100%;
+}
+
+@media (min-width: 1100px) {
+  .attendance-layout-grid {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: stretch;
+  }
+}
+
 .sidebar-logo {
   font-size: 1.35rem;
   font-weight: 800;

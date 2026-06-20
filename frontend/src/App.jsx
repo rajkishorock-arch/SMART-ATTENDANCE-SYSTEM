@@ -5079,6 +5079,7 @@ export default function App() {
                 )}
 
                 {/* Scanner Launch Card */}
+                <div className="attendance-layout-grid">
                 <div className="glass-panel" style={{
                   padding: '28px',
                   display: 'flex',
@@ -5185,7 +5186,8 @@ export default function App() {
                   ))
                 )}
               </div>
-            </div>
+              </div>
+              </div>
               </>
             )}
           </div>
