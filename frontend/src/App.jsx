@@ -35,7 +35,9 @@ import {
   UserCheck,
   UserPlus,
   Volume2,
-  VolumeX
+  VolumeX,
+  ArrowLeft,
+  MessageSquare
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -175,6 +177,16 @@ export default function App() {
 
   // App Navigation & Modal State
   const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // Feedback Form States
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackType, setFeedbackType] = useState('suggestion'); // 'bug', 'suggestion', 'general'
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackSuccess, setFeedbackSuccess] = useState('');
+  const [feedbackError, setFeedbackError] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileControlOpen, setMobileControlOpen] = useState(false);
@@ -1897,10 +1909,26 @@ export default function App() {
         
         if (!sessionInitializedRef.current) {
           sessionInitializedRef.current = true;
-          if (data.role === 'student') {
-            setActiveTab('student-attendance');
+          const currentHash = window.location.hash.replace(/^#\/?/, '');
+          const isTabValid = (tabId, role) => {
+            if (role === 'student') {
+              return ['student-attendance', 'student-profile'].includes(tabId);
+            } else if (role === 'teacher') {
+              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings'].includes(tabId);
+            } else if (role === 'admin') {
+              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings'].includes(tabId);
+            }
+            return false;
+          };
+
+          if (currentHash && isTabValid(currentHash, data.role)) {
+            setActiveTab(currentHash);
           } else {
-            setActiveTab('dashboard');
+            if (data.role === 'student') {
+              setActiveTab('student-attendance');
+            } else {
+              setActiveTab('dashboard');
+            }
           }
         }
       } else {
@@ -2114,6 +2142,45 @@ export default function App() {
     return () => window.removeEventListener('resize', updateViewport);
   }, []);
 
+  // Synchronize hash changes back to React activeTab state
+  useEffect(() => {
+    const isTabValidForRole = (tabId, role) => {
+      if (role === 'student') {
+        return ['student-attendance', 'student-profile'].includes(tabId);
+      } else if (role === 'teacher') {
+        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings'].includes(tabId);
+      } else if (role === 'admin') {
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings'].includes(tabId);
+      }
+      return false;
+    };
+
+    const handleHashChange = () => {
+      if (!token || !userRole) return;
+      const currentHash = window.location.hash.replace(/^#\/?/, '');
+      if (currentHash && currentHash !== activeTab && isTabValidForRole(currentHash, userRole)) {
+        setActiveTab(currentHash);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [activeTab, token, userRole]);
+
+  // Synchronize React activeTab state change to window location hash
+  useEffect(() => {
+    if (token && userRole && activeTab) {
+      const expectedHash = `#/${activeTab}`;
+      if (window.location.hash !== expectedHash) {
+        window.location.hash = expectedHash;
+      }
+    } else if (!token) {
+      if (window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }, [activeTab, token, userRole]);
+
   const navigateToTab = useCallback((tabId) => {
     setActiveTab(tabId);
     setMobileSidebarOpen(false);
@@ -2318,6 +2385,57 @@ export default function App() {
     setCurrentUser(null);
     setStudentLogs([]);
     setActiveTab('dashboard');
+  };
+
+  // Submit Feedback Form
+  const handleFeedbackSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!feedbackMessage.trim()) {
+      setFeedbackError('Please enter your feedback message.');
+      return;
+    }
+    setSubmittingFeedback(true);
+    setFeedbackError('');
+    setFeedbackSuccess('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/feedbacks/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: feedbackType,
+          rating: feedbackRating,
+          message: feedbackMessage
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        playCyberSound('success');
+        setFeedbackSuccess('Thank you! Your feedback has been submitted successfully.');
+        setFeedbackMessage('');
+        setFeedbackRating(5);
+        setFeedbackType('suggestion');
+        // Refresh logs if currently viewing them to show new audit entry
+        if (userRole && userRole !== 'student' && (activeTab === 'logs' || activeTab === 'dashboard')) {
+          fetchLogs();
+          if (activeTab === 'dashboard') fetchStats();
+        }
+        setTimeout(() => {
+          setShowFeedbackModal(false);
+          setFeedbackSuccess('');
+        }, 2200);
+      } else {
+        playCyberSound('error');
+        setFeedbackError(data.detail || 'Failed to submit feedback.');
+      }
+    } catch (err) {
+      playCyberSound('error');
+      setFeedbackError('Network error. Please try again.');
+    } finally {
+      setSubmittingFeedback(false);
+    }
   };
 
   // Delete Student
@@ -3243,6 +3361,34 @@ export default function App() {
                 <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
             </button>
+            {((userRole === 'student' && activeTab !== 'student-attendance') || 
+              (userRole && userRole !== 'student' && activeTab !== 'dashboard')) && (
+              <button 
+                className="btn-back"
+                onClick={() => {
+                  playCyberSound('click');
+                  window.history.back();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: 'var(--color-primary, #00f2fe)',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  marginRight: '4px',
+                  transition: 'all 0.2s',
+                  fontWeight: '600'
+                }}
+              >
+                <ArrowLeft size={16} />
+                Back
+              </button>
+            )}
             <div>
               <h1 style={{ fontSize: '1.45rem', fontWeight: 700 }}>
                 {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
@@ -8145,6 +8291,142 @@ export default function App() {
             {trainMessage}
           </h3>
           <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>Scanning datasets, preprocessing images and retraining classifier.xml...</p>
+        </div>
+      )}
+
+      {/* Floating Action Button (FAB) for Feedback - only shown when logged in */}
+      {token && (
+        <button 
+          className="feedback-fab" 
+          onClick={() => {
+            playCyberSound('click');
+            setShowFeedbackModal(true);
+          }}
+          title="Submit Feedback"
+          aria-label="Submit Feedback"
+        >
+          <MessageSquare size={24} />
+        </button>
+      )}
+
+      {/* Feedback Submission Modal */}
+      {showFeedbackModal && (
+        <div className="feedback-modal-overlay" onClick={() => setShowFeedbackModal(false)}>
+          <div className="feedback-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="feedback-modal-header">
+              <h2 className="feedback-modal-title">Share Your Feedback</h2>
+              <button 
+                className="feedback-modal-close" 
+                onClick={() => {
+                  playCyberSound('click');
+                  setShowFeedbackModal(false);
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleFeedbackSubmit}>
+              {feedbackSuccess && (
+                <div className="alert alert-success" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle2 size={18} />
+                  <span style={{ fontSize: '0.9rem' }}>{feedbackSuccess}</span>
+                </div>
+              )}
+
+              {feedbackError && (
+                <div className="alert alert-danger" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} />
+                  <span style={{ fontSize: '0.9rem' }}>{feedbackError}</span>
+                </div>
+              )}
+
+              <div className="feedback-form-group">
+                <label className="feedback-form-label">Category</label>
+                <div className="feedback-type-select">
+                  <div 
+                    className={`feedback-type-option ${feedbackType === 'suggestion' ? 'active' : ''}`}
+                    onClick={() => { playCyberSound('click'); setFeedbackType('suggestion'); }}
+                  >
+                    Suggestion
+                  </div>
+                  <div 
+                    className={`feedback-type-option ${feedbackType === 'bug' ? 'active' : ''}`}
+                    onClick={() => { playCyberSound('click'); setFeedbackType('bug'); }}
+                  >
+                    Report Bug
+                  </div>
+                  <div 
+                    className={`feedback-type-option ${feedbackType === 'general' ? 'active' : ''}`}
+                    onClick={() => { playCyberSound('click'); setFeedbackType('general'); }}
+                  >
+                    General
+                  </div>
+                </div>
+              </div>
+
+              <div className="feedback-form-group">
+                <label className="feedback-form-label">Rating</label>
+                <div className="feedback-rating-container">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className={`feedback-star-btn ${star <= feedbackRating ? 'active' : ''}`}
+                      onClick={() => {
+                        playCyberSound('click');
+                        setFeedbackRating(star);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px'
+                      }}
+                    >
+                      <svg 
+                        width="30" 
+                        height="30" 
+                        viewBox="0 0 24 24" 
+                        fill={star <= feedbackRating ? "#fbbf24" : "none"} 
+                        stroke={star <= feedbackRating ? "#fbbf24" : "rgba(255, 255, 255, 0.2)"} 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        style={{ transition: 'transform 0.1s' }}
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="feedback-form-group">
+                <label className="feedback-form-label">Message</label>
+                <textarea
+                  className="feedback-textarea"
+                  placeholder="Tell us what is working well, what needs adjustment, or what features you would love to see next..."
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  disabled={submittingFeedback || !!feedbackSuccess}
+                  maxLength={1000}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                className="feedback-submit-btn"
+                disabled={submittingFeedback || !!feedbackSuccess || !feedbackMessage.trim()}
+                style={{ marginTop: '8px' }}
+              >
+                {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

@@ -409,3 +409,26 @@ def create_schedule(db: Session, schedule: schemas.ScheduleCreate) -> models.Sch
 
 def get_schedules(db: Session):
     return db.query(models.Schedule).all()
+
+# --- Feedback ---
+def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: str, role: str):
+    db_feedback = models.Feedback(
+        user_email=user_email,
+        role=role,
+        type=feedback.type,
+        message=feedback.message,
+        rating=feedback.rating
+    )
+    db.add(db_feedback)
+    db.commit()
+    db.refresh(db_feedback)
+    
+    # Create audit log so it shows up in real-time logs
+    create_audit_log(
+        db,
+        log=schemas.AuditLogCreate(
+            user_email=user_email,
+            action=f"Submitted Feedback ({feedback.type.upper()}, Rating: {feedback.rating}/5): {feedback.message}"
+        )
+    )
+    return db_feedback

@@ -186,3 +186,22 @@ class StudentUpdate(BaseModel):
     address: Optional[str] = None
     teacher: Optional[str] = None
     password: Optional[str] = None
+
+# --- Feedback ---
+class FeedbackCreate(BaseModel):
+    type: str
+    message: str
+    rating: int
+
+class FeedbackResponse(BaseModel):
+    id: int
+    user_email: str
+    role: str
+    type: str
+    message: str
+    rating: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+        orm_mode = True

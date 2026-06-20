@@ -86,3 +86,13 @@ class SystemSettings(Base):
     allowed_radius_meters = Column(Float, default=100.0)
     ip_restriction_enabled = Column(Boolean, default=False)
     allowed_ip_ranges = Column(Text, default="127.0.0.1,192.168.1.0/24")
+
+class Feedback(Base):
+    __tablename__ = "feedbacks"
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String(100), index=True)
+    role = Column(String(50))
+    type = Column(String(50)) # 'bug', 'suggestion', 'general'
+    message = Column(Text, nullable=False)
+    rating = Column(Integer, default=5)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
