@@ -1904,11 +1904,14 @@ export default function App() {
           }
         }
       } else {
-        handleLogout();
+        if (res.status === 401 || res.status === 403) {
+          handleLogout();
+        } else {
+          console.error("Server error when fetching session info:", res.status);
+        }
       }
     } catch (err) {
-      console.error("Failed to fetch session info:", err);
-      handleLogout();
+      console.error("Failed to fetch session info (network error):", err);
     }
   };
 
