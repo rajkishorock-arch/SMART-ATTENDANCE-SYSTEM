@@ -3086,7 +3086,7 @@ export default function App() {
           }}>
             <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
           </div>
-          <span className="text-gradient" style={{ fontWeight: 800 }}>SMART AI</span>
+          <span className="text-gradient" style={{ fontWeight: 800 }}>SMART ATTENDANCE</span>
         </div>
 
         <ul className="nav-links" style={{ flex: 1 }}>
@@ -4783,13 +4783,16 @@ export default function App() {
                   animation: 'fadeIn 0.3s ease both'
                 }}>
                   <div className="glass-panel" style={{
-                    width: '100%',
-                    maxWidth: '480px',
-                    padding: '32px',
+                    width: '90%',
+                    maxWidth: '440px',
+                    padding: isMobileView ? '20px 16px' : '32px',
+                    maxHeight: '90vh',
+                    overflowY: 'auto',
                     border: '1px solid rgba(0, 242, 254, 0.25)',
                     boxShadow: '0 20px 50px rgba(0, 242, 254, 0.15)',
                     animation: 'zoomIn 0.3s ease both',
-                    position: 'relative'
+                    position: 'relative',
+                    boxSizing: 'border-box'
                   }}>
                     {/* Futuristic wireframe scanner borders */}
                     <div style={{ position: 'absolute', top: '15px', left: '15px', width: '15px', height: '15px', borderTop: '2px solid #00f2fe', borderLeft: '2px solid #00f2fe' }} />
@@ -5560,46 +5563,109 @@ export default function App() {
                                 </div>
                               ) : sMode === 'manifest' ? (
                                 /* List Manifest */
-                                <div className="table-container" style={{ margin: 0 }}>
-                                  <table className="custom-table" style={{ fontSize: "0.85rem" }}>
-                                    <thead>
-                                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                        <th style={{ padding: '10px 12px', fontWeight: 600 }}>Roll No</th>
-                                        <th style={{ padding: '10px 12px', fontWeight: 600 }}>Student Name</th>
-                                        <th style={{ padding: '10px 12px', fontWeight: 600 }}>Branch</th>
-                                        <th style={{ padding: '10px 12px', fontWeight: 600 }}>Semester</th>
-                                        <th style={{ padding: '10px 12px', fontWeight: 600 }}>Email</th>
-                                        <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>Status</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {filteredStudents.map((st) => (
-                                        <tr key={st.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', color: '#f1f5f9' }}>
-                                          <td style={{ padding: '12px 12px', fontWeight: 700, color: '#fff' }}>{st.roll}</td>
-                                          <td style={{ padding: '12px 12px', fontWeight: 500 }}>{st.name}</td>
-                                          <td style={{ padding: '12px 12px', color: 'var(--color-text-muted)' }}>{st.dep}</td>
-                                          <td style={{ padding: '12px 12px', color: 'var(--color-text-muted)' }}>{st.semester}</td>
-                                          <td style={{ padding: '12px 12px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{st.email}</td>
-                                          <td style={{ padding: '12px 12px', textAlign: 'center' }}>
-                                            <span style={{ 
-                                              padding: '3px 10px', 
-                                              borderRadius: '50px', 
-                                              fontSize: '0.7rem', 
-                                              fontWeight: 700,
-                                              display: 'inline-block',
-                                              background: st.status === 'Present' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                              border: st.status === 'Present' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
-                                              color: st.status === 'Present' ? '#10b981' : '#ef4444'
-                                            }}>
-                                              {st.status.toUpperCase()}
-                                            </span>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              ) : (
+                                 isMobileView ? (
+                                   /* Mobile Detailed Grid Layout */
+                                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
+                                     {filteredStudents.map((st) => {
+                                       const isPresent = st.status === 'Present';
+                                       const statusBg = isPresent ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+                                       const statusBorder = isPresent ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
+                                       const statusColor = isPresent ? '#10b981' : '#ef4444';
+                                       
+                                       return (
+                                         <div 
+                                           key={st.id} 
+                                           className="glass-panel" 
+                                           style={{ 
+                                             padding: '16px', 
+                                             borderRadius: '12px', 
+                                             border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`,
+                                             display: 'flex',
+                                             flexDirection: 'column',
+                                             gap: '12px',
+                                             background: 'rgba(13, 20, 35, 0.4)'
+                                           }}
+                                         >
+                                           {/* Name & Status */}
+                                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                             <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem' }}>{st.name}</div>
+                                             <span style={{ 
+                                               padding: '3px 10px', 
+                                               borderRadius: '50px', 
+                                               fontSize: '0.65rem', 
+                                               fontWeight: 700,
+                                               background: statusBg,
+                                               border: statusBorder,
+                                               color: statusColor
+                                             }}>
+                                               {st.status.toUpperCase()}
+                                             </span>
+                                           </div>
+                                           
+                                           {/* Roll No */}
+                                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                                             <span style={{ color: 'var(--color-text-muted)' }}>Roll No:</span>
+                                             <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{st.roll}</span>
+                                           </div>
+                                           
+                                           {/* Branch & Semester */}
+                                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                                             <span style={{ color: 'var(--color-text-muted)' }}>Dept / Sem:</span>
+                                             <span style={{ color: '#f1f5f9' }}>{st.dep} (Sem {st.semester})</span>
+                                           </div>
+                                           
+                                           {/* Email */}
+                                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '8px' }}>
+                                             <span style={{ color: 'var(--color-text-muted)' }}>Email:</span>
+                                             <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>{st.email}</span>
+                                           </div>
+                                         </div>
+                                       );
+                                     })}
+                                   </div>
+                                 ) : (
+                                   /* Desktop Table Layout */
+                                   <div className="table-container" style={{ margin: 0 }}>
+                                     <table className="custom-table" style={{ fontSize: "0.85rem" }}>
+                                       <thead>
+                                         <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                           <th style={{ padding: '10px 12px', fontWeight: 600 }}>Roll No</th>
+                                           <th style={{ padding: '10px 12px', fontWeight: 600 }}>Student Name</th>
+                                           <th style={{ padding: '10px 12px', fontWeight: 600 }}>Branch</th>
+                                           <th style={{ padding: '10px 12px', fontWeight: 600 }}>Semester</th>
+                                           <th style={{ padding: '10px 12px', fontWeight: 600 }}>Email</th>
+                                           <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>Status</th>
+                                         </tr>
+                                       </thead>
+                                       <tbody>
+                                         {filteredStudents.map((st) => (
+                                           <tr key={st.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', color: '#f1f5f9' }}>
+                                             <td style={{ padding: '12px 12px', fontWeight: 700, color: '#fff' }}>{st.roll}</td>
+                                             <td style={{ padding: '12px 12px', fontWeight: 500 }}>{st.name}</td>
+                                             <td style={{ padding: '12px 12px', color: 'var(--color-text-muted)' }}>{st.dep}</td>
+                                             <td style={{ padding: '12px 12px', color: 'var(--color-text-muted)' }}>{st.semester}</td>
+                                             <td style={{ padding: '12px 12px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{st.email}</td>
+                                             <td style={{ padding: '12px 12px', textAlign: 'center' }}>
+                                               <span style={{ 
+                                                 padding: '3px 10px', 
+                                                 borderRadius: '50px', 
+                                                 fontSize: '0.7rem', 
+                                                 fontWeight: 700,
+                                                 display: 'inline-block',
+                                                 background: st.status === 'Present' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                 border: st.status === 'Present' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
+                                                 color: st.status === 'Present' ? '#10b981' : '#ef4444'
+                                               }}>
+                                                 {st.status.toUpperCase()}
+                                               </span>
+                                             </td>
+                                           </tr>
+                                         ))}
+                                       </tbody>
+                                     </table>
+                                   </div>
+                                 )
+                               ) : (
                                 /* Tactical Seating Grid Map */
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '16px', marginTop: '16px' }}>
                                   {filteredStudents.map((st) => {
