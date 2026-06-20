@@ -5560,8 +5560,8 @@ export default function App() {
                                 </div>
                               ) : sMode === 'manifest' ? (
                                 /* List Manifest */
-                                <div style={{ overflowX: 'auto' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                                <div className="table-container" style={{ margin: 0 }}>
+                                  <table className="custom-table" style={{ fontSize: "0.85rem" }}>
                                     <thead>
                                       <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         <th style={{ padding: '10px 12px', fontWeight: 600 }}>Roll No</th>

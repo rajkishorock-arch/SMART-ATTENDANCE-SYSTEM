@@ -3280,3 +3280,10 @@ html {
   left: 0 !important;
   right: 0 !important;
 }
+
+/* Fix mobile bottom navigation panel overlapping content and buttons */
+@media (max-width: 768px) {
+  .main-content {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
