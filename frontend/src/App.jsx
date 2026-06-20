@@ -3767,19 +3767,19 @@ export default function App() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ color: 'var(--color-text-muted)' }}>DETECTION YUNET:</span>
                       <span style={{ 
-                        color: systemHealth?.models.yunet === 'READY' ? '#10b981' : '#ef4444', 
+                        color: systemHealth?.models?.yunet === 'READY' ? '#10b981' : '#ef4444', 
                         fontWeight: 'bold' 
                       }}>
-                        {systemHealth ? systemHealth.models.yunet : 'CHECKING...'}
+                        {systemHealth?.models?.yunet || 'CHECKING...'}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ color: 'var(--color-text-muted)' }}>RECOGNITION SFACE:</span>
                       <span style={{ 
-                        color: systemHealth?.models.sface === 'READY' ? '#10b981' : '#ef4444', 
+                        color: systemHealth?.models?.sface === 'READY' ? '#10b981' : '#ef4444', 
                         fontWeight: 'bold' 
                       }}>
-                        {systemHealth ? systemHealth.models.sface : 'CHECKING...'}
+                        {systemHealth?.models?.sface || 'CHECKING...'}
                       </span>
                     </div>
                   </div>

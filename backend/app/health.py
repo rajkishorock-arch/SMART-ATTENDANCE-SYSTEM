@@ -68,6 +68,12 @@ def get_detailed_health(
     except Exception:
         pass
 
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    backend_dir = os.path.dirname(app_dir)
+    models_dir = os.path.join(backend_dir, "models")
+    yunet_exists = os.path.exists(os.path.join(models_dir, "face_detection_yunet_2023mar.onnx"))
+    sface_exists = os.path.exists(os.path.join(models_dir, "face_recognition_sface_2021dec.onnx"))
+
     return {
         "status": "HEALTHY" if db_connected else "DEGRADED",
         "database": "CONNECTED" if db_connected else "DISCONNECTED",
@@ -80,5 +86,9 @@ def get_detailed_health(
             "system": platform.system(),
             "release": platform.release(),
             "python_version": platform.python_version(),
+        },
+        "models": {
+            "yunet": "READY" if yunet_exists else "MISSING",
+            "sface": "READY" if sface_exists else "MISSING",
         },
     }
