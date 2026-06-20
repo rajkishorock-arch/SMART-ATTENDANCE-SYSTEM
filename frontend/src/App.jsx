@@ -877,9 +877,22 @@ export default function App() {
     setWebcamError('');
     setWebcamBootActive(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
+        });
+      } catch (e1) {
+        console.warn("HD camera constraints failed, trying 640x480 fallback", e1);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480, facingMode: 'user' } 
+          });
+        } catch (e2) {
+          console.warn("SD camera constraints failed, trying general video fallback", e2);
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+      }
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -953,9 +966,22 @@ export default function App() {
 
     setScannerBootActive(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
+        });
+      } catch (e1) {
+        console.warn("HD camera constraints failed, trying 640x480 fallback", e1);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480, facingMode: 'user' } 
+          });
+        } catch (e2) {
+          console.warn("SD camera constraints failed, trying general video fallback", e2);
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+      }
       if (attendanceVideoRef.current) {
         attendanceVideoRef.current.srcObject = stream;
       }
@@ -1639,11 +1665,11 @@ export default function App() {
           const avgEAR = (leftEAR + rightEAR) / 2.0;
 
           if (livenessStatusRef.current === 'verifying') {
-            if (avgEAR < 0.18) {
+            if (avgEAR < 0.21) {
               eyeStateRef.current = 'closed';
               setLivenessMessage('Eyes Closed. Now open them.');
               addDiagnosticLog('Ocular state: Blink trigger detected');
-            } else if (avgEAR > 0.24 && eyeStateRef.current === 'closed') {
+            } else if (avgEAR > 0.23 && eyeStateRef.current === 'closed') {
               eyeStateRef.current = 'open';
               livenessStatusRef.current = 'verified';
               setLivenessStatus('verified');
@@ -2115,9 +2141,22 @@ export default function App() {
     setSelfieSuccess('');
     setStudentWebcamBootActive(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
+        });
+      } catch (e1) {
+        console.warn("HD camera constraints failed, trying 640x480 fallback", e1);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480, facingMode: 'user' } 
+          });
+        } catch (e2) {
+          console.warn("SD camera constraints failed, trying general video fallback", e2);
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+      }
       if (studentVideoRef.current) {
         studentVideoRef.current.srcObject = stream;
       }
