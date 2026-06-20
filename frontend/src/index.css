@@ -2285,12 +2285,17 @@ button:active,
   opacity: 0.55;
 }
 
-.app-with-fx .sidebar,
+.app-with-fx .sidebar {
+  position: fixed;
+  z-index: 100;
+}
+
 .app-with-fx .main-content,
 .app-with-fx .mobile-bottom-nav {
   position: relative;
   z-index: 2;
 }
+
 
 .click-fx-layer {
   position: fixed;
