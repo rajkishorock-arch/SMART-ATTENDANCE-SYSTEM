@@ -3269,6 +3269,28 @@ export default function App() {
           </div>
           
           <div className="header-actions">
+            {userRole === 'student' && (
+              <button 
+                onClick={() => { playCyberSound('click'); handleLogout(); }}
+                style={{ 
+                  padding: '8px 14px', 
+                  borderRadius: '8px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  fontSize: '0.8rem', 
+                  background: 'rgba(239, 68, 68, 0.1)', 
+                  border: '1px solid rgba(239, 68, 68, 0.2)', 
+                  color: '#ef4444',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginRight: '8px'
+                }}
+              >
+                <LogOut size={14} />
+                Sign Out
+              </button>
+            )}
             <NotificationCenter
               open={notificationsOpen}
               onToggle={() => setNotificationsOpen((v) => !v)}
@@ -7177,6 +7199,29 @@ export default function App() {
                 }}
               >
                 <Edit size={16} /> Edit Profile Info
+              </button>
+
+              <button
+                onClick={() => { playCyberSound('click'); handleLogout(); }}
+                style={{
+                  width: '100%',
+                  marginTop: '12px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <LogOut size={16} /> Sign Out
               </button>
             </div>
  

@@ -63,6 +63,8 @@ def get_all_user_details_for_recognition(db: Session):
 
 def create_student(db: Session, student: schemas.StudentCreate):
     db_student = models.StudentModel(**student.dict())
+    if student.roll:
+        db_student.password_hash = security.get_password_hash(student.roll)
     db.add(db_student)
     db.commit()
     db.refresh(db_student)
