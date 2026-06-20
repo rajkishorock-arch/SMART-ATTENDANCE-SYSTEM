@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from .core.config import DATABASE_URL
 
 connect_args = {}
-if DATABASE_URL.startswith("mysql") or DATABASE_URL.startswith("postgres"):
+if DATABASE_URL.startswith("mysql"):
     connect_args = {
         "ssl_verify_cert": False,
         "ssl_verify_identity": False
