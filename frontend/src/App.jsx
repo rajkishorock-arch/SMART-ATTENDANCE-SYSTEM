@@ -2814,6 +2814,16 @@ export default function App() {
   const departments = [...new Set(students.map(s => s.dep))];
 
   // Login Page View
+  if (token && !currentUser) {
+    return (
+      <div className="flex-center" style={{ minHeight: '100vh', background: '#070b12', color: '#00f2fe', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ width: '50px', height: '50px', border: '3px solid rgba(0, 242, 254, 0.2)', borderTopColor: '#00f2fe', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <h3 style={{ fontFamily: 'monospace', letterSpacing: '2px' }}>INITIALIZING NEURAL LINK...</h3>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   if (!token) {
     return (
       <div className="flex-center" style={{ 
