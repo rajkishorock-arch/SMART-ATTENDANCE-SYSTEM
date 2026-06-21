@@ -1,5 +1,7 @@
 import os
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
+
+IST = timezone(timedelta(hours=5, minutes=30))
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -19,7 +21,7 @@ def weekly_attendance_job():
     print("Scheduler: Running weekly attendance report job...")
     db = SessionLocal()
     try:
-        today = date.today()
+        today = datetime.now(IST).date()
         # Monday of this week: today - current weekday index (0 = Monday)
         monday = today - timedelta(days=today.weekday())
         start_date = monday.strftime("%Y-%m-%d")
@@ -82,7 +84,7 @@ def monthly_attendance_job():
     print("Scheduler: Running monthly attendance report job...")
     db = SessionLocal()
     try:
-        today = date.today()
+        today = datetime.now(IST).date()
         # First day of current month:
         first_day = today.replace(day=1)
         start_date = first_day.strftime("%Y-%m-%d")

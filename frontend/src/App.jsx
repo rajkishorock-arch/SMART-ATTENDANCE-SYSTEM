@@ -55,6 +55,13 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
+const getLocalDateString = (d = new Date()) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const LEFT_EYE_INDICES = [362, 385, 387, 263, 373, 380];
 const RIGHT_EYE_INDICES = [33, 160, 158, 133, 153, 144];
 
@@ -256,7 +263,7 @@ export default function App() {
 
   // Voice Assistant States
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [voiceLanguage, setVoiceLanguage] = useState('hinglish'); // 'english', 'hindi', 'hinglish'
+  const [voiceLanguage, setVoiceLanguage] = useState('english'); // 'english'
   const [voiceSpeed, setVoiceSpeed] = useState(1.0); // speech rate
   const [voiceVolume, setVoiceVolume] = useState(1.0);
   const [voiceAnnounceLiveness, setVoiceAnnounceLiveness] = useState(false);
@@ -327,15 +334,16 @@ export default function App() {
 
   // Attendance Reports States
   const [reportStartDate, setReportStartDate] = useState(
-    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    getLocalDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
   );
   const [reportEndDate, setReportEndDate] = useState(
-    new Date().toISOString().split('T')[0]
+    getLocalDateString()
   );
   const [reportDeptFilter, setReportDeptFilter] = useState('');
   const [reportData, setReportData] = useState({ total_working_days: 0, students: [] });
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isSendingAlerts, setIsSendingAlerts] = useState(false);
+  const [serverWarmingUp, setServerWarmingUp] = useState(false);
 
   // Refs for video, canvas & stream
   const videoRef = React.useRef(null);
@@ -421,7 +429,7 @@ export default function App() {
   
   // Attendance Session Setup States for Teachers
   const [sessionActive, setSessionActive] = useState(false);
-  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [sessionDate, setSessionDate] = useState(getLocalDateString());
   const [sessionPeriod, setSessionPeriod] = useState('Period 1');
   const [sessionHistory, setSessionHistory] = useState([]);
   const [expandedSessions, setExpandedSessions] = useState({});
@@ -813,20 +821,11 @@ export default function App() {
     }
   };
 
-  const handleSpeak = (textEnglish, textHindi, textHinglish, forceLanguage = null) => {
+  const handleSpeak = (textEnglish) => {
     if (!voiceEnabled || !window.speechSynthesis) return;
 
-    const lang = forceLanguage || voiceLanguage;
     let speakTxt = textEnglish;
     let locale = 'en-US';
-
-    if (lang === 'hindi') {
-      speakTxt = textHindi;
-      locale = 'hi-IN';
-    } else if (lang === 'hinglish') {
-      speakTxt = textHinglish;
-      locale = 'hi-IN'; // Using Hindi engine for mixed Hinglish text reads it best
-    }
 
     // Cancel current speech to prevent queuing delay
     window.speechSynthesis.cancel();
@@ -839,15 +838,7 @@ export default function App() {
 
     // Find and set system voices
     const voices = window.speechSynthesis.getVoices();
-    let matchedVoice = null;
-
-    if (locale.startsWith('hi')) {
-      matchedVoice = voices.find(v => v.lang.startsWith('hi-') || v.lang.includes('Hindi'));
-    }
-    
-    if (!matchedVoice) {
-      matchedVoice = voices.find(v => v.lang.startsWith('en-') || v.lang.includes('English'));
-    }
+    let matchedVoice = voices.find(v => v.lang.startsWith('en-') || v.lang.includes('English'));
 
     if (matchedVoice) {
       utterance.voice = matchedVoice;
@@ -1003,11 +994,7 @@ export default function App() {
     playCyberSound('success');
     addDiagnosticLog('Secure optical feed active: SEC_CAM_01');
     addDiagnosticLog('Initializing FaceMesh coordinate mapping...');
-    handleSpeak(
-      "Scanner started. Ready for scanning.",
-      "स्कैनर शुरू हो गया है। कृपया कैमरे की तरफ देखें।",
-      "Scanner start ho gaya hai. Please camera ki taraf dekhein."
-    );
+    handleSpeak("Scanner started. Ready for scanning.");
   }, []);
 
   const stopAttendanceCam = () => {
@@ -1031,11 +1018,7 @@ export default function App() {
     setScanStatus('Camera Offline');
     setDiagnosticWarnings({ lighting: '', distance: '' });
     addDiagnosticLog('Ocular feed terminated.');
-    handleSpeak(
-      "Scanner stopped.",
-      "स्कैनर बंद कर दिया गया है।",
-      "Scanner stop ho gaya hai."
-    );
+    handleSpeak("Scanner stopped.");
   };
 
 
@@ -1070,7 +1053,7 @@ export default function App() {
         if (selectedSubjectId) {
           queryParams.append('subject_id', selectedSubjectId);
         }
-        if (userRole === 'teacher' && sessionActive) {
+        if (sessionActive) {
           queryParams.append('custom_date', sessionDate);
           queryParams.append('custom_time', sessionPeriod);
         }
@@ -1093,8 +1076,8 @@ export default function App() {
             playCyberSound('success');
             
             const now = new Date();
-            const timeStr = (userRole === 'teacher' && sessionActive) ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const dateStr = (userRole === 'teacher' && sessionActive) ? sessionDate.split('-').reverse().join('/') : now.toLocaleDateString();
+            const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
 
             setScannedStudent({ name, roll, dep, time: timeStr });
             addDiagnosticLog(`MATCH FOUND: ${name} (Accuracy: ${confidence}%)`);
@@ -1120,27 +1103,15 @@ export default function App() {
             fetchLogs();
 
             if (newly_marked) {
-              handleSpeak(
-                `Attendance marked for ${name}.`,
-                `${name} की उपस्थिति दर्ज कर ली गई है।`,
-                `${name}, aapki attendance lag gayi hai.`
-              );
+              handleSpeak(`Attendance marked for ${name}.`);
             } else {
-              handleSpeak(
-                `${name}, your attendance is already marked.`,
-                `${name}, आपकी उपस्थिति पहले ही दर्ज हो चुकी है।`,
-                `${name}, aapki attendance already marked hai.`
-              );
+              handleSpeak(`${name}, your attendance is already marked.`);
             }
           } else {
             playCyberSound('error');
             setScanStatus('Face recognition failed. Look straight at the camera.');
             addDiagnosticLog('Match failed: Face signature unrecognized');
-            handleSpeak(
-              "Face not recognized. Please try again.",
-              "चेहरा नहीं पहचाना जा सका। कृपया पुनः प्रयास करें।",
-              "Face recognize nahi hua. Please fir se try karein."
-            );
+            handleSpeak("Face not recognized. Please try again.");
           }
         } else if (res.status === 403) {
           playCyberSound('error');
@@ -1148,20 +1119,12 @@ export default function App() {
           const detail = errData.detail || 'Access Denied: Geofence or IP restricted.';
           setScanStatus(detail);
           addDiagnosticLog('SECURITY ALERT: Geofence boundaries breached');
-          handleSpeak(
-            "Access denied.",
-            "प्रवेश निषेध।",
-            "Access denied."
-          );
+          handleSpeak("Access denied.");
         } else {
           playCyberSound('error');
           setScanStatus('Scanning failed. Server error.');
           addDiagnosticLog('ERROR: Frame matching failed.');
-          handleSpeak(
-            "Scanning failed. Server error.",
-            "स्कैन विफल रहा। सर्वर त्रुटि।",
-            "Scanning fail ho gayi. Server error."
-          );
+          handleSpeak("Scanning failed. Server error.");
         }
       } catch (err) {
         console.error('Error matching face embedding:', err);
@@ -1177,11 +1140,7 @@ export default function App() {
           setLivenessMessage('Please blink your eyes to verify.');
           setScanStatus('Scanning...');
           if (voiceAnnounceLiveness) {
-            handleSpeak(
-              "Please blink your eyes to verify.",
-              "सत्यापन के लिए कृपया अपनी पलकें झपकाएं।",
-              "Please verify karne ke liye eyes blink karein."
-            );
+            handleSpeak("Please blink your eyes to verify.");
           }
         }, 4000);
       }
@@ -1494,11 +1453,7 @@ export default function App() {
     addDiagnosticLog('Biometric acquisition initialized: Blink pattern required.');
 
     if (voiceAnnounceLiveness) {
-      handleSpeak(
-        "Please blink your eyes to verify.",
-        "सत्यापन के लिए कृपया अपनी पलकें झपकाएं।",
-        "Please verify karne ke liye eyes blink karein."
-      );
+      handleSpeak("Please blink your eyes to verify.");
     }
 
     const faceMesh = new window.FaceMesh({
@@ -1677,11 +1632,7 @@ export default function App() {
               addDiagnosticLog('Ocular verification complete: PASS');
               
               if (voiceAnnounceLiveness) {
-                handleSpeak(
-                  "Liveness verified. Scanning face.",
-                  "सत्यापन सफल रहा। चेहरा स्कैन किया जा रहा है।",
-                  "Liveness verified. Face scan ho raha hai."
-                );
+                handleSpeak("Liveness verified. Scanning face.");
               }
               
               triggerFaceRecognition();
@@ -2317,26 +2268,83 @@ export default function App() {
     setMobileControlOpen(false);
   }, []);
 
+  const checkServerConnection = async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+      const res = await fetch(`${API_BASE_URL}/health`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        setServerWarmingUp(false);
+        return true;
+      }
+    } catch (e) {
+      console.log("Server health check failed, warming up...", e);
+    }
+    return false;
+  };
+
   // Load core data once after login
   useEffect(() => {
     if (!token || !userRole) return;
 
-    if (userRole === 'student') {
-      fetchStudentLogs(token);
-      if (currentUser?.details) {
-        fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
+    let isMounted = true;
+    
+    const initializeData = async () => {
+      const isConnected = await checkServerConnection();
+      if (isConnected) {
+        if (!isMounted) return;
+        if (userRole === 'student') {
+          fetchStudentLogs(token);
+          if (currentUser?.details) {
+            fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
+          }
+        } else {
+          fetchSubjects().then(() => fetchStudents());
+          fetchStats();
+          fetchLogs();
+          fetchSchedules();
+          if (userRole === 'admin') {
+            fetchTeachers();
+            fetchFeedbacks();
+          }
+        }
+      } else {
+        if (!isMounted) return;
+        setServerWarmingUp(true);
+        // Start a polling retry check
+        const intervalId = setInterval(async () => {
+          const success = await checkServerConnection();
+          if (success) {
+            clearInterval(intervalId);
+            if (!isMounted) return;
+            setServerWarmingUp(false);
+            if (userRole === 'student') {
+              fetchStudentLogs(token);
+              if (currentUser?.details) {
+                fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
+              }
+            } else {
+              fetchSubjects().then(() => fetchStudents());
+              fetchStats();
+              fetchLogs();
+              fetchSchedules();
+              if (userRole === 'admin') {
+                fetchTeachers();
+                fetchFeedbacks();
+              }
+            }
+          }
+        }, 5000);
+        return () => clearInterval(intervalId);
       }
-      return;
-    }
+    };
 
-    fetchSubjects().then(() => fetchStudents());
-    fetchStats();
-    fetchLogs();
-    fetchSchedules();
-    if (userRole === 'admin') {
-      fetchTeachers();
-      fetchFeedbacks();
-    }
+    initializeData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [token, userRole]);
 
   // Heartbeat ping loop for all logged-in users
@@ -2473,7 +2481,7 @@ export default function App() {
     const portalNames = { student: 'Student', teacher: 'Teacher', admin: 'Admin' };
     const expected = portalNames[expectedRole] || expectedRole;
     const actual = portalNames[actualRole] || actualRole;
-    return `Yeh ${actual} account hai. Kripya sahi portal "${expected} Portal" me jaa kar login karein.`;
+    return `This is a ${actual} account. Please navigate to the correct "${expected} Portal" to log in.`;
   };
 
   // Handle Login submission
@@ -3059,7 +3067,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Attendance_Logs_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `Attendance_Logs_${getLocalDateString()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -3682,6 +3690,7 @@ export default function App() {
               <>
                 <button 
                   onClick={() => {
+                    if (serverWarmingUp) return;
                     // Auto-fill teacher name and department when teacher opens this form
                     if (userRole === 'teacher' && currentUser?.details) {
                       const teacherSubject = subjects.find(s => s.teacher_id === currentUser.details.id);
@@ -3694,10 +3703,20 @@ export default function App() {
                     setShowAddModal(true);
                   }}
                   className="bg-gradient-btn"
-                  style={{ padding: '10px 18px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}
+                  style={{ 
+                    padding: '10px 18px', 
+                    borderRadius: '8px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    fontSize: '0.9rem',
+                    opacity: serverWarmingUp ? 0.6 : 1,
+                    cursor: serverWarmingUp ? 'not-allowed' : 'pointer'
+                  }}
+                  disabled={serverWarmingUp}
                 >
                   <Plus size={18} />
-                  Register Student
+                  {serverWarmingUp ? 'Connecting...' : 'Register Student'}
                 </button>
               </>
             )}
@@ -3754,6 +3773,33 @@ export default function App() {
             )}
           </div>
         </header>
+
+        {serverWarmingUp && (
+          <div className="glass-panel" style={{
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            color: '#f59e0b',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            boxShadow: '0 8px 30px rgba(245, 158, 11, 0.04)',
+            animation: 'pulse 2s infinite',
+            textAlign: 'left'
+          }}>
+            <AlertCircle size={28} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <div style={{ fontSize: '0.9rem', lineHeight: '1.5' }}>
+              <strong style={{ display: 'block', marginBottom: '4px', color: '#fff', fontSize: '1.05rem', fontFamily: 'Outfit, sans-serif' }}>
+                ⚠️ Cloud Server Is Warming Up
+              </strong>
+              <span>
+                Our cloud server goes to sleep after 15 minutes of inactivity to save resources. We are waking it up now. Please wait (~45 seconds) for background services to initialize. Once ready, this message will disappear and your data will load automatically.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
@@ -7118,14 +7164,14 @@ export default function App() {
                   <UserCheck size={22} style={{ color: '#a78bfa' }} /> Admin Account Management
                 </h3>
                 <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
-                  Apna naam, email aur password change karein. Naaya admin account bhi bana sakte hain.
+                  Change your name, email, and password. You can also create a new admin account.
                 </p>
               </div>
 
               {/* UPDATE OWN PROFILE */}
               <div style={{ background: 'rgba(167,139,250,0.02)', border: '1px solid rgba(167,139,250,0.1)', borderRadius: '12px', padding: '20px' }}>
                 <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Edit size={16} style={{ color: '#a78bfa' }} /> Mera Admin Profile Update Karein
+                  <Edit size={16} style={{ color: '#a78bfa' }} /> Update My Admin Profile
                 </h4>
 
                 {adminProfileMsg && (
@@ -7141,43 +7187,43 @@ export default function App() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Naam (Name)</label>
+                    <label className="form-label">Name</label>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder={currentUser?.name || 'Apna naam likhein'}
+                      placeholder={currentUser?.name || 'Enter your name'}
                       value={adminProfileName}
                       onChange={e => setAdminProfileName(e.target.value)}
                     />
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Naya Email</label>
+                    <label className="form-label">New Email</label>
                     <input
                       type="email"
                       className="form-input"
-                      placeholder={currentUser?.email || 'Naya email likhein'}
+                      placeholder={currentUser?.email || 'Enter new email'}
                       value={adminProfileEmail}
                       onChange={e => setAdminProfileEmail(e.target.value)}
                       autoComplete="off"
                     />
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Naya Password</label>
+                    <label className="form-label">New Password</label>
                     <input
                       type="password"
                       className="form-input"
-                      placeholder="Naya password"
+                      placeholder="New password"
                       value={adminProfilePassword}
                       onChange={e => setAdminProfilePassword(e.target.value)}
                       autoComplete="new-password"
                     />
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Password Confirm Karein</label>
+                    <label className="form-label">Confirm Password</label>
                     <input
                       type="password"
                       className="form-input"
-                      placeholder="Password dobara likhein"
+                      placeholder="Enter password again"
                       value={adminProfileConfirmPassword}
                       onChange={e => setAdminProfileConfirmPassword(e.target.value)}
                       autoComplete="new-password"
@@ -7190,11 +7236,11 @@ export default function App() {
                     setAdminProfileMsg('');
                     setAdminProfileErr('');
                     if (adminProfilePassword && adminProfilePassword !== adminProfileConfirmPassword) {
-                      setAdminProfileErr('Passwords match nahi kar rahe!');
+                      setAdminProfileErr('Passwords do not match!');
                       return;
                     }
                     if (!adminProfileName && !adminProfileEmail && !adminProfilePassword) {
-                      setAdminProfileErr('Kuch bhi likhein update karne ke liye!');
+                      setAdminProfileErr('Fill at least one field to update!');
                       return;
                     }
                     setIsUpdatingAdminProfile(true);
@@ -7213,7 +7259,7 @@ export default function App() {
                         throw new Error(d.detail || 'Update failed');
                       }
                       const updated = await res.json();
-                      setAdminProfileMsg(`Profile update ho gaya! Ab aap ${updated.email} se login karein.`);
+                      setAdminProfileMsg(`Profile updated successfully! Now log in with ${updated.email}.`);
                       setAdminProfileName('');
                       setAdminProfileEmail('');
                       setAdminProfilePassword('');
@@ -7228,16 +7274,16 @@ export default function App() {
                   style={{ marginTop: '16px', padding: '10px 28px', borderRadius: '8px', fontSize: '0.9rem' }}
                   disabled={isUpdatingAdminProfile}
                 >
-                  {isUpdatingAdminProfile ? 'Saving...' : '💾 Profile Save Karein'}
+                  {isUpdatingAdminProfile ? 'Saving...' : '💾 Save Profile'}
                 </button>
               </div>
 
               {/* CREATE NEW ADMIN */}
               <div style={{ background: 'rgba(0,242,254,0.01)', border: '1px solid rgba(0,242,254,0.08)', borderRadius: '12px', padding: '20px' }}>
                 <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <UserPlus size={16} style={{ color: '#00f2fe' }} /> Naya Admin Account Banayein
+                  <UserPlus size={16} style={{ color: '#00f2fe' }} /> Create New Admin Account
                 </h4>
-                <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginBottom: '16px' }}>Ek se adhik admin ho sakte hain — Naaya admin banaiye aur use separate login dein.</p>
+                <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginBottom: '16px' }}>Multiple admins can be added. Create a new admin and give them separate login credentials.</p>
 
                 {createAdminMsg && (
                   <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem', marginBottom: '14px' }}>
@@ -7252,32 +7298,32 @@ export default function App() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Admin ka Naam</label>
+                    <label className="form-label">Admin Name</label>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Jaise: Rajkishore"
+                      placeholder="Example: Rajkishore"
                       value={newAdminName}
                       onChange={e => setNewAdminName(e.target.value)}
                     />
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Admin ka Email</label>
+                    <label className="form-label">Admin Email</label>
                     <input
                       type="email"
                       className="form-input"
-                      placeholder="Jaise: raj@college.com"
+                      placeholder="Example: raj@college.com"
                       value={newAdminEmail}
                       onChange={e => setNewAdminEmail(e.target.value)}
                       autoComplete="off"
                     />
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Password Set Karein</label>
+                    <label className="form-label">Set Password</label>
                     <input
                       type="password"
                       className="form-input"
-                      placeholder="Strong password daalein"
+                      placeholder="Enter strong password"
                       value={newAdminPassword}
                       onChange={e => setNewAdminPassword(e.target.value)}
                       autoComplete="new-password"
@@ -7290,7 +7336,7 @@ export default function App() {
                     setCreateAdminMsg('');
                     setCreateAdminErr('');
                     if (!newAdminName || !newAdminEmail || !newAdminPassword) {
-                      setCreateAdminErr('Naam, Email aur Password teeno zaroori hain!');
+                      setCreateAdminErr('Name, Email, and Password are all required!');
                       return;
                     }
                     setIsCreatingAdmin(true);
@@ -7302,9 +7348,9 @@ export default function App() {
                       });
                       if (!res.ok) {
                         const d = await res.json();
-                        throw new Error(d.detail || 'Admin create nahi hua');
+                        throw new Error(d.detail || 'Failed to create admin.');
                       }
-                      setCreateAdminMsg(`Admin account ban gaya! ${newAdminEmail} se login ho sakta hai.`);
+                      setCreateAdminMsg(`Admin account created successfully! Log in using ${newAdminEmail}.`);
                       setNewAdminName('');
                       setNewAdminEmail('');
                       setNewAdminPassword('');
@@ -7318,7 +7364,7 @@ export default function App() {
                   style={{ marginTop: '16px', padding: '10px 28px', borderRadius: '8px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #00f2fe, #4facfe)' }}
                   disabled={isCreatingAdmin}
                 >
-                  {isCreatingAdmin ? 'Bana raha hoon...' : '➕ Naya Admin Banayein'}
+                  {isCreatingAdmin ? 'Creating...' : '➕ Create New Admin'}
                 </button>
               </div>
             </div>

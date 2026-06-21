@@ -142,7 +142,7 @@ export default function LoginPortal({
           </div>
 
           <p className="login-portal-card-desc">
-            Sirf <strong>{activeRole.label}</strong> credentials se login karein. Galat portal par login karne par access block ho jayega.
+            Please login using <strong>{activeRole.label}</strong> credentials only. Logging into the incorrect portal will block your access.
           </p>
 
           {authError && (

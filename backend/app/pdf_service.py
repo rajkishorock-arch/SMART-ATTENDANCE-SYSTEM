@@ -1,6 +1,8 @@
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+IST = timezone(timedelta(hours=5, minutes=30))
 from sqlalchemy.orm import Session
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
@@ -38,7 +40,7 @@ def generate_attendance_pdf_report(db: Session, start_date_str: str, end_date_st
 
     # 2. Setup PDF document template
     temp_dir = tempfile.gettempdir()
-    file_name = f"Attendance_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    file_name = f"Attendance_Report_{datetime.now(IST).strftime('%Y%m%d_%H%M%S')}.pdf"
     pdf_path = os.path.join(temp_dir, file_name)
     
     # 0.5 inch margins
@@ -153,7 +155,7 @@ def generate_attendance_pdf_report(db: Session, start_date_str: str, end_date_st
             subject_label = f"  |  Subject: <b>{sub.name} ({sub.code})</b>"
             
     date_range_label = f"Period: {datetime.strptime(start_date_str, '%Y-%m-%d').strftime('%d %b %Y')} to {datetime.strptime(end_date_str, '%Y-%m-%d').strftime('%d %b %Y')}"
-    story.append(Paragraph(f"Department: <b>{dept_label}</b>{subject_label}  |  {date_range_label}  |  Generated on: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", subtitle_style))
+    story.append(Paragraph(f"Department: <b>{dept_label}</b>{subject_label}  |  {date_range_label}  |  Generated on: {datetime.now(IST).strftime('%d/%m/%Y %H:%M:%S')}", subtitle_style))
 
     story.append(Spacer(1, 10))
     

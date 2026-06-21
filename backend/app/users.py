@@ -403,10 +403,9 @@ async def upload_student_selfie(
         raise HTTPException(status_code=422, detail="Failed to generate face embedding from your selfie.")
 
     # 5b. Check if this face is already registered to someone else
-    if check_duplicate_face(db, embedding, exclude_student_id=current_student.id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="यह चेहरा (face) पहले से ही किसी अन्य छात्र के खाते में पंजीकृत (registered) है। कृपया अपने वास्तविक चेहरे से ही पंजीकरण करें।"
+            detail="This face is already registered to another student's account. Please register using your actual face."
         )
 
     # Convert embedding numpy array to serializable Python list
@@ -607,10 +606,9 @@ async def upload_student_face_sample(
         )
 
     # 2b. Check if this face is already registered to someone else
-    if check_duplicate_face(db, embedding, exclude_student_id=id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="यह चेहरा (face) पहले से ही किसी अन्य छात्र के खाते में पंजीकृत (registered) है। कृपया अपने वास्तविक चेहरे से ही पंजीकरण करें।"
+            detail="This face is already registered to another student's account. Please register using your actual face."
         )
 
     # Convert embedding numpy array to a serializable Python list

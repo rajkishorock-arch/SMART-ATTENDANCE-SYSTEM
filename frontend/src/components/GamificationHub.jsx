@@ -85,7 +85,7 @@ export default function GamificationHub({ logs = [] }) {
       <div className="gamification-badges-section">
         <h4>Unlocked Badges ({badges.length})</h4>
         {badges.length === 0 ? (
-          <p className="gamification-empty">Attendance mark karo aur badges unlock karo!</p>
+          <p className="gamification-empty">Mark attendance to unlock badges!</p>
         ) : (
           <div className="gamification-badges-grid">
             {badges.map((badge) => (

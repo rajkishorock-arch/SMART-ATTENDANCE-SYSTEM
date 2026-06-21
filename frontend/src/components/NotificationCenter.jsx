@@ -66,7 +66,7 @@ export default function NotificationCenter({
             {notifications.length === 0 ? (
               <div className="notification-empty">
                 <Bell size={28} style={{ opacity: 0.3 }} />
-                <p>Koi nayi notification nahi</p>
+                <p>No new notifications</p>
               </div>
             ) : (
               notifications.slice(0, 20).map((n) => (

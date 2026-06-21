@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
+
+IST = timezone(timedelta(hours=5, minutes=30))
 from typing import Optional
 from . import models, schemas, security
 
@@ -109,7 +111,7 @@ def get_attendance_logs(
     return query.order_by(models.AttendanceModel.date.desc(), models.AttendanceModel.time.desc()).offset(skip).limit(limit).all()
 
 def get_dashboard_stats(db: Session):
-    today_str = datetime.now().strftime("%d/%m/%Y")
+    today_str = datetime.now(IST).strftime("%d/%m/%Y")
     
     total_students = db.query(models.StudentModel).count()
     
@@ -136,7 +138,7 @@ def get_dashboard_stats(db: Session):
     # Weekly trends
     weekly_trends = []
     for i in range(6, -1, -1):
-        day = datetime.now() - timedelta(days=i)
+        day = datetime.now(IST) - timedelta(days=i)
         day_str = day.strftime("%d/%m/%Y")
         day_label = day.strftime("%a")
         
@@ -179,9 +181,9 @@ def mark_student_attendance(
         else:
             today_str = custom_date
     else:
-        today_str = datetime.now().strftime("%d/%m/%Y")
+        today_str = datetime.now(IST).strftime("%d/%m/%Y")
         
-    time_str = custom_time if custom_time else datetime.now().strftime("%H:%M:%S")
+    time_str = custom_time if custom_time else datetime.now(IST).strftime("%H:%M:%S")
     
     # 1. Check if already marked in DB for this subject
     query = db.query(models.AttendanceModel).filter(

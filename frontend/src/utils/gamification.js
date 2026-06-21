@@ -57,16 +57,16 @@ export function getBadges(logs, streak, rate) {
   const badges = [];
 
   if (presentCount >= 1) {
-    badges.push({ id: 'first', name: 'First Check-In', desc: 'Pehli attendance mark ki', icon: '🎯', tier: 'bronze' });
+    badges.push({ id: 'first', name: 'First Check-In', desc: 'First attendance marked', icon: '🎯', tier: 'bronze' });
   }
   if (streak >= 3) {
-    badges.push({ id: 'streak3', name: '3-Day Flame', desc: '3 din lagatar present', icon: '🔥', tier: 'bronze' });
+    badges.push({ id: 'streak3', name: '3-Day Flame', desc: 'Present 3 days in a row', icon: '🔥', tier: 'bronze' });
   }
   if (streak >= 7) {
-    badges.push({ id: 'streak7', name: 'Week Warrior', desc: '7 din ki streak', icon: '⚡', tier: 'silver' });
+    badges.push({ id: 'streak7', name: 'Week Warrior', desc: '7-day attendance streak', icon: '⚡', tier: 'silver' });
   }
   if (streak >= 14) {
-    badges.push({ id: 'streak14', name: 'Fortnight Hero', desc: '14 din unstoppable', icon: '💎', tier: 'gold' });
+    badges.push({ id: 'streak14', name: 'Fortnight Hero', desc: '14 days unstoppable streak', icon: '💎', tier: 'gold' });
   }
   if (rate >= 75) {
     badges.push({ id: 'safe', name: 'Safe Zone', desc: '75%+ attendance', icon: '🛡️', tier: 'silver' });
@@ -87,7 +87,7 @@ export function getBadges(logs, streak, rate) {
     return h < 9;
   });
   if (earlyBird) {
-    badges.push({ id: 'early', name: 'Early Bird', desc: '9 AM se pehle check-in', icon: '🌅', tier: 'silver' });
+    badges.push({ id: 'early', name: 'Early Bird', desc: 'Check-in before 9 AM', icon: '🌅', tier: 'silver' });
   }
 
   return badges;

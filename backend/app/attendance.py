@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import cv2
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timezone, timedelta, date
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 from . import crud, schemas, models, security, security_utils
 from .database import get_db
@@ -269,7 +271,7 @@ def send_absentee_alerts(
     Finds absent students (either globally or for a specific subject class today)
     and queues warning emails for them asynchronously.
     """
-    today_str = datetime.now().strftime("%d/%m/%Y")
+    today_str = datetime.now(IST).strftime("%d/%m/%Y")
 
     if subject_id is not None:
         subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
@@ -414,13 +416,13 @@ def send_test_report_email(
     """
     Trigger manual execution of the weekly report and email it instantly to the Admin.
     """
-    from datetime import date, timedelta
+    from datetime import timedelta
     from .pdf_service import generate_attendance_pdf_report
     from .email_service import send_pdf_report_email
     import os
     
     try:
-        today = date.today()
+        today = datetime.now(IST).date()
         monday = today - timedelta(days=today.weekday())
         start_date = monday.strftime("%Y-%m-%d")
         end_date = today.strftime("%Y-%m-%d")
