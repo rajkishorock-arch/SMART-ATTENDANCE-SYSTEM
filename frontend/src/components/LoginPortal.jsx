@@ -49,6 +49,7 @@ export default function LoginPortal({
   onSubmit,
   crtOverlayEnabled,
   serverWarmingUp,
+  onExploreGuest,
 }) {
   const [bootLine, setBootLine] = useState('');
   const [bootIndex, setBootIndex] = useState(0);
@@ -217,6 +218,59 @@ export default function LoginPortal({
               )}
             </button>
           </form>
+
+          {/* Futuristic Guest Mode Divider */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            margin: '20px 0 16px 0',
+            opacity: 0.5
+          }}>
+            <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, transparent, ${activeRole.color}55)` }} />
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>or bypass authentication</span>
+            <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${activeRole.color}55, transparent)` }} />
+          </div>
+
+          {/* Glassmorphic Guest Mode Button */}
+          <button
+            type="button"
+            onClick={() => onExploreGuest(activeRole.id)}
+            className="login-portal-guest"
+            style={{
+              width: '100%',
+              padding: '12px 20px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px',
+              color: '#f8fafc',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.05)',
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 242, 254, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(0, 242, 254, 0.4)';
+              e.currentTarget.style.boxShadow = 'inset 0 1px 1px rgba(255,255,255,0.05), 0 0 15px rgba(0, 242, 254, 0.25)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+              e.currentTarget.style.boxShadow = 'inset 0 1px 1px rgba(255,255,255,0.05)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <span>⚡ Explore Guest Sandbox</span>
+          </button>
         </div>
 
         <p className="login-portal-footer">ROLE LOCK ACTIVE • UNAUTHORIZED ACCESS DENIED</p>

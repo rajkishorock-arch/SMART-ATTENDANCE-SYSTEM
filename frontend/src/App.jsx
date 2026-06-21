@@ -1401,6 +1401,7 @@ export default function App() {
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isSendingAlerts, setIsSendingAlerts] = useState(false);
   const [serverWarmingUp, setServerWarmingUp] = useState(false);
+  const [isDemoMode, setIsDemoMode] = React.useState(false);
 
   // Refs for video, canvas & stream
   const videoRef = React.useRef(null);
@@ -1574,6 +1575,7 @@ export default function App() {
 
   // Fetch Dashboard Stats
   const fetchStats = async (authToken) => {
+    if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/attendance/stats`, {
@@ -1596,6 +1598,7 @@ export default function App() {
 
   // Fetch Feedbacks (Admins Only)
   const fetchFeedbacks = async () => {
+    if (isDemoMode) return;
     if (!token || userRole !== 'admin') return;
     setIsLoadingFeedbacks(true);
     try {
@@ -1621,6 +1624,7 @@ export default function App() {
 
   // Fetch System Health & Telemetry
   const fetchSystemHealth = async () => {
+    if (isDemoMode) return;
     try {
       const startTime = performance.now();
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
@@ -1657,6 +1661,7 @@ export default function App() {
 
   // Fetch Registered Students
   const fetchStudents = async () => {
+    if (isDemoMode) return;
     try {
       const res = await fetch(`${API_BASE_URL}/users/students`, {
         headers: {
@@ -1678,6 +1683,7 @@ export default function App() {
 
   // Fetch Attendance Logs
   const fetchLogs = async (authToken) => {
+    if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/attendance/logs`, {
@@ -1700,6 +1706,7 @@ export default function App() {
 
   // Fetch subjects
   const fetchSubjects = async () => {
+    if (isDemoMode) return;
     try {
       const res = await fetch(`${API_BASE_URL}/subjects`, {
         headers: {
@@ -1721,6 +1728,7 @@ export default function App() {
 
   // Fetch active users counts (Admins only)
   const fetchActiveUsers = async () => {
+    if (isDemoMode) return;
     if (!token || userRole !== 'admin') return;
     try {
       const res = await fetch(`${API_BASE_URL}/auth/active-users`, {
@@ -1739,6 +1747,7 @@ export default function App() {
 
   // Send heartbeat ping
   const sendHeartbeat = async () => {
+    if (isDemoMode) return;
     if (!token) return;
     try {
       await fetch(`${API_BASE_URL}/auth/heartbeat`, {
@@ -1754,6 +1763,7 @@ export default function App() {
 
   // Fetch session history
   const fetchSessionHistory = async (subjId = null, dateVal = null, periodVal = null) => {
+    if (isDemoMode) return;
     try {
       const queryParams = new URLSearchParams();
       const sId = subjId || selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
@@ -1789,6 +1799,7 @@ export default function App() {
 
   // Fetch schedules
   const fetchSchedules = async () => {
+    if (isDemoMode) return;
     try {
       const res = await fetch(`${API_BASE_URL}/schedules`, {
         headers: {
@@ -1806,6 +1817,7 @@ export default function App() {
 
   // Fetch teachers
   const fetchTeachers = async () => {
+    if (isDemoMode) return;
     try {
       const res = await fetch(`${API_BASE_URL}/users`, {
         headers: {
@@ -1826,6 +1838,7 @@ export default function App() {
   const [studentSubjectStats, setStudentSubjectStats] = useState({});
 
   const fetchStudentSubjectStats = async (studentDept, studentId) => {
+    if (isDemoMode) return;
     if (!studentDept || !studentId) return;
     try {
       const subRes = await fetch(`${API_BASE_URL}/subjects`, {
@@ -1878,6 +1891,7 @@ export default function App() {
   };
 
   const fetchSystemSettings = async () => {
+    if (isDemoMode) return;
     try {
       const res = await fetch(`${API_BASE_URL}/settings/`, {
         headers: {
@@ -1902,6 +1916,16 @@ export default function App() {
     setIsSavingSettings(true);
     setSettingsMessage('');
     setSettingsError('');
+
+    if (isDemoMode) {
+      setTimeout(() => {
+        setSettingsMessage('SIMULATOR ACTION: System settings updated locally.');
+        setIsSavingSettings(false);
+        setTimeout(() => setSettingsMessage(''), 3000);
+      }, 400);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/settings/`, {
         method: 'PUT',
@@ -2119,6 +2143,72 @@ export default function App() {
 
     canvas.toBlob(async (blob) => {
       if (!blob) return;
+
+      if (isDemoMode) {
+        setIsScanning(true);
+        setScanStatus('Logging presence...');
+        addDiagnosticLog('Signature acquisition: Compiling SFace vector locally...');
+        
+        setTimeout(() => {
+          const candidates = students.length > 0 ? students : [
+            { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)' }
+          ];
+          const matched = candidates[Math.floor(Math.random() * candidates.length)];
+          const confidence = (94.0 + Math.random() * 5.0).toFixed(1);
+          const newly_marked = Math.random() > 0.3;
+          
+          setScanStatus(newly_marked ? `Recognized: ${matched.name} (${confidence}%)` : `Recognized: ${matched.name} (Already Marked)`);
+          playCyberSound('success');
+          
+          const now = new Date();
+          const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+          
+          setScannedStudent({ name: matched.name, roll: matched.roll, dep: matched.dep, time: timeStr });
+          addDiagnosticLog(`MATCH FOUND: ${matched.name} (Accuracy: ${confidence}%)`);
+          
+          if (newly_marked) {
+            const newLog = {
+              id: Date.now().toString(),
+              roll: matched.roll,
+              name: matched.name,
+              department: matched.dep,
+              date: dateStr,
+              time: timeStr,
+              attendance: 'Present',
+              subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : 1
+            };
+            setLogs(prev => [newLog, ...prev]);
+            
+            setStats(prev => ({
+              ...prev,
+              total_present_today: prev.total_present_today + 1,
+              total_absent_today: Math.max(0, prev.total_absent_today - 1),
+              average_attendance_rate: parseFloat((((prev.total_present_today + 1) / prev.total_students) * 100).toFixed(1))
+            }));
+            
+            handleSpeak(`Attendance marked for ${matched.name}.`);
+          } else {
+            handleSpeak(`${matched.name}, your attendance is already marked.`);
+          }
+          
+          setIsScanning(false);
+          
+          setTimeout(() => {
+            setScannedStudent(null);
+            eyeStateRef.current = 'open';
+            livenessStatusRef.current = 'verifying';
+            setLivenessStatus('verifying');
+            setLivenessMessage('Please blink your eyes to verify.');
+            setScanStatus('Scanning...');
+            if (voiceAnnounceLiveness) {
+              handleSpeak("Please blink your eyes to verify.");
+            }
+          }, 4000);
+          
+        }, 1200);
+        return;
+      }
 
       const formData = new FormData();
       formData.append('file', blob, 'frame.jpg');
@@ -2809,6 +2899,15 @@ export default function App() {
           return;
         }
 
+        if (isDemoMode) {
+          setTimeout(() => {
+            setStudents(prev => prev.map(s => s.id === captureStudent.id ? { ...s, details: { ...s.details, photo: 'yes' } } : s));
+            setWebcamError('');
+            resolve(true);
+          }, 1000);
+          return;
+        }
+
         const formData = new FormData();
         formData.append('file', blob, 'sample.jpg');
 
@@ -3075,6 +3174,7 @@ export default function App() {
 
   // Fetch session information (role and details) from backend
   const fetchSessionInfo = async (authToken) => {
+    if (isDemoMode) return;
     setSessionFetchError(false);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -3175,6 +3275,17 @@ export default function App() {
     }
     
     setIsChangingPassword(true);
+    if (isDemoMode) {
+      setTimeout(() => {
+        setPasswordChangeSuccess('SIMULATOR ACTION: Password updated successfully (Local Sandbox Mode).');
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setIsChangingPassword(false);
+      }, 1000);
+      return;
+    }
+
     try {
       const endpoint = userRole === 'student'
         ? `${API_BASE_URL}/users/students/me/change-password`
@@ -3302,6 +3413,19 @@ export default function App() {
     setSelfieSuccess('');
     setIsUploadingSelfie(true);
 
+    if (isDemoMode) {
+      setTimeout(() => {
+        setCurrentUser(prev => ({
+          ...prev,
+          details: { ...prev.details, photo: 'yes' }
+        }));
+        setSelfieSuccess('SIMULATOR ACTION: Face photo uploaded and vector compiled successfully (Local Demo).');
+        setIsUploadingSelfie(false);
+        stopStudentWebcam();
+      }, 1200);
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', fileOrBlob, filename);
 
@@ -3336,6 +3460,7 @@ export default function App() {
   // Initialize session on mount or token change
   useEffect(() => {
     if (token) {
+      if (isDemoMode) return;
       fetchSessionInfo(token);
     } else {
       sessionInitializedRef.current = false;
@@ -3703,6 +3828,150 @@ export default function App() {
     return `This is a ${actual} account. Please navigate to the correct "${expected} Portal" to log in.`;
   };
 
+  const handleExploreGuest = (selectedRole = 'admin') => {
+    playCyberSound('success');
+    setIsDemoMode(true);
+    setToken('guest-demo-token');
+    setUserRole(selectedRole);
+
+    let name = 'Guest Admin';
+    let email = 'guest.admin@smartattendance.io';
+    let userDetails = { id: 999, name: 'Guest Admin', email: 'guest.admin@smartattendance.io' };
+
+    if (selectedRole === 'student') {
+      name = 'Aarav Sharma';
+      email = 'aarav@univ.edu';
+      userDetails = {
+        id: 101,
+        name: 'Aarav Sharma',
+        roll: '2023CSE01',
+        department: 'CSE(IOT)',
+        course: 'B.Tech',
+        year: '2026',
+        semester: '1st',
+        gender: 'Male',
+        phone: '9876543210',
+        email: 'aarav@univ.edu',
+        address: 'Delhi, India',
+        teacher: 'Dr. R. K. Singh',
+        photo: 'yes'
+      };
+    } else if (selectedRole === 'teacher') {
+      name = 'Dr. R. K. Singh';
+      email = 'rksingh@univ.edu';
+      userDetails = {
+        id: 1,
+        name: 'Dr. R. K. Singh',
+        email: 'rksingh@univ.edu',
+        role: 'teacher',
+        subject_name: 'Internet of Things',
+        subject_code: 'IOT-301',
+        subject_department: 'CSE(IOT)'
+      };
+    }
+
+    setCurrentUser({
+      id: selectedRole === 'student' ? 101 : (selectedRole === 'teacher' ? 1 : 999),
+      email: email,
+      name: name,
+      role: selectedRole,
+      details: userDetails
+    });
+
+    loadMockDemoData();
+
+    if (selectedRole === 'student') {
+      setStudentLogs([
+        { id: '1', date: getLocalDateString().split('-').reverse().join('/'), time: '09:05 AM', attendance: 'Present', subject_code: 'IOT-301', subject_name: 'Internet of Things' },
+        { id: '2', date: getLocalDateString().split('-').reverse().join('/'), time: '09:15 AM', attendance: 'Present', subject_code: 'CSE-101', subject_name: 'Data Structures' },
+        { id: '3', date: '20/06/2026', time: '09:12 AM', attendance: 'Present', subject_code: 'IOT-301', subject_name: 'Internet of Things' },
+        { id: '4', date: '19/06/2026', time: '09:02 AM', attendance: 'Present', subject_code: 'CSE-101', subject_name: 'Data Structures' }
+      ]);
+      setStudentSubjectStats({
+        1: { subject_name: 'Internet of Things', subject_code: 'IOT-301', total_classes: 10, present_count: 9, percentage: 90 },
+        3: { subject_name: 'Data Structures', subject_code: 'CSE-101', total_classes: 10, present_count: 8, percentage: 80 }
+      });
+    }
+  };
+
+  const loadMockDemoData = () => {
+    setStats({
+      total_students: 154,
+      total_present_today: 132,
+      total_absent_today: 22,
+      average_attendance_rate: 85.7,
+      department_stats: { 'CSE(IOT)': { total: 80, present: 72 }, 'ECE': { total: 40, present: 36 }, 'Mechanical': { total: 34, present: 24 } },
+      weekly_trends: [
+        { date: 'Mon', rate: 84 },
+        { date: 'Tue', rate: 87 },
+        { date: 'Wed', rate: 82 },
+        { date: 'Thu', rate: 89 },
+        { date: 'Fri', rate: 85 }
+      ]
+    });
+
+    setStudents([
+      { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543210', email: 'aarav@univ.edu', address: 'Delhi, India', teacher: 'Dr. R. K. Singh' },
+      { id: 102, name: 'Ishita Patel', roll: '2023CSE02', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543211', email: 'ishita@univ.edu', address: 'Mumbai, India', teacher: 'Dr. R. K. Singh' },
+      { id: 103, name: 'Kabir Verma', roll: '2023ECE01', dep: 'ECE', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543212', email: 'kabir@univ.edu', address: 'Bangalore, India', teacher: 'Dr. Priya Sen' },
+      { id: 104, name: 'Riya Gupta', roll: '2023CSE08', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543213', email: 'riya@univ.edu', address: 'Kolkata, India', teacher: 'Dr. R. K. Singh' },
+      { id: 105, name: 'Aditya Rao', roll: '2023ME04', dep: 'Mechanical', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543214', email: 'aditya@univ.edu', address: 'Hyderabad, India', teacher: 'Dr. Anil Mehta' }
+    ]);
+
+    setTeachers([
+      { id: 1, name: 'Dr. R. K. Singh', email: 'rksingh@univ.edu', role: 'teacher', subject_name: 'Internet of Things', subject_code: 'IOT-301', subject_department: 'CSE(IOT)' },
+      { id: 2, name: 'Dr. Priya Sen', email: 'priyasen@univ.edu', role: 'teacher', subject_name: 'Signals & Systems', subject_code: 'ECE-202', subject_department: 'ECE' },
+      { id: 3, name: 'Admin Master', email: 'admin@face.com', role: 'admin', subject_name: '', subject_code: '', subject_department: '' }
+    ]);
+
+    setSubjects([
+      { id: 1, name: 'Internet of Things', code: 'IOT-301', department: 'CSE(IOT)', teacher_id: 1 },
+      { id: 2, name: 'Signals & Systems', code: 'ECE-202', department: 'ECE', teacher_id: 2 },
+      { id: 3, name: 'Data Structures', code: 'CSE-101', department: 'CSE(IOT)', teacher_id: 1 }
+    ]);
+
+    setLogs([
+      { id: '1', roll: '2023CSE01', name: 'Aarav Sharma', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:05 AM', attendance: 'Present', subject_id: 1 },
+      { id: '2', roll: '2023CSE02', name: 'Ishita Patel', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:12 AM', attendance: 'Present', subject_id: 1 },
+      { id: '3', roll: '2023CSE08', name: 'Riya Gupta', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:18 AM', attendance: 'Late', subject_id: 1 },
+      { id: '4', roll: '2023ECE01', name: 'Kabir Verma', department: 'ECE', date: getLocalDateString().split('-').reverse().join('/'), time: '10:02 AM', attendance: 'Present', subject_id: 2 }
+    ]);
+
+    setSchedules([
+      { id: 1, subject_id: 1, day_of_week: 'Monday', start_time: '09:00', end_time: '10:00' },
+      { id: 2, subject_id: 2, day_of_week: 'Monday', start_time: '10:00', end_time: '11:00' },
+      { id: 3, subject_id: 3, day_of_week: 'Wednesday', start_time: '11:00', end_time: '12:00' }
+    ]);
+
+    setFeedbacks([
+      { id: 1, user_id: 101, user_email: 'aarav@univ.edu', role: 'student', type: 'suggestion', rating: 5, message: 'Robotic scan layout works super smoothly. Loving the new HUD animations!', created_at: new Date().toISOString() },
+      { id: 2, user_id: 1, user_email: 'rksingh@univ.edu', role: 'teacher', type: 'bug', rating: 4, message: 'Geofencing parameters saved successfully. Dim-light accuracy is much improved.', created_at: new Date().toISOString() }
+    ]);
+
+    setActiveTelemetry({
+      total_active: 12,
+      students: 9,
+      teachers: 2,
+      admins: 1
+    });
+
+    setSystemHealth({
+      status: 'HEALTHY',
+      database: 'CONNECTED',
+      database_type: 'sqlite',
+      models: { yunet: 'READY', sface: 'READY' },
+      metrics: { cpu_percent: 18.5, memory_percent: 42.1, uptime_seconds: 7420 },
+      platform: { system: 'Windows', release: '10', python_version: '3.11.2' }
+    });
+
+    setSettingsGeoEnabled(true);
+    setSettingsLat('28.6139');
+    setSettingsLon('77.2090');
+    setSettingsRadius('150');
+    setSettingsIpEnabled(false);
+    setSettingsIpRanges('192.168.1.0/24');
+  };
+
   // Handle Login submission
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -3766,6 +4035,7 @@ export default function App() {
     setCurrentUser(null);
     setStudentLogs([]);
     setActiveTab('dashboard');
+    setIsDemoMode(false);
   };
 
   // Submit Feedback Form
@@ -3778,6 +4048,31 @@ export default function App() {
     setSubmittingFeedback(true);
     setFeedbackError('');
     setFeedbackSuccess('');
+
+    if (isDemoMode) {
+      setTimeout(() => {
+        setFeedbackSuccess('SIMULATOR ACTION: Feedback submitted successfully (Read-Only Demo Mode).');
+        setFeedbackMessage('');
+        setSubmittingFeedback(false);
+        const newFb = {
+          id: Date.now(),
+          user_id: 999,
+          user_email: 'guest@smartattendance.io',
+          role: 'admin',
+          type: feedbackType,
+          rating: feedbackRating,
+          message: feedbackMessage,
+          created_at: new Date().toISOString()
+        };
+        setFeedbacks(prev => [newFb, ...prev]);
+        setTimeout(() => {
+          setShowFeedbackModal(false);
+          setFeedbackSuccess('');
+        }, 1500);
+      }, 600);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/feedbacks/`, {
         method: 'POST',
@@ -3969,6 +4264,12 @@ export default function App() {
       return;
     }
 
+    if (isDemoMode) {
+      setStudents(prev => prev.filter(s => s.id !== id));
+      alert('SIMULATOR ACTION: Student profile deleted locally.');
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/users/students/${id}`, {
         method: 'DELETE',
@@ -3996,6 +4297,30 @@ export default function App() {
     // Quick validation
     if (!newStudent.id || !newStudent.name || !newStudent.roll || !newStudent.email) {
       setFormError('ID, Name, Roll, and Email are required.');
+      return;
+    }
+
+    if (isDemoMode) {
+      const added = { ...newStudent, id: parseInt(newStudent.id) };
+      setStudents(prev => [...prev, added]);
+      setShowAddModal(false);
+      // Reset form
+      setNewStudent({
+        id: '',
+        name: '',
+        roll: '',
+        dep: 'CSE(IOT)',
+        course: 'B.Tech',
+        year: '2026',
+        semester: '1st',
+        gender: 'Male',
+        dob: '',
+        email: '',
+        phone: '',
+        address: '',
+        teacher: ''
+      });
+      alert('SIMULATOR ACTION: Student profile registered locally.');
       return;
     }
 
@@ -4052,6 +4377,13 @@ export default function App() {
 
     if (!editingStudent.name || !editingStudent.roll || !editingStudent.email) {
       setEditStudentError('Name, Roll, and Email are required.');
+      return;
+    }
+
+    if (isDemoMode) {
+      setStudents(prev => prev.map(s => s.id === editingStudent.id ? editingStudent : s));
+      setShowEditStudentModal(false);
+      alert('SIMULATOR ACTION: Student profile details updated locally.');
       return;
     }
 
@@ -4197,6 +4529,22 @@ export default function App() {
       return;
     }
 
+    if (isDemoMode) {
+      const added = { ...newTeacher, id: Date.now() };
+      setTeachers(prev => [...prev, added]);
+      setTeacherSuccess('SIMULATOR ACTION: Teacher registered locally.');
+      setNewTeacher({ 
+        name: '', 
+        email: '', 
+        password: '', 
+        role: 'teacher',
+        subject_name: '',
+        subject_code: '',
+        subject_department: 'CSE(IOT)'
+      });
+      return;
+    }
+
     // Master key verification required for registering any new staff
     const roleName = newTeacher.role === 'admin' ? 'Admin' : 'Teacher';
     const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to register new ${roleName} "${newTeacher.name}":`);
@@ -4249,6 +4597,13 @@ export default function App() {
       return;
     }
 
+    if (isDemoMode) {
+      setTeachers(prev => prev.map(t => t.id === editingTeacher.id ? editingTeacher : t));
+      setEditingTeacher(null);
+      setTeacherSuccess('SIMULATOR ACTION: Teacher profile updated locally.');
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/users/${editingTeacher.id}`, {
         method: 'PUT',
@@ -4284,6 +4639,13 @@ export default function App() {
     if (!window.confirm('Are you sure you want to delete this teacher account?')) {
       return;
     }
+
+    if (isDemoMode) {
+      setTeachers(prev => prev.filter(t => t.id !== id));
+      setTeacherSuccess('SIMULATOR ACTION: Teacher deleted locally.');
+      return;
+    }
+
     const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to delete this teacher account:`);
     if (!masterPass) {
       setTeacherError('Deletion cancelled. Master key is required.');
@@ -4318,6 +4680,14 @@ export default function App() {
 
     if (!newSubject.name || !newSubject.code || !newSubject.department) {
       setSubjectError('Name, Code, and Department are required.');
+      return;
+    }
+
+    if (isDemoMode) {
+      const added = { ...newSubject, id: Date.now(), teacher_id: newSubject.teacher_id ? parseInt(newSubject.teacher_id) : null };
+      setSubjects(prev => [...prev, added]);
+      setSubjectSuccess('SIMULATOR ACTION: Subject registered locally.');
+      setNewSubject({ name: '', code: '', department: 'CSE(IOT)', teacher_id: '' });
       return;
     }
 
@@ -4356,6 +4726,14 @@ export default function App() {
 
     if (!newSchedule.subject_id || !newSchedule.day_of_week || !newSchedule.start_time || !newSchedule.end_time) {
       setScheduleError('All fields are required.');
+      return;
+    }
+
+    if (isDemoMode) {
+      const added = { ...newSchedule, id: Date.now(), subject_id: parseInt(newSchedule.subject_id) };
+      setSchedules(prev => [...prev, added]);
+      setScheduleSuccess('SIMULATOR ACTION: Timetable schedule registered locally.');
+      setNewSchedule({ subject_id: '', day_of_week: 'Monday', start_time: '', end_time: '' });
       return;
     }
 
@@ -4746,8 +5124,7 @@ export default function App() {
         authError={authError}
         isLoading={isLoading}
         onSubmit={handleLogin}
-        crtOverlayEnabled={crtOverlayEnabled}
-        serverWarmingUp={serverWarmingUp}
+        onExploreGuest={handleExploreGuest}
       />
     );
   }
@@ -4755,6 +5132,27 @@ export default function App() {
   // Dashboard Main View
   return (
     <div className="app-container app-with-fx">
+      {isDemoMode && (
+        <div style={{
+          background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
+          color: '#000000',
+          padding: '8px 16px',
+          fontSize: '0.8rem',
+          fontWeight: 800,
+          textAlign: 'center',
+          letterSpacing: '0.08em',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          boxShadow: '0 4px 15px rgba(245, 158, 11, 0.25)',
+          zIndex: 9999,
+          position: 'relative',
+          fontFamily: 'monospace'
+        }}>
+          <span>⚠️ SIMULATION ACCESS MATRIX ACTIVE • LOCAL GUEST SANDBOX • REAL RECORDS PRESERVED</span>
+        </div>
+      )}
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
       <AppAmbientLayer activeTab={activeTab} isMobile={isMobileView} />
@@ -9141,6 +9539,25 @@ export default function App() {
                       return;
                     }
                     setIsUpdatingAdminProfile(true);
+                    if (isDemoMode) {
+                      setTimeout(() => {
+                        const email = adminProfileEmail || currentUser.email;
+                        const name = adminProfileName || currentUser.name;
+                        setCurrentUser(prev => ({
+                          ...prev,
+                          name: name,
+                          email: email,
+                          details: { ...prev.details, name: name, email: email }
+                        }));
+                        setAdminProfileMsg(`SIMULATOR ACTION: Profile updated successfully! (Local Sandbox Mode).`);
+                        setAdminProfileName('');
+                        setAdminProfileEmail('');
+                        setAdminProfilePassword('');
+                        setAdminProfileConfirmPassword('');
+                        setIsUpdatingAdminProfile(false);
+                      }, 1000);
+                      return;
+                    }
                     try {
                       const payload = {};
                       if (adminProfileName) payload.name = adminProfileName;
@@ -9242,6 +9659,25 @@ export default function App() {
                       return;
                     }
                     setIsCreatingAdmin(true);
+                    if (isDemoMode) {
+                      setTimeout(() => {
+                        const addedAdmin = {
+                          id: Date.now(),
+                          name: newAdminName,
+                          email: newAdminEmail,
+                          role: 'admin',
+                          is_active: true,
+                          created_at: new Date().toISOString()
+                        };
+                        setTeachers(prev => [...prev, addedAdmin]);
+                        setCreateAdminMsg(`SIMULATOR ACTION: Admin account created successfully! Log in using ${newAdminEmail}.`);
+                        setNewAdminName('');
+                        setNewAdminEmail('');
+                        setNewAdminPassword('');
+                        setIsCreatingAdmin(false);
+                      }, 1000);
+                      return;
+                    }
                     try {
                       const res = await fetch(`${API_BASE_URL}/users/`, {
                         method: 'POST',
@@ -9354,6 +9790,12 @@ export default function App() {
                                 playCyberSound('click');
                                 const masterPass = prompt(`Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`);
                                 if (!masterPass) return;
+                                if (isDemoMode) {
+                                  setTeachers(prev => prev.map(t => t.id === adminUser.id ? { ...t, is_active: !t.is_active } : t));
+                                  alert(`SIMULATOR ACTION: Status updated successfully.`);
+                                  playCyberSound('success');
+                                  return;
+                                }
                                 try {
                                   const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
                                     method: 'PUT',
@@ -9403,6 +9845,12 @@ export default function App() {
                                 }
                                 const masterPass = prompt(`Enter Master Password to completely DELETE admin "${adminUser.email}":`);
                                 if (!masterPass) return;
+                                if (isDemoMode) {
+                                  setTeachers(prev => prev.filter(t => t.id !== adminUser.id));
+                                  alert(`SIMULATOR ACTION: Admin deleted successfully.`);
+                                  playCyberSound('success');
+                                  return;
+                                }
                                 try {
                                   const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
                                     method: 'DELETE',
