@@ -358,14 +358,9 @@ export default function App() {
   // AI Chatbot States
   const [showChatBot, setShowChatBot] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState([
-    {
-      id: 1,
-      role: 'model',
-      content: 'Hello! I am your **Smart Attendance System AI Assistant**. How can I help you today? You can ask me anything about the application or ask custom doubts!'
-    }
-  ]);
+  const [chatMessages, setChatMessages] = useState([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
+
   const chatBottomRef = useRef(null);
 
   // Advanced AI Chatbot States
@@ -3618,13 +3613,7 @@ export default function App() {
   const handleClearChatHistory = () => {
     if (window.confirm("Are you sure you want to clear your conversation history?")) {
       playCyberSound('click');
-      setChatMessages([
-        {
-          id: 1,
-          role: 'model',
-          content: 'Hello! I am your **Smart Attendance System AI Assistant**. How can I help you today? You can ask me anything about the application or ask custom doubts!'
-        }
-      ]);
+      setChatMessages([]);
     }
   };
 
@@ -9380,6 +9369,37 @@ export default function App() {
               {/* Global dynamic orb handles voice session overlay on all pages */}
 
               <div className="ai-chat-messages" ref={chatListRef}>
+                {chatMessages.length === 0 && !isChatLoading && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: 1,
+                    gap: '16px',
+                    padding: '40px 20px',
+                    color: 'rgba(156, 163, 175, 0.5)',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '50%',
+                      background: 'rgba(0, 242, 254, 0.06)',
+                      border: '1px solid rgba(0, 242, 254, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      animation: 'pulse 3s infinite ease-in-out'
+                    }}>
+                      <Bot size={24} style={{ color: 'rgba(0, 242, 254, 0.4)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>Start a conversation</div>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.15)' }}>Ask anything or use the suggestion chips below</div>
+                    </div>
+                  </div>
+                )}
                 {chatMessages.map((msg) => {
                   let diagramType = null;
                   if (msg.role === 'model') {
