@@ -56,6 +56,7 @@ def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student
 @router.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 def create_new_user(
     user: schemas.UserCreate, 
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -64,6 +65,16 @@ def create_new_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can register new teaching staff."
         )
+    
+    # Master key verification required for creating any admin or teacher
+    master_header = request.headers.get("x-master-password")
+    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+    if master_header != expected_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid Master Password! Master key verification is required to register new staff."
+        )
+    
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -117,8 +128,11 @@ def update_user_details(
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Verify master password header if deactivating/modifying status or role
-    if user_data.is_active is not None or user_data.role is not None:
+    # Verify master password header if actually changing active status or role
+    changing_active = (user_data.is_active is not None and user_data.is_active != db_user.is_active)
+    changing_role = (user_data.role is not None and user_data.role != db_user.role)
+    
+    if changing_active or changing_role:
         master_header = request.headers.get("x-master-password")
         expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
         if master_header != expected_key:

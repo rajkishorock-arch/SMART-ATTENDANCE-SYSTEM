@@ -2874,6 +2874,9 @@ export default function App() {
         if (reportDeptFilter) {
           queryParams.append('department', reportDeptFilter);
         }
+        if (selectedReportSubjectId) {
+          queryParams.append('subject_id', selectedReportSubjectId);
+        }
       } else if (userRole === 'teacher') {
         if (selectedReportSubjectId) {
           queryParams.append('subject_id', selectedReportSubjectId);
@@ -2908,7 +2911,11 @@ export default function App() {
     setIsSendingAlerts(true);
     try {
       const queryParams = new URLSearchParams();
-      if (userRole === 'teacher') {
+      if (userRole === 'admin') {
+        if (selectedReportSubjectId) {
+          queryParams.append('subject_id', selectedReportSubjectId);
+        }
+      } else if (userRole === 'teacher') {
         if (selectedReportSubjectId) {
           queryParams.append('subject_id', selectedReportSubjectId);
         } else {
@@ -2961,7 +2968,17 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Attendance_Report_${reportStartDate}_to_${reportEndDate}.csv`);
+    
+    let downloadName = `Attendance_Report_${reportStartDate}_to_${reportEndDate}.csv`;
+    if (selectedReportSubjectId) {
+      const subCode = subjects.find(s => s.id === parseInt(selectedReportSubjectId))?.code || 'Subject';
+      downloadName = `Attendance_Report_${subCode}_${reportStartDate}_to_${reportEndDate}.csv`;
+    } else if (reportDeptFilter) {
+      const deptStr = reportDeptFilter.replace(/\s+/g, '_');
+      downloadName = `Attendance_Report_${deptStr}_${reportStartDate}_to_${reportEndDate}.csv`;
+    }
+    
+    link.setAttribute('download', downloadName);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -2976,6 +2993,9 @@ export default function App() {
       if (userRole === 'admin') {
         if (reportDeptFilter) {
           queryParams.append('department', reportDeptFilter);
+        }
+        if (selectedReportSubjectId) {
+          queryParams.append('subject_id', selectedReportSubjectId);
         }
       } else if (userRole === 'teacher') {
         if (selectedReportSubjectId) {
@@ -3005,8 +3025,13 @@ export default function App() {
       
       let downloadName = `Attendance_Report_${reportStartDate}_to_${reportEndDate}.pdf`;
       if (userRole === 'admin') {
-        const deptStr = reportDeptFilter ? reportDeptFilter.replace(/\s+/g, '_') : 'All';
-        downloadName = `Attendance_Report_${deptStr}_${reportStartDate}_to_${reportEndDate}.pdf`;
+        if (selectedReportSubjectId) {
+          const subCode = subjects.find(s => s.id === parseInt(selectedReportSubjectId))?.code || 'Subject';
+          downloadName = `Attendance_Report_${subCode}_${reportStartDate}_to_${reportEndDate}.pdf`;
+        } else {
+          const deptStr = reportDeptFilter ? reportDeptFilter.replace(/\s+/g, '_') : 'All';
+          downloadName = `Attendance_Report_${deptStr}_${reportStartDate}_to_${reportEndDate}.pdf`;
+        }
       } else if (userRole === 'teacher') {
         const subjectIdToUse = selectedReportSubjectId || subjects.filter(s => s.teacher_id === currentUser?.details?.id)[0]?.id;
         const subCode = subjects.find(s => s.id === parseInt(subjectIdToUse))?.code || 'Subject';
@@ -3520,7 +3545,10 @@ export default function App() {
         fetchSessionHistory();
         break;
       case 'settings':
-        if (userRole === 'admin') fetchSystemSettings();
+        if (userRole === 'admin') {
+          fetchSystemSettings();
+          fetchTeachers();
+        }
         break;
       case 'teachers':
         if (userRole === 'admin') {
@@ -4130,18 +4158,28 @@ export default function App() {
       return;
     }
 
+    // Master key verification required for registering any new staff
+    const roleName = newTeacher.role === 'admin' ? 'Admin' : 'Teacher';
+    const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to register new ${roleName} "${newTeacher.name}":`);
+    if (!masterPass) {
+      setTeacherError('Registration cancelled. Master key is required to register new staff.');
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Master-Password': masterPass
         },
         body: JSON.stringify(newTeacher)
       });
       const data = await res.json();
       if (res.ok) {
-        setTeacherSuccess('Teacher registered successfully!');
+        playCyberSound('success');
+        setTeacherSuccess(`${roleName} registered successfully!`);
         fetchTeachers();
         setNewTeacher({ 
           name: '', 
@@ -4153,7 +4191,8 @@ export default function App() {
           subject_department: 'CSE(IOT)'
         });
       } else {
-        setTeacherError(data.detail || 'Failed to register teacher.');
+        playCyberSound('error');
+        setTeacherError(data.detail || `Failed to register ${roleName.toLowerCase()}.`);
       }
     } catch (err) {
       setTeacherError('Connection failed.');
@@ -4206,13 +4245,19 @@ export default function App() {
     if (!window.confirm('Are you sure you want to delete this teacher account?')) {
       return;
     }
+    const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to delete this teacher account:`);
+    if (!masterPass) {
+      setTeacherError('Deletion cancelled. Master key is required.');
+      return;
+    }
     setTeacherError('');
     setTeacherSuccess('');
     try {
       const res = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Master-Password': masterPass
         }
       });
       const data = await res.json();
@@ -5664,18 +5709,33 @@ export default function App() {
                 width: '100%',
                 overflow: 'hidden'
               }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <ShieldCheck size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} />
-                  <span>Admin Authority & Lockout Prevention Control</span>
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '12px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+                    <ShieldCheck size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} />
+                    <span>Admin Authority & Lockout Prevention Control</span>
+                  </h3>
+                  <span style={{
+                    padding: '4px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    background: 'rgba(167, 139, 250, 0.12)',
+                    color: '#a78bfa',
+                    border: '1px solid rgba(167, 139, 250, 0.25)',
+                    letterSpacing: '0.5px'
+                  }}>
+                    TOTAL ADMINS: {(teachers || []).filter(u => u.role === 'admin').length}
+                  </span>
+                </div>
                 <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
                   Verify current system administrators, active roles, and authorization status. Critical modifications (removal, toggling access) require entering the <strong>Master Developer Password</strong> to prevent lockout or unauthorized takeovers.
                 </p>
                 
                 <div style={{ width: '100%', overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
                         <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
                         <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL (USERNAME)</th>
                         <th style={{ padding: '12px 16px', fontWeight: 600 }}>ROLE</th>
@@ -5687,6 +5747,7 @@ export default function App() {
                     <tbody>
                       {(teachers || []).filter(u => u.role === 'admin').map((adminUser) => (
                         <tr key={adminUser.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
+                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontFamily: 'monospace', fontSize: '0.8rem' }}>#{adminUser.id}</td>
                           <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>
                             {adminUser.name}
                           </td>
@@ -8196,19 +8257,37 @@ export default function App() {
                   </div>
                 </div>
                 {userRole === 'admin' ? (
-                  <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '220px' }}>
-                    <label className="form-label">Department</label>
-                    <select 
-                      className="form-input" 
-                      value={reportDeptFilter} 
-                      onChange={e => setReportDeptFilter(e.target.value)}
-                    >
-                      <option value="">All Departments</option>
-                      {departments.map(dept => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <>
+                    <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '200px' }}>
+                      <label className="form-label">Department</label>
+                      <select 
+                        className="form-input" 
+                        value={reportDeptFilter} 
+                        onChange={e => { setReportDeptFilter(e.target.value); setSelectedReportSubjectId(''); }}
+                      >
+                        <option value="">All Departments</option>
+                        {departments.map(dept => (
+                          <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '220px' }}>
+                      <label className="form-label">Subject</label>
+                      <select 
+                        className="form-input" 
+                        value={selectedReportSubjectId} 
+                        onChange={e => setSelectedReportSubjectId(e.target.value)}
+                      >
+                        <option value="">All Subjects</option>
+                        {(reportDeptFilter 
+                          ? subjects.filter(s => s.department === reportDeptFilter) 
+                          : subjects
+                        ).map(s => (
+                          <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
                 ) : userRole === 'teacher' ? (
                   <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '220px' }}>
                     <label className="form-label">Subject</label>
@@ -8250,12 +8329,12 @@ export default function App() {
               <p style={{ color: '#374151', fontSize: '0.95rem' }}>
                 Report Period: <strong>{new Date(reportStartDate).toLocaleDateString()}</strong> to <strong>{new Date(reportEndDate).toLocaleDateString()}</strong>
               </p>
-              {userRole === 'admin' && reportDeptFilter && (
+              {reportDeptFilter && (
                 <p style={{ color: '#374151', fontSize: '0.95rem', marginTop: '4px' }}>
                   Department: <strong>{reportDeptFilter}</strong>
                 </p>
               )}
-              {userRole === 'teacher' && selectedReportSubjectId && (
+              {selectedReportSubjectId && (
                 <p style={{ color: '#374151', fontSize: '0.95rem', marginTop: '4px' }}>
                   Subject: <strong>
                     {subjects.find(s => s.id === parseInt(selectedReportSubjectId))?.name || ''} ({subjects.find(s => s.id === parseInt(selectedReportSubjectId))?.code || ''})
@@ -9146,11 +9225,20 @@ export default function App() {
                       setCreateAdminErr('Name, Email, and Password are all required!');
                       return;
                     }
+                    const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to register new Admin "${newAdminName}":`);
+                    if (!masterPass) {
+                      setCreateAdminErr('Registration cancelled. Master key is required.');
+                      return;
+                    }
                     setIsCreatingAdmin(true);
                     try {
                       const res = await fetch(`${API_BASE_URL}/users/`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        headers: { 
+                          'Content-Type': 'application/json', 
+                          'Authorization': `Bearer ${token}`,
+                          'X-Master-Password': masterPass
+                        },
                         body: JSON.stringify({ name: newAdminName, email: newAdminEmail, password: newAdminPassword, role: 'admin' })
                       });
                       if (!res.ok) {
@@ -9161,6 +9249,7 @@ export default function App() {
                       setNewAdminName('');
                       setNewAdminEmail('');
                       setNewAdminPassword('');
+                      fetchTeachers(); // Refresh list of admins
                     } catch (err) {
                       setCreateAdminErr(err.message);
                     } finally {
@@ -9173,6 +9262,173 @@ export default function App() {
                 >
                   {isCreatingAdmin ? 'Creating...' : '➕ Create New Admin'}
                 </button>
+              </div>
+            </div>
+
+            {/* Registered Admins Directory */}
+            <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <ShieldCheck size={22} style={{ color: '#a78bfa' }} /> Registered Administrators
+                  </h3>
+                  <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
+                    List of all system administrators with their login and active status details.
+                  </p>
+                </div>
+                <span className="telemetry-stat-pill admin" style={{
+                  padding: '4px 14px',
+                  borderRadius: '20px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  background: 'rgba(167, 139, 250, 0.12)',
+                  color: '#a78bfa',
+                  border: '1px solid rgba(167, 139, 250, 0.25)',
+                  letterSpacing: '0.5px'
+                }}>
+                  TOTAL ADMINS: {(teachers || []).filter(u => u.role === 'admin').length}
+                </span>
+              </div>
+
+              <div style={{ width: '100%', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL (USERNAME)</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>ROLE</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>STATUS</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>CREATED DATE</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(teachers || []).filter(u => u.role === 'admin').map((adminUser) => (
+                      <tr key={adminUser.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
+                        <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontFamily: 'monospace', fontSize: '0.8rem' }}>#{adminUser.id}</td>
+                        <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>{adminUser.name}</td>
+                        <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>{adminUser.email}</td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ 
+                            padding: '2px 8px', 
+                            borderRadius: '4px', 
+                            fontSize: '0.72rem', 
+                            fontWeight: 'bold',
+                            background: 'rgba(0, 242, 254, 0.12)',
+                            color: '#00f2fe'
+                          }}>
+                            SYSTEM ADMIN
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ 
+                            padding: '2px 8px', 
+                            borderRadius: '4px', 
+                            fontSize: '0.72rem', 
+                            fontWeight: 'bold',
+                            background: adminUser.is_active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                            color: adminUser.is_active ? '#10b981' : '#ef4444'
+                          }}>
+                            {adminUser.is_active ? 'ACTIVE' : 'DEACTIVATED'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>
+                          {new Date(adminUser.created_at).toLocaleDateString()}
+                        </td>
+                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button 
+                              onClick={async () => {
+                                playCyberSound('click');
+                                const masterPass = prompt(`Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`);
+                                if (!masterPass) return;
+                                try {
+                                  const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`,
+                                      'X-Master-Password': masterPass
+                                    },
+                                    body: JSON.stringify({
+                                      name: adminUser.name,
+                                      email: adminUser.email,
+                                      role: adminUser.role,
+                                      is_active: !adminUser.is_active
+                                    })
+                                  });
+                                  if (res.ok) {
+                                    alert(`Status updated successfully.`);
+                                    playCyberSound('success');
+                                    fetchTeachers();
+                                  } else {
+                                    const errData = await res.json();
+                                    alert(errData.detail || 'Failed to update admin.');
+                                  }
+                                } catch (e) {
+                                  alert('Connection failed.');
+                                }
+                              }}
+                              className="action-btn"
+                              style={{ 
+                                padding: '5px 10px', 
+                                fontSize: '0.75rem', 
+                                background: adminUser.is_active ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                border: `1px solid ${adminUser.is_active ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+                                color: adminUser.is_active ? '#ef4444' : '#10b981'
+                              }}
+                            >
+                              {adminUser.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            
+                            <button 
+                              onClick={async () => {
+                                playCyberSound('click');
+                                if (adminUser.email === 'rajkishorock@gmail.com' || adminUser.email === 'admin@face.com') {
+                                  alert("Cannot delete primary system admin!");
+                                  playCyberSound('error');
+                                  return;
+                                }
+                                const masterPass = prompt(`Enter Master Password to completely DELETE admin "${adminUser.email}":`);
+                                if (!masterPass) return;
+                                try {
+                                  const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                      'Authorization': `Bearer ${token}`,
+                                      'X-Master-Password': masterPass
+                                    }
+                                  });
+                                  if (res.ok) {
+                                    alert(`Admin deleted successfully.`);
+                                    playCyberSound('success');
+                                    fetchTeachers();
+                                  } else {
+                                    const errData = await res.json();
+                                    alert(errData.detail || 'Failed to delete admin.');
+                                  }
+                                } catch (e) {
+                                  alert('Connection failed.');
+                                }
+                              }}
+                              className="action-btn"
+                              style={{ 
+                                padding: '5px 10px', 
+                                fontSize: '0.75rem', 
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#ef4444'
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
