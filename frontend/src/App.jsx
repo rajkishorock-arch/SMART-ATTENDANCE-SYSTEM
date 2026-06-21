@@ -5183,41 +5183,7 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
             <LiveActivityTicker activities={liveActivities} />
-            {userRole === 'admin' && activeTelemetry && (
-              <div className="glass-panel telemetry-widget-card" style={{ 
-                padding: '20px', 
-                marginBottom: '20px', 
-                animationDelay: '50ms',
-                borderLeft: '4px solid var(--color-primary)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span className="telemetry-live-dot" />
-                    <h3 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--color-text-main)', letterSpacing: '0.06em' }}>
-                      LIVE SYSTEM TELEMETRY
-                    </h3>
-                  </div>
-                  <div className="telemetry-stats-row">
-                    <div className="telemetry-stat-pill total">
-                      <span className="label">ACTIVE USERS:</span>
-                      <span className="val">{activeTelemetry.total_active}</span>
-                    </div>
-                    <div className="telemetry-stat-pill student">
-                      <span className="label">STUDENTS:</span>
-                      <span className="val">{activeTelemetry.students}</span>
-                    </div>
-                    <div className="telemetry-stat-pill teacher">
-                      <span className="label">TEACHERS:</span>
-                      <span className="val">{activeTelemetry.teachers}</span>
-                    </div>
-                    <div className="telemetry-stat-pill admin">
-                      <span className="label">ADMINS:</span>
-                      <span className="val">{activeTelemetry.admins}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+
             {/* Metric Summary Cards */}
             <div className="dashboard-grid">
               <div className="glass-panel metric-card" style={{ 
@@ -5698,7 +5664,43 @@ export default function App() {
               </div>
             )}
 
-
+            {userRole === 'admin' && activeTelemetry && (
+              <div className="glass-panel telemetry-widget-card" style={{ 
+                padding: '20px', 
+                marginTop: '28px', 
+                animationDelay: '1100ms',
+                borderLeft: '4px solid var(--color-primary)',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span className="telemetry-live-dot" />
+                    <h3 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--color-text-main)', letterSpacing: '0.06em' }}>
+                      LIVE SYSTEM TELEMETRY
+                    </h3>
+                  </div>
+                  <div className="telemetry-stats-row">
+                    <div className="telemetry-stat-pill total">
+                      <span className="label">ACTIVE USERS:</span>
+                      <span className="val">{activeTelemetry.total_active}</span>
+                    </div>
+                    <div className="telemetry-stat-pill student">
+                      <span className="label">STUDENTS:</span>
+                      <span className="val">{activeTelemetry.students}</span>
+                    </div>
+                    <div className="telemetry-stat-pill teacher">
+                      <span className="label">TEACHERS:</span>
+                      <span className="val">{activeTelemetry.teachers}</span>
+                    </div>
+                    <div className="telemetry-stat-pill admin">
+                      <span className="label">ADMINS:</span>
+                      <span className="val">{activeTelemetry.admins}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
         )}
