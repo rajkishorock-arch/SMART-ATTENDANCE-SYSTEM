@@ -62,6 +62,19 @@ const getLocalDateString = (d = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
+const shiftDate = (currentDateStr, days, setter) => {
+  if (!currentDateStr) return;
+  const parts = currentDateStr.split('-');
+  if (parts.length !== 3) return;
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (isNaN(d.getTime())) return;
+  d.setDate(d.getDate() + days);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  setter(`${yyyy}-${mm}-${dd}`);
+};
+
 const LEFT_EYE_INDICES = [362, 385, 387, 263, 373, 380];
 const RIGHT_EYE_INDICES = [33, 160, 158, 133, 153, 144];
 
@@ -5159,13 +5172,63 @@ export default function App() {
                     </div>
                   ) : null}
 
-                  <input 
-                    type="date" 
-                    className="form-input"
-                    style={{ width: '160px', background: 'rgba(8, 12, 20, 0.4)' }}
-                    value={logDateFilter}
-                    onChange={e => setLogDateFilter(e.target.value)}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, -1, setLogDateFilter); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        color: '#94a3b8',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                      title="Previous Day"
+                    >
+                      ◀
+                    </button>
+                    <input 
+                      type="date" 
+                      className="form-input"
+                      style={{ width: '150px', background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0 }}
+                      value={logDateFilter}
+                      onChange={e => setLogDateFilter(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, 1, setLogDateFilter); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        color: '#94a3b8',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                      title="Next Day"
+                    >
+                      ▶
+                    </button>
+                  </div>
                 </div>
 
                 {/* View Toggles & Status filters */}
@@ -5633,14 +5696,64 @@ export default function App() {
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Calendar size={14} style={{ color: '#00f2fe' }} /> Select Class Date
                   </label>
-                  <input 
-                    type="date"
-                    className="form-input"
-                    value={sessionDate}
-                    onChange={e => setSessionDate(e.target.value)}
-                    required
-                    style={{ background: 'rgba(8, 12, 20, 0.4)' }}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { playCyberSound('click'); shiftDate(sessionDate, -1, setSessionDate); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        color: '#94a3b8',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                      title="Previous Day"
+                    >
+                      ◀
+                    </button>
+                    <input 
+                      type="date"
+                      className="form-input"
+                      value={sessionDate}
+                      onChange={e => setSessionDate(e.target.value)}
+                      required
+                      style={{ background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0, flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { playCyberSound('click'); shiftDate(sessionDate, 1, setSessionDate); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        color: '#94a3b8',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                      title="Next Day"
+                    >
+                      ▶
+                    </button>
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ textAlign: 'left', marginBottom: 0 }}>
@@ -5966,13 +6079,63 @@ export default function App() {
                     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
                       <Calendar size={12} style={{ color: '#00f2fe' }} /> Date
                     </label>
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={historyFilterDate}
-                      onChange={e => setHistoryFilterDate(e.target.value)}
-                      style={{ padding: '9px 14px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)' }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => { playCyberSound('click'); shiftDate(historyFilterDate, -1, setHistoryFilterDate); }}
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '8px',
+                          color: '#94a3b8',
+                          padding: '10px 12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.85rem',
+                          transition: 'all 0.2s',
+                          height: '42px',
+                          boxSizing: 'border-box'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                        title="Previous Day"
+                      >
+                        ◀
+                      </button>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={historyFilterDate}
+                        onChange={e => setHistoryFilterDate(e.target.value)}
+                        style={{ padding: '9px 14px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { playCyberSound('click'); shiftDate(historyFilterDate, 1, setHistoryFilterDate); }}
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '8px',
+                          color: '#94a3b8',
+                          padding: '10px 12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.85rem',
+                          transition: 'all 0.2s',
+                          height: '42px',
+                          boxSizing: 'border-box'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                        title="Next Day"
+                      >
+                        ▶
+                      </button>
+                    </div>
                   </div>
 
                   {/* Period Dropdown */}
@@ -6475,23 +6638,125 @@ export default function App() {
             <div className="glass-panel hide-on-print" style={{ padding: '24px' }}>
               <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', color: '#9ca3af' }}>Select Report Parameters</h4>
               <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px' }}>
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px', textAlign: 'left' }}>
                   <label className="form-label">Start Date</label>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={reportStartDate} 
-                    onChange={e => setReportStartDate(e.target.value)} 
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, -1, setReportStartDate); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        color: '#94a3b8',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                      title="Previous Day"
+                    >
+                      ◀
+                    </button>
+                    <input 
+                      type="date" 
+                      className="form-input" 
+                      value={reportStartDate} 
+                      onChange={e => setReportStartDate(e.target.value)} 
+                      style={{ height: '42px', margin: 0, flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, 1, setReportStartDate); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        color: '#94a3b8',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                      title="Next Day"
+                    >
+                      ▶
+                    </button>
+                  </div>
                 </div>
-                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px' }}>
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px', textAlign: 'left' }}>
                   <label className="form-label">End Date</label>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={reportEndDate} 
-                    onChange={e => setReportEndDate(e.target.value)} 
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, -1, setReportEndDate); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        color: '#94a3b8',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                      title="Previous Day"
+                    >
+                      ◀
+                    </button>
+                    <input 
+                      type="date" 
+                      className="form-input" 
+                      value={reportEndDate} 
+                      onChange={e => setReportEndDate(e.target.value)} 
+                      style={{ height: '42px', margin: 0, flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, 1, setReportEndDate); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        color: '#94a3b8',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
+                      title="Next Day"
+                    >
+                      ▶
+                    </button>
+                  </div>
                 </div>
                 {userRole === 'admin' ? (
                   <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '220px' }}>
