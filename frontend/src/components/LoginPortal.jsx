@@ -292,7 +292,7 @@ export default function LoginPortal({
           fontWeight: 600,
           letterSpacing: '0.04em',
           color: 'rgba(248, 250, 252, 0.7)',
-          marginTop: '32px'
+          marginTop: '3px'
         }}>
           Developed by{' '}
           <span style={{
