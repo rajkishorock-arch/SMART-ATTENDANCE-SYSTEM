@@ -550,127 +550,127 @@ export default function App() {
     console.log("Voice Command Parser processing:", lowerSpeech);
 
     // 1. Navigation Commands
-    if (lowerSpeech === 'open dashboard' || lowerSpeech === 'go to dashboard' || lowerSpeech === 'open home') {
+    if (lowerSpeech.includes('dashboard') || lowerSpeech.includes('home')) {
       const dest = userRole === 'student' ? 'student-attendance' : 'dashboard';
       setActiveTab(dest);
       playCyberSound('success');
-      handleSpeakText("Opening dashboard", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
-    if (lowerSpeech === 'open profile' || lowerSpeech === 'go to profile' || lowerSpeech === 'show my profile') {
+    if (lowerSpeech.includes('profile')) {
       setActiveTab('student-profile');
       playCyberSound('success');
-      handleSpeakText("Opening profile", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
-    if (lowerSpeech === 'open scanner' || lowerSpeech === 'start face attendance' || lowerSpeech === 'open face attendance') {
+    if (lowerSpeech.includes('scanner') || lowerSpeech.includes('attendance') || lowerSpeech.includes('face')) {
       setActiveTab('attendance');
       playCyberSound('success');
-      handleSpeakText("Opening face attendance scanner", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
-    if (lowerSpeech === 'open logs' || lowerSpeech === 'go to logs' || lowerSpeech === 'open attendance logs') {
+    if (lowerSpeech.includes('log') || lowerSpeech.includes('logs')) {
       setActiveTab('logs');
       playCyberSound('success');
-      handleSpeakText("Opening attendance logs", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
-    if (lowerSpeech === 'open session history' || lowerSpeech === 'go to session history') {
+    if (lowerSpeech.includes('history') || lowerSpeech.includes('session')) {
       setActiveTab('session-history');
       playCyberSound('success');
-      handleSpeakText("Opening session history", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
-    if (lowerSpeech === 'open reports' || lowerSpeech === 'go to reports') {
+    if (lowerSpeech.includes('report')) {
       setActiveTab('reports');
       playCyberSound('success');
-      handleSpeakText("Opening reports and alerts", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
-    if (lowerSpeech === 'open settings' || lowerSpeech === 'go to settings' || lowerSpeech === 'open security settings') {
+    if (lowerSpeech.includes('setting')) {
       if (userRole === 'admin') {
         setActiveTab('settings');
         playCyberSound('success');
-        handleSpeakText("Opening security settings", () => {
+        handleSpeakText("ho gaya", () => {
           if (voiceAssistantActiveRef.current) {
-            setTimeout(listenInVoiceMode, 500);
+            setTimeout(listenInVoiceMode, 400);
           }
         });
       } else {
-        handleSpeakText("Access denied. Settings are only available for system administrators.", () => {
+        handleSpeakText("Access denied", () => {
           if (voiceAssistantActiveRef.current) {
-            setTimeout(listenInVoiceMode, 500);
+            setTimeout(listenInVoiceMode, 400);
           }
         });
       }
       return true;
     }
-    if (lowerSpeech === 'open chat' || lowerSpeech === 'go to ai assistant' || lowerSpeech === 'open ai assistant') {
+    if (lowerSpeech.includes('chat') || lowerSpeech.includes('assistant') || lowerSpeech.includes('ai')) {
       setActiveTab('ai-assistant');
       playCyberSound('success');
-      handleSpeakText("Opening AI Assistant", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
 
     // 2. Extra Control Commands
-    if (lowerSpeech === 'scroll down' || lowerSpeech === 'go down') {
+    if (lowerSpeech.includes('scroll down') || lowerSpeech.includes('go down') || lowerSpeech.includes('page down')) {
       window.scrollBy({ top: 500, behavior: 'smooth' });
       playCyberSound('success');
-      handleSpeakText("Scrolling down", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
-    if (lowerSpeech === 'scroll up' || lowerSpeech === 'go up') {
+    if (lowerSpeech.includes('scroll up') || lowerSpeech.includes('go up') || lowerSpeech.includes('page up')) {
       window.scrollBy({ top: -500, behavior: 'smooth' });
       playCyberSound('success');
-      handleSpeakText("Scrolling up", () => {
+      handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 500);
+          setTimeout(listenInVoiceMode, 400);
         }
       });
       return true;
     }
-    if (lowerSpeech === 'reload page' || lowerSpeech === 'refresh page' || lowerSpeech === 'refresh') {
+    if (lowerSpeech.includes('reload') || lowerSpeech.includes('refresh')) {
       playCyberSound('success');
-      handleSpeakText("Refreshing page", () => {
+      handleSpeakText("ho gaya", () => {
         window.location.reload();
       });
       return true;
     }
-    if (lowerSpeech === 'log out' || lowerSpeech === 'sign out') {
+    if (lowerSpeech.includes('logout') || lowerSpeech.includes('sign out') || lowerSpeech.includes('exit')) {
       playCyberSound('success');
-      handleSpeakText("Logging out", () => {
+      handleSpeakText("ho gaya", () => {
         handleLogout();
       });
       return true;
@@ -678,14 +678,15 @@ export default function App() {
     
     // 3. Stop / Sleep Commands
     if (
-      lowerSpeech === 'stop listening' || 
-      lowerSpeech === 'go to sleep' || 
-      lowerSpeech === 'close assistant' || 
-      lowerSpeech === 'stop' || 
-      lowerSpeech === 'shut up'
+      lowerSpeech.includes('stop') || 
+      lowerSpeech.includes('sleep') || 
+      lowerSpeech.includes('close') || 
+      lowerSpeech.includes('cancel') || 
+      lowerSpeech.includes('shut up') ||
+      lowerSpeech.includes('bye')
     ) {
       playCyberSound('click');
-      handleSpeakText("Goodbye. Sticking to the background.", () => {
+      handleSpeakText("ho gaya", () => {
         stopVoiceAssistantMode();
       });
       return true;
@@ -918,11 +919,10 @@ export default function App() {
       } catch (err) {}
     }
 
-    handleSpeakText("Yes, Raj?", () => {
-      setTimeout(() => {
-        listenInVoiceMode();
-      }, 300);
-    });
+    // Instantly go to listening in background silent mode
+    setTimeout(() => {
+      listenInVoiceMode();
+    }, 100);
   };
 
   const stopVoiceAssistantMode = () => {
@@ -10334,95 +10334,27 @@ export default function App() {
 
       {/* Floating Siri-style Dynamic Orb Voice Assistant */}
       {token && isVoiceAssistantMode && (
-        <div className="floating-voice-orb-container" style={{
-          position: 'fixed',
-          bottom: '90px', // above the bottom nav
-          right: '24px',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '12px',
-          background: 'rgba(7, 10, 19, 0.85)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(0, 242, 254, 0.2)',
-          borderRadius: '24px',
-          padding: '16px',
-          boxShadow: '0 10px 30px rgba(0, 242, 254, 0.15), inset 0 0 15px rgba(0, 242, 254, 0.05)',
-          animation: 'scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          maxWidth: '300px',
-          textAlign: 'center'
-        }}>
-          {/* Wave Orb Visualizer */}
-          <div className="voice-radar-container" style={{ width: '100px', height: '100px' }}>
-            <div className={`voice-radar-ring ${isListeningSpeech ? 'listening' : ''}`} style={{ width: '60px', height: '60px' }} />
-            <div className="voice-radar-ring delay-1" style={{ width: '60px', height: '60px' }} />
-            <div className="voice-radar-ring delay-2" style={{ width: '60px', height: '60px' }} />
-            <div className="voice-radar-avatar" style={{ width: '50px', height: '50px', borderWidth: '1.5px' }}>
-              <Bot size={24} className={isListeningSpeech ? 'text-danger-pulse' : 'text-cyan-pulse'} style={{ color: '#00f2fe' }} />
-            </div>
-          </div>
-
-          <div style={{ padding: '0 8px' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', marginBottom: '2px' }}>Smart Assistant</div>
-            <div style={{
-              color: isListeningSpeech ? '#ef4444' : '#00f2fe',
-              fontWeight: 600,
-              fontSize: '0.7rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
-              {isListeningSpeech ? 'Listening...' : 'Thinking / Speaking...'}
-            </div>
-          </div>
-
-          {/* Quick status text of what user said / bot replies */}
-          {chatMessages.length > 0 && (
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#d1d5db',
-              maxHeight: '60px',
-              overflowY: 'auto',
-              background: 'rgba(255,255,255,0.03)',
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              width: '180px',
-              wordBreak: 'break-word'
-            }}>
-              {chatMessages[chatMessages.length - 1]?.role === 'user' ? (
-                <span>" {chatMessages[chatMessages.length - 1]?.content} "</span>
-              ) : (
-                <span>{chatMessages[chatMessages.length - 1]?.content.replace(/\[ShowDiagram:.*?\]/g, '').substring(0, 50)}...</span>
-              )}
-            </div>
-          )}
-
-          {/* Small End Voice Button */}
-          <button
-            onClick={stopVoiceAssistantMode}
-            style={{
-              background: 'rgba(239, 68, 68, 0.2)',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
-              color: '#ef4444',
-              padding: '6px 12px',
-              borderRadius: '12px',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              marginTop: '4px',
-              transition: 'background 0.2s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-          >
-            <VolumeX size={12} />
-            Stop
-          </button>
-        </div>
+        <div 
+          onClick={stopVoiceAssistantMode}
+          className={`floating-voice-orb ${isListeningSpeech ? 'listening' : 'processing'}`}
+          title="Click to stop Voice Assistant"
+          style={{
+            position: 'fixed',
+            bottom: '90px',
+            right: '24px',
+            zIndex: 1000,
+            width: '24px',
+            height: '24px',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            boxShadow: isListeningSpeech 
+              ? '0 0 15px #ef4444, inset 0 0 5px rgba(255, 255, 255, 0.5)' 
+              : '0 0 15px #00f2fe, inset 0 0 5px rgba(255, 255, 255, 0.5)',
+            background: isListeningSpeech ? '#ef4444' : '#00f2fe',
+            animation: 'orbPulse 1.5s infinite ease-in-out',
+            transition: 'all 0.3s ease'
+          }}
+        />
       )}
 
       <MobileControlPanel
