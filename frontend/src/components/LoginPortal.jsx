@@ -274,32 +274,29 @@ export default function LoginPortal({
         </div>
 
         <style>{`
-          @keyframes cyberFlicker {
-            0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% {
-              opacity: 0.95;
-              filter: drop-shadow(0 0 1px var(--glow-color)) drop-shadow(0 0 5px var(--glow-color));
-              text-shadow: 0 0 6px var(--glow-color);
+          @keyframes cyberPulseText {
+            0%, 100% {
+              opacity: 0.85;
+              text-shadow: 0 0 8px var(--glow-color);
             }
-            20%, 21.999%, 63%, 63.999%, 65%, 69.999% {
-              opacity: 0.35;
-              filter: none;
-              text-shadow: none;
+            50% {
+              opacity: 1;
+              text-shadow: 0 0 15px var(--glow-color), 0 0 20px var(--glow-color);
             }
           }
         `}</style>
 
         <p className="login-portal-footer" style={{
-          '--glow-color': activeRole.color,
+          '--glow-color': activeRole.glow || 'rgba(0, 242, 254, 0.35)',
           color: activeRole.color,
-          fontFamily: 'monospace',
-          fontSize: '0.75rem',
-          fontWeight: 'bold',
-          letterSpacing: '3px',
-          animation: 'cyberFlicker 4s infinite',
-          marginTop: '28px',
-          opacity: 0.8
+          fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+          fontSize: '0.78rem',
+          fontWeight: 800,
+          letterSpacing: '0.04em',
+          animation: 'cyberPulseText 2.5s infinite ease-in-out',
+          marginTop: '32px'
         }}>
-          [ developed by rajkishor ]
+          Developed by Rajkishor
         </p>
       </div>
     </div>
