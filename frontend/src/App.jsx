@@ -1406,8 +1406,41 @@ export default function App() {
   const canvasRef = React.useRef(null);
   const streamRef = React.useRef(null);
 
+  const chartRef1 = React.useRef(null);
+  const chartRef2 = React.useRef(null);
+  const [chartWidth1, setChartWidth1] = React.useState(350);
+  const [chartWidth2, setChartWidth2] = React.useState(350);
+
+  React.useEffect(() => {
+    const observers = [];
+
+    const handleObserve = (ref, setWidth) => {
+      if (!ref.current) return;
+      const observer = new ResizeObserver((entries) => {
+        if (!entries || entries.length === 0) return;
+        const width = entries[0].contentRect.width;
+        if (width > 0) {
+          setWidth(width);
+        }
+      });
+      observer.observe(ref.current);
+      observers.push(observer);
+    };
+
+    // Delay checking slightly to allow transitions to complete, but let ResizeObserver handle updates
+    const timer = setTimeout(() => {
+      handleObserve(chartRef1, setChartWidth1);
+      handleObserve(chartRef2, setChartWidth2);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      observers.forEach(obs => obs.disconnect());
+    };
+  }, [activeTab, stats]);
+
   // Data States
-  const [stats, setStats] = useState({
+  const [stats, setStats] = React.useState({
     total_students: 0,
     total_present_today: 0,
     total_absent_today: 0,
@@ -5173,28 +5206,26 @@ export default function App() {
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Calendar size={18} style={{ color: '#00f2fe' }} /> Weekly Attendance Trends
                 </h3>
-                <div style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
-                  <ResponsiveContainer width="99%" height={220}>
-                    <AreaChart data={stats.weekly_trends}>
-                      <defs>
-                        <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#00f2fe" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                      <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
-                      <Tooltip contentStyle={{ 
-                        background: '#0d1323', 
-                        border: '1px solid rgba(0, 242, 254, 0.25)', 
-                        borderRadius: '12px', 
-                        color: '#f1f5f9',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-                      }} />
-                      <Area type="monotone" dataKey="present" stroke="#00f2fe" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div ref={chartRef1} style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
+                  <AreaChart width={chartWidth1} height={220} data={stats.weekly_trends}>
+                    <defs>
+                      <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#00f2fe" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                    <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
+                    <Tooltip contentStyle={{ 
+                      background: '#0d1323', 
+                      border: '1px solid rgba(0, 242, 254, 0.25)', 
+                      borderRadius: '12px', 
+                      color: '#f1f5f9',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                    }} />
+                    <Area type="monotone" dataKey="present" stroke="#00f2fe" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" />
+                  </AreaChart>
                 </div>
               </div>
 
@@ -5203,34 +5234,32 @@ export default function App() {
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Layers size={18} style={{ color: '#a78bfa' }} /> Present Today by Dept
                 </h3>
-                <div style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
+                <div ref={chartRef2} style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
                   {Object.keys(stats.department_stats).length === 0 ? (
                     <div className="flex-center" style={{ height: '100%', color: '#94a3b8', flexDirection: 'column', gap: '12px' }}>
                       <AlertCircle size={32} style={{ color: '#ef4444' }} />
                       <span>No attendance data marked for today.</span>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="99%" height={220}>
-                      <BarChart data={Object.keys(stats.department_stats).map(dept => ({ name: dept, count: stats.department_stats[dept] }))}>
-                        <defs>
-                          <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.9}/>
-                            <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.6}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
-                        <Tooltip contentStyle={{ 
-                          background: '#0d1323', 
-                          border: '1px solid rgba(167, 139, 250, 0.25)', 
-                          borderRadius: '12px', 
-                          color: '#f1f5f9',
-                          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-                        }} />
-                        <Bar dataKey="count" fill="url(#colorBar)" radius={[6, 6, 0, 0]} barSize={35} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <BarChart width={chartWidth2} height={220} data={Object.keys(stats.department_stats).map(dept => ({ name: dept, count: stats.department_stats[dept] }))}>
+                      <defs>
+                        <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.9}/>
+                          <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.6}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
+                      <Tooltip contentStyle={{ 
+                        background: '#0d1323', 
+                        border: '1px solid rgba(167, 139, 250, 0.25)', 
+                        borderRadius: '12px', 
+                        color: '#f1f5f9',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                      }} />
+                      <Bar dataKey="count" fill="url(#colorBar)" radius={[6, 6, 0, 0]} barSize={35} />
+                    </BarChart>
                   )}
                 </div>
               </div>
