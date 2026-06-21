@@ -386,6 +386,78 @@ export default function App() {
   const chatListRef = useRef(null);
   const [isVoiceAssistantMode, setIsVoiceAssistantMode] = useState(false);
   const voiceAssistantActiveRef = useRef(false);
+  const wakeWordRecRef = useRef(null);
+
+  const startWakeWordListener = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition || !token) return;
+
+    if (wakeWordRecRef.current) {
+      try {
+        wakeWordRecRef.current.abort();
+      } catch (err) {}
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      const lastResultIndex = event.resultIndex;
+      const speechText = event.results[lastResultIndex][0].transcript.toLowerCase().trim();
+      console.log("Background heard voice:", speechText);
+
+      if (speechText.includes("hey raj") || speechText.includes("hai raj") || speechText.includes("he raj")) {
+        playCyberSound('success');
+        setActiveTab('ai-assistant');
+        try {
+          recognition.abort();
+        } catch (err) {}
+        startVoiceAssistantMode();
+      }
+    };
+
+    recognition.onerror = (e) => {
+      console.warn("Wake word listener error:", e.error);
+    };
+
+    recognition.onend = () => {
+      if (token && !voiceAssistantActiveRef.current && !isListeningSpeech) {
+        try {
+          recognition.start();
+        } catch (err) {
+          console.warn("Failed to restart wake word listener:", err);
+        }
+      }
+    };
+
+    wakeWordRecRef.current = recognition;
+    try {
+      recognition.start();
+    } catch (err) {
+      console.warn("Failed to start wake word listener:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      startWakeWordListener();
+    } else {
+      if (wakeWordRecRef.current) {
+        try {
+          wakeWordRecRef.current.abort();
+        } catch (err) {}
+      }
+    }
+    return () => {
+      if (wakeWordRecRef.current) {
+        try {
+          wakeWordRecRef.current.abort();
+        } catch (err) {}
+      }
+    };
+  }, [token]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -483,10 +555,19 @@ export default function App() {
 
     if (isListeningSpeech) {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (err) {}
       }
       setIsListeningSpeech(false);
       return;
+    }
+
+    // Abort background wake word listener to free up the microphone
+    if (wakeWordRecRef.current) {
+      try {
+        wakeWordRecRef.current.abort();
+      } catch (err) {}
     }
 
     playCyberSound('click');
@@ -571,6 +652,12 @@ export default function App() {
 
     recognition.onend = () => {
       setIsListeningSpeech(false);
+      // Restart wake word listener after a short delay
+      setTimeout(() => {
+        if (token && !voiceAssistantActiveRef.current && !isListeningSpeech) {
+          startWakeWordListener();
+        }
+      }, 1000);
     };
 
     recognitionRef.current = recognition;
@@ -721,6 +808,14 @@ export default function App() {
     playCyberSound('success');
     setIsVoiceAssistantMode(true);
     voiceAssistantActiveRef.current = true;
+    
+    // Explicitly abort background wake word listener to free up microphone
+    if (wakeWordRecRef.current) {
+      try {
+        wakeWordRecRef.current.abort();
+      } catch (err) {}
+    }
+
     handleSpeakText("Voice connection established. Go ahead, I am listening.", () => {
       setTimeout(() => {
         listenInVoiceMode();
@@ -734,8 +829,17 @@ export default function App() {
     voiceAssistantActiveRef.current = false;
     window.speechSynthesis.cancel();
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {}
     }
+    
+    // Restart background wake word listener after a short delay
+    setTimeout(() => {
+      if (token) {
+        startWakeWordListener();
+      }
+    }, 1000);
   };
 
   const [activeTelemetry, setActiveTelemetry] = useState({ total_active: 0, students: 0, teachers: 0, admins: 0 });
