@@ -1573,11 +1573,12 @@ export default function App() {
 
 
   // Fetch Dashboard Stats
-  const fetchStats = async () => {
+  const fetchStats = async (authToken) => {
+    const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/attendance/stats`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${usedToken}`
         }
       });
       if (res.status === 401) {
@@ -1676,11 +1677,12 @@ export default function App() {
   };
 
   // Fetch Attendance Logs
-  const fetchLogs = async () => {
+  const fetchLogs = async (authToken) => {
+    const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/attendance/logs`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${usedToken}`
         }
       });
       if (res.status === 401) {
@@ -2514,6 +2516,18 @@ export default function App() {
     };
   }, [lockdownActive, soundEnabled, audioVolume]);
 
+  // Auto-start camera when scanner modal opens — removes need for a separate "Start Scanner" click
+  useEffect(() => {
+    if (!showScannerModal) return undefined;
+    if (attendanceActive || scannerBootActive) return undefined;
+    // Short delay allows the modal's <video> element to mount in the DOM first
+    const autoStartTimer = setTimeout(() => {
+      startAttendanceCam();
+    }, 220);
+    return () => clearTimeout(autoStartTimer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showScannerModal]);
+
   // Initialize and run FaceMesh liveness detection loop
   useEffect(() => {
     if (!attendanceActive || !attendanceVideoRef.current) {
@@ -2544,8 +2558,8 @@ export default function App() {
     faceMesh.setOptions({
       maxNumFaces: 1,
       refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.65,
     });
 
     faceMesh.onResults((results) => {
@@ -3073,6 +3087,16 @@ export default function App() {
         setUserRole(data.role);
         setCurrentUser(data);
         localStorage.setItem('userRole', data.role);
+
+        // ── Blank-screen fix: eagerly prefetch data using the fresh authToken
+        //    This runs in parallel with the render cycle so data arrives before
+        //    or right as the dashboard first renders, preventing an empty state.
+        if (data.role !== 'student') {
+          fetchStats(authToken);
+          fetchLogs(authToken);
+        } else {
+          fetchStudentLogs(authToken);
+        }
         
         if (!sessionInitializedRef.current) {
           sessionInitializedRef.current = true;
@@ -3327,6 +3351,21 @@ export default function App() {
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
   }, []);
+
+  // ── Screen-wake / tab-visibility refresh fix ──────────────────────────────
+  // When the device screen wakes or the tab becomes visible again after being
+  // hidden, re-fetch data so the dashboard never appears blank / stale.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && token && userRole && userRole !== 'student') {
+        fetchStats(token);
+        fetchLogs(token);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [token, userRole]);
+
 
   // Synchronize hash changes back to React activeTab state
   useEffect(() => {
@@ -4689,51 +4728,67 @@ export default function App() {
             />
             <canvas ref={attendanceCanvasRef} style={{ display: 'none' }} />
 
-            {/* Offline placeholder */}
+            {/* Camera auto-initializing placeholder — shown while stream is starting */}
             {!attendanceActive && !scannerBootActive && (
               <div style={{
                 position: 'absolute', inset: 0,
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                background: 'radial-gradient(ellipse at center, rgba(0,242,254,0.04) 0%, rgba(0,0,0,0.8) 70%)',
-                gap: '14px',
+                background: 'radial-gradient(ellipse at center, rgba(0,242,254,0.05) 0%, rgba(0,0,0,0.92) 70%)',
+                gap: '20px',
               }}>
-                <Camera size={52} style={{ color: 'rgba(0,242,254,0.3)' }} />
-                <p style={{ color: '#6b7280', fontSize: '0.95rem', fontWeight: 600 }}>Camera Offline</p>
-                <p style={{ color: '#4b5563', fontSize: '0.78rem' }}>Press "Start Scanner" to begin</p>
+                {/* Animated scanner ring */}
+                <div style={{ position: 'relative', width: '80px', height: '80px' }}>
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    border: '3px solid rgba(0,242,254,0.12)',
+                    borderTopColor: '#00f2fe',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }} />
+                  <div style={{
+                    position: 'absolute', inset: '12px',
+                    border: '2px solid rgba(0,242,254,0.08)',
+                    borderBottomColor: 'rgba(0,242,254,0.5)',
+                    borderRadius: '50%',
+                    animation: 'spin 1.5s linear infinite reverse',
+                  }} />
+                  <div style={{
+                    position: 'absolute', inset: '24px',
+                    background: 'rgba(0,242,254,0.15)',
+                    borderRadius: '50%',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                  }} />
+                </div>
+                <p style={{ color: 'rgba(0,242,254,0.75)', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.14em', fontFamily: 'monospace' }}>INITIALIZING OPTICAL FEED...</p>
               </div>
             )}
           </div>
 
-          {/* Modal Controls */}
+          {/* Modal Controls — camera auto-starts; only Stop is needed */}
           <div className="scanner-modal-controls">
-            {!attendanceActive && !scannerBootActive ? (
-              <button
-                onClick={startAttendanceCam}
-                style={{
-                  flex: 1, padding: '14px 24px',
-                  background: 'linear-gradient(135deg, #00f2fe, #0ea5e9)',
-                  border: 'none', borderRadius: '12px',
-                  color: '#000', fontWeight: 800, fontSize: '1rem',
-                  cursor: 'pointer', letterSpacing: '0.04em',
-                  boxShadow: '0 6px 24px rgba(0,242,254,0.35)',
-                  transition: 'all 0.2s ease',
-                }}
-              >▶ Start Scanner</button>
-            ) : (
-              <button
-                onClick={stopAttendanceCam}
-                style={{
-                  flex: 1, padding: '14px 24px',
-                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                  border: 'none', borderRadius: '12px',
-                  color: '#fff', fontWeight: 800, fontSize: '1rem',
-                  cursor: 'pointer', letterSpacing: '0.04em',
-                  boxShadow: '0 6px 24px rgba(239,68,68,0.35)',
-                  transition: 'all 0.2s ease',
-                }}
-              >⏹ Stop Scanner</button>
-            )}
+            <button
+              onClick={stopAttendanceCam}
+              disabled={!attendanceActive && !scannerBootActive}
+              style={{
+                flex: 1, padding: '14px 24px',
+                background: (attendanceActive || scannerBootActive)
+                  ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
+                  : 'rgba(107,114,128,0.18)',
+                border: (attendanceActive || scannerBootActive)
+                  ? 'none'
+                  : '1px solid rgba(107,114,128,0.25)',
+                borderRadius: '12px',
+                color: (attendanceActive || scannerBootActive) ? '#fff' : '#6b7280',
+                fontWeight: 800, fontSize: '1rem',
+                cursor: (attendanceActive || scannerBootActive) ? 'pointer' : 'not-allowed',
+                letterSpacing: '0.04em',
+                boxShadow: (attendanceActive || scannerBootActive) ? '0 6px 24px rgba(239,68,68,0.35)' : 'none',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              {scannerBootActive ? '⏳ Booting...' : attendanceActive ? '⏹ Stop Scanner' : '⏳ Starting...'}
+            </button>
           </div>
 
           {/* Liveness & error messages */}

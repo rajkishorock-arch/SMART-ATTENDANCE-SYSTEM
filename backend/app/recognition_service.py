@@ -45,37 +45,70 @@ class RecognitionService:
         except Exception as db_err:
             print(f"Database query failed in load_student_records: {db_err}")
 
+    def _enhance_image(self, image: np.ndarray) -> np.ndarray:
+        """Apply CLAHE contrast enhancement in LAB color space for better detection in varied lighting."""
+        try:
+            lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+            l_channel, a, b = cv2.split(lab)
+            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+            cl = clahe.apply(l_channel)
+            enhanced_lab = cv2.merge((cl, a, b))
+            return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+        except Exception:
+            return image  # fallback: return original if enhancement fails
+
     def recognize_faces_in_frame(self, image: np.ndarray):
-        """Detects and recognizes faces in a single video frame using SFace and YuNet."""
+        """Detects and recognizes faces in a single video frame using SFace and YuNet.
+
+        Improvements over v1:
+        - CLAHE preprocessing for robust detection under dim / harsh lighting
+        - Minimum face-size guard (40x40 px) to skip distant / blurry faces
+        - Two-pass detection: try enhanced image first, fall back to original
+        - Cosine threshold raised to 0.43 to cut false positive rate
+        """
         if self.detector is None or self.recognizer is None:
             self._load_models()
             if self.detector is None or self.recognizer is None:
                 raise Exception("Models are not loaded. Cannot recognize faces.")
 
-        h, w = image.shape[:2]
+        # --- Step 1: Pre-process frame for better detection ---
+        enhanced = self._enhance_image(image)
+
+        h, w = enhanced.shape[:2]
         self.detector.setInputSize((w, h))
-        
-        retval, faces = self.detector.detect(image)
+
+        retval, faces = self.detector.detect(enhanced)
+
+        # Two-pass: if enhanced image yields no face, retry with original
+        if not retval or faces is None or len(faces) == 0:
+            self.detector.setInputSize((image.shape[1], image.shape[0]))
+            retval, faces = self.detector.detect(image)
+            enhanced = image  # use original for alignment if fallback
+
         if not retval or faces is None or len(faces) == 0:
             return []
 
         recognized_faces = []
         for face in faces:
             x, y, box_w, box_h = face[0:4]
-            
+
+            # Skip tiny / distant faces (too blurry to match reliably)
+            if box_w < 40 or box_h < 40:
+                continue
+
             try:
                 # Align and crop the face using YuNet landmarks
-                aligned = self.recognizer.alignCrop(image, face)
-                # Extract the 128-D feature vector
+                aligned = self.recognizer.alignCrop(enhanced, face)
+                # Extract the 128-D SFace feature vector
                 feat = self.recognizer.feature(aligned)
             except Exception as extract_err:
                 print(f"Failed SFace feature extraction: {extract_err}")
                 continue
 
-            # Compare against all cached student embeddings
+            # Compare against all cached student embeddings (cosine similarity)
             best_id = None
             best_score = -1.0
-            
+
             for student_id, record in self.student_records.items():
                 ref_emb = record["embedding"]
                 score = self.recognizer.match(feat, ref_emb, cv2.FaceRecognizerSF_FR_COSINE)
@@ -83,8 +116,8 @@ class RecognitionService:
                     best_score = score
                     best_id = student_id
 
-            # Raised Cosine threshold from 0.36 to 0.42 to prevent false matches (strangers)
-            if best_id is not None and best_score >= 0.42:
+            # Threshold 0.43 — stricter than default (0.363) to minimise false matches
+            if best_id is not None and best_score >= 0.43:
                 student = self.student_records[best_id]
                 recognized_faces.append({
                     "user_id": best_id,
@@ -94,7 +127,7 @@ class RecognitionService:
                     "box": [int(x), int(y), int(box_w), int(box_h)],
                     "confidence": round(min(100.0, max(0.0, best_score * 100)), 2)
                 })
-        
+
         return recognized_faces
 
 # Singleton instance
