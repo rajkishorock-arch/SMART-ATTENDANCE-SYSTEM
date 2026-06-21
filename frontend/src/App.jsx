@@ -322,6 +322,7 @@ export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || '');
   const [currentUser, setCurrentUser] = useState(null);
+  const [sessionFetchError, setSessionFetchError] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginRole, setLoginRole] = useState('admin');
@@ -1406,6 +1407,16 @@ export default function App() {
   const canvasRef = React.useRef(null);
   const streamRef = React.useRef(null);
 
+  // Data States
+  const [stats, setStats] = React.useState({
+    total_students: 0,
+    total_present_today: 0,
+    total_absent_today: 0,
+    average_attendance_rate: 0,
+    department_stats: {},
+    weekly_trends: []
+  });
+
   const chartRef1 = React.useRef(null);
   const chartRef2 = React.useRef(null);
   const [chartWidth1, setChartWidth1] = React.useState(350);
@@ -1438,16 +1449,6 @@ export default function App() {
       observers.forEach(obs => obs.disconnect());
     };
   }, [activeTab, stats]);
-
-  // Data States
-  const [stats, setStats] = React.useState({
-    total_students: 0,
-    total_present_today: 0,
-    total_absent_today: 0,
-    average_attendance_rate: 0,
-    department_stats: {},
-    weekly_trends: []
-  });
   const [students, setStudents] = useState([]);
   const [logs, setLogs] = useState([]);
 
@@ -3035,6 +3036,7 @@ export default function App() {
 
   // Fetch session information (role and details) from backend
   const fetchSessionInfo = async (authToken) => {
+    setSessionFetchError(false);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: {
@@ -3076,10 +3078,12 @@ export default function App() {
           handleLogout();
         } else {
           console.error("Server error when fetching session info:", res.status);
+          setSessionFetchError(true);
         }
       }
     } catch (err) {
       console.error("Failed to fetch session info (network error):", err);
+      setSessionFetchError(true);
     }
   };
 
@@ -4484,9 +4488,33 @@ export default function App() {
   // Login Page View
   if (token && !currentUser) {
     return (
-      <div className="flex-center" style={{ minHeight: '100vh', background: '#070b12', color: '#00f2fe', flexDirection: 'column', gap: '20px' }}>
+      <div className="flex-center" style={{ minHeight: '100vh', background: '#070b12', color: '#00f2fe', flexDirection: 'column', gap: '20px', padding: '20px', textAlign: 'center' }}>
         <div style={{ width: '50px', height: '50px', border: '3px solid rgba(0, 242, 254, 0.2)', borderTopColor: '#00f2fe', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         <h3 style={{ fontFamily: 'monospace', letterSpacing: '2px' }}>INITIALIZING NEURAL LINK...</h3>
+        
+        {sessionFetchError && (
+          <div style={{ marginTop: '20px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '15px 25px', borderRadius: '8px', maxWidth: '450px' }}>
+            <p style={{ color: '#ef4444', fontSize: '0.9rem', marginBottom: '15px' }}>
+              Failed to connect to the backend server. The database might be sleeping, or you are experiencing connectivity issues.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button 
+                onClick={() => fetchSessionInfo(token)} 
+                className="action-btn"
+                style={{ background: 'rgba(0, 242, 254, 0.1)', border: '1px solid #00f2fe', color: '#00f2fe', padding: '6px 12px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+              >
+                Retry Connection
+              </button>
+              <button 
+                onClick={handleLogout} 
+                className="action-btn"
+                style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', padding: '6px 12px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+              >
+                Logout / Reset
+              </button>
+            </div>
+          </div>
+        )}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
