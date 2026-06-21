@@ -4572,12 +4572,122 @@ export default function App() {
   // Login Page View
   if (token && !currentUser) {
     return (
-      <div className="flex-center" style={{ minHeight: '100vh', background: '#070b12', color: '#00f2fe', flexDirection: 'column', gap: '20px', padding: '20px', textAlign: 'center' }}>
-        <div style={{ width: '50px', height: '50px', border: '3px solid rgba(0, 242, 254, 0.2)', borderTopColor: '#00f2fe', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <h3 style={{ fontFamily: 'monospace', letterSpacing: '2px' }}>INITIALIZING NEURAL LINK...</h3>
-        
+      <div className="flex-center" style={{ 
+        minHeight: '100vh', 
+        background: 'radial-gradient(circle at center, #0a0f1d 0%, #04060b 100%)', 
+        color: '#00f2fe', 
+        flexDirection: 'column', 
+        gap: '24px', 
+        padding: '24px', 
+        textAlign: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        fontFamily: 'monospace'
+      }}>
+        {/* Neon scanline sweeping the page */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0,
+          height: '4px',
+          background: 'linear-gradient(90deg, transparent, #00f2fe, transparent)',
+          boxShadow: '0 0 12px #00f2fe',
+          opacity: 0.35,
+          animation: 'scanlineSweep 3s infinite ease-in-out'
+        }} />
+
+        {/* Futuristic robotic grid backdrop */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: 'linear-gradient(rgba(0, 242, 254, 0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 242, 254, 0.015) 1px, transparent 1px)',
+          backgroundSize: '30px 30px',
+          pointerEvents: 'none'
+        }} />
+
+        {/* Concentric spinning robotic core rings */}
+        <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto' }}>
+          {/* Outer fast spinning ring */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            border: '3px dashed rgba(0, 242, 254, 0.2)',
+            borderTopColor: '#00f2fe',
+            borderBottomColor: '#00f2fe',
+            borderRadius: '50%',
+            animation: 'spin 1.2s linear infinite'
+          }} />
+          {/* Middle counter-spinning ring */}
+          <div style={{
+            position: 'absolute', inset: '12px',
+            border: '2px solid rgba(0, 242, 254, 0.1)',
+            borderLeftColor: 'rgba(0, 242, 254, 0.6)',
+            borderRightColor: 'rgba(0, 242, 254, 0.6)',
+            borderRadius: '50%',
+            animation: 'spin 1.8s linear infinite reverse'
+          }} />
+          {/* Inner pulsing diagnostic core */}
+          <div style={{
+            position: 'absolute', inset: '26px',
+            background: 'radial-gradient(circle, rgba(0, 242, 254, 0.4) 0%, transparent 70%)',
+            borderRadius: '50%',
+            border: '1px solid rgba(0, 242, 254, 0.3)',
+            animation: 'pulseCore 1.5s ease-in-out infinite'
+          }} />
+        </div>
+
+        {/* Animated Robotic Title */}
+        <div style={{ zIndex: 10 }}>
+          <h2 style={{ 
+            fontFamily: '"Share Tech Mono", "Share Tech", "Outfit", monospace', 
+            fontWeight: 800,
+            fontSize: '1.75rem',
+            letterSpacing: '0.16em', 
+            margin: 0,
+            textTransform: 'uppercase',
+            background: 'linear-gradient(90deg, #ffffff, #00f2fe, #ffffff)',
+            backgroundSize: '200% auto',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            animation: 'shineText 4s linear infinite',
+            textShadow: '0 0 15px rgba(0, 242, 254, 0.4)'
+          }}>
+            SMART ATTENDANCE SYSTEM
+          </h2>
+          <p style={{ 
+            fontSize: '0.72rem', 
+            letterSpacing: '0.4em', 
+            color: 'rgba(0, 242, 254, 0.5)',
+            textTransform: 'uppercase',
+            margin: '8px 0 0 0',
+            animation: 'flickerText 2.5s infinite alternate'
+          }}>
+            SYSTEM INITIALIZATION SEQUENCE ACTIVE
+          </p>
+        </div>
+
+        {/* Small terminal readouts detailing mock subsystems booting */}
+        <div style={{
+          background: 'rgba(5, 8, 16, 0.65)',
+          border: '1px solid rgba(0, 242, 254, 0.12)',
+          borderRadius: '8px',
+          padding: '12px 20px',
+          fontSize: '0.68rem',
+          color: 'rgba(0, 242, 254, 0.75)',
+          fontFamily: 'monospace',
+          maxWidth: '380px',
+          textAlign: 'left',
+          boxShadow: 'inset 0 0 10px rgba(0, 242, 254, 0.05)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          zIndex: 10
+        }}>
+          <div>&gt; AUTHENTICATING ACCESS CREDENTIALS...</div>
+          <div style={{ color: '#10b981' }}>&gt; SECURE TOKEN LOCKED (AES-256)</div>
+          <div>&gt; CONNECTING SYSTEM CORE APIS...</div>
+        </div>
+
         {sessionFetchError && (
-          <div style={{ marginTop: '20px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '15px 25px', borderRadius: '8px', maxWidth: '450px' }}>
+          <div style={{ zIndex: 10, marginTop: '10px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '15px 25px', borderRadius: '8px', maxWidth: '450px' }}>
             <p style={{ color: '#ef4444', fontSize: '0.9rem', marginBottom: '15px' }}>
               Failed to connect to the backend server. The database might be sleeping, or you are experiencing connectivity issues.
             </p>
@@ -4599,7 +4709,27 @@ export default function App() {
             </div>
           </div>
         )}
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes scanlineSweep {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+          }
+          @keyframes pulseCore {
+            0%, 100% { transform: scale(0.9); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+          }
+          @keyframes shineText {
+            to { background-position: 200% center; }
+          }
+          @keyframes flickerText {
+            0%, 100% { opacity: 0.75; }
+            45% { opacity: 0.8; }
+            50% { opacity: 0.35; }
+            55% { opacity: 0.9; }
+          }
+        `}</style>
       </div>
     );
   }

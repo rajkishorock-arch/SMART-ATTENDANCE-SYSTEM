@@ -100,26 +100,10 @@ export default function LoginPortal({
           <div className="login-portal-logo">
             <ShieldCheck size={40} />
           </div>
-            <h1 className="login-portal-title" style={{
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              textShadow: `0 0 10px ${activeRole.color}77, 0 0 20px ${activeRole.color}33`,
-              fontFamily: '"Share Tech Mono", "Share Tech", "Outfit", monospace',
-              fontWeight: 800,
-              fontSize: '1.9rem',
-              background: `linear-gradient(135deg, #ffffff 30%, ${activeRole.color}ee 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              animation: 'roboticPulse 4s infinite alternate',
-              transition: 'all 0.4s ease'
-            }}>WELCOME TO SMART ATTENDANCE</h1>
-            <p className="login-portal-subtitle" style={{
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              fontSize: '0.78rem',
-              color: 'rgba(255,255,255,0.4)',
-              fontFamily: 'monospace'
-            }}>Robotic Secure Access Portal</p>
+          <div>
+            <h1 className="login-portal-title">SMART ATTENDANCE</h1>
+            <p className="login-portal-subtitle">Robotic Secure Access Portal</p>
+          </div>
         </div>
 
         <div className="login-portal-boot">
