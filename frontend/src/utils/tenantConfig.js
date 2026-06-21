@@ -1,4 +1,3 @@
-// Utility to determine active tenant slug based on subdomain or override
 export const getActiveTenantSlug = () => {
   const hostname = window.location.hostname; // e.g. "du.attendance.io" or "localhost"
   const parts = hostname.split('.');
@@ -7,9 +6,18 @@ export const getActiveTenantSlug = () => {
   const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local');
   
-  if (parts.length > 2 && !isIP && !isLocalhost) {
-    // Extract first part as subdomain (e.g. du)
-    return parts[0];
+  // Vercel and Render deploy to subdomains like project.vercel.app or project.onrender.com
+  // These have parts.length === 3 but parts[0] is the project name, not a tenant subdomain.
+  const isPublicDomain = hostname.endsWith('.vercel.app') || hostname.endsWith('.onrender.com');
+  
+  if (!isIP && !isLocalhost) {
+    if (isPublicDomain) {
+      if (parts.length > 3) {
+        return parts[0];
+      }
+    } else if (parts.length > 2) {
+      return parts[0];
+    }
   }
   
   // Fallback to localStorage override (useful for testing multi-tenancy locally) or 'default'

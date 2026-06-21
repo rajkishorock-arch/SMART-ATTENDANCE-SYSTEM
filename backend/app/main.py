@@ -284,36 +284,112 @@ def migrate_existing_student_embeddings(db):
 
 
 def ensure_primary_admin(db):
-    """Ensure the primary admin account exists with configured credentials."""
+    """Ensure the primary admin account and test students exist for multi-tenancy testing."""
     from app.crud import get_user_by_email, create_user
     from app.schemas import UserCreate
     from app.security import get_password_hash
+    from app import models
 
     primary_email = "rajkishorock@gmail.com"
     primary_password = "raj@9211"
-    primary_name = "Raj Kishor"
+    
+    # 1. Ensure primary admin exists for all 3 institutions (Default, DU, IITD)
+    institutions_admin = [
+        {"id": 1, "name": "Raj Kishor"},
+        {"id": 2, "name": "Raj Kishor (DU Admin)"},
+        {"id": 3, "name": "Raj Kishor (IITD Admin)"}
+    ]
+    
+    for inst_admin in institutions_admin:
+        inst_id = inst_admin["id"]
+        admin_name = inst_admin["name"]
+        
+        # Check if institution actually exists before seeding
+        inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
+        if not inst_exists:
+            continue
+            
+        admin = get_user_by_email(db, email=primary_email, institution_id=inst_id)
+        if not admin:
+            create_user(
+                db,
+                user=UserCreate(
+                    email=primary_email,
+                    name=admin_name,
+                    password=primary_password,
+                    role="admin",
+                ),
+                institution_id=inst_id
+            )
+            print(f"Primary admin account created for institution {inst_id}.")
+        else:
+            admin.password_hash = get_password_hash(primary_password)
+            admin.name = admin_name
+            admin.role = "admin"
+            admin.is_active = True
+            db.commit()
+            print(f"Primary admin account synced for institution {inst_id}.")
 
-    admin = get_user_by_email(db, email=primary_email, institution_id=1)
-    if not admin:
-        create_user(
-            db,
-            user=UserCreate(
-                email=primary_email,
-                name=primary_name,
-                password=primary_password,
-                role="admin",
-            ),
-            institution_id=1
-        )
-        print("Primary admin account created.")
-    else:
-        admin.password_hash = get_password_hash(primary_password)
-        admin.name = primary_name
-        admin.role = "admin"
-        admin.is_active = True
-        admin.institution_id = 1
-        db.commit()
-        print("Primary admin account synced.")
+    # 2. Ensure distinct test students exist for each institution
+    test_students = [
+        {
+            "id": 10001,
+            "name": "Default Student",
+            "roll": "student123",
+            "email": "student@face.com",
+            "inst_id": 1,
+            "dep": "CSE(IOT)",
+            "course": "B.Tech"
+        },
+        {
+            "id": 20001,
+            "name": "DU Student (Rahul Kumar)",
+            "roll": "du123",
+            "email": "student_du@face.com",
+            "inst_id": 2,
+            "dep": "Physics",
+            "course": "B.Sc"
+        },
+        {
+            "id": 30001,
+            "name": "IIT Delhi Student (Aditya Birla)",
+            "roll": "iitd123",
+            "email": "student_iitd@face.com",
+            "inst_id": 3,
+            "dep": "Computer Science",
+            "course": "B.Tech"
+        }
+    ]
+    
+    for s_info in test_students:
+        inst_id = s_info["inst_id"]
+        # Check if institution exists
+        inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
+        if not inst_exists:
+            continue
+            
+        s_exists = db.query(models.StudentModel).filter(
+            models.StudentModel.email == s_info["email"],
+            models.StudentModel.institution_id == inst_id
+        ).first()
+        
+        if not s_exists:
+            new_s = models.StudentModel(
+                id=s_info["id"],
+                name=s_info["name"],
+                roll=s_info["roll"],
+                dep=s_info["dep"],
+                course=s_info["course"],
+                year="2026",
+                semester="1st",
+                email=s_info["email"],
+                password_hash=get_password_hash("student123"),
+                photo="no",
+                institution_id=inst_id
+            )
+            db.add(new_s)
+            db.commit()
+            print(f"Test student '{s_info['name']}' seeded for institution {inst_id}.")
 
 
 @app.on_event("startup")
