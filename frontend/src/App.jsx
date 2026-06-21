@@ -20,6 +20,7 @@ import {
   Search, 
   FileSpreadsheet, 
   BookOpen, 
+  Info,
   ShieldCheck,
   Calendar,
   Layers,
@@ -102,8 +103,22 @@ function calculateEAR(landmarks, eyeIndices) {
     return 0.0;
   }
 }
-
 export default function App() {
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [neuralMeshCanvas, setNeuralMeshCanvas] = useState(null);
+  const neuralMeshCanvasRef = useCallback((node) => {
+    if (node !== null) {
+      setNeuralMeshCanvas(node);
+    }
+  }, []);
+
+  const [matrixStreamCanvas, setMatrixStreamCanvas] = useState(null);
+  const matrixStreamCanvasRef = useCallback((node) => {
+    if (node !== null) {
+      setMatrixStreamCanvas(node);
+    }
+  }, []);
+
   // Biometric / Sound / Theme States
   const [hudMetrics, setHudMetrics] = useState({ fps: '30.0', lighting: '92%', quality: 'EXCELLENT' });
   const [activeTheme, setActiveTheme] = useState(localStorage.getItem('theme') || 'cyberpunk');
@@ -2402,8 +2417,8 @@ export default function App() {
 
   // HTML5 Canvas Neural Mesh Graph Animation
   useEffect(() => {
-    if (activeTab !== 'dashboard' || !token) return;
-    const canvas = document.getElementById('neural-mesh-canvas');
+    if (activeTab !== 'dashboard' || !token || !neuralMeshCanvas) return;
+    const canvas = neuralMeshCanvas;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
@@ -2787,7 +2802,85 @@ export default function App() {
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       canvas.removeEventListener('click', handleCanvasClick);
     };
-  }, [activeTab, token, activeTheme]);
+  }, [activeTab, token, activeTheme, neuralMeshCanvas]);
+
+  // HTML5 Canvas Diagnostics Matrix Stream Rain
+  useEffect(() => {
+    if (activeTab !== 'dashboard' || !token || !matrixStreamCanvas) return;
+    const canvas = matrixStreamCanvas;
+    const ctx = canvas.getContext('2d');
+    
+    let animationFrameId;
+    canvas.width = canvas.parentElement.clientWidth || 300;
+    canvas.height = canvas.parentElement.clientHeight || 80;
+    
+    const primaryColor = activeTheme === 'matrix' ? '#00ff46' :
+                          activeTheme === 'obsidian' ? '#ff3e3e' :
+                          activeTheme === 'violet' ? '#a855f7' : '#00f2fe';
+    
+    const fontSize = 10;
+    const columns = Math.floor(canvas.width / fontSize) + 1;
+    const yPositions = Array(columns).fill(0);
+    
+    const chars = "0123456789ABCDEF[]:X_Y_SYNC_OK_DATA_PERIMETER_BEACON_SYS_LIVENESS";
+    
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 0, g: 242, b: 254 };
+    };
+    const rgb = hexToRgb(primaryColor);
+
+    const drawMatrix = () => {
+      ctx.fillStyle = `rgba(2, 6, 23, 0.15)`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.font = `${fontSize}px monospace`;
+      
+      for (let i = 0; i < yPositions.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        const x = i * fontSize;
+        const y = yPositions[i];
+        
+        if (Math.random() > 0.97) {
+          ctx.fillStyle = '#ffffff';
+        } else {
+          ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.4 + Math.random() * 0.6})`;
+        }
+        
+        ctx.fillText(char, x, y);
+        
+        if (y > canvas.height && Math.random() > 0.98) {
+          yPositions[i] = 0;
+        } else {
+          yPositions[i] += fontSize;
+        }
+      }
+      
+      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`;
+      ctx.font = '8px monospace';
+      ctx.fillText(`[DB_STREAM: ${Math.random() > 0.95 ? 'COMMIT' : 'SYNC_OK'} | ADDR: 0x${Math.floor(Math.random() * 16777215).toString(16).toUpperCase()}]`, 6, 12);
+
+      animationFrameId = requestAnimationFrame(drawMatrix);
+    };
+    
+    const resizeCanvas = () => {
+      if (!canvas.parentElement) return;
+      canvas.width = canvas.parentElement.clientWidth || 300;
+      canvas.height = canvas.parentElement.clientHeight || 80;
+    };
+    window.addEventListener('resize', resizeCanvas);
+    
+    drawMatrix();
+    
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [activeTab, token, activeTheme, matrixStreamCanvas]);
 
   // Automatic camera shutoff when lockdown is activated
   useEffect(() => {
@@ -5911,6 +6004,28 @@ export default function App() {
         </ul>
 
         <button 
+          onClick={() => { playCyberSound('click'); setIsAboutModalOpen(true); }}
+          className="nav-item" 
+          style={{ 
+            width: '100%', 
+            border: '1px solid rgba(0, 242, 254, 0.15)', 
+            background: 'rgba(0, 242, 254, 0.05)', 
+            color: '#00f2fe', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginTop: '16px',
+            marginBottom: '12px',
+            borderRadius: '12px',
+            padding: '12px 18px',
+            fontWeight: 600
+          }}
+        >
+          <Info size={18} />
+          About System
+        </button>
+
+        <button 
           onClick={handleLogout}
           className="nav-item" 
           style={{ 
@@ -6348,7 +6463,7 @@ export default function App() {
                   <ShieldCheck size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} /> Biometric Core Neural Mesh
                 </h3>
                 <div style={{ position: 'relative', flex: 1, minHeight: '260px', width: '100%', overflow: 'hidden', borderRadius: '12px', background: 'rgba(8, 12, 20, 0.2)', border: '1px solid var(--border-color)' }}>
-                  <canvas id="neural-mesh-canvas" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                  <canvas ref={neuralMeshCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                 </div>
               </div>
 
@@ -6494,6 +6609,20 @@ export default function App() {
                     })() : '0d 0h 0m 0s'}</span></div>
                     <div>PLATFORM: <span style={{ color: '#f1f5f9' }}>{systemHealth ? `${systemHealth.platform.system} (${systemHealth.platform.release})` : 'DETECTING...'}</span></div>
                     <div>ENVIRONMENT: <span style={{ color: '#f1f5f9' }}>Python {systemHealth ? systemHealth.platform.python_version : '...'}</span></div>
+                  </div>
+
+                  {/* Flowing Diagnostics Matrix Stream */}
+                  <div style={{
+                    height: '80px',
+                    background: 'rgba(2, 6, 23, 0.45)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    marginTop: '8px',
+                    marginBottom: '8px'
+                  }}>
+                    <canvas ref={matrixStreamCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
                   </div>
 
                   {/* Manual trigger button */}
@@ -12320,27 +12449,73 @@ export default function App() {
 
       {/* Floating Siri-style Dynamic Orb Voice Assistant */}
       {token && isVoiceAssistantMode && (
-        <div 
-          onClick={stopVoiceAssistantMode}
-          className={`floating-voice-orb ${isListeningSpeech ? 'listening' : 'processing'}`}
-          title="Click to stop Voice Assistant"
-          style={{
-            position: 'fixed',
-            bottom: '90px',
-            right: '24px',
-            zIndex: 1000,
-            width: '24px',
-            height: '24px',
+        <div style={{ position: 'fixed', bottom: '90px', right: '24px', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Glowing holographic soundwave circles */}
+          <div style={{
+            position: 'absolute',
+            width: '40px',
+            height: '40px',
             borderRadius: '50%',
-            cursor: 'pointer',
-            boxShadow: isListeningSpeech 
-              ? '0 0 15px #ef4444, inset 0 0 5px rgba(255, 255, 255, 0.5)' 
-              : '0 0 15px #00f2fe, inset 0 0 5px rgba(255, 255, 255, 0.5)',
-            background: isListeningSpeech ? '#ef4444' : '#00f2fe',
-            animation: 'orbPulse 1.5s infinite ease-in-out',
-            transition: 'all 0.3s ease'
-          }}
-        />
+            border: `1.5px solid ${isListeningSpeech ? '#ef4444' : '#00f2fe'}`,
+            opacity: 0.6,
+            animation: 'radarWave 1.6s infinite linear'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            border: `1px solid ${isListeningSpeech ? '#ef4444' : '#00f2fe'}`,
+            opacity: 0.4,
+            animation: 'radarWave 1.6s infinite linear',
+            animationDelay: '0.8s'
+          }} />
+          {/* Wave visualizer lines */}
+          <div style={{
+            position: 'absolute',
+            display: 'flex',
+            gap: '2px',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '50px',
+            height: '20px',
+            pointerEvents: 'none'
+          }}>
+            {[...Array(6)].map((_, i) => (
+              <div 
+                key={i} 
+                style={{
+                  width: '2px',
+                  height: '4px',
+                  background: isListeningSpeech ? '#ef4444' : '#00f2fe',
+                  borderRadius: '1px',
+                  boxShadow: `0 0 6px ${isListeningSpeech ? '#ef4444' : '#00f2fe'}`,
+                  animation: 'orbPulse 1.2s infinite ease-in-out',
+                  animationDelay: `${i * 0.15}s`
+                }} 
+              />
+            ))}
+          </div>
+          
+          <div 
+            onClick={stopVoiceAssistantMode}
+            className={`floating-voice-orb ${isListeningSpeech ? 'listening' : 'processing'}`}
+            title="Click to stop Voice Assistant"
+            style={{
+              position: 'relative',
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              boxShadow: isListeningSpeech 
+                ? '0 0 15px #ef4444, inset 0 0 5px rgba(255, 255, 255, 0.5)' 
+                : '0 0 15px #00f2fe, inset 0 0 5px rgba(255, 255, 255, 0.5)',
+              background: isListeningSpeech ? '#ef4444' : '#00f2fe',
+              animation: 'orbPulse 1.5s infinite ease-in-out',
+              transition: 'all 0.3s ease'
+            }}
+          />
+        </div>
       )}
 
       <MobileControlPanel
@@ -12363,6 +12538,162 @@ export default function App() {
             setMobileControlOpen(true);
           }}
         />
+      )}
+
+      {/* Futuristic 'About' Modal */}
+      {isAboutModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(8, 12, 20, 0.75)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div style={{
+            maxWidth: '520px',
+            width: '90%',
+            background: 'rgba(15, 23, 42, 0.85)',
+            border: '1.5px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
+            fontFamily: 'monospace',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Holographic scanning line */}
+            <div style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, height: '3px',
+              background: 'linear-gradient(90deg, transparent, #00f2fe, transparent)',
+              animation: 'scannerPulse 3s infinite'
+            }} />
+            
+            <h2 style={{
+              color: '#00f2fe',
+              fontSize: '1.3rem',
+              fontWeight: 'bold',
+              marginBottom: '20px',
+              borderBottom: '1px solid var(--border-color)',
+              paddingBottom: '12px',
+              letterSpacing: '1px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <ShieldCheck size={22} style={{ color: '#00f2fe' }} /> SYSTEM SPECIFICATIONS
+            </h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.8rem', color: '#cbd5e1' }}>
+              <div>
+                <span style={{ color: 'var(--color-text-muted)' }}>PROJECT:</span>{' '}
+                <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>SMART ATTENDANCE SYSTEM (ENTERPRISE EDITION v2.5)</span>
+              </div>
+              
+              <div>
+                <span style={{ color: 'var(--color-text-muted)' }}>BIOMETRIC CORE:</span>{' '}
+                <span style={{ color: '#f1f5f9' }}>FaceNet Deep Neural Network + MTCNN Facial Landmark Aligner + Real-time EAR (Eye Aspect Ratio) Liveness Auditor.</span>
+              </div>
+              
+              <div>
+                <span style={{ color: 'var(--color-text-muted)' }}>TECH STACK:</span>{' '}
+                <span style={{ color: '#f1f5f9' }}>React 18 client, HTML5 Canvas 2D WebGL layer, Recharts Engine, Python FastAPI Backend, PostgreSQL/SQLite DB with SQLAlchemy ORM.</span>
+              </div>
+              
+              <div>
+                <span style={{ color: 'var(--color-text-muted)' }}>SECURITY PROTOCOLS:</span>{' '}
+                <span style={{ color: '#f1f5f9' }}>Dynamic GPS Geofencing (100m Allowed Radius), IP range restriction protocol, Cyber Perimeter Sonar Beacons, and Security Lockdown Override.</span>
+              </div>
+              
+              <div>
+                <span style={{ color: 'var(--color-text-muted)' }}>DEVELOPER CREDITS:</span>{' '}
+                <span style={{ color: '#00f2fe', fontWeight: 'bold' }}>Enterprise AI Engineering Lab</span>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => { playCyberSound('click'); setIsAboutModalOpen(false); }}
+              className="action-btn"
+              style={{
+                marginTop: '28px',
+                width: '100%',
+                padding: '12px',
+                background: 'linear-gradient(135deg, #00f2fe, #a78bfa)',
+                color: '#080c14',
+                fontWeight: 'bold',
+                letterSpacing: '1px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              DISMISS SPECIFICATIONS
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Red Hazard Threat Lockdown HUD Overlay */}
+      {lockdownActive && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(239, 68, 68, 0.07)',
+          pointerEvents: 'none',
+          zIndex: 9999,
+          border: '4px solid #ef4444',
+          boxShadow: 'inset 0 0 35px rgba(239, 68, 68, 0.4)',
+          animation: 'lockdownPulseBorder 1.8s infinite ease-in-out',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: '24px',
+          boxSizing: 'border-box',
+          fontFamily: 'monospace'
+        }}>
+          <style>{`
+            @keyframes lockdownPulseBorder {
+              0%, 100% { border-color: rgba(239, 68, 68, 0.85); box-shadow: inset 0 0 35px rgba(239, 68, 68, 0.4); }
+              50% { border-color: rgba(239, 68, 68, 0.35); box-shadow: inset 0 0 15px rgba(239, 68, 68, 0.15); }
+            }
+          `}</style>
+          
+          {/* Top bracket warning overlay */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', color: '#ef4444', fontSize: '0.85rem', fontWeight: 'bold' }}>
+            <div>[SECURITY STATUS: CLASSIFIED_LOCKDOWN]</div>
+            <div>[THREAT LEVEL: CRITICAL]</div>
+          </div>
+
+          {/* Center warning banner */}
+          <div style={{
+            alignSelf: 'center',
+            background: '#ef4444',
+            color: '#fff',
+            padding: '12px 28px',
+            fontSize: '0.95rem',
+            fontWeight: 'bold',
+            borderRadius: '4px',
+            boxShadow: '0 0 25px rgba(239, 68, 68, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            letterSpacing: '2px'
+          }}>
+            <span style={{ animation: 'pulse 1s infinite' }}>⚠️</span>
+            <span>WARNING: SECURITY LOCKDOWN ENGAGED</span>
+            <span style={{ animation: 'pulse 1s infinite' }}>⚠️</span>
+          </div>
+
+          {/* Bottom bracket logs */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>
+            <div>[SYS_STATE: GATE_LOCKS_ACTIVE]</div>
+            <div>[BEACONS: TRUNCATED_OFFLINE]</div>
+          </div>
+        </div>
       )}
 
       {/* Edge border flash overlay */}
