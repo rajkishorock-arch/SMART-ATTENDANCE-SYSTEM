@@ -101,23 +101,51 @@ def update_schema():
                 db.commit()
 
         # Update unique index constraints on users table for multi-tenancy
+        # Drop old single-column unique constraints/indexes on email
+        # PostgreSQL / SQLite syntax
         try:
-            db.execute(text("ALTER TABLE users DROP INDEX email"))
+            db.execute(text("DROP INDEX ix_users_email"))
             db.commit()
+            print("Dropped ix_users_email index (PostgreSQL/SQLite syntax)")
         except Exception:
             pass
 
+        try:
+            db.execute(text("DROP INDEX email"))
+            db.commit()
+            print("Dropped email index (PostgreSQL/SQLite syntax)")
+        except Exception:
+            pass
+
+        # MySQL syntax
         try:
             db.execute(text("ALTER TABLE users DROP INDEX ix_users_email"))
             db.commit()
-            print("Dropped old unique index ix_users_email on users")
+            print("Dropped ix_users_email index (MySQL syntax)")
         except Exception:
             pass
 
         try:
+            db.execute(text("ALTER TABLE users DROP INDEX email"))
+            db.commit()
+            print("Dropped email index (MySQL syntax)")
+        except Exception:
+            pass
+
+        # Add composite unique constraint for multi-tenancy (institution_id, email)
+        # PostgreSQL syntax
+        try:
+            db.execute(text("ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)"))
+            db.commit()
+            print("Added composite unique constraint (PostgreSQL syntax)")
+        except Exception:
+            pass
+
+        # MySQL syntax
+        try:
             db.execute(text("ALTER TABLE users ADD UNIQUE KEY uq_institution_email (institution_id, email)"))
             db.commit()
-            print("Added composite unique index (institution_id, email) to users table")
+            print("Added composite unique key (MySQL syntax)")
         except Exception:
             pass
     except Exception as e:
