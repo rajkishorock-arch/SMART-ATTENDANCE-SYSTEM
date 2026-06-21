@@ -219,10 +219,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_origin_regex=r"https://.*\.smart-attendance-system-olive-ten\.vercel\.app|http://localhost:\d+",
+    allow_origin_regex=r"https://([^/]+\.)?smart-attendance-system-olive-ten\.vercel\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Master-Password"],
+    allow_headers=["Authorization", "Content-Type", "X-Master-Password", "X-Tenant-Slug"],
 )
 
 def migrate_existing_student_embeddings(db):
