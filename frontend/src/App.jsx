@@ -1401,7 +1401,7 @@ export default function App() {
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isSendingAlerts, setIsSendingAlerts] = useState(false);
   const [serverWarmingUp, setServerWarmingUp] = useState(false);
-  const [isDemoMode, setIsDemoMode] = React.useState(false);
+  const [isDemoMode, setIsDemoMode] = React.useState(localStorage.getItem('isDemoMode') === 'true');
 
   // Refs for video, canvas & stream
   const videoRef = React.useRef(null);
@@ -3457,6 +3457,147 @@ export default function App() {
     }
   };
 
+  // Restore sandbox mode on mount/refresh if saved in localStorage
+  useEffect(() => {
+    const savedDemo = localStorage.getItem('isDemoMode') === 'true';
+    if (savedDemo && token === 'guest-demo-token') {
+      const savedRole = localStorage.getItem('userRole') || 'admin';
+      
+      let name = 'Guest Admin';
+      let email = 'guest.admin@smartattendance.io';
+      let userDetails = { id: 999, name: 'Guest Admin', email: 'guest.admin@smartattendance.io' };
+
+      if (savedRole === 'student') {
+        name = 'Aarav Sharma';
+        email = 'aarav@univ.edu';
+        userDetails = {
+          id: 101,
+          name: 'Aarav Sharma',
+          roll: '2023CSE01',
+          department: 'CSE(IOT)',
+          course: 'B.Tech',
+          year: '2026',
+          semester: '1st',
+          gender: 'Male',
+          phone: '9876543210',
+          email: 'aarav@univ.edu',
+          address: 'Delhi, India',
+          teacher: 'Dr. R. K. Singh',
+          photo: 'yes'
+        };
+      } else if (savedRole === 'teacher') {
+        name = 'Dr. R. K. Singh';
+        email = 'rksingh@univ.edu';
+        userDetails = {
+          id: 1,
+          name: 'Dr. R. K. Singh',
+          email: 'rksingh@univ.edu',
+          role: 'teacher',
+          subject_name: 'Internet of Things',
+          subject_code: 'IOT-301',
+          subject_department: 'CSE(IOT)'
+        };
+      }
+
+      setCurrentUser({
+        id: savedRole === 'student' ? 101 : (savedRole === 'teacher' ? 1 : 999),
+        email: email,
+        name: name,
+        role: savedRole,
+        details: userDetails
+      });
+
+      setStats({
+        total_students: 154,
+        total_present_today: 132,
+        total_absent_today: 22,
+        average_attendance_rate: 85.7,
+        department_stats: { 'CSE(IOT)': { total: 80, present: 72 }, 'ECE': { total: 40, present: 36 }, 'Mechanical': { total: 34, present: 24 } },
+        weekly_trends: [
+          { date: 'Mon', rate: 84 },
+          { date: 'Tue', rate: 87 },
+          { date: 'Wed', rate: 82 },
+          { date: 'Thu', rate: 89 },
+          { date: 'Fri', rate: 85 }
+        ]
+      });
+
+      setStudents([
+        { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543210', email: 'aarav@univ.edu', address: 'Delhi, India', teacher: 'Dr. R. K. Singh' },
+        { id: 102, name: 'Ishita Patel', roll: '2023CSE02', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543211', email: 'ishita@univ.edu', address: 'Mumbai, India', teacher: 'Dr. R. K. Singh' },
+        { id: 103, name: 'Kabir Verma', roll: '2023ECE01', dep: 'ECE', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543212', email: 'kabir@univ.edu', address: 'Bangalore, India', teacher: 'Dr. Priya Sen' },
+        { id: 104, name: 'Riya Gupta', roll: '2023CSE08', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543213', email: 'riya@univ.edu', address: 'Kolkata, India', teacher: 'Dr. R. K. Singh' },
+        { id: 105, name: 'Aditya Rao', roll: '2023ME04', dep: 'Mechanical', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543214', email: 'aditya@univ.edu', address: 'Hyderabad, India', teacher: 'Dr. Anil Mehta' }
+      ]);
+
+      setTeachers([
+        { id: 1, name: 'Dr. R. K. Singh', email: 'rksingh@univ.edu', role: 'teacher', subject_name: 'Internet of Things', subject_code: 'IOT-301', subject_department: 'CSE(IOT)' },
+        { id: 2, name: 'Dr. Priya Sen', email: 'priyasen@univ.edu', role: 'teacher', subject_name: 'Signals & Systems', subject_code: 'ECE-202', subject_department: 'ECE' },
+        { id: 3, name: 'Admin Master', email: 'admin@face.com', role: 'admin', subject_name: '', subject_code: '', subject_department: '' }
+      ]);
+
+      setSubjects([
+        { id: 1, name: 'Internet of Things', code: 'IOT-301', department: 'CSE(IOT)', teacher_id: 1 },
+        { id: 2, name: 'Signals & Systems', code: 'ECE-202', department: 'ECE', teacher_id: 2 },
+        { id: 3, name: 'Data Structures', code: 'CSE-101', department: 'CSE(IOT)', teacher_id: 1 }
+      ]);
+
+      setLogs([
+        { id: '1', roll: '2023CSE01', name: 'Aarav Sharma', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:05 AM', attendance: 'Present', subject_id: 1 },
+        { id: '2', roll: '2023CSE02', name: 'Ishita Patel', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:12 AM', attendance: 'Present', subject_id: 1 },
+        { id: '3', roll: '2023CSE08', name: 'Riya Gupta', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:18 AM', attendance: 'Late', subject_id: 1 },
+        { id: '4', roll: '2023ECE01', name: 'Kabir Verma', department: 'ECE', date: getLocalDateString().split('-').reverse().join('/'), time: '10:02 AM', attendance: 'Present', subject_id: 2 }
+      ]);
+
+      setSchedules([
+        { id: 1, subject_id: 1, day_of_week: 'Monday', start_time: '09:00', end_time: '10:00' },
+        { id: 2, subject_id: 2, day_of_week: 'Monday', start_time: '10:00', end_time: '11:00' },
+        { id: 3, subject_id: 3, day_of_week: 'Wednesday', start_time: '11:00', end_time: '12:00' }
+      ]);
+
+      setFeedbacks([
+        { id: 1, user_id: 101, user_email: 'aarav@univ.edu', role: 'student', type: 'suggestion', rating: 5, message: 'Robotic scan layout works super smoothly. Loving the new HUD animations!', created_at: new Date().toISOString() },
+        { id: 2, user_id: 1, user_email: 'rksingh@univ.edu', role: 'teacher', type: 'bug', rating: 4, message: 'Geofencing parameters saved successfully. Dim-light accuracy is much improved.', created_at: new Date().toISOString() }
+      ]);
+
+      setActiveTelemetry({
+        total_active: 12,
+        students: 9,
+        teachers: 2,
+        admins: 1
+      });
+
+      setSystemHealth({
+        status: 'HEALTHY',
+        database: 'CONNECTED',
+        database_type: 'sqlite',
+        models: { yunet: 'READY', sface: 'READY' },
+        metrics: { cpu_percent: 18.5, memory_percent: 42.1, uptime_seconds: 7420 },
+        platform: { system: 'Windows', release: '10', python_version: '3.11.2' }
+      });
+
+      setSettingsGeoEnabled(true);
+      setSettingsLat('28.6139');
+      setSettingsLon('77.2090');
+      setSettingsRadius('150');
+      setSettingsIpEnabled(false);
+      setSettingsIpRanges('192.168.1.0/24');
+
+      if (savedRole === 'student') {
+        setStudentLogs([
+          { id: '1', date: getLocalDateString().split('-').reverse().join('/'), time: '09:05 AM', attendance: 'Present', subject_code: 'IOT-301', subject_name: 'Internet of Things' },
+          { id: '2', date: getLocalDateString().split('-').reverse().join('/'), time: '09:15 AM', attendance: 'Present', subject_code: 'CSE-101', subject_name: 'Data Structures' },
+          { id: '3', date: '20/06/2026', time: '09:12 AM', attendance: 'Present', subject_code: 'IOT-301', subject_name: 'Internet of Things' },
+          { id: '4', date: '19/06/2026', time: '09:02 AM', attendance: 'Present', subject_code: 'CSE-101', subject_name: 'Data Structures' }
+        ]);
+        setStudentSubjectStats({
+          1: { subject_name: 'Internet of Things', subject_code: 'IOT-301', total_classes: 10, present_count: 9, percentage: 90 },
+          3: { subject_name: 'Data Structures', subject_code: 'CSE-101', total_classes: 10, present_count: 8, percentage: 80 }
+        });
+      }
+    }
+  }, []);
+
   // Initialize session on mount or token change
   useEffect(() => {
     if (token) {
@@ -3831,8 +3972,11 @@ export default function App() {
   const handleExploreGuest = (selectedRole = 'admin') => {
     playCyberSound('success');
     setIsDemoMode(true);
+    localStorage.setItem('isDemoMode', 'true');
     setToken('guest-demo-token');
+    localStorage.setItem('token', 'guest-demo-token');
     setUserRole(selectedRole);
+    localStorage.setItem('userRole', selectedRole);
 
     let name = 'Guest Admin';
     let email = 'guest.admin@smartattendance.io';
@@ -4029,6 +4173,7 @@ export default function App() {
     playCyberSound('click');
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('isDemoMode');
     sessionInitializedRef.current = false;
     setToken('');
     setUserRole('');
@@ -5131,7 +5276,7 @@ export default function App() {
 
   // Dashboard Main View
   return (
-    <div className="app-container app-with-fx">
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
       {isDemoMode && (
         <div style={{
           background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
@@ -5153,6 +5298,7 @@ export default function App() {
           <span>⚠️ SIMULATION ACCESS MATRIX ACTIVE • LOCAL GUEST SANDBOX • REAL RECORDS PRESERVED</span>
         </div>
       )}
+      <div className="app-container app-with-fx">
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
       <AppAmbientLayer activeTab={activeTab} isMobile={isMobileView} />
@@ -11969,5 +12115,6 @@ export default function App() {
       {/* Edge border flash overlay */}
       {showVoicePulseFlash && <div className="voice-pulse-flash-overlay" />}
     </div>
+  </div>
   );
 }
