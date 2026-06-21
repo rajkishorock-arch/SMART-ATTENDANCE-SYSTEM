@@ -684,3 +684,104 @@ def trigger_training(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Training check failed: {str(e)}")
+
+# --- User Self-Service Profile & Password ---
+@router.put("/me", response_model=schemas.User)
+def update_user_me(
+    user_data: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Update current logged in user's own profile details (Admins/Teachers).
+    """
+    db_user = current_user
+    
+    if user_data.name is not None:
+        db_user.name = user_data.name
+    if user_data.email is not None:
+        existing = db.query(models.User).filter(models.User.email == user_data.email, models.User.id != db_user.id).first()
+        if existing:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already in use.")
+        db_user.email = user_data.email
+        
+    # Map/Update subject if provided for the teacher role
+    if db_user.role == "teacher":
+        if user_data.subject_name or user_data.subject_code or user_data.subject_department:
+            subject = db.query(models.Subject).filter(models.Subject.teacher_id == db_user.id).first()
+            if subject:
+                if user_data.subject_name is not None:
+                    subject.name = user_data.subject_name
+                if user_data.subject_department is not None:
+                    subject.department = user_data.subject_department
+                if user_data.subject_code is not None:
+                    existing_sub = db.query(models.Subject).filter(
+                        models.Subject.code == user_data.subject_code,
+                        models.Subject.id != subject.id
+                    ).first()
+                    if existing_sub:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Subject code already in use by another subject.")
+                    subject.code = user_data.subject_code
+                db.commit()
+                db.refresh(subject)
+            else:
+                sub_name = user_data.subject_name or "New Subject"
+                sub_code = user_data.subject_code or f"SUB-{db_user.id}"
+                sub_dept = user_data.subject_department or "CSE"
+                
+                existing_sub = db.query(models.Subject).filter(models.Subject.code == sub_code).first()
+                if existing_sub:
+                    existing_sub.teacher_id = db_user.id
+                    existing_sub.name = sub_name
+                    existing_sub.department = sub_dept
+                    db.commit()
+                    db.refresh(existing_sub)
+                else:
+                    db_sub = models.Subject(
+                        name=sub_name,
+                        code=sub_code,
+                        department=sub_dept,
+                        teacher_id=db_user.id
+                    )
+                    db.add(db_sub)
+                    db.commit()
+                    db.refresh(db_sub)
+
+    db.commit()
+    db.refresh(db_user)
+    
+    # Attach subject properties for response serialization
+    subject = db.query(models.Subject).filter(models.Subject.teacher_id == db_user.id).first()
+    db_user.subject_name = subject.name if subject else None
+    db_user.subject_code = subject.code if subject else None
+    db_user.subject_department = subject.department if subject else None
+
+    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=db_user.email, action=f"User updated their own profile: {db_user.email}"))
+    return db_user
+
+@router.post("/me/change-password", response_model=schemas.User)
+def change_user_password(
+    data: schemas.UserChangePassword,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Change current logged in user's (Admin/Teacher) password.
+    """
+    if not security.verify_password(data.old_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+        
+    current_user.password_hash = security.get_password_hash(data.new_password)
+    db.commit()
+    db.refresh(current_user)
+    
+    subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
+    current_user.subject_name = subject.name if subject else None
+    current_user.subject_code = subject.code if subject else None
+    current_user.subject_department = subject.department if subject else None
+    
+    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"User '{current_user.email}' changed their password."))
+    return current_user

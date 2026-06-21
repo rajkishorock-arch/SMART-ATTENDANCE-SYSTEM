@@ -448,7 +448,7 @@ def send_test_report_email(
                 <p>Hello {current_user.name},</p>
                 <p>This is a manually triggered test report of the compiled weekly attendance for the period <b>{monday.strftime('%d %B %Y')}</b> to <b>{today.strftime('%d %B %Y')}</b>.</p>
                 <p>The compiled PDF register is attached.</p>
-                <p>Best regards,<br>SMART AI SYSTEM</p>
+                <p>Best regards,<br>SMART ATTENDANCE SYSTEM</p>
             </div>
         </body>
         </html>

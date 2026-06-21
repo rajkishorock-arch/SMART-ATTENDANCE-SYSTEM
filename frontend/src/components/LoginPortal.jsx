@@ -101,7 +101,7 @@ export default function LoginPortal({
             <ShieldCheck size={40} />
           </div>
           <div>
-            <h1 className="login-portal-title">SMART AI SYSTEM</h1>
+            <h1 className="login-portal-title">SMART ATTENDANCE</h1>
             <p className="login-portal-subtitle">Robotic Secure Access Portal</p>
           </div>
         </div>

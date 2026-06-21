@@ -206,3 +206,8 @@ class FeedbackResponse(BaseModel):
     class Config:
         from_attributes = True
         orm_mode = True
+
+# --- User Password Change ---
+class UserChangePassword(BaseModel):
+    old_password: str
+    new_password: str

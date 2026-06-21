@@ -366,6 +366,9 @@ export default function App() {
   // Advanced AI Chatbot States
   const [botPersonality, setBotPersonality] = useState('futuristic');
   const [botVoiceEnabled, setBotVoiceEnabled] = useState(false);
+  const [botWakeWordEnabled, setBotWakeWordEnabled] = useState(
+    localStorage.getItem('botWakeWordEnabled') === 'true'
+  );
   const [botVoiceSpeed, setBotVoiceSpeed] = useState(1.0);
   const [botVoicePitch, setBotVoicePitch] = useState(1.0);
   const [botSuggestionCategory, setBotSuggestionCategory] = useState('general');
@@ -398,7 +401,14 @@ export default function App() {
       voiceSystemStateRef.current = 'off';
     }
 
-    const state = voiceSystemStateRef.current;
+    let state = voiceSystemStateRef.current;
+    
+    // If wake word is requested but not enabled, fall back to off
+    if (state === 'wake_word' && !botWakeWordEnabled) {
+      voiceSystemStateRef.current = 'off';
+      state = 'off';
+    }
+
     const isSpeaking = isSpeakingRef.current;
 
     console.log(`[VoiceSync] State: ${state}, isSpeaking: ${isSpeaking}, running: wake=${isWakeWordRunningRef.current}, active=${isActiveAssistantRunningRef.current}, chatMic=${isChatbotMicRunningRef.current}`);
@@ -593,7 +603,7 @@ export default function App() {
       voiceAssistantErrorCountRef.current += 1;
       if (voiceAssistantErrorCountRef.current > 5) {
         console.warn("[Voice] Too many errors. Falling back to wake word mode.");
-        voiceSystemStateRef.current = 'wake_word';
+        voiceSystemStateRef.current = botWakeWordEnabled ? 'wake_word' : 'off';
         setIsVoiceAssistantMode(false);
         voiceAssistantActiveRef.current = false;
         voiceAssistantErrorCountRef.current = 0;
@@ -664,7 +674,7 @@ export default function App() {
       
       setTimeout(() => {
         if (voiceSystemStateRef.current === 'chatbot_mic') {
-          voiceSystemStateRef.current = isVoiceAssistantMode ? 'active_assistant' : 'wake_word';
+          voiceSystemStateRef.current = isVoiceAssistantMode ? 'active_assistant' : (botWakeWordEnabled ? 'wake_word' : 'off');
           syncVoiceListeners();
         }
       }, 200);
@@ -681,7 +691,7 @@ export default function App() {
 
   // Token synchronization effect
   useEffect(() => {
-    if (token) {
+    if (token && botWakeWordEnabled) {
       voiceSystemStateRef.current = 'wake_word';
       syncVoiceListeners();
     } else {
@@ -692,7 +702,7 @@ export default function App() {
       voiceSystemStateRef.current = 'off';
       syncVoiceListeners();
     };
-  }, [token, syncVoiceListeners]);
+  }, [token, botWakeWordEnabled, syncVoiceListeners]);
 
   // Watchdog timer to automatically heal dead voice listeners
   useEffect(() => {
@@ -1223,7 +1233,7 @@ export default function App() {
     }
 
     if (voiceSystemStateRef.current === 'chatbot_mic') {
-      voiceSystemStateRef.current = isVoiceAssistantMode ? 'active_assistant' : 'wake_word';
+      voiceSystemStateRef.current = isVoiceAssistantMode ? 'active_assistant' : (botWakeWordEnabled ? 'wake_word' : 'off');
       syncVoiceListeners();
     } else {
       voiceSystemStateRef.current = 'chatbot_mic';
@@ -1251,7 +1261,7 @@ export default function App() {
     playCyberSound('click');
     setIsVoiceAssistantMode(false);
     voiceAssistantActiveRef.current = false;
-    voiceSystemStateRef.current = 'wake_word';
+    voiceSystemStateRef.current = botWakeWordEnabled ? 'wake_word' : 'off';
     window.speechSynthesis.cancel();
     syncVoiceListeners();
   };
@@ -1519,6 +1529,12 @@ export default function App() {
   const [editingStudentSelf, setEditingStudentSelf] = useState({ name: '', phone: '', address: '', gender: 'Male', dob: '' });
   const [editStudentSelfError, setEditStudentSelfError] = useState('');
   const [editStudentSelfSuccess, setEditStudentSelfSuccess] = useState('');
+
+  // Teacher Self Edit States
+  const [showEditTeacherSelfModal, setShowEditTeacherSelfModal] = useState(false);
+  const [editingTeacherSelf, setEditingTeacherSelf] = useState({ name: '', email: '', subject_name: '', subject_code: '', subject_department: '' });
+  const [editTeacherSelfError, setEditTeacherSelfError] = useState('');
+  const [editTeacherSelfSuccess, setEditTeacherSelfSuccess] = useState('');
 
 
 
@@ -3005,9 +3021,9 @@ export default function App() {
             if (role === 'student') {
               return ['student-attendance', 'student-profile'].includes(tabId);
             } else if (role === 'teacher') {
-              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings'].includes(tabId);
+              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
             } else if (role === 'admin') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
             }
             return false;
           };
@@ -3074,7 +3090,11 @@ export default function App() {
     
     setIsChangingPassword(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/me/change-password`, {
+      const endpoint = userRole === 'student'
+        ? `${API_BASE_URL}/users/students/me/change-password`
+        : `${API_BASE_URL}/users/me/change-password`;
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3252,9 +3272,9 @@ export default function App() {
       if (role === 'student') {
         return ['student-attendance', 'student-profile'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
       }
       return false;
     };
@@ -4011,6 +4031,56 @@ export default function App() {
     }
   };
 
+  const handleUpdateTeacherSelf = async (e) => {
+    e.preventDefault();
+    setEditTeacherSelfError('');
+    setEditTeacherSelfSuccess('');
+
+    if (!editingTeacherSelf.name) {
+      setEditTeacherSelfError('Name is required.');
+      return;
+    }
+    if (!editingTeacherSelf.email) {
+      setEditTeacherSelfError('Email is required.');
+      return;
+    }
+
+    try {
+      const payload = {
+        name: editingTeacherSelf.name,
+        email: editingTeacherSelf.email
+      };
+      if (userRole === 'teacher') {
+        payload.subject_name = editingTeacherSelf.subject_name;
+        payload.subject_code = editingTeacherSelf.subject_code;
+        payload.subject_department = editingTeacherSelf.subject_department;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setEditTeacherSelfSuccess('Profile details updated successfully!');
+        fetchSessionInfo(token);
+        setTimeout(() => {
+          setShowEditTeacherSelfModal(false);
+          setEditTeacherSelfSuccess('');
+        }, 1500);
+      } else {
+        setEditTeacherSelfError(data.detail || 'Failed to update profile details.');
+      }
+    } catch (err) {
+      setEditTeacherSelfError('Connection failed.');
+    }
+  };
+
   // Add Teaching Staff Account
   const handleAddTeacher = async (e) => {
     e.preventDefault();
@@ -4739,6 +4809,16 @@ export default function App() {
               )}
               <li>
                 <button 
+                  className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  onClick={() => { setActiveTab('student-profile'); playCyberSound('click'); }}
+                >
+                  <Users size={18} />
+                  My Profile
+                </button>
+              </li>
+              <li>
+                <button 
                   className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
                   onClick={() => { setActiveTab('ai-assistant'); playCyberSound('click'); }}
@@ -4826,7 +4906,7 @@ export default function App() {
                 {activeTab === 'reports' && 'Attendance Reports & Alerts'}
                 {activeTab === 'session-history' && 'Session-wise History'}
                 {activeTab === 'student-attendance' && `Welcome, ${currentUser?.name || 'Student'}`}
-                {activeTab === 'student-profile' && 'My Academic Profile'}
+                {activeTab === 'student-profile' && 'My Profile'}
                 {activeTab === 'settings' && 'Security & System Settings'}
                 {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
               </h1>
@@ -4839,7 +4919,7 @@ export default function App() {
                 {activeTab === 'reports' && 'Generate academic reports, analytics, and attendance alerts'}
                 {activeTab === 'session-history' && 'Track day-by-day session registers and student present/absent statuses'}
                 {activeTab === 'student-attendance' && 'Track your attendance history and metrics'}
-                {activeTab === 'student-profile' && 'View and manage your personal credentials'}
+                {activeTab === 'student-profile' && 'View and manage your personal profile and credentials'}
                 {activeTab === 'settings' && 'Manage campus geofencing and IP subnet restriction boundaries'}
                 {activeTab === 'ai-assistant' && 'Interact using voice or upload files. Customise bot settings and suggestion filters.'}
               </p>
@@ -5093,8 +5173,8 @@ export default function App() {
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Calendar size={18} style={{ color: '#00f2fe' }} /> Weekly Attendance Trends
                 </h3>
-                <div style={{ width: '100%', height: '220px' }}>
-                  <ResponsiveContainer>
+                <div style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
+                  <ResponsiveContainer width="99%" height={220}>
                     <AreaChart data={stats.weekly_trends}>
                       <defs>
                         <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
@@ -5123,14 +5203,14 @@ export default function App() {
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Layers size={18} style={{ color: '#a78bfa' }} /> Present Today by Dept
                 </h3>
-                <div style={{ width: '100%', height: '220px' }}>
+                <div style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
                   {Object.keys(stats.department_stats).length === 0 ? (
                     <div className="flex-center" style={{ height: '100%', color: '#94a3b8', flexDirection: 'column', gap: '12px' }}>
                       <AlertCircle size={32} style={{ color: '#ef4444' }} />
                       <span>No attendance data marked for today.</span>
                     </div>
                   ) : (
-                    <ResponsiveContainer>
+                    <ResponsiveContainer width="99%" height={220}>
                       <BarChart data={Object.keys(stats.department_stats).map(dept => ({ name: dept, count: stats.department_stats[dept] }))}>
                         <defs>
                           <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
@@ -9155,8 +9235,8 @@ export default function App() {
         )}
 
         {activeTab === 'student-profile' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
-            {/* Student Credentials / Profile info */}
+          <div style={{ display: 'grid', gridTemplateColumns: userRole === 'student' ? '1.2fr 1.8fr' : '1fr 1fr', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
+            {/* Profile info left panel */}
             <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '24px' }}>
                 <div style={{
@@ -9173,94 +9253,163 @@ export default function App() {
                   boxShadow: 'var(--glow-shadow)',
                   marginBottom: '16px'
                 }}>
-                  {currentUser?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'ST'}
+                  {currentUser?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
                 </div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{currentUser?.name}</h3>
                 <span style={{ color: '#00f2fe', fontSize: '0.85rem', fontWeight: 600, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Roll No: {currentUser?.details?.roll}
+                  Role: {userRole}
                 </span>
                 
-                {currentUser?.details?.photo === 'yes' ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '6px 12px', borderRadius: '12px', color: '#10b981', fontSize: '0.75rem', fontWeight: 600, marginTop: '12px' }}>
-                    <CheckCircle2 size={12} /> Face Registered
-                  </span>
-                ) : (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '6px 12px', borderRadius: '12px', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600, marginTop: '12px' }}>
-                    <AlertCircle size={12} /> Face Not Registered
-                  </span>
+                {userRole === 'student' && (
+                  <>
+                    <span style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '4px' }}>
+                      Roll No: {currentUser?.details?.roll}
+                    </span>
+                    {currentUser?.details?.photo === 'yes' ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '6px 12px', borderRadius: '12px', color: '#10b981', fontSize: '0.75rem', fontWeight: 600, marginTop: '12px' }}>
+                        <CheckCircle2 size={12} /> Face Registered
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '6px 12px', borderRadius: '12px', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600, marginTop: '12px' }}>
+                        <AlertCircle size={12} /> Face Not Registered
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Department</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.dep}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Course</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.course}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Academic Year</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.year}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Semester</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.semester}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Email Address</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.email}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Phone Number</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.phone}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>DOB</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.dob}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Home Address</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.85rem', maxWidth: '180px', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={currentUser?.details?.address}>
-                    {currentUser?.details?.address}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Mentor / Teacher</span>
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.teacher}</span>
-                </div>
+                {userRole === 'student' ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Department</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.dep}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Course</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.course}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Academic Year</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.year}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Semester</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.semester}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Email Address</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.email}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Phone Number</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.phone}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>DOB</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.dob}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Home Address</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.85rem', maxWidth: '180px', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={currentUser?.details?.address}>
+                        {currentUser?.details?.address}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Mentor / Teacher</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.teacher}</span>
+                    </div>
+                  </>
+                ) : userRole === 'teacher' ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Email Address</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.email}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Assigned Subject</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.subject_name || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Subject Code</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.subject_code || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Department</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.subject_department || 'N/A'}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Email Address</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.email}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
-              <button
-                onClick={() => {
-                  setEditingStudentSelf({
-                    name: currentUser?.name || '',
-                    phone: currentUser?.details?.phone || '',
-                    address: currentUser?.details?.address || '',
-                    gender: currentUser?.details?.gender || 'Male',
-                    dob: currentUser?.details?.dob || ''
-                  });
-                  setEditStudentSelfError('');
-                  setEditStudentSelfSuccess('');
-                  setShowEditStudentSelfModal(true);
-                }}
-                className="bg-gradient-btn"
-                style={{
-                  width: '100%',
-                  marginTop: '20px',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-              >
-                <Edit size={16} /> Edit Profile Info
-              </button>
+              {userRole !== 'student' ? (
+                <button
+                  onClick={() => {
+                    setEditingTeacherSelf({
+                      name: currentUser?.name || '',
+                      email: currentUser?.email || '',
+                      subject_name: currentUser?.subject_name || '',
+                      subject_code: currentUser?.subject_code || '',
+                      subject_department: currentUser?.subject_department || ''
+                    });
+                    setEditTeacherSelfError('');
+                    setEditTeacherSelfSuccess('');
+                    setShowEditTeacherSelfModal(true);
+                  }}
+                  className="bg-gradient-btn"
+                  style={{
+                    width: '100%',
+                    marginTop: '20px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Edit size={16} /> Edit Profile Info
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditingStudentSelf({
+                      name: currentUser?.name || '',
+                      phone: currentUser?.details?.phone || '',
+                      address: currentUser?.details?.address || '',
+                      gender: currentUser?.details?.gender || 'Male',
+                      dob: currentUser?.details?.dob || ''
+                    });
+                    setEditStudentSelfError('');
+                    setEditStudentSelfSuccess('');
+                    setShowEditStudentSelfModal(true);
+                  }}
+                  className="bg-gradient-btn"
+                  style={{
+                    width: '100%',
+                    marginTop: '20px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Edit size={16} /> Edit Profile Info
+                </button>
+              )}
 
               <button
                 onClick={() => { playCyberSound('click'); handleLogout(); }}
@@ -9288,183 +9437,185 @@ export default function App() {
  
             {/* Right Column Stack */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-              {/* Register Face Card */}
-              <div className="glass-panel" style={{ padding: '32px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Camera size={20} style={{ color: '#00f2fe' }} /> Register My Face Profile
-                </h3>
-                <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginBottom: '24px' }}>
-                  Upload a selfie or capture live to set up secure face recognition. The system automatically validates lighting, blur, and face presence.
-                </p>
+              {/* Register Face Card (Only for Student) */}
+              {userRole === 'student' && (
+                <div className="glass-panel" style={{ padding: '32px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Camera size={20} style={{ color: '#00f2fe' }} /> Register My Face Profile
+                  </h3>
+                  <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginBottom: '24px' }}>
+                    Upload a selfie or capture live to set up secure face recognition. The system automatically validates lighting, blur, and face presence.
+                  </p>
 
-                {selfieError && (
-                  <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
-                    <AlertCircle size={16} />
-                    <span>{selfieError}</span>
-                  </div>
-                )}
+                  {selfieError && (
+                    <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
+                      <AlertCircle size={16} />
+                      <span>{selfieError}</span>
+                    </div>
+                  )}
 
-                {selfieSuccess && (
-                  <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', color: '#10b981', fontSize: '0.875rem', marginBottom: '20px' }}>
-                    <CheckCircle2 size={16} />
-                    <span>{selfieSuccess}</span>
-                  </div>
-                )}
+                  {selfieSuccess && (
+                    <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', color: '#10b981', fontSize: '0.875rem', marginBottom: '20px' }}>
+                      <CheckCircle2 size={16} />
+                      <span>{selfieSuccess}</span>
+                    </div>
+                  )}
 
-                {(studentWebcamActive || studentWebcamBootActive) ? (
-                  <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                    <div className="scanner-container" style={{ position: 'relative', width: '100%', maxWidth: '400px', margin: '0 auto', aspectRatio: '4/3', background: '#111827', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div className="scanner-bracket bracket-tl" />
-                      <div className="scanner-bracket bracket-tr" />
-                      <div className="scanner-bracket bracket-bl" />
-                      <div className="scanner-bracket bracket-br" />
-                      {studentWebcamActive && !studentWebcamBootActive && (
-                        <div style={{ position: 'absolute', left: 0, width: '100%', height: '2px', background: 'var(--color-primary)', boxShadow: '0 0 8px var(--color-primary)', zIndex: 5, animation: 'scan 3s linear infinite' }} />
-                      )}
+                  {(studentWebcamActive || studentWebcamBootActive) ? (
+                    <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                      <div className="scanner-container" style={{ position: 'relative', width: '100%', maxWidth: '400px', margin: '0 auto', aspectRatio: '4/3', background: '#111827', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div className="scanner-bracket bracket-tl" />
+                        <div className="scanner-bracket bracket-tr" />
+                        <div className="scanner-bracket bracket-bl" />
+                        <div className="scanner-bracket bracket-br" />
+                        {studentWebcamActive && !studentWebcamBootActive && (
+                          <div style={{ position: 'absolute', left: 0, width: '100%', height: '2px', background: 'var(--color-primary)', boxShadow: '0 0 8px var(--color-primary)', zIndex: 5, animation: 'scan 3s linear infinite' }} />
+                        )}
 
-                      <ScannerBootOverlay
-                        active={studentWebcamBootActive}
-                        onComplete={handleStudentWebcamBootComplete}
-                        label="STUD_REG_02"
-                        lines={[
-                          'INITIALIZING SELFIE OPTICS...',
-                          'VALIDATING LIGHTING MATRIX...',
-                          'LOADING FACE MESH ENGINE...',
-                          'PREPARING BIOMETRIC CAPTURE...',
-                          'STUD_REG_02 ONLINE — READY',
-                        ]}
-                      />
+                        <ScannerBootOverlay
+                          active={studentWebcamBootActive}
+                          onComplete={handleStudentWebcamBootComplete}
+                          label="STUD_REG_02"
+                          lines={[
+                            'INITIALIZING SELFIE OPTICS...',
+                            'VALIDATING LIGHTING MATRIX...',
+                            'LOADING FACE MESH ENGINE...',
+                            'PREPARING BIOMETRIC CAPTURE...',
+                            'STUD_REG_02 ONLINE — READY',
+                          ]}
+                        />
 
-                      {studentWebcamActive && !studentWebcamBootActive && (
-                        <div className="scanner-live-hud">
-                          <div className="scanner-live-grid" />
-                          <div className="scanner-live-radar-mini" />
-                          <div className="scanner-live-status">● SELFIE CAPTURE MODE</div>
-                        </div>
-                      )}
+                        {studentWebcamActive && !studentWebcamBootActive && (
+                          <div className="scanner-live-hud">
+                            <div className="scanner-live-grid" />
+                            <div className="scanner-live-radar-mini" />
+                            <div className="scanner-live-status">● SELFIE CAPTURE MODE</div>
+                          </div>
+                        )}
 
-                      <CameraAttractHud
-                        active={studentWebcamActive && !studentWebcamBootActive}
-                        mode="selfie"
-                      />
-                      
-                      {/* HUD Sci-Fi telemetry overlay */}
-                      {studentWebcamActive && !studentWebcamBootActive && (
-                        <>
-                          <div style={{
-                            position: 'absolute',
-                            top: '12px',
-                            left: '12px',
-                            zIndex: 10,
-                            fontFamily: 'monospace',
-                            fontSize: '0.7rem',
-                            color: 'var(--color-primary)',
-                            background: 'rgba(5, 10, 20, 0.65)',
-                            backdropFilter: 'blur(4px)',
-                            border: '1px solid var(--border-color-glow)',
-                            borderRadius: '4px',
-                            padding: '8px 12px',
-                            pointerEvents: 'none',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                            textAlign: 'left'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
-                              <span style={{ fontWeight: 'bold' }}>AI MATRIX REG v1.4.2</span>
+                        <CameraAttractHud
+                          active={studentWebcamActive && !studentWebcamBootActive}
+                          mode="selfie"
+                        />
+                        
+                        {/* HUD Sci-Fi telemetry overlay */}
+                        {studentWebcamActive && !studentWebcamBootActive && (
+                          <>
+                            <div style={{
+                              position: 'absolute',
+                              top: '12px',
+                              left: '12px',
+                              zIndex: 10,
+                              fontFamily: 'monospace',
+                              fontSize: '0.7rem',
+                              color: 'var(--color-primary)',
+                              background: 'rgba(5, 10, 20, 0.65)',
+                              backdropFilter: 'blur(4px)',
+                              border: '1px solid var(--border-color-glow)',
+                              borderRadius: '4px',
+                              padding: '8px 12px',
+                              pointerEvents: 'none',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '4px',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                              textAlign: 'left'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
+                                <span style={{ fontWeight: 'bold' }}>AI MATRIX REG v1.4.2</span>
+                              </div>
+                              <div>SYS_STATE: <span style={{ color: '#fff' }}>SELFIE_CAPTURE</span></div>
+                              <div>SYS_FPS: <span style={{ color: '#fff' }}>{hudMetrics.fps}</span></div>
+                              <div>SYS_LIGHT: <span style={{ color: '#fff' }}>{hudMetrics.lighting}</span></div>
+                              <div>SYS_QUALITY: <span style={{ color: '#fff' }}>{hudMetrics.quality}</span></div>
                             </div>
-                            <div>SYS_STATE: <span style={{ color: '#fff' }}>SELFIE_CAPTURE</span></div>
-                            <div>SYS_FPS: <span style={{ color: '#fff' }}>{hudMetrics.fps}</span></div>
-                            <div>SYS_LIGHT: <span style={{ color: '#fff' }}>{hudMetrics.lighting}</span></div>
-                            <div>SYS_QUALITY: <span style={{ color: '#fff' }}>{hudMetrics.quality}</span></div>
-                          </div>
-                          <div style={{
-                            position: 'absolute',
-                            bottom: '12px',
-                            right: '12px',
-                            zIndex: 10,
-                            fontFamily: 'monospace',
-                            fontSize: '0.65rem',
-                            color: 'rgba(255,255,255,0.4)',
-                            pointerEvents: 'none'
-                          }}>
-                            LOC: STUD_REG_02
-                          </div>
-                        </>
-                      )}
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '12px',
+                              right: '12px',
+                              zIndex: 10,
+                              fontFamily: 'monospace',
+                              fontSize: '0.65rem',
+                              color: 'rgba(255,255,255,0.4)',
+                              pointerEvents: 'none'
+                            }}>
+                              LOC: STUD_REG_02
+                            </div>
+                          </>
+                        )}
 
-                      <video 
-                        ref={studentVideoRef} 
-                        autoPlay 
-                        playsInline 
-                        muted 
-                        className={studentWebcamBootActive ? 'scanner-video-booting' : ''}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          transform: 'scaleX(-1)',
-                          display: (studentWebcamActive || studentWebcamBootActive) ? 'block' : 'none',
-                        }} 
-                      />
-                      <canvas ref={studentCanvasRef} style={{ display: 'none' }} />
+                        <video 
+                          ref={studentVideoRef} 
+                          autoPlay 
+                          playsInline 
+                          muted 
+                          className={studentWebcamBootActive ? 'scanner-video-booting' : ''}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            transform: 'scaleX(-1)',
+                            display: (studentWebcamActive || studentWebcamBootActive) ? 'block' : 'none',
+                          }} 
+                        />
+                        <canvas ref={studentCanvasRef} style={{ display: 'none' }} />
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
+                        <button 
+                          onClick={handleStudentWebcamCapture} 
+                          className="bg-gradient-btn" 
+                          style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem' }}
+                          disabled={isUploadingSelfie}
+                        >
+                          {isUploadingSelfie ? 'Verifying...' : 'Capture & Register'}
+                        </button>
+                        <button 
+                          onClick={stopStudentWebcam} 
+                          className="btn-secondary" 
+                          style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                    
-                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
                       <button 
-                        onClick={handleStudentWebcamCapture} 
-                        className="bg-gradient-btn" 
-                        style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem' }}
+                        onClick={startStudentWebcam} 
+                        className="btn-secondary"
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: '1px solid rgba(0,242,254,0.3)', background: 'rgba(0,242,254,0.05)', color: '#00f2fe' }}
                         disabled={isUploadingSelfie}
                       >
-                        {isUploadingSelfie ? 'Verifying...' : 'Capture & Register'}
+                        <Video size={16} />
+                        Use Live Webcam
                       </button>
-                      <button 
-                        onClick={stopStudentWebcam} 
-                        className="btn-secondary" 
-                        style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem' }}
+
+                      <label 
+                        className="btn-secondary"
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', cursor: 'pointer', borderColor: 'rgba(255,255,255,0.1)' }}
                       >
-                        Cancel
-                      </button>
+                        <Plus size={16} />
+                        Upload Selfie Image
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          style={{ display: 'none' }} 
+                          onChange={handleStudentFileSelect}
+                          disabled={isUploadingSelfie}
+                        />
+                      </label>
                     </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                    <button 
-                      onClick={startStudentWebcam} 
-                      className="btn-secondary"
-                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: '1px solid rgba(0,242,254,0.3)', background: 'rgba(0,242,254,0.05)', color: '#00f2fe' }}
-                      disabled={isUploadingSelfie}
-                    >
-                      <Video size={16} />
-                      Use Live Webcam
-                    </button>
+                  )}
 
-                    <label 
-                      className="btn-secondary"
-                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', cursor: 'pointer', borderColor: 'rgba(255,255,255,0.1)' }}
-                    >
-                      <Plus size={16} />
-                      Upload Selfie Image
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        style={{ display: 'none' }} 
-                        onChange={handleStudentFileSelect}
-                        disabled={isUploadingSelfie}
-                      />
-                    </label>
-                  </div>
-                )}
-
-                {isUploadingSelfie && (
-                  <div style={{ color: '#00f2fe', fontSize: '0.85rem', textAlign: 'center', animation: 'pulse 1s infinite' }}>
-                    Analyzing selfie quality (lighting, focus, face count)... Please wait...
-                  </div>
-                )}
-              </div>
+                  {isUploadingSelfie && (
+                    <div style={{ color: '#00f2fe', fontSize: '0.85rem', textAlign: 'center', animation: 'pulse 1s infinite' }}>
+                      Analyzing selfie quality (lighting, focus, face count)... Please wait...
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Change Password Block */}
               <div className="glass-panel" style={{ padding: '32px' }}>
@@ -9486,7 +9637,7 @@ export default function App() {
 
                 <form onSubmit={handleChangePassword}>
                   <div className="form-group">
-                    <label className="form-label">Current Password / Default Roll No</label>
+                    <label className="form-label">{userRole === 'student' ? 'Current Password / Default Roll No' : 'Current Password'}</label>
                     <input 
                       type="password" 
                       className="form-input" 
@@ -9564,6 +9715,42 @@ export default function App() {
                       LISTENING VOICE...
                     </div>
                   )}
+                  <button 
+                    type="button" 
+                    className="ai-icon-btn" 
+                    onClick={() => {
+                      const enabled = !botWakeWordEnabled;
+                      playCyberSound('click'); 
+                      setBotWakeWordEnabled(enabled); 
+                      localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
+                      voiceSystemStateRef.current = enabled ? 'wake_word' : 'off';
+                      setTimeout(() => syncVoiceListeners(), 50);
+                    }} 
+                    title={botWakeWordEnabled ? "Wake Word Listening Active. Click to turn OFF mic background listening." : "Wake Word Off. Click to enable background 'Hey Raj' mic listener."}
+                    style={{ 
+                      width: 'auto', 
+                      height: '32px', 
+                      borderRadius: '6px', 
+                      fontSize: '0.72rem', 
+                      fontWeight: 700, 
+                      padding: '0 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      border: botWakeWordEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255,255,255,0.08)',
+                      background: botWakeWordEnabled ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                      color: botWakeWordEnabled ? '#10b981' : '#9ca3af'
+                    }}
+                  >
+                    <span style={{ 
+                      width: '6px', 
+                      height: '6px', 
+                      borderRadius: '50%', 
+                      background: botWakeWordEnabled ? '#10b981' : '#9ca3af',
+                      animation: botWakeWordEnabled ? 'pulse 1.5s infinite' : 'none'
+                    }} />
+                    <span>WAKE WORD: {botWakeWordEnabled ? 'ON' : 'OFF'}</span>
+                  </button>
                   <button 
                     type="button" 
                     className="ai-icon-btn" 
@@ -9824,6 +10011,28 @@ export default function App() {
               <div className="ai-settings-section">
                 <label className="ai-settings-label">Speech Synthesis Engine</label>
                 
+                <div className="ai-toggle-group" style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Voice Activation Mode</span>
+                    <small style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Listen for "Hey Raj" in background</small>
+                  </div>
+                  <label className="ai-toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={botWakeWordEnabled} 
+                      onChange={(e) => { 
+                        const enabled = e.target.checked;
+                        playCyberSound('click'); 
+                        setBotWakeWordEnabled(enabled); 
+                        localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
+                        voiceSystemStateRef.current = enabled ? 'wake_word' : 'off';
+                        setTimeout(() => syncVoiceListeners(), 50);
+                      }} 
+                    />
+                    <span className="ai-toggle-slider" />
+                  </label>
+                </div>
+
                 <div className="ai-toggle-group">
                   <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Auto-Read Bot Replies</span>
                   <label className="ai-toggle-switch">
@@ -10156,6 +10365,98 @@ export default function App() {
 
               <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '32px' }}>
                 <button type="button" onClick={() => { setShowEditStudentSelfModal(false); }} className="btn-secondary" style={{ padding: '12px 24px', borderRadius: '8px' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="bg-gradient-btn" style={{ padding: '12px 32px', borderRadius: '8px', fontWeight: 600 }}>
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Teacher/Admin Self Modal */}
+      {showEditTeacherSelfModal && editingTeacherSelf && (
+        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100 }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Profile Information</h3>
+            
+            {editTeacherSelfError && (
+              <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
+                <AlertCircle size={16} />
+                <span>{editTeacherSelfError}</span>
+              </div>
+            )}
+
+            {editTeacherSelfSuccess && (
+              <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', color: '#10b981', fontSize: '0.875rem', marginBottom: '20px' }}>
+                <CheckCircle2 size={16} />
+                <span>{editTeacherSelfSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateTeacherSelf}>
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={editingTeacherSelf.name}
+                  onChange={e => setEditingTeacherSelf({...editingTeacherSelf, name: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginTop: '20px' }}>
+                <label className="form-label">Email Address</label>
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  value={editingTeacherSelf.email}
+                  onChange={e => setEditingTeacherSelf({...editingTeacherSelf, email: e.target.value})}
+                  required
+                />
+              </div>
+
+              {userRole === 'teacher' && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+                    <div className="form-group">
+                      <label className="form-label">Assigned Subject Name</label>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        value={editingTeacherSelf.subject_name}
+                        onChange={e => setEditingTeacherSelf({...editingTeacherSelf, subject_name: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Subject Code</label>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        value={editingTeacherSelf.subject_code}
+                        onChange={e => setEditingTeacherSelf({...editingTeacherSelf, subject_code: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '20px' }}>
+                    <label className="form-label">Subject Department</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      value={editingTeacherSelf.subject_department}
+                      onChange={e => setEditingTeacherSelf({...editingTeacherSelf, subject_department: e.target.value})}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '32px' }}>
+                <button type="button" onClick={() => { setShowEditTeacherSelfModal(false); }} className="btn-secondary" style={{ padding: '12px 24px', borderRadius: '8px' }}>
                   Cancel
                 </button>
                 <button type="submit" className="bg-gradient-btn" style={{ padding: '12px 32px', borderRadius: '8px', fontWeight: 600 }}>

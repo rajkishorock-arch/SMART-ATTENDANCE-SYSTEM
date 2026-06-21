@@ -49,7 +49,7 @@ def weekly_attendance_job():
                 <p>Hello Administrator,</p>
                 <p>Please find attached the compiled weekly attendance report for the period <b>{monday.strftime('%d %B %Y')}</b> to <b>{today.strftime('%d %B %Y')}</b>.</p>
                 <p>This report contains the student attendance registers and rate analysis for all departments.</p>
-                <p>Best regards,<br>SMART AI SYSTEM Notification Engine</p>
+                <p>Best regards,<br>SMART ATTENDANCE Notification Engine</p>
             </div>
             <div class="footer">
                 This is a scheduled automated report. Please do not reply directly to this mail.
@@ -112,7 +112,7 @@ def monthly_attendance_job():
                 <p>Hello Administrator,</p>
                 <p>Please find attached the comprehensive monthly attendance report for the period <b>{first_day.strftime('%d %B %Y')}</b> to <b>{today.strftime('%d %B %Y')}</b>.</p>
                 <p>This report includes detailed attendance statistics, averages, and low attendance warning triggers for students.</p>
-                <p>Best regards,<br>SMART AI SYSTEM Notification Engine</p>
+                <p>Best regards,<br>SMART ATTENDANCE Notification Engine</p>
             </div>
             <div class="footer">
                 This is a scheduled automated report. Please do not reply directly to this mail.
