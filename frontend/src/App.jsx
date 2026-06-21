@@ -552,10 +552,27 @@ export default function App() {
     const lowerSpeech = text.toLowerCase().trim();
     console.log("Voice Command Parser processing:", lowerSpeech);
 
+    // Helper function to change tabs and close active modals/menus
+    const changeTab = (tabId) => {
+      setActiveTab(tabId);
+      try {
+        setMobileSidebarOpen(false);
+      } catch (err) {}
+      try {
+        setMobileControlOpen(false);
+      } catch (err) {}
+      try {
+        setShowScannerModal(false);
+      } catch (err) {}
+      try {
+        setShowFeedbackModal(false);
+      } catch (err) {}
+    };
+
     // 1. Navigation Commands
     if (lowerSpeech.includes('dashboard') || lowerSpeech.includes('home')) {
       const dest = userRole === 'student' ? 'student-attendance' : 'dashboard';
-      setActiveTab(dest);
+      changeTab(dest);
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
@@ -565,7 +582,7 @@ export default function App() {
       return true;
     }
     if (lowerSpeech.includes('profile')) {
-      setActiveTab('student-profile');
+      changeTab('student-profile');
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
@@ -575,7 +592,10 @@ export default function App() {
       return true;
     }
     if (lowerSpeech.includes('scanner') || lowerSpeech.includes('attendance') || lowerSpeech.includes('face')) {
-      setActiveTab('attendance');
+      changeTab('attendance');
+      try {
+        setShowScannerModal(true);
+      } catch (err) {}
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
@@ -585,7 +605,7 @@ export default function App() {
       return true;
     }
     if (lowerSpeech.includes('log') || lowerSpeech.includes('logs')) {
-      setActiveTab('logs');
+      changeTab('logs');
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
@@ -595,7 +615,7 @@ export default function App() {
       return true;
     }
     if (lowerSpeech.includes('history') || lowerSpeech.includes('session')) {
-      setActiveTab('session-history');
+      changeTab('session-history');
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
@@ -605,7 +625,7 @@ export default function App() {
       return true;
     }
     if (lowerSpeech.includes('report')) {
-      setActiveTab('reports');
+      changeTab('reports');
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
@@ -616,7 +636,7 @@ export default function App() {
     }
     if (lowerSpeech === 'open settings' || lowerSpeech === 'go to settings' || lowerSpeech === 'open security settings') {
       if (userRole === 'admin') {
-        setActiveTab('settings');
+        changeTab('settings');
         playCyberSound('success');
         handleSpeakText("ho gaya", () => {
           if (voiceAssistantActiveRef.current) {
@@ -632,8 +652,28 @@ export default function App() {
       }
       return true;
     }
+    if (lowerSpeech.includes('students') || lowerSpeech.includes('student directory')) {
+      changeTab('students');
+      playCyberSound('success');
+      handleSpeakText("ho gaya", () => {
+        if (voiceAssistantActiveRef.current) {
+          setTimeout(listenInVoiceMode, 400);
+        }
+      });
+      return true;
+    }
+    if (lowerSpeech.includes('teachers') || lowerSpeech.includes('teacher directory') || lowerSpeech.includes('timetable')) {
+      changeTab('teachers');
+      playCyberSound('success');
+      handleSpeakText("ho gaya", () => {
+        if (voiceAssistantActiveRef.current) {
+          setTimeout(listenInVoiceMode, 400);
+        }
+      });
+      return true;
+    }
     if (lowerSpeech.includes('chat') || lowerSpeech.includes('assistant') || lowerSpeech.includes('ai')) {
-      setActiveTab('ai-assistant');
+      changeTab('ai-assistant');
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         if (voiceAssistantActiveRef.current) {
@@ -767,6 +807,7 @@ export default function App() {
   const handleSpeakText = (text, onEndCallback = null) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
       console.warn("Speech synthesis not supported in this browser.");
+      if (onEndCallback) onEndCallback();
       return;
     }
     window.speechSynthesis.cancel();
@@ -786,9 +827,31 @@ export default function App() {
         utterance.voice = foundVoice;
       }
     }
-    if (onEndCallback) {
-      utterance.onend = onEndCallback;
-    }
+
+    let callbackCalled = false;
+    const safeCallback = () => {
+      if (callbackCalled) return;
+      callbackCalled = true;
+      if (onEndCallback) onEndCallback();
+    };
+
+    utterance.onend = safeCallback;
+    utterance.onerror = safeCallback;
+
+    // Backup safety timeout to ensure callback is always executed
+    const durationEstimate = (cleanedText.length * 100) + 1500; // 100ms per character + 1.5s padding
+    const backupTimeout = setTimeout(safeCallback, durationEstimate);
+
+    // Clear timeout if callback runs early
+    utterance.onend = () => {
+      clearTimeout(backupTimeout);
+      safeCallback();
+    };
+    utterance.onerror = () => {
+      clearTimeout(backupTimeout);
+      safeCallback();
+    };
+
     window.speechSynthesis.speak(utterance);
   };
 
