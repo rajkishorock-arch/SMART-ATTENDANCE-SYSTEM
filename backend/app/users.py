@@ -127,6 +127,8 @@ def update_user_details(
         db_user.password_hash = security.get_password_hash(user_data.password)
     if user_data.role is not None:
         db_user.role = user_data.role
+    if user_data.is_active is not None:
+        db_user.is_active = user_data.is_active
         
     # Map/Update subject if provided for the teacher role
     if db_user.role == "teacher":

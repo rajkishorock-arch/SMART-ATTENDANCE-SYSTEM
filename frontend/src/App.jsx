@@ -3496,6 +3496,7 @@ export default function App() {
         fetchLogs();
         if (userRole === 'admin') {
           fetchFeedbacks();
+          fetchTeachers();
         }
         break;
       case 'students':
@@ -5612,6 +5613,176 @@ export default function App() {
                     </table>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Administrator Authority Control (Admins Only) */}
+            {userRole === 'admin' && (
+              <div className="glass-panel" style={{ 
+                marginTop: '28px', 
+                padding: '28px', 
+                animationDelay: '1100ms',
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100%',
+                overflow: 'hidden'
+              }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <ShieldCheck size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} />
+                  <span>Admin Authority & Lockout Prevention Control</span>
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
+                  Verify current system administrators, active roles, and authorization status. Critical modifications (removal, toggling access) require entering the <strong>Master Developer Password</strong> to prevent lockout or unauthorized takeovers.
+                </p>
+                
+                <div style={{ width: '100%', overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL (USERNAME)</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>ROLE</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>STATUS</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>CREATED DATE</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>AUTHORITY ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(teachers || []).filter(u => u.role === 'admin').map((adminUser) => (
+                        <tr key={adminUser.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
+                          <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>
+                            {adminUser.name}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>{adminUser.email}</td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{ 
+                              padding: '2px 8px', 
+                              borderRadius: '4px', 
+                              fontSize: '0.72rem', 
+                              fontWeight: 'bold',
+                              background: 'rgba(0, 242, 254, 0.12)',
+                              color: '#00f2fe'
+                            }}>
+                              SYSTEM ADMIN
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{ 
+                              padding: '2px 8px', 
+                              borderRadius: '4px', 
+                              fontSize: '0.72rem', 
+                              fontWeight: 'bold',
+                              background: adminUser.is_active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                              color: adminUser.is_active ? '#10b981' : '#ef4444'
+                            }}>
+                              {adminUser.is_active ? 'ACTIVE' : 'DEACTIVATED'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>
+                            {new Date(adminUser.created_at).toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              <button 
+                                onClick={async () => {
+                                  playCyberSound('click');
+                                  const masterPass = prompt(`Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`);
+                                  if (!masterPass) return;
+                                  if (masterPass !== 'dev_master_raj_9211_secure') {
+                                    alert("Invalid Master Password! Access Denied.");
+                                    playCyberSound('error');
+                                    return;
+                                  }
+                                  try {
+                                    const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
+                                      method: 'PUT',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                      },
+                                      body: JSON.stringify({
+                                        name: adminUser.name,
+                                        email: adminUser.email,
+                                        role: adminUser.role,
+                                        is_active: !adminUser.is_active
+                                      })
+                                    });
+                                    if (res.ok) {
+                                      alert(`Status updated successfully.`);
+                                      playCyberSound('success');
+                                      fetchTeachers();
+                                    } else {
+                                      const errData = await res.json();
+                                      alert(errData.detail || 'Failed to update admin.');
+                                    }
+                                  } catch (e) {
+                                    alert('Connection failed.');
+                                  }
+                                }}
+                                className="action-btn"
+                                style={{ 
+                                  padding: '5px 10px', 
+                                  fontSize: '0.75rem', 
+                                  background: adminUser.is_active ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                  border: `1px solid ${adminUser.is_active ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+                                  color: adminUser.is_active ? '#ef4444' : '#10b981'
+                                }}
+                              >
+                                {adminUser.is_active ? 'Deactivate' : 'Activate'}
+                              </button>
+                              
+                              <button 
+                                onClick={async () => {
+                                  playCyberSound('click');
+                                  if (adminUser.email === 'rajkishorock@gmail.com') {
+                                    alert("Cannot delete primary system admin!");
+                                    playCyberSound('error');
+                                    return;
+                                  }
+                                  const masterPass = prompt(`Enter Master Password to completely DELETE admin "${adminUser.email}":`);
+                                  if (!masterPass) return;
+                                  if (masterPass !== 'dev_master_raj_9211_secure') {
+                                    alert("Invalid Master Password! Access Denied.");
+                                    playCyberSound('error');
+                                    return;
+                                  }
+                                  try {
+                                    const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
+                                      method: 'DELETE',
+                                      headers: {
+                                        'Authorization': `Bearer ${token}`
+                                      }
+                                    });
+                                    if (res.ok) {
+                                      alert(`Admin deleted successfully.`);
+                                      playCyberSound('success');
+                                      fetchTeachers();
+                                    } else {
+                                      const errData = await res.json();
+                                      alert(errData.detail || 'Failed to delete admin.');
+                                    }
+                                  } catch (e) {
+                                    alert('Connection failed.');
+                                  }
+                                }}
+                                className="action-btn"
+                                style={{ 
+                                  padding: '5px 10px', 
+                                  fontSize: '0.75rem', 
+                                  background: 'rgba(239, 68, 68, 0.15)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  color: '#ef4444'
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
