@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   Calendar,
   UserCircle,
+  Bot,
 } from 'lucide-react';
 
 export default function BottomNav({
@@ -25,6 +26,14 @@ export default function BottomNav({
         >
           <Calendar size={22} />
           <span>Attendance</span>
+        </button>
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
+          onClick={() => onNavigate('ai-assistant')}
+        >
+          <Bot size={22} />
+          <span>AI Assistant</span>
         </button>
         <button
           type="button"

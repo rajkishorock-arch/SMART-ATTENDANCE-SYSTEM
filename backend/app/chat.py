@@ -21,6 +21,9 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: List[ChatMessage] = []
+    image_base64: Optional[str] = None
+    image_mime_type: Optional[str] = None
+    personality: Optional[str] = "default"
 
 def get_current_any_user(db: Session = Depends(get_db), token: str = Depends(security.oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -77,6 +80,8 @@ def chat_response(
     
     # If no API key is configured, return the fallback response
     if not GEMINI_API_KEY:
+        if payload.image_base64:
+            return {"response": "An image was uploaded, but the Gemini AI API Key is not configured by the system administrator. Therefore, I cannot analyze this file. " + get_fallback_response(user_query)}
         return {"response": get_fallback_response(user_query)}
         
     # Prepare payload for Gemini API
@@ -90,10 +95,19 @@ def chat_response(
             "parts": [{"text": h.content}]
         })
         
-    # Append the new user query
+    # Append the new user query (handling multimodal parts)
+    parts = [{"text": user_query}]
+    if payload.image_base64 and payload.image_mime_type:
+        parts.append({
+            "inlineData": {
+                "mimeType": payload.image_mime_type,
+                "data": payload.image_base64
+            }
+        })
+
     contents.append({
         "role": "user",
-        "parts": [{"text": user_query}]
+        "parts": parts
     })
     
     system_instruction = (
@@ -102,6 +116,14 @@ def chat_response(
         "geofencing, and network-related issues, and answer any general educational or system-related questions. "
         "Be friendly, interactive, and keep responses concise and formatted in clean markdown."
     )
+    if payload.personality == "futuristic":
+        system_instruction += " Adopt a highly futuristic, sci-fi robotic tone with cybernetic terminology, glowing holographic responses, and technological metaphors."
+    elif payload.personality == "casual":
+        system_instruction += " Adopt a very friendly, casual, informal, and conversational tone, like a helpful study group classmate."
+    elif payload.personality == "tutor":
+        system_instruction += " Adopt a patient academic tutor personality. Explain concepts step-by-step with clear definitions, educational context, and analogies."
+    elif payload.personality == "robotic":
+        system_instruction += " Adopt a logical, systematic, direct machine-like tone. Give concise, highly structured data outputs without conversational fluff."
     
     body = {
         "contents": contents,

@@ -39,7 +39,11 @@ import {
   ArrowLeft,
   MessageSquare,
   Bot,
-  Send
+  Send,
+  Paperclip,
+  Mic,
+  MicOff,
+  Settings
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -121,6 +125,145 @@ export default function App() {
       }
       return updated;
     });
+  };
+
+  const getSuggestions = () => {
+    switch (botSuggestionCategory) {
+      case 'attendance':
+        return [
+          "Why did face scan show already marked?",
+          "How to view session-wise history?",
+          "What is geofencing location filter?"
+        ];
+      case 'profile':
+        return [
+          "How to register my face photo?",
+          "Can I change my registered email?",
+          "Where do I find my teacher/mentor info?"
+        ];
+      case 'security':
+        return [
+          "How to update account password?",
+          "Is my webcam biometric data safe?",
+          "How to check local geofence parameters?"
+        ];
+      case 'general':
+      default:
+        return [
+          "How does this system work?",
+          "What features does this app have?",
+          "How to submit feature feedback?"
+        ];
+    }
+  };
+
+  const renderInteractiveDiagram = (diagramType) => {
+    if (diagramType === 'face_recognition') {
+      return (
+        <div className="ai-diagram-card">
+          <div className="ai-diagram-title">
+            <Video size={14} /> Biometric Facial Recognition Scanner
+          </div>
+          <svg width="100%" height="150" viewBox="0 0 400 150" style={{ background: '#020617', borderRadius: '8px' }}>
+            <rect x="135" y="15" width="130" height="120" rx="8" fill="none" stroke="rgba(0, 242, 254, 0.3)" strokeWidth="1" />
+            <circle cx="200" cy="50" r="3" fill="#00f2fe" />
+            <circle cx="170" cy="40" r="3" fill="#00f2fe" />
+            <circle cx="230" cy="40" r="3" fill="#00f2fe" />
+            <circle cx="175" cy="80" r="3" fill="#00f2fe" />
+            <circle cx="225" cy="80" r="3" fill="#00f2fe" />
+            <circle cx="200" cy="110" r="3" fill="#00f2fe" />
+            <circle cx="200" cy="125" r="3" fill="#00f2fe" />
+            
+            <line x1="170" y1="40" x2="200" y2="50" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="230" y1="40" x2="200" y2="50" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="170" y1="40" x2="175" y2="80" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="230" y1="40" x2="225" y2="80" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="200" y1="50" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="175" y1="80" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="225" y1="80" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="200" y1="110" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="175" y1="80" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <line x1="225" y1="80" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+
+            <line x1="125" y1="75" x2="275" y2="75" stroke="#00f2fe" strokeWidth="2" style={{ filter: 'drop-shadow(0 0 6px #00f2fe)', animation: 'radarBeam 3s ease-in-out infinite' }} />
+            
+            <text x="280" y="40" fill="#a78bfa" fontSize="8" fontFamily="monospace">MODEL: RESNET-50</text>
+            <text x="280" y="55" fill="#a78bfa" fontSize="8" fontFamily="monospace">LANDMARKS: 68 PTS</text>
+            <text x="280" y="70" fill="#a78bfa" fontSize="8" fontFamily="monospace">CONFIDENCE: 99.4%</text>
+            <text x="280" y="85" fill="#00f2fe" fontSize="8" fontFamily="monospace">BIOMETRIC: MATCH</text>
+
+            <text x="20" y="40" fill="#6b7280" fontSize="8" fontFamily="monospace">FEED: WEBCAM_0</text>
+            <text x="20" y="55" fill="#6b7280" fontSize="8" fontFamily="monospace">STATUS: ACQUIRING</text>
+            <text x="20" y="70" fill="#6b7280" fontSize="8" fontFamily="monospace">FPS: 30.00</text>
+          </svg>
+          <style>{`
+            @keyframes radarBeam {
+              0%, 100% { transform: translateY(-40px); }
+              50% { transform: translateY(40px); }
+            }
+          `}</style>
+        </div>
+      );
+    }
+
+    if (diagramType === 'geofencing') {
+      return (
+        <div className="ai-diagram-card">
+          <div className="ai-diagram-title">
+            <ShieldCheck size={14} /> Geofencing Perimeter Map
+          </div>
+          <svg width="100%" height="150" viewBox="0 0 400 150" style={{ background: '#020617', borderRadius: '8px' }}>
+            <circle cx="200" cy="75" r="50" fill="rgba(16, 185, 129, 0.05)" stroke="#10b981" strokeWidth="2" strokeDasharray="4 3" style={{ animation: 'radarPulse 3s linear infinite' }} />
+            <circle cx="200" cy="75" r="4" fill="#10b981" />
+            <text x="210" y="79" fill="#10b981" fontSize="8" fontFamily="monospace">CAMPUS CENTER</text>
+            
+            <circle cx="230" cy="55" r="6" fill="#00f2fe" style={{ animation: 'pulse 1.5s infinite' }} />
+            <line x1="200" y1="75" x2="230" y2="55" stroke="rgba(0, 242, 254, 0.5)" strokeWidth="1" strokeDasharray="2 2" />
+            <text x="242" y="59" fill="#00f2fe" fontSize="8" fontFamily="monospace">YOUR DEVICE (INSIDE)</text>
+            
+            <text x="20" y="30" fill="#9ca3af" fontSize="8" fontFamily="monospace">GEOFENCE LIMIT: 500m</text>
+            <text x="20" y="45" fill="#9ca3af" fontSize="8" fontFamily="monospace">CURRENT DIST: 124m</text>
+            <text x="20" y="60" fill="#10b981" fontSize="8" fontFamily="monospace">VERIFICATION: ALLOWED</text>
+            
+            <text x="290" y="30" fill="#6b7280" fontSize="8" fontFamily="monospace">LAT: 28.7041° N</text>
+            <text x="290" y="45" fill="#6b7280" fontSize="8" fontFamily="monospace">LON: 77.1025° E</text>
+            <text x="290" y="60" fill="#6b7280" fontSize="8" fontFamily="monospace">ACCURACY: 4.2m</text>
+          </svg>
+          <style>{`
+            @keyframes radarPulse {
+              0% { r: 10; opacity: 1; }
+              100% { r: 65; opacity: 0; }
+            }
+          `}</style>
+        </div>
+      );
+    }
+
+    if (diagramType === 'attendance_flow') {
+      return (
+        <div className="ai-diagram-card">
+          <div className="ai-diagram-title">
+            <Clock size={14} /> Attendance Verification Workflow
+          </div>
+          <svg width="100%" height="80" viewBox="0 0 400 80" style={{ background: '#020617', borderRadius: '8px' }}>
+            <rect x="15" y="20" width="90" height="40" rx="6" fill="rgba(167, 139, 250, 0.1)" stroke="rgba(167, 139, 250, 0.4)" strokeWidth="1" />
+            <text x="25" y="44" fill="#a78bfa" fontSize="9" fontFamily="monospace" fontWeight="bold">1. Capture Face</text>
+            
+            <path d="M 115 40 L 135 40 M 130 36 L 135 40 L 130 44" stroke="#00f2fe" strokeWidth="1.5" fill="none" />
+
+            <rect x="145" y="20" width="110" height="40" rx="6" fill="rgba(0, 242, 254, 0.1)" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
+            <text x="155" y="44" fill="#00f2fe" fontSize="9" fontFamily="monospace" fontWeight="bold">2. Anti-Spoofing</text>
+
+            <path d="M 265 40 L 285 40 M 280 36 L 285 40 L 280 44" stroke="#10b981" strokeWidth="1.5" fill="none" />
+
+            <rect x="295" y="20" width="90" height="40" rx="6" fill="rgba(16, 185, 129, 0.1)" stroke="rgba(16, 185, 129, 0.4)" strokeWidth="1" />
+            <text x="305" y="44" fill="#10b981" fontSize="9" fontFamily="monospace" fontWeight="bold">3. Mark Present</text>
+          </svg>
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   const playCyberSound = (type) => {
@@ -223,6 +366,182 @@ export default function App() {
   ]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatBottomRef = useRef(null);
+
+  // Advanced AI Chatbot States
+  const [botPersonality, setBotPersonality] = useState('futuristic');
+  const [botVoiceEnabled, setBotVoiceEnabled] = useState(false);
+  const [botVoiceSpeed, setBotVoiceSpeed] = useState(1.0);
+  const [botVoicePitch, setBotVoicePitch] = useState(1.0);
+  const [botSuggestionCategory, setBotSuggestionCategory] = useState('general');
+  const [botAttachedImage, setBotAttachedImage] = useState(null);
+  const [botAttachedImageMime, setBotAttachedImageMime] = useState(null);
+  const [botAttachedImageName, setBotAttachedImageName] = useState('');
+  const [isListeningSpeech, setIsListeningSpeech] = useState(false);
+
+  const [botVoiceSelected, setBotVoiceSelected] = useState('');
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [botAutoSpeak, setBotAutoSpeak] = useState(false);
+  const recognitionRef = useRef(null);
+  const chatListRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        setAvailableVoices(voices);
+        if (voices.length > 0 && !botVoiceSelected) {
+          const defaultVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+          setBotVoiceSelected(defaultVoice.name);
+        }
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  // Helper to handle image selection and convert to Base64
+  const handleImageFileAttach = (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please attach an image file (PNG, JPG, etc.).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Str = reader.result.split(',')[1];
+      setBotAttachedImage(base64Str);
+      setBotAttachedImageMime(file.type);
+      setBotAttachedImageName(file.name);
+      playCyberSound('success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Helper to handle text files and read their contents
+  const handleTextFileAttach = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const fileText = e.target.result;
+      setChatInput((prev) => `${prev}\n\n[Attached File Content: ${file.name}]\n${fileText}\n[End of File Content]\n`);
+      playCyberSound('success');
+    };
+    reader.readAsText(file);
+  };
+
+  // Handle general file input selection
+  const handleBotFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.type.startsWith('image/')) {
+      handleImageFileAttach(file);
+    } else {
+      handleTextFileAttach(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleChatPaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const blob = items[i].getAsFile();
+        handleImageFileAttach(blob);
+        e.preventDefault();
+        break;
+      }
+    }
+  };
+
+  const handleChatDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleChatDrop = (e) => {
+    e.preventDefault();
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        handleImageFileAttach(file);
+      } else {
+        handleTextFileAttach(file);
+      }
+    }
+  };
+
+  const handleToggleSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser. Please try Google Chrome or MS Edge.");
+      return;
+    }
+
+    if (isListeningSpeech) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListeningSpeech(false);
+      return;
+    }
+
+    playCyberSound('click');
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListeningSpeech(true);
+    };
+
+    recognition.onresult = (event) => {
+      const speechToText = event.results[0][0].transcript;
+      setChatInput((prev) => prev ? prev + ' ' + speechToText : speechToText);
+      playCyberSound('success');
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListeningSpeech(false);
+      playCyberSound('error');
+    };
+
+    recognition.onend = () => {
+      setIsListeningSpeech(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const handleSpeakText = (text) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      console.warn("Speech synthesis not supported in this browser.");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const cleanedText = text
+      .replace(/[*#`_\-]/g, '')
+      .replace(/\[ShowDiagram:.*?\]/g, '')
+      .replace(/\[.*?\]\(.*?\)/g, '');
+      
+    const utterance = new SpeechSynthesisUtterance(cleanedText);
+    utterance.rate = botVoiceSpeed;
+    utterance.pitch = botVoicePitch;
+    
+    if (botVoiceSelected) {
+      const voices = window.speechSynthesis.getVoices();
+      const foundVoice = voices.find(v => v.name === botVoiceSelected);
+      if (foundVoice) {
+        utterance.voice = foundVoice;
+      }
+    }
+    window.speechSynthesis.speak(utterance);
+  };
+
   const [activeTelemetry, setActiveTelemetry] = useState({ total_active: 0, students: 0, teachers: 0, admins: 0 });
 
   // Auto scroll chat to bottom when messages update
@@ -2676,15 +2995,23 @@ export default function App() {
     const newUserMessage = {
       id: userMsgId,
       role: 'user',
-      content: textToSend
+      content: textToSend,
+      attachedImage: botAttachedImage ? `data:${botAttachedImageMime};base64,${botAttachedImage}` : null,
+      attachedImageName: botAttachedImageName
     };
 
     setChatMessages((prev) => [...prev, newUserMessage]);
+    
     if (!customMessage) setChatInput('');
+    const tempImage = botAttachedImage;
+    const tempImageMime = botAttachedImageMime;
+    
+    setBotAttachedImage(null);
+    setBotAttachedImageMime(null);
+    setBotAttachedImageName('');
     setIsChatLoading(true);
 
     try {
-      // Map existing history to expected backend ChatMessage format
       const historyPayload = chatMessages.map(m => ({
         role: m.role,
         content: m.content
@@ -2698,7 +3025,10 @@ export default function App() {
         },
         body: JSON.stringify({
           message: textToSend,
-          history: historyPayload
+          history: historyPayload,
+          image_base64: tempImage,
+          image_mime_type: tempImageMime,
+          personality: botPersonality
         })
       });
 
@@ -2713,6 +3043,9 @@ export default function App() {
             content: data.response
           }
         ]);
+        if (botAutoSpeak) {
+          handleSpeakText(data.response);
+        }
       } else {
         playCyberSound('error');
         setChatMessages((prev) => [
@@ -3534,6 +3867,16 @@ export default function App() {
                   My Profile
                 </button>
               </li>
+              <li>
+                <button 
+                  className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  onClick={() => { setActiveTab('ai-assistant'); playCyberSound('click'); }}
+                >
+                  <Bot size={18} />
+                  AI Assistant
+                </button>
+              </li>
             </>
           ) : (
             <>
@@ -3621,6 +3964,16 @@ export default function App() {
                   </button>
                 </li>
               )}
+              <li>
+                <button 
+                  className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  onClick={() => { setActiveTab('ai-assistant'); playCyberSound('click'); }}
+                >
+                  <Bot size={18} />
+                  AI Assistant
+                </button>
+              </li>
             </>
           )}
         </ul>
@@ -3702,6 +4055,7 @@ export default function App() {
                 {activeTab === 'student-attendance' && `Welcome, ${currentUser?.name || 'Student'}`}
                 {activeTab === 'student-profile' && 'My Academic Profile'}
                 {activeTab === 'settings' && 'Security & System Settings'}
+                {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
               </h1>
               <p style={{ color: '#9ca3af', fontSize: '0.8rem' }}>
                 {activeTab === 'dashboard' && 'Visualizing attendance logs and statistics'}
@@ -3714,6 +4068,7 @@ export default function App() {
                 {activeTab === 'student-attendance' && 'Track your attendance history and metrics'}
                 {activeTab === 'student-profile' && 'View and manage your personal credentials'}
                 {activeTab === 'settings' && 'Manage campus geofencing and IP subnet restriction boundaries'}
+                {activeTab === 'ai-assistant' && 'Interact using voice or upload files. Customise bot settings and suggestion filters.'}
               </p>
             </div>
           </div>
@@ -8406,6 +8761,274 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {activeTab === 'ai-assistant' && (
+          <div className="ai-assistant-wrapper" onDragOver={handleChatDragOver} onDrop={handleChatDrop} onPaste={handleChatPaste} style={{ animation: 'fadeInUp 0.5s ease' }}>
+            {/* Left pane: chat */}
+            <div className="ai-chat-pane">
+              <div className="ai-chat-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="ai-message-avatar">
+                    <Bot size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      Smart Attendance AI 
+                      <span className="text-gradient" style={{ fontSize: '0.75rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.1)', border: '1px solid rgba(0, 242, 254, 0.2)' }}>
+                        {botPersonality.toUpperCase()}
+                      </span>
+                    </h3>
+                    <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+                      ACTIVE TELEMETRY ONLINE
+                    </span>
+                  </div>
+                </div>
+                {isListeningSpeech && (
+                  <div style={{ fontSize: '0.8rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                    LISTENING VOICE INPUT...
+                  </div>
+                )}
+              </div>
+
+              <div className="ai-chat-messages" ref={chatListRef}>
+                {chatMessages.map((msg) => {
+                  let diagramType = null;
+                  if (msg.role === 'model') {
+                    if (msg.content.includes('[ShowDiagram: face_recognition]')) {
+                      diagramType = 'face_recognition';
+                    } else if (msg.content.includes('[ShowDiagram: geofencing]')) {
+                      diagramType = 'geofencing';
+                    } else if (msg.content.includes('[ShowDiagram: attendance_flow]')) {
+                      diagramType = 'attendance_flow';
+                    }
+                  }
+                  
+                  const displayContent = msg.content
+                    .replace(/\[ShowDiagram: face_recognition\]/g, '')
+                    .replace(/\[ShowDiagram: geofencing\]/g, '')
+                    .replace(/\[ShowDiagram: attendance_flow\]/g, '');
+
+                  return (
+                    <div key={msg.id} className={`ai-message-bubble ${msg.role}`}>
+                      <div className="ai-message-avatar">
+                        {msg.role === 'model' ? <Bot size={18} /> : <Users size={18} />}
+                      </div>
+                      <div className="ai-message-content">
+                        <div className="ai-message-text">
+                          {displayContent.split('\n').map((para, i) => (
+                            <p key={i} style={{ marginBottom: i < displayContent.split('\n').length - 1 ? '12px' : 0 }}>
+                              {para.split('**').map((text, idx) => 
+                                idx % 2 === 1 ? <strong key={idx} style={{ color: 'var(--color-primary)' }}>{text}</strong> : text
+                              )}
+                            </p>
+                          ))}
+                          
+                          {msg.attachedImage && (
+                            <div style={{ marginTop: '8px' }}>
+                              <img src={msg.attachedImage} alt="User attachment" style={{ maxWidth: '200px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                              {msg.attachedImageName && <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: '2px' }}>{msg.attachedImageName}</div>}
+                            </div>
+                          )}
+                          
+                          {diagramType && renderInteractiveDiagram(diagramType)}
+                        </div>
+                        
+                        {msg.role === 'model' && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                              className="ai-voice-action" 
+                              onClick={() => { playCyberSound('click'); handleSpeakText(displayContent); }}
+                              title="Listen to Response"
+                            >
+                              <Volume2 size={14} />
+                              <span style={{ fontSize: '0.75rem', marginLeft: '4px', fontWeight: 600 }}>Listen</span>
+                            </button>
+                            <button 
+                              className="ai-voice-action" 
+                              onClick={() => { playCyberSound('click'); window.speechSynthesis.cancel(); }}
+                              title="Stop Audio"
+                              style={{ color: '#ef4444' }}
+                            >
+                              <VolumeX size={14} />
+                              <span style={{ fontSize: '0.75rem', marginLeft: '4px', fontWeight: 600 }}>Stop</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {isChatLoading && (
+                  <div className="ai-message-bubble model">
+                    <div className="ai-message-avatar">
+                      <Bot size={18} />
+                    </div>
+                    <div className="ai-message-content">
+                      <div className="ai-message-text" style={{ padding: '16px 24px' }}>
+                        <div className="chatbot-typing-indicator" style={{ padding: 0 }}>
+                          <span />
+                          <span />
+                          <span />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatBottomRef} />
+              </div>
+
+              {/* Suggestion Chips */}
+              <div className="ai-chat-suggestions">
+                {getSuggestions().map((s, idx) => (
+                  <button key={idx} type="button" className="ai-suggestion-chip" onClick={() => handleSendChatMessage(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              {/* Attachment Preview Bar */}
+              {botAttachedImage && (
+                <div className="ai-attachment-preview-bar">
+                  <img src={`data:${botAttachedImageMime};base64,${botAttachedImage}`} alt="Preview" className="ai-attachment-thumbnail" />
+                  <div className="ai-attachment-file-pill">
+                    <span>{botAttachedImageName || 'image_attachment.png'}</span>
+                    <button type="button" className="ai-attachment-remove-btn" onClick={() => { setBotAttachedImage(null); setBotAttachedImageMime(null); setBotAttachedImageName(''); }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Input Form Bar */}
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendChatMessage();
+                }}
+                className="ai-chat-input-bar"
+              >
+                <input 
+                  type="file" 
+                  accept="image/*,.txt,.py,.js,.json,.csv,.c,.cpp" 
+                  onChange={handleBotFileSelect} 
+                  style={{ display: 'none' }} 
+                  id="bot-file-upload-panel" 
+                />
+                <label htmlFor="bot-file-upload-panel" className="ai-icon-btn" title="Attach file or image">
+                  <Paperclip size={18} />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleToggleSpeechRecognition}
+                  className={`ai-icon-btn ${isListeningSpeech ? 'recording' : ''}`}
+                  title={isListeningSpeech ? "Stop voice listening" : "Ask using your voice"}
+                >
+                  <Mic size={18} />
+                </button>
+
+                <input 
+                  type="text"
+                  className="ai-chat-input-text"
+                  placeholder="Ask anything or paste an image (Ctrl+V)..."
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  disabled={isChatLoading}
+                />
+
+                <button 
+                  type="submit"
+                  className="ai-send-btn"
+                  disabled={isChatLoading || !chatInput.trim()}
+                >
+                  <Send size={18} />
+                </button>
+              </form>
+            </div>
+
+            {/* Right pane: settings */}
+            <div className="ai-settings-pane">
+              <h2 className="ai-settings-title">
+                <Settings size={18} />
+                Bot Configurator
+              </h2>
+
+              <div className="ai-settings-section">
+                <label className="ai-settings-label">Bot Personality</label>
+                <div className="ai-settings-grid">
+                  {[
+                    { id: 'futuristic', label: 'Futuristic', desc: 'Cyber robotic tone' },
+                    { id: 'casual', label: 'Casual', desc: 'Friendly classmate' },
+                    { id: 'tutor', label: 'Tutor', desc: 'Patient study advisor' },
+                    { id: 'robotic', label: 'Robotic', desc: 'Strict factual data' }
+                  ].map((p) => (
+                    <div key={p.id} className={`ai-settings-card ${botPersonality === p.id ? 'active' : ''}`} onClick={() => { playCyberSound('click'); setBotPersonality(p.id); }}>
+                      <span>{p.label}</span>
+                      <small>{p.desc}</small>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="ai-settings-section">
+                <label className="ai-settings-label">Help Suggestions Category</label>
+                <select className="ai-select-dropdown" value={botSuggestionCategory} onChange={(e) => { playCyberSound('click'); setBotSuggestionCategory(e.target.value); }}>
+                  <option value="general">General System FAQs</option>
+                  <option value="attendance">Face Scanning & Geofence</option>
+                  <option value="profile">Student Profile & Selfie Registration</option>
+                  <option value="security">Portal Security & Passwords</option>
+                </select>
+              </div>
+
+              <div className="ai-settings-section">
+                <label className="ai-settings-label">Speech Synthesis Engine</label>
+                
+                <div className="ai-toggle-group">
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Auto-Read Bot Replies</span>
+                  <label className="ai-toggle-switch">
+                    <input type="checkbox" checked={botAutoSpeak} onChange={(e) => { playCyberSound('click'); setBotAutoSpeak(e.target.checked); }} />
+                    <span className="ai-toggle-slider" />
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Select Voice Accent</span>
+                  <select className="ai-select-dropdown" value={botVoiceSelected} onChange={(e) => setBotVoiceSelected(e.target.value)}>
+                    {availableVoices.length === 0 ? (
+                      <option>System Default Voice</option>
+                    ) : (
+                      availableVoices.map((v, idx) => (
+                        <option key={idx} value={v.name}>{v.name} ({v.lang})</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="ai-range-control">
+                  <div className="ai-range-val">
+                    <span>Voice Speed (Rate)</span>
+                    <span>{botVoiceSpeed.toFixed(1)}x</span>
+                  </div>
+                  <input type="range" className="ai-range-slider" min="0.5" max="2.0" step="0.1" value={botVoiceSpeed} onChange={(e) => setBotVoiceSpeed(parseFloat(e.target.value))} />
+                </div>
+
+                <div className="ai-range-control">
+                  <div className="ai-range-val">
+                    <span>Voice Pitch</span>
+                    <span>{botVoicePitch.toFixed(1)}</span>
+                  </div>
+                  <input type="range" className="ai-range-slider" min="0.5" max="2.0" step="0.1" value={botVoicePitch} onChange={(e) => setBotVoicePitch(parseFloat(e.target.value))} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Add Student Modal */}
@@ -9214,118 +9837,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) for AI Chatbot - only shown when logged in */}
-      {token && (
-        <button 
-          className="chatbot-fab" 
-          onClick={() => {
-            playCyberSound('click');
-            setShowChatBot(!showChatBot);
-          }}
-          title="Ask AI Assistant"
-          aria-label="Ask AI Assistant"
-        >
-          <Bot size={24} />
-        </button>
-      )}
 
-      {/* AI Chatbot Drawer/Panel */}
-      {token && showChatBot && (
-        <div className="chatbot-window" onClick={(e) => e.stopPropagation()}>
-          <div className="chatbot-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Bot size={20} className="chatbot-header-icon" />
-              <div>
-                <h3 className="chatbot-header-title">AI System Assistant</h3>
-                <span className="chatbot-header-status">● ONLINE</span>
-              </div>
-            </div>
-            <button 
-              className="chatbot-close-btn"
-              onClick={() => {
-                playCyberSound('click');
-                setShowChatBot(false);
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-
-          <div className="chatbot-body">
-            <div className="chatbot-messages-list">
-              {chatMessages.map((msg) => (
-                <div key={msg.id} className={`chatbot-message-bubble ${msg.role}`}>
-                  {msg.role === 'model' && <Bot size={14} className="chatbot-msg-avatar" />}
-                  <div className="chatbot-msg-text">
-                    {msg.content.split('\n').map((para, i) => (
-                      <p key={i} style={{ marginBottom: i < msg.content.split('\n').length - 1 ? '8px' : 0 }}>
-                        {para.split('**').map((text, idx) => 
-                          idx % 2 === 1 ? <strong key={idx} style={{ color: 'var(--color-primary)' }}>{text}</strong> : text
-                        )}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {isChatLoading && (
-                <div className="chatbot-message-bubble model loading">
-                  <Bot size={14} className="chatbot-msg-avatar" />
-                  <div className="chatbot-typing-indicator">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
-              )}
-              <div ref={chatBottomRef} />
-            </div>
-          </div>
-
-          {/* Quick suggestion chips */}
-          <div className="chatbot-chips-container">
-            <button type="button" className="chatbot-chip" onClick={() => handleSendChatMessage("How to mark attendance?")}>
-              How to mark attendance?
-            </button>
-            <button type="button" className="chatbot-chip" onClick={() => handleSendChatMessage("What is geofencing?")}>
-              What is geofencing?
-            </button>
-            <button type="button" className="chatbot-chip" onClick={() => handleSendChatMessage("How to change password?")}>
-              How to change password?
-            </button>
-            <button type="button" className="chatbot-chip" onClick={() => handleSendChatMessage("What is default password?")}>
-              What is default password?
-            </button>
-          </div>
-
-          <form 
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendChatMessage();
-            }} 
-            className="chatbot-input-area"
-          >
-            <input
-              type="text"
-              className="chatbot-input-field"
-              placeholder="Ask anything about the system..."
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              disabled={isChatLoading}
-            />
-            <button 
-              type="submit" 
-              className="chatbot-send-btn"
-              disabled={isChatLoading || !chatInput.trim()}
-            >
-              <Send size={16} />
-            </button>
-          </form>
-        </div>
-      )}
 
       <MobileControlPanel
         open={mobileControlOpen}

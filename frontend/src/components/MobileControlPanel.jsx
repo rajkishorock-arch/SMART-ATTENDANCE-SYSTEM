@@ -7,6 +7,7 @@ import {
   LogOut,
   Settings,
   BarChart3,
+  Bot,
 } from 'lucide-react';
 
 export default function MobileControlPanel({
@@ -26,6 +27,7 @@ export default function MobileControlPanel({
     { id: 'teachers', label: 'Teachers & Timetable', icon: Users, roles: ['admin'] },
     { id: 'settings', label: 'Security Settings', icon: ShieldCheck, roles: ['admin'] },
     { id: 'attendance', label: 'Face Attendance', icon: BookOpen, roles: ['admin', 'teacher'] },
+    { id: 'ai-assistant', label: 'AI Assistant', icon: Bot, roles: ['admin', 'teacher', 'student'] },
   ].filter((item) => item.roles.includes(userRole));
 
   return (
