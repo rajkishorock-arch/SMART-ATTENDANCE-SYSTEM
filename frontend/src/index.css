@@ -4726,5 +4726,15 @@ html {
   100% { opacity: 0; border-width: 0px; }
 }
 
+@keyframes roboticPulse {
+  0% {
+    filter: drop-shadow(0 0 2px rgba(0, 242, 254, 0.25));
+  }
+  100% {
+    filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.65));
+  }
+}
+
+
 
 
