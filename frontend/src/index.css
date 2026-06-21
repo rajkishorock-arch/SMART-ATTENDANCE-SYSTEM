@@ -4509,5 +4509,20 @@ html {
   100% { transform: scale(1); opacity: 0.85; }
 }
 
+.voice-pulse-flash-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  border: 4px solid #00f2fe;
+  box-shadow: inset 0 0 30px rgba(0, 242, 254, 0.4);
+  z-index: 9999;
+  animation: voicePulseFlashAnim 1s ease-out forwards;
+}
+
+@keyframes voicePulseFlashAnim {
+  0% { opacity: 1; border-width: 6px; }
+  100% { opacity: 0; border-width: 0px; }
+}
+
 
 

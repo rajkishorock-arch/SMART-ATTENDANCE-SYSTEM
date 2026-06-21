@@ -388,78 +388,341 @@ export default function App() {
   const voiceAssistantActiveRef = useRef(false);
   const wakeWordRecRef = useRef(null);
   const voiceAssistantErrorCountRef = useRef(0);
+  const [showVoicePulseFlash, setShowVoicePulseFlash] = useState(false);
 
-  const startWakeWordListener = () => {
+  // New Voice State Machine & Resiliency Refs
+  const voiceSystemStateRef = useRef('off'); // 'off', 'wake_word', 'active_assistant', 'chatbot_mic'
+  const isWakeWordRunningRef = useRef(false);
+  const isActiveAssistantRunningRef = useRef(false);
+  const isChatbotMicRunningRef = useRef(false);
+  const isSpeakingRef = useRef(false);
+
+  // Unified Speech Recognition State Machine Coordinator
+  const syncVoiceListeners = useCallback(() => {
+    if (!token) {
+      voiceSystemStateRef.current = 'off';
+    }
+
+    const state = voiceSystemStateRef.current;
+    const isSpeaking = isSpeakingRef.current;
+
+    console.log(`[VoiceSync] State: ${state}, isSpeaking: ${isSpeaking}, running: wake=${isWakeWordRunningRef.current}, active=${isActiveAssistantRunningRef.current}, chatMic=${isChatbotMicRunningRef.current}`);
+
+    // If speaking, we must temporarily abort all recognition instances to prevent feedback loop
+    if (isSpeaking || state === 'off') {
+      if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
+        try { wakeWordRecRef.current.abort(); } catch (e) {}
+        isWakeWordRunningRef.current = false;
+      }
+      if (recognitionRef.current && (isActiveAssistantRunningRef.current || isChatbotMicRunningRef.current)) {
+        try { recognitionRef.current.abort(); } catch (e) {}
+        isActiveAssistantRunningRef.current = false;
+        isChatbotMicRunningRef.current = false;
+      }
+      return;
+    }
+
+    // 1. WAKE WORD STATE
+    if (state === 'wake_word') {
+      // Ensure active assistant or chatbot mic are stopped
+      if (recognitionRef.current && (isActiveAssistantRunningRef.current || isChatbotMicRunningRef.current)) {
+        try { recognitionRef.current.abort(); } catch (e) {}
+        isActiveAssistantRunningRef.current = false;
+        isChatbotMicRunningRef.current = false;
+      }
+
+      if (!isWakeWordRunningRef.current) {
+        startWakeWordListenerInternal();
+      }
+    }
+
+    // 2. ACTIVE ASSISTANT STATE
+    if (state === 'active_assistant') {
+      // Ensure wake word is stopped
+      if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
+        try { wakeWordRecRef.current.abort(); } catch (e) {}
+        isWakeWordRunningRef.current = false;
+      }
+
+      if (!isActiveAssistantRunningRef.current) {
+        startActiveAssistantListenerInternal();
+      }
+    }
+
+    // 3. CHATBOT MIC STATE
+    if (state === 'chatbot_mic') {
+      // Ensure wake word is stopped
+      if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
+        try { wakeWordRecRef.current.abort(); } catch (e) {}
+        isWakeWordRunningRef.current = false;
+      }
+
+      if (!isChatbotMicRunningRef.current) {
+        startChatbotMicListenerInternal();
+      }
+    }
+  }, [token]);
+
+  function startWakeWordListenerInternal() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition || !token) return;
 
-    if (wakeWordRecRef.current) {
-      try {
-        wakeWordRecRef.current.abort();
-      } catch (err) {}
-    }
-
+    console.log("[Voice] Starting wake word listener...");
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = 'en-IN';
+
+    recognition.onstart = () => {
+      isWakeWordRunningRef.current = true;
+    };
 
     recognition.onresult = (event) => {
       if (!event || !event.results || event.results.length === 0) return;
       const lastResultIndex = event.resultIndex;
       if (!event.results[lastResultIndex] || !event.results[lastResultIndex][0]) return;
       const speechText = event.results[lastResultIndex][0].transcript.toLowerCase().trim();
-      console.log("Background heard voice:", speechText);
+      console.log("[Voice] Wake word listener heard:", speechText);
 
-      if (speechText.includes("hey raj") || speechText.includes("hai raj") || speechText.includes("he raj")) {
+      const wakeWords = ["hey raj", "he raj", "hai raj", "hi raj", "hello raj", "ok raj", "hey raaz", "he raaz", "hai raaz", "ay raj", "a raj"];
+      let matchedWake = false;
+      let commandPart = "";
+
+      for (const wake of wakeWords) {
+        if (speechText.startsWith(wake) || speechText.includes(" " + wake)) {
+          matchedWake = true;
+          const idx = speechText.indexOf(wake);
+          commandPart = speechText.substring(idx + wake.length).trim();
+          break;
+        }
+      }
+
+      if (!matchedWake && (speechText.startsWith("raj ") || speechText.includes(" raj ") || speechText.endsWith(" raj"))) {
+        matchedWake = true;
+        const idx = speechText.indexOf("raj");
+        commandPart = speechText.substring(idx + 3).trim();
+      }
+
+      if (matchedWake) {
         playCyberSound('success');
-        try {
-          recognition.abort();
-        } catch (err) {}
-        startVoiceAssistantMode();
+        
+        // Show visual edge pulse
+        setShowVoicePulseFlash(true);
+        setTimeout(() => {
+          setShowVoicePulseFlash(false);
+        }, 1000);
+
+        // Transition to active assistant
+        voiceSystemStateRef.current = 'active_assistant';
+        setIsVoiceAssistantMode(true);
+        voiceAssistantActiveRef.current = true;
+        
+        // One-breath command execution
+        if (commandPart) {
+          console.log("[Voice] Executed one-breath command:", commandPart);
+          setTimeout(() => {
+            handleVoiceCommand(commandPart);
+          }, 400);
+        } else {
+          syncVoiceListeners();
+        }
       }
     };
 
     recognition.onerror = (e) => {
-      console.warn("Wake word listener error:", e.error);
+      console.warn("[Voice] Wake word listener error:", e.error);
+      if (e.error === 'not-allowed') {
+        voiceSystemStateRef.current = 'off';
+      }
     };
 
     recognition.onend = () => {
-      if (token && !voiceAssistantActiveRef.current && !isListeningSpeech) {
-        try {
-          recognition.start();
-        } catch (err) {
-          console.warn("Failed to restart wake word listener:", err);
+      isWakeWordRunningRef.current = false;
+      setTimeout(() => {
+        if (voiceSystemStateRef.current === 'wake_word' && !isSpeakingRef.current && token) {
+          syncVoiceListeners();
         }
-      }
+      }, 200);
     };
 
     wakeWordRecRef.current = recognition;
     try {
       recognition.start();
     } catch (err) {
-      console.warn("Failed to start wake word listener:", err);
+      console.warn("[Voice] Failed to start wake word recognition:", err);
+      isWakeWordRunningRef.current = false;
     }
-  };
+  }
 
-  useEffect(() => {
-    if (token) {
-      startWakeWordListener();
-    } else {
-      if (wakeWordRecRef.current) {
-        try {
-          wakeWordRecRef.current.abort();
-        } catch (err) {}
+  function startActiveAssistantListenerInternal() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition || !token) return;
+
+    console.log("[Voice] Starting active assistant listener...");
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-IN';
+
+    recognition.onstart = () => {
+      isActiveAssistantRunningRef.current = true;
+      setIsListeningSpeech(true);
+      voiceAssistantErrorCountRef.current = 0;
+    };
+
+    recognition.onresult = (event) => {
+      if (!event || !event.results || event.results.length === 0) return;
+      const speechText = event.results[0][0].transcript;
+      if (!speechText || !speechText.trim()) return;
+
+      console.log("[Voice] Active assistant heard:", speechText);
+
+      // Check if it's a valid navigation/control command
+      if (handleVoiceCommand(speechText)) {
+        return;
       }
-    }
-    return () => {
-      if (wakeWordRecRef.current) {
-        try {
-          wakeWordRecRef.current.abort();
-        } catch (err) {}
+
+      // If it is NOT a command, ignore silently and keep listening (recycle listener)
+      console.log("[Voice] Non-command ignored in voice mode:", speechText);
+      setTimeout(() => {
+        if (voiceSystemStateRef.current === 'active_assistant' && !isSpeakingRef.current) {
+          syncVoiceListeners();
+        }
+      }, 300);
+    };
+
+    recognition.onerror = (e) => {
+      console.error("[Voice] Active assistant listener error:", e.error);
+      setIsListeningSpeech(false);
+      
+      voiceAssistantErrorCountRef.current += 1;
+      if (voiceAssistantErrorCountRef.current > 5) {
+        console.warn("[Voice] Too many errors. Falling back to wake word mode.");
+        voiceSystemStateRef.current = 'wake_word';
+        setIsVoiceAssistantMode(false);
+        voiceAssistantActiveRef.current = false;
+        voiceAssistantErrorCountRef.current = 0;
+        syncVoiceListeners();
+        return;
       }
     };
-  }, [token]);
+
+    recognition.onend = () => {
+      isActiveAssistantRunningRef.current = false;
+      setIsListeningSpeech(false);
+      
+      setTimeout(() => {
+        if (voiceSystemStateRef.current === 'active_assistant' && !isSpeakingRef.current && token) {
+          syncVoiceListeners();
+        }
+      }, 200);
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch (err) {
+      console.warn("[Voice] Failed to start active assistant recognition:", err);
+      isActiveAssistantRunningRef.current = false;
+    }
+  }
+
+  function startChatbotMicListenerInternal() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition || !token) return;
+
+    console.log("[Voice] Starting chatbot mic listener...");
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isChatbotMicRunningRef.current = true;
+      setIsListeningSpeech(true);
+    };
+
+    recognition.onresult = (event) => {
+      if (!event || !event.results || event.results.length === 0) return;
+      const speechToText = event.results[0][0].transcript;
+      if (!speechToText || !speechToText.trim()) return;
+
+      // Try parsing as a global voice command first
+      if (handleVoiceCommand(speechToText)) {
+        return;
+      }
+
+      setChatInput((prev) => prev ? prev + ' ' + speechToText : speechToText);
+      playCyberSound('success');
+    };
+
+    recognition.onerror = (event) => {
+      console.error("[Voice] Chatbot mic recognition error:", event.error);
+      setIsListeningSpeech(false);
+      playCyberSound('error');
+    };
+
+    recognition.onend = () => {
+      isChatbotMicRunningRef.current = false;
+      setIsListeningSpeech(false);
+      
+      setTimeout(() => {
+        if (voiceSystemStateRef.current === 'chatbot_mic') {
+          voiceSystemStateRef.current = isVoiceAssistantMode ? 'active_assistant' : 'wake_word';
+          syncVoiceListeners();
+        }
+      }, 200);
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch (err) {
+      console.warn("[Voice] Failed to start chatbot mic recognition:", err);
+      isChatbotMicRunningRef.current = false;
+    }
+  }
+
+  // Token synchronization effect
+  useEffect(() => {
+    if (token) {
+      voiceSystemStateRef.current = 'wake_word';
+      syncVoiceListeners();
+    } else {
+      voiceSystemStateRef.current = 'off';
+      syncVoiceListeners();
+    }
+    return () => {
+      voiceSystemStateRef.current = 'off';
+      syncVoiceListeners();
+    };
+  }, [token, syncVoiceListeners]);
+
+  // Watchdog timer to automatically heal dead voice listeners
+  useEffect(() => {
+    if (!token) return;
+
+    const interval = setInterval(() => {
+      const state = voiceSystemStateRef.current;
+      const isSpeaking = isSpeakingRef.current;
+
+      if (state === 'off' || isSpeaking) return;
+
+      if (state === 'wake_word' && !isWakeWordRunningRef.current) {
+        console.log("[Voice Watchdog] Wake-word listener is dead. Restarting...");
+        syncVoiceListeners();
+      } else if (state === 'active_assistant' && !isActiveAssistantRunningRef.current) {
+        console.log("[Voice Watchdog] Active assistant listener is dead. Restarting...");
+        syncVoiceListeners();
+      } else if (state === 'chatbot_mic' && !isChatbotMicRunningRef.current) {
+        console.log("[Voice Watchdog] Chatbot mic listener is dead. Restarting...");
+        syncVoiceListeners();
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [token, syncVoiceListeners]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -574,21 +837,13 @@ export default function App() {
       const dest = userRole === 'student' ? 'student-attendance' : 'dashboard';
       changeTab(dest);
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech.includes('profile')) {
       changeTab('student-profile');
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech.includes('scanner') || lowerSpeech.includes('attendance') || lowerSpeech.includes('face')) {
@@ -597,89 +852,53 @@ export default function App() {
         setShowScannerModal(true);
       } catch (err) {}
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech.includes('log') || lowerSpeech.includes('logs')) {
       changeTab('logs');
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech.includes('history') || lowerSpeech.includes('session')) {
       changeTab('session-history');
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech.includes('report')) {
       changeTab('reports');
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech === 'open settings' || lowerSpeech === 'go to settings' || lowerSpeech === 'open security settings') {
       if (userRole === 'admin') {
         changeTab('settings');
         playCyberSound('success');
-        handleSpeakText("ho gaya", () => {
-          if (voiceAssistantActiveRef.current) {
-            setTimeout(listenInVoiceMode, 400);
-          }
-        });
+        handleSpeakText("ho gaya");
       } else {
-        handleSpeakText("Access denied", () => {
-          if (voiceAssistantActiveRef.current) {
-            setTimeout(listenInVoiceMode, 400);
-          }
-        });
+        handleSpeakText("Access denied");
       }
       return true;
     }
     if (lowerSpeech.includes('students') || lowerSpeech.includes('student directory')) {
       changeTab('students');
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech.includes('teachers') || lowerSpeech.includes('teacher directory') || lowerSpeech.includes('timetable')) {
       changeTab('teachers');
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech.includes('chat') || lowerSpeech.includes('assistant') || lowerSpeech.includes('ai')) {
       changeTab('ai-assistant');
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
 
@@ -687,21 +906,13 @@ export default function App() {
     if (lowerSpeech === 'scroll down' || lowerSpeech === 'go down' || lowerSpeech === 'page down') {
       window.scrollBy({ top: 500, behavior: 'smooth' });
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech === 'scroll up' || lowerSpeech === 'go up' || lowerSpeech === 'page up') {
       window.scrollBy({ top: -500, behavior: 'smooth' });
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
-        if (voiceAssistantActiveRef.current) {
-          setTimeout(listenInVoiceMode, 400);
-        }
-      });
+      handleSpeakText("ho gaya");
       return true;
     }
     if (lowerSpeech === 'reload page' || lowerSpeech === 'refresh page' || lowerSpeech === 'refresh') {
@@ -744,64 +955,13 @@ export default function App() {
       return;
     }
 
-    if (isListeningSpeech) {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (err) {}
-      }
-      setIsListeningSpeech(false);
-      return;
+    if (voiceSystemStateRef.current === 'chatbot_mic') {
+      voiceSystemStateRef.current = isVoiceAssistantMode ? 'active_assistant' : 'wake_word';
+      syncVoiceListeners();
+    } else {
+      voiceSystemStateRef.current = 'chatbot_mic';
+      syncVoiceListeners();
     }
-
-    // Abort background wake word listener to free up the microphone
-    if (wakeWordRecRef.current) {
-      try {
-        wakeWordRecRef.current.abort();
-      } catch (err) {}
-    }
-
-    playCyberSound('click');
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setIsListeningSpeech(true);
-    };
-
-    recognition.onresult = (event) => {
-      const speechToText = event.results[0][0].transcript;
-      
-      // Try parsing as a global voice command first
-      if (handleVoiceCommand(speechToText)) {
-        return;
-      }
-
-      setChatInput((prev) => prev ? prev + ' ' + speechToText : speechToText);
-      playCyberSound('success');
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-      setIsListeningSpeech(false);
-      playCyberSound('error');
-    };
-
-    recognition.onend = () => {
-      setIsListeningSpeech(false);
-      // Restart wake word listener after a short delay
-      setTimeout(() => {
-        if (token && !voiceAssistantActiveRef.current && !isListeningSpeech) {
-          startWakeWordListener();
-        }
-      }, 1000);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
   };
 
   const handleSpeakText = (text, onEndCallback = null) => {
@@ -810,6 +970,11 @@ export default function App() {
       if (onEndCallback) onEndCallback();
       return;
     }
+
+    // Mark as speaking and halt listeners
+    isSpeakingRef.current = true;
+    syncVoiceListeners();
+
     window.speechSynthesis.cancel();
     const cleanedText = text
       .replace(/[*#`_\-]/g, '')
@@ -832,17 +997,18 @@ export default function App() {
     const safeCallback = () => {
       if (callbackCalled) return;
       callbackCalled = true;
+
+      // Reset speaking state and resume listeners
+      isSpeakingRef.current = false;
+      syncVoiceListeners();
+
       if (onEndCallback) onEndCallback();
     };
-
-    utterance.onend = safeCallback;
-    utterance.onerror = safeCallback;
 
     // Backup safety timeout to ensure callback is always executed
     const durationEstimate = (cleanedText.length * 100) + 1500; // 100ms per character + 1.5s padding
     const backupTimeout = setTimeout(safeCallback, durationEstimate);
 
-    // Clear timeout if callback runs early
     utterance.onend = () => {
       clearTimeout(backupTimeout);
       safeCallback();
@@ -855,118 +1021,21 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const listenInVoiceMode = () => {
-    if (!voiceAssistantActiveRef.current) return;
-    
-    // Stop/abort any existing speech recognition to prevent overlap/crashes
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.abort();
-      } catch (err) {}
-      recognitionRef.current = null;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn("Speech recognition not supported in this browser.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    
-    recognition.onstart = () => {
-      setIsListeningSpeech(true);
-      voiceAssistantErrorCountRef.current = 0; // Reset error count on successful start
-    };
-    
-    recognition.onresult = async (event) => {
-      if (!event || !event.results || !event.results[0] || !event.results[0][0]) return;
-      const spokenText = event.results[0][0].transcript;
-      if (!spokenText || !spokenText.trim()) return;
-
-      // Check if it is a control command first
-      if (handleVoiceCommand(spokenText)) {
-        return;
-      }
-
-      // Silent non-command handling: do not speak or query API to avoid talking too much
-      console.log("Background assistant ignored non-command voice:", spokenText);
-      setTimeout(() => {
-        if (voiceAssistantActiveRef.current) {
-          listenInVoiceMode();
-        }
-      }, 300);
-    };
-
-    recognition.onerror = (e) => {
-      console.error("Speech recognition error in voice mode:", e);
-      setIsListeningSpeech(false);
-      
-      voiceAssistantErrorCountRef.current += 1;
-      if (voiceAssistantErrorCountRef.current > 5) {
-        console.warn("Too many consecutive speech recognition errors. Terminating voice loop to prevent crash.");
-        stopVoiceAssistantMode();
-        voiceAssistantErrorCountRef.current = 0;
-        return;
-      }
-
-      if (voiceAssistantActiveRef.current) {
-        setTimeout(() => {
-          listenInVoiceMode();
-        }, 1500);
-      }
-    };
-
-    recognition.onend = () => {
-      setIsListeningSpeech(false);
-    };
-
-    recognitionRef.current = recognition;
-    try {
-      recognition.start();
-    } catch (err) {
-      console.warn("Failed to start speech recognition in voice mode:", err);
-    }
-  };
-
   const startVoiceAssistantMode = () => {
     playCyberSound('success');
     setIsVoiceAssistantMode(true);
     voiceAssistantActiveRef.current = true;
-    
-    // Explicitly abort background wake word listener to free up microphone
-    if (wakeWordRecRef.current) {
-      try {
-        wakeWordRecRef.current.abort();
-      } catch (err) {}
-    }
-
-    // Instantly go to listening in background silent mode
-    setTimeout(() => {
-      listenInVoiceMode();
-    }, 100);
+    voiceSystemStateRef.current = 'active_assistant';
+    syncVoiceListeners();
   };
 
   const stopVoiceAssistantMode = () => {
     playCyberSound('click');
     setIsVoiceAssistantMode(false);
     voiceAssistantActiveRef.current = false;
+    voiceSystemStateRef.current = 'wake_word';
     window.speechSynthesis.cancel();
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (err) {}
-    }
-    
-    // Restart background wake word listener after a short delay
-    setTimeout(() => {
-      if (token) {
-        startWakeWordListener();
-      }
-    }, 1000);
+    syncVoiceListeners();
   };
 
   const [activeTelemetry, setActiveTelemetry] = useState({ total_active: 0, students: 0, teachers: 0, admins: 0 });
@@ -10403,6 +10472,9 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Edge border flash overlay */}
+      {showVoicePulseFlash && <div className="voice-pulse-flash-overlay" />}
     </div>
   );
 }
