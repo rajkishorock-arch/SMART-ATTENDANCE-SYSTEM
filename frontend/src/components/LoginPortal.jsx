@@ -77,6 +77,35 @@ export default function LoginPortal({
     return () => clearInterval(typeInterval);
   }, [bootIndex]);
 
+  const [institutionsList, setInstitutionsList] = useState([
+    { name: 'Default Institution', slug: 'default' }
+  ]);
+  const [selectedTenant, setSelectedTenant] = useState(localStorage.getItem('override_tenant') || 'default');
+
+  useEffect(() => {
+    const fetchInstitutions = async () => {
+      try {
+        const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+        const res = await fetch(`${apiBase}/institutions/`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setInstitutionsList(data);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load institutions:", err);
+      }
+    };
+    fetchInstitutions();
+  }, []);
+
+  const handleTenantChange = (slug) => {
+    setSelectedTenant(slug);
+    localStorage.setItem('override_tenant', slug);
+    window.location.reload();
+  };
+
   const activeRole = ROLES.find((r) => r.id === loginRole) || ROLES[2];
 
   return (
@@ -170,6 +199,62 @@ export default function LoginPortal({
               <span>{authError}</span>
             </div>
           )}
+
+          {/* Futuristic Institution Selector Dropdown */}
+          <div className="form-group" style={{ marginBottom: '22px' }}>
+            <label className="form-label" style={{ color: activeRole.color, fontWeight: '800', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', textTransform: 'uppercase' }}>
+              <span>🏫</span> Select Portal Domain
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={selectedTenant}
+                onChange={(e) => handleTenantChange(e.target.value)}
+                className="form-input login-portal-input"
+                style={{
+                  width: '100%',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '10px',
+                  color: '#f8fafc',
+                  padding: '12px 36px 12px 16px',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  outline: 'none',
+                  boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.05)',
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = activeRole.color;
+                  e.currentTarget.style.boxShadow = `inset 0 1px 1px rgba(255,255,255,0.05), 0 0 10px ${activeRole.color}33`;
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.boxShadow = 'inset 0 1px 1px rgba(255,255,255,0.05)';
+                }}
+              >
+                {institutionsList.map((inst) => (
+                  <option key={inst.slug} value={inst.slug} style={{ background: '#0f172a', color: '#f8fafc' }}>
+                    {inst.name.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+              <div style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
+                color: activeRole.color,
+                fontSize: '0.65rem',
+                opacity: 0.8
+              }}>
+                ▼
+              </div>
+            </div>
+          </div>
 
           <form onSubmit={onSubmit} className="login-portal-form">
             <div className="form-group">
