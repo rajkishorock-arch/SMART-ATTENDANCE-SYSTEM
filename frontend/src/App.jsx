@@ -433,6 +433,12 @@ export default function App() {
   const [sessionPeriod, setSessionPeriod] = useState('Period 1');
   const [sessionHistory, setSessionHistory] = useState([]);
   const [expandedSessions, setExpandedSessions] = useState({});
+
+  // Session History Filter States
+  const [selectedHistoryDept, setSelectedHistoryDept] = useState('');
+  const [historyFilterDate, setHistoryFilterDate] = useState(getLocalDateString());
+  const [historyFilterPeriod, setHistoryFilterPeriod] = useState('Period 1');
+  const [selectedHistorySubjectId, setSelectedHistorySubjectId] = useState('');
   
   // Forms to create subjects/schedules
   const [newSubject, setNewSubject] = useState({ name: '', code: '', department: 'CSE(IOT)', teacher_id: '' });
@@ -649,12 +655,20 @@ export default function App() {
   };
 
   // Fetch session history
-  const fetchSessionHistory = async (subjId = null) => {
+  const fetchSessionHistory = async (subjId = null, dateVal = null, periodVal = null) => {
     try {
       const queryParams = new URLSearchParams();
-      const sId = subjId || selectedSubjectId || selectedTeacherSubjectId;
+      const sId = subjId || selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
       if (sId) {
         queryParams.append('subject_id', sId);
+      }
+      const dVal = dateVal !== null ? dateVal : historyFilterDate;
+      if (dVal) {
+        queryParams.append('date_filter', dVal);
+      }
+      const pVal = periodVal !== null ? periodVal : historyFilterPeriod;
+      if (pVal) {
+        queryParams.append('period', pVal);
       }
       const res = await fetch(`${API_BASE_URL}/attendance/sessions-history?${queryParams.toString()}`, {
         headers: {
@@ -2475,6 +2489,42 @@ export default function App() {
       }
     }
   }, [userRole, currentUser, subjects, selectedSubjectId, selectedTeacherSubjectId, selectedTeacherLogSubjectId, selectedReportSubjectId]);
+
+
+  // Initialize Session History filters
+  useEffect(() => {
+    if (subjects.length > 0) {
+      if (userRole === 'admin') {
+        const uniqueDepts = [...new Set(subjects.map(s => s.department))];
+        if (uniqueDepts.length > 0 && !selectedHistoryDept) {
+          setSelectedHistoryDept(uniqueDepts[0]);
+        }
+        
+        const dept = selectedHistoryDept || (uniqueDepts.length > 0 ? uniqueDepts[0] : '');
+        const deptSubjects = subjects.filter(s => s.department === dept);
+        if (deptSubjects.length > 0) {
+          const firstSubIdStr = deptSubjects[0].id.toString();
+          if (!selectedHistorySubjectId || !deptSubjects.some(s => s.id.toString() === selectedHistorySubjectId)) {
+            setSelectedHistorySubjectId(firstSubIdStr);
+          }
+        } else {
+          setSelectedHistorySubjectId('');
+        }
+      } else if (userRole === 'teacher' && currentUser?.details) {
+        const teacherSub = subjects.find(s => s.teacher_id === currentUser.details.id);
+        if (teacherSub) {
+          setSelectedHistorySubjectId(teacherSub.id.toString());
+        }
+      }
+    }
+  }, [userRole, currentUser, subjects, selectedHistoryDept, selectedHistorySubjectId]);
+
+  // Fetch session history when filters change reactively
+  useEffect(() => {
+    if (activeTab === 'session-history' && selectedHistorySubjectId) {
+      fetchSessionHistory(selectedHistorySubjectId, historyFilterDate, historyFilterPeriod);
+    }
+  }, [activeTab, selectedHistorySubjectId, historyFilterDate, historyFilterPeriod]);
 
 
   const getRoleMismatchMessage = (expectedRole, actualRole) => {
@@ -5847,51 +5897,106 @@ export default function App() {
           <div className="mobile-tab-panel session-history-panel" style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeInUp 0.6s ease both' }}>
             {/* Header select filters */}
             <div className="glass-panel hide-on-print" style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', fontFamily: 'Outfit, sans-serif' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', fontFamily: 'Outfit, sans-serif', margin: 0, textAlign: 'left' }}>
                   Class Sessions Registers
                 </h4>
                 
-                {userRole === 'admin' ? (
-                  <div className="form-group" style={{ margin: 0, minWidth: '280px', textAlign: 'left' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
+                  {userRole === 'admin' ? (
+                    <>
+                      {/* Department Select */}
+                      <div className="form-group" style={{ margin: 0, minWidth: '200px', flex: '1 1 200px', textAlign: 'left' }}>
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                          <Layers size={12} style={{ color: '#00f2fe' }} /> Branch / Department
+                        </label>
+                        <select
+                          className="form-input"
+                          value={selectedHistoryDept}
+                          onChange={e => setSelectedHistoryDept(e.target.value)}
+                          style={{ padding: '10px 14px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)' }}
+                        >
+                          {[...new Set(subjects.map(s => s.department))].map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Subject Select */}
+                      <div className="form-group" style={{ margin: 0, minWidth: '220px', flex: '1 1 220px', textAlign: 'left' }}>
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                          <BookOpen size={12} style={{ color: '#00f2fe' }} /> Subject
+                        </label>
+                        <select
+                          className="form-input"
+                          value={selectedHistorySubjectId}
+                          onChange={e => setSelectedHistorySubjectId(e.target.value)}
+                          style={{ padding: '10px 14px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)' }}
+                        >
+                          {subjects.filter(s => s.department === selectedHistoryDept).map(s => (
+                            <option key={s.id} value={s.id.toString()}>
+                              {s.name} ({s.code})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    /* Teacher Info Card */
+                    <div style={{ 
+                      background: 'rgba(0, 242, 254, 0.06)', 
+                      border: '1px solid rgba(0, 242, 254, 0.15)', 
+                      borderRadius: '8px', 
+                      padding: '10px 16px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      height: '42px',
+                      boxSizing: 'border-box'
+                    }}>
+                      <BookOpen size={14} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.85rem', color: '#f1f5f9', fontWeight: 600 }}>
+                        Subject: <strong style={{ color: '#00f2fe' }}>{currentUser?.details?.subject_name} ({currentUser?.details?.subject_code})</strong>
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Date Picker */}
+                  <div className="form-group" style={{ margin: 0, minWidth: '160px', flex: '1 1 160px', textAlign: 'left' }}>
                     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
-                      <BookOpen size={12} style={{ color: '#00f2fe' }} /> Active Subject Filter
+                      <Calendar size={12} style={{ color: '#00f2fe' }} /> Date
+                    </label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={historyFilterDate}
+                      onChange={e => setHistoryFilterDate(e.target.value)}
+                      style={{ padding: '9px 14px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)' }}
+                    />
+                  </div>
+
+                  {/* Period Dropdown */}
+                  <div className="form-group" style={{ margin: 0, minWidth: '180px', flex: '1 1 180px', textAlign: 'left' }}>
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                      <Clock size={12} style={{ color: '#00f2fe' }} /> Period / Time Slot
                     </label>
                     <select
                       className="form-input"
-                      value={selectedTeacherSubjectId || selectedSubjectId}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setSelectedTeacherSubjectId(val);
-                        setSelectedSubjectId(val);
-                        fetchSessionHistory(val);
-                      }}
+                      value={historyFilterPeriod}
+                      onChange={e => setHistoryFilterPeriod(e.target.value)}
                       style={{ padding: '10px 14px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)' }}
                     >
-                      {subjects.map(s => (
-                        <option key={s.id} value={s.id.toString()}>
-                          {s.name} ({s.code}) - {s.department}
-                        </option>
-                      ))}
+                      <option value="Period 1">Period 1 (09:00 - 10:00 AM)</option>
+                      <option value="Period 2">Period 2 (10:00 - 11:00 AM)</option>
+                      <option value="Period 3">Period 3 (11:00 - 12:00 PM)</option>
+                      <option value="Period 4">Period 4 (12:00 - 01:00 PM)</option>
+                      <option value="Period 5">Period 5 (01:00 - 02:00 PM)</option>
+                      <option value="Period 6">Period 6 (02:00 - 03:00 PM)</option>
+                      <option value="Period 7">Period 7 (03:00 - 04:00 PM)</option>
+                      <option value="Period 8">Period 8 (04:00 - 05:00 PM)</option>
                     </select>
                   </div>
-                ) : (
-                  <div style={{ 
-                    background: 'rgba(0, 242, 254, 0.08)', 
-                    border: '1px solid rgba(0, 242, 254, 0.2)', 
-                    borderRadius: '12px', 
-                    padding: '12px 20px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px',
-                    boxShadow: '0 0 15px rgba(0,242,254,0.05)'
-                  }}>
-                    <BookOpen size={16} style={{ color: '#00f2fe' }} />
-                    <span style={{ fontSize: '0.9rem', color: '#f1f5f9', fontWeight: 600 }}>
-                      Subject: <strong style={{ color: '#00f2fe' }}>{currentUser?.details?.subject_name} ({currentUser?.details?.subject_code})</strong>
-                    </span>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
 

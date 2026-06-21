@@ -478,6 +478,8 @@ def send_test_report_email(
 @router.get("/sessions-history")
 def get_attendance_sessions_history(
     subject_id: Optional[int] = None,
+    date_filter: Optional[str] = None,
+    period: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -519,10 +521,27 @@ def get_attendance_sessions_history(
             if not subject:
                 return []
                 
+    # Convert date to standard DD/MM/YYYY if provided in YYYY-MM-DD
+    date_str = None
+    if date_filter:
+        if "-" in date_filter:
+            try:
+                date_str = datetime.strptime(date_filter, "%Y-%m-%d").strftime("%d/%m/%Y")
+            except ValueError:
+                date_str = date_filter
+        else:
+            date_str = date_filter
+
     # Collect all unique student IDs from attendance logs for this subject
-    logs = db.query(models.AttendanceModel).filter(
+    query = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.subject_id == subject_id
-    ).all()
+    )
+    if date_str:
+        query = query.filter(models.AttendanceModel.date == date_str)
+    if period:
+        query = query.filter(models.AttendanceModel.time == period)
+        
+    logs = query.all()
     
     # Get all student IDs that appear in logs
     logged_student_ids = set(log.id for log in logs)

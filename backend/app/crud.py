@@ -185,11 +185,14 @@ def mark_student_attendance(
         
     time_str = custom_time if custom_time else datetime.now(IST).strftime("%H:%M:%S")
     
-    # 1. Check if already marked in DB for this subject
+    # 1. Check if already marked in DB for this subject, date, and period (time)
     query = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.id == str(student_id),
         models.AttendanceModel.date == today_str
     )
+    if custom_time:
+        query = query.filter(models.AttendanceModel.time == time_str)
+
     if subject_id is not None:
         query = query.filter(models.AttendanceModel.subject_id == subject_id)
     else:
