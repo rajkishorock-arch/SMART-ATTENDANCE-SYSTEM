@@ -376,7 +376,7 @@ export default function App() {
   const [botPersonality, setBotPersonality] = useState('futuristic');
   const [botVoiceEnabled, setBotVoiceEnabled] = useState(false);
   const [botWakeWordEnabled, setBotWakeWordEnabled] = useState(
-    localStorage.getItem('botWakeWordEnabled') === 'true'
+    localStorage.getItem('botWakeWordEnabled') !== 'false'
   );
   const [botVoiceSpeed, setBotVoiceSpeed] = useState(1.0);
   const [botVoicePitch, setBotVoicePitch] = useState(1.0);
