@@ -1423,6 +1423,7 @@ export default function App() {
 
   // Extreme Control & Security States
   const [biometricMatchThreshold, setBiometricMatchThreshold] = useState(parseFloat(localStorage.getItem('biometricMatchThreshold') || '0.92'));
+  const [biometricConfidenceFilterEnabled, setBiometricConfidenceFilterEnabled] = useState(localStorage.getItem('biometricConfidenceFilterEnabled') !== 'false');
   const [antiSpoofingThreshold, setAntiSpoofingThreshold] = useState(parseFloat(localStorage.getItem('antiSpoofingThreshold') || '0.22'));
   const [aiCognitiveLevel, setAiCognitiveLevel] = useState(localStorage.getItem('aiCognitiveLevel') || 'standard');
   const [diagnosticLevel, setDiagnosticLevel] = useState(localStorage.getItem('diagnosticLevel') || 'DEBUG');
@@ -1470,6 +1471,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('biometricMatchThreshold', biometricMatchThreshold);
   }, [biometricMatchThreshold]);
+  useEffect(() => {
+    localStorage.setItem('biometricConfidenceFilterEnabled', biometricConfidenceFilterEnabled);
+  }, [biometricConfidenceFilterEnabled]);
   useEffect(() => {
     localStorage.setItem('antiSpoofingThreshold', antiSpoofingThreshold);
   }, [antiSpoofingThreshold]);
@@ -2256,8 +2260,8 @@ export default function App() {
             { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)' }
           ];
           const matched = candidates[Math.floor(Math.random() * candidates.length)];
-          const confidenceVal = parseFloat((88.0 + Math.random() * 11.0).toFixed(1));
-          const isMatchPass = (confidenceVal / 100) >= biometricMatchThreshold;
+           const confidenceVal = parseFloat((88.0 + Math.random() * 11.0).toFixed(1));
+          const isMatchPass = !biometricConfidenceFilterEnabled || (confidenceVal / 100) >= biometricMatchThreshold;
           
           if (!isMatchPass) {
             setScanStatus(`Low Confidence: ${confidenceVal}% - Verification Failed`);
@@ -2365,7 +2369,7 @@ export default function App() {
             const matched = data.results[0];
             const { user_id, name, roll, dep, newly_marked, confidence } = matched;
             const confidenceVal = parseFloat(confidence);
-            const isMatchPass = isNaN(confidenceVal) || (confidenceVal / 100) >= biometricMatchThreshold;
+            const isMatchPass = !biometricConfidenceFilterEnabled || isNaN(confidenceVal) || (confidenceVal / 100) >= biometricMatchThreshold;
 
             if (!isMatchPass) {
               setScanStatus(`Low Confidence: ${confidenceVal}% - Verification Failed`);
@@ -10030,27 +10034,87 @@ export default function App() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                 {/* Biometric Slider */}
-                <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                  <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Biometric Match Confidence Threshold</label>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary)', textShadow: '0 0 8px var(--color-primary)' }}>
-                    {Math.round(biometricMatchThreshold * 100)}% Match Requirement
-                  </span>
-                  <input 
-                    type="range"
-                    min="0.80"
-                    max="0.99"
-                    step="0.01"
-                    value={biometricMatchThreshold}
-                    onChange={(e) => {
-                      setBiometricMatchThreshold(parseFloat(e.target.value));
-                    }}
-                    onMouseUp={() => playCyberSound('click')}
-                    onTouchEnd={() => playCyberSound('click')}
-                    style={{ width: '100%', accentColor: 'var(--color-primary)' }}
-                  />
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                    Rejects facial verification signatures scoring lower than this threshold.
-                  </span>
+                <div style={{ 
+                  background: 'rgba(255,255,255,0.01)', 
+                  border: '1px solid rgba(255,255,255,0.03)', 
+                  borderRadius: '12px', 
+                  padding: '20px', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px', 
+                  textAlign: 'left',
+                  opacity: biometricConfidenceFilterEnabled ? 1 : 0.7,
+                  transition: 'opacity 0.3s ease'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Biometric Match Confidence Filter</label>
+                    <label style={{
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '40px',
+                      height: '20px',
+                      cursor: 'pointer'
+                    }}>
+                      <input 
+                        type="checkbox"
+                        checked={biometricConfidenceFilterEnabled}
+                        onChange={(e) => {
+                          setBiometricConfidenceFilterEnabled(e.target.checked);
+                          playCyberSound('click');
+                        }}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: biometricConfidenceFilterEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)',
+                        transition: '.3s',
+                        borderRadius: '20px',
+                        boxShadow: biometricConfidenceFilterEnabled ? '0 0 10px var(--color-primary)' : 'none'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          content: '""',
+                          height: '14px',
+                          width: '14px',
+                          left: biometricConfidenceFilterEnabled ? '22px' : '3px',
+                          bottom: '3px',
+                          backgroundColor: '#f8fafc',
+                          transition: '.3s',
+                          borderRadius: '50%'
+                        }} />
+                      </span>
+                    </label>
+                  </div>
+                  
+                  {biometricConfidenceFilterEnabled ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeInUp 0.3s ease both' }}>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary)', textShadow: '0 0 8px var(--color-primary)' }}>
+                        {Math.round(biometricMatchThreshold * 100)}% Match Requirement
+                      </span>
+                      <input 
+                        type="range"
+                        min="0.80"
+                        max="0.99"
+                        step="0.01"
+                        value={biometricMatchThreshold}
+                        disabled={!biometricConfidenceFilterEnabled}
+                        onChange={(e) => {
+                          setBiometricMatchThreshold(parseFloat(e.target.value));
+                        }}
+                        onMouseUp={() => playCyberSound('click')}
+                        onTouchEnd={() => playCyberSound('click')}
+                        style={{ width: '100%', accentColor: 'var(--color-primary)' }}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                        Rejects facial verification signatures scoring lower than this threshold.
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '10px 0', color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', fontStyle: 'italic' }}>
+                      ⚡ Filter Disabled: Camera will match faces regardless of confidence score (pre-multi-tenant behaviour).
+                    </div>
+                  )}
                 </div>
 
                 {/* Anti Spoofing EAR Slider */}
