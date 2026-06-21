@@ -8,6 +8,7 @@ from collections import defaultdict
 from . import crud, schemas, security, models
 from .database import get_db
 from .core import config
+import os
 
 router = APIRouter()
 
