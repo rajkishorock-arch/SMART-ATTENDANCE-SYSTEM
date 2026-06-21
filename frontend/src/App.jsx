@@ -387,6 +387,7 @@ export default function App() {
   const [isVoiceAssistantMode, setIsVoiceAssistantMode] = useState(false);
   const voiceAssistantActiveRef = useRef(false);
   const wakeWordRecRef = useRef(null);
+  const voiceAssistantErrorCountRef = useRef(0);
 
   const startWakeWordListener = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -404,7 +405,9 @@ export default function App() {
     recognition.lang = 'en-US';
 
     recognition.onresult = (event) => {
+      if (!event || !event.results || event.results.length === 0) return;
       const lastResultIndex = event.resultIndex;
+      if (!event.results[lastResultIndex] || !event.results[lastResultIndex][0]) return;
       const speechText = event.results[lastResultIndex][0].transcript.toLowerCase().trim();
       console.log("Background heard voice:", speechText);
 
@@ -611,7 +614,7 @@ export default function App() {
       });
       return true;
     }
-    if (lowerSpeech.includes('setting')) {
+    if (lowerSpeech === 'open settings' || lowerSpeech === 'go to settings' || lowerSpeech === 'open security settings') {
       if (userRole === 'admin') {
         setActiveTab('settings');
         playCyberSound('success');
@@ -641,7 +644,7 @@ export default function App() {
     }
 
     // 2. Extra Control Commands
-    if (lowerSpeech.includes('scroll down') || lowerSpeech.includes('go down') || lowerSpeech.includes('page down')) {
+    if (lowerSpeech === 'scroll down' || lowerSpeech === 'go down' || lowerSpeech === 'page down') {
       window.scrollBy({ top: 500, behavior: 'smooth' });
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
@@ -651,7 +654,7 @@ export default function App() {
       });
       return true;
     }
-    if (lowerSpeech.includes('scroll up') || lowerSpeech.includes('go up') || lowerSpeech.includes('page up')) {
+    if (lowerSpeech === 'scroll up' || lowerSpeech === 'go up' || lowerSpeech === 'page up') {
       window.scrollBy({ top: -500, behavior: 'smooth' });
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
@@ -661,14 +664,14 @@ export default function App() {
       });
       return true;
     }
-    if (lowerSpeech.includes('reload') || lowerSpeech.includes('refresh')) {
+    if (lowerSpeech === 'reload page' || lowerSpeech === 'refresh page' || lowerSpeech === 'refresh') {
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         window.location.reload();
       });
       return true;
     }
-    if (lowerSpeech.includes('logout') || lowerSpeech.includes('sign out') || lowerSpeech.includes('exit')) {
+    if (lowerSpeech === 'log out' || lowerSpeech === 'sign out' || lowerSpeech === 'logout') {
       playCyberSound('success');
       handleSpeakText("ho gaya", () => {
         handleLogout();
@@ -678,12 +681,11 @@ export default function App() {
     
     // 3. Stop / Sleep Commands
     if (
-      lowerSpeech.includes('stop') || 
-      lowerSpeech.includes('sleep') || 
-      lowerSpeech.includes('close') || 
-      lowerSpeech.includes('cancel') || 
-      lowerSpeech.includes('shut up') ||
-      lowerSpeech.includes('bye')
+      lowerSpeech === 'stop' || 
+      lowerSpeech === 'sleep' || 
+      lowerSpeech === 'stop listening' || 
+      lowerSpeech === 'close assistant' || 
+      lowerSpeech === 'go to sleep'
     ) {
       playCyberSound('click');
       handleSpeakText("ho gaya", () => {
@@ -792,6 +794,15 @@ export default function App() {
 
   const listenInVoiceMode = () => {
     if (!voiceAssistantActiveRef.current) return;
+    
+    // Stop/abort any existing speech recognition to prevent overlap/crashes
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (err) {}
+      recognitionRef.current = null;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.warn("Speech recognition not supported in this browser.");
@@ -805,97 +816,44 @@ export default function App() {
     
     recognition.onstart = () => {
       setIsListeningSpeech(true);
+      voiceAssistantErrorCountRef.current = 0; // Reset error count on successful start
     };
     
     recognition.onresult = async (event) => {
+      if (!event || !event.results || !event.results[0] || !event.results[0][0]) return;
       const spokenText = event.results[0][0].transcript;
-      if (!spokenText.trim()) return;
+      if (!spokenText || !spokenText.trim()) return;
 
       // Check if it is a control command first
       if (handleVoiceCommand(spokenText)) {
         return;
       }
 
-      const userMsgId = Date.now();
-      setChatMessages(prev => [...prev, {
-        id: userMsgId,
-        role: 'user',
-        content: spokenText
-      }]);
-
-      setIsChatLoading(true);
-
-      // Build context description
-      let userContextStr = "";
-      if (currentUser) {
-        userContextStr += `[Current User Profile Context]:\n`;
-        userContextStr += `- Name: ${currentUser.name}\n`;
-        userContextStr += `- Role: ${userRole}\n`;
-        if (currentUser.details) {
-          if (currentUser.details.roll) userContextStr += `- Roll Number: ${currentUser.details.roll}\n`;
-          if (currentUser.details.department) userContextStr += `- Department/Branch: ${currentUser.details.department}\n`;
-        }
-        if (userRole === 'student' && studentLogs) {
-          const total = studentLogs.length;
-          const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-          const rate = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
-          userContextStr += `- Student Attendance Rate: ${rate}%\n`;
-        }
-      }
-
-      try {
-        const historyPayload = chatMessages.map(m => ({ role: m.role, content: m.content }));
-        const res = await fetch(`${API_BASE_URL}/chat/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            message: spokenText,
-            history: historyPayload,
-            personality: botPersonality,
-            user_context: userContextStr
-          })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setChatMessages(prev => [...prev, {
-            id: Date.now() + 1,
-            role: 'model',
-            content: data.response
-          }]);
-          setIsChatLoading(false);
-          
-          handleSpeakText(data.response, () => {
-            setTimeout(() => {
-              if (voiceAssistantActiveRef.current) {
-                listenInVoiceMode();
-              }
-            }, 400);
-          });
-        } else {
-          setIsChatLoading(false);
-          handleSpeakText("Connection failed. Let me try listening again.", () => {
-            listenInVoiceMode();
-          });
-        }
-      } catch (err) {
-        setIsChatLoading(false);
-        handleSpeakText("Network error. Let me try listening again.", () => {
+      // Silent non-command handling: do not speak or query API to avoid talking too much
+      console.log("Background assistant ignored non-command voice:", spokenText);
+      setTimeout(() => {
+        if (voiceAssistantActiveRef.current) {
           listenInVoiceMode();
-        });
-      }
+        }
+      }, 300);
     };
 
     recognition.onerror = (e) => {
       console.error("Speech recognition error in voice mode:", e);
       setIsListeningSpeech(false);
+      
+      voiceAssistantErrorCountRef.current += 1;
+      if (voiceAssistantErrorCountRef.current > 5) {
+        console.warn("Too many consecutive speech recognition errors. Terminating voice loop to prevent crash.");
+        stopVoiceAssistantMode();
+        voiceAssistantErrorCountRef.current = 0;
+        return;
+      }
+
       if (voiceAssistantActiveRef.current) {
         setTimeout(() => {
           listenInVoiceMode();
-        }, 1000);
+        }, 1500);
       }
     };
 
@@ -904,7 +862,11 @@ export default function App() {
     };
 
     recognitionRef.current = recognition;
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err) {
+      console.warn("Failed to start speech recognition in voice mode:", err);
+    }
   };
 
   const startVoiceAssistantMode = () => {
