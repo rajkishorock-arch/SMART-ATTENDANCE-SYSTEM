@@ -516,7 +516,11 @@ export default function App() {
         if (commandPart) {
           console.log("[Voice] Executed one-breath command:", commandPart);
           setTimeout(() => {
-            handleVoiceCommand(commandPart);
+            if (!handleVoiceCommand(commandPart)) {
+              // Conversational fallback
+              setActiveTab('ai-assistant');
+              handleSendChatMessage(commandPart);
+            }
           }, 400);
         } else {
           syncVoiceListeners();
@@ -577,13 +581,10 @@ export default function App() {
         return;
       }
 
-      // If it is NOT a command, ignore silently and keep listening (recycle listener)
-      console.log("[Voice] Non-command ignored in voice mode:", speechText);
-      setTimeout(() => {
-        if (voiceSystemStateRef.current === 'active_assistant' && !isSpeakingRef.current) {
-          syncVoiceListeners();
-        }
-      }, 300);
+      // If it is NOT a command, treat it as a conversational chat message!
+      console.log("[Voice] Non-command sent to chatbot API:", speechText);
+      setActiveTab('ai-assistant');
+      handleSendChatMessage(speechText);
     };
 
     recognition.onerror = (e) => {
@@ -827,116 +828,504 @@ export default function App() {
       } catch (err) {}
     };
 
-    // 1. Navigation Commands
-    if (lowerSpeech.includes('dashboard') || lowerSpeech.includes('home')) {
+    // 1. Scanner specific helpers
+    const triggerStartScanner = () => {
+      changeTab('attendance');
+      setTimeout(() => {
+        try {
+          setShowScannerModal(true);
+          startAttendanceCam();
+        } catch (err) {
+          console.error("Failed to start scanner via voice:", err);
+        }
+      }, 300);
+    };
+
+    const triggerStopScanner = () => {
+      try {
+        stopAttendanceCam();
+        setShowScannerModal(false);
+      } catch (err) {
+        console.error("Failed to stop scanner via voice:", err);
+      }
+    };
+
+    // 2. DOM Clicker Helper
+    const clickElementByText = (targetText) => {
+      const query = targetText.toLowerCase().trim();
+      if (!query) return false;
+
+      // Select all interactive elements
+      const elements = Array.from(document.querySelectorAll(
+        'button, a, input[type="button"], input[type="submit"], [role="button"], .btn, .button, .nav-item, .clickable'
+      ));
+
+      let bestMatch = null;
+      let highestScore = 0;
+
+      for (const el of elements) {
+        // Check visibility
+        if (!(el.offsetWidth > 0 || el.offsetHeight > 0)) continue;
+
+        // Get all text content/attributes
+        const elText = (el.innerText || el.textContent || '').toLowerCase().trim();
+        const elTitle = (el.getAttribute('title') || '').toLowerCase().trim();
+        const elLabel = (el.getAttribute('aria-label') || '').toLowerCase().trim();
+        const elVal = el.value ? String(el.value).toLowerCase().trim() : '';
+
+        // Check if any of these match or contain the query
+        const matchSources = [elText, elTitle, elLabel, elVal];
+        
+        for (const src of matchSources) {
+          if (!src) continue;
+
+          // Exact match is highest priority
+          if (src === query) {
+            bestMatch = el;
+            highestScore = 1000;
+            break;
+          }
+
+          // Substring match
+          if (src.includes(query)) {
+            // Score based on how closely lengths match (shorter element text matches first)
+            const score = (query.length / src.length) * 100;
+            if (score > highestScore) {
+              highestScore = score;
+              bestMatch = el;
+            }
+          }
+        }
+
+        if (highestScore === 1000) break; // found perfect match
+      }
+
+      if (bestMatch) {
+        console.log("[Voice Clicker] Programmatically clicking element:", bestMatch);
+        
+        // Add a visual ripple/flash effect to the clicked element to show user feedback!
+        const originalTransition = bestMatch.style.transition;
+        const originalOutline = bestMatch.style.outline;
+        const originalBoxShadow = bestMatch.style.boxShadow;
+        bestMatch.style.transition = 'all 0.2s ease-in-out';
+        bestMatch.style.outline = '3px solid #00f0ff';
+        bestMatch.style.boxShadow = '0 0 15px #00f0ff';
+        setTimeout(() => {
+          bestMatch.style.outline = originalOutline;
+          bestMatch.style.boxShadow = originalBoxShadow;
+          bestMatch.style.transition = originalTransition;
+        }, 800);
+
+        bestMatch.click();
+        return true;
+      }
+      return false;
+    };
+
+    // 3. Scroll Helper
+    const performScroll = (direction) => {
+      let scrollAmt = 500;
+      if (direction === 'down') {
+        window.scrollBy({ top: scrollAmt, behavior: 'smooth' });
+        // Scroll containers
+        document.querySelectorAll('div, section, table, tbody').forEach(el => {
+          if (el.scrollHeight > el.clientHeight && (window.getComputedStyle(el).overflowY === 'auto' || window.getComputedStyle(el).overflowY === 'scroll')) {
+            el.scrollBy({ top: scrollAmt, behavior: 'smooth' });
+          }
+        });
+        handleSpeakText("Neeche scroll kar diya");
+      } else if (direction === 'up') {
+        window.scrollBy({ top: -scrollAmt, behavior: 'smooth' });
+        document.querySelectorAll('div, section, table, tbody').forEach(el => {
+          if (el.scrollHeight > el.clientHeight && (window.getComputedStyle(el).overflowY === 'auto' || window.getComputedStyle(el).overflowY === 'scroll')) {
+            el.scrollBy({ top: -scrollAmt, behavior: 'smooth' });
+          }
+        });
+        handleSpeakText("Upar scroll kar diya");
+      } else if (direction === 'top') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.querySelectorAll('div, section, table, tbody').forEach(el => {
+          if (el.scrollHeight > el.clientHeight && (window.getComputedStyle(el).overflowY === 'auto' || window.getComputedStyle(el).overflowY === 'scroll')) {
+            el.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
+        handleSpeakText("Sabse upar scroll kar diya");
+      } else if (direction === 'bottom') {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        document.querySelectorAll('div, section, table, tbody').forEach(el => {
+          if (el.scrollHeight > el.clientHeight && (window.getComputedStyle(el).overflowY === 'auto' || window.getComputedStyle(el).overflowY === 'scroll')) {
+            el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+          }
+        });
+        handleSpeakText("Sabse neeche scroll kar diya");
+      }
+    };
+
+    // 4. Voice Commands Processing
+    
+    // A. Navigation Commands (Fuzzy Match & Multi-lingual)
+    if (
+      lowerSpeech.includes('dashboard') || 
+      lowerSpeech.includes('home') || 
+      lowerSpeech.includes('stats') || 
+      lowerSpeech.includes('main page') ||
+      lowerSpeech.includes('telemetry')
+    ) {
       const dest = userRole === 'student' ? 'student-attendance' : 'dashboard';
       changeTab(dest);
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Dashboard khol diya hai");
       return true;
     }
-    if (lowerSpeech.includes('profile')) {
+    if (
+      lowerSpeech.includes('profile') || 
+      lowerSpeech.includes('my account') || 
+      lowerSpeech.includes('account details')
+    ) {
       changeTab('student-profile');
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Aapka profile khol diya hai");
       return true;
     }
-    if (lowerSpeech.includes('scanner') || lowerSpeech.includes('attendance') || lowerSpeech.includes('face')) {
-      changeTab('attendance');
-      try {
-        setShowScannerModal(true);
-      } catch (err) {}
-      playCyberSound('success');
-      handleSpeakText("ho gaya");
-      return true;
-    }
-    if (lowerSpeech.includes('log') || lowerSpeech.includes('logs')) {
+    if (
+      lowerSpeech.includes('logs') || 
+      lowerSpeech.includes('register') || 
+      lowerSpeech.includes('attendance sheet') ||
+      lowerSpeech.includes('all attendance')
+    ) {
       changeTab('logs');
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Real time attendance logs open ho gaye hain");
       return true;
     }
-    if (lowerSpeech.includes('history') || lowerSpeech.includes('session')) {
+    if (
+      lowerSpeech.includes('history') || 
+      lowerSpeech.includes('sessions') ||
+      lowerSpeech.includes('session history')
+    ) {
       changeTab('session-history');
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Session history khol di gayi hai");
       return true;
     }
-    if (lowerSpeech.includes('report')) {
+    if (
+      lowerSpeech.includes('report') || 
+      lowerSpeech.includes('reports') || 
+      lowerSpeech.includes('alerts')
+    ) {
       changeTab('reports');
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Attendance reports panel open ho gaya hai");
       return true;
     }
-    if (lowerSpeech === 'open settings' || lowerSpeech === 'go to settings' || lowerSpeech === 'open security settings') {
+    if (
+      lowerSpeech.includes('settings') || 
+      lowerSpeech.includes('security') || 
+      lowerSpeech.includes('ip restrictions') || 
+      lowerSpeech.includes('geofencing')
+    ) {
       if (userRole === 'admin') {
         changeTab('settings');
         playCyberSound('success');
-        handleSpeakText("ho gaya");
+        handleSpeakText("Security settings khol diye hain");
       } else {
-        handleSpeakText("Access denied");
+        handleSpeakText("Kshama karein, aapke paas security settings ka access nahi hai");
       }
       return true;
     }
-    if (lowerSpeech.includes('students') || lowerSpeech.includes('student directory')) {
+    if (
+      lowerSpeech.includes('students') || 
+      lowerSpeech.includes('student list') || 
+      lowerSpeech.includes('student directory')
+    ) {
       changeTab('students');
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Student directory open kar di hai");
       return true;
     }
-    if (lowerSpeech.includes('teachers') || lowerSpeech.includes('teacher directory') || lowerSpeech.includes('timetable')) {
+    if (
+      lowerSpeech.includes('teachers') || 
+      lowerSpeech.includes('teacher list') || 
+      lowerSpeech.includes('teacher directory') || 
+      lowerSpeech.includes('timetable')
+    ) {
       changeTab('teachers');
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Teacher directory aur schedule open ho gaya hai");
       return true;
     }
-    if (lowerSpeech.includes('chat') || lowerSpeech.includes('assistant') || lowerSpeech.includes('ai')) {
+    if (
+      lowerSpeech.includes('chat') || 
+      lowerSpeech.includes('assistant') || 
+      lowerSpeech.includes('ai bot') || 
+      lowerSpeech.includes('chatbot')
+    ) {
       changeTab('ai-assistant');
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("AI system assistant active hai");
       return true;
     }
 
-    // 2. Extra Control Commands
-    if (lowerSpeech === 'scroll down' || lowerSpeech === 'go down' || lowerSpeech === 'page down') {
-      window.scrollBy({ top: 500, behavior: 'smooth' });
+    // B. Live Facial Scanner Control (Modal + Camera)
+    if (
+      lowerSpeech.includes('start scanner') || 
+      lowerSpeech.includes('open scanner') || 
+      lowerSpeech.includes('scanner star') || 
+      lowerSpeech.includes('start camera') || 
+      lowerSpeech.includes('camera on') || 
+      lowerSpeech.includes('scanner chalu') || 
+      lowerSpeech.includes('camera chalu') || 
+      lowerSpeech.includes('attendance lagao') ||
+      lowerSpeech.includes('scan face')
+    ) {
+      triggerStartScanner();
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Biometric camera interface active kiya ja raha hai");
       return true;
     }
-    if (lowerSpeech === 'scroll up' || lowerSpeech === 'go up' || lowerSpeech === 'page up') {
-      window.scrollBy({ top: -500, behavior: 'smooth' });
+
+    if (
+      lowerSpeech.includes('stop scanner') || 
+      lowerSpeech.includes('close scanner') || 
+      lowerSpeech.includes('scanner stop') || 
+      lowerSpeech.includes('stop camera') || 
+      lowerSpeech.includes('camera off') || 
+      lowerSpeech.includes('scanner band') || 
+      lowerSpeech.includes('camera band')
+    ) {
+      triggerStopScanner();
       playCyberSound('success');
-      handleSpeakText("ho gaya");
+      handleSpeakText("Scanner aur optical stream band kar di gayi hai");
       return true;
     }
-    if (lowerSpeech === 'reload page' || lowerSpeech === 'refresh page' || lowerSpeech === 'refresh') {
+
+    // C. Add / Register Form Control
+    if (
+      lowerSpeech.includes('add student') || 
+      lowerSpeech.includes('register student') || 
+      lowerSpeech.includes('student add') || 
+      lowerSpeech.includes('new student')
+    ) {
+      changeTab('students');
+      setTimeout(() => {
+        setShowAddModal(true);
+      }, 300);
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
+      handleSpeakText("Student registration form open ho gaya hai");
+      return true;
+    }
+
+    if (
+      lowerSpeech.includes('add teacher') || 
+      lowerSpeech.includes('register teacher') || 
+      lowerSpeech.includes('teacher add') || 
+      lowerSpeech.includes('new teacher')
+    ) {
+      changeTab('teachers');
+      setTimeout(() => {
+        setShowAddModal(true);
+      }, 300);
+      playCyberSound('success');
+      handleSpeakText("Teacher registration form open ho gaya hai");
+      return true;
+    }
+
+    // D. Webcam Capture for training
+    if (
+      lowerSpeech.includes('start webcam') || 
+      lowerSpeech.includes('open webcam') || 
+      lowerSpeech.includes('capture face') || 
+      lowerSpeech.includes('webcam chalu')
+    ) {
+      setShowWebcamModal(true);
+      setTimeout(() => {
+        startWebcam();
+      }, 300);
+      playCyberSound('success');
+      handleSpeakText("Face capture webcam shuru ho gaya hai");
+      return true;
+    }
+
+    if (
+      lowerSpeech.includes('stop webcam') || 
+      lowerSpeech.includes('close webcam') || 
+      lowerSpeech.includes('webcam band')
+    ) {
+      stopWebcam();
+      setShowWebcamModal(false);
+      playCyberSound('success');
+      handleSpeakText("Webcam close kar diya hai");
+      return true;
+    }
+
+    // E. General Modal / Popup closing
+    if (
+      lowerSpeech.includes('close form') || 
+      lowerSpeech.includes('close modal') || 
+      lowerSpeech.includes('close popup') || 
+      lowerSpeech.includes('cancel') || 
+      lowerSpeech.includes('band karo') || 
+      lowerSpeech.includes('close window') || 
+      lowerSpeech.includes('piche jao') || 
+      lowerSpeech.includes('go back')
+    ) {
+      setShowAddModal(false);
+      setShowWebcamModal(false);
+      setShowEditStudentModal(false);
+      setShowEditStudentSelfModal(false);
+      setShowScannerModal(false);
+      setShowFeedbackModal(false);
+      try { stopWebcam(); } catch(e){}
+      try { stopAttendanceCam(); } catch(e){}
+      playCyberSound('click');
+      handleSpeakText("Active screen close kar di gayi hai");
+      return true;
+    }
+
+    // F. Smart Scroll Controls (Fuzzy Matching)
+    if (
+      lowerSpeech.includes('scroll down') || 
+      lowerSpeech.includes('go down') || 
+      lowerSpeech.includes('page down') || 
+      lowerSpeech.includes('neeche scroll') || 
+      lowerSpeech.includes('neeche jao') ||
+      lowerSpeech.includes('scroll down page')
+    ) {
+      performScroll('down');
+      playCyberSound('success');
+      return true;
+    }
+    if (
+      lowerSpeech.includes('scroll up') || 
+      lowerSpeech.includes('go up') || 
+      lowerSpeech.includes('page up') || 
+      lowerSpeech.includes('upar scroll') || 
+      lowerSpeech.includes('upar jao') ||
+      lowerSpeech.includes('scroll up page')
+    ) {
+      performScroll('up');
+      playCyberSound('success');
+      return true;
+    }
+    if (
+      lowerSpeech.includes('scroll to top') || 
+      lowerSpeech.includes('go to top') || 
+      lowerSpeech.includes('top page') || 
+      lowerSpeech.includes('sabse upar') || 
+      lowerSpeech.includes('scroll top')
+    ) {
+      performScroll('top');
+      playCyberSound('success');
+      return true;
+    }
+    if (
+      lowerSpeech.includes('scroll to bottom') || 
+      lowerSpeech.includes('go to bottom') || 
+      lowerSpeech.includes('bottom page') || 
+      lowerSpeech.includes('sabse neeche') || 
+      lowerSpeech.includes('scroll bottom')
+    ) {
+      performScroll('bottom');
+      playCyberSound('success');
+      return true;
+    }
+
+    // G. Smart Search / Filters Control
+    if (
+      lowerSpeech.startsWith('search for ') || 
+      lowerSpeech.startsWith('search ') || 
+      lowerSpeech.startsWith('find ') || 
+      lowerSpeech.startsWith('filter ') ||
+      lowerSpeech.includes('khojo')
+    ) {
+      let query = '';
+      if (lowerSpeech.startsWith('search for ')) query = text.substring(11).trim();
+      else if (lowerSpeech.startsWith('search ')) query = text.substring(7).trim();
+      else if (lowerSpeech.startsWith('find ')) query = text.substring(5).trim();
+      else if (lowerSpeech.startsWith('filter ')) query = text.substring(7).trim();
+      else if (lowerSpeech.includes('khojo')) {
+        const parts = lowerSpeech.split('khojo');
+        query = parts[0].trim() || parts[1].trim();
+      }
+
+      if (query) {
+        const searchInputs = Array.from(document.querySelectorAll('input[type="text"], input[type="search"], input[placeholder*="Search" i], input[placeholder*="search" i]'));
+        if (searchInputs.length > 0) {
+          const visibleInput = searchInputs.find(input => input.offsetWidth > 0 && input.offsetHeight > 0) || searchInputs[0];
+          visibleInput.focus();
+          visibleInput.value = query;
+          visibleInput.dispatchEvent(new Event('input', { bubbles: true }));
+          visibleInput.dispatchEvent(new Event('change', { bubbles: true }));
+          playCyberSound('success');
+          handleSpeakText("Khoz rahe hain: " + query);
+          return true;
+        }
+      }
+    }
+
+    // H. General Web Commands
+    if (lowerSpeech === 'reload page' || lowerSpeech === 'refresh page' || lowerSpeech === 'refresh' || lowerSpeech === 'reload') {
+      playCyberSound('success');
+      handleSpeakText("Page reload ho raha hai", () => {
         window.location.reload();
       });
       return true;
     }
     if (lowerSpeech === 'log out' || lowerSpeech === 'sign out' || lowerSpeech === 'logout') {
       playCyberSound('success');
-      handleSpeakText("ho gaya", () => {
+      handleSpeakText("Aapka account logout ho raha hai", () => {
         handleLogout();
       });
       return true;
     }
-    
-    // 3. Stop / Sleep Commands
     if (
       lowerSpeech === 'stop' || 
       lowerSpeech === 'sleep' || 
       lowerSpeech === 'stop listening' || 
       lowerSpeech === 'close assistant' || 
-      lowerSpeech === 'go to sleep'
+      lowerSpeech === 'go to sleep' ||
+      lowerSpeech === 'assistant sleep' ||
+      lowerSpeech === 'band ho jao'
     ) {
       playCyberSound('click');
-      handleSpeakText("ho gaya", () => {
+      handleSpeakText("Ji, main ab sleep mode mein ja raha hoon. Jagane ke liye, hey raj bolein.", () => {
         stopVoiceAssistantMode();
       });
+      return true;
+    }
+
+    // I. Smart DOM Clicker Trigger (Fuzzy Click on Elements matching words)
+    // Extract target label text
+    let clickTarget = "";
+    if (lowerSpeech.startsWith('click on ')) clickTarget = text.substring(9).trim();
+    else if (lowerSpeech.startsWith('click ')) clickTarget = text.substring(6).trim();
+    else if (lowerSpeech.startsWith('press ')) clickTarget = text.substring(6).trim();
+    else if (lowerSpeech.startsWith('tap on ')) clickTarget = text.substring(7).trim();
+    else if (lowerSpeech.startsWith('tap ')) clickTarget = text.substring(4).trim();
+    else if (lowerSpeech.startsWith('select ')) clickTarget = text.substring(7).trim();
+    else if (lowerSpeech.startsWith('open ')) clickTarget = text.substring(5).trim();
+
+    if (clickTarget) {
+      if (clickElementByText(clickTarget)) {
+        playCyberSound('success');
+        handleSpeakText(`${clickTarget} click kar diya`);
+        return true;
+      }
+      // Word-by-word matching fallback
+      const words = clickTarget.split(' ');
+      for (const word of words) {
+        if (word.length > 2 && clickElementByText(word)) {
+          playCyberSound('success');
+          handleSpeakText(`${word} click kar diya`);
+          return true;
+        }
+      }
+    }
+
+    // If nothing else matched, check if the spoken phrase is exactly a visible button's text
+    if (clickElementByText(lowerSpeech)) {
+      playCyberSound('success');
+      handleSpeakText(`${text} par click kar diya`);
       return true;
     }
 
