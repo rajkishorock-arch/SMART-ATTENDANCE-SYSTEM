@@ -112,13 +112,6 @@ export default function App() {
     }
   }, []);
 
-  const [matrixStreamCanvas, setMatrixStreamCanvas] = useState(null);
-  const matrixStreamCanvasRef = useCallback((node) => {
-    if (node !== null) {
-      setMatrixStreamCanvas(node);
-    }
-  }, []);
-
   // Biometric / Sound / Theme States
   const [hudMetrics, setHudMetrics] = useState({ fps: '30.0', lighting: '92%', quality: 'EXCELLENT' });
   const [activeTheme, setActiveTheme] = useState(localStorage.getItem('theme') || 'cyberpunk');
@@ -2804,83 +2797,7 @@ export default function App() {
     };
   }, [activeTab, token, activeTheme, neuralMeshCanvas]);
 
-  // HTML5 Canvas Diagnostics Matrix Stream Rain
-  useEffect(() => {
-    if (activeTab !== 'dashboard' || !token || !matrixStreamCanvas) return;
-    const canvas = matrixStreamCanvas;
-    const ctx = canvas.getContext('2d');
-    
-    let animationFrameId;
-    canvas.width = canvas.parentElement.clientWidth || 300;
-    canvas.height = canvas.parentElement.clientHeight || 80;
-    
-    const primaryColor = activeTheme === 'matrix' ? '#00ff46' :
-                          activeTheme === 'obsidian' ? '#ff3e3e' :
-                          activeTheme === 'violet' ? '#a855f7' : '#00f2fe';
-    
-    const fontSize = 10;
-    const columns = Math.floor(canvas.width / fontSize) + 1;
-    const yPositions = Array(columns).fill(0);
-    
-    const chars = "0123456789ABCDEF[]:X_Y_SYNC_OK_DATA_PERIMETER_BEACON_SYS_LIVENESS";
-    
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : { r: 0, g: 242, b: 254 };
-    };
-    const rgb = hexToRgb(primaryColor);
 
-    const drawMatrix = () => {
-      ctx.fillStyle = `rgba(2, 6, 23, 0.15)`;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.font = `${fontSize}px monospace`;
-      
-      for (let i = 0; i < yPositions.length; i++) {
-        const char = chars[Math.floor(Math.random() * chars.length)];
-        const x = i * fontSize;
-        const y = yPositions[i];
-        
-        if (Math.random() > 0.97) {
-          ctx.fillStyle = '#ffffff';
-        } else {
-          ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.4 + Math.random() * 0.6})`;
-        }
-        
-        ctx.fillText(char, x, y);
-        
-        if (y > canvas.height && Math.random() > 0.98) {
-          yPositions[i] = 0;
-        } else {
-          yPositions[i] += fontSize;
-        }
-      }
-      
-      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`;
-      ctx.font = '8px monospace';
-      ctx.fillText(`[DB_STREAM: ${Math.random() > 0.95 ? 'COMMIT' : 'SYNC_OK'} | ADDR: 0x${Math.floor(Math.random() * 16777215).toString(16).toUpperCase()}]`, 6, 12);
-
-      animationFrameId = requestAnimationFrame(drawMatrix);
-    };
-    
-    const resizeCanvas = () => {
-      if (!canvas.parentElement) return;
-      canvas.width = canvas.parentElement.clientWidth || 300;
-      canvas.height = canvas.parentElement.clientHeight || 80;
-    };
-    window.addEventListener('resize', resizeCanvas);
-    
-    drawMatrix();
-    
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [activeTab, token, activeTheme, matrixStreamCanvas]);
 
   // Automatic camera shutoff when lockdown is activated
   useEffect(() => {
@@ -6610,21 +6527,6 @@ export default function App() {
                     <div>PLATFORM: <span style={{ color: '#f1f5f9' }}>{systemHealth ? `${systemHealth.platform.system} (${systemHealth.platform.release})` : 'DETECTING...'}</span></div>
                     <div>ENVIRONMENT: <span style={{ color: '#f1f5f9' }}>Python {systemHealth ? systemHealth.platform.python_version : '...'}</span></div>
                   </div>
-
-                  {/* Flowing Diagnostics Matrix Stream */}
-                  <div style={{
-                    height: '80px',
-                    background: 'rgba(2, 6, 23, 0.45)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    marginTop: '8px',
-                    marginBottom: '8px'
-                  }}>
-                    <canvas ref={matrixStreamCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
-                  </div>
-
                   {/* Manual trigger button */}
                   <button 
                     onClick={() => {
