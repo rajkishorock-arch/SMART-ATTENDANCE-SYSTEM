@@ -24,6 +24,7 @@ class ChatRequest(BaseModel):
     image_base64: Optional[str] = None
     image_mime_type: Optional[str] = None
     personality: Optional[str] = "default"
+    user_context: Optional[str] = None
 
 def get_current_any_user(db: Session = Depends(get_db), token: str = Depends(security.oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -82,6 +83,14 @@ def chat_response(
     if not GEMINI_API_KEY:
         if payload.image_base64:
             return {"response": "An image was uploaded, but the Gemini AI API Key is not configured by the system administrator. Therefore, I cannot analyze this file. " + get_fallback_response(user_query)}
+        
+        # If user asks about their stats/mentor/roll, and context is provided
+        q = user_query.lower()
+        if payload.user_context and ("my attendance" in q or "my profile" in q or "who is my teacher" in q or "my mentor" in q or "my roll" in q or "my percent" in q or "apna attendance" in q):
+            lines = payload.user_context.split('\n')
+            bullet_points = "\n".join([f"- {line}" for line in lines if line.strip() and not line.startswith('[')])
+            return {"response": f"The Gemini API key is not configured, but according to your local profile context, here are your details:\n\n{bullet_points}"}
+            
         return {"response": get_fallback_response(user_query)}
         
     # Prepare payload for Gemini API
@@ -124,6 +133,13 @@ def chat_response(
         system_instruction += " Adopt a patient academic tutor personality. Explain concepts step-by-step with clear definitions, educational context, and analogies."
     elif payload.personality == "robotic":
         system_instruction += " Adopt a logical, systematic, direct machine-like tone. Give concise, highly structured data outputs without conversational fluff."
+    
+    if payload.user_context:
+        system_instruction += (
+            f"\n\n[CURRENT USER PROFILE & STATISTICS CONTEXT]\n"
+            f"{payload.user_context}\n"
+            f"Use this profile context to directly address personal queries (e.g. attendance percentage, mentor, roll number, name) if asked."
+        )
     
     body = {
         "contents": contents,

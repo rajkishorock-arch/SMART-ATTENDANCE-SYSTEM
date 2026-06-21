@@ -499,6 +499,63 @@ export default function App() {
 
     recognition.onresult = (event) => {
       const speechToText = event.results[0][0].transcript;
+      const lowerSpeech = speechToText.toLowerCase().trim();
+      
+      // Voice Navigation Command Parser
+      if (lowerSpeech === 'open dashboard' || lowerSpeech === 'go to dashboard' || lowerSpeech === 'open home') {
+        const dest = userRole === 'student' ? 'student-attendance' : 'dashboard';
+        setActiveTab(dest);
+        playCyberSound('success');
+        handleSpeakText("Navigating to dashboard");
+        return;
+      }
+      if (lowerSpeech === 'open profile' || lowerSpeech === 'go to profile' || lowerSpeech === 'show my profile') {
+        setActiveTab('student-profile');
+        playCyberSound('success');
+        handleSpeakText("Opening academic profile");
+        return;
+      }
+      if (lowerSpeech === 'open scanner' || lowerSpeech === 'start face attendance' || lowerSpeech === 'open face attendance') {
+        setActiveTab('attendance');
+        playCyberSound('success');
+        handleSpeakText("Opening live face attendance scanner");
+        return;
+      }
+      if (lowerSpeech === 'open logs' || lowerSpeech === 'go to logs' || lowerSpeech === 'open attendance logs') {
+        setActiveTab('logs');
+        playCyberSound('success');
+        handleSpeakText("Opening real-time attendance logs");
+        return;
+      }
+      if (lowerSpeech === 'open session history' || lowerSpeech === 'go to session history') {
+        setActiveTab('session-history');
+        playCyberSound('success');
+        handleSpeakText("Opening session-wise history records");
+        return;
+      }
+      if (lowerSpeech === 'open reports' || lowerSpeech === 'go to reports') {
+        setActiveTab('reports');
+        playCyberSound('success');
+        handleSpeakText("Opening reports and alerts");
+        return;
+      }
+      if (lowerSpeech === 'open settings' || lowerSpeech === 'go to settings' || lowerSpeech === 'open security settings') {
+        if (userRole === 'admin') {
+          setActiveTab('settings');
+          playCyberSound('success');
+          handleSpeakText("Opening security and system settings");
+        } else {
+          handleSpeakText("Access denied. Settings are only available for system administrators.");
+        }
+        return;
+      }
+      if (lowerSpeech === 'open chat' || lowerSpeech === 'go to ai assistant' || lowerSpeech === 'open ai assistant') {
+        setActiveTab('ai-assistant');
+        playCyberSound('success');
+        handleSpeakText("AI Assistant is active");
+        return;
+      }
+
       setChatInput((prev) => prev ? prev + ' ' + speechToText : speechToText);
       playCyberSound('success');
     };
@@ -3011,6 +3068,27 @@ export default function App() {
     setBotAttachedImageName('');
     setIsChatLoading(true);
 
+    // Build the user context description to feed the AI
+    let userContextStr = "";
+    if (currentUser) {
+      userContextStr += `[Current User Profile Context]:\n`;
+      userContextStr += `- Name: ${currentUser.name}\n`;
+      userContextStr += `- Role: ${userRole}\n`;
+      if (currentUser.details) {
+        if (currentUser.details.roll) userContextStr += `- Roll Number: ${currentUser.details.roll}\n`;
+        if (currentUser.details.department) userContextStr += `- Department/Branch: ${currentUser.details.department}\n`;
+        if (currentUser.details.phone) userContextStr += `- Contact Phone: ${currentUser.details.phone}\n`;
+        if (currentUser.details.teacher) userContextStr += `- Mentor / Assigned Teacher: ${currentUser.details.teacher}\n`;
+      }
+      if (userRole === 'student' && studentLogs) {
+        const total = studentLogs.length;
+        const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+        const rate = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+        userContextStr += `- Student Attendance Rate: ${rate}%\n`;
+        userContextStr += `- Attendance Count: ${present} Present out of ${total} classes\n`;
+      }
+    }
+
     try {
       const historyPayload = chatMessages.map(m => ({
         role: m.role,
@@ -3028,7 +3106,8 @@ export default function App() {
           history: historyPayload,
           image_base64: tempImage,
           image_mime_type: tempImageMime,
-          personality: botPersonality
+          personality: botPersonality,
+          user_context: userContextStr
         })
       });
 
@@ -3069,6 +3148,44 @@ export default function App() {
       ]);
     } finally {
       setIsChatLoading(false);
+    }
+  };
+
+  const handleExportChatHistory = () => {
+    playCyberSound('success');
+    let transcript = `AI Chat Transcript - Smart Attendance System\n`;
+    transcript += `Generated: ${new Date().toLocaleString()}\n`;
+    transcript += `User: ${currentUser?.name || 'Unknown'} (${userRole})\n`;
+    transcript += `=========================================\n\n`;
+
+    chatMessages.forEach(m => {
+      const sender = m.role === 'user' ? 'USER' : 'AI BOT';
+      transcript += `[${sender}]: ${m.content}\n`;
+      if (m.attachedImageName) {
+        transcript += `(Attached Image: ${m.attachedImageName})\n`;
+      }
+      transcript += `\n`;
+    });
+
+    const element = document.createElement("a");
+    const file = new Blob([transcript], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `smart_attendance_chat_transcript.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const handleClearChatHistory = () => {
+    if (window.confirm("Are you sure you want to clear your conversation history?")) {
+      playCyberSound('click');
+      setChatMessages([
+        {
+          id: 1,
+          role: 'model',
+          content: 'Hello! I am your **Smart Attendance System AI Assistant**. How can I help you today? You can ask me anything about the application or ask custom doubts!'
+        }
+      ]);
     }
   };
 
@@ -8784,12 +8901,32 @@ export default function App() {
                     </span>
                   </div>
                 </div>
-                {isListeningSpeech && (
-                  <div style={{ fontSize: '0.8rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
-                    LISTENING VOICE INPUT...
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {isListeningSpeech && (
+                    <div style={{ fontSize: '0.8rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginRight: '12px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                      LISTENING VOICE...
+                    </div>
+                  )}
+                  <button 
+                    type="button" 
+                    className="ai-icon-btn" 
+                    onClick={handleExportChatHistory} 
+                    title="Export Chat History to Text File"
+                    style={{ width: '32px', height: '32px', borderRadius: '6px' }}
+                  >
+                    <FileDown size={14} />
+                  </button>
+                  <button 
+                    type="button" 
+                    className="ai-icon-btn" 
+                    onClick={handleClearChatHistory} 
+                    title="Clear Conversation History"
+                    style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.15)' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
 
               <div className="ai-chat-messages" ref={chatListRef}>
