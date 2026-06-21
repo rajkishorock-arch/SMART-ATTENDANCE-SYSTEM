@@ -2395,6 +2395,11 @@ export default function App() {
     };
   }, [ambientHumActive, ambientHumVolume, isScanning, attendanceActive, webcamActive, studentWebcamActive]);
 
+  const fpsRef = useRef('30.0');
+  useEffect(() => {
+    fpsRef.current = hudMetrics.fps;
+  }, [hudMetrics.fps]);
+
   // HTML5 Canvas Neural Mesh Graph Animation
   useEffect(() => {
     if (activeTab !== 'dashboard' || !token) return;
@@ -2403,31 +2408,58 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     
     let animationFrameId;
-    
-    const resizeCanvas = () => {
-      canvas.width = canvas.parentElement.clientWidth;
-      canvas.height = canvas.parentElement.clientHeight;
-    };
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
     const primaryColor = activeTheme === 'matrix' ? '#00ff46' :
                           activeTheme === 'obsidian' ? '#ff3e3e' :
                           activeTheme === 'violet' ? '#a855f7' : '#00f2fe';
     
-    const particleCount = 35;
+    // Convert hex color to rgb for custom opacity
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 0, g: 242, b: 254 };
+    };
+    const rgb = hexToRgb(primaryColor);
+    
+    const particleCount = 28;
     const particles = [];
+    
+    const resizeCanvas = () => {
+      const parent = canvas.parentElement;
+      if (!parent) return;
+      const w = parent.clientWidth || 300;
+      const h = parent.clientHeight || 260;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        // Distribute or reposition particles that are out of bounds or initialized at 0
+        particles.forEach(p => {
+          if (p.x === 0 || p.x > w) p.x = Math.random() * w;
+          if (p.y === 0 || p.y > h) p.y = Math.random() * h;
+        });
+      }
+    };
+    
+    // Initialize particles
     for (let i = 0; i < particleCount; i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.8,
-        vy: (Math.random() - 0.5) * 0.8,
+        x: 0, // will be set by resizeCanvas
+        y: 0,
+        vx: (Math.random() - 0.5) * 0.7,
+        vy: (Math.random() - 0.5) * 0.7,
         radius: Math.random() * 2 + 1.5,
-        pulseSpeed: 0.05 + Math.random() * 0.05,
-        pulseValue: Math.random()
+        pulseSpeed: 0.03 + Math.random() * 0.04,
+        pulseValue: Math.random(),
+        isHub: i % 6 === 0, // Every 6th particle is a hub node
+        label: i % 6 === 0 ? `N-${String(i).padStart(2, '0')}` : null,
+        status: i % 12 === 0 ? 'ACTIVE' : (i % 18 === 0 ? 'SYNCING' : null)
       });
     }
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
     
     let mouse = { x: null, y: null };
     const handleMouseMove = (e) => {
@@ -2450,88 +2482,299 @@ export default function App() {
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
         radius: 0,
-        maxRadius: 120,
-        speed: 3,
-        opacity: 0.6
+        maxRadius: 100,
+        speed: 2.5,
+        opacity: 0.8
       });
       playCyberSound('click');
     };
     canvas.addEventListener('click', handleCanvasClick);
     
+    let scanY = 0;
+    let rotationAngle = 0;
+    
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const w = canvas.width;
+      const h = canvas.height;
       
+      // 1. Draw Background Dot Grid
+      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05)`;
+      const gridSpacing = 30;
+      for (let x = 0; x < w; x += gridSpacing) {
+        for (let y = 0; y < h; y += gridSpacing) {
+          ctx.beginPath();
+          ctx.arc(x, y, 0.7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      // 2. Draw Horizontal/Vertical Laser Grid Lines (subtle)
+      ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.02)`;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      for (let x = 0; x < w; x += 60) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+      }
+      for (let y = 0; y < h; y += 60) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+      }
+      ctx.stroke();
+      
+      // 3. Update & Draw Scanner Sweep line
+      scanY += 0.8;
+      if (scanY > h) scanY = 0;
+      
+      // Scanner sweep line gradient
+      const scanGrad = ctx.createLinearGradient(0, scanY - 15, 0, scanY + 3);
+      scanGrad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+      scanGrad.addColorStop(0.8, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05)`);
+      scanGrad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`);
+      
+      ctx.fillStyle = scanGrad;
+      ctx.fillRect(0, scanY - 15, w, 15);
+      
+      ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, scanY);
+      ctx.lineTo(w, scanY);
+      ctx.stroke();
+      
+      // 4. Update & Draw Click Ripples
       ripples = ripples.filter(r => r.radius < r.maxRadius);
       ripples.forEach(r => {
         r.radius += r.speed;
         r.opacity = 1 - (r.radius / r.maxRadius);
         ctx.strokeStyle = primaryColor;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1;
         ctx.globalAlpha = r.opacity;
+        
+        // Ring 1
         ctx.beginPath();
         ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
         ctx.stroke();
+        
+        // Ring 2 (dashed)
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
       });
       ctx.globalAlpha = 1.0;
       
+      // 5. Update & Draw Particles (Neural Nodes)
       particles.forEach((p, idx) => {
         p.x += p.vx;
         p.y += p.vy;
         
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        // Bounce on borders
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > h) p.vy *= -1;
         
+        // Interaction with mouse cursor
         if (mouse.x !== null && mouse.y !== null) {
           const dx = mouse.x - p.x;
           const dy = mouse.y - p.y;
           const dist = Math.hypot(dx, dy);
-          if (dist < 100) {
-            p.x -= dx * 0.02;
-            p.y -= dy * 0.02;
+          if (dist < 80) {
+            // Push away gently
+            p.x -= (dx / dist) * 0.5;
+            p.y -= (dy / dist) * 0.5;
           }
         }
         
+        // Interaction with Click Ripples
         ripples.forEach(r => {
           const dx = p.x - r.x;
           const dy = p.y - r.y;
           const dist = Math.hypot(dx, dy);
-          if (Math.abs(dist - r.radius) < 5) {
-            p.x += (dx / dist) * 12;
-            p.y += (dy / dist) * 12;
+          if (Math.abs(dist - r.radius) < 6) {
+            p.x += (dx / dist) * 2;
+            p.y += (dy / dist) * 2;
           }
         });
         
+        // Calculate scanning proximity glow
+        const distFromScan = Math.abs(p.y - scanY);
+        const scanGlow = distFromScan < 25 ? (1 - distFromScan / 25) * 0.6 : 0;
+        
         p.pulseValue += p.pulseSpeed;
-        const glowOpacity = 0.4 + Math.sin(p.pulseValue) * 0.3;
-        ctx.fillStyle = primaryColor;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
+        const baseGlow = 0.3 + Math.sin(p.pulseValue) * 0.2;
+        const totalGlow = Math.min(1.0, baseGlow + scanGlow);
         
-        ctx.strokeStyle = primaryColor;
-        ctx.globalAlpha = glowOpacity;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius * 2.5, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
-        
+        // Draw connection lines
         for (let j = idx + 1; j < particles.length; j++) {
           const p2 = particles[j];
           const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-          if (dist < 85) {
-            const lineOpacity = (1 - (dist / 85)) * 0.25;
-            ctx.strokeStyle = primaryColor;
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = lineOpacity;
+          if (dist < 80) {
+            const lineOpacity = (1 - (dist / 80)) * (p.isHub || p2.isHub ? 0.35 : 0.15);
+            ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${lineOpacity})`;
+            ctx.lineWidth = p.isHub && p2.isHub ? 1.2 : 0.8;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
+            
+            // Draw flowing data pulses along active lines
+            if (p.isHub || p2.isHub || idx % 4 === 0) {
+              const speedFactor = p.isHub ? 1500 : 2500;
+              const t = (Date.now() / speedFactor + idx * 0.15) % 1.0;
+              const px = p.x + (p2.x - p.x) * t;
+              const py = p.y + (p2.y - p.y) * t;
+              ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${lineOpacity * 2.5})`;
+              ctx.beginPath();
+              ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
         }
+        
+        // Draw Node Graphics
+        ctx.globalAlpha = totalGlow;
+        if (p.isHub) {
+          // Hub Node is a complex square & target crosshair
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 1.2;
+          ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`;
+          
+          ctx.beginPath();
+          ctx.rect(p.x - 4, p.y - 4, 8, 8);
+          ctx.fill();
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          // Draw text label next to hub node
+          if (p.label) {
+            ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`;
+            ctx.font = '8px monospace';
+            ctx.fillText(p.label, p.x + 8, p.y - 3);
+            if (p.status) {
+              ctx.fillStyle = p.status === 'ACTIVE' ? '#10b981' : '#f59e0b';
+              ctx.fillText(p.status, p.x + 8, p.y + 6);
+            }
+          }
+        } else {
+          // Regular node is a simple dot with outer glow ring
+          ctx.fillStyle = primaryColor;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
       });
       
-      ctx.globalAlpha = 1.0;
+      // 6. Draw Mouse Targeting Reticle & Brackets
+      if (mouse.x !== null && mouse.y !== null) {
+        rotationAngle += 0.015;
+        
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 1;
+        
+        // Rotating outer ring
+        ctx.setLineDash([3, 5]);
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, 22, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Rotating inner tick rings
+        ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, 14, rotationAngle, rotationAngle + Math.PI * 0.4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, 14, rotationAngle + Math.PI, rotationAngle + Math.PI * 1.4);
+        ctx.stroke();
+        
+        // Center cross
+        ctx.strokeStyle = primaryColor;
+        ctx.beginPath();
+        ctx.moveTo(mouse.x - 5, mouse.y);
+        ctx.lineTo(mouse.x + 5, mouse.y);
+        ctx.moveTo(mouse.x, mouse.y - 5);
+        ctx.lineTo(mouse.x, mouse.y + 5);
+        ctx.stroke();
+        
+        // Corner Brackets
+        const bs = 25; // bracket offset
+        const bl = 5;  // bracket length
+        // Top-left
+        ctx.beginPath();
+        ctx.moveTo(mouse.x - bs, mouse.y - bs + bl);
+        ctx.lineTo(mouse.x - bs, mouse.y - bs);
+        ctx.lineTo(mouse.x - bs + bl, mouse.y - bs);
+        ctx.stroke();
+        // Top-right
+        ctx.beginPath();
+        ctx.moveTo(mouse.x + bs, mouse.y - bs + bl);
+        ctx.lineTo(mouse.x + bs, mouse.y - bs);
+        ctx.lineTo(mouse.x + bs - bl, mouse.y - bs);
+        ctx.stroke();
+        // Bottom-left
+        ctx.beginPath();
+        ctx.moveTo(mouse.x - bs, mouse.y + bs - bl);
+        ctx.lineTo(mouse.x - bs, mouse.y + bs);
+        ctx.lineTo(mouse.x - bs + bl, mouse.y + bs);
+        ctx.stroke();
+        // Bottom-right
+        ctx.beginPath();
+        ctx.moveTo(mouse.x + bs, mouse.y + bs - bl);
+        ctx.lineTo(mouse.x + bs, mouse.y + bs);
+        ctx.lineTo(mouse.x + bs - bl, mouse.y + bs);
+        ctx.stroke();
+        
+        // Monospace telemetry printout
+        ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`;
+        ctx.font = '8px monospace';
+        ctx.fillText(`TARGET: LOCK`, mouse.x + bs + 5, mouse.y - 8);
+        ctx.fillText(`X:${Math.round(mouse.x)} Y:${Math.round(mouse.y)}`, mouse.x + bs + 5, mouse.y + 4);
+        ctx.fillText(`SYNC: 100%`, mouse.x + bs + 5, mouse.y + 16);
+        
+        // Connect mouse reticle to the 3 nearest particles
+        const sorted = [...particles].map(p => ({
+          p, dist: Math.hypot(p.x - mouse.x, p.y - mouse.y)
+        })).sort((a, b) => a.dist - b.dist);
+        
+        for (let i = 0; i < Math.min(3, sorted.length); i++) {
+          const nearest = sorted[i];
+          if (nearest.dist < 120) {
+            ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${(1 - nearest.dist / 120) * 0.3})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(mouse.x, mouse.y);
+            ctx.lineTo(nearest.p.x, nearest.p.y);
+            ctx.stroke();
+          }
+        }
+      }
+      
+      // 7. Render HUD Digital Logs overlay on the canvas edges
+      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`;
+      ctx.font = '7.5px monospace';
+      ctx.fillText(`[NEURAL_ENGINE: OK]`, 10, 15);
+      ctx.fillText(`[LIVENESS: SECURE]`, 10, 27);
+      ctx.fillText(`[BANDWIDTH: 10Gbps]`, 10, 39);
+      
+      const themeLabel = activeTheme === 'matrix' ? 'MATRIX_CORE' :
+                         activeTheme === 'obsidian' ? 'OBSIDIAN_CORE' :
+                         activeTheme === 'violet' ? 'VIOLET_CORE' : 'CYAN_CORE';
+      ctx.fillText(`[LINK: ${themeLabel}]`, w - 100, 15);
+      ctx.fillText(`[BEACONS: ${particleCount} ACTIVE]`, w - 100, 27);
+      ctx.fillText(`[FPS: ${fpsRef.current || '60'} HZ]`, w - 100, 39);
+      
       animationFrameId = requestAnimationFrame(draw);
     };
     
@@ -3514,11 +3757,11 @@ export default function App() {
         average_attendance_rate: 85.7,
         department_stats: { 'CSE(IOT)': { total: 80, present: 72 }, 'ECE': { total: 40, present: 36 }, 'Mechanical': { total: 34, present: 24 } },
         weekly_trends: [
-          { date: 'Mon', rate: 84 },
-          { date: 'Tue', rate: 87 },
-          { date: 'Wed', rate: 82 },
-          { date: 'Thu', rate: 89 },
-          { date: 'Fri', rate: 85 }
+          { date: '15/06/2026', day: 'Mon', present: 124 },
+          { date: '16/06/2026', day: 'Tue', present: 130 },
+          { date: '17/06/2026', day: 'Wed', present: 128 },
+          { date: '18/06/2026', day: 'Thu', present: 135 },
+          { date: '19/06/2026', day: 'Fri', present: 132 }
         ]
       });
 
@@ -4046,11 +4289,11 @@ export default function App() {
       average_attendance_rate: 85.7,
       department_stats: { 'CSE(IOT)': { total: 80, present: 72 }, 'ECE': { total: 40, present: 36 }, 'Mechanical': { total: 34, present: 24 } },
       weekly_trends: [
-        { date: 'Mon', rate: 84 },
-        { date: 'Tue', rate: 87 },
-        { date: 'Wed', rate: 82 },
-        { date: 'Thu', rate: 89 },
-        { date: 'Fri', rate: 85 }
+        { date: '15/06/2026', day: 'Mon', present: 124 },
+        { date: '16/06/2026', day: 'Tue', present: 130 },
+        { date: '17/06/2026', day: 'Wed', present: 128 },
+        { date: '18/06/2026', day: 'Thu', present: 135 },
+        { date: '19/06/2026', day: 'Fri', present: 132 }
       ]
     });
 
@@ -6010,7 +6253,11 @@ export default function App() {
                       <span>No attendance data marked for today.</span>
                     </div>
                   ) : (
-                    <BarChart width={chartWidth2} height={220} data={Object.keys(stats.department_stats).map(dept => ({ name: dept, count: stats.department_stats[dept] }))}>
+                    <BarChart width={chartWidth2} height={220} data={Object.keys(stats.department_stats).map(dept => {
+                      const val = stats.department_stats[dept];
+                      const countVal = (val && typeof val === 'object') ? (val.present !== undefined ? val.present : (val.count !== undefined ? val.count : 0)) : val;
+                      return { name: dept, count: countVal };
+                    })}>
                       <defs>
                         <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.9}/>
@@ -9092,7 +9339,13 @@ export default function App() {
                         {(() => {
                           const keys = Object.keys(stats.department_stats);
                           if (keys.length === 0) return 'CSE(IOT)';
-                          const maxDept = keys.reduce((a, b) => stats.department_stats[a] > stats.department_stats[b] ? a : b);
+                          const maxDept = keys.reduce((a, b) => {
+                            const valA = stats.department_stats[a];
+                            const valB = stats.department_stats[b];
+                            const countA = (valA && typeof valA === 'object') ? (valA.present !== undefined ? valA.present : 0) : valA;
+                            const countB = (valB && typeof valB === 'object') ? (valB.present !== undefined ? valB.present : 0) : valB;
+                            return countA > countB ? a : b;
+                          });
                           return maxDept || 'CSE(IOT)';
                         })()}
                       </p>
