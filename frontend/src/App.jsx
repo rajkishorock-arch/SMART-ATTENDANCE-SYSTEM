@@ -829,6 +829,12 @@ export default function App() {
     const lowerSpeech = text.toLowerCase().trim();
     console.log("Voice Command Parser processing:", lowerSpeech);
 
+    if (lowerSpeech === 'over' || lowerSpeech === 'over over' || lowerSpeech === 'stop' || lowerSpeech === 'terminate' || lowerSpeech === 'exit') {
+      stopVoiceAssistantMode();
+      playCyberSound('success');
+      return true;
+    }
+
     // Helper function to change tabs and close active modals/menus
     const changeTab = (tabId) => {
       setActiveTab(tabId);
