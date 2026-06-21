@@ -5688,17 +5688,13 @@ export default function App() {
                                   playCyberSound('click');
                                   const masterPass = prompt(`Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`);
                                   if (!masterPass) return;
-                                  if (masterPass !== 'dev_master_raj_9211_secure') {
-                                    alert("Invalid Master Password! Access Denied.");
-                                    playCyberSound('error');
-                                    return;
-                                  }
                                   try {
                                     const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
                                       method: 'PUT',
                                       headers: {
                                         'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${token}`
+                                        'Authorization': `Bearer ${token}`,
+                                        'X-Master-Password': masterPass
                                       },
                                       body: JSON.stringify({
                                         name: adminUser.name,
@@ -5741,16 +5737,12 @@ export default function App() {
                                   }
                                   const masterPass = prompt(`Enter Master Password to completely DELETE admin "${adminUser.email}":`);
                                   if (!masterPass) return;
-                                  if (masterPass !== 'dev_master_raj_9211_secure') {
-                                    alert("Invalid Master Password! Access Denied.");
-                                    playCyberSound('error');
-                                    return;
-                                  }
                                   try {
                                     const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
                                       method: 'DELETE',
                                       headers: {
-                                        'Authorization': `Bearer ${token}`
+                                        'Authorization': `Bearer ${token}`,
+                                        'X-Master-Password': masterPass
                                       }
                                     });
                                     if (res.ok) {

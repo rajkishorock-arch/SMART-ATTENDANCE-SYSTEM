@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
 import cv2
@@ -103,6 +103,7 @@ def create_new_user(
 def update_user_details(
     id: int,
     user_data: schemas.UserUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -115,6 +116,16 @@ def update_user_details(
     db_user = db.query(models.User).filter(models.User.id == id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Verify master password header if deactivating/modifying status or role
+    if user_data.is_active is not None or user_data.role is not None:
+        master_header = request.headers.get("x-master-password")
+        expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+        if master_header != expected_key:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid Master Password! Access Denied."
+            )
         
     if user_data.name is not None:
         db_user.name = user_data.name
@@ -187,6 +198,7 @@ def update_user_details(
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
 def delete_user(
     id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -194,6 +206,14 @@ def delete_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can delete user accounts."
+        )
+        
+    master_header = request.headers.get("x-master-password")
+    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+    if master_header != expected_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid Master Password! Access Denied."
         )
     
     db_user = db.query(models.User).filter(models.User.id == id).first()
