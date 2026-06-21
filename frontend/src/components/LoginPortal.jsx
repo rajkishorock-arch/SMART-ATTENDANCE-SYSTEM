@@ -287,16 +287,23 @@ export default function LoginPortal({
         `}</style>
 
         <p className="login-portal-footer" style={{
-          '--glow-color': activeRole.glow || 'rgba(0, 242, 254, 0.35)',
-          color: activeRole.color,
           fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
           fontSize: '0.78rem',
-          fontWeight: 800,
+          fontWeight: 600,
           letterSpacing: '0.04em',
-          animation: 'cyberPulseText 2.5s infinite ease-in-out',
+          color: 'rgba(148, 163, 184, 0.65)',
           marginTop: '32px'
         }}>
-          Developed by Rajkishor
+          Developed by{' '}
+          <span style={{
+            '--glow-color': activeRole.glow || 'rgba(0, 242, 254, 0.35)',
+            color: activeRole.color,
+            fontWeight: 800,
+            animation: 'cyberPulseText 2.5s infinite ease-in-out',
+            transition: 'color 0.4s ease'
+          }}>
+            Rajkishor
+          </span>
         </p>
       </div>
     </div>
