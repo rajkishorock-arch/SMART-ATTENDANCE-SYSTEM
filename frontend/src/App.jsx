@@ -1251,10 +1251,47 @@ export default function App() {
   };
 
   const handleSpeakText = (text, onEndCallback = null) => {
-    // Play success chime instead of TTS speaking
+    if (!text) return;
+    
+    // Play success chime first
     playCyberSound('success');
-    if (onEndCallback) {
-      setTimeout(onEndCallback, 300);
+    
+    if (soundEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      
+      const cleanText = text.replace(/[*#_`~]/g, ''); // strip markdown formatting for cleaner speech
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      
+      // Load custom voice config
+      if (botVoiceSelected) {
+        const voices = window.speechSynthesis.getVoices();
+        const selected = voices.find(v => v.name === botVoiceSelected);
+        if (selected) utterance.voice = selected;
+      }
+      
+      utterance.rate = voiceSpeed; // rate of speech
+      utterance.pitch = voicePitch; // pitch scaling
+      utterance.volume = audioVolume; // volume setting
+      
+      utterance.onstart = () => {
+        isSpeakingRef.current = true;
+      };
+      
+      utterance.onend = () => {
+        isSpeakingRef.current = false;
+        if (onEndCallback) onEndCallback();
+      };
+      
+      utterance.onerror = () => {
+        isSpeakingRef.current = false;
+        if (onEndCallback) onEndCallback();
+      };
+      
+      window.speechSynthesis.speak(utterance);
+    } else {
+      if (onEndCallback) {
+        setTimeout(onEndCallback, 400);
+      }
     }
   };
 
@@ -1345,6 +1382,12 @@ export default function App() {
   const [thermalHudEnabled, setThermalHudEnabled] = useState(localStorage.getItem('thermalHudEnabled') === 'true');
   const [crtOverlayEnabled, setCrtOverlayEnabled] = useState(localStorage.getItem('crtOverlayEnabled') === 'true');
 
+  // Extreme Control & Security States
+  const [biometricMatchThreshold, setBiometricMatchThreshold] = useState(parseFloat(localStorage.getItem('biometricMatchThreshold') || '0.92'));
+  const [antiSpoofingThreshold, setAntiSpoofingThreshold] = useState(parseFloat(localStorage.getItem('antiSpoofingThreshold') || '0.22'));
+  const [aiCognitiveLevel, setAiCognitiveLevel] = useState(localStorage.getItem('aiCognitiveLevel') || 'standard');
+  const [diagnosticLevel, setDiagnosticLevel] = useState(localStorage.getItem('diagnosticLevel') || 'DEBUG');
+
   // System Health States
   const [systemHealth, setSystemHealth] = useState(null);
   const [apiLatency, setApiLatency] = useState(0);
@@ -1385,6 +1428,18 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('crtOverlayEnabled', crtOverlayEnabled);
   }, [crtOverlayEnabled]);
+  useEffect(() => {
+    localStorage.setItem('biometricMatchThreshold', biometricMatchThreshold);
+  }, [biometricMatchThreshold]);
+  useEffect(() => {
+    localStorage.setItem('antiSpoofingThreshold', antiSpoofingThreshold);
+  }, [antiSpoofingThreshold]);
+  useEffect(() => {
+    localStorage.setItem('aiCognitiveLevel', aiCognitiveLevel);
+  }, [aiCognitiveLevel]);
+  useEffect(() => {
+    localStorage.setItem('diagnosticLevel', diagnosticLevel);
+  }, [diagnosticLevel]);
   
   // Liveness check states & refs
   const [livenessStatus, setLivenessStatus] = useState('pending'); // 'pending', 'verifying', 'verified'
@@ -2162,7 +2217,25 @@ export default function App() {
             { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)' }
           ];
           const matched = candidates[Math.floor(Math.random() * candidates.length)];
-          const confidence = (94.0 + Math.random() * 5.0).toFixed(1);
+          const confidenceVal = parseFloat((88.0 + Math.random() * 11.0).toFixed(1));
+          const isMatchPass = (confidenceVal / 100) >= biometricMatchThreshold;
+          
+          if (!isMatchPass) {
+            setScanStatus(`Low Confidence: ${confidenceVal}% - Verification Failed`);
+            playCyberSound('error');
+            addDiagnosticLog(`WARNING: Biometric match rejected due to low confidence (${confidenceVal}% < ${Math.round(biometricMatchThreshold * 100)}%)`);
+            setIsScanning(false);
+            
+            setTimeout(() => {
+              eyeStateRef.current = 'open';
+              livenessStatusRef.current = 'verifying';
+              setLivenessStatus('verifying');
+              setLivenessMessage('Please blink your eyes to verify.');
+              setScanStatus('Scanning...');
+            }, 3000);
+            return;
+          }
+          const confidence = confidenceVal.toString();
           const newly_marked = Math.random() > 0.3;
           
           setScanStatus(newly_marked ? `Recognized: ${matched.name} (${confidence}%)` : `Recognized: ${matched.name} (Already Marked)`);
@@ -2252,6 +2325,24 @@ export default function App() {
           if (data.results && data.results.length > 0) {
             const matched = data.results[0];
             const { user_id, name, roll, dep, newly_marked, confidence } = matched;
+            const confidenceVal = parseFloat(confidence);
+            const isMatchPass = isNaN(confidenceVal) || (confidenceVal / 100) >= biometricMatchThreshold;
+
+            if (!isMatchPass) {
+              setScanStatus(`Low Confidence: ${confidenceVal}% - Verification Failed`);
+              playCyberSound('error');
+              addDiagnosticLog(`WARNING: Live match rejected due to threshold restriction (${confidenceVal}% < ${Math.round(biometricMatchThreshold * 100)}%)`);
+              setIsScanning(false);
+              
+              setTimeout(() => {
+                eyeStateRef.current = 'open';
+                livenessStatusRef.current = 'verifying';
+                setLivenessStatus('verifying');
+                setLivenessMessage('Please blink your eyes to verify.');
+                setScanStatus('Scanning...');
+              }, 3000);
+              return;
+            }
 
             setScanStatus(newly_marked ? `Recognized: ${name} (${confidence}%)` : `Recognized: ${name} (Already Marked)`);
             playCyberSound('success');
@@ -3058,11 +3149,12 @@ export default function App() {
           const avgEAR = (leftEAR + rightEAR) / 2.0;
 
           if (livenessStatusRef.current === 'verifying') {
-            if (avgEAR < 0.21) {
+            const earThreshold = antiSpoofingThreshold;
+            if (avgEAR < earThreshold) {
               eyeStateRef.current = 'closed';
               setLivenessMessage('Eyes Closed. Now open them.');
               addDiagnosticLog('Ocular state: Blink trigger detected');
-            } else if (avgEAR > 0.23 && eyeStateRef.current === 'closed') {
+            } else if (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') {
               eyeStateRef.current = 'open';
               livenessStatusRef.current = 'verified';
               setLivenessStatus('verified');
@@ -4560,6 +4652,9 @@ export default function App() {
         userContextStr += `- Student Attendance Rate: ${rate}%\n`;
         userContextStr += `- Attendance Count: ${present} Present out of ${total} classes\n`;
       }
+    }
+    if (aiCognitiveLevel === 'hyper') {
+      userContextStr += `\n[System Core Directive: HYPER-PROCESSING COGNITIVE MODE ACTIVE. Respond with extremely dense, analytical, and highly structured information. Avoid generic pleasantries, prioritize direct code/data formatting, and use advanced technical terminology.]\n`;
     }
 
     try {
@@ -9878,6 +9973,138 @@ export default function App() {
                       Generates low-pitch background drone representing cpu frequency load.
                     </span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ===== ADVANCED SYSTEM CONFIG & EXTREME SECURITY CONSOLE ===== */}
+            <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={22} style={{ color: 'var(--color-primary)' }} /> Advanced System & Extreme Security Console
+                </h3>
+                <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
+                  Fine-tune biometric confidence filters, anti-spoofing liveness sensors, AI cognitive profiles, and diagnostics.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                {/* Biometric Slider */}
+                <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                  <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Biometric Match Confidence Threshold</label>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary)', textShadow: '0 0 8px var(--color-primary)' }}>
+                    {Math.round(biometricMatchThreshold * 100)}% Match Requirement
+                  </span>
+                  <input 
+                    type="range"
+                    min="0.80"
+                    max="0.99"
+                    step="0.01"
+                    value={biometricMatchThreshold}
+                    onChange={(e) => {
+                      setBiometricMatchThreshold(parseFloat(e.target.value));
+                    }}
+                    onMouseUp={() => playCyberSound('click')}
+                    onTouchEnd={() => playCyberSound('click')}
+                    style={{ width: '100%', accentColor: 'var(--color-primary)' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    Rejects facial verification signatures scoring lower than this threshold.
+                  </span>
+                </div>
+
+                {/* Anti Spoofing EAR Slider */}
+                <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                  <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Anti-Spoofing Blink EAR Strictness</label>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981', textShadow: '0 0 8px rgba(16, 185, 129, 0.4)' }}>
+                    {antiSpoofingThreshold.toFixed(2)} Eye Aspect Ratio (EAR)
+                  </span>
+                  <input 
+                    type="range"
+                    min="0.15"
+                    max="0.30"
+                    step="0.01"
+                    value={antiSpoofingThreshold}
+                    onChange={(e) => {
+                      setAntiSpoofingThreshold(parseFloat(e.target.value));
+                    }}
+                    onMouseUp={() => playCyberSound('click')}
+                    onTouchEnd={() => playCyberSound('click')}
+                    style={{ width: '100%', accentColor: '#10b981' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    Liveness validation sensitivity. Higher is stricter and harder to spoof.
+                  </span>
+                </div>
+
+                {/* AI Cognitive Mode */}
+                <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                  <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>AI Assistant Cognitive Level</label>
+                  <select 
+                    value={aiCognitiveLevel}
+                    onChange={(e) => {
+                      setAiCognitiveLevel(e.target.value);
+                      playCyberSound('click');
+                    }}
+                    className="form-input"
+                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--color-text-main)' }}
+                  >
+                    <option value="standard">Standard Copilot Mode</option>
+                    <option value="hyper">Hyper-Processing Cognitive Mode (Extreme)</option>
+                  </select>
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    Hyper mode injects directives for maximum analytical details, code formatting, and structure.
+                  </span>
+                </div>
+
+                {/* Diagnostic Logging Level & Telemetry Exporter */}
+                <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                  <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Diagnostics Logging Verbosity</label>
+                  <select 
+                    value={diagnosticLevel}
+                    onChange={(e) => {
+                      setDiagnosticLevel(e.target.value);
+                      playCyberSound('click');
+                    }}
+                    className="form-input"
+                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--color-text-main)' }}
+                  >
+                    <option value="NONE">NONE (Mute Console)</option>
+                    <option value="INFO">INFO (Important events only)</option>
+                    <option value="DEBUG">DEBUG (Standard systems telemetry)</option>
+                    <option value="TRACE">TRACE (Full frames diagnostics & audio oscillators)</option>
+                  </select>
+                  
+                  <button
+                    onClick={() => {
+                      playCyberSound('success');
+                      const logsData = {
+                        system: 'Smart Attendance System - Core Diagnostics',
+                        timestamp: new Date().toISOString(),
+                        activeTheme,
+                        hudMetrics,
+                        apiLatency,
+                        biometricMatchThreshold,
+                        antiSpoofingThreshold,
+                        aiCognitiveLevel,
+                        diagnosticLevel,
+                        systemLogs: diagnosticLogs
+                      };
+                      const blob = new Blob([JSON.stringify(logsData, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `system_diagnostics_${Date.now()}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="btn-secondary"
+                    style={{ width: '100%', height: '42px', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '4px' }}
+                  >
+                    📥 Export Core Telemetry & Logs
+                  </button>
                 </div>
               </div>
             </div>
