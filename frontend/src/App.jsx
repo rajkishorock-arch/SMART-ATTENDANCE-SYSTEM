@@ -43,7 +43,8 @@ import {
   Paperclip,
   Mic,
   MicOff,
-  Settings
+  Settings,
+  Phone
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -383,6 +384,8 @@ export default function App() {
   const [botAutoSpeak, setBotAutoSpeak] = useState(false);
   const recognitionRef = useRef(null);
   const chatListRef = useRef(null);
+  const [isVoiceAssistantMode, setIsVoiceAssistantMode] = useState(false);
+  const voiceAssistantActiveRef = useRef(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -574,7 +577,7 @@ export default function App() {
     recognition.start();
   };
 
-  const handleSpeakText = (text) => {
+  const handleSpeakText = (text, onEndCallback = null) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
       console.warn("Speech synthesis not supported in this browser.");
       return;
@@ -596,7 +599,143 @@ export default function App() {
         utterance.voice = foundVoice;
       }
     }
+    if (onEndCallback) {
+      utterance.onend = onEndCallback;
+    }
     window.speechSynthesis.speak(utterance);
+  };
+
+  const listenInVoiceMode = () => {
+    if (!voiceAssistantActiveRef.current) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn("Speech recognition not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => {
+      setIsListeningSpeech(true);
+    };
+    
+    recognition.onresult = async (event) => {
+      const spokenText = event.results[0][0].transcript;
+      if (!spokenText.trim()) return;
+
+      const userMsgId = Date.now();
+      setChatMessages(prev => [...prev, {
+        id: userMsgId,
+        role: 'user',
+        content: spokenText
+      }]);
+
+      setIsChatLoading(true);
+
+      // Build context description
+      let userContextStr = "";
+      if (currentUser) {
+        userContextStr += `[Current User Profile Context]:\n`;
+        userContextStr += `- Name: ${currentUser.name}\n`;
+        userContextStr += `- Role: ${userRole}\n`;
+        if (currentUser.details) {
+          if (currentUser.details.roll) userContextStr += `- Roll Number: ${currentUser.details.roll}\n`;
+          if (currentUser.details.department) userContextStr += `- Department/Branch: ${currentUser.details.department}\n`;
+        }
+        if (userRole === 'student' && studentLogs) {
+          const total = studentLogs.length;
+          const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+          const rate = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+          userContextStr += `- Student Attendance Rate: ${rate}%\n`;
+        }
+      }
+
+      try {
+        const historyPayload = chatMessages.map(m => ({ role: m.role, content: m.content }));
+        const res = await fetch(`${API_BASE_URL}/chat/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            message: spokenText,
+            history: historyPayload,
+            personality: botPersonality,
+            user_context: userContextStr
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setChatMessages(prev => [...prev, {
+            id: Date.now() + 1,
+            role: 'model',
+            content: data.response
+          }]);
+          setIsChatLoading(false);
+          
+          handleSpeakText(data.response, () => {
+            setTimeout(() => {
+              if (voiceAssistantActiveRef.current) {
+                listenInVoiceMode();
+              }
+            }, 400);
+          });
+        } else {
+          setIsChatLoading(false);
+          handleSpeakText("Connection failed. Let me try listening again.", () => {
+            listenInVoiceMode();
+          });
+        }
+      } catch (err) {
+        setIsChatLoading(false);
+        handleSpeakText("Network error. Let me try listening again.", () => {
+          listenInVoiceMode();
+        });
+      }
+    };
+
+    recognition.onerror = (e) => {
+      console.error("Speech recognition error in voice mode:", e);
+      setIsListeningSpeech(false);
+      if (voiceAssistantActiveRef.current) {
+        setTimeout(() => {
+          listenInVoiceMode();
+        }, 1000);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListeningSpeech(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const startVoiceAssistantMode = () => {
+    playCyberSound('success');
+    setIsVoiceAssistantMode(true);
+    voiceAssistantActiveRef.current = true;
+    handleSpeakText("Voice connection established. Go ahead, I am listening.", () => {
+      setTimeout(() => {
+        listenInVoiceMode();
+      }, 500);
+    });
+  };
+
+  const stopVoiceAssistantMode = () => {
+    playCyberSound('click');
+    setIsVoiceAssistantMode(false);
+    voiceAssistantActiveRef.current = false;
+    window.speechSynthesis.cancel();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
   };
 
   const [activeTelemetry, setActiveTelemetry] = useState({ total_active: 0, students: 0, teachers: 0, admins: 0 });
@@ -8882,7 +9021,7 @@ export default function App() {
         {activeTab === 'ai-assistant' && (
           <div className="ai-assistant-wrapper" onDragOver={handleChatDragOver} onDrop={handleChatDrop} onPaste={handleChatPaste} style={{ animation: 'fadeInUp 0.5s ease' }}>
             {/* Left pane: chat */}
-            <div className="ai-chat-pane">
+            <div className="ai-chat-pane" style={{ position: 'relative' }}>
               <div className="ai-chat-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="ai-message-avatar">
@@ -8911,6 +9050,15 @@ export default function App() {
                   <button 
                     type="button" 
                     className="ai-icon-btn" 
+                    onClick={startVoiceAssistantMode} 
+                    title="Start Live Voice Assistant Call"
+                    style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#00f2fe', borderColor: 'rgba(0,242,254,0.15)' }}
+                  >
+                    <Phone size={14} />
+                  </button>
+                  <button 
+                    type="button" 
+                    className="ai-icon-btn" 
                     onClick={handleExportChatHistory} 
                     title="Export Chat History to Text File"
                     style={{ width: '32px', height: '32px', borderRadius: '6px' }}
@@ -8928,6 +9076,93 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {/* Render Live Voice Assistant Call Overlay inside the Chat pane when active */}
+              {isVoiceAssistantMode && (
+                <div className="voice-assistant-overlay" style={{
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: '#070a13',
+                  zIndex: 100,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '30px',
+                  animation: 'fadeIn 0.3s ease',
+                  padding: '40px'
+                }}>
+                  {/* Visualizer radar wave */}
+                  <div className="voice-radar-container">
+                    <div className={`voice-radar-ring ${isListeningSpeech ? 'listening' : ''}`} />
+                    <div className="voice-radar-ring delay-1" />
+                    <div className="voice-radar-ring delay-2" />
+                    <div className="voice-radar-avatar">
+                      <Bot size={40} style={{ color: '#00f2fe' }} />
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: '0 0 8px 0' }}>Smart Voice Assistant</h3>
+                    <p style={{
+                      color: isListeningSpeech ? '#ef4444' : '#00f2fe',
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      animation: 'pulse 1.5s infinite'
+                    }}>
+                      {isListeningSpeech ? '● Listening to your voice...' : '○ Speaking / Processing response...'}
+                    </p>
+                  </div>
+
+                  {/* Render last conversation snippet inside caller screen */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    width: '100%',
+                    maxWidth: '500px',
+                    minHeight: '80px',
+                    maxHeight: '150px',
+                    overflowY: 'auto',
+                    fontSize: '0.9rem',
+                    color: '#d1d5db',
+                    lineHeight: 1.5,
+                    textAlign: 'center'
+                  }}>
+                    {chatMessages[chatMessages.length - 1]?.role === 'user' ? (
+                      <span>You: "{chatMessages[chatMessages.length - 1]?.content}"</span>
+                    ) : (
+                      <span>AI: "{chatMessages[chatMessages.length - 1]?.content.replace(/\[ShowDiagram:.*?\]/g, '')}"</span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={stopVoiceAssistantMode}
+                    className="bg-gradient-btn"
+                    style={{
+                      background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '14px 28px',
+                      borderRadius: '30px',
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      boxShadow: '0 8px 24px rgba(239, 68, 68, 0.3)'
+                    }}
+                  >
+                    <VolumeX size={18} />
+                    End Voice Session
+                  </button>
+                </div>
+              )}
 
               <div className="ai-chat-messages" ref={chatListRef}>
                 {chatMessages.map((msg) => {

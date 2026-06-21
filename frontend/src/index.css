@@ -4418,5 +4418,61 @@ html {
   gap: 6px;
 }
 
+/* Voice Assistant Radar styles */
+.voice-radar-container {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-radar-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(0, 242, 254, 0.08);
+  border: 2px solid #00f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
+}
+
+.voice-radar-ring {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  border-radius: 50%;
+  animation: radarWave 3s infinite linear;
+  z-index: 1;
+}
+
+.voice-radar-ring.listening {
+  border-color: rgba(239, 68, 68, 0.3);
+  animation: radarWaveRed 2.5s infinite linear;
+}
+
+.voice-radar-ring.delay-1 {
+  animation-delay: 1s;
+}
+
+.voice-radar-ring.delay-2 {
+  animation-delay: 2s;
+}
+
+@keyframes radarWave {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes radarWaveRed {
+  0% { transform: scale(1); opacity: 1; border-color: rgba(239, 68, 68, 0.4); }
+  100% { transform: scale(2.2); opacity: 0; border-color: rgba(239, 68, 68, 0); }
+}
+
 
 
