@@ -1764,7 +1764,7 @@ button:active,
   }
 
   img:not(.scanner-container img),
-  video:not(.scanner-container video),
+  video:not(.scanner-container video):not(.scanner-modal-camera video),
   canvas:not(.scanner-container canvas) {
     max-width: 100% !important;
     height: auto !important;
@@ -2793,7 +2793,7 @@ html {
   flex-shrink: 0;
 }
 
-.scanner-modal-camera video {
+.scanner-modal-overlay .scanner-modal-camera video {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;

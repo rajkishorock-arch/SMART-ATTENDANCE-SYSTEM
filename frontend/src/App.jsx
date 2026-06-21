@@ -849,171 +849,185 @@ export default function App() {
       }
     };
 
-    // 2. DOM Clicker Helper
-    const clickElementByText = (targetText) => {
-      const query = targetText.toLowerCase().trim();
-      if (!query) return false;
+    // 2. DOM Clicker Helper — Smart, tab-aware, nav-deprioritized
+    const flashElement = (el) => {
+      const orig = { transition: el.style.transition, outline: el.style.outline, boxShadow: el.style.boxShadow };
+      el.style.transition = 'all 0.15s ease-in-out';
+      el.style.outline = '3px solid #00f0ff';
+      el.style.boxShadow = '0 0 20px #00f0ff, inset 0 0 8px rgba(0,242,254,0.2)';
+      setTimeout(() => {
+        el.style.transition = orig.transition;
+        el.style.outline = orig.outline;
+        el.style.boxShadow = orig.boxShadow;
+      }, 900);
+    };
 
-      // Select all interactive elements
-      const elements = Array.from(document.querySelectorAll(
-        'button, a, input[type="button"], input[type="submit"], [role="button"], .btn, .button, .nav-item, .clickable'
-      ));
+    const isElementVisible = (el) => {
+      if (!el) return false;
+      const rect = el.getBoundingClientRect();
+      // Must have real dimensions and be in viewport (or near it)
+      return rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight + 200 && rect.bottom > -200;
+    };
 
-      let bestMatch = null;
-      let highestScore = 0;
+    const isNavElement = (el) => {
+      return (
+        el.classList.contains('nav-item') ||
+        el.closest('.bottom-nav') !== null ||
+        el.closest('.sidebar-nav') !== null ||
+        el.closest('.nav-bar') !== null ||
+        el.closest('[class*="nav-item"]') !== null
+      );
+    };
 
-      for (const el of elements) {
-        // Check visibility
-        if (!(el.offsetWidth > 0 || el.offsetHeight > 0)) continue;
+    const clickElementByText = (targetText, delay = 0) => {
+      const doClick = () => {
+        const query = targetText.toLowerCase().trim();
+        if (!query || query.length < 2) return false;
 
-        // Get all text content/attributes
-        const elText = (el.innerText || el.textContent || '').toLowerCase().trim();
-        const elTitle = (el.getAttribute('title') || '').toLowerCase().trim();
-        const elLabel = (el.getAttribute('aria-label') || '').toLowerCase().trim();
-        const elVal = el.value ? String(el.value).toLowerCase().trim() : '';
+        // Select all interactive elements
+        const elements = Array.from(document.querySelectorAll(
+          'button, a[href], input[type="button"], input[type="submit"], [role="button"], [class*="btn"], [class*="button"]'
+        ));
 
-        // Check if any of these match or contain the query
-        const matchSources = [elText, elTitle, elLabel, elVal];
-        
-        for (const src of matchSources) {
-          if (!src) continue;
+        let bestMatch = null;
+        let highestScore = 0;
 
-          // Exact match is highest priority
-          if (src === query) {
-            bestMatch = el;
-            highestScore = 1000;
-            break;
-          }
+        for (const el of elements) {
+          if (!isElementVisible(el)) continue;
 
-          // Substring match
-          if (src.includes(query)) {
-            // Score based on how closely lengths match (shorter element text matches first)
-            const score = (query.length / src.length) * 100;
-            if (score > highestScore) {
-              highestScore = score;
-              bestMatch = el;
+          // Get all text content/attributes
+          const rawText = (el.innerText || el.textContent || '').toLowerCase().trim();
+          // Strip icons/symbols — keep only alphabetic text
+          const elText = rawText.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+          const elTitle = (el.getAttribute('title') || '').toLowerCase().trim();
+          const elLabel = (el.getAttribute('aria-label') || '').toLowerCase().trim();
+          const elId = (el.id || '').toLowerCase().replace(/-/g, ' ').replace(/_/g, ' ');
+
+          const matchSources = [elText, elTitle, elLabel, elId];
+
+          // Nav elements get a heavy penalty — content buttons should win
+          const navPenalty = isNavElement(el) ? 0.25 : 1.0;
+
+          for (const src of matchSources) {
+            if (!src) continue;
+
+            // Exact match is highest priority
+            if (src === query) {
+              const score = 1000 * navPenalty;
+              if (score > highestScore) {
+                highestScore = score;
+                bestMatch = el;
+              }
+              break;
+            }
+
+            // Full phrase contained in element text
+            if (src.includes(query)) {
+              // Score: how much of el's text the query covers × nav penalty
+              const score = (query.length / src.length) * 100 * navPenalty;
+              if (score > highestScore) {
+                highestScore = score;
+                bestMatch = el;
+              }
             }
           }
+
+          if (highestScore >= 1000) break; // perfect non-nav match found
         }
 
-        if (highestScore === 1000) break; // found perfect match
-      }
+        if (bestMatch) {
+          console.log("[Voice Clicker] Clicking:", bestMatch.innerText?.trim(), bestMatch);
+          flashElement(bestMatch);
+          bestMatch.click();
+          // Also try dispatching MouseEvent for elements that need it
+          bestMatch.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          return true;
+        }
+        return false;
+      };
 
-      if (bestMatch) {
-        console.log("[Voice Clicker] Programmatically clicking element:", bestMatch);
-        
-        // Add a visual ripple/flash effect to the clicked element to show user feedback!
-        const originalTransition = bestMatch.style.transition;
-        const originalOutline = bestMatch.style.outline;
-        const originalBoxShadow = bestMatch.style.boxShadow;
-        bestMatch.style.transition = 'all 0.2s ease-in-out';
-        bestMatch.style.outline = '3px solid #00f0ff';
-        bestMatch.style.boxShadow = '0 0 15px #00f0ff';
-        setTimeout(() => {
-          bestMatch.style.outline = originalOutline;
-          bestMatch.style.boxShadow = originalBoxShadow;
-          bestMatch.style.transition = originalTransition;
-        }, 800);
-
-        bestMatch.click();
-        return true;
+      if (delay > 0) {
+        setTimeout(doClick, delay);
+        return true; // Optimistically return true for delayed clicks
       }
-      return false;
+      return doClick();
+    };
+
+    // Tab-aware click: switch to tab first, then click after render
+    const tabAwareClick = (tabId, buttonText) => {
+      changeTab(tabId); // Use changeTab so menus close and state syncs
+      setTimeout(() => {
+        // Try exact text match first, then partial word matches
+        if (!clickElementByText(buttonText, 0)) {
+          const words = buttonText.split(' ');
+          for (const word of words) {
+            if (word.length > 3 && clickElementByText(word, 0)) break;
+          }
+        }
+      }, 600); // 600ms for React to fully re-render the new tab
     };
 
     // 3. Scroll Helper
     const performScroll = (direction) => {
-      let scrollAmt = 500;
+      const scrollAmt = 500;
+      const scrollAllContainers = (top) => {
+        document.querySelectorAll('div, section, main, tbody, ul, ol').forEach(el => {
+          try {
+            const style = window.getComputedStyle(el);
+            if (el.scrollHeight > el.clientHeight && (style.overflowY === 'auto' || style.overflowY === 'scroll')) {
+              if (top === 'top') el.scrollTo({ top: 0, behavior: 'smooth' });
+              else if (top === 'bottom') el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+              else el.scrollBy({ top: top, behavior: 'smooth' });
+            }
+          } catch(e) {}
+        });
+      };
+
       if (direction === 'down') {
         window.scrollBy({ top: scrollAmt, behavior: 'smooth' });
-        // Scroll containers
-        document.querySelectorAll('div, section, table, tbody').forEach(el => {
-          if (el.scrollHeight > el.clientHeight && (window.getComputedStyle(el).overflowY === 'auto' || window.getComputedStyle(el).overflowY === 'scroll')) {
-            el.scrollBy({ top: scrollAmt, behavior: 'smooth' });
-          }
-        });
+        scrollAllContainers(scrollAmt);
       } else if (direction === 'up') {
         window.scrollBy({ top: -scrollAmt, behavior: 'smooth' });
-        document.querySelectorAll('div, section, table, tbody').forEach(el => {
-          if (el.scrollHeight > el.clientHeight && (window.getComputedStyle(el).overflowY === 'auto' || window.getComputedStyle(el).overflowY === 'scroll')) {
-            el.scrollBy({ top: -scrollAmt, behavior: 'smooth' });
-          }
-        });
+        scrollAllContainers(-scrollAmt);
       } else if (direction === 'top') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        document.querySelectorAll('div, section, table, tbody').forEach(el => {
-          if (el.scrollHeight > el.clientHeight && (window.getComputedStyle(el).overflowY === 'auto' || window.getComputedStyle(el).overflowY === 'scroll')) {
-            el.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        });
+        scrollAllContainers('top');
       } else if (direction === 'bottom') {
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        document.querySelectorAll('div, section, table, tbody').forEach(el => {
-          if (el.scrollHeight > el.clientHeight && (window.getComputedStyle(el).overflowY === 'auto' || window.getComputedStyle(el).overflowY === 'scroll')) {
-            el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-          }
-        });
+        scrollAllContainers('bottom');
       }
     };
 
     // 4. Voice Commands Processing
-    
+
     // A. Navigation Commands (Fuzzy Match & Multi-lingual)
-    if (
-      lowerSpeech.includes('dashboard') || 
-      lowerSpeech.includes('home') || 
-      lowerSpeech.includes('stats') || 
-      lowerSpeech.includes('main page') ||
-      lowerSpeech.includes('telemetry')
-    ) {
+    if (lowerSpeech.includes('dashboard') || lowerSpeech.includes('home') || lowerSpeech.includes('main page') || lowerSpeech.includes('telemetry')) {
       const dest = userRole === 'student' ? 'student-attendance' : 'dashboard';
       changeTab(dest);
       playCyberSound('success');
       return true;
     }
-    if (
-      lowerSpeech.includes('profile') || 
-      lowerSpeech.includes('my account') || 
-      lowerSpeech.includes('account details')
-    ) {
+    if (lowerSpeech.includes('my profile') || lowerSpeech.includes('my account') || lowerSpeech === 'profile') {
       changeTab('student-profile');
       playCyberSound('success');
       return true;
     }
-    if (
-      lowerSpeech.includes('logs') || 
-      lowerSpeech.includes('register') || 
-      lowerSpeech.includes('attendance sheet') ||
-      lowerSpeech.includes('all attendance')
-    ) {
+    if (lowerSpeech.includes('attendance logs') || lowerSpeech.includes('attendance register') || lowerSpeech.includes('attendance sheet') || lowerSpeech === 'logs') {
       changeTab('logs');
       playCyberSound('success');
       return true;
     }
-    if (
-      lowerSpeech.includes('history') || 
-      lowerSpeech.includes('sessions') ||
-      lowerSpeech.includes('session history')
-    ) {
+    if (lowerSpeech === 'session history' || lowerSpeech === 'history' || lowerSpeech.includes('session-history') || lowerSpeech.includes('sessions')) {
       changeTab('session-history');
       playCyberSound('success');
       return true;
     }
-    if (
-      lowerSpeech.includes('report') || 
-      lowerSpeech.includes('reports') || 
-      lowerSpeech.includes('alerts')
-    ) {
+    if (lowerSpeech === 'reports' || lowerSpeech.includes('attendance reports') || lowerSpeech.includes('absentee alerts')) {
       changeTab('reports');
       playCyberSound('success');
       return true;
     }
-    if (
-      lowerSpeech.includes('settings') || 
-      lowerSpeech.includes('security') || 
-      lowerSpeech.includes('ip restrictions') || 
-      lowerSpeech.includes('geofencing')
-    ) {
+    if (lowerSpeech.includes('security settings') || lowerSpeech === 'settings' || lowerSpeech.includes('geofence') || lowerSpeech.includes('ip settings')) {
       if (userRole === 'admin') {
         changeTab('settings');
         playCyberSound('success');
@@ -1022,133 +1036,90 @@ export default function App() {
       }
       return true;
     }
-    if (
-      lowerSpeech.includes('students') || 
-      lowerSpeech.includes('student list') || 
-      lowerSpeech.includes('student directory')
-    ) {
+    if (lowerSpeech === 'student directory' || lowerSpeech === 'students' || lowerSpeech === 'student list') {
       changeTab('students');
       playCyberSound('success');
       return true;
     }
-    if (
-      lowerSpeech.includes('teachers') || 
-      lowerSpeech.includes('teacher list') || 
-      lowerSpeech.includes('teacher directory') || 
-      lowerSpeech.includes('timetable')
-    ) {
+    if (lowerSpeech === 'teacher directory' || lowerSpeech === 'teachers' || lowerSpeech === 'timetable') {
       changeTab('teachers');
       playCyberSound('success');
       return true;
     }
-    if (
-      lowerSpeech.includes('chat') || 
-      lowerSpeech.includes('assistant') || 
-      lowerSpeech.includes('ai bot') || 
-      lowerSpeech.includes('chatbot')
-    ) {
+    if (lowerSpeech === 'ai assistant' || lowerSpeech === 'chatbot' || lowerSpeech === 'open chat') {
       changeTab('ai-assistant');
       playCyberSound('success');
       return true;
     }
-
-    // B. Live Facial Scanner Control (Modal + Camera)
-    if (
-      lowerSpeech.includes('start scanner') || 
-      lowerSpeech.includes('open scanner') || 
-      lowerSpeech.includes('scanner star') || 
-      lowerSpeech.includes('start camera') || 
-      lowerSpeech.includes('camera on') || 
-      lowerSpeech.includes('scanner chalu') || 
-      lowerSpeech.includes('camera chalu') || 
-      lowerSpeech.includes('attendance lagao') ||
-      lowerSpeech.includes('scan face')
-    ) {
-      triggerStartScanner();
+    if (lowerSpeech.includes('attendance scanner') || lowerSpeech.includes('face scanner') || lowerSpeech === 'attendance') {
+      changeTab('attendance');
       playCyberSound('success');
       return true;
     }
 
-    if (
-      lowerSpeech.includes('stop scanner') || 
-      lowerSpeech.includes('close scanner') || 
-      lowerSpeech.includes('scanner stop') || 
-      lowerSpeech.includes('stop camera') || 
-      lowerSpeech.includes('camera off') || 
-      lowerSpeech.includes('scanner band') || 
-      lowerSpeech.includes('camera band')
-    ) {
-      triggerStopScanner();
+    // B. Direct Action Shortcuts (Tab-aware — switch + click after render)
+    if (lowerSpeech.includes('add student') || lowerSpeech.includes('register student') || lowerSpeech.includes('new student')) {
+      tabAwareClick('students', 'Register Student');
       playCyberSound('success');
       return true;
     }
-
-    // C. Add / Register Form Control
-    if (
-      lowerSpeech.includes('add student') || 
-      lowerSpeech.includes('register student') || 
-      lowerSpeech.includes('student add') || 
-      lowerSpeech.includes('new student')
-    ) {
-      changeTab('students');
-      setTimeout(() => {
-        setShowAddModal(true);
-      }, 300);
+    if (lowerSpeech.includes('add teacher') || lowerSpeech.includes('register teacher') || lowerSpeech.includes('new teacher')) {
+      tabAwareClick('teachers', 'Register Teacher');
       playCyberSound('success');
       return true;
     }
-
-    if (
-      lowerSpeech.includes('add teacher') || 
-      lowerSpeech.includes('register teacher') || 
-      lowerSpeech.includes('teacher add') || 
-      lowerSpeech.includes('new teacher')
-    ) {
-      changeTab('teachers');
-      setTimeout(() => {
-        setShowAddModal(true);
-      }, 300);
+    if (lowerSpeech.includes('start scanner') || lowerSpeech.includes('open scanner') || lowerSpeech.includes('camera on') || lowerSpeech.includes('start camera') || lowerSpeech.includes('scanner chalu') || lowerSpeech.includes('attendance lagao') || lowerSpeech.includes('scan karo')) {
+      triggerStartScanner(); // Uses the pre-defined helper that properly starts cam
       playCyberSound('success');
       return true;
     }
-
-    // D. Webcam Capture for training
-    if (
-      lowerSpeech.includes('start webcam') || 
-      lowerSpeech.includes('open webcam') || 
-      lowerSpeech.includes('capture face') || 
-      lowerSpeech.includes('webcam chalu')
-    ) {
+    if (lowerSpeech.includes('stop scanner') || lowerSpeech.includes('close scanner') || lowerSpeech.includes('camera off') || lowerSpeech.includes('stop camera') || lowerSpeech.includes('scanner band') || lowerSpeech.includes('camera band karo')) {
+      triggerStopScanner(); // Uses the pre-defined helper that properly stops cam
+      playCyberSound('success');
+      return true;
+    }
+    if (lowerSpeech.includes('download report') || lowerSpeech.includes('download pdf') || lowerSpeech.includes('export report')) {
+      tabAwareClick('reports', 'Download PDF');
+      playCyberSound('success');
+      return true;
+    }
+    if (lowerSpeech.includes('send alerts') || lowerSpeech.includes('send absentee') || lowerSpeech.includes('alert bhejo')) {
+      tabAwareClick('reports', 'Send Absentee Alerts');
+      playCyberSound('success');
+      return true;
+    }
+    if (lowerSpeech.includes('generate report') || lowerSpeech.includes('fetch report') || lowerSpeech.includes('report generate')) {
+      tabAwareClick('reports', 'Generate Report');
+      playCyberSound('success');
+      return true;
+    }
+    if (lowerSpeech.includes('download logs') || lowerSpeech.includes('export logs') || lowerSpeech.includes('download attendance')) {
+      tabAwareClick('logs', 'Download CSV');
+      playCyberSound('success');
+      return true;
+    }
+    if (lowerSpeech.includes('start session') || lowerSpeech.includes('session chalu') || lowerSpeech.includes('custom session')) {
+      tabAwareClick('attendance', 'Start Custom Session');
+      playCyberSound('success');
+      return true;
+    }
+    if (lowerSpeech.includes('stop session') || lowerSpeech.includes('session band') || lowerSpeech.includes('end session')) {
+      tabAwareClick('attendance', 'Stop Session');
+      playCyberSound('success');
+      return true;
+    }
+    if (lowerSpeech.includes('train model') || lowerSpeech.includes('train faces') || lowerSpeech.includes('retrain')) {
+      tabAwareClick('students', 'Train Recognition');
+      playCyberSound('success');
+      return true;
+    }
+    if (lowerSpeech.includes('capture face') || lowerSpeech.includes('webcam chalu') || lowerSpeech.includes('open webcam')) {
       setShowWebcamModal(true);
-      setTimeout(() => {
-        startWebcam();
-      }, 300);
+      setTimeout(() => { try { startWebcam(); } catch(e) {} }, 300);
       playCyberSound('success');
       return true;
     }
-
-    if (
-      lowerSpeech.includes('stop webcam') || 
-      lowerSpeech.includes('close webcam') || 
-      lowerSpeech.includes('webcam band')
-    ) {
-      stopWebcam();
-      setShowWebcamModal(false);
-      playCyberSound('success');
-      return true;
-    }
-
-    // E. General Modal / Popup closing
-    if (
-      lowerSpeech.includes('close form') || 
-      lowerSpeech.includes('close modal') || 
-      lowerSpeech.includes('close popup') || 
-      lowerSpeech.includes('cancel') || 
-      lowerSpeech.includes('band karo') || 
-      lowerSpeech.includes('close window') || 
-      lowerSpeech.includes('piche jao') || 
-      lowerSpeech.includes('go back')
-    ) {
+    if (lowerSpeech.includes('close form') || lowerSpeech.includes('close modal') || lowerSpeech.includes('close popup') || lowerSpeech.includes('close window') || lowerSpeech === 'cancel' || lowerSpeech.includes('band karo modal') || lowerSpeech === 'go back' || lowerSpeech === 'wapas jao') {
       setShowAddModal(false);
       setShowWebcamModal(false);
       setShowEditStudentModal(false);
@@ -1161,117 +1132,63 @@ export default function App() {
       return true;
     }
 
-    // F. Smart Scroll Controls (Fuzzy Matching)
-    if (
-      lowerSpeech.includes('scroll down') || 
-      lowerSpeech.includes('go down') || 
-      lowerSpeech.includes('page down') || 
-      lowerSpeech.includes('neeche scroll') || 
-      lowerSpeech.includes('neeche jao') ||
-      lowerSpeech.includes('scroll down page')
-    ) {
-      performScroll('down');
-      playCyberSound('success');
-      return true;
+    // C. Smart Scroll Controls
+    if (lowerSpeech.includes('scroll down') || lowerSpeech.includes('neeche') || lowerSpeech === 'go down' || lowerSpeech === 'page down') {
+      performScroll('down'); playCyberSound('success'); return true;
     }
-    if (
-      lowerSpeech.includes('scroll up') || 
-      lowerSpeech.includes('go up') || 
-      lowerSpeech.includes('page up') || 
-      lowerSpeech.includes('upar scroll') || 
-      lowerSpeech.includes('upar jao') ||
-      lowerSpeech.includes('scroll up page')
-    ) {
-      performScroll('up');
-      playCyberSound('success');
-      return true;
+    if (lowerSpeech.includes('scroll up') || lowerSpeech.includes('upar') || lowerSpeech === 'go up' || lowerSpeech === 'page up') {
+      performScroll('up'); playCyberSound('success'); return true;
     }
-    if (
-      lowerSpeech.includes('scroll to top') || 
-      lowerSpeech.includes('go to top') || 
-      lowerSpeech.includes('top page') || 
-      lowerSpeech.includes('sabse upar') || 
-      lowerSpeech.includes('scroll top')
-    ) {
-      performScroll('top');
-      playCyberSound('success');
-      return true;
+    if (lowerSpeech.includes('scroll to top') || lowerSpeech.includes('sabse upar') || lowerSpeech === 'top') {
+      performScroll('top'); playCyberSound('success'); return true;
     }
-    if (
-      lowerSpeech.includes('scroll to bottom') || 
-      lowerSpeech.includes('go to bottom') || 
-      lowerSpeech.includes('bottom page') || 
-      lowerSpeech.includes('sabse neeche') || 
-      lowerSpeech.includes('scroll bottom')
-    ) {
-      performScroll('bottom');
-      playCyberSound('success');
-      return true;
+    if (lowerSpeech.includes('scroll to bottom') || lowerSpeech.includes('sabse neeche') || lowerSpeech === 'bottom') {
+      performScroll('bottom'); playCyberSound('success'); return true;
     }
 
-    // G. Smart Search / Filters Control
-    if (
-      lowerSpeech.startsWith('search for ') || 
-      lowerSpeech.startsWith('search ') || 
-      lowerSpeech.startsWith('find ') || 
-      lowerSpeech.startsWith('filter ') ||
-      lowerSpeech.includes('khojo')
-    ) {
+    // D. Smart Search Input Typing
+    if (lowerSpeech.startsWith('search ') || lowerSpeech.startsWith('find ') || lowerSpeech.startsWith('filter ') || lowerSpeech.includes(' khojo')) {
       let query = '';
-      if (lowerSpeech.startsWith('search for ')) query = text.substring(11).trim();
-      else if (lowerSpeech.startsWith('search ')) query = text.substring(7).trim();
+      if (lowerSpeech.startsWith('search ')) query = text.substring(7).trim();
       else if (lowerSpeech.startsWith('find ')) query = text.substring(5).trim();
       else if (lowerSpeech.startsWith('filter ')) query = text.substring(7).trim();
-      else if (lowerSpeech.includes('khojo')) {
-        const parts = lowerSpeech.split('khojo');
-        query = parts[0].trim() || parts[1].trim();
-      }
+      else if (lowerSpeech.includes(' khojo')) query = text.substring(0, lowerSpeech.lastIndexOf(' khojo')).trim();
 
       if (query) {
-        const searchInputs = Array.from(document.querySelectorAll('input[type="text"], input[type="search"], input[placeholder*="Search" i], input[placeholder*="search" i]'));
-        if (searchInputs.length > 0) {
-          const visibleInput = searchInputs.find(input => input.offsetWidth > 0 && input.offsetHeight > 0) || searchInputs[0];
-          visibleInput.focus();
-          visibleInput.value = query;
-          visibleInput.dispatchEvent(new Event('input', { bubbles: true }));
-          visibleInput.dispatchEvent(new Event('change', { bubbles: true }));
+        const inputs = Array.from(document.querySelectorAll('input[type="text"], input[type="search"], input[placeholder*="Search" i], input[placeholder*="search" i], input[placeholder*="Filter" i]'));
+        const visible = inputs.filter(inp => isElementVisible(inp));
+        if (visible.length > 0) {
+          const inp = visible[0];
+          inp.focus();
+          // React-compatible value setting
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          nativeInputValueSetter.call(inp, query);
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          inp.dispatchEvent(new Event('change', { bubbles: true }));
           playCyberSound('success');
           return true;
         }
       }
     }
 
-    // H. General Web Commands
-    if (lowerSpeech === 'reload page' || lowerSpeech === 'refresh page' || lowerSpeech === 'refresh' || lowerSpeech === 'reload') {
+    // E. General Commands
+    if (lowerSpeech === 'refresh' || lowerSpeech === 'reload' || lowerSpeech === 'refresh page') {
       playCyberSound('success');
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      setTimeout(() => window.location.reload(), 500);
       return true;
     }
-    if (lowerSpeech === 'log out' || lowerSpeech === 'sign out' || lowerSpeech === 'logout') {
+    if (lowerSpeech === 'logout' || lowerSpeech === 'log out' || lowerSpeech === 'sign out') {
       playCyberSound('success');
-      setTimeout(() => {
-        handleLogout();
-      }, 500);
+      setTimeout(() => handleLogout(), 500);
       return true;
     }
-    if (
-      lowerSpeech === 'stop' || 
-      lowerSpeech === 'sleep' || 
-      lowerSpeech === 'stop listening' || 
-      lowerSpeech === 'close assistant' || 
-      lowerSpeech === 'go to sleep' ||
-      lowerSpeech === 'assistant sleep' ||
-      lowerSpeech === 'band ho jao'
-    ) {
+    if (lowerSpeech === 'stop' || lowerSpeech === 'sleep' || lowerSpeech === 'stop listening' || lowerSpeech === 'close assistant' || lowerSpeech === 'band ho jao') {
       playCyberSound('click');
       stopVoiceAssistantMode();
       return true;
     }
 
-    // I. Smart DOM Clicker Trigger (Fuzzy Click on Elements matching words)
-    // Extract target label text
+    // F. Explicit click/press/tap/open commands — use smart clicker
     let clickTarget = "";
     if (lowerSpeech.startsWith('click on ')) clickTarget = text.substring(9).trim();
     else if (lowerSpeech.startsWith('click ')) clickTarget = text.substring(6).trim();
@@ -1282,22 +1199,15 @@ export default function App() {
     else if (lowerSpeech.startsWith('open ')) clickTarget = text.substring(5).trim();
 
     if (clickTarget) {
-      if (clickElementByText(clickTarget)) {
-        playCyberSound('success');
-        return true;
-      }
-      // Word-by-word matching fallback
-      const words = clickTarget.split(' ');
-      for (const word of words) {
-        if (word.length > 2 && clickElementByText(word)) {
-          playCyberSound('success');
-          return true;
-        }
+      if (clickElementByText(clickTarget)) { playCyberSound('success'); return true; }
+      // Word-by-word fallback
+      for (const word of clickTarget.split(' ')) {
+        if (word.length > 3 && clickElementByText(word)) { playCyberSound('success'); return true; }
       }
     }
 
-    // If nothing else matched, check if the spoken phrase is exactly a visible button's text
-    if (clickElementByText(lowerSpeech)) {
+    // G. Last resort — try clicking any visible element matching the full spoken phrase
+    if (lowerSpeech.length > 3 && clickElementByText(lowerSpeech)) {
       playCyberSound('success');
       return true;
     }
@@ -1322,60 +1232,11 @@ export default function App() {
   };
 
   const handleSpeakText = (text, onEndCallback = null) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      console.warn("Speech synthesis not supported in this browser.");
-      if (onEndCallback) onEndCallback();
-      return;
+    // Play success chime instead of TTS speaking
+    playCyberSound('success');
+    if (onEndCallback) {
+      setTimeout(onEndCallback, 300);
     }
-
-    // Mark as speaking and halt listeners
-    isSpeakingRef.current = true;
-    syncVoiceListeners();
-
-    window.speechSynthesis.cancel();
-    const cleanedText = text
-      .replace(/[*#`_\-]/g, '')
-      .replace(/\[ShowDiagram:.*?\]/g, '')
-      .replace(/\[.*?\]\(.*?\)/g, '');
-      
-    const utterance = new SpeechSynthesisUtterance(cleanedText);
-    utterance.rate = botVoiceSpeed;
-    utterance.pitch = botVoicePitch;
-    
-    if (botVoiceSelected) {
-      const voices = window.speechSynthesis.getVoices();
-      const foundVoice = voices.find(v => v.name === botVoiceSelected);
-      if (foundVoice) {
-        utterance.voice = foundVoice;
-      }
-    }
-
-    let callbackCalled = false;
-    const safeCallback = () => {
-      if (callbackCalled) return;
-      callbackCalled = true;
-
-      // Reset speaking state and resume listeners
-      isSpeakingRef.current = false;
-      syncVoiceListeners();
-
-      if (onEndCallback) onEndCallback();
-    };
-
-    // Backup safety timeout to ensure callback is always executed
-    const durationEstimate = (cleanedText.length * 100) + 1500; // 100ms per character + 1.5s padding
-    const backupTimeout = setTimeout(safeCallback, durationEstimate);
-
-    utterance.onend = () => {
-      clearTimeout(backupTimeout);
-      safeCallback();
-    };
-    utterance.onerror = () => {
-      clearTimeout(backupTimeout);
-      safeCallback();
-    };
-
-    window.speechSynthesis.speak(utterance);
   };
 
   const startVoiceAssistantMode = () => {
@@ -2021,43 +1882,14 @@ export default function App() {
   };
 
   const handleSpeak = (textEnglish) => {
-    if (!voiceEnabled || !window.speechSynthesis) return;
-
-    let speakTxt = textEnglish;
-    let locale = 'en-US';
-
-    // Cancel current speech to prevent queuing delay
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(speakTxt);
-    utterance.volume = voiceVolume;
-    utterance.rate = voiceSpeed;
-    utterance.pitch = voicePitch;
-    utterance.lang = locale;
-
-    // Find and set system voices
-    const voices = window.speechSynthesis.getVoices();
-    let matchedVoice = voices.find(v => v.lang.startsWith('en-') || v.lang.includes('English'));
-
-    if (matchedVoice) {
-      utterance.voice = matchedVoice;
-    }
-
-    window.speechSynthesis.speak(utterance);
-
-    // Robotic vocoder voice delay effect
-    if (voiceRobotEffect) {
-      setTimeout(() => {
-        const roboUtterance = new SpeechSynthesisUtterance(speakTxt);
-        roboUtterance.volume = voiceVolume * 0.45;
-        roboUtterance.rate = voiceSpeed;
-        roboUtterance.pitch = Math.max(0.5, voicePitch * 0.75);
-        roboUtterance.lang = locale;
-        if (matchedVoice) {
-          roboUtterance.voice = matchedVoice;
-        }
-        window.speechSynthesis.speak(roboUtterance);
-      }, 60);
+    if (!textEnglish) return;
+    const lower = textEnglish.toLowerCase();
+    if (lower.includes('failed') || lower.includes('error') || lower.includes('denied') || lower.includes('not recognized')) {
+      playCyberSound('error');
+    } else if (lower.includes('started') || lower.includes('liveness verified')) {
+      playCyberSound('scan');
+    } else {
+      playCyberSound('success');
     }
   };
 
