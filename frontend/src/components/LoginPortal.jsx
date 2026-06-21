@@ -48,6 +48,7 @@ export default function LoginPortal({
   isLoading,
   onSubmit,
   crtOverlayEnabled,
+  serverWarmingUp,
 }) {
   const [bootLine, setBootLine] = useState('');
   const [bootIndex, setBootIndex] = useState(0);
@@ -144,6 +145,23 @@ export default function LoginPortal({
           <p className="login-portal-card-desc">
             Please login using <strong>{activeRole.label}</strong> credentials only. Logging into the incorrect portal will block your access.
           </p>
+
+          {serverWarmingUp && (
+            <div className="login-portal-error" style={{
+              background: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              color: '#f59e0b',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <AlertCircle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.8rem', textAlign: 'left', lineHeight: '1.4' }}>
+                <strong>Cloud Server Warming Up:</strong> Waking up sleeping server instance. Please wait (~45 seconds) for portal database connection.
+              </span>
+            </div>
+          )}
 
           {authError && (
             <div className="login-portal-error">

@@ -516,11 +516,7 @@ export default function App() {
         if (commandPart) {
           console.log("[Voice] Executed one-breath command:", commandPart);
           setTimeout(() => {
-            if (!handleVoiceCommand(commandPart)) {
-              // Conversational fallback
-              setActiveTab('ai-assistant');
-              handleSendChatMessage(commandPart);
-            }
+            handleVoiceCommand(commandPart);
           }, 400);
         } else {
           syncVoiceListeners();
@@ -581,10 +577,13 @@ export default function App() {
         return;
       }
 
-      // If it is NOT a command, treat it as a conversational chat message!
-      console.log("[Voice] Non-command sent to chatbot API:", speechText);
-      setActiveTab('ai-assistant');
-      handleSendChatMessage(speechText);
+      // If it is NOT a command, ignore silently and keep listening (recycle listener)
+      console.log("[Voice] Non-command ignored in voice mode:", speechText);
+      setTimeout(() => {
+        if (voiceSystemStateRef.current === 'active_assistant' && !isSpeakingRef.current) {
+          syncVoiceListeners();
+        }
+      }, 300);
     };
 
     recognition.onerror = (e) => {
@@ -933,7 +932,6 @@ export default function App() {
             el.scrollBy({ top: scrollAmt, behavior: 'smooth' });
           }
         });
-        handleSpeakText("Neeche scroll kar diya");
       } else if (direction === 'up') {
         window.scrollBy({ top: -scrollAmt, behavior: 'smooth' });
         document.querySelectorAll('div, section, table, tbody').forEach(el => {
@@ -941,7 +939,6 @@ export default function App() {
             el.scrollBy({ top: -scrollAmt, behavior: 'smooth' });
           }
         });
-        handleSpeakText("Upar scroll kar diya");
       } else if (direction === 'top') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         document.querySelectorAll('div, section, table, tbody').forEach(el => {
@@ -949,7 +946,6 @@ export default function App() {
             el.scrollTo({ top: 0, behavior: 'smooth' });
           }
         });
-        handleSpeakText("Sabse upar scroll kar diya");
       } else if (direction === 'bottom') {
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         document.querySelectorAll('div, section, table, tbody').forEach(el => {
@@ -957,7 +953,6 @@ export default function App() {
             el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
           }
         });
-        handleSpeakText("Sabse neeche scroll kar diya");
       }
     };
 
@@ -974,7 +969,6 @@ export default function App() {
       const dest = userRole === 'student' ? 'student-attendance' : 'dashboard';
       changeTab(dest);
       playCyberSound('success');
-      handleSpeakText("Dashboard khol diya hai");
       return true;
     }
     if (
@@ -984,7 +978,6 @@ export default function App() {
     ) {
       changeTab('student-profile');
       playCyberSound('success');
-      handleSpeakText("Aapka profile khol diya hai");
       return true;
     }
     if (
@@ -995,7 +988,6 @@ export default function App() {
     ) {
       changeTab('logs');
       playCyberSound('success');
-      handleSpeakText("Real time attendance logs open ho gaye hain");
       return true;
     }
     if (
@@ -1005,7 +997,6 @@ export default function App() {
     ) {
       changeTab('session-history');
       playCyberSound('success');
-      handleSpeakText("Session history khol di gayi hai");
       return true;
     }
     if (
@@ -1015,7 +1006,6 @@ export default function App() {
     ) {
       changeTab('reports');
       playCyberSound('success');
-      handleSpeakText("Attendance reports panel open ho gaya hai");
       return true;
     }
     if (
@@ -1027,9 +1017,8 @@ export default function App() {
       if (userRole === 'admin') {
         changeTab('settings');
         playCyberSound('success');
-        handleSpeakText("Security settings khol diye hain");
       } else {
-        handleSpeakText("Kshama karein, aapke paas security settings ka access nahi hai");
+        playCyberSound('error');
       }
       return true;
     }
@@ -1040,7 +1029,6 @@ export default function App() {
     ) {
       changeTab('students');
       playCyberSound('success');
-      handleSpeakText("Student directory open kar di hai");
       return true;
     }
     if (
@@ -1051,7 +1039,6 @@ export default function App() {
     ) {
       changeTab('teachers');
       playCyberSound('success');
-      handleSpeakText("Teacher directory aur schedule open ho gaya hai");
       return true;
     }
     if (
@@ -1062,7 +1049,6 @@ export default function App() {
     ) {
       changeTab('ai-assistant');
       playCyberSound('success');
-      handleSpeakText("AI system assistant active hai");
       return true;
     }
 
@@ -1080,7 +1066,6 @@ export default function App() {
     ) {
       triggerStartScanner();
       playCyberSound('success');
-      handleSpeakText("Biometric camera interface active kiya ja raha hai");
       return true;
     }
 
@@ -1095,7 +1080,6 @@ export default function App() {
     ) {
       triggerStopScanner();
       playCyberSound('success');
-      handleSpeakText("Scanner aur optical stream band kar di gayi hai");
       return true;
     }
 
@@ -1111,7 +1095,6 @@ export default function App() {
         setShowAddModal(true);
       }, 300);
       playCyberSound('success');
-      handleSpeakText("Student registration form open ho gaya hai");
       return true;
     }
 
@@ -1126,7 +1109,6 @@ export default function App() {
         setShowAddModal(true);
       }, 300);
       playCyberSound('success');
-      handleSpeakText("Teacher registration form open ho gaya hai");
       return true;
     }
 
@@ -1142,7 +1124,6 @@ export default function App() {
         startWebcam();
       }, 300);
       playCyberSound('success');
-      handleSpeakText("Face capture webcam shuru ho gaya hai");
       return true;
     }
 
@@ -1154,7 +1135,6 @@ export default function App() {
       stopWebcam();
       setShowWebcamModal(false);
       playCyberSound('success');
-      handleSpeakText("Webcam close kar diya hai");
       return true;
     }
 
@@ -1178,7 +1158,6 @@ export default function App() {
       try { stopWebcam(); } catch(e){}
       try { stopAttendanceCam(); } catch(e){}
       playCyberSound('click');
-      handleSpeakText("Active screen close kar di gayi hai");
       return true;
     }
 
@@ -1257,7 +1236,6 @@ export default function App() {
           visibleInput.dispatchEvent(new Event('input', { bubbles: true }));
           visibleInput.dispatchEvent(new Event('change', { bubbles: true }));
           playCyberSound('success');
-          handleSpeakText("Khoz rahe hain: " + query);
           return true;
         }
       }
@@ -1266,16 +1244,16 @@ export default function App() {
     // H. General Web Commands
     if (lowerSpeech === 'reload page' || lowerSpeech === 'refresh page' || lowerSpeech === 'refresh' || lowerSpeech === 'reload') {
       playCyberSound('success');
-      handleSpeakText("Page reload ho raha hai", () => {
+      setTimeout(() => {
         window.location.reload();
-      });
+      }, 500);
       return true;
     }
     if (lowerSpeech === 'log out' || lowerSpeech === 'sign out' || lowerSpeech === 'logout') {
       playCyberSound('success');
-      handleSpeakText("Aapka account logout ho raha hai", () => {
+      setTimeout(() => {
         handleLogout();
-      });
+      }, 500);
       return true;
     }
     if (
@@ -1288,9 +1266,7 @@ export default function App() {
       lowerSpeech === 'band ho jao'
     ) {
       playCyberSound('click');
-      handleSpeakText("Ji, main ab sleep mode mein ja raha hoon. Jagane ke liye, hey raj bolein.", () => {
-        stopVoiceAssistantMode();
-      });
+      stopVoiceAssistantMode();
       return true;
     }
 
@@ -1308,7 +1284,6 @@ export default function App() {
     if (clickTarget) {
       if (clickElementByText(clickTarget)) {
         playCyberSound('success');
-        handleSpeakText(`${clickTarget} click kar diya`);
         return true;
       }
       // Word-by-word matching fallback
@@ -1316,7 +1291,6 @@ export default function App() {
       for (const word of words) {
         if (word.length > 2 && clickElementByText(word)) {
           playCyberSound('success');
-          handleSpeakText(`${word} click kar diya`);
           return true;
         }
       }
@@ -1325,7 +1299,6 @@ export default function App() {
     // If nothing else matched, check if the spoken phrase is exactly a visible button's text
     if (clickElementByText(lowerSpeech)) {
       playCyberSound('success');
-      handleSpeakText(`${text} par click kar diya`);
       return true;
     }
 
@@ -3510,6 +3483,33 @@ export default function App() {
     return false;
   };
 
+  // Eager server warmup on mount (pre-login)
+  useEffect(() => {
+    let isMounted = true;
+    const warmup = async () => {
+      const isConnected = await checkServerConnection();
+      if (!isConnected) {
+        if (!isMounted) return;
+        setServerWarmingUp(true);
+        // Start polling retry check
+        const intervalId = setInterval(async () => {
+          const success = await checkServerConnection();
+          if (success) {
+            clearInterval(intervalId);
+            if (isMounted) {
+              setServerWarmingUp(false);
+            }
+          }
+        }, 5000);
+        return () => clearInterval(intervalId);
+      }
+    };
+    warmup();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Load core data once after login
   useEffect(() => {
     if (!token || !userRole) return;
@@ -4404,75 +4404,81 @@ export default function App() {
   };
 
   // Filtering lists
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = 
-      (student.name || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
-      (student.roll || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
-      student.id.toString().includes(studentSearch);
-    
-    let matchesDept = true;
-    if (userRole === 'admin') {
-      matchesDept = !studentDeptFilter || student.dep === studentDeptFilter;
-    } else if (userRole === 'teacher') {
-      // If subjects haven't loaded yet, show all students (don't hide them)
-      if (subjects.length === 0) {
-        matchesDept = true;
-      } else if (selectedTeacherSubjectId) {
-        const sub = subjects.find(s => s.id === parseInt(selectedTeacherSubjectId));
-        // If subject found, match by dept; if not found, show all (fallback)
-        matchesDept = sub ? student.dep === sub.department : true;
-      } else {
-        const teacherDepts = subjects
-          .filter(s => s.teacher_id === currentUser?.details?.id)
-          .map(s => s.department);
-        // If no dept found (subjects not assigned), show all
-        matchesDept = teacherDepts.length === 0 ? true : teacherDepts.includes(student.dep);
-      }
-    }
-    return matchesSearch && matchesDept;
-  });
-
-  const filteredLogs = logs.filter(log => {
-    const matchesSearch = 
-      (log.name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
-      (log.roll || '').toLowerCase().includes(logSearch.toLowerCase()) ||
-      (log.id || '').toLowerCase().includes(logSearch.toLowerCase());
-
-    let matchesDept = true;
-    if (userRole === 'admin') {
-      matchesDept = !logDeptFilter || log.department === logDeptFilter;
-    } else if (userRole === 'teacher') {
-      const teacherSubjectIds = subjects
-        .filter(s => s.teacher_id === currentUser?.details?.id)
-        .map(s => s.id);
-      if (selectedTeacherLogSubjectId) {
-        // Match by selected subject, OR include logs with null subject_id from teacher's dept
-        matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId);
-      } else {
-        // Include logs matching any of teacher's subjects (null subject_id treated as dept match)
-        if (teacherSubjectIds.length === 0) {
+  // Filtering lists (Memoized for high performance)
+  const filteredStudents = useMemo(() => {
+    return students.filter(student => {
+      const matchesSearch = 
+        (student.name || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
+        (student.roll || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
+        student.id.toString().includes(studentSearch);
+      
+      let matchesDept = true;
+      if (userRole === 'admin') {
+        matchesDept = !studentDeptFilter || student.dep === studentDeptFilter;
+      } else if (userRole === 'teacher') {
+        // If subjects haven't loaded yet, show all students (don't hide them)
+        if (subjects.length === 0) {
           matchesDept = true;
+        } else if (selectedTeacherSubjectId) {
+          const sub = subjects.find(s => s.id === parseInt(selectedTeacherSubjectId));
+          // If subject found, match by dept; if not found, show all (fallback)
+          matchesDept = sub ? student.dep === sub.department : true;
         } else {
           const teacherDepts = subjects
             .filter(s => s.teacher_id === currentUser?.details?.id)
             .map(s => s.department);
-          matchesDept = teacherSubjectIds.includes(log.subject_id) ||
-            (log.subject_id == null && teacherDepts.includes(log.department));
+          // If no dept found (subjects not assigned), show all
+          matchesDept = teacherDepts.length === 0 ? true : teacherDepts.includes(student.dep);
         }
       }
-    }
+      return matchesSearch && matchesDept;
+    });
+  }, [students, studentSearch, userRole, studentDeptFilter, subjects, selectedTeacherSubjectId, currentUser]);
 
-    const matchesDate = !logDateFilter || log.date === logDateFilter.split('-').reverse().join('/'); // Converts yyyy-mm-dd to dd/mm/yyyy
-    const matchesQuickFilter = 
-      quickFilterStatus === 'all' || 
-      (log.attendance || '').toLowerCase() === quickFilterStatus;
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      const matchesSearch = 
+        (log.name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+        (log.roll || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+        (log.id || '').toLowerCase().includes(logSearch.toLowerCase());
 
-    return matchesSearch && matchesDept && matchesDate && matchesQuickFilter;
-  });
+      let matchesDept = true;
+      if (userRole === 'admin') {
+        matchesDept = !logDeptFilter || log.department === logDeptFilter;
+      } else if (userRole === 'teacher') {
+        const teacherSubjectIds = subjects
+          .filter(s => s.teacher_id === currentUser?.details?.id)
+          .map(s => s.id);
+        if (selectedTeacherLogSubjectId) {
+          // Match by selected subject, OR include logs with null subject_id from teacher's dept
+          matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId);
+        } else {
+          // Include logs matching any of teacher's subjects (null subject_id treated as dept match)
+          if (teacherSubjectIds.length === 0) {
+            matchesDept = true;
+          } else {
+            const teacherDepts = subjects
+              .filter(s => s.teacher_id === currentUser?.details?.id)
+              .map(s => s.department);
+            matchesDept = teacherSubjectIds.includes(log.subject_id) ||
+              (log.subject_id == null && teacherDepts.includes(log.department));
+          }
+        }
+      }
 
+      const matchesDate = !logDateFilter || log.date === logDateFilter.split('-').reverse().join('/'); // Converts yyyy-mm-dd to dd/mm/yyyy
+      const matchesQuickFilter = 
+        quickFilterStatus === 'all' || 
+        (log.attendance || '').toLowerCase() === quickFilterStatus;
 
-  // Unique departments for filtering
-  const departments = [...new Set(students.map(s => s.dep))];
+      return matchesSearch && matchesDept && matchesDate && matchesQuickFilter;
+    });
+  }, [logs, logSearch, userRole, logDeptFilter, subjects, currentUser, selectedTeacherLogSubjectId, logDateFilter, quickFilterStatus]);
+
+  // Unique departments for filtering (Memoized)
+  const departments = useMemo(() => {
+    return [...new Set(students.map(s => s.dep))];
+  }, [students]);
 
   const liveActivities = useMemo(() => {
     const items = [];
@@ -4563,6 +4569,7 @@ export default function App() {
         isLoading={isLoading}
         onSubmit={handleLogin}
         crtOverlayEnabled={crtOverlayEnabled}
+        serverWarmingUp={serverWarmingUp}
       />
     );
   }

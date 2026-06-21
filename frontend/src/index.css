@@ -2793,6 +2793,12 @@ html {
   flex-shrink: 0;
 }
 
+.scanner-modal-camera video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
 .scanner-modal-controls {
   display: flex;
   gap: 12px;
