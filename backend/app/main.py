@@ -104,7 +104,13 @@ def update_schema():
         try:
             db.execute(text("ALTER TABLE users DROP INDEX email"))
             db.commit()
-            print("Dropped old global unique index on users.email")
+        except Exception:
+            pass
+
+        try:
+            db.execute(text("ALTER TABLE users DROP INDEX ix_users_email"))
+            db.commit()
+            print("Dropped old unique index ix_users_email on users")
         except Exception:
             pass
 
