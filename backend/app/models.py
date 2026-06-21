@@ -12,9 +12,18 @@ from sqlalchemy.sql import func
 from .database import Base
 
 
+class Institution(Base):
+    __tablename__ = "institutions"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(150), unique=True, nullable=False)
+    slug = Column(String(100), unique=True, index=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(200), nullable=False)
@@ -24,11 +33,12 @@ class User(Base):
 
 class StudentModel(Base):
     __tablename__ = "student"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     dep = Column(String(100))
     course = Column(String(100))
     year = Column(String(45))
     semester = Column(String(45))
-    id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100))
     div = Column(String(45))
     roll = Column(String(45))
@@ -45,6 +55,7 @@ class StudentModel(Base):
 class Subject(Base):
     __tablename__ = "subjects"
     id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(100), nullable=False)
     code = Column(String(50), nullable=False, unique=True)
     department = Column(String(100), nullable=False)
@@ -53,6 +64,7 @@ class Subject(Base):
 class Schedule(Base):
     __tablename__ = "schedules"
     id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
     day_of_week = Column(String(20), nullable=False)
     start_time = Column(String(20), nullable=False)
@@ -61,6 +73,7 @@ class Schedule(Base):
 class AttendanceModel(Base):
     __tablename__ = "attendence"
     id = Column(String(50), primary_key=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     roll = Column(String(50))
     name = Column(String(100))
     department = Column(String(100))
@@ -69,10 +82,10 @@ class AttendanceModel(Base):
     attendance = Column(String(20)) # 'Present', 'Absent', 'Late'
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
 
-
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     user_email = Column(String(100), index=True)
     action = Column(Text, nullable=False)
@@ -80,6 +93,7 @@ class AuditLog(Base):
 class SystemSettings(Base):
     __tablename__ = "system_settings"
     id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     geofencing_enabled = Column(Boolean, default=False)
     center_latitude = Column(Float, default=28.6139)
     center_longitude = Column(Float, default=77.2090)
@@ -90,6 +104,7 @@ class SystemSettings(Base):
 class Feedback(Base):
     __tablename__ = "feedbacks"
     id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     user_id = Column(Integer, nullable=True)
     user_email = Column(String(100), index=True)
     role = Column(String(50))

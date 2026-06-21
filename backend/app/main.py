@@ -24,6 +24,29 @@ def update_schema():
     db = SessionLocal()
     try:
         inspector = inspect(engine)
+        
+        # Helper to safely add institution_id column if missing
+        def add_institution_id_if_missing(table_name):
+            if table_name in inspector.get_table_names():
+                columns = [col['name'] for col in inspector.get_columns(table_name)]
+                if 'institution_id' not in columns:
+                    print(f"Adding institution_id column to {table_name} table...")
+                    db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN institution_id INT NULL"))
+                    db.commit()
+                    print(f"Column institution_id added successfully to {table_name} table.")
+                else:
+                    print(f"Column institution_id already exists in {table_name} table.")
+
+        # Sync existing tables
+        add_institution_id_if_missing('users')
+        add_institution_id_if_missing('student')
+        add_institution_id_if_missing('subjects')
+        add_institution_id_if_missing('schedules')
+        add_institution_id_if_missing('attendence')
+        add_institution_id_if_missing('audit_logs')
+        add_institution_id_if_missing('system_settings')
+        add_institution_id_if_missing('feedbacks')
+
         # Check columns in student table
         student_columns = [col['name'] for col in inspector.get_columns('student')]
         if 'password_hash' not in student_columns:
@@ -64,6 +87,42 @@ def update_schema():
         print("Schema update check failed:", e)
     finally:
         db.close()
+
+
+def migrate_multi_tenant_seed(db):
+    from app import models
+    # 1. Check if default institution exists, create if not
+    default_inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
+    if not default_inst:
+        print("Migration: Creating Default Institution (ID: 1)...")
+        default_inst = models.Institution(id=1, name="Default Institution", slug="default")
+        db.add(default_inst)
+        db.commit()
+        print("Migration: Default Institution created.")
+
+    # 2. Back-fill null institution_ids
+    tables_to_migrate = [
+        ('users', models.User),
+        ('student', models.StudentModel),
+        ('subjects', models.Subject),
+        ('schedules', models.Schedule),
+        ('attendence', models.AttendanceModel),
+        ('audit_logs', models.AuditLog),
+        ('system_settings', models.SystemSettings),
+        ('feedbacks', models.Feedback)
+    ]
+    
+    for table_name, model_class in tables_to_migrate:
+        try:
+            null_items_count = db.query(model_class).filter(model_class.institution_id == None).count()
+            if null_items_count > 0:
+                print(f"Migration: Scoped {null_items_count} record(s) in {table_name} to Default Institution.")
+                db.query(model_class).filter(model_class.institution_id == None).update(
+                    {model_class.institution_id: 1}, synchronize_session=False
+                )
+                db.commit()
+        except Exception as e:
+            print(f"Migration error for table {table_name}: {e}")
 
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -200,6 +259,7 @@ def on_startup():
     from app import models
     db = SessionLocal()
     try:
+        migrate_multi_tenant_seed(db)
         if SEED_DEFAULT_USERS:
             admin_email = "admin@face.com"
             db_user = get_user_by_email(db, email=admin_email)
