@@ -4474,5 +4474,34 @@ html {
   100% { transform: scale(2.2); opacity: 0; border-color: rgba(239, 68, 68, 0); }
 }
 
+/* Floating Voice Orb styles */
+@keyframes scaleIn {
+  0% { transform: scale(0.8) translateY(10px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.floating-voice-orb-container {
+  box-shadow: 0 10px 40px rgba(0, 242, 254, 0.25), inset 0 0 20px rgba(0, 242, 254, 0.1) !important;
+}
+
+.text-cyan-pulse {
+  animation: cyanPulse 2s infinite ease-in-out;
+}
+
+.text-danger-pulse {
+  animation: dangerPulse 2s infinite ease-in-out;
+  color: #ef4444 !important;
+}
+
+@keyframes cyanPulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); filter: drop-shadow(0 0 2px rgba(0, 242, 254, 0.4)); }
+  50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.8)); }
+}
+
+@keyframes dangerPulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4)); }
+  50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+}
+
 
 
