@@ -291,16 +291,15 @@ export default function LoginPortal({
           fontSize: '0.78rem',
           fontWeight: 600,
           letterSpacing: '0.04em',
-          color: 'rgba(148, 163, 184, 0.65)',
+          color: 'rgba(248, 250, 252, 0.7)',
           marginTop: '32px'
         }}>
           Developed by{' '}
           <span style={{
-            '--glow-color': activeRole.glow || 'rgba(0, 242, 254, 0.35)',
-            color: activeRole.color,
+            '--glow-color': 'rgba(248, 250, 252, 0.25)',
+            color: '#f8fafc',
             fontWeight: 800,
-            animation: 'cyberPulseText 2.5s infinite ease-in-out',
-            transition: 'color 0.4s ease'
+            animation: 'cyberPulseText 2.5s infinite ease-in-out'
           }}>
             Rajkishor
           </span>
