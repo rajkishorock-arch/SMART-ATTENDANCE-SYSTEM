@@ -5458,6 +5458,15 @@ export default function App() {
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>DB ENGINE / TYPE:</span>
+                      <span style={{ 
+                        color: systemHealth?.database_type === 'sqlite' ? '#f59e0b' : '#00f2fe',
+                        fontWeight: 'bold' 
+                      }}>
+                        {systemHealth ? (systemHealth.database_type === 'sqlite' ? 'LOCAL SQLITE (FALLBACK)' : systemHealth.database_type.toUpperCase()) : 'CHECKING...'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ color: 'var(--color-text-muted)' }}>API LATENCY:</span>
                       <span style={{ 
                         color: apiLatency === -1 ? '#ef4444' : apiLatency < 40 ? '#10b981' : apiLatency < 100 ? '#f59e0b' : '#ef4444',
