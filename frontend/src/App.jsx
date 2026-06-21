@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
+import { getActiveTenantSlug } from './utils/tenantConfig';
 import MobileControlPanel from './components/MobileControlPanel';
 import GamificationHub from './components/GamificationHub';
 import NotificationCenter from './components/NotificationCenter';
@@ -135,6 +136,38 @@ export default function App() {
       return updated;
     });
   };
+
+  const [tenantBranding, setTenantBranding] = useState(null);
+  
+  useEffect(() => {
+    const loadTenantBranding = async () => {
+      try {
+        const slug = getActiveTenantSlug();
+        const res = await fetch(`${API_BASE_URL}/institutions/branding/${slug}`);
+        if (res.ok) {
+          const branding = await res.json();
+          setTenantBranding(branding);
+          
+          if (branding.primary_color) {
+            document.documentElement.style.setProperty('--color-primary', branding.primary_color);
+            document.documentElement.style.setProperty('--border-color-glow', `${branding.primary_color}59`);
+            document.documentElement.style.setProperty('--glow-shadow', `0 0 25px ${branding.primary_color}33`);
+          }
+          if (branding.secondary_color) {
+            document.documentElement.style.setProperty('--color-secondary', branding.secondary_color);
+          }
+          
+          document.title = `${branding.name} - Smart Attendance System`;
+          addDiagnosticLog(`[SYS] Loaded branding: ${branding.name}`);
+        } else {
+          addDiagnosticLog(`[SYS] Branding fetch failed. Using default settings.`);
+        }
+      } catch (err) {
+        console.error("Branding load error:", err);
+      }
+    };
+    loadTenantBranding();
+  }, []);
 
   const getSuggestions = () => {
     switch (botSuggestionCategory) {
@@ -5527,7 +5560,7 @@ export default function App() {
             animation: 'shineText 4s linear infinite',
             textShadow: '0 0 15px rgba(0, 242, 254, 0.4)'
           }}>
-            SMART ATTENDANCE SYSTEM
+            {tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE SYSTEM"}
           </h2>
           <p style={{ 
             fontSize: '0.72rem', 
@@ -5874,7 +5907,7 @@ export default function App() {
           }}>
             <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
           </div>
-          <span className="text-gradient" style={{ fontWeight: 800 }}>SMART ATTENDANCE</span>
+          <span className="text-gradient" style={{ fontWeight: 800 }}>{tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE"}</span>
         </div>
 
         <ul className="nav-links" style={{ flex: 1 }}>
@@ -12726,7 +12759,7 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.8rem', color: '#cbd5e1' }}>
               <div>
                 <span style={{ color: 'var(--color-text-muted)' }}>PROJECT:</span>{' '}
-                <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>SMART ATTENDANCE SYSTEM (ENTERPRISE EDITION v2.5)</span>
+                <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{tenantBranding ? `${tenantBranding.name.toUpperCase()} (ENTERPRISE EDITION v2.5)` : "SMART ATTENDANCE SYSTEM (ENTERPRISE EDITION v2.5)"}</span>
               </div>
               
               <div>

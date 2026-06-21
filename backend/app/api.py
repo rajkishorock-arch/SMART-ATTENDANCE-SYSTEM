@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from . import auth, users, attendance, settings, subjects, health, feedback, chat
+from . import auth, users, attendance, settings, subjects, health, feedback, chat, institutions
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
@@ -10,6 +10,7 @@ api_router.include_router(subjects.router, prefix="", tags=["Subjects & Schedule
 api_router.include_router(health.router, prefix="/health", tags=["Health Check"])
 api_router.include_router(feedback.router, prefix="/feedbacks", tags=["Feedback"])
 api_router.include_router(chat.router, prefix="/chat", tags=["AI Chatbot"])
+api_router.include_router(institutions.router, prefix="/institutions", tags=["Institutions"])
 
 
 

@@ -21,14 +21,17 @@ def create_new_subject(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can register new subjects."
         )
-    # Check if subject code already exists
-    existing = db.query(models.Subject).filter(models.Subject.code == subject.code).first()
+    # Check if subject code already exists within that institution
+    existing = db.query(models.Subject).filter(
+        models.Subject.code == subject.code,
+        models.Subject.institution_id == current_user.institution_id
+    ).first()
     if existing:
         raise HTTPException(
             status_code=400,
             detail="Subject code already registered."
         )
-    return crud.create_subject(db, subject)
+    return crud.create_subject(db, subject, institution_id=current_user.institution_id)
 
 @router.get("/subjects", response_model=List[schemas.SubjectResponse])
 def read_subjects(
@@ -48,6 +51,7 @@ def read_subjects(
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = payload.get("sub")
         role: str = payload.get("role")
+        institution_id: Optional[int] = payload.get("institution_id")
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -56,25 +60,33 @@ def read_subjects(
         
     db_subjects = []
     if role == "student":
-        student = db.query(models.StudentModel).filter(models.StudentModel.email == email).first()
+        student = db.query(models.StudentModel).filter(
+            models.StudentModel.email == email,
+            models.StudentModel.institution_id == institution_id
+        ).first()
         if not student:
             raise HTTPException(status_code=404, detail="Student record not found.")
         db_subjects = db.query(models.Subject).join(
             models.User, models.Subject.teacher_id == models.User.id
         ).filter(
             models.Subject.department == student.dep,
+            models.Subject.institution_id == institution_id,
             models.User.role == "teacher"
         ).all()
     else:
-        user = db.query(models.User).filter(models.User.email == email).first()
+        user = db.query(models.User).filter(
+            models.User.email == email,
+            models.User.institution_id == institution_id
+        ).first()
         if not user:
             raise HTTPException(status_code=404, detail="User record not found.")
         if user.role == "teacher":
-            db_subjects = crud.get_subjects(db, teacher_id=user.id)
+            db_subjects = crud.get_subjects(db, teacher_id=user.id, institution_id=institution_id)
         else:  # admin
             db_subjects = db.query(models.Subject).join(
                 models.User, models.Subject.teacher_id == models.User.id
             ).filter(
+                models.Subject.institution_id == institution_id,
                 models.User.role == "teacher"
             ).all()
             
@@ -82,7 +94,10 @@ def read_subjects(
     for s in db_subjects:
         teacher_name = "Not Assigned"
         if s.teacher_id:
-            teacher = db.query(models.User).filter(models.User.id == s.teacher_id).first()
+            teacher = db.query(models.User).filter(
+                models.User.id == s.teacher_id,
+                models.User.institution_id == institution_id
+            ).first()
             if teacher:
                 teacher_name = teacher.name
         res.append({
@@ -109,7 +124,14 @@ def create_new_schedule(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can manage timetables."
         )
-    return crud.create_schedule(db, schedule)
+    # Check that subject belongs to same institution
+    subject = db.query(models.Subject).filter(
+        models.Subject.id == schedule.subject_id,
+        models.Subject.institution_id == current_user.institution_id
+    ).first()
+    if not subject:
+        raise HTTPException(status_code=400, detail="Invalid subject ID for your institution.")
+    return crud.create_schedule(db, schedule, institution_id=current_user.institution_id)
 
 @router.get("/schedules", response_model=List[schemas.ScheduleResponse])
 def read_schedules(
@@ -124,10 +146,13 @@ def read_schedules(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Student scheduling views not authorized here."
         )
-    schedules = crud.get_schedules(db)
+    schedules = crud.get_schedules(db, institution_id=current_user.institution_id)
     res = []
     for sc in schedules:
-        sub = db.query(models.Subject).filter(models.Subject.id == sc.subject_id).first()
+        sub = db.query(models.Subject).filter(
+            models.Subject.id == sc.subject_id,
+            models.Subject.institution_id == current_user.institution_id
+        ).first()
         res.append({
             "id": sc.id,
             "subject_id": sc.subject_id,

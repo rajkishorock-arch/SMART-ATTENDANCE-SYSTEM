@@ -1,6 +1,23 @@
 import React, { Component, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { getActiveTenantSlug } from './utils/tenantConfig'
+
+// Global Fetch Interceptor to inject X-Tenant-Slug header into all backend API calls
+const originalFetch = window.fetch;
+window.fetch = async function (url, options = {}) {
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+  const urlStr = typeof url === 'string' ? url : (url instanceof URL ? url.href : '');
+  
+  if (urlStr.includes('/api/v1') || (apiBase && urlStr.startsWith(apiBase))) {
+    options.headers = {
+      ...options.headers,
+      'X-Tenant-Slug': getActiveTenantSlug()
+    };
+  }
+  return originalFetch.call(this, url, options);
+};
+
 import App from './App.jsx'
 
 class ErrorBoundary extends Component {

@@ -212,3 +212,16 @@ class FeedbackResponse(BaseModel):
 class UserChangePassword(BaseModel):
     old_password: str
     new_password: str
+
+# --- Institution Branding ---
+class InstitutionBrandingResponse(BaseModel):
+    id: int
+    name: str
+    slug: str
+    logo_url: Optional[str] = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+        orm_mode = True

@@ -83,6 +83,37 @@ def update_schema():
                 db.execute(text("ALTER TABLE feedbacks ADD COLUMN user_id INT NULL"))
                 db.commit()
                 print("Column user_id added successfully to feedbacks table.")
+
+        # Check branding columns in institutions table
+        if 'institutions' in inspector.get_table_names():
+            inst_columns = [col['name'] for col in inspector.get_columns('institutions')]
+            if 'logo_url' not in inst_columns:
+                print("Adding logo_url column to institutions table...")
+                db.execute(text("ALTER TABLE institutions ADD COLUMN logo_url VARCHAR(255) NULL"))
+                db.commit()
+            if 'primary_color' not in inst_columns:
+                print("Adding primary_color column to institutions table...")
+                db.execute(text("ALTER TABLE institutions ADD COLUMN primary_color VARCHAR(50) NULL"))
+                db.commit()
+            if 'secondary_color' not in inst_columns:
+                print("Adding secondary_color column to institutions table...")
+                db.execute(text("ALTER TABLE institutions ADD COLUMN secondary_color VARCHAR(50) NULL"))
+                db.commit()
+
+        # Update unique index constraints on users table for multi-tenancy
+        try:
+            db.execute(text("ALTER TABLE users DROP INDEX email"))
+            db.commit()
+            print("Dropped old global unique index on users.email")
+        except Exception:
+            pass
+
+        try:
+            db.execute(text("ALTER TABLE users ADD UNIQUE KEY uq_institution_email (institution_id, email)"))
+            db.commit()
+            print("Added composite unique index (institution_id, email) to users table")
+        except Exception:
+            pass
     except Exception as e:
         print("Schema update check failed:", e)
     finally:
@@ -95,10 +126,59 @@ def migrate_multi_tenant_seed(db):
     default_inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
     if not default_inst:
         print("Migration: Creating Default Institution (ID: 1)...")
-        default_inst = models.Institution(id=1, name="Default Institution", slug="default")
+        default_inst = models.Institution(
+            id=1,
+            name="Default Institution",
+            slug="default",
+            primary_color="#4F46E5",
+            secondary_color="#06B6D4",
+            logo_url=""
+        )
         db.add(default_inst)
         db.commit()
         print("Migration: Default Institution created.")
+    else:
+        # Update default institution branding if it's unset
+        updated = False
+        if not default_inst.primary_color:
+            default_inst.primary_color = "#4F46E5"
+            updated = True
+        if not default_inst.secondary_color:
+            default_inst.secondary_color = "#06B6D4"
+            updated = True
+        if updated:
+            db.commit()
+
+    # Create additional institutions for testing subdomain layout routing
+    du_inst = db.query(models.Institution).filter(models.Institution.slug == "du").first()
+    if not du_inst:
+        print("Migration: Creating DU Institution (ID: 2)...")
+        du_inst = models.Institution(
+            id=2,
+            name="Delhi University",
+            slug="du",
+            primary_color="#800020",      # Maroon/Burgundy
+            secondary_color="#DAA520",    # Goldenrod
+            logo_url=""
+        )
+        db.add(du_inst)
+        db.commit()
+        print("Migration: DU Institution created.")
+
+    iitd_inst = db.query(models.Institution).filter(models.Institution.slug == "iitd").first()
+    if not iitd_inst:
+        print("Migration: Creating IIT Delhi Institution (ID: 3)...")
+        iitd_inst = models.Institution(
+            id=3,
+            name="IIT Delhi",
+            slug="iitd",
+            primary_color="#0D9488",      # Teal-600
+            secondary_color="#F59E0B",    # Amber-500
+            logo_url=""
+        )
+        db.add(iitd_inst)
+        db.commit()
+        print("Migration: IIT Delhi Institution created.")
 
     # 2. Back-fill null institution_ids
     tables_to_migrate = [
@@ -139,6 +219,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.smart-attendance-system-olive-ten\.vercel\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Master-Password"],
@@ -212,7 +293,7 @@ def ensure_primary_admin(db):
     primary_password = "raj@9211"
     primary_name = "Raj Kishor"
 
-    admin = get_user_by_email(db, email=primary_email)
+    admin = get_user_by_email(db, email=primary_email, institution_id=1)
     if not admin:
         create_user(
             db,
@@ -222,6 +303,7 @@ def ensure_primary_admin(db):
                 password=primary_password,
                 role="admin",
             ),
+            institution_id=1
         )
         print("Primary admin account created.")
     else:
@@ -229,6 +311,7 @@ def ensure_primary_admin(db):
         admin.name = primary_name
         admin.role = "admin"
         admin.is_active = True
+        admin.institution_id = 1
         db.commit()
         print("Primary admin account synced.")
 
@@ -262,7 +345,7 @@ def on_startup():
         migrate_multi_tenant_seed(db)
         if SEED_DEFAULT_USERS:
             admin_email = "admin@face.com"
-            db_user = get_user_by_email(db, email=admin_email)
+            db_user = get_user_by_email(db, email=admin_email, institution_id=1)
             if not db_user:
                 print("Seeding default admin user...")
                 create_user(
@@ -272,12 +355,13 @@ def on_startup():
                         name="System Admin",
                         password="admin123",
                         role="admin"
-                    )
+                    ),
+                    institution_id=1
                 )
                 print("Default admin user created.")
 
             teacher_email = "teacher@face.com"
-            db_teacher = get_user_by_email(db, email=teacher_email)
+            db_teacher = get_user_by_email(db, email=teacher_email, institution_id=1)
             if not db_teacher:
                 print("Seeding default teacher user...")
                 create_user(
@@ -287,12 +371,13 @@ def on_startup():
                         name="Default Teacher",
                         password="teacher123",
                         role="teacher"
-                    )
+                    ),
+                    institution_id=1
                 )
                 print("Default teacher user created.")
 
             student_email = "student@face.com"
-            db_student = db.query(models.StudentModel).filter(models.StudentModel.email == student_email).first()
+            db_student = db.query(models.StudentModel).filter(models.StudentModel.email == student_email, models.StudentModel.institution_id == 1).first()
             if not db_student:
                 print("Seeding default student...")
                 from app.security import get_password_hash
@@ -306,7 +391,8 @@ def on_startup():
                     semester="1st",
                     email=student_email,
                     password_hash=get_password_hash("student123"),
-                    photo="no"
+                    photo="no",
+                    institution_id=1
                 )
                 db.add(new_s)
                 db.commit()

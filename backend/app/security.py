@@ -43,11 +43,12 @@ def get_current_user(db: Session = Depends(database.get_db), token: str = Depend
     try:
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = payload.get("sub")
+        institution_id: Optional[int] = payload.get("institution_id")
         if email is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = crud.get_user_by_email(db, email=email)
+    user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
     if user is None or not user.is_active:
         raise credentials_exception
     return user
@@ -62,11 +63,12 @@ def get_current_student(db: Session = Depends(database.get_db), token: str = Dep
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = payload.get("sub")
         role: str = payload.get("role")
+        institution_id: Optional[int] = payload.get("institution_id")
         if email is None or role != "student":
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    student = crud.get_student_by_email(db, email=email)
+    student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
     if student is None:
         raise credentials_exception
     return student

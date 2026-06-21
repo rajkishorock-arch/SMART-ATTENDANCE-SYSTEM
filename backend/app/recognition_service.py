@@ -37,7 +37,8 @@ class RecognitionService:
                         "name": s.name,
                         "roll": s.roll,
                         "dep": s.dep,
-                        "embedding": emb_np
+                        "embedding": emb_np,
+                        "institution_id": s.institution_id
                     }
                 except Exception as parse_err:
                     print(f"Failed to parse embedding for student ID {s.id}: {parse_err}")
@@ -57,7 +58,7 @@ class RecognitionService:
         except Exception:
             return image  # fallback: return original if enhancement fails
 
-    def recognize_faces_in_frame(self, image: np.ndarray):
+    def recognize_faces_in_frame(self, image: np.ndarray, institution_id: int = None):
         """Detects and recognizes faces in a single video frame using SFace and YuNet.
 
         Improvements over v1:
@@ -110,6 +111,8 @@ class RecognitionService:
             best_score = -1.0
 
             for student_id, record in self.student_records.items():
+                if institution_id is not None and record.get("institution_id") != institution_id:
+                    continue
                 ref_emb = record["embedding"]
                 score = self.recognizer.match(feat, ref_emb, cv2.FaceRecognizerSF_FR_COSINE)
                 if score > best_score:

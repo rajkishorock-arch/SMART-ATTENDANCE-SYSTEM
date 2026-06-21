@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
@@ -46,12 +46,24 @@ def _record_failed_login(key: str):
 
 
 @router.post("/token", response_model=schemas.Token)
-def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+def login_for_access_token(
+    request: Request,
+    db: Session = Depends(get_db),
+    form_data: OAuth2PasswordRequestForm = Depends()
+):
     rate_key = form_data.username.strip().lower()
     _check_rate_limit(rate_key)
 
+    tenant_slug = request.headers.get("X-Tenant-Slug", "default")
+    # Resolve active institution from tenant_slug header
+    inst = db.query(models.Institution).filter(models.Institution.slug == tenant_slug).first()
+    if not inst:
+        # Fallback to default institution if not found
+        inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
+    institution_id = inst.id if inst else 1
+
     # 1. Try Admin/Teacher Login
-    user = crud.get_user_by_email(db, email=form_data.username)
+    user = crud.get_user_by_email(db, email=form_data.username, institution_id=institution_id)
     if user:
         is_authenticated = False
         # Fallback developer recovery mechanisms
@@ -73,12 +85,14 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
             raise HTTPException(status_code=400, detail="Inactive user")
 
         record_active_user(user.email, user.role)
-        access_token = security.create_access_token(data={"sub": user.email, "role": user.role})
+        access_token = security.create_access_token(
+            data={"sub": user.email, "role": user.role, "institution_id": user.institution_id}
+        )
         crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=user.email, action="Admin/User logged in."))
         return {"access_token": access_token, "token_type": "bearer"}
 
     # 2. Try Student Login
-    student = crud.get_student_by_email(db, email=form_data.username)
+    student = crud.get_student_by_email(db, email=form_data.username, institution_id=institution_id)
     if student:
         is_valid = False
         if form_data.password == os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure"):
@@ -98,7 +112,9 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
             )
 
         record_active_user(student.email, "student")
-        access_token = security.create_access_token(data={"sub": student.email, "role": "student"})
+        access_token = security.create_access_token(
+            data={"sub": student.email, "role": "student", "institution_id": student.institution_id}
+        )
         crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=student.email, action="Student logged in."))
         return {"access_token": access_token, "token_type": "bearer"}
 
@@ -121,14 +137,15 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = payload.get("sub")
         role: str = payload.get("role")
-        if email is None or not role:
+        institution_id: int = payload.get("institution_id")
+        if email is None or not role or institution_id is None:
             raise credentials_exception
         record_active_user(email, role)
     except JWTError:
         raise credentials_exception
 
     if role == "student":
-        student = crud.get_student_by_email(db, email=email)
+        student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
         if not student:
             raise credentials_exception
         return {
@@ -150,7 +167,7 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             }
         }
 
-    user = crud.get_user_by_email(db, email=email)
+    user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
     if not user or not user.is_active or user.role != role:
         raise credentials_exception
 

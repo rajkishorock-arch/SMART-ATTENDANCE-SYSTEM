@@ -18,20 +18,21 @@ def get_current_any_user(db: Session = Depends(get_db), token: str = Depends(sec
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = payload.get("sub")
         role: str = payload.get("role")
+        institution_id: Optional[int] = payload.get("institution_id")
         if email is None or role is None:
             raise credentials_exception
             
         user_id = None
         if role == "student":
-            student = crud.get_student_by_email(db, email=email)
+            student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
             if student:
                 user_id = student.id
         else:
-            user = crud.get_user_by_email(db, email=email)
+            user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
             if user:
                 user_id = user.id
                 
-        return {"email": email, "role": role, "id": user_id}
+        return {"email": email, "role": role, "id": user_id, "institution_id": institution_id}
     except JWTError:
         raise credentials_exception
 
@@ -54,7 +55,8 @@ def post_feedback(
         feedback=feedback,
         user_email=user_info["email"],
         role=user_info["role"],
-        user_id=user_info.get("id")
+        user_id=user_info.get("id"),
+        institution_id=user_info.get("institution_id")
     )
 
 @router.get("/", response_model=list[schemas.FeedbackResponse])
@@ -67,4 +69,6 @@ def get_all_feedbacks(
     """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can view all feedback entries.")
-    return db.query(models.Feedback).order_by(models.Feedback.created_at.desc()).all()
+    return db.query(models.Feedback).filter(
+        models.Feedback.institution_id == current_user.institution_id
+    ).order_by(models.Feedback.created_at.desc()).all()

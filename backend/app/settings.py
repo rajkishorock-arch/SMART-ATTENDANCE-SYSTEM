@@ -19,7 +19,7 @@ def get_system_settings(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can view security settings."
         )
-    return crud.get_system_settings(db)
+    return crud.get_system_settings(db, institution_id=current_user.institution_id)
 
 @router.put("/", response_model=schemas.SystemSettingsResponse)
 def update_system_settings(
@@ -36,13 +36,14 @@ def update_system_settings(
             detail="Only administrators can modify security settings."
         )
         
-    updated = crud.update_system_settings(db, settings_update)
+    updated = crud.update_system_settings(db, settings_update, institution_id=current_user.institution_id)
     
     crud.create_audit_log(
         db,
         log=schemas.AuditLogCreate(
             user_email=current_user.email,
             action=f"Updated security settings: {settings_update.dict(exclude_unset=True)}"
-        )
+        ),
+        institution_id=current_user.institution_id
     )
     return updated

@@ -6,7 +6,8 @@ from sqlalchemy import (
     Text,
     Boolean,
     Float,
-    ForeignKey
+    ForeignKey,
+    UniqueConstraint
 )
 from sqlalchemy.sql import func
 from .database import Base
@@ -19,17 +20,26 @@ class Institution(Base):
     slug = Column(String(100), unique=True, index=True, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Branding settings
+    logo_url = Column(String(255), nullable=True)
+    primary_color = Column(String(50), nullable=True)
+    secondary_color = Column(String(50), nullable=True)
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(100), nullable=False)
-    email = Column(String(100), unique=True, index=True, nullable=False)
+    email = Column(String(100), index=True, nullable=False)
     password_hash = Column(String(200), nullable=False)
     role = Column(String(50), default="admin") # 'admin', 'teacher'
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    __table_args__ = (
+        UniqueConstraint('institution_id', 'email', name='_institution_email_uc'),
+    )
 
 class StudentModel(Base):
     __tablename__ = "student"

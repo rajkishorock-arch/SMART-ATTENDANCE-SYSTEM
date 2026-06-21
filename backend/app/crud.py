@@ -7,24 +7,28 @@ from typing import Optional
 from . import models, schemas, security
 
 # --- Audit Log ---
-def create_audit_log(db: Session, log: schemas.AuditLogCreate):
-    db_log = models.AuditLog(user_email=log.user_email, action=log.action)
+def create_audit_log(db: Session, log: schemas.AuditLogCreate, institution_id: Optional[int] = None):
+    db_log = models.AuditLog(user_email=log.user_email, action=log.action, institution_id=institution_id)
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
     return db_log
 
 # --- User (Admins/Teachers) ---
-def get_user_by_email(db: Session, email: str):
-    return db.query(models.User).filter(models.User.email == email).first()
+def get_user_by_email(db: Session, email: str, institution_id: Optional[int] = None):
+    query = db.query(models.User).filter(models.User.email == email)
+    if institution_id is not None:
+        query = query.filter(models.User.institution_id == institution_id)
+    return query.first()
 
-def create_user(db: Session, user: schemas.UserCreate):
+def create_user(db: Session, user: schemas.UserCreate, institution_id: Optional[int] = None):
     hashed_password = security.get_password_hash(user.password)
     db_user = models.User(
         email=user.email,
         name=user.name,
         password_hash=hashed_password,
-        role=user.role
+        role=user.role,
+        institution_id=institution_id
     )
     db.add(db_user)
     db.commit()
@@ -32,17 +36,29 @@ def create_user(db: Session, user: schemas.UserCreate):
     return db_user
 
 # --- Student ---
-def get_students(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.StudentModel).offset(skip).limit(limit).all()
+def get_students(db: Session, skip: int = 0, limit: int = 100, institution_id: Optional[int] = None):
+    query = db.query(models.StudentModel)
+    if institution_id is not None:
+        query = query.filter(models.StudentModel.institution_id == institution_id)
+    return query.offset(skip).limit(limit).all()
 
-def get_student_by_id(db: Session, student_id: int):
-    return db.query(models.StudentModel).filter(models.StudentModel.id == student_id).first()
+def get_student_by_id(db: Session, student_id: int, institution_id: Optional[int] = None):
+    query = db.query(models.StudentModel).filter(models.StudentModel.id == student_id)
+    if institution_id is not None:
+        query = query.filter(models.StudentModel.institution_id == institution_id)
+    return query.first()
 
-def get_student_by_email(db: Session, email: str):
-    return db.query(models.StudentModel).filter(models.StudentModel.email == email).first()
+def get_student_by_email(db: Session, email: str, institution_id: Optional[int] = None):
+    query = db.query(models.StudentModel).filter(models.StudentModel.email == email)
+    if institution_id is not None:
+        query = query.filter(models.StudentModel.institution_id == institution_id)
+    return query.first()
 
-def update_student_password(db: Session, student_id: int, new_password_plain: str):
-    student = db.query(models.StudentModel).filter(models.StudentModel.id == student_id).first()
+def update_student_password(db: Session, student_id: int, new_password_plain: str, institution_id: Optional[int] = None):
+    query = db.query(models.StudentModel).filter(models.StudentModel.id == student_id)
+    if institution_id is not None:
+        query = query.filter(models.StudentModel.institution_id == institution_id)
+    student = query.first()
     if student:
         student.password_hash = security.get_password_hash(new_password_plain)
         db.commit()
@@ -50,8 +66,11 @@ def update_student_password(db: Session, student_id: int, new_password_plain: st
         return student
     return None
 
-def get_all_user_details_for_recognition(db: Session):
-    students = db.query(models.StudentModel).all()
+def get_all_user_details_for_recognition(db: Session, institution_id: Optional[int] = None):
+    query = db.query(models.StudentModel)
+    if institution_id is not None:
+        query = query.filter(models.StudentModel.institution_id == institution_id)
+    students = query.all()
     return {
         s.id: {
             "name": s.name,
@@ -63,8 +82,10 @@ def get_all_user_details_for_recognition(db: Session):
         } for s in students
     }
 
-def create_student(db: Session, student: schemas.StudentCreate):
+def create_student(db: Session, student: schemas.StudentCreate, institution_id: Optional[int] = None):
     db_student = models.StudentModel(**student.dict())
+    if institution_id is not None:
+        db_student.institution_id = institution_id
     if student.roll:
         db_student.password_hash = security.get_password_hash(student.roll)
     db.add(db_student)
@@ -72,11 +93,17 @@ def create_student(db: Session, student: schemas.StudentCreate):
     db.refresh(db_student)
     return db_student
 
-def delete_student(db: Session, student_id: int):
-    db_student = db.query(models.StudentModel).filter(models.StudentModel.id == student_id).first()
+def delete_student(db: Session, student_id: int, institution_id: Optional[int] = None):
+    query = db.query(models.StudentModel).filter(models.StudentModel.id == student_id)
+    if institution_id is not None:
+        query = query.filter(models.StudentModel.institution_id == institution_id)
+    db_student = query.first()
     if db_student:
         # Also delete related attendance logs
-        db.query(models.AttendanceModel).filter(models.AttendanceModel.id == str(student_id)).delete()
+        attn_query = db.query(models.AttendanceModel).filter(models.AttendanceModel.id == str(student_id))
+        if institution_id is not None:
+            attn_query = attn_query.filter(models.AttendanceModel.institution_id == institution_id)
+        attn_query.delete()
         db.delete(db_student)
         db.commit()
         return True
@@ -90,10 +117,13 @@ def get_attendance_logs(
     attendance_status: Optional[str] = None, 
     skip: int = 0, 
     limit: int = 200,
-    subject_ids: Optional[list] = None
+    subject_ids: Optional[list] = None,
+    institution_id: Optional[int] = None
 ):
     from sqlalchemy import or_
     query = db.query(models.AttendanceModel)
+    if institution_id is not None:
+        query = query.filter(models.AttendanceModel.institution_id == institution_id)
     if date_str:
         query = query.filter(models.AttendanceModel.date == date_str)
     if department:
@@ -110,12 +140,19 @@ def get_attendance_logs(
         )
     return query.order_by(models.AttendanceModel.date.desc(), models.AttendanceModel.time.desc()).offset(skip).limit(limit).all()
 
-def get_dashboard_stats(db: Session):
+def get_dashboard_stats(db: Session, institution_id: Optional[int] = None):
     today_str = datetime.now(IST).strftime("%d/%m/%Y")
     
-    total_students = db.query(models.StudentModel).count()
+    student_query = db.query(models.StudentModel)
+    attn_query = db.query(models.AttendanceModel)
     
-    total_present_today = db.query(models.AttendanceModel).filter(
+    if institution_id is not None:
+        student_query = student_query.filter(models.StudentModel.institution_id == institution_id)
+        attn_query = attn_query.filter(models.AttendanceModel.institution_id == institution_id)
+        
+    total_students = student_query.count()
+    
+    total_present_today = attn_query.filter(
         models.AttendanceModel.date == today_str,
         models.AttendanceModel.attendance == "Present"
     ).count()
@@ -125,13 +162,16 @@ def get_dashboard_stats(db: Session):
     avg_rate = (total_present_today / total_students * 100.0) if total_students > 0 else 0.0
     
     # Department stats (present today)
-    dept_counts = db.query(
+    q = db.query(
         models.AttendanceModel.department,
         func.count(models.AttendanceModel.id)
     ).filter(
         models.AttendanceModel.date == today_str,
         models.AttendanceModel.attendance == "Present"
-    ).group_by(models.AttendanceModel.department).all()
+    )
+    if institution_id is not None:
+        q = q.filter(models.AttendanceModel.institution_id == institution_id)
+    dept_counts = q.group_by(models.AttendanceModel.department).all()
     
     department_stats = {dept or "Unknown": count for dept, count in dept_counts}
     
@@ -142,7 +182,7 @@ def get_dashboard_stats(db: Session):
         day_str = day.strftime("%d/%m/%Y")
         day_label = day.strftime("%a")
         
-        count = db.query(models.AttendanceModel).filter(
+        count = attn_query.filter(
             models.AttendanceModel.date == day_str,
             models.AttendanceModel.attendance == "Present"
         ).count()
@@ -170,7 +210,8 @@ def mark_student_attendance(
     dep: str, 
     subject_id: Optional[int] = None,
     custom_date: Optional[str] = None,
-    custom_time: Optional[str] = None
+    custom_time: Optional[str] = None,
+    institution_id: Optional[int] = None
 ):
     if custom_date:
         if "-" in custom_date:
@@ -190,6 +231,9 @@ def mark_student_attendance(
         models.AttendanceModel.id == str(student_id),
         models.AttendanceModel.date == today_str
     )
+    if institution_id is not None:
+        query = query.filter(models.AttendanceModel.institution_id == institution_id)
+        
     if custom_time:
         query = query.filter(models.AttendanceModel.time == time_str)
 
@@ -212,7 +256,8 @@ def mark_student_attendance(
         time=time_str,
         date=today_str,
         attendance="Present",
-        subject_id=subject_id
+        subject_id=subject_id,
+        institution_id=institution_id
     )
     db.add(db_attendance)
     db.commit()
@@ -225,14 +270,14 @@ def mark_student_attendance(
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         attendance_path = os.path.join(base_dir, "attendance.csv")
         
-        required_columns = ["ID", "Roll", "Name", "Department", "Time", "Date", "Status", "SubjectID"]
+        required_columns = ["ID", "Roll", "Name", "Department", "Time", "Date", "Status", "SubjectID", "InstitutionID"]
         file_exists = os.path.exists(attendance_path)
         
         with open(attendance_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             if not file_exists or os.path.getsize(attendance_path) == 0:
                 writer.writerow(required_columns)
-            writer.writerow([student_id, roll, name, dep, time_str, today_str, "Present", subject_id or ""])
+            writer.writerow([student_id, roll, name, dep, time_str, today_str, "Present", subject_id or "", institution_id or ""])
     except Exception as csv_err:
         print(f"Failed to write attendance to CSV: {csv_err}")
         
@@ -244,10 +289,14 @@ def get_attendance_report(
     start_date_str: Optional[str] = None,
     end_date_str: Optional[str] = None,
     department: Optional[str] = None,
-    subject_id: Optional[int] = None
+    subject_id: Optional[int] = None,
+    institution_id: Optional[int] = None
 ):
     if subject_id is not None and not department:
-        subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+        subj_q = db.query(models.Subject).filter(models.Subject.id == subject_id)
+        if institution_id is not None:
+            subj_q = subj_q.filter(models.Subject.institution_id == institution_id)
+        subject = subj_q.first()
         if subject:
             department = subject.department
 
@@ -273,6 +322,9 @@ def get_attendance_report(
 
     # Fetch attendance logs for this subject
     attendance_query = db.query(models.AttendanceModel).filter(models.AttendanceModel.attendance == "Present")
+    if institution_id is not None:
+        attendance_query = attendance_query.filter(models.AttendanceModel.institution_id == institution_id)
+        
     if subject_id is not None:
         attendance_query = attendance_query.filter(models.AttendanceModel.subject_id == subject_id)
     elif department:
@@ -294,6 +346,9 @@ def get_attendance_report(
 
     # Fetch students: first try by department, then fall back to students from attendance logs
     student_query = db.query(models.StudentModel)
+    if institution_id is not None:
+        student_query = student_query.filter(models.StudentModel.institution_id == institution_id)
+        
     if department:
         students = student_query.filter(models.StudentModel.dep == department).all()
         # Fallback: if no dept match, get students from attendance logs
@@ -301,7 +356,7 @@ def get_attendance_report(
             logged_ids_raw = [log.id for log in all_logs if log.id and log.id.isdigit()]
             logged_ids = list(set(int(i) for i in logged_ids_raw))
             if logged_ids:
-                students = db.query(models.StudentModel).filter(
+                students = student_query.filter(
                     models.StudentModel.id.in_(logged_ids)
                 ).all()
         # Last resort: all students
@@ -347,11 +402,14 @@ def get_attendance_report(
     }
 
 
-def get_system_settings(db: Session) -> models.SystemSettings:
+def get_system_settings(db: Session, institution_id: Optional[int] = None) -> models.SystemSettings:
     """
     Get system settings. Creates a default row if it does not exist.
     """
-    settings = db.query(models.SystemSettings).first()
+    query = db.query(models.SystemSettings)
+    if institution_id is not None:
+        query = query.filter(models.SystemSettings.institution_id == institution_id)
+    settings = query.first()
     if not settings:
         settings = models.SystemSettings(
             geofencing_enabled=False,
@@ -359,18 +417,19 @@ def get_system_settings(db: Session) -> models.SystemSettings:
             center_longitude=77.2090,
             allowed_radius_meters=100.0,
             ip_restriction_enabled=False,
-            allowed_ip_ranges="127.0.0.1,192.168.1.0/24"
+            allowed_ip_ranges="127.0.0.1,192.168.1.0/24",
+            institution_id=institution_id
         )
         db.add(settings)
         db.commit()
         db.refresh(settings)
     return settings
 
-def update_system_settings(db: Session, update_data: schemas.SystemSettingsUpdate) -> models.SystemSettings:
+def update_system_settings(db: Session, update_data: schemas.SystemSettingsUpdate, institution_id: Optional[int] = None) -> models.SystemSettings:
     """
     Updates the system settings row.
     """
-    settings = get_system_settings(db)
+    settings = get_system_settings(db, institution_id=institution_id)
     
     update_dict = update_data.dict(exclude_unset=True)
     for key, value in update_dict.items():
@@ -380,50 +439,58 @@ def update_system_settings(db: Session, update_data: schemas.SystemSettingsUpdat
     db.refresh(settings)
     return settings
 
-def create_subject(db: Session, subject: schemas.SubjectCreate) -> models.Subject:
+def create_subject(db: Session, subject: schemas.SubjectCreate, institution_id: Optional[int] = None) -> models.Subject:
     db_subject = models.Subject(
         name=subject.name,
         code=subject.code,
         department=subject.department,
-        teacher_id=subject.teacher_id
+        teacher_id=subject.teacher_id,
+        institution_id=institution_id
     )
     db.add(db_subject)
     db.commit()
     db.refresh(db_subject)
     return db_subject
 
-def get_subjects(db: Session, department: str = None, teacher_id: int = None):
+def get_subjects(db: Session, department: str = None, teacher_id: int = None, institution_id: Optional[int] = None):
     query = db.query(models.Subject)
+    if institution_id is not None:
+        query = query.filter(models.Subject.institution_id == institution_id)
     if department:
         query = query.filter(models.Subject.department == department)
     if teacher_id:
         query = query.filter(models.Subject.teacher_id == teacher_id)
     return query.all()
 
-def create_schedule(db: Session, schedule: schemas.ScheduleCreate) -> models.Schedule:
+def create_schedule(db: Session, schedule: schemas.ScheduleCreate, institution_id: Optional[int] = None) -> models.Schedule:
     db_schedule = models.Schedule(
         subject_id=schedule.subject_id,
         day_of_week=schedule.day_of_week,
         start_time=schedule.start_time,
-        end_time=schedule.end_time
+        end_time=schedule.end_time,
+        institution_id=institution_id
     )
     db.add(db_schedule)
     db.commit()
     db.refresh(db_schedule)
     return db_schedule
 
-def get_schedules(db: Session):
-    return db.query(models.Schedule).all()
+def get_schedules(db: Session, institution_id: Optional[int] = None):
+    query = db.query(models.Schedule)
+    if institution_id is not None:
+        query = query.filter(models.Schedule.institution_id == institution_id)
+    return query.all()
 
 # --- Feedback ---
-def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: str, role: str, user_id: Optional[int] = None):
+def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: str, role: str, user_id: Optional[int] = None, institution_id: Optional[int] = None):
     db_feedback = models.Feedback(
         user_id=user_id,
         user_email=user_email,
         role=role,
         type=feedback.type,
         message=feedback.message,
-        rating=feedback.rating
+        rating=feedback.rating,
+        institution_id=institution_id
     )
     db.add(db_feedback)
     db.commit()
@@ -435,6 +502,7 @@ def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: s
         log=schemas.AuditLogCreate(
             user_email=user_email,
             action=f"Submitted Feedback (ID: {user_id}, {feedback.type.upper()}, Rating: {feedback.rating}/5): {feedback.message}"
-        )
+        ),
+        institution_id=institution_id
     )
     return db_feedback

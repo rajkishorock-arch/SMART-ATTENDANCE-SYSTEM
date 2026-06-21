@@ -21,7 +21,7 @@ face_classifier = cv2.CascadeClassifier(cascade_path)
 
 router = APIRouter()
 
-def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student_id: int = None) -> bool:
+def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student_id: int = None, institution_id: int = None) -> bool:
     """
     Checks if a face is already registered to another student.
     Returns True if a duplicate face is found.
@@ -34,6 +34,8 @@ def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student
     
     # Query all students who have face embeddings registered
     query = db.query(models.StudentModel).filter(models.StudentModel.face_embedding != None)
+    if institution_id is not None:
+        query = query.filter(models.StudentModel.institution_id == institution_id)
     if exclude_student_id is not None:
         query = query.filter(models.StudentModel.id != exclude_student_id)
         
@@ -75,15 +77,18 @@ def create_new_user(
             detail="Invalid Master Password! Master key verification is required to register new staff."
         )
     
-    db_user = crud.get_user_by_email(db, email=user.email)
+    db_user = crud.get_user_by_email(db, email=user.email, institution_id=current_user.institution_id)
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Email already registered under this institution")
     
-    new_user = crud.create_user(db=db, user=user)
+    new_user = crud.create_user(db=db, user=user, institution_id=current_user.institution_id)
     
     # Map subject if details are provided for the teacher role
     if new_user.role == "teacher" and user.subject_name and user.subject_code and user.subject_department:
-        existing_sub = db.query(models.Subject).filter(models.Subject.code == user.subject_code).first()
+        existing_sub = db.query(models.Subject).filter(
+            models.Subject.code == user.subject_code,
+            models.Subject.institution_id == current_user.institution_id
+        ).first()
         if existing_sub:
             existing_sub.name = user.subject_name
             existing_sub.department = user.subject_department
@@ -95,19 +100,27 @@ def create_new_user(
                 name=user.subject_name,
                 code=user.subject_code,
                 department=user.subject_department,
-                teacher_id=new_user.id
+                teacher_id=new_user.id,
+                institution_id=current_user.institution_id
             )
             db.add(db_sub)
             db.commit()
             db.refresh(db_sub)
             
     # Attach subject properties for response serialization
-    subject = db.query(models.Subject).filter(models.Subject.teacher_id == new_user.id).first()
+    subject = db.query(models.Subject).filter(
+        models.Subject.teacher_id == new_user.id,
+        models.Subject.institution_id == current_user.institution_id
+    ).first()
     new_user.subject_name = subject.name if subject else None
     new_user.subject_code = subject.code if subject else None
     new_user.subject_department = subject.department if subject else None
 
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Admin '{current_user.email}' created user '{new_user.email}'."))
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Admin '{current_user.email}' created user '{new_user.email}'."),
+        institution_id=current_user.institution_id
+    )
     return new_user
 
 @router.put("/{id}", response_model=schemas.User)
@@ -124,7 +137,10 @@ def update_user_details(
             detail="Only administrators can edit user profiles."
         )
     
-    db_user = db.query(models.User).filter(models.User.id == id).first()
+    db_user = db.query(models.User).filter(
+        models.User.id == id,
+        models.User.institution_id == current_user.institution_id
+    ).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -158,7 +174,10 @@ def update_user_details(
     # Map/Update subject if provided for the teacher role
     if db_user.role == "teacher":
         if user_data.subject_name or user_data.subject_code or user_data.subject_department:
-            subject = db.query(models.Subject).filter(models.Subject.teacher_id == id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.teacher_id == id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if subject:
                 if user_data.subject_name is not None:
                     subject.name = user_data.subject_name
@@ -167,6 +186,7 @@ def update_user_details(
                 if user_data.subject_code is not None:
                     existing_sub = db.query(models.Subject).filter(
                         models.Subject.code == user_data.subject_code,
+                        models.Subject.institution_id == current_user.institution_id,
                         models.Subject.id != subject.id
                     ).first()
                     if existing_sub:
@@ -179,7 +199,10 @@ def update_user_details(
                 sub_code = user_data.subject_code or f"SUB-{id}"
                 sub_dept = user_data.subject_department or "CSE(IOT)"
                 
-                existing_sub = db.query(models.Subject).filter(models.Subject.code == sub_code).first()
+                existing_sub = db.query(models.Subject).filter(
+                    models.Subject.code == sub_code,
+                    models.Subject.institution_id == current_user.institution_id
+                ).first()
                 if existing_sub:
                     existing_sub.teacher_id = id
                     existing_sub.name = sub_name
@@ -191,7 +214,8 @@ def update_user_details(
                         name=sub_name,
                         code=sub_code,
                         department=sub_dept,
-                        teacher_id=id
+                        teacher_id=id,
+                        institution_id=current_user.institution_id
                     )
                     db.add(db_sub)
                     db.commit()
@@ -201,12 +225,19 @@ def update_user_details(
     db.refresh(db_user)
     
     # Attach subject properties for response serialization
-    subject = db.query(models.Subject).filter(models.Subject.teacher_id == db_user.id).first()
+    subject = db.query(models.Subject).filter(
+        models.Subject.teacher_id == db_user.id,
+        models.Subject.institution_id == current_user.institution_id
+    ).first()
     db_user.subject_name = subject.name if subject else None
     db_user.subject_code = subject.code if subject else None
     db_user.subject_department = subject.department if subject else None
 
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Admin updated user profile: {db_user.email}"))
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Admin updated user profile: {db_user.email}"),
+        institution_id=current_user.institution_id
+    )
     return db_user
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
@@ -230,7 +261,10 @@ def delete_user(
             detail="Invalid Master Password! Access Denied."
         )
     
-    db_user = db.query(models.User).filter(models.User.id == id).first()
+    db_user = db.query(models.User).filter(
+        models.User.id == id,
+        models.User.institution_id == current_user.institution_id
+    ).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
         
@@ -238,10 +272,17 @@ def delete_user(
         raise HTTPException(status_code=400, detail="Cannot delete default system admin.")
         
     # Unlink subjects mapped to this teacher before deleting the teacher account
-    db.query(models.Subject).filter(models.Subject.teacher_id == id).update({models.Subject.teacher_id: None})
+    db.query(models.Subject).filter(
+        models.Subject.teacher_id == id,
+        models.Subject.institution_id == current_user.institution_id
+    ).update({models.Subject.teacher_id: None})
     db.delete(db_user)
     db.commit()
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Admin deleted user: {db_user.email}"))
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Admin deleted user: {db_user.email}"),
+        institution_id=current_user.institution_id
+    )
     return {"message": "User account deleted successfully."}
 
 @router.get("/", response_model=List[schemas.User])
@@ -252,9 +293,12 @@ def read_all_users(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can list users.")
     
-    users = db.query(models.User).all()
+    users = db.query(models.User).filter(models.User.institution_id == current_user.institution_id).all()
     for u in users:
-        subject = db.query(models.Subject).filter(models.Subject.teacher_id == u.id).first()
+        subject = db.query(models.Subject).filter(
+            models.Subject.teacher_id == u.id,
+            models.Subject.institution_id == current_user.institution_id
+        ).first()
         u.subject_name = subject.name if subject else None
         u.subject_code = subject.code if subject else None
         u.subject_department = subject.department if subject else None
@@ -265,7 +309,10 @@ def read_users_me(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
+    subject = db.query(models.Subject).filter(
+        models.Subject.teacher_id == current_user.id,
+        models.Subject.institution_id == current_user.institution_id
+    ).first()
     current_user.subject_name = subject.name if subject else None
     current_user.subject_code = subject.code if subject else None
     current_user.subject_department = subject.department if subject else None
@@ -303,7 +350,8 @@ def update_student_me(
         log=schemas.AuditLogCreate(
             user_email=current_student.email, 
             action=f"Student '{current_student.email}' updated their own profile details: {update_dict.keys()}."
-        )
+        ),
+        institution_id=current_student.institution_id
     )
     return current_student
 
@@ -317,7 +365,10 @@ def read_student_attendance(
     Get current logged in student's attendance history logs.
     """
     # Find all records matching student's id (as string)
-    logs = db.query(models.AttendanceModel).filter(models.AttendanceModel.id == str(current_student.id)).all()
+    logs = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.id == str(current_student.id),
+        models.AttendanceModel.institution_id == current_student.institution_id
+    ).all()
     return logs
 
 @router.post("/students/me/change-password", response_model=schemas.Student)
@@ -345,7 +396,7 @@ def change_student_password(
             detail="Incorrect current password"
         )
         
-    updated = crud.update_student_password(db, student_id=current_student.id, new_password_plain=data.new_password)
+    updated = crud.update_student_password(db, student_id=current_student.id, new_password_plain=data.new_password, institution_id=current_student.institution_id)
     if not updated:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -439,6 +490,7 @@ async def upload_student_selfie(
         raise HTTPException(status_code=422, detail="Failed to generate face embedding from your selfie.")
 
     # 5b. Check if this face is already registered to someone else
+    if check_duplicate_face(db, embedding, exclude_student_id=current_student.id, institution_id=current_student.institution_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This face is already registered to another student's account. Please register using your actual face."
@@ -464,7 +516,7 @@ async def upload_student_selfie(
     # 8. Save a copy of the face image for reference
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        data_dir = os.path.join(base_dir, "data")
+        data_dir = os.path.join(base_dir, "data", f"tenant_{current_student.institution_id}")
         os.makedirs(data_dir, exist_ok=True)
         file_name = f"user.{current_student.id}.1.jpg"
         file_path = os.path.join(data_dir, file_name)
@@ -478,7 +530,8 @@ async def upload_student_selfie(
         log=schemas.AuditLogCreate(
             user_email=current_student.email, 
             action=f"Student '{current_student.name}' (ID: {current_student.id}) successfully updated their face selfie profile."
-        )
+        ),
+        institution_id=current_student.institution_id
     )
 
     return current_student
@@ -499,15 +552,19 @@ def list_students(
             detail="Only teachers or administrators can view the student list."
         )
     if current_user.role == "teacher":
-        teacher_subjects = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).all()
+        teacher_subjects = db.query(models.Subject).filter(
+            models.Subject.teacher_id == current_user.id,
+            models.Subject.institution_id == current_user.institution_id
+        ).all()
         if not teacher_subjects:
             # No subject assigned to teacher yet - return all students as fallback
-            return crud.get_students(db)
+            return crud.get_students(db, institution_id=current_user.institution_id)
         teacher_departments = [s.department for s in teacher_subjects]
         
         # Primary: filter by department name
         students = db.query(models.StudentModel).filter(
-            models.StudentModel.dep.in_(teacher_departments)
+            models.StudentModel.dep.in_(teacher_departments),
+            models.StudentModel.institution_id == current_user.institution_id
         ).all()
         
         # Fallback: if no students found by dept (mismatch), return students who attended teacher's sessions
@@ -515,21 +572,23 @@ def list_students(
             subject_ids = [s.id for s in teacher_subjects]
             from sqlalchemy import or_
             attended_ids_raw = db.query(models.AttendanceModel.id).filter(
-                models.AttendanceModel.subject_id.in_(subject_ids)
+                models.AttendanceModel.subject_id.in_(subject_ids),
+                models.AttendanceModel.institution_id == current_user.institution_id
             ).distinct().all()
             attended_ids = [int(r[0]) for r in attended_ids_raw if r[0] and r[0].isdigit()]
             if attended_ids:
                 students = db.query(models.StudentModel).filter(
-                    models.StudentModel.id.in_(attended_ids)
+                    models.StudentModel.id.in_(attended_ids),
+                    models.StudentModel.institution_id == current_user.institution_id
                 ).all()
         
         # Last resort fallback: return all students if still empty
         if not students:
-            return crud.get_students(db)
+            return crud.get_students(db, institution_id=current_user.institution_id)
             
         return students
         
-    return crud.get_students(db)
+    return crud.get_students(db, institution_id=current_user.institution_id)
 
 
 @router.post("/students", response_model=schemas.Student, status_code=status.HTTP_201_CREATED)
@@ -546,11 +605,15 @@ def add_student(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can register new students."
         )
-    db_student = crud.get_student_by_id(db, student_id=student.id)
+    db_student = crud.get_student_by_id(db, student_id=student.id, institution_id=current_user.institution_id)
     if db_student:
         raise HTTPException(status_code=400, detail="Student with this ID already exists")
-    new_s = crud.create_student(db, student=student)
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student '{new_s.name}' registered by {current_user.email}."))
+    new_s = crud.create_student(db, student=student, institution_id=current_user.institution_id)
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student '{new_s.name}' registered by {current_user.email}."),
+        institution_id=current_user.institution_id
+    )
     return new_s
 
 @router.put("/students/{id}", response_model=schemas.Student)
@@ -569,7 +632,7 @@ def update_student_details(
             detail="Only teachers or administrators can edit student records."
         )
         
-    db_student = crud.get_student_by_id(db, student_id=id)
+    db_student = crud.get_student_by_id(db, student_id=id, institution_id=current_user.institution_id)
     if not db_student:
         raise HTTPException(status_code=404, detail="Student not found")
         
@@ -583,7 +646,11 @@ def update_student_details(
             
     db.commit()
     db.refresh(db_student)
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student ID {id} details updated by {current_user.email}."))
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student ID {id} details updated by {current_user.email}."),
+        institution_id=current_user.institution_id
+    )
     return db_student
 
 @router.delete("/students/{id}", status_code=status.HTTP_200_OK)
@@ -600,10 +667,14 @@ def remove_student(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can delete student records."
         )
-    success = crud.delete_student(db, student_id=id)
+    success = crud.delete_student(db, student_id=id, institution_id=current_user.institution_id)
     if not success:
         raise HTTPException(status_code=404, detail="Student not found")
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student ID {id} deleted by {current_user.email}."))
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student ID {id} deleted by {current_user.email}."),
+        institution_id=current_user.institution_id
+    )
     return {"message": f"Student with ID {id} has been deleted successfully."}
 
 @router.post("/students/{id}/upload-sample", status_code=status.HTTP_200_OK)
@@ -642,6 +713,7 @@ async def upload_student_face_sample(
         )
 
     # 2b. Check if this face is already registered to someone else
+    if check_duplicate_face(db, embedding, exclude_student_id=id, institution_id=current_user.institution_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This face is already registered to another student's account. Please register using your actual face."
@@ -653,7 +725,7 @@ async def upload_student_face_sample(
     embedding_json = json.dumps(embedding_list)
 
     # 3. Save the serialized embedding in DB
-    db_student = crud.get_student_by_id(db, student_id=id)
+    db_student = crud.get_student_by_id(db, student_id=id, institution_id=current_user.institution_id)
     if not db_student:
         raise HTTPException(status_code=404, detail="Student not found.")
 
@@ -672,7 +744,7 @@ async def upload_student_face_sample(
     # Optional: Save a copy of the face image for reference
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        data_dir = os.path.join(base_dir, "data")
+        data_dir = os.path.join(base_dir, "data", f"tenant_{current_user.institution_id}")
         os.makedirs(data_dir, exist_ok=True)
         file_name = f"user.{id}.1.jpg"
         file_path = os.path.join(data_dir, file_name)
@@ -689,7 +761,11 @@ async def upload_student_face_sample(
     except Exception as img_err:
         print(f"Failed to save reference face image to disk: {img_err}")
 
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Face registered for student ID {id} by {current_user.email}."))
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Face registered for student ID {id} by {current_user.email}."),
+        institution_id=current_user.institution_id
+    )
     return {"message": "Face registered successfully.", "filename": f"user.{id}.1.jpg"}
 
 @router.post("/students/train", status_code=status.HTTP_200_OK)
@@ -711,7 +787,8 @@ def trigger_training(
             log=schemas.AuditLogCreate(
                 user_email=current_user.email, 
                 action=f"Obsolete model training trigger checked by {current_user.email}."
-            )
+            ),
+            institution_id=current_user.institution_id
         )
         return {
             "message": "Deep Learning models are updated instantly on registration. No training required!",
@@ -744,7 +821,10 @@ def update_user_me(
     # Map/Update subject if provided for the teacher role
     if db_user.role == "teacher":
         if user_data.subject_name or user_data.subject_code or user_data.subject_department:
-            subject = db.query(models.Subject).filter(models.Subject.teacher_id == db_user.id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.teacher_id == db_user.id,
+                models.Subject.institution_id == db_user.institution_id
+            ).first()
             if subject:
                 if user_data.subject_name is not None:
                     subject.name = user_data.subject_name
@@ -753,6 +833,7 @@ def update_user_me(
                 if user_data.subject_code is not None:
                     existing_sub = db.query(models.Subject).filter(
                         models.Subject.code == user_data.subject_code,
+                        models.Subject.institution_id == db_user.institution_id,
                         models.Subject.id != subject.id
                     ).first()
                     if existing_sub:
@@ -765,7 +846,10 @@ def update_user_me(
                 sub_code = user_data.subject_code or f"SUB-{db_user.id}"
                 sub_dept = user_data.subject_department or "CSE"
                 
-                existing_sub = db.query(models.Subject).filter(models.Subject.code == sub_code).first()
+                existing_sub = db.query(models.Subject).filter(
+                    models.Subject.code == sub_code,
+                    models.Subject.institution_id == db_user.institution_id
+                ).first()
                 if existing_sub:
                     existing_sub.teacher_id = db_user.id
                     existing_sub.name = sub_name
@@ -777,7 +861,8 @@ def update_user_me(
                         name=sub_name,
                         code=sub_code,
                         department=sub_dept,
-                        teacher_id=db_user.id
+                        teacher_id=db_user.id,
+                        institution_id=db_user.institution_id
                     )
                     db.add(db_sub)
                     db.commit()
@@ -787,12 +872,19 @@ def update_user_me(
     db.refresh(db_user)
     
     # Attach subject properties for response serialization
-    subject = db.query(models.Subject).filter(models.Subject.teacher_id == db_user.id).first()
+    subject = db.query(models.Subject).filter(
+        models.Subject.teacher_id == db_user.id,
+        models.Subject.institution_id == db_user.institution_id
+    ).first()
     db_user.subject_name = subject.name if subject else None
     db_user.subject_code = subject.code if subject else None
     db_user.subject_department = subject.department if subject else None
 
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=db_user.email, action=f"User updated their own profile: {db_user.email}"))
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=db_user.email, action=f"User updated their own profile: {db_user.email}"),
+        institution_id=db_user.institution_id
+    )
     return db_user
 
 @router.post("/me/change-password", response_model=schemas.User)
@@ -814,10 +906,17 @@ def change_user_password(
     db.commit()
     db.refresh(current_user)
     
-    subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
+    subject = db.query(models.Subject).filter(
+        models.Subject.teacher_id == current_user.id,
+        models.Subject.institution_id == current_user.institution_id
+    ).first()
     current_user.subject_name = subject.name if subject else None
     current_user.subject_code = subject.code if subject else None
     current_user.subject_department = subject.department if subject else None
     
-    crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=current_user.email, action=f"User '{current_user.email}' changed their password."))
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"User '{current_user.email}' changed their password."),
+        institution_id=current_user.institution_id
+    )
     return current_user

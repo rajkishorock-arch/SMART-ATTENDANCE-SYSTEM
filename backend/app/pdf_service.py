@@ -13,13 +13,20 @@ from reportlab.lib.units import inch
 from . import crud, models
 
 
-def generate_attendance_pdf_report(db: Session, start_date_str: str, end_date_str: str, department: str = None, subject_id: int = None) -> str:
+def generate_attendance_pdf_report(db: Session, start_date_str: str, end_date_str: str, department: str = None, subject_id: int = None, institution_id: int = None) -> str:
     """
     Generates a professional attendance PDF report for a given date range, department, and subject.
     Returns the absolute path to the temporary PDF file.
     """
     # 1. Fetch report data using existing CRUD logic
-    report_data = crud.get_attendance_report(db, start_date_str=start_date_str, end_date_str=end_date_str, department=department, subject_id=subject_id)
+    report_data = crud.get_attendance_report(
+        db, 
+        start_date_str=start_date_str, 
+        end_date_str=end_date_str, 
+        department=department, 
+        subject_id=subject_id,
+        institution_id=institution_id
+    )
 
     
     total_working_days = report_data.get("total_working_days", 0)
@@ -147,10 +154,14 @@ def generate_attendance_pdf_report(db: Session, start_date_str: str, end_date_st
     # Header Section
     story.append(Paragraph("Attendance Analysis Report", title_style))
     
+    # Department
     dept_label = department if department else "All Departments"
     subject_label = ""
     if subject_id is not None:
-        sub = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+        subj_q = db.query(models.Subject).filter(models.Subject.id == subject_id)
+        if institution_id is not None:
+            subj_q = subj_q.filter(models.Subject.institution_id == institution_id)
+        sub = subj_q.first()
         if sub:
             subject_label = f"  |  Subject: <b>{sub.name} ({sub.code})</b>"
             

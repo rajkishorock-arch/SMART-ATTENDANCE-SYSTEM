@@ -35,7 +35,10 @@ def get_attendance_logs(
     
     subject_ids = None
     if current_user.role == "teacher":
-        teacher_subjects = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).all()
+        teacher_subjects = db.query(models.Subject).filter(
+            models.Subject.teacher_id == current_user.id,
+            models.Subject.institution_id == current_user.institution_id
+        ).all()
         subject_ids = [s.id for s in teacher_subjects]
         # Don't return empty - teacher might have old logs without subject_id
         # We'll filter by subject_ids in crud, which will include null-subject records from teacher's dept
@@ -48,7 +51,8 @@ def get_attendance_logs(
         date_str=date, 
         department=department, 
         attendance_status=status,
-        subject_ids=subject_ids
+        subject_ids=subject_ids,
+        institution_id=current_user.institution_id
     )
     return logs
 
@@ -66,7 +70,7 @@ def get_dashboard_stats(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can view dashboard statistics."
         )
-    return crud.get_dashboard_stats(db)
+    return crud.get_dashboard_stats(db, institution_id=current_user.institution_id)
 
 @router.post("/recognize-frame")
 async def recognize_and_mark_attendance(
@@ -94,7 +98,10 @@ async def recognize_and_mark_attendance(
     if current_user.role == "teacher":
         if subject_id is None:
             # Auto-resolve the teacher's subject if not passed by the frontend
-            subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.teacher_id == current_user.id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not subject:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -102,7 +109,10 @@ async def recognize_and_mark_attendance(
                 )
             subject_id = subject.id
         else:
-            subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.id == subject_id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not subject or subject.teacher_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -114,7 +124,7 @@ async def recognize_and_mark_attendance(
     and automatically logs attendance for any recognized student.
     """
     # Fetch active settings
-    settings = crud.get_system_settings(db)
+    settings = crud.get_system_settings(db, institution_id=current_user.institution_id)
     
     # 1. IP Network Restriction Check
     if settings.ip_restriction_enabled:
@@ -158,7 +168,7 @@ async def recognize_and_mark_attendance(
 
     # Perform face recognition
     try:
-        results = recognition_service.recognize_faces_in_frame(img)
+        results = recognition_service.recognize_faces_in_frame(img, institution_id=current_user.institution_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Recognition engine error: {str(e)}")
 
@@ -178,13 +188,14 @@ async def recognize_and_mark_attendance(
             dep=dep, 
             subject_id=subject_id,
             custom_date=custom_date,
-            custom_time=custom_time
+            custom_time=custom_time,
+            institution_id=current_user.institution_id
         )
 
         
         # If student's attendance is newly marked today, send an asynchronous confirmation email
         if newly_marked:
-            student = crud.get_student_by_id(db, student_id=user_id)
+            student = crud.get_student_by_id(db, student_id=user_id, institution_id=current_user.institution_id)
             if student and student.email:
                 background_tasks.add_task(
                     send_presence_email,
@@ -219,14 +230,20 @@ def get_attendance_report(
 
     if role == "teacher":
         if subject_id is not None:
-            subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.id == subject_id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not subject or subject.teacher_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Unauthorized: You can only view reports for your assigned subject."
                 )
         else:
-            first_subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
+            first_subject = db.query(models.Subject).filter(
+                models.Subject.teacher_id == current_user.id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not first_subject:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -240,6 +257,7 @@ def get_attendance_report(
         end_date_str=end_date,
         department=department,
         subject_id=subject_id,
+        institution_id=current_user.institution_id
     )
     return report
 
@@ -255,6 +273,7 @@ def get_student_attendance_report(
         db,
         department=current_student.dep,
         subject_id=subject_id,
+        institution_id=current_student.institution_id
     )
     report["students"] = [s for s in report["students"] if s["id"] == current_student.id]
     return report
@@ -274,20 +293,27 @@ def send_absentee_alerts(
     today_str = datetime.now(IST).strftime("%d/%m/%Y")
 
     if subject_id is not None:
-        subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+        subject = db.query(models.Subject).filter(
+            models.Subject.id == subject_id,
+            models.Subject.institution_id == current_user.institution_id
+        ).first()
         if not subject:
             raise HTTPException(status_code=404, detail="Subject not found")
         if current_user.role == "teacher" and subject.teacher_id != current_user.id:
             raise HTTPException(status_code=403, detail="Unauthorized access to this subject.")
         
         # Get students belonging to that subject's department/branch
-        students = db.query(models.StudentModel).filter(models.StudentModel.dep == subject.department).all()
+        students = db.query(models.StudentModel).filter(
+            models.StudentModel.dep == subject.department,
+            models.StudentModel.institution_id == current_user.institution_id
+        ).all()
         
         # Get student IDs who checked in for this specific subject today
         present_logs = db.query(models.AttendanceModel.id).filter(
             models.AttendanceModel.date == today_str,
             models.AttendanceModel.attendance == "Present",
-            models.AttendanceModel.subject_id == subject_id
+            models.AttendanceModel.subject_id == subject_id,
+            models.AttendanceModel.institution_id == current_user.institution_id
         ).all()
         present_student_ids = {log[0] for log in present_logs}
         subject_info_str = f" for subject '{subject.name}' ({subject.code})"
@@ -296,10 +322,11 @@ def send_absentee_alerts(
             raise HTTPException(status_code=400, detail="Subject ID is required for teaching staff.")
             
         # Global fallback (Admins only)
-        students = db.query(models.StudentModel).all()
+        students = db.query(models.StudentModel).filter(models.StudentModel.institution_id == current_user.institution_id).all()
         present_logs = db.query(models.AttendanceModel.id).filter(
             models.AttendanceModel.date == today_str,
-            models.AttendanceModel.attendance == "Present"
+            models.AttendanceModel.attendance == "Present",
+            models.AttendanceModel.institution_id == current_user.institution_id
         ).all()
         present_student_ids = {log[0] for log in present_logs}
         subject_info_str = " globally"
@@ -331,7 +358,8 @@ def send_absentee_alerts(
         log=schemas.AuditLogCreate(
             user_email=current_user.email,
             action=f"Triggered absentee alert emails for {today_str}{subject_info_str}. Sent to {queued_count} students."
-        )
+        ),
+        institution_id=current_user.institution_id
     )
 
     return {
@@ -361,12 +389,18 @@ def download_attendance_pdf_report(
 
     if current_user.role == "teacher":
         if subject_id is None:
-            first_subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
+            first_subject = db.query(models.Subject).filter(
+                models.Subject.teacher_id == current_user.id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not first_subject:
                 raise HTTPException(status_code=400, detail="No subjects assigned to this teacher.")
             subject_id = first_subject.id
         else:
-            subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.id == subject_id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not subject or subject.teacher_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -384,7 +418,8 @@ def download_attendance_pdf_report(
             start_date_str=start_date, 
             end_date_str=end_date, 
             department=department,
-            subject_id=subject_id
+            subject_id=subject_id,
+            institution_id=current_user.institution_id
         )
 
         
@@ -395,7 +430,10 @@ def download_attendance_pdf_report(
         if department:
             filename = f"Attendance_Report_{department.replace(' ', '_')}_{start_date}_to_{end_date}.pdf"
         if subject_id:
-            sub = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+            sub = db.query(models.Subject).filter(
+                models.Subject.id == subject_id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if sub:
                 filename = f"Attendance_Report_{sub.code}_{start_date}_to_{end_date}.pdf"
 
@@ -427,7 +465,7 @@ def send_test_report_email(
         start_date = monday.strftime("%Y-%m-%d")
         end_date = today.strftime("%Y-%m-%d")
         
-        pdf_path = generate_attendance_pdf_report(db, start_date_str=start_date, end_date_str=end_date)
+        pdf_path = generate_attendance_pdf_report(db, start_date_str=start_date, end_date_str=end_date, institution_id=current_user.institution_id)
         
         html_body = f"""
         <!DOCTYPE html>
@@ -469,7 +507,8 @@ def send_test_report_email(
             log=schemas.AuditLogCreate(
                 user_email=current_user.email,
                 action=f"Manually triggered and sent a weekly attendance PDF report test email to {current_user.email}."
-            )
+            ),
+            institution_id=current_user.institution_id
         )
         return {"message": f"Test attendance report successfully emailed to {current_user.email}!"}
     except Exception as e:
@@ -498,12 +537,18 @@ def get_attendance_sessions_history(
     if current_user.role == "teacher":
         if subject_id is None:
             # Auto-resolve teacher's mapped subject
-            subject = db.query(models.Subject).filter(models.Subject.teacher_id == current_user.id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.teacher_id == current_user.id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not subject:
                 return []
             subject_id = subject.id
         else:
-            subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.id == subject_id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not subject or subject.teacher_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -512,12 +557,15 @@ def get_attendance_sessions_history(
     else: # admin
         if subject_id is None:
             # Try to default to the first available subject
-            subject = db.query(models.Subject).first()
+            subject = db.query(models.Subject).filter(models.Subject.institution_id == current_user.institution_id).first()
             if not subject:
                 return []
             subject_id = subject.id
         else:
-            subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+            subject = db.query(models.Subject).filter(
+                models.Subject.id == subject_id,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
             if not subject:
                 return []
                 
@@ -534,7 +582,8 @@ def get_attendance_sessions_history(
 
     # Collect all unique student IDs from attendance logs for this subject
     query = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.subject_id == subject_id
+        models.AttendanceModel.subject_id == subject_id,
+        models.AttendanceModel.institution_id == current_user.institution_id
     )
     if date_str:
         query = query.filter(models.AttendanceModel.date == date_str)
@@ -550,7 +599,8 @@ def get_attendance_sessions_history(
     # 1. All students from the subject's department (exact match)
     # 2. PLUS any students who actually have attendance logs (regardless of department)
     dept_students = db.query(models.StudentModel).filter(
-        models.StudentModel.dep == subject.department
+        models.StudentModel.dep == subject.department,
+        models.StudentModel.institution_id == current_user.institution_id
     ).all()
     dept_student_ids = set(str(s.id) for s in dept_students)
     
@@ -561,14 +611,15 @@ def get_attendance_sessions_history(
         extra_ids_int = [int(sid) for sid in extra_ids if sid.isdigit()]
         if extra_ids_int:
             extra_students = db.query(models.StudentModel).filter(
-                models.StudentModel.id.in_(extra_ids_int)
+                models.StudentModel.id.in_(extra_ids_int),
+                models.StudentModel.institution_id == current_user.institution_id
             ).all()
     
     students = dept_students + extra_students
     
     # If no department students found, fall back to ALL students (robust fallback)
     if not students:
-        students = db.query(models.StudentModel).all()
+        students = db.query(models.StudentModel).filter(models.StudentModel.institution_id == current_user.institution_id).all()
     
     # Group logs by (date, time) where time is the Period
     sessions_map = {}
