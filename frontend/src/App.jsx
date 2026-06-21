@@ -12609,9 +12609,17 @@ export default function App() {
                 <span style={{ color: '#f1f5f9' }}>Dynamic GPS Geofencing (100m Allowed Radius), IP range restriction protocol, Cyber Perimeter Sonar Beacons, and Security Lockdown Override.</span>
               </div>
               
-              <div>
-                <span style={{ color: 'var(--color-text-muted)' }}>DEVELOPER CREDITS:</span>{' '}
-                <span style={{ color: '#00f2fe', fontWeight: 'bold' }}>Enterprise AI Engineering Lab</span>
+              <div style={{ marginTop: '12px', borderTop: '1px dashed var(--border-color)', paddingTop: '12px' }}>
+                <span style={{ color: 'var(--color-text-muted)' }}>DEVELOPED BY:</span>{' '}
+                <span style={{ 
+                  color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe',
+                  textShadow: `0 0 10px ${activeTheme === 'matrix' ? 'rgba(0, 255, 70, 0.6)' : activeTheme === 'obsidian' ? 'rgba(255, 62, 62, 0.6)' : activeTheme === 'violet' ? 'rgba(168, 85, 247, 0.6)' : 'rgba(0, 242, 254, 0.6)'}`, 
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem',
+                  letterSpacing: '1.5px'
+                }}>
+                  RAJKISHOR
+                </span>
               </div>
             </div>
             
