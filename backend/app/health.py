@@ -108,18 +108,62 @@ def test_smtp_configuration(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
 ):
-    """Test endpoint to trigger a direct SMTP email delivery check."""
+    """Test endpoint to trigger a direct SMTP or Brevo REST API email delivery check."""
     if current_user.role != "admin" or current_user.institution_id != 1:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only System Administrators of the default institution can run diagnostic email tests.",
         )
 
+    import requests
+    import json
+    import os
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
     from app.core import config
 
+    brevo_key = os.getenv("BREVO_API_KEY")
+    if brevo_key:
+        print(f"SMTP Test: Attempting Brevo API transmission to {recipient_email}...")
+        url = "https://api.brevo.com/v3/smtp/email"
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": brevo_key
+        }
+        html_content = f"""
+        <html>
+        <body>
+            <h2>Brevo HTTP API Configuration Verified!</h2>
+            <p>This is a test email confirming that Brevo's REST API integration works perfectly from the server environment.</p>
+            <p><strong>Sender Name:</strong> {config.SMTP_SENDER_NAME}</p>
+            <p><strong>Sender Email:</strong> {config.SMTP_SENDER_EMAIL}</p>
+        </body>
+        </html>
+        """
+        payload = {
+            "sender": {
+                "name": config.SMTP_SENDER_NAME,
+                "email": config.SMTP_SENDER_EMAIL
+            },
+            "to": [{"email": recipient_email}],
+            "subject": "SMART ATTENDANCE SYSTEM - BREVO HTTP TEST",
+            "htmlContent": html_content
+        }
+        try:
+            response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=10)
+            if response.status_code in [200, 201, 202]:
+                return {"status": "success", "message": f"Brevo HTTP API verified and email successfully sent to {recipient_email}"}
+            else:
+                raise Exception(f"Brevo HTTP API Error Code {response.status_code}: {response.text}")
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Brevo HTTP API Failed: {str(e)}"
+            )
+
+    # SMTP Path
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "SMART ATTENDANCE SYSTEM - SMTP TEST"

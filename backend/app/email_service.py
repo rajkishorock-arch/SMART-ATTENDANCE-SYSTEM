@@ -2,6 +2,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from app.core import config
+import requests
+import json
+import os
 
 def send_presence_email(student_email: str, student_name: str, roll_no: str, time_str: str, date_str: str):
     """
@@ -294,9 +297,38 @@ def send_absent_email(student_email: str, student_name: str, date_str: str):
 
 def _execute_send_email(to_email: str, subject: str, html_body: str):
     """
-    Internal helper to construct and send the email over SMTP using standard library.
+    Internal helper to construct and send the email over SMTP or Brevo HTTP API.
     Catches errors gracefully to prevent crashing core execution flow.
     """
+    brevo_key = os.getenv("BREVO_API_KEY")
+    if brevo_key:
+        print(f"Brevo HTTP API: Transmitting email to {to_email}...")
+        url = "https://api.brevo.com/v3/smtp/email"
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": brevo_key
+        }
+        payload = {
+            "sender": {
+                "name": config.SMTP_SENDER_NAME,
+                "email": config.SMTP_SENDER_EMAIL
+            },
+            "to": [{"email": to_email}],
+            "subject": subject,
+            "htmlContent": html_body
+        }
+        try:
+            response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=10)
+            if response.status_code in [200, 201, 202]:
+                print(f"Brevo HTTP API: Email sent successfully to {to_email}!")
+                return
+            else:
+                print(f"Brevo HTTP API Error: {response.text}. Attempting SMTP fallback...")
+        except Exception as e:
+            print(f"Brevo HTTP API Exception: {str(e)}. Attempting SMTP fallback...")
+
+    # Standard SMTP Fallback
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -329,16 +361,61 @@ def _execute_send_email(to_email: str, subject: str, html_body: str):
 
 def send_pdf_report_email(recipient_email: str, subject: str, body_html: str, pdf_file_path: str):
     """
-    Sends an email with a PDF report file attached.
+    Sends an email with a PDF report file attached over Brevo API or SMTP fallback.
     """
-    from email.mime.application import MIMEApplication
-    import os
+    import base64
     
     if not recipient_email:
         print("PDF report email skipped: No recipient email address provided.")
         return
         
+    brevo_key = os.getenv("BREVO_API_KEY")
+    if brevo_key:
+        print(f"Brevo HTTP API (PDF): Transmitting report to {recipient_email}...")
+        url = "https://api.brevo.com/v3/smtp/email"
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": brevo_key
+        }
+        
+        attachments = []
+        if pdf_file_path and os.path.exists(pdf_file_path):
+            try:
+                with open(pdf_file_path, "rb") as f:
+                    encoded_content = base64.b64encode(f.read()).decode("utf-8")
+                    attachments.append({
+                        "name": os.path.basename(pdf_file_path),
+                        "content": encoded_content
+                    })
+            except Exception as read_err:
+                print(f"Brevo (PDF) Warning: Could not read attachment. Details: {str(read_err)}")
+                
+        payload = {
+            "sender": {
+                "name": config.SMTP_SENDER_NAME,
+                "email": config.SMTP_SENDER_EMAIL
+            },
+            "to": [{"email": recipient_email}],
+            "subject": subject,
+            "htmlContent": body_html
+        }
+        if attachments:
+            payload["attachments"] = attachments
+            
+        try:
+            response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=15)
+            if response.status_code in [200, 201, 202]:
+                print(f"Brevo (PDF): Report successfully sent to {recipient_email}!")
+                return
+            else:
+                print(f"Brevo HTTP API (PDF) Error: {response.text}. Attempting SMTP fallback...")
+        except Exception as e:
+            print(f"Brevo HTTP API (PDF) Exception: {str(e)}. Attempting SMTP fallback...")
+
+    # Standard SMTP Fallback
     try:
+        from email.mime.application import MIMEApplication
         msg = MIMEMultipart()
         msg["Subject"] = subject
         msg["From"] = f'"{config.SMTP_SENDER_NAME}" <{config.SMTP_SENDER_EMAIL}>'
