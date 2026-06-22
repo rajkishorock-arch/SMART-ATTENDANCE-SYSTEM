@@ -386,9 +386,11 @@ export default function App() {
   // App Navigation & Modal State
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubSetting, setActiveSubSetting] = useState(null);
+  const [activeDashboardSubTab, setActiveDashboardSubTab] = useState(null);
 
   useEffect(() => {
     setActiveSubSetting(null);
+    setActiveDashboardSubTab(null);
   }, [activeTab]);
   
   // Feedback Form States
@@ -6511,7 +6513,125 @@ export default function App() {
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
           <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
-            <LiveActivityTicker activities={liveActivities} />
+            {activeDashboardSubTab !== null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <button 
+                  onClick={() => { setActiveDashboardSubTab(null); playCyberSound('click'); }}
+                  className="btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}
+                >
+                  <ArrowLeft size={16} /> Back to Dashboard Hub
+                </button>
+                <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Dashboard Hub &gt; {activeDashboardSubTab}
+                </span>
+              </div>
+            )}
+
+            {activeDashboardSubTab === null ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>📊 Admin Analytics Dashboard</h2>
+                  <p style={{ color: '#9ca3af', fontSize: '0.9rem', margin: 0 }}>
+                    Select a monitoring directory below to visualize system logs, check biometric statuses, view user sessions, or run core diagnostics.
+                  </p>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gap: '20px'
+                }}>
+                  {/* Category Card 1: Attendance Summary Metrics */}
+                  <div 
+                    onClick={() => { setActiveDashboardSubTab('metrics'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Activity size={24} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Roles</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Attendance Metrics Summary</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Live presence statistics, active student counts, and recent activity ticker feed.</p>
+                  </div>
+
+                  {/* Category Card 2: Attendance Trends & Analytics */}
+                  <div 
+                    onClick={() => { setActiveDashboardSubTab('trends'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Layers size={24} style={{ color: '#a78bfa' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>📊 Analytics</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Trends & Analytics Charts</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Weekly attendance trends line area graphs and department presence distribution chart.</p>
+                  </div>
+
+                  {/* Category Card 3: Biometric Security Radar */}
+                  <div 
+                    onClick={() => { setActiveDashboardSubTab('radar'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🛡️ Security</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Biometric Security Radar</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Realtime perimeter scanning sweeps and biometric core neural mesh visualization map.</p>
+                  </div>
+
+                  {/* Category Card 4: System Health & Core Diagnostics */}
+                  <div 
+                    onClick={() => { setActiveDashboardSubTab('diagnostics'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Settings size={24} style={{ color: 'var(--color-primary)' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>💻 Core Systems</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>System Health & Diagnostics</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>CPU/RAM specs, SQLite/MySQL DB connectivity, API response latency, and AI detection models integrity.</p>
+                  </div>
+
+                  {/* Category Card 5: User Feedback Submissions */}
+                  <div 
+                    onClick={() => { setActiveDashboardSubTab('feedback'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <MessageSquare size={24} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>💬 Feedback</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>User Feedback Directory</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Review rating scores, bugs reported, suggestions, and general reviews submitted by students & teachers.</p>
+                  </div>
+
+                  {/* Category Card 6: Live Session Telemetry */}
+                  <div 
+                    onClick={() => { setActiveDashboardSubTab('telemetry'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <TrendingUp size={24} style={{ color: '#a78bfa' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>📡 Telemetry</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Live Telemetry Monitor</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Live active connections registry showing student, teacher, and administrator active session metrics.</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {/* Module 1: Attendance Summary Metrics */}
+                {activeDashboardSubTab === 'metrics' && (
+                  <>
+                    <LiveActivityTicker activities={liveActivities} />
 
             {/* Metric Summary Cards */}
             <div className="dashboard-grid">
@@ -6567,8 +6687,10 @@ export default function App() {
                 </div>
               </div>
             </div>
+          </>)}
 
-            {/* Graphs Grid */}
+          {/* Module 2: Attendance Trends & Analytics */}
+          {activeDashboardSubTab === 'trends' && (
             <div className="dashboard-charts-grid">
               {/* Weekly Trend Line Area Chart */}
               <div className="glass-panel" style={{ padding: '20px', animationDelay: '500ms' }}>
@@ -6636,9 +6758,14 @@ export default function App() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
 
+          {/* Module 3: Biometric Security Radar */}
+          {activeDashboardSubTab === 'radar' && (
+            <div className="dashboard-charts-grid">
               {/* Sonar Radar Stats Card */}
-              <div className="glass-panel" style={{ padding: '28px', animationDelay: '700ms', display: 'flex', flexDirection: 'column' }}>
+              <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <TrendingUp size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} /> Perimeter Biometric Radar
                 </h3>
@@ -6708,9 +6835,12 @@ export default function App() {
                   <canvas ref={neuralMeshCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* System Health & Diagnostics Monitor Widget */}
-              <div className="glass-panel" style={{ 
+          {/* Module 4: System Health & Core Diagnostics */}
+          {activeDashboardSubTab === 'diagnostics' && (
+            <div className="glass-panel" style={{ 
                 padding: '28px', 
                 animationDelay: '900ms', 
                 display: 'flex', 
@@ -6891,10 +7021,10 @@ export default function App() {
                   </button>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Feedbacks Section (Admins Only) */}
-            {userRole === 'admin' && (
+            {/* Module 5: User Feedback Submissions */}
+            {activeDashboardSubTab === 'feedback' && userRole === 'admin' && (
               <div className="glass-panel" style={{ 
                 marginTop: '28px', 
                 padding: '28px', 
@@ -6996,7 +7126,8 @@ export default function App() {
               </div>
             )}
 
-            {userRole === 'admin' && activeTelemetry && (
+            {/* Module 6: Live Telemetry */}
+            {activeDashboardSubTab === 'telemetry' && userRole === 'admin' && activeTelemetry && (
               <div className="glass-panel telemetry-widget-card" style={{ 
                 padding: '20px', 
                 marginTop: '28px', 
@@ -7033,7 +7164,8 @@ export default function App() {
                 </div>
               </div>
             )}
-
+              </div>
+            )}
           </div>
         )}
 
