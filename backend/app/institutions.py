@@ -177,6 +177,57 @@ def delete_institution(
     db.commit()
     return {"message": "Institution deleted successfully."}
 
+@router.put("/master-key", status_code=status.HTTP_200_OK)
+def update_college_master_key(
+    payload: schemas.InstitutionMasterKeyUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can change the college master key."
+        )
+        
+    inst_id = current_user.institution_id
+    if inst_id == 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The Default Institution master key is system-wide and cannot be modified here."
+        )
+        
+    inst = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
+    if not inst:
+        raise HTTPException(status_code=404, detail="Institution not found")
+        
+    current_key_input = payload.current_master_key.strip()
+    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+    
+    is_valid = False
+    if current_key_input == global_key:
+        is_valid = True
+    elif inst.master_key and current_key_input == inst.master_key:
+        is_valid = True
+        
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Incorrect current master password! Verification failed."
+        )
+        
+    new_key = payload.new_master_key.strip()
+    if len(new_key) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New master key must be at least 6 characters long."
+        )
+        
+    inst.master_key = new_key
+    db.commit()
+    
+    return {"message": "Master key updated successfully."}
+
 @router.put("/{id}", response_model=schemas.InstitutionBrandingResponse)
 def update_institution(
     id: int,
@@ -257,55 +308,4 @@ def update_institution(
     db.commit()
     db.refresh(inst)
     return inst
-
-@router.put("/master-key", status_code=status.HTTP_200_OK)
-def update_college_master_key(
-    payload: schemas.InstitutionMasterKeyUpdate,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
-):
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can change the college master key."
-        )
-        
-    inst_id = current_user.institution_id
-    if inst_id == 1:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The Default Institution master key is system-wide and cannot be modified here."
-        )
-        
-    inst = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
-    if not inst:
-        raise HTTPException(status_code=404, detail="Institution not found")
-        
-    current_key_input = payload.current_master_key.strip()
-    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    
-    is_valid = False
-    if current_key_input == global_key:
-        is_valid = True
-    elif inst.master_key and current_key_input == inst.master_key:
-        is_valid = True
-        
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Incorrect current master password! Verification failed."
-        )
-        
-    new_key = payload.new_master_key.strip()
-    if len(new_key) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New master key must be at least 6 characters long."
-        )
-        
-    inst.master_key = new_key
-    db.commit()
-    
-    return {"message": "Master key updated successfully."}
 
