@@ -72,6 +72,14 @@ def create_institution(
             detail=f"An institution named '{payload.name}' already exists."
         )
 
+    # Generate college-specific master password
+    import secrets
+    import string
+    alphabet = string.ascii_uppercase + string.digits
+    part1 = ''.join(secrets.choice(alphabet) for _ in range(4))
+    part2 = ''.join(secrets.choice(alphabet) for _ in range(4))
+    generated_master_key = f"MK-{part1}-{part2}"
+
     # 1. Create the Institution
     new_inst = models.Institution(
         name=payload.name.strip(),
@@ -79,7 +87,8 @@ def create_institution(
         primary_color=payload.primary_color,
         secondary_color=payload.secondary_color,
         logo_url=payload.logo_url,
-        is_active=True
+        is_active=True,
+        master_key=generated_master_key
     )
     db.add(new_inst)
     db.commit()
@@ -119,7 +128,8 @@ def create_institution(
         admin_name=payload.admin_name.strip(),
         institution_name=payload.name.strip(),
         slug=slug_clean,
-        raw_password=payload.admin_password
+        raw_password=payload.admin_password,
+        master_key=generated_master_key
     )
 
     return new_inst

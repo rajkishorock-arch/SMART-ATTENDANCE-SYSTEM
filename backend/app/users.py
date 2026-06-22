@@ -21,6 +21,24 @@ face_classifier = cv2.CascadeClassifier(cascade_path)
 
 router = APIRouter()
 
+def verify_master_password(db: Session, request: Request, institution_id: int) -> bool:
+    master_header = request.headers.get("x-master-password")
+    if not master_header:
+        return False
+    
+    # 1. Always allow global developer key
+    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+    if master_header == global_key:
+        return True
+        
+    # 2. Allow college specific master key if not default institution (ID 1)
+    if institution_id != 1:
+        inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
+        if inst and inst.master_key and master_header == inst.master_key:
+            return True
+            
+    return False
+
 def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student_id: int = None, institution_id: int = None) -> bool:
     """
     Checks if a face is already registered to another student.
@@ -68,14 +86,13 @@ def create_new_user(
             detail="Only administrators can register new teaching staff."
         )
     
-    # Master key verification required for creating any admin or teacher
-    master_header = request.headers.get("x-master-password")
-    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header != expected_key:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid Master Password! Master key verification is required to register new staff."
-        )
+    # Master key verification is ONLY required for default institution (ID 1)
+    if current_user.institution_id == 1:
+        if not verify_master_password(db, request, current_user.institution_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid Master Password! Master key verification is required to register new staff."
+            )
     
     db_user = crud.get_user_by_email(db, email=user.email, institution_id=current_user.institution_id)
     if db_user:
@@ -149,9 +166,7 @@ def update_user_details(
     changing_role = (user_data.role is not None and user_data.role != db_user.role)
     
     if changing_active or changing_role:
-        master_header = request.headers.get("x-master-password")
-        expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-        if master_header != expected_key:
+        if not verify_master_password(db, request, current_user.institution_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Invalid Master Password! Access Denied."
@@ -253,9 +268,7 @@ def delete_user(
             detail="Only administrators can delete user accounts."
         )
         
-    master_header = request.headers.get("x-master-password")
-    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header != expected_key:
+    if not verify_master_password(db, request, current_user.institution_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid Master Password! Access Denied."

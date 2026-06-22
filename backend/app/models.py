@@ -25,6 +25,9 @@ class Institution(Base):
     logo_url = Column(String(255), nullable=True)
     primary_color = Column(String(50), nullable=True)
     secondary_color = Column(String(50), nullable=True)
+    
+    # Institution specific master key
+    master_key = Column(String(100), nullable=True)
 
 class User(Base):
     __tablename__ = "users"

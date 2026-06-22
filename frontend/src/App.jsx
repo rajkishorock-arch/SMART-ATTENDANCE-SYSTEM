@@ -5401,12 +5401,15 @@ export default function App() {
       return;
     }
 
-    // Master key verification required for registering any new staff
-    const roleName = newTeacher.role === 'admin' ? 'Admin' : 'Teacher';
-    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to register new ${roleName} "${newTeacher.name}":`);
-    if (!masterPass) {
-      setTeacherError('Registration cancelled. Master key is required to register new staff.');
-      return;
+    // Master key verification required for registering any new staff (ONLY in default workspace)
+    let masterPass = '';
+    if (currentUser?.institution_id === 1) {
+      const roleName = newTeacher.role === 'admin' ? 'Admin' : 'Teacher';
+      masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to register new ${roleName} "${newTeacher.name}":`);
+      if (!masterPass) {
+        setTeacherError('Registration cancelled. Master key is required to register new staff.');
+        return;
+      }
     }
 
     try {
@@ -11320,10 +11323,13 @@ export default function App() {
                       setCreateAdminErr('Name, Email, and Password are all required!');
                       return;
                     }
-                    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to register new Admin "${newAdminName}":`);
-                    if (!masterPass) {
-                      setCreateAdminErr('Registration cancelled. Master key is required.');
-                      return;
+                    let masterPass = '';
+                    if (currentUser?.institution_id === 1) {
+                      masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to register new Admin "${newAdminName}":`);
+                      if (!masterPass) {
+                        setCreateAdminErr('Registration cancelled. Master key is required.');
+                        return;
+                      }
                     }
                     setIsCreatingAdmin(true);
                     if (isDemoMode) {

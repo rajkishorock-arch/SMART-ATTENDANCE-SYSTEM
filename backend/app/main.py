@@ -99,6 +99,10 @@ def update_schema():
                 print("Adding secondary_color column to institutions table...")
                 db.execute(text("ALTER TABLE institutions ADD COLUMN secondary_color VARCHAR(50) NULL"))
                 db.commit()
+            if 'master_key' not in inst_columns:
+                print("Adding master_key column to institutions table...")
+                db.execute(text("ALTER TABLE institutions ADD COLUMN master_key VARCHAR(100) NULL"))
+                db.commit()
 
         # Update unique index constraints on users table for multi-tenancy
         # Drop old single-column unique constraints/indexes on email

@@ -453,7 +453,7 @@ def send_pdf_report_email(recipient_email: str, subject: str, body_html: str, pd
         print(f"SMTP (PDF) Error: Failed to send report email to {recipient_email}. Details: {str(e)}")
 
 
-def send_welcome_email(admin_email: str, admin_name: str, institution_name: str, slug: str, raw_password: str):
+def send_welcome_email(admin_email: str, admin_name: str, institution_name: str, slug: str, raw_password: str, master_key: str):
     """
     Sends an onboarding welcome email to the newly registered institution admin.
     """
@@ -585,6 +585,10 @@ def send_welcome_email(admin_email: str, admin_name: str, institution_name: str,
                     <div class="details-row">
                         <span class="label">Admin Password</span>
                         <span class="value"><code>{raw_password}</code></span>
+                    </div>
+                    <div class="details-row">
+                        <span class="label">Workspace Master Password</span>
+                        <span class="value"><code>{master_key}</code></span>
                     </div>
                 </div>
                 
