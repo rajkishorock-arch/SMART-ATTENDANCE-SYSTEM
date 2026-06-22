@@ -142,8 +142,8 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
       `LIVENESS: ${blinkCount > 0 ? `Blinks (${blinkCount}/${BLINKS_NEEDED})` : 'PENDING'}`
     ];
 
-    const PH = 14, PAD = 8;
-    const PW = 175;
+    const PH = 17, PAD = 8;
+    const PW = 190;
     const PTOTAL = panelLines.length * PH + PAD * 2;
 
     // prefer right side; fall back to above the box
@@ -170,22 +170,22 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
       ctx.translate(-cw, 0);
       // now we're back to normal screen space — mirror the x for text
       const textX = cw - px - PW;
-      ctx.font = '11px "Courier New", monospace';
+      ctx.font = '13px "Courier New", monospace';
       panelLines.forEach((line, i) => {
         const lineColor = i === panelLines.length - 1
           ? (verified ? '#00ff88' : '#ffcc00')
           : '#ffffff';
         ctx.fillStyle = lineColor;
-        ctx.fillText(line, textX + 8, py + PAD + 11 + i * PH);
+        ctx.fillText(line, textX + 8, py + PAD + 14 + i * PH);
       });
     } else {
-      ctx.font = '11px "Courier New", monospace';
+      ctx.font = '13px "Courier New", monospace';
       panelLines.forEach((line, i) => {
         const lineColor = i === panelLines.length - 1
           ? (verified ? '#00ff88' : '#ffcc00')
           : '#ffffff';
         ctx.fillStyle = lineColor;
-        ctx.fillText(line, px + 8, py + PAD + 11 + i * PH);
+        ctx.fillText(line, px + 8, py + PAD + 14 + i * PH);
       });
     }
     ctx.restore();
@@ -196,12 +196,12 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
   if (isMirrored) {
     ctx.scale(-1, 1);
     ctx.translate(-cw, 0);
-    ctx.font = 'bold 10px "Courier New", monospace';
+    ctx.font = 'bold 11px "Courier New", monospace';
     ctx.fillStyle = '#00f2fe';
     ctx.globalAlpha = 0.75;
     ctx.fillText(`● BIOMETRIC SCAN ACTIVE`, 20, ch - 12);
   } else {
-    ctx.font = 'bold 10px "Courier New", monospace';
+    ctx.font = 'bold 11px "Courier New", monospace';
     ctx.fillStyle = '#00f2fe';
     ctx.globalAlpha = 0.75;
     ctx.fillText(`● BIOMETRIC SCAN ACTIVE`, 20, ch - 12);
@@ -277,23 +277,25 @@ export default function FaceScanner({
       setBootStep('CALIBRATING BIOMETRIC SENSORS...');
       let stream;
 
-      // Check if the requested facing mode camera actually exists on this device
+      // Check if the requested facing mode camera actually exists on this device.
+      // Strategy: try getUserMedia first. If it fails with OverconstrainedError /
+      // NotFoundError / NotReadableError (all mean "no such camera"), show a
+      // friendly message instead of crashing. We do NOT rely on enumerateDevices()
+      // labels because browsers hide them until permission is granted.
       if (mode === 'environment') {
-        let devices = [];
         try {
-          devices = await navigator.mediaDevices.enumerateDevices();
-        } catch {}
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        // On most laptops there is only one front-facing camera.
-        // If only one video device exists, back camera is not available.
-        const hasBackCam = videoDevices.length > 1 ||
-          videoDevices.some(d => /back|rear|environment/i.test(d.label));
-        if (!hasBackCam) {
+          const testStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: 'environment' } }
+          });
+          // if we got here, back cam exists — stop this test stream immediately
+          testStream.getTracks().forEach(t => t.stop());
+        } catch (testErr) {
+          // Any error here means no usable back camera
           setBooting(false);
-          setFacingMode('user'); // revert to front
+          setFacingMode('user');
+          facingModeRef.current = 'user';
           setBackCamUnavailable(true);
-          // Auto-hide the message after 4 seconds
-          setTimeout(() => setBackCamUnavailable(false), 4000);
+          setTimeout(() => setBackCamUnavailable(false), 5000);
           addDiagnosticLog?.('INFO: Back camera not available on this device.');
           return;
         }
@@ -308,19 +310,7 @@ export default function FaceScanner({
           stream = await navigator.mediaDevices.getUserMedia({
             video: { width:640, height:480, facingMode: mode }
           });
-        } catch (innerErr) {
-          // If back camera fails with OverconstrainedError / NotFoundError, treat as unavailable
-          if (mode === 'environment' &&
-              (innerErr?.name === 'OverconstrainedError' ||
-               innerErr?.name === 'NotFoundError' ||
-               innerErr?.name === 'NotReadableError')) {
-            setBooting(false);
-            setFacingMode('user');
-            setBackCamUnavailable(true);
-            setTimeout(() => setBackCamUnavailable(false), 4000);
-            addDiagnosticLog?.('INFO: Back camera not available on this device.');
-            return;
-          }
+        } catch {
           stream = await navigator.mediaDevices.getUserMedia({ video: true });
         }
       }
@@ -559,18 +549,27 @@ export default function FaceScanner({
 
     let fmActive = true;
     const runFM = async () => {
-      if (!fmActive || !camReady) return;
+      // CRITICAL: check fmActive BEFORE the await to avoid calling send()
+      // on a closed Mediapipe instance (causes BindingError crash)
+      if (!fmActive) return;
       const v = videoRef.current;
       if (v && v.readyState >= 2 && v.videoWidth > 0) {
-        try { await fm.send({ image: v }); } catch {}
+        try {
+          if (fmActive) await fm.send({ image: v }); // double-check after microtask
+        } catch (e) {
+          // Swallow BindingError from Mediapipe when instance is closed mid-frame
+          if (!fmActive) return; // expected — we are shutting down
+          console.warn('[FaceScanner] FaceMesh send error:', e?.message);
+        }
       }
-      requestAnimationFrame(runFM);
+      if (fmActive) requestAnimationFrame(runFM);
     };
     requestAnimationFrame(runFM);
 
     return () => {
-      fmActive = false;
-      fm.close();
+      fmActive = false; // stop loop FIRST
+      faceMeshRef.current = null;
+      try { fm.close(); } catch {} // close after loop is flagged stopped
     };
   }, [camReady]);
 
