@@ -2103,12 +2103,23 @@ export default function App() {
         setNewInstAdminPassword('');
         setTimeout(() => setInstSuccessMessage(''), 4000);
       } else {
-        const errData = await res.json();
-        setInstErrorMessage(errData.detail || 'Failed to create institution.');
+        let errMsg = 'Failed to create institution.';
+        try {
+          const errData = await res.json();
+          errMsg = errData.detail || errMsg;
+        } catch (jsonErr) {
+          try {
+            const textData = await res.text();
+            errMsg = textData || errMsg;
+          } catch (textErr) {
+            errMsg = `Error ${res.status}: ${res.statusText}`;
+          }
+        }
+        setInstErrorMessage(errMsg);
       }
     } catch (err) {
       console.error('Error creating institution:', err);
-      setInstErrorMessage('Failed to connect to backend server.');
+      setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
     } finally {
       setIsAddingInstitution(false);
     }
@@ -2141,12 +2152,23 @@ export default function App() {
         fetchInstitutionsList();
         setTimeout(() => setInstSuccessMessage(''), 4000);
       } else {
-        const errData = await res.json();
-        setInstErrorMessage(errData.detail || 'Failed to delete institution.');
+        let errMsg = 'Failed to delete institution.';
+        try {
+          const errData = await res.json();
+          errMsg = errData.detail || errMsg;
+        } catch (jsonErr) {
+          try {
+            const textData = await res.text();
+            errMsg = textData || errMsg;
+          } catch (textErr) {
+            errMsg = `Error ${res.status}: ${res.statusText}`;
+          }
+        }
+        setInstErrorMessage(errMsg);
       }
     } catch (err) {
       console.error('Error deleting institution:', err);
-      setInstErrorMessage('Failed to connect to backend server.');
+      setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
     }
   };
 
