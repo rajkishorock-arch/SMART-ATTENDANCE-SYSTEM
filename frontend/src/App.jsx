@@ -9892,6 +9892,7 @@ export default function App() {
                       </p>
                     </div>
                     <button
+                      disabled={currentUser?.institution_id !== 1}
                       onClick={() => {
                         const newLock = !lockdownActive;
                         setLockdownActive(newLock);
@@ -9909,7 +9910,8 @@ export default function App() {
                         borderRadius: '8px',
                         fontSize: '0.85rem',
                         fontWeight: 600,
-                        cursor: 'pointer',
+                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
                         boxShadow: lockdownActive ? '0 0 15px rgba(16, 185, 129, 0.3)' : '0 0 15px rgba(239, 68, 68, 0.3)',
                         transition: 'all 0.3s ease'
                       }}
@@ -9917,6 +9919,11 @@ export default function App() {
                       {lockdownActive ? 'Reset Relays' : 'ENGAGE LOCKDOWN'}
                     </button>
                   </div>
+                  {currentUser?.institution_id !== 1 && (
+                    <div style={{ fontSize: '0.75rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '10px' }}>
+                      <span>🔒 Control restricted to Default System Owner.</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -9948,6 +9955,11 @@ export default function App() {
                 <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
                   Choose a sci-fi system interface theme and customize acoustic synth feedback volumes.
                 </p>
+                {currentUser?.institution_id !== 1 && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>🔒 Controls restricted to Default System Owner.</span>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -9955,6 +9967,7 @@ export default function App() {
                 <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
                   <label className="form-label" style={{ fontWeight: 600 }}>Active Theme</label>
                   <select 
+                    disabled={currentUser?.institution_id !== 1}
                     value={activeTheme} 
                     onChange={(e) => {
                       const newTheme = e.target.value;
@@ -9962,7 +9975,14 @@ export default function App() {
                       playCyberSound('click');
                     }}
                     className="form-input"
-                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--color-text-main)' }}
+                    style={{ 
+                      width: '100%', 
+                      background: 'var(--bg-secondary)', 
+                      border: '1px solid var(--border-color)', 
+                      color: 'var(--color-text-main)',
+                      opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
+                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
+                    }}
                   >
                     <option value="cyberpunk">Cyberpunk Neon (Default)</option>
                     <option value="matrix">Matrix Green</option>
@@ -9981,6 +10001,7 @@ export default function App() {
                     </div>
                     <div 
                       onClick={() => {
+                        if (currentUser?.institution_id !== 1) return;
                         setCrtOverlayEnabled(!crtOverlayEnabled);
                         playCyberSound('click');
                       }} 
@@ -9991,7 +10012,8 @@ export default function App() {
                         border: `1px solid ${crtOverlayEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
                         borderRadius: '50px',
                         padding: '2px',
-                        cursor: 'pointer',
+                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
                         display: 'flex',
                         alignItems: 'center',
                         transition: 'var(--transition)',
@@ -10020,6 +10042,7 @@ export default function App() {
                     </div>
                     <div 
                       onClick={() => {
+                        if (currentUser?.institution_id !== 1) return;
                         const newSound = !soundEnabled;
                         setSoundEnabled(newSound);
                         localStorage.setItem('soundEnabled', newSound);
@@ -10034,7 +10057,8 @@ export default function App() {
                         border: `1px solid ${soundEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
                         borderRadius: '50px',
                         padding: '2px',
-                        cursor: 'pointer',
+                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
                         display: 'flex',
                         alignItems: 'center',
                         transition: 'var(--transition)',
@@ -10065,25 +10089,25 @@ export default function App() {
                       max="1.0"
                       step="0.05"
                       value={audioVolume}
-                      disabled={!soundEnabled}
+                      disabled={!soundEnabled || currentUser?.institution_id !== 1}
                       onChange={(e) => {
                         const vol = parseFloat(e.target.value);
                         setAudioVolume(vol);
                         localStorage.setItem('audioVolume', vol);
                       }}
                       onMouseUp={() => {
-                        if (soundEnabled) playCyberSound('click');
+                        if (soundEnabled && currentUser?.institution_id === 1) playCyberSound('click');
                       }}
                       onTouchEnd={() => {
-                        if (soundEnabled) playCyberSound('click');
+                        if (soundEnabled && currentUser?.institution_id === 1) playCyberSound('click');
                       }}
                       style={{ 
                         width: '100%', 
                         accentColor: 'var(--color-primary)', 
                         height: '4px', 
                         borderRadius: '2px', 
-                        cursor: soundEnabled ? 'pointer' : 'not-allowed',
-                        opacity: soundEnabled ? 1 : 0.5
+                        cursor: (soundEnabled && currentUser?.institution_id === 1) ? 'pointer' : 'not-allowed',
+                        opacity: (soundEnabled && currentUser?.institution_id === 1) ? 1 : 0.5
                       }}
                     />
                   </div>
@@ -10095,17 +10119,30 @@ export default function App() {
                 <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Volume2 size={18} style={{ color: 'var(--color-primary)' }} /> Synth Equalizer & Acoustic Customizer
                 </h4>
+                {currentUser?.institution_id !== 1 && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>🔒 Controls restricted to Default System Owner.</span>
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
                   <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
                     <label className="form-label" style={{ fontWeight: 600 }}>Oscillator Modulator</label>
                     <select 
+                      disabled={currentUser?.institution_id !== 1}
                       value={synthModulator} 
                       onChange={(e) => {
                         setSynthModulator(e.target.value);
                         setTimeout(() => playCyberSound('click'), 50);
                       }}
                       className="form-input"
-                      style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--color-text-main)' }}
+                      style={{ 
+                        width: '100%', 
+                        background: 'var(--bg-secondary)', 
+                        border: '1px solid var(--border-color)', 
+                        color: 'var(--color-text-main)',
+                        opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
+                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
+                      }}
                     >
                       <option value="classic">Classic (Default Mix)</option>
                       <option value="sine">Sine (Soft Pure Tone)</option>
@@ -10126,16 +10163,22 @@ export default function App() {
                       max="1.5"
                       step="0.05"
                       value={synthPitchScale}
+                      disabled={currentUser?.institution_id !== 1}
                       onChange={(e) => {
                         setSynthPitchScale(parseFloat(e.target.value));
                       }}
                       onMouseUp={() => {
-                        playCyberSound('click');
+                        if (currentUser?.institution_id === 1) playCyberSound('click');
                       }}
                       onTouchEnd={() => {
-                        playCyberSound('click');
+                        if (currentUser?.institution_id === 1) playCyberSound('click');
                       }}
-                      style={{ width: '100%', accentColor: 'var(--color-primary)' }}
+                      style={{ 
+                        width: '100%', 
+                        accentColor: 'var(--color-primary)',
+                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1
+                      }}
                     />
                     <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                       Scales the frequency pitch register of system sounds.
@@ -10149,6 +10192,7 @@ export default function App() {
                         <input 
                           type="checkbox" 
                           checked={ambientHumActive} 
+                          disabled={currentUser?.institution_id !== 1}
                           onChange={e => {
                             setAmbientHumActive(e.target.checked);
                             playCyberSound('click');
@@ -10157,9 +10201,10 @@ export default function App() {
                         />
                         <span style={{
                           position: 'absolute',
-                          cursor: 'pointer',
+                          cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
                           top: 0, left: 0, right: 0, bottom: 0,
                           backgroundColor: ambientHumActive ? 'var(--color-primary)' : '#334155',
+                          opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
                           transition: '.3s',
                           borderRadius: '22px'
                         }}>
@@ -10185,10 +10230,16 @@ export default function App() {
                           max="0.4"
                           step="0.02"
                           value={ambientHumVolume}
+                          disabled={currentUser?.institution_id !== 1}
                           onChange={(e) => {
                             setAmbientHumVolume(parseFloat(e.target.value));
                           }}
-                          style={{ width: '100%', accentColor: 'var(--color-primary)' }}
+                          style={{ 
+                            width: '100%', 
+                            accentColor: 'var(--color-primary)',
+                            cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                            opacity: currentUser?.institution_id !== 1 ? 0.5 : 1
+                          }}
                         />
                       </div>
                     )}
@@ -10209,21 +10260,26 @@ export default function App() {
                 <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
                   Fine-tune biometric confidence filters, anti-spoofing liveness sensors, AI cognitive profiles, and diagnostics.
                 </p>
+                {currentUser?.institution_id !== 1 && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>🔒 Controls restricted to Default System Owner.</span>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                 {/* Biometric Slider */}
                 <div style={{ 
-                  background: 'rgba(255,255,255,0.01)', 
-                  border: '1px solid rgba(255,255,255,0.03)', 
-                  borderRadius: '12px', 
-                  padding: '20px', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '12px', 
-                  textAlign: 'left',
-                  opacity: biometricConfidenceFilterEnabled ? 1 : 0.7,
-                  transition: 'opacity 0.3s ease'
+                   background: 'rgba(255,255,255,0.01)', 
+                   border: '1px solid rgba(255,255,255,0.03)', 
+                   borderRadius: '12px', 
+                   padding: '20px', 
+                   display: 'flex', 
+                   flexDirection: 'column', 
+                   gap: '12px', 
+                   textAlign: 'left',
+                   opacity: biometricConfidenceFilterEnabled ? 1 : 0.7,
+                   transition: 'opacity 0.3s ease'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Biometric Match Confidence Filter</label>
@@ -10237,6 +10293,7 @@ export default function App() {
                       <input 
                         type="checkbox"
                         checked={biometricConfidenceFilterEnabled}
+                        disabled={currentUser?.institution_id !== 1}
                         onChange={(e) => {
                           setBiometricConfidenceFilterEnabled(e.target.checked);
                           playCyberSound('click');
@@ -10247,6 +10304,8 @@ export default function App() {
                         position: 'absolute',
                         top: 0, left: 0, right: 0, bottom: 0,
                         backgroundColor: biometricConfidenceFilterEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)',
+                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
                         transition: '.3s',
                         borderRadius: '20px',
                         boxShadow: biometricConfidenceFilterEnabled ? '0 0 10px var(--color-primary)' : 'none'
@@ -10277,13 +10336,22 @@ export default function App() {
                         max="0.99"
                         step="0.01"
                         value={biometricMatchThreshold}
-                        disabled={!biometricConfidenceFilterEnabled}
+                        disabled={!biometricConfidenceFilterEnabled || currentUser?.institution_id !== 1}
                         onChange={(e) => {
                           setBiometricMatchThreshold(parseFloat(e.target.value));
                         }}
-                        onMouseUp={() => playCyberSound('click')}
-                        onTouchEnd={() => playCyberSound('click')}
-                        style={{ width: '100%', accentColor: 'var(--color-primary)' }}
+                        onMouseUp={() => {
+                          if (currentUser?.institution_id === 1) playCyberSound('click');
+                        }}
+                        onTouchEnd={() => {
+                          if (currentUser?.institution_id === 1) playCyberSound('click');
+                        }}
+                        style={{ 
+                          width: '100%', 
+                          accentColor: 'var(--color-primary)',
+                          cursor: (biometricConfidenceFilterEnabled && currentUser?.institution_id === 1) ? 'pointer' : 'not-allowed',
+                          opacity: (biometricConfidenceFilterEnabled && currentUser?.institution_id === 1) ? 1 : 0.5
+                        }}
                       />
                       <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                         Rejects facial verification signatures scoring lower than this threshold.
@@ -10308,12 +10376,22 @@ export default function App() {
                     max="0.30"
                     step="0.01"
                     value={antiSpoofingThreshold}
+                    disabled={currentUser?.institution_id !== 1}
                     onChange={(e) => {
                       setAntiSpoofingThreshold(parseFloat(e.target.value));
                     }}
-                    onMouseUp={() => playCyberSound('click')}
-                    onTouchEnd={() => playCyberSound('click')}
-                    style={{ width: '100%', accentColor: '#10b981' }}
+                    onMouseUp={() => {
+                      if (currentUser?.institution_id === 1) playCyberSound('click');
+                    }}
+                    onTouchEnd={() => {
+                      if (currentUser?.institution_id === 1) playCyberSound('click');
+                    }}
+                    style={{ 
+                      width: '100%', 
+                      accentColor: '#10b981',
+                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                      opacity: currentUser?.institution_id !== 1 ? 0.5 : 1
+                    }}
                   />
                   <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                     Liveness validation sensitivity. Higher is stricter and harder to spoof.
@@ -10325,12 +10403,20 @@ export default function App() {
                   <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>AI Assistant Cognitive Level</label>
                   <select 
                     value={aiCognitiveLevel}
+                    disabled={currentUser?.institution_id !== 1}
                     onChange={(e) => {
                       setAiCognitiveLevel(e.target.value);
                       playCyberSound('click');
                     }}
                     className="form-input"
-                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--color-text-main)' }}
+                    style={{ 
+                      width: '100%', 
+                      background: 'var(--bg-secondary)', 
+                      border: '1px solid var(--border-color)', 
+                      color: 'var(--color-text-main)',
+                      opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
+                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
+                    }}
                   >
                     <option value="standard">Standard Copilot Mode</option>
                     <option value="hyper">Hyper-Processing Cognitive Mode (Extreme)</option>
@@ -10345,12 +10431,20 @@ export default function App() {
                   <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Diagnostics Logging Verbosity</label>
                   <select 
                     value={diagnosticLevel}
+                    disabled={currentUser?.institution_id !== 1}
                     onChange={(e) => {
                       setDiagnosticLevel(e.target.value);
                       playCyberSound('click');
                     }}
                     className="form-input"
-                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--color-text-main)' }}
+                    style={{ 
+                      width: '100%', 
+                      background: 'var(--bg-secondary)', 
+                      border: '1px solid var(--border-color)', 
+                      color: 'var(--color-text-main)',
+                      opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
+                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
+                    }}
                   >
                     <option value="NONE">NONE (Mute Console)</option>
                     <option value="INFO">INFO (Important events only)</option>
@@ -10359,6 +10453,7 @@ export default function App() {
                   </select>
                   
                   <button
+                    disabled={currentUser?.institution_id !== 1}
                     onClick={() => {
                       playCyberSound('success');
                       const logsData = {
@@ -10384,7 +10479,19 @@ export default function App() {
                       URL.revokeObjectURL(url);
                     }}
                     className="btn-secondary"
-                    style={{ width: '100%', height: '42px', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '4px' }}
+                    style={{ 
+                      width: '100%', 
+                      height: '42px', 
+                      borderRadius: '8px', 
+                      fontSize: '0.85rem', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px', 
+                      marginTop: '4px',
+                      opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer'
+                    }}
                   >
                     📥 Export Core Telemetry & Logs
                   </button>
@@ -10831,8 +10938,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* MULTI-TENANT INSTITUTION MANAGEMENT (Only visible on DEFAULT tenant) */}
-            {getActiveTenantSlug() === 'default' && (
+            {/* MULTI-TENANT INSTITUTION MANAGEMENT (Only visible on DEFAULT tenant to system owner) */}
+            {getActiveTenantSlug() === 'default' && currentUser?.institution_id === 1 && (
               <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                   <div>

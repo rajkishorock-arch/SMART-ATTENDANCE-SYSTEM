@@ -160,6 +160,7 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             "role": "student",
             "email": student.email,
             "name": student.name,
+            "institution_id": student.institution_id,
             "details": {
                 "id": student.id,
                 "roll": student.roll,
@@ -184,6 +185,7 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
         "role": user.role,
         "email": user.email,
         "name": user.name,
+        "institution_id": user.institution_id,
         "details": {
             "id": user.id,
             "role": user.role,
