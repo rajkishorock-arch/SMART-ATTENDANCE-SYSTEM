@@ -469,139 +469,67 @@ def send_welcome_email(admin_email: str, admin_name: str, institution_name: str,
     <html>
     <head>
         <meta charset="utf-8">
-        <style>
-            body {{
-                font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                background-color: #f4f6f9;
-                margin: 0;
-                padding: 0;
-                color: #2e384d;
-            }}
-            .container {{
-                max-width: 600px;
-                margin: 40px auto;
-                background-color: #ffffff;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-                overflow: hidden;
-            }}
-            .header {{
-                background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
-                padding: 35px 20px;
-                text-align: center;
-                color: #ffffff;
-            }}
-            .header h1 {{
-                margin: 0;
-                font-size: 26px;
-                font-weight: 600;
-                letter-spacing: 0.5px;
-            }}
-            .content {{
-                padding: 40px 30px;
-            }}
-            .greeting {{
-                font-size: 18px;
-                font-weight: 500;
-                margin-bottom: 15px;
-                color: #1e293b;
-            }}
-            .message {{
-                font-size: 15px;
-                line-height: 1.6;
-                color: #64748b;
-                margin-bottom: 30px;
-            }}
-            .details-card {{
-                background-color: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 20px;
-                margin-bottom: 30px;
-            }}
-            .details-row {{
-                display: flex;
-                justify-content: space-between;
-                padding: 10px 0;
-                border-bottom: 1px solid #f1f5f9;
-                font-size: 14px;
-            }}
-            .details-row:last-child {{
-                border-bottom: none;
-            }}
-            .label {{
-                font-weight: 600;
-                color: #475569;
-            }}
-            .value {{
-                color: #0f172a;
-            }}
-            .portal-link {{
-                display: inline-block;
-                background: #4f46e5;
-                color: #ffffff;
-                text-decoration: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 15px;
-                margin-top: 15px;
-            }}
-            .footer {{
-                background-color: #f8fafc;
-                padding: 20px;
-                text-align: center;
-                font-size: 12px;
-                color: #94a3b8;
-                border-top: 1px solid #e2e8f0;
-            }}
-        </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Smart Attendance System</title>
     </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>Welcome to SMART ATTENDANCE SYSTEM</h1>
+    <body style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 0; color: #2e384d; -webkit-font-smoothing: antialiased;">
+        <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); overflow: hidden; border: 1px solid #e2e8f0;">
+            
+            <!-- Header Block -->
+            <div style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); padding: 35px 20px; text-align: center; color: #ffffff;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Smart Attendance System</h1>
+                <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; font-weight: 500;">Onboarding Verification Portal</p>
             </div>
-            <div class="content">
-                <div class="greeting">Hello {admin_name},</div>
-                <div class="message">
-                    Your institution <strong>{institution_name}</strong> has been successfully registered on the SMART ATTENDANCE SYSTEM. 
+            
+            <!-- Content Block -->
+            <div style="padding: 40px 30px;">
+                <div style="font-size: 18px; font-weight: 700; margin-bottom: 15px; color: #1e293b;">Hello {admin_name},</div>
+                <div style="font-size: 15px; line-height: 1.6; color: #64748b; margin-bottom: 30px;">
+                    Your institution <strong>{institution_name}</strong> has been successfully registered on the <strong>Smart Attendance System</strong>. 
                     Below are your login credentials and details to access your dedicated workspace portal:
                 </div>
                 
-                <div class="details-card">
-                    <div class="details-row">
-                        <span class="label">Institution Name</span>
-                        <span class="value">{institution_name}</span>
-                    </div>
-                    <div class="details-row">
-                        <span class="label">Workspace Subdomain / Slug</span>
-                        <span class="value"><strong>{slug}</strong></span>
-                    </div>
-                    <div class="details-row">
-                        <span class="label">Admin Email</span>
-                        <span class="value">{admin_email}</span>
-                    </div>
-                    <div class="details-row">
-                        <span class="label">Admin Password</span>
-                        <span class="value"><code>{raw_password}</code></span>
-                    </div>
-                    <div class="details-row">
-                        <span class="label">Workspace Master Password</span>
-                        <span class="value"><code>{master_key}</code></span>
-                    </div>
-                </div>
+                <!-- Details Table -->
+                <table cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 30px; font-size: 14px; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #475569; width: 45%; font-family: sans-serif;">Institution Name</td>
+                        <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-weight: 700; font-family: sans-serif;">{institution_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #475569; font-family: sans-serif;">Workspace Domain / Slug</td>
+                        <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; color: #4f46e5; font-weight: 800; font-family: sans-serif;">{slug}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #475569; font-family: sans-serif;">Admin Email</td>
+                        <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-family: sans-serif;">{admin_email}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #475569; font-family: sans-serif;">Admin Password</td>
+                        <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-family: sans-serif;">
+                            <span style="font-family: Consolas, Monaco, monospace; font-size: 14px; background-color: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #1e293b;">{raw_password}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; font-weight: 600; color: #475569; font-family: sans-serif;">Workspace Master Password</td>
+                        <td style="padding: 14px 20px; color: #e11d48; font-family: sans-serif;">
+                            <span style="font-family: Consolas, Monaco, monospace; font-size: 14px; background-color: #ffe4e6; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #be123c;">{master_key}</span>
+                        </td>
+                    </tr>
+                </table>
                 
-                <div class="message">
-                    To log in, please visit the portal link below, select your workspace domain as <strong>{institution_name}</strong>, and enter your credentials.
-                    <div style="text-align: center;">
-                        <a href="https://smart-attendance-system-olive-ten.vercel.app" class="portal-link" style="color: #ffffff;">Go to Login Portal</a>
+                <!-- Action Link -->
+                <div style="font-size: 15px; line-height: 1.6; color: #64748b; margin-bottom: 20px;">
+                    To log in, please visit the portal link below, select your workspace domain as <strong>{institution_name}</strong>, and enter your admin credentials.
+                    <div style="text-align: center; margin-top: 25px;">
+                        <a href="https://smart-attendance-system-olive-ten.vercel.app" style="display: inline-block; background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1);">Go to Login Portal</a>
                     </div>
                 </div>
             </div>
-            <div class="footer">
-                This is an automated onboarding notification from {config.SMTP_SENDER_NAME}.<br>
-                Please do not reply directly to this email. Keep this password secure or change it immediately upon logging in.
+            
+            <!-- Footer Block -->
+            <div style="background-color: #f8fafc; padding: 25px 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; line-height: 1.5;">
+                This is an automated onboarding notification from <strong>{config.SMTP_SENDER_NAME}</strong>.<br>
+                Please do not reply directly to this email. Keep your credentials secure.
             </div>
         </div>
     </body>
