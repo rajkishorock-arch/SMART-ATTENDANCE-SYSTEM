@@ -5452,10 +5452,11 @@ export default function App() {
       return;
     }
 
+    const roleName = newTeacher.role === 'admin' ? 'Admin' : 'Teacher';
+
     // Master key verification required for registering any new staff in default workspace OR for creating admins in any workspace
     let masterPass = '';
     if (currentUser?.institution_id === 1 || newTeacher.role === 'admin') {
-      const roleName = newTeacher.role === 'admin' ? 'Admin' : 'Teacher';
       masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to register new ${roleName} "${newTeacher.name}":`);
       if (!masterPass) {
         setTeacherError('Registration cancelled. Master key is required to register new staff.');
