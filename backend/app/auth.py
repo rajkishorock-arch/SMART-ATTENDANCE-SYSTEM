@@ -62,6 +62,14 @@ def login_for_access_token(
         inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
     institution_id = inst.id if inst else 1
 
+    # Only System Owner is allowed to log into the Default/System tenant
+    if institution_id == 1:
+        if form_data.username.strip().lower() != "rajkishorock@gmail.com":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Default Institution is restricted. Only the System Owner (rajkishorock@gmail.com) can access this workspace."
+            )
+
     # 1. Try Admin/Teacher Login
     user = crud.get_user_by_email(db, email=form_data.username, institution_id=institution_id)
     if user:

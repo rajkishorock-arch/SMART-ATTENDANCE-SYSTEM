@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 import os
@@ -34,6 +34,7 @@ def get_branding(slug: str, db: Session = Depends(get_db)):
 def create_institution(
     payload: schemas.InstitutionCreate,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -109,6 +110,17 @@ def create_institution(
     db.add(new_settings)
     db.commit()
     db.refresh(new_inst)
+
+    # Queue welcome email to be sent in background
+    from . import email_service
+    background_tasks.add_task(
+        email_service.send_welcome_email,
+        admin_email=payload.admin_email.strip().lower(),
+        admin_name=payload.admin_name.strip(),
+        institution_name=payload.name.strip(),
+        slug=slug_clean,
+        raw_password=payload.admin_password
+    )
 
     return new_inst
 
