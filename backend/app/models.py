@@ -125,3 +125,14 @@ class Feedback(Base):
     message = Column(Text, nullable=False)
     rating = Column(Integer, default=5)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Department(Base):
+    __tablename__ = "departments"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    code = Column(String(50), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('institution_id', 'name', name='_institution_dept_name_uc'),
+    )

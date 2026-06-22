@@ -249,3 +249,19 @@ class InstitutionUpdate(BaseModel):
     primary_color: Optional[str] = None
     secondary_color: Optional[str] = None
     logo_url: Optional[str] = None
+
+# --- Department ---
+class DepartmentBase(BaseModel):
+    name: str
+    code: Optional[str] = None
+
+class DepartmentCreate(DepartmentBase):
+    pass
+
+class Department(DepartmentBase):
+    id: int
+    institution_id: int
+
+    class Config:
+        from_attributes = True
+        orm_mode = True
