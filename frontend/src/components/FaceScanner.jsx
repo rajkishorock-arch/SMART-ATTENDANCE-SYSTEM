@@ -98,14 +98,6 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
     // scale box from video-space to canvas-space
     const [bx, by, bw, bh] = box;
 
-    // Expand the box slightly to be larger than the face itself
-    const padX = Math.round(bw * 0.16);
-    const padY = Math.round(bh * 0.16);
-    const hbx = bx - padX;
-    const hby = by - padY;
-    const hbw = bw + padX * 2;
-    const hbh = bh + padY * 2;
-
     const isKnown   = !!info;
     const color     = verified ? '#00ff00'
                     : isKnown  ? '#ffa500'
@@ -113,28 +105,28 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
 
     /* face bounding box */
     ctx.strokeStyle = color; ctx.lineWidth = 2;
-    ctx.strokeRect(hbx, hby, hbw, hbh);
+    ctx.strokeRect(bx, by, bw, bh);
 
     /* L-shaped corner brackets on the face box */
-    const CL = Math.round(Math.min(hbw, hbh) * 0.18);
+    const CL = Math.round(Math.min(bw, bh) * 0.18);
     ctx.lineWidth = 3; ctx.strokeStyle = color;
     // TL
-    ctx.beginPath(); ctx.moveTo(hbx+CL,hby); ctx.lineTo(hbx,hby); ctx.lineTo(hbx,hby+CL); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx+CL,by); ctx.lineTo(bx,by); ctx.lineTo(bx,by+CL); ctx.stroke();
     // TR
-    ctx.beginPath(); ctx.moveTo(hbx+hbw-CL,hby); ctx.lineTo(hbx+hbw,hby); ctx.lineTo(hbx+hbw,hby+CL); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx+bw-CL,by); ctx.lineTo(bx+bw,by); ctx.lineTo(bx+bw,by+CL); ctx.stroke();
     // BL
-    ctx.beginPath(); ctx.moveTo(hbx+CL,hby+hbh); ctx.lineTo(hbx,hby+hbh); ctx.lineTo(hbx,hby+hbh-CL); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx+CL,by+bh); ctx.lineTo(bx,by+bh); ctx.lineTo(bx,by+bh-CL); ctx.stroke();
     // BR
-    ctx.beginPath(); ctx.moveTo(hbx+hbw-CL,hby+hbh); ctx.lineTo(hbx+hbw,hby+hbh); ctx.lineTo(hbx+hbw,hby+hbh-CL); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx+bw-CL,by+bh); ctx.lineTo(bx+bw,by+bh); ctx.lineTo(bx+bw,by+bh-CL); ctx.stroke();
 
     /* mini scan line inside face box */
     const facePhase = (Math.sin(t * 4) + 1) / 2;
-    const fScanY = Math.round(hby + facePhase * hbh);
+    const fScanY = Math.round(by + facePhase * bh);
     ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
-    ctx.beginPath(); ctx.moveTo(hbx, fScanY); ctx.lineTo(hbx+hbw, fScanY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx, fScanY); ctx.lineTo(bx+bw, fScanY); ctx.stroke();
     ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(hbx, fScanY, 3, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(hbx+hbw, fScanY, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx, fScanY, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx+bw, fScanY, 3, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1;
 
     /* info panel — exactly like desktop screenshot.
@@ -150,14 +142,14 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
       `LIVENESS: ${blinkCount > 0 ? `Blinks (${blinkCount}/${BLINKS_NEEDED})` : 'PENDING'}`
     ];
 
-    const PH = 22, PAD = 10;
-    const PW = 260; // wider panel
+    const PH = 17, PAD = 8;
+    const PW = 190;
     const PTOTAL = panelLines.length * PH + PAD * 2;
 
     // prefer right side; fall back to above the box
-    let px = hbx + hbw + 10;
-    let py = hby;
-    if (px + PW > cw) { px = hbx; py = Math.max(8, hby - PTOTAL - 8); }
+    let px = bx + bw + 10;
+    let py = by;
+    if (px + PW > cw) { px = bx; py = Math.max(8, by - PTOTAL - 8); }
 
     // Draw panel background + border in mirrored space (geometry OK)
     ctx.save();
@@ -165,7 +157,7 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
     ctx.fillStyle = '#000';
     ctx.fillRect(px, py, PW, PTOTAL);
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
     ctx.strokeRect(px, py, PW, PTOTAL);
     ctx.restore();
 
@@ -178,22 +170,22 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
       ctx.translate(-cw, 0);
       // now we're back to normal screen space — mirror the x for text
       const textX = cw - px - PW;
-      ctx.font = 'bold 15px "Courier New", monospace';
+      ctx.font = '13px "Courier New", monospace';
       panelLines.forEach((line, i) => {
         const lineColor = i === panelLines.length - 1
           ? (verified ? '#00ff88' : '#ffcc00')
           : '#ffffff';
         ctx.fillStyle = lineColor;
-        ctx.fillText(line, textX + 10, py + PAD + 16 + i * PH);
+        ctx.fillText(line, textX + 8, py + PAD + 14 + i * PH);
       });
     } else {
-      ctx.font = 'bold 15px "Courier New", monospace';
+      ctx.font = '13px "Courier New", monospace';
       panelLines.forEach((line, i) => {
         const lineColor = i === panelLines.length - 1
           ? (verified ? '#00ff88' : '#ffcc00')
           : '#ffffff';
         ctx.fillStyle = lineColor;
-        ctx.fillText(line, px + 10, py + PAD + 16 + i * PH);
+        ctx.fillText(line, px + 8, py + PAD + 14 + i * PH);
       });
     }
     ctx.restore();
@@ -204,12 +196,12 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
   if (isMirrored) {
     ctx.scale(-1, 1);
     ctx.translate(-cw, 0);
-    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.font = 'bold 11px "Courier New", monospace';
     ctx.fillStyle = '#00f2fe';
     ctx.globalAlpha = 0.75;
     ctx.fillText(`● BIOMETRIC SCAN ACTIVE`, 20, ch - 12);
   } else {
-    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.font = 'bold 11px "Courier New", monospace';
     ctx.fillStyle = '#00f2fe';
     ctx.globalAlpha = 0.75;
     ctx.fillText(`● BIOMETRIC SCAN ACTIVE`, 20, ch - 12);

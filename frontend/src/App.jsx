@@ -2528,19 +2528,12 @@ export default function App() {
   };
 
   const closeWebcamModal = () => {
+    stopWebcam();
     setShowWebcamModal(false);
     setCaptureStudent(null);
     setCapturedCount(0);
     setWebcamError('');
   };
-
-  useEffect(() => {
-    if (showWebcamModal) {
-      startWebcam();
-    } else {
-      stopWebcam();
-    }
-  }, [showWebcamModal]);
 
   // Start/stop face recognition attendance scanner
   const startAttendanceCam = async () => {
