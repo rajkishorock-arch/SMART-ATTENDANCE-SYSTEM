@@ -50,6 +50,7 @@ export default function LoginPortal({
   crtOverlayEnabled,
   serverWarmingUp,
   onExploreGuest,
+  onTenantChange, // Optional: if provided, called instead of window.location.reload()
 }) {
   const [bootLine, setBootLine] = useState('');
   const [bootIndex, setBootIndex] = useState(0);
@@ -103,7 +104,13 @@ export default function LoginPortal({
   const handleTenantChange = (slug) => {
     setSelectedTenant(slug);
     localStorage.setItem('override_tenant', slug);
-    window.location.reload();
+    // On mobile (Capacitor), onTenantChange prop handles state refresh without page reload.
+    // On web, we fall back to window.location.reload() as before.
+    if (onTenantChange) {
+      onTenantChange(slug);
+    } else {
+      window.location.reload();
+    }
   };
 
   const activeRole = ROLES.find((r) => r.id === loginRole) || ROLES[2];

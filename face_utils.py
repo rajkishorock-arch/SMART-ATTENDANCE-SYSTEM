@@ -9,6 +9,114 @@ FACE_SIZE = (200, 200)
 RECOGNITION_DISTANCE_THRESHOLD = 65.0
 PREFERRED_CAMERA_INDEX = 0
 
+# Cached ONNX model instances
+_detector = None
+_recognizer = None
+
+def download_onnx_models():
+    """
+    Downloads YuNet (Detection) and SFace (Recognition) ONNX weights from the official
+    OpenCV model zoo if they do not already exist in the models directory (or backend/models).
+    """
+    import os
+    import shutil
+    import urllib.request
+    
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    models_dir = os.path.join(script_dir, "models")
+    os.makedirs(models_dir, exist_ok=True)
+    
+    yunet_path = os.path.join(models_dir, "face_detection_yunet_2023mar.onnx")
+    sface_path = os.path.join(models_dir, "face_recognition_sface_2021dec.onnx")
+    
+    # Check if they exist in backend/models and copy them over if needed
+    backend_models_dir = os.path.join(script_dir, "backend", "models")
+    backend_yunet = os.path.join(backend_models_dir, "face_detection_yunet_2023mar.onnx")
+    backend_sface = os.path.join(backend_models_dir, "face_recognition_sface_2021dec.onnx")
+    
+    if not os.path.exists(yunet_path):
+        if os.path.exists(backend_yunet):
+            print("Copying YuNet model from backend/models...")
+            shutil.copy(backend_yunet, yunet_path)
+        else:
+            print(f"Downloading YuNet model to {yunet_path}...")
+            yunet_url = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+            try:
+                urllib.request.urlretrieve(yunet_url, yunet_path)
+                print("YuNet model downloaded successfully.")
+            except Exception as e:
+                print(f"Error downloading YuNet model: {e}")
+                raise e
+                
+    if not os.path.exists(sface_path):
+        if os.path.exists(backend_sface):
+            print("Copying SFace model from backend/models...")
+            shutil.copy(backend_sface, sface_path)
+        else:
+            print(f"Downloading SFace model to {sface_path}...")
+            sface_url = "https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx"
+            try:
+                urllib.request.urlretrieve(sface_url, sface_path)
+                print("SFace model downloaded successfully.")
+            except Exception as e:
+                print(f"Error downloading SFace model: {e}")
+                raise e
+                
+    return yunet_path, sface_path
+
+def get_face_engines():
+    """
+    Returns (detector, recognizer) singleton instances. Loads them on first call.
+    """
+    global _detector, _recognizer
+    if _detector is None or _recognizer is None:
+        yunet_path, sface_path = download_onnx_models()
+        # Initialize detector with a default input size (320x240)
+        _detector = cv2.FaceDetectorYN_create(yunet_path, "", (320, 240))
+        _recognizer = cv2.FaceRecognizerSF_create(sface_path, "")
+    return _detector, _recognizer
+
+def get_face_embedding(image):
+    """
+    Given a BGR image, detects the face, aligns/crops it, and extracts the 128D SFace embedding vector.
+    Returns:
+        numpy.ndarray: 128D embedding vector, or None if no face is detected.
+    """
+    if image is None or image.size == 0:
+        return None
+        
+    try:
+        import numpy as np
+        detector, recognizer = get_face_engines()
+        
+        # Set the input size dynamically based on the image dimensions
+        h, w = image.shape[:2]
+        detector.setInputSize((w, h))
+        
+        # Detect faces
+        retval, faces = detector.detect(image)
+        if not retval or faces is None or len(faces) == 0:
+            return None
+            
+        # Get the face with the highest confidence
+        best_face_idx = 0
+        if len(faces) > 1:
+            best_face_idx = np.argmax(faces[:, 14])
+            
+        best_face = faces[best_face_idx]
+        
+        # Align and crop the face crop
+        aligned_face = recognizer.alignCrop(image, best_face)
+        
+        # Extract SFace 128-D vector
+        feature = recognizer.feature(aligned_face) # shape: (1, 128)
+        
+        return feature[0]
+    except Exception as e:
+        print(f"Failed to extract face embedding: {e}")
+        return None
+
+
 
 
 def preprocess_face(image):

@@ -6,6 +6,16 @@ export const getActiveTenantSlug = () => {
   const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local');
   
+  // Capacitor Android app runs on capacitor://localhost — treat as mobile app
+  // In this case, always use localStorage override set by the institution dropdown in LoginPortal
+  const isCapacitor = window.location.protocol === 'capacitor:' || 
+                      (typeof window.Capacitor !== 'undefined');
+  
+  if (isCapacitor) {
+    // Mobile app: user selects institution from dropdown → saved in localStorage
+    return localStorage.getItem('override_tenant') || 'default';
+  }
+  
   // Vercel and Render deploy to subdomains like project.vercel.app or project.onrender.com
   // These have parts.length === 3 but parts[0] is the project name, not a tenant subdomain.
   const isPublicDomain = hostname.endsWith('.vercel.app') || hostname.endsWith('.onrender.com');

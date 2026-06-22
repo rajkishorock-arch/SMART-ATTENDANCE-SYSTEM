@@ -6,7 +6,7 @@ from PIL import Image, ImageTk
 from tkinter import messagebox
 import mysql.connector
 import cv2
-from face_utils import open_camera, preprocess_face, get_db_connection
+from face_utils import open_camera, preprocess_face, get_db_connection, get_face_engines
 
 class Student:
     def __init__(self, root):
@@ -518,21 +518,16 @@ class Student:
         self.var_teacher.set("")
         self.var_photo.set("")
 
-    #generate data set or take photo samples
+    #generate data set or take photo samples using YuNet and SFace
     def generate_dataset(self):
         if self.var_dep.get() == "Select Department" or self.var_course.get() == "Select Course" or self.var_year.get() == "Select Year" or self.var_semester.get() == "Select Semester" or self.var_id.get() == "" or self.var_name.get() == "" or self.var_email.get() == "" or self.var_phone.get() == "" or self.var_div.get() == "" or self.var_gender.get() == "Select Gender" or self.var_roll.get() == "" or self.var_teacher.get() == "":
             messagebox.showerror("Error", "All fields are required", parent=self.root)  
         else:
             try:
-                conn=get_db_connection()
-                my_cursor=conn.cursor()
-                my_cursor.execute("select `id` from student where id=%s", (self.var_id.get(),))
-                myresult=my_cursor.fetchall()
-                id = 0
-                for x in myresult:
-                    id += 1
-                my_cursor.execute("update student set `dep`=%s, `course`=%s, `year`=%s, `semester`=%s, `name`=%s, `div`=%s, `roll`=%s, `gender`=%s, `dob`=%s, `email`=%s, `phone`=%s, `address`=%s, `teacher`=%s, `photo`=%s where `id`=%s", (
-
+                # First update basic details in database
+                conn = get_db_connection()
+                my_cursor = conn.cursor()
+                my_cursor.execute("update student set `dep`=%s, `course`=%s, `year`=%s, `semester`=%s, `name`=%s, `div`=%s, `roll`=%s, `gender`=%s, `dob`=%s, `email`=%s, `phone`=%s, `address`=%s, `teacher`=%s where `id`=%s", (
                     self.var_dep.get(),
                     self.var_course.get(),
                     self.var_year.get(),
@@ -546,43 +541,20 @@ class Student:
                     self.var_phone.get(),
                     self.var_address.get(),
                     self.var_teacher.get(),
-                    self.var_photo.get(),
                     self.var_id.get()
                 ))
-
-
                 conn.commit()
-                self.fetch_data()
                 conn.close()
 
                 student_id = self.var_id.get()
 
-                #load predefined data on face frontals from opencv
-                print(cv2.data.haarcascades)
-                face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-                print("XML Loaded =", not face_classifier.empty())
-                print("Path:", cv2.data.haarcascades)
-                print("XML Loaded:", not face_classifier.empty())
-                def face_cropped(img):
-                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                    gray = cv2.equalizeHist(gray)
-                    faces = face_classifier.detectMultiScale(
-                        gray,
-                        scaleFactor=1.2,
-                        minNeighbors=5,
-                        minSize=(80, 80),
-                        flags=cv2.CASCADE_SCALE_IMAGE,
-                    )
-                    # scaling factor=1.3
-                    # minimum neighbors=8 (stricter)
-                    # minSize=(100, 100) (ignore small detections)
+                # Load YuNet detector and SFace recognizer
+                try:
+                    detector, recognizer = get_face_engines()
+                except Exception as model_err:
+                    messagebox.showerror("Model Error", f"Failed to load Deep Learning models:\n{model_err}", parent=self.root)
+                    return
 
-                    if len(faces) == 0:
-                        return None
-
-                    x, y, w, h = max(faces, key=lambda face: face[2] * face[3])
-                    return img[y:y+h, x:x+w]
-                    
                 cap, camera_index = open_camera()
                 if cap is None:
                     messagebox.showerror(
@@ -591,32 +563,107 @@ class Student:
                         parent=self.root,
                     )
                     return
-                print(f"Using camera index: {camera_index}")
-                img_id = 0
-                while True:
-                    ret, my_frame = cap.read()
-                    if not ret:
-                        continue
-                    my_frame = cv2.flip(my_frame, 1)
-                    cropped_face = face_cropped(my_frame)
-                    if cropped_face is not None:
-                        img_id += 1
-                        print("Photo:", img_id)
-                        face = preprocess_face(cropped_face)
-                        # file name path relative to this script
-                        base_dir = os.path.dirname(os.path.abspath(__file__))
-                        data_dir = os.path.join(base_dir, "data")
-                        os.makedirs(data_dir, exist_ok=True)
-                        file_name_path = os.path.join(data_dir, f"user.{student_id}.{img_id}.jpg")
-                        cv2.imwrite(file_name_path, face)
-                        cv2.putText(face, str(img_id), (50, 50), cv2.FONT_HERSHEY_COMPLEX, 2, (0,255,0), 2)
-                        cv2.imshow("Cropped Face", face)
+                print(f"Using camera index for registration: {camera_index}")
 
-                    if cv2.waitKey(1) == 13 or int(img_id) == 100:
+                embeddings = []
+                reference_crop = None
+                
+                # We will collect 10 high-quality frames where a face is detected
+                required_samples = 10
+                
+                cv2.namedWindow("Registering Face Credentials", cv2.WINDOW_NORMAL)
+                cv2.resizeWindow("Registering Face Credentials", 800, 600)
+
+                while len(embeddings) < required_samples:
+                    ret, frame = cap.read()
+                    if not ret or frame is None:
+                        continue
+                    
+                    frame = cv2.flip(frame, 1)
+                    h, w = frame.shape[:2]
+                    detector.setInputSize((w, h))
+
+                    # Detect faces
+                    retval, faces = detector.detect(frame)
+                    
+                    # Draw visual feedback
+                    display_frame = frame.copy()
+                    
+                    # Visual header text
+                    cv2.putText(display_frame, f"Deep Enrollment: {len(embeddings)}/{required_samples} samples collected", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2, cv2.LINE_AA)
+                    cv2.putText(display_frame, "Please look straight at the camera and remain steady.", (20, h - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+
+                    if retval and faces is not None and len(faces) > 0:
+                        # Take the face with the highest confidence
+                        best_face_idx = 0
+                        if len(faces) > 1:
+                            best_face_idx = np.argmax(faces[:, 14])
+                        
+                        face = faces[best_face_idx]
+                        x, y, box_w, box_h = face[0:4]
+                        
+                        # Draw bounding box
+                        cv2.rectangle(display_frame, (int(x), int(y)), (int(x + box_w), int(y + box_h)), (0, 255, 0), 2, lineType=cv2.LINE_AA)
+                        
+                        try:
+                            # Align and crop the face using SFace
+                            aligned_face = recognizer.alignCrop(frame, face)
+                            # Extract embedding
+                            feat = recognizer.feature(aligned_face) # shape: (1, 128)
+                            
+                            if feat is not None:
+                                embeddings.append(feat[0])
+                                # Keep the first successful crop as the reference photo
+                                if reference_crop is None:
+                                    reference_crop = aligned_face
+                                cv2.imshow("Cropped Face Sample", aligned_face)
+                        except Exception as extract_err:
+                            print(f"Embedding extraction failed: {extract_err}")
+
+                    cv2.imshow("Registering Face Credentials", display_frame)
+                    
+                    key = cv2.waitKey(1)
+                    if key == 13 or key == 27: # Enter or Esc to cancel
                         break
+
                 cap.release()
                 cv2.destroyAllWindows()
-                messagebox.showinfo("Result", "Generating data sets completed!!!", parent=self.root)
+
+                if len(embeddings) < required_samples:
+                    messagebox.showwarning("Warning", "Face registration was cancelled or insufficient samples were collected.", parent=self.root)
+                    return
+
+                # Compute the average embedding to reduce noise
+                import json
+                avg_embedding = np.mean(embeddings, axis=0)
+                # Normalize the average embedding vector
+                norm = np.linalg.norm(avg_embedding)
+                if norm > 0:
+                    avg_embedding = avg_embedding / norm
+                
+                embedding_json = json.dumps(avg_embedding.tolist())
+
+                # Update database with embedding and photo status
+                conn = get_db_connection()
+                my_cursor = conn.cursor()
+                my_cursor.execute("update student set `face_embedding`=%s, `photo`='yes' where `id`=%s", (
+                    embedding_json,
+                    student_id
+                ))
+                conn.commit()
+                conn.close()
+
+                # Save reference photo crop
+                if reference_crop is not None:
+                    base_dir = os.path.dirname(os.path.abspath(__file__))
+                    data_dir = os.path.join(base_dir, "data")
+                    os.makedirs(data_dir, exist_ok=True)
+                    file_name_path = os.path.join(data_dir, f"user.{student_id}.1.jpg")
+                    cv2.imwrite(file_name_path, reference_crop)
+
+                self.var_photo.set("yes")
+                self.fetch_data()
+                messagebox.showinfo("Result", "Face credentials successfully registered using SFace Deep Learning! No training required.", parent=self.root)
 
             except Exception as es:
                 messagebox.showerror("Error", f"Due to: {str(es)}", parent=self.root) 

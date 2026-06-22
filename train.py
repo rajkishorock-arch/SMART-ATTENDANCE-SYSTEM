@@ -7,7 +7,7 @@ import mysql.connector
 import cv2
 import os
 import numpy as np
-from face_utils import create_lbph_recognizer, preprocess_face
+from face_utils import get_face_engines, get_db_connection
 
 class Train:
     def __init__(self, root):
@@ -18,7 +18,7 @@ class Train:
         self.root.state('zoomed')
         self.root.title("Face Recognition System")
 
-        title_lbl = Label(self.root, text="TRAIN DATA SET", font=(
+        title_lbl = Label(self.root, text="SYNC DATABASE EMBEDDINGS", font=(
             "times new roman", 35, "bold"), bg="white", fg="red")
         title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
 
@@ -30,96 +30,122 @@ class Train:
         f_lbl.place(x=0, y=45, width=1530, height=325)
 
         #buton 
-        b1 = Button(self.root, text="TRAIN DATA", cursor="hand2", font=(
-            "times new roman", 30, "bold"), bg="darkblue", fg="white", command=self.train_classifier)
+        b1 = Button(self.root, text="SYNC FACE EMBEDDINGS", cursor="hand2", font=(
+            "times new roman", 30, "bold"), bg="darkblue", fg="white", command=self.sync_embeddings)
         b1.place(x=0, y=370, width=1530, height=60)        
+
+        # Description
+        desc_lbl = Label(self.root, text="Deep Learning (YuNet & SFace) is active. Enrollment is direct and instant!\nManual training is obsolete. Use this tool if you need to re-sync local photo samples to the database.", font=("Courier", 13, "bold"), bg="#0a0a0a", fg="#00ff00")
+        desc_lbl.place(x=0, y=440, width=1530, height=50)
 
         # Optional decorative image (avoid crashing if file missing)
         try:
             img_bottom = Image.open(r"C:\Users\rajki\Desktop\New folder\people.jpg")
-            img_bottom = img_bottom.resize((1530, 325), Image.LANCZOS)
+            img_bottom = img_bottom.resize((1530, 250), Image.LANCZOS)
             self.photoimg_bottom = ImageTk.PhotoImage(img_bottom)
             f_lbl = Label(self.root, image=self.photoimg_bottom)
-            f_lbl.place(x=0, y=430, width=1530, height=325)
+            f_lbl.place(x=0, y=500, width=1530, height=250)
         except Exception:
             pass
 
+    def sync_embeddings(self):
+        import json
         
-
-
-        
-    def train_classifier(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         data_dir = os.path.join(base_dir, "data")
-        path = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.startswith("user.")]
-        print("Files found:", path)
+        
+        if not os.path.exists(data_dir):
+            messagebox.showerror("Error", f"Data folder not found at: {data_dir}", parent=self.root)
+            return
 
-        faces = []
-        ids = []
+        path = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.startswith("user.") and file.endswith(".jpg")]
+        print("Files found for sync:", path)
 
-        for image in path:
-            print("Reading:", image)
-            filename = os.path.split(image)[1]
+        if len(path) == 0:
+            messagebox.showinfo("Sync Info", "No local face photos found in data/ folder to sync.", parent=self.root)
+            return
+
+        try:
+            detector, recognizer = get_face_engines()
+        except Exception as model_err:
+            messagebox.showerror("Model Error", f"Failed to load Deep Learning models:\n{model_err}", parent=self.root)
+            return
+
+        try:
+            conn = get_db_connection()
+            my_cursor = conn.cursor()
+        except Exception as db_err:
+            messagebox.showerror("Database Error", f"Failed to connect to database:\n{db_err}", parent=self.root)
+            return
+
+        synced_count = 0
+        failed_count = 0
+        
+        cv2.namedWindow("Syncing Embeddings", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("Syncing Embeddings", 600, 400)
+
+        for image_path in path:
+            filename = os.path.basename(image_path)
             parts = filename.split('.')
 
+            # Expected format: user.{id}.{sample_num}.jpg
             if len(parts) < 4 or parts[0] != "user" or parts[1] == "":
                 print("Skipping invalid file:", filename)
                 continue
 
             try:
-                id = int(parts[1])
+                student_id = int(parts[1])
             except ValueError:
                 print("Skipping invalid ID in file:", filename)
                 continue
 
-            img = Image.open(image).convert('L')
-            raw_image = np.array(img, 'uint8')
-            imageNp = preprocess_face(raw_image)
+            # Read image
+            img = cv2.imread(image_path)
+            if img is None or img.size == 0:
+                print("Skipping unreadable image:", filename)
+                continue
 
-            # Include low-detail variants so faces remain recognizable when
-            # several people are in frame or they are farther from the camera.
-            training_images = [imageNp]
-            for size in (60, 100):
-                low_resolution = cv2.resize(
-                    raw_image,
-                    (size, size),
-                    interpolation=cv2.INTER_AREA,
-                )
-                training_images.append(preprocess_face(low_resolution))
+            cv2.imshow("Syncing Embeddings", img)
+            cv2.waitKey(10)
 
-            # Light augmentation for robustness (pose/lighting changes)
-            # LBPH works on grayscale histograms, so small transforms help.
-            augmented = []
-            for img_gray in training_images:
-                augmented.append(img_gray)
-                # horizontal flip
-                augmented.append(cv2.flip(img_gray, 1))
-                # brightness/contrast variations
-                augmented.append(cv2.convertScaleAbs(img_gray, alpha=1.15, beta=10))
-                augmented.append(cv2.convertScaleAbs(img_gray, alpha=0.85, beta=-10))
+            # Get 128D SFace embedding
+            try:
+                h, w = img.shape[:2]
+                detector.setInputSize((w, h))
+                retval, faces = detector.detect(img)
+                if retval and faces is not None and len(faces) > 0:
+                    best_face_idx = 0
+                    if len(faces) > 1:
+                        best_face_idx = np.argmax(faces[:, 14])
+                    
+                    face = faces[best_face_idx]
+                    aligned_face = recognizer.alignCrop(img, face)
+                    feature = recognizer.feature(aligned_face) # (1, 128)
+                    
+                    if feature is not None:
+                        embedding_list = feature[0].tolist()
+                        embedding_json = json.dumps(embedding_list)
+                        
+                        # Save embedding and update photo status to 'yes'
+                        my_cursor.execute("update student set `face_embedding`=%s, `photo`='yes' where `id`=%s", (
+                            embedding_json,
+                            student_id
+                        ))
+                        synced_count += 1
+                        print(f"Successfully synced embedding for Student ID {student_id}")
+                    else:
+                        failed_count += 1
+                else:
+                    failed_count += 1
+            except Exception as e:
+                print(f"Error syncing {filename}: {e}")
+                failed_count += 1
 
-            training_images = augmented
-
-            faces.extend(training_images)
-            ids.extend([id] * len(training_images))
-            cv2.imshow("Training", imageNp)
-            cv2.waitKey(1) == 13
-
-
-        if len(faces) == 0:
-            cv2.destroyAllWindows()
-            messagebox.showerror("Error", "No valid face dataset found for training.", parent=self.root)
-            return
-
-        ids = np.array(ids)
-
-        # train the classifier and save
-        clf = create_lbph_recognizer()
-        clf.train(faces, ids)
-        classifier_file = os.path.join(base_dir, "classifier.xml")
-        clf.write(classifier_file)
+        conn.commit()
+        conn.close()
         cv2.destroyAllWindows()
-        messagebox.showinfo("Result", "Training datasets completed!!", parent=self.root)
+
+        messagebox.showinfo("Result", f"Sync completed!\nSuccessfully synced: {synced_count}\nFailed/No face: {failed_count}", parent=self.root)
 
 
 
