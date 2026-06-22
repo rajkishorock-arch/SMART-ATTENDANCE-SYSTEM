@@ -25,172 +25,101 @@ def update_schema():
     try:
         inspector = inspect(engine)
         
-        # Helper to safely add institution_id column if missing
-        def add_institution_id_if_missing(table_name):
-            if table_name in inspector.get_table_names():
-                columns = [col['name'] for col in inspector.get_columns(table_name)]
-                if 'institution_id' not in columns:
-                    print(f"Adding institution_id column to {table_name} table...")
-                    db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN institution_id INT NULL"))
+        # Helper to safely add a column — with proper rollback for PostgreSQL
+        def safe_add_column(table_name, column_name, col_def):
+            try:
+                # Re-inspect columns each time (in case inspector cache is stale)
+                if table_name not in inspector.get_table_names():
+                    return
+                cols = [c['name'] for c in inspector.get_columns(table_name)]
+                if column_name not in cols:
+                    print(f"Adding {column_name} column to {table_name} table...")
+                    db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {col_def}"))
                     db.commit()
-                    print(f"Column institution_id added successfully to {table_name} table.")
-                else:
-                    print(f"Column institution_id already exists in {table_name} table.")
+                    print(f"Column {column_name} added successfully to {table_name} table.")
+            except Exception as ex:
+                db.rollback()
+                print(f"Skip {table_name}.{column_name}: {ex}")
 
-        # Sync existing tables
-        add_institution_id_if_missing('users')
-        add_institution_id_if_missing('student')
-        add_institution_id_if_missing('subjects')
-        add_institution_id_if_missing('schedules')
-        add_institution_id_if_missing('attendence')
-        add_institution_id_if_missing('audit_logs')
-        add_institution_id_if_missing('system_settings')
-        add_institution_id_if_missing('feedbacks')
-
-        # Check columns in student table
-        student_columns = [col['name'] for col in inspector.get_columns('student')]
-        if 'password_hash' not in student_columns:
-            print("Adding password_hash column to student table...")
-            db.execute(text("ALTER TABLE student ADD COLUMN password_hash VARCHAR(255) NULL"))
-            db.commit()
-            print("Column password_hash added successfully.")
-        else:
-            print("Column password_hash already exists in student table.")
-
-        if 'face_embedding' not in student_columns:
-            print("Adding face_embedding column to student table...")
-            db.execute(text("ALTER TABLE student ADD COLUMN face_embedding TEXT NULL"))
-            db.commit()
-            print("Column face_embedding added successfully.")
-        else:
-            print("Column face_embedding already exists in student table.")
-
-        # Check columns in attendence table
-        attendance_columns = [col['name'] for col in inspector.get_columns('attendence')]
-        if 'subject_id' not in attendance_columns:
-            print("Adding subject_id column to attendence table...")
-            db.execute(text("ALTER TABLE attendence ADD COLUMN subject_id INT NULL"))
-            db.commit()
-            print("Column subject_id added successfully.")
-        else:
-            print("Column subject_id already exists in attendence table.")
-
-        # Check columns in feedbacks table
-        if 'feedbacks' in inspector.get_table_names():
-            feedback_columns = [col['name'] for col in inspector.get_columns('feedbacks')]
-            if 'user_id' not in feedback_columns:
-                print("Adding user_id column to feedbacks table...")
-                db.execute(text("ALTER TABLE feedbacks ADD COLUMN user_id INT NULL"))
+        # Helper to safely execute a SQL statement — with proper rollback
+        def safe_execute(sql, description=""):
+            try:
+                db.execute(text(sql))
                 db.commit()
-                print("Column user_id added successfully to feedbacks table.")
+                if description:
+                    print(description)
+            except Exception as ex:
+                db.rollback()
+                if description:
+                    print(f"Skip ({description}): {ex}")
 
-        # Check branding columns in institutions table
-        if 'institutions' in inspector.get_table_names():
-            inst_columns = [col['name'] for col in inspector.get_columns('institutions')]
-            if 'logo_url' not in inst_columns:
-                print("Adding logo_url column to institutions table...")
-                db.execute(text("ALTER TABLE institutions ADD COLUMN logo_url VARCHAR(255) NULL"))
-                db.commit()
-            if 'primary_color' not in inst_columns:
-                print("Adding primary_color column to institutions table...")
-                db.execute(text("ALTER TABLE institutions ADD COLUMN primary_color VARCHAR(50) NULL"))
-                db.commit()
-            if 'secondary_color' not in inst_columns:
-                print("Adding secondary_color column to institutions table...")
-                db.execute(text("ALTER TABLE institutions ADD COLUMN secondary_color VARCHAR(50) NULL"))
-                db.commit()
-            if 'master_key' not in inst_columns:
-                print("Adding master_key column to institutions table...")
-                db.execute(text("ALTER TABLE institutions ADD COLUMN master_key VARCHAR(100) NULL"))
-                db.commit()
+        # Sync existing tables — add institution_id
+        for tbl in ['users', 'student', 'subjects', 'schedules', 'attendence', 'audit_logs', 'system_settings', 'feedbacks']:
+            safe_add_column(tbl, 'institution_id', 'INT NULL')
+
+        # Student table columns
+        safe_add_column('student', 'password_hash', 'VARCHAR(255) NULL')
+        safe_add_column('student', 'face_embedding', 'TEXT NULL')
+
+        # Attendance table columns
+        safe_add_column('attendence', 'subject_id', 'INT NULL')
+
+        # Feedbacks table columns
+        safe_add_column('feedbacks', 'user_id', 'INT NULL')
+
+        # Institution branding columns
+        safe_add_column('institutions', 'logo_url', 'VARCHAR(255) NULL')
+        safe_add_column('institutions', 'primary_color', 'VARCHAR(50) NULL')
+        safe_add_column('institutions', 'secondary_color', 'VARCHAR(50) NULL')
+        safe_add_column('institutions', 'master_key', 'VARCHAR(100) NULL')
 
         # Update unique index constraints on users table for multi-tenancy
-        # Drop old single-column unique constraints/indexes on email
-        # PostgreSQL / SQLite syntax
-        try:
-            db.execute(text("DROP INDEX ix_users_email"))
-            db.commit()
-            print("Dropped ix_users_email index (PostgreSQL/SQLite syntax)")
-        except Exception:
-            pass
+        safe_execute("DROP INDEX IF EXISTS ix_users_email", "Dropped ix_users_email index")
+        safe_execute("DROP INDEX IF EXISTS email", "Dropped email index")
+        
+        # MySQL syntax (will fail on PostgreSQL — that's OK, rollback handles it)
+        safe_execute("ALTER TABLE users DROP INDEX ix_users_email", "Dropped ix_users_email index (MySQL)")
+        safe_execute("ALTER TABLE users DROP INDEX email", "Dropped email index (MySQL)")
 
-        try:
-            db.execute(text("DROP INDEX email"))
-            db.commit()
-            print("Dropped email index (PostgreSQL/SQLite syntax)")
-        except Exception:
-            pass
-
-        # MySQL syntax
-        try:
-            db.execute(text("ALTER TABLE users DROP INDEX ix_users_email"))
-            db.commit()
-            print("Dropped ix_users_email index (MySQL syntax)")
-        except Exception:
-            pass
-
-        try:
-            db.execute(text("ALTER TABLE users DROP INDEX email"))
-            db.commit()
-            print("Dropped email index (MySQL syntax)")
-        except Exception:
-            pass
-
-        # Add composite unique constraint for multi-tenancy (institution_id, email)
-        # PostgreSQL syntax
-        try:
-            db.execute(text("ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)"))
-            db.commit()
-            print("Added composite unique constraint (PostgreSQL syntax)")
-        except Exception:
-            pass
-
-        # MySQL syntax
-        try:
-            db.execute(text("ALTER TABLE users ADD UNIQUE KEY uq_institution_email (institution_id, email)"))
-            db.commit()
-            print("Added composite unique key (MySQL syntax)")
-        except Exception:
-            pass
+        # Add composite unique constraint for multi-tenancy
+        safe_execute(
+            "ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)",
+            "Added composite unique constraint"
+        )
+        # MySQL fallback
+        safe_execute(
+            "ALTER TABLE users ADD UNIQUE KEY uq_institution_email (institution_id, email)",
+            "Added composite unique key (MySQL)"
+        )
 
         # --- Advanced feature columns (idempotent migrations) ---
-        def add_column_if_missing(table, column, col_def):
-            if table not in inspector.get_table_names():
-                return
-            cols = [c['name'] for c in inspector.get_columns(table)]
-            if column not in cols:
-                try:
-                    db.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}"))
-                    db.commit()
-                    print(f"Added {column} to {table}")
-                except Exception as ex:
-                    print(f"Skip {table}.{column}: {ex}")
-
-        add_column_if_missing('institutions', 'app_name', 'VARCHAR(100) NULL')
-        add_column_if_missing('institutions', 'custom_domain', 'VARCHAR(200) NULL')
-        add_column_if_missing('institutions', 'faq_json', 'TEXT NULL')
-        add_column_if_missing('institutions', 'subscription_plan', "VARCHAR(50) DEFAULT 'free'")
-        add_column_if_missing('institutions', 'subscription_status', "VARCHAR(50) DEFAULT 'active'")
-        add_column_if_missing('institutions', 'razorpay_key_id', 'VARCHAR(100) NULL')
-        add_column_if_missing('institutions', 'student_limit', 'INT DEFAULT 500')
-        add_column_if_missing('users', 'department', 'VARCHAR(100) NULL')
-        add_column_if_missing('users', 'is_department_head', 'BOOLEAN DEFAULT 0')
-        add_column_if_missing('users', 'sso_provider', 'VARCHAR(50) NULL')
-        add_column_if_missing('users', 'sso_subject', 'VARCHAR(200) NULL')
-        add_column_if_missing('student', 'face_enrolled_at', 'DATETIME NULL')
-        add_column_if_missing('student', 'parent_name', 'VARCHAR(100) NULL')
-        add_column_if_missing('student', 'parent_email', 'VARCHAR(100) NULL')
-        add_column_if_missing('student', 'parent_phone', 'VARCHAR(45) NULL')
-        add_column_if_missing('student', 'consent_given', 'BOOLEAN DEFAULT 0')
-        add_column_if_missing('student', 'consent_at', 'DATETIME NULL')
+        safe_add_column('institutions', 'app_name', 'VARCHAR(100) NULL')
+        safe_add_column('institutions', 'custom_domain', 'VARCHAR(200) NULL')
+        safe_add_column('institutions', 'faq_json', 'TEXT NULL')
+        safe_add_column('institutions', 'subscription_plan', "VARCHAR(50) DEFAULT 'free'")
+        safe_add_column('institutions', 'subscription_status', "VARCHAR(50) DEFAULT 'active'")
+        safe_add_column('institutions', 'razorpay_key_id', 'VARCHAR(100) NULL')
+        safe_add_column('institutions', 'student_limit', 'INT DEFAULT 500')
+        safe_add_column('users', 'department', 'VARCHAR(100) NULL')
+        safe_add_column('users', 'is_department_head', 'BOOLEAN DEFAULT FALSE')
+        safe_add_column('users', 'sso_provider', 'VARCHAR(50) NULL')
+        safe_add_column('users', 'sso_subject', 'VARCHAR(200) NULL')
+        safe_add_column('student', 'face_enrolled_at', 'TIMESTAMP NULL')
+        safe_add_column('student', 'parent_name', 'VARCHAR(100) NULL')
+        safe_add_column('student', 'parent_email', 'VARCHAR(100) NULL')
+        safe_add_column('student', 'parent_phone', 'VARCHAR(45) NULL')
+        safe_add_column('student', 'consent_given', 'BOOLEAN DEFAULT FALSE')
+        safe_add_column('student', 'consent_at', 'TIMESTAMP NULL')
 
         # Create new tables for advanced features
         from app.database import Base
         Base.metadata.create_all(bind=engine)
     except Exception as e:
+        db.rollback()
         print("Schema update check failed:", e)
     finally:
         db.close()
+
 
 
 def migrate_multi_tenant_seed(db):
