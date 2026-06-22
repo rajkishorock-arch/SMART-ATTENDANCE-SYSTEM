@@ -106,7 +106,31 @@ function calculateEAR(landmarks, eyeIndices) {
   }
 }
 export default function App() {
+  const [masterKeyPrompt, setMasterKeyPrompt] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    value: '',
+    onConfirm: null,
+    onCancel: null
+  });
+
+  const requestMasterPassword = (title, message) => {
+    return new Promise((resolve) => {
+      setMasterKeyPrompt({
+        isOpen: true,
+        title: title || '🔐 Master Key Verification Required',
+        message: message || 'Please enter the Developer Master Password to proceed:',
+        value: '',
+        onConfirm: (val) => resolve(val),
+        onCancel: () => resolve(null)
+      });
+    });
+  };
+
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [editingInst, setEditingInst] = useState(null);
+  const [isUpdatingInst, setIsUpdatingInst] = useState(false);
   const [neuralMeshCanvas, setNeuralMeshCanvas] = useState(null);
   const neuralMeshCanvasRef = useCallback((node) => {
     if (node !== null) {
@@ -2047,7 +2071,7 @@ export default function App() {
     setInstSuccessMessage('');
     setInstErrorMessage('');
 
-    const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to register new Institution "${newInstName}":`);
+    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to register new Institution "${newInstName}":`);
     if (!masterPass) {
       setInstErrorMessage('Registration cancelled. Master key is required.');
       return;
@@ -2147,11 +2171,21 @@ export default function App() {
       return;
     }
 
+    const masterPass = await requestMasterPassword(
+      '🔐 Master Key Verification Required',
+      `Enter Master Password to completely DELETE Institution "${name}":`
+    );
+    if (!masterPass) {
+      setInstErrorMessage('Deletion cancelled. Master key is required.');
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/institutions/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Master-Password': masterPass
         }
       });
 
@@ -2177,6 +2211,75 @@ export default function App() {
     } catch (err) {
       console.error('Error deleting institution:', err);
       setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
+    }
+  };
+
+  const handleUpdateInstitution = async (e) => {
+    e.preventDefault();
+    if (!editingInst) return;
+
+    setInstSuccessMessage('');
+    setInstErrorMessage('');
+
+    if (isDemoMode) {
+      setInstitutionsList(prev => prev.map(inst => inst.id === editingInst.id ? editingInst : inst));
+      setInstSuccessMessage('SIMULATOR ACTION: Institution updated successfully.');
+      setEditingInst(null);
+      return;
+    }
+
+    const masterPass = await requestMasterPassword(
+      '🔐 Master Key Verification Required',
+      `Enter Master Password to confirm edits for "${editingInst.name}":`
+    );
+    if (!masterPass) {
+      setInstErrorMessage('Update cancelled. Master key is required.');
+      return;
+    }
+
+    setIsUpdatingInst(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/institutions/${editingInst.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-Master-Password': masterPass
+        },
+        body: JSON.stringify({
+          name: editingInst.name,
+          slug: editingInst.slug.toLowerCase().trim(),
+          primary_color: editingInst.primary_color,
+          secondary_color: editingInst.secondary_color,
+          logo_url: editingInst.logo_url || ''
+        })
+      });
+
+      if (res.ok) {
+        setInstSuccessMessage('Institution updated successfully.');
+        fetchInstitutionsList();
+        setEditingInst(null);
+        setTimeout(() => setInstSuccessMessage(''), 4000);
+      } else {
+        let errMsg = 'Failed to update institution.';
+        try {
+          const errData = await res.json();
+          errMsg = errData.detail || errMsg;
+        } catch (jsonErr) {
+          try {
+            const textData = await res.text();
+            errMsg = textData || errMsg;
+          } catch (textErr) {
+            errMsg = `Error ${res.status}: ${res.statusText}`;
+          }
+        }
+        setInstErrorMessage(errMsg);
+      }
+    } catch (err) {
+      console.error('Error updating institution:', err);
+      setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
+    } finally {
+      setIsUpdatingInst(false);
     }
   };
 
@@ -5273,7 +5376,7 @@ export default function App() {
 
     // Master key verification required for registering any new staff
     const roleName = newTeacher.role === 'admin' ? 'Admin' : 'Teacher';
-    const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to register new ${roleName} "${newTeacher.name}":`);
+    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to register new ${roleName} "${newTeacher.name}":`);
     if (!masterPass) {
       setTeacherError('Registration cancelled. Master key is required to register new staff.');
       return;
@@ -5372,7 +5475,7 @@ export default function App() {
       return;
     }
 
-    const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to delete this teacher account:`);
+    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', 'Enter Master Password to delete this teacher account:');
     if (!masterPass) {
       setTeacherError('Deletion cancelled. Master key is required.');
       return;
@@ -11099,7 +11202,7 @@ export default function App() {
                       setCreateAdminErr('Name, Email, and Password are all required!');
                       return;
                     }
-                    const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to register new Admin "${newAdminName}":`);
+                    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to register new Admin "${newAdminName}":`);
                     if (!masterPass) {
                       setCreateAdminErr('Registration cancelled. Master key is required.');
                       return;
@@ -11234,7 +11337,7 @@ export default function App() {
                             <button 
                               onClick={async () => {
                                 playCyberSound('click');
-                                const masterPass = prompt(`Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`);
+                                const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`);
                                 if (!masterPass) return;
                                 if (isDemoMode) {
                                   setTeachers(prev => prev.map(t => t.id === adminUser.id ? { ...t, is_active: !t.is_active } : t));
@@ -11289,7 +11392,7 @@ export default function App() {
                                   playCyberSound('error');
                                   return;
                                 }
-                                const masterPass = prompt(`Enter Master Password to completely DELETE admin "${adminUser.email}":`);
+                                const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to completely DELETE admin "${adminUser.email}":`);
                                 if (!masterPass) return;
                                 if (isDemoMode) {
                                   setTeachers(prev => prev.filter(t => t.id !== adminUser.id));
@@ -11543,21 +11646,38 @@ export default function App() {
                             {inst.id === 1 ? (
                               <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem', fontStyle: 'italic', paddingRight: '12px' }}>System Default</span>
                             ) : (
-                              <button
-                                onClick={() => handleDeleteInstitution(inst.id, inst.name)}
-                                className="action-btn"
-                                style={{
-                                  padding: '5px 12px',
-                                  fontSize: '0.75rem',
-                                  background: 'rgba(239, 68, 68, 0.15)',
-                                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                                  color: '#ef4444',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Delete
-                              </button>
+                              <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button
+                                  onClick={() => { playCyberSound('click'); setEditingInst(inst); }}
+                                  className="action-btn"
+                                  style={{
+                                    padding: '5px 12px',
+                                    fontSize: '0.75rem',
+                                    background: 'rgba(0, 242, 254, 0.15)',
+                                    border: '1px solid rgba(0, 242, 254, 0.3)',
+                                    color: '#00f2fe',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteInstitution(inst.id, inst.name)}
+                                  className="action-btn"
+                                  style={{
+                                    padding: '5px 12px',
+                                    fontSize: '0.75rem',
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    color: '#ef4444',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -13851,6 +13971,227 @@ export default function App() {
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>
             <div>[SYS_STATE: GATE_LOCKS_ACTIVE]</div>
             <div>[BEACONS: TRUNCATED_OFFLINE]</div>
+          </div>
+        </div>
+      )}
+
+      {/* Sleek Institution Editing Modal */}
+      {editingInst && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(5, 8, 16, 0.8)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px',
+          boxSizing: 'border-box'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '500px',
+            width: '100%',
+            padding: '32px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+            border: '1.5px solid var(--border-color)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.6)',
+            animation: 'fadeInUp 0.3s ease'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🏫 Edit Institution Branding
+              </h3>
+              <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+                Modify colors, name, and access domain for this workspace tenant.
+              </p>
+            </div>
+
+            <form onSubmit={handleUpdateInstitution} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Institution Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editingInst.name}
+                  onChange={e => setEditingInst({ ...editingInst, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Subdomain Slug</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editingInst.slug}
+                  onChange={e => setEditingInst({ ...editingInst, slug: e.target.value })}
+                  required
+                  style={{ textTransform: 'lowercase' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Primary Color</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="color"
+                      value={editingInst.primary_color || '#4F46E5'}
+                      onChange={e => setEditingInst({ ...editingInst, primary_color: e.target.value })}
+                      style={{ width: '40px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'none' }}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editingInst.primary_color || '#4F46E5'}
+                      onChange={e => setEditingInst({ ...editingInst, primary_color: e.target.value })}
+                      required
+                      style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Secondary Color</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="color"
+                      value={editingInst.secondary_color || '#06B6D4'}
+                      onChange={e => setEditingInst({ ...editingInst, secondary_color: e.target.value })}
+                      style={{ width: '40px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'none' }}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editingInst.secondary_color || '#06B6D4'}
+                      onChange={e => setEditingInst({ ...editingInst, secondary_color: e.target.value })}
+                      required
+                      style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => { playCyberSound('click'); setEditingInst(null); }}
+                  className="btn-secondary"
+                  style={{ padding: '10px 20px', borderRadius: '8px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="action-btn"
+                  style={{ padding: '10px 24px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
+                  disabled={isUpdatingInst}
+                >
+                  {isUpdatingInst ? 'Updating...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Masked Password Prompt Modal */}
+      {masterKeyPrompt.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(5, 8, 16, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 99999,
+          padding: '20px',
+          boxSizing: 'border-box'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '420px',
+            width: '100%',
+            padding: '28px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
+            animation: 'fadeInUp 0.3s ease'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ 
+                background: 'rgba(239, 68, 68, 0.1)', 
+                color: '#ef4444', 
+                width: '40px', 
+                height: '40px', 
+                borderRadius: '10px', 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center' 
+              }}>
+                <Lock size={20} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: '#f8fafc' }}>
+                {masterKeyPrompt.title}
+              </h3>
+            </div>
+            
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#9ca3af', lineHeight: '1.5' }}>
+              {masterKeyPrompt.message}
+            </p>
+            
+            <input 
+              type="password"
+              className="form-input"
+              placeholder="Enter Master Password"
+              autoFocus
+              value={masterKeyPrompt.value}
+              onChange={(e) => setMasterKeyPrompt(prev => ({ ...prev, value: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  masterKeyPrompt.onConfirm(masterKeyPrompt.value);
+                  setMasterKeyPrompt({ isOpen: false, title: '', message: '', value: '', onConfirm: null, onCancel: null });
+                }
+              }}
+              style={{
+                width: '100%',
+                background: 'rgba(8, 12, 20, 0.5)',
+                padding: '12px 16px',
+                boxSizing: 'border-box',
+                fontSize: '0.95rem'
+              }}
+            />
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                onClick={() => {
+                  if (masterKeyPrompt.onCancel) masterKeyPrompt.onCancel();
+                  setMasterKeyPrompt({ isOpen: false, title: '', message: '', value: '', onConfirm: null, onCancel: null });
+                }}
+                className="btn-secondary"
+                style={{ padding: '10px 20px', borderRadius: '8px' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  masterKeyPrompt.onConfirm(masterKeyPrompt.value);
+                  setMasterKeyPrompt({ isOpen: false, title: '', message: '', value: '', onConfirm: null, onCancel: null });
+                }}
+                className="action-btn"
+                style={{ padding: '10px 24px', borderRadius: '8px' }}
+              >
+                Verify
+              </button>
+            </div>
           </div>
         </div>
       )}

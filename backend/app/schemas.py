@@ -236,3 +236,11 @@ class InstitutionCreate(BaseModel):
     admin_email: EmailStr
     admin_name: str
     admin_password: str
+
+# --- Institution Update ---
+class InstitutionUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
+    logo_url: Optional[str] = None

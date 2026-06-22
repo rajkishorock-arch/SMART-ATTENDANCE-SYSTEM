@@ -127,6 +127,7 @@ def create_institution(
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
 def delete_institution(
     id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -138,6 +139,15 @@ def delete_institution(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the Default System Administrator can manage institutions."
+        )
+
+    # Verify master password header
+    master_header = request.headers.get("x-master-password")
+    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+    if master_header != expected_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid Master Password! Master key verification is required to delete an institution."
         )
 
     if id == 1:
@@ -156,4 +166,85 @@ def delete_institution(
     db.delete(inst)
     db.commit()
     return {"message": "Institution deleted successfully."}
+
+@router.put("/{id}", response_model=schemas.InstitutionBrandingResponse)
+def update_institution(
+    id: int,
+    payload: schemas.InstitutionUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Update an institution's branding and naming details.
+    Only accessible by the admin of the Default Institution (id=1).
+    """
+    if current_user.role != "admin" or current_user.institution_id != 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the Default System Administrator can manage institutions."
+        )
+
+    # Verify master password header
+    master_header = request.headers.get("x-master-password")
+    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+    if master_header != expected_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid Master Password! Master key verification is required to update an institution."
+        )
+
+    inst = db.query(models.Institution).filter(models.Institution.id == id).first()
+    if not inst:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Institution not found."
+        )
+
+    if id == 1 and payload.slug and payload.slug.strip().lower() != "default":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The Default Institution slug cannot be changed from 'default'."
+        )
+
+    if payload.name is not None:
+        name_clean = payload.name.strip()
+        if name_clean:
+            # Check for name uniqueness
+            existing_name = db.query(models.Institution).filter(
+                models.Institution.name == name_clean,
+                models.Institution.id != id
+            ).first()
+            if existing_name:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"An institution named '{name_clean}' already exists."
+                )
+            inst.name = name_clean
+
+    if payload.slug is not None:
+        slug_clean = payload.slug.strip().lower()
+        if slug_clean:
+            # Check for slug uniqueness
+            existing_slug = db.query(models.Institution).filter(
+                models.Institution.slug == slug_clean,
+                models.Institution.id != id
+            ).first()
+            if existing_slug:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"An institution with slug '{slug_clean}' already exists."
+                )
+            inst.slug = slug_clean
+
+    if payload.primary_color is not None:
+        inst.primary_color = payload.primary_color
+    if payload.secondary_color is not None:
+        inst.secondary_color = payload.secondary_color
+    if payload.logo_url is not None:
+        inst.logo_url = payload.logo_url
+
+    db.commit()
+    db.refresh(inst)
+    return inst
 
