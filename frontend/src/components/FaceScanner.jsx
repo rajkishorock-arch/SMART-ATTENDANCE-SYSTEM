@@ -256,6 +256,13 @@ export default function FaceScanner({
   const [lastResult,  setLastResult]  = useState(null); // for card below
   const [backCamUnavailable, setBackCamUnavailable] = useState(false);
 
+  // Default to false on mobile/Capacitor to avoid heavy WASM/WebGL model loading crashes
+  const isMobileOrCapacitor = 
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    window.location.protocol === 'capacitor:' || 
+    (typeof window.Capacitor !== 'undefined');
+  const [livenessEnabled, setLivenessEnabled] = useState(!isMobileOrCapacitor);
+
   // Keep ref in sync with state so animation loop always sees current value
   useEffect(() => { facingModeRef.current = facingMode; }, [facingMode]);
 
@@ -451,8 +458,8 @@ export default function FaceScanner({
               box: scaledBox,
               info: { name: face.name, roll: face.roll, dep: face.dep },
               confidence: face.confidence,
-              verified: false,
-              blinkCount: 0,
+              verified: !livenessEnabled,
+              blinkCount: !livenessEnabled ? BLINKS_NEEDED : 0,
               lastSeen: now,
             };
             tracksRef.current.push(track);
@@ -468,6 +475,10 @@ export default function FaceScanner({
             track.info       = { name: face.name, roll: face.roll, dep: face.dep };
             track.confidence = face.confidence;
             track.lastSeen   = now;
+            if (!livenessEnabled) {
+              track.verified = true;
+              track.blinkCount = BLINKS_NEEDED;
+            }
           }
 
           // mark attendance after liveness
@@ -505,7 +516,7 @@ export default function FaceScanner({
       isScanningRef.current = false;
     }
   }, [camReady, token, apiBaseUrl, selectedSubjectId, userCoords,
-      sessionActive, sessionPeriod, sessionDate, onAttendanceMarked, addDiagnosticLog]);
+      sessionActive, sessionPeriod, sessionDate, onAttendanceMarked, addDiagnosticLog, livenessEnabled]);
 
   /* ─────────────────────── Mediapipe FaceMesh liveness loop ── */
   useEffect(() => {
@@ -515,6 +526,13 @@ export default function FaceScanner({
     blinkCountRef.current = 0;
     blinkStateRef.current = 'open';
     livenessRef.current = false;
+
+    if (!livenessEnabled) {
+      // Auto-verify immediately when liveness is disabled
+      livenessRef.current = true;
+      tracksRef.current.forEach(tr => { tr.verified = true; tr.blinkCount = BLINKS_NEEDED; });
+      return;
+    }
 
     if (!window.FaceMesh) {
       console.warn('[FaceScanner] FaceMesh not available globally — skipping liveness.');
@@ -526,33 +544,41 @@ export default function FaceScanner({
       return () => clearTimeout(t);
     }
 
-    const fm = new window.FaceMesh({
-      locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
-    });
-    fm.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.6,
-    });
+    let fm;
+    try {
+      fm = new window.FaceMesh({
+        locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
+      });
+      fm.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6,
+      });
 
-    fm.onResults((res) => {
-      if (!res.multiFaceLandmarks?.length) return;
-      const lm = res.multiFaceLandmarks[0];
-      const ear = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
+      fm.onResults((res) => {
+        if (!res.multiFaceLandmarks?.length) return;
+        const lm = res.multiFaceLandmarks[0];
+        const ear = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
 
-      if (ear < EAR_THRESH) {
-        blinkStateRef.current = 'closed';
-      } else if (blinkStateRef.current === 'closed') {
-        blinkStateRef.current = 'open';
-        blinkCountRef.current = Math.min(blinkCountRef.current + 1, BLINKS_NEEDED);
-        // propagate to all current tracks
-        tracksRef.current.forEach(tr => {
-          tr.blinkCount = blinkCountRef.current;
-          if (blinkCountRef.current >= BLINKS_NEEDED) tr.verified = true;
-        });
-      }
-    });
+        if (ear < EAR_THRESH) {
+          blinkStateRef.current = 'closed';
+        } else if (blinkStateRef.current === 'closed') {
+          blinkStateRef.current = 'open';
+          blinkCountRef.current = Math.min(blinkCountRef.current + 1, BLINKS_NEEDED);
+          // propagate to all current tracks
+          tracksRef.current.forEach(tr => {
+            tr.blinkCount = blinkCountRef.current;
+            if (blinkCountRef.current >= BLINKS_NEEDED) tr.verified = true;
+          });
+        }
+      });
+    } catch (fmInitErr) {
+      console.error('[FaceScanner] Failed to instantiate FaceMesh solution:', fmInitErr);
+      addDiagnosticLog?.('WARN: FaceMesh initialization failed. Disabling client liveness.');
+      setLivenessEnabled(false);
+      return;
+    }
 
     faceMeshRef.current = fm;
 
@@ -580,7 +606,7 @@ export default function FaceScanner({
       faceMeshRef.current = null;
       try { fm.close(); } catch {} // close after loop is flagged stopped
     };
-  }, [camReady]);
+  }, [camReady, livenessEnabled, addDiagnosticLog]);
 
   /* ─────────────────────────────── HUD animation loop ── */
   useEffect(() => {
@@ -770,8 +796,28 @@ export default function FaceScanner({
           🔄 {facingMode === 'user' ? 'BACK CAM' : 'FRONT CAM'}
         </button>
 
-        {/* blink counter badge */}
+        {/* liveness toggle button (top-left) */}
         {camReady && (
+          <button
+            onClick={() => setLivenessEnabled(prev => !prev)}
+            title="Toggle Eye-Blink Liveness check"
+            style={{
+              position:'absolute', top:'10px', left:'10px', zIndex:20,
+              background:'rgba(0,0,0,0.55)',
+              border: livenessEnabled ? '1px solid rgba(0,242,254,0.4)' : '1px solid rgba(255,165,0,0.4)',
+              color: livenessEnabled ? '#00f2fe' : '#ffa500',
+              borderRadius:'8px',
+              padding:'5px 10px', fontSize:'0.72rem',
+              cursor:'pointer', fontFamily:'monospace',
+              backdropFilter:'blur(4px)',
+            }}
+          >
+            👁️ LIVENESS: {livenessEnabled ? 'ON' : 'OFF'}
+          </button>
+        )}
+
+        {/* blink counter badge */}
+        {camReady && livenessEnabled && (
           <div style={{
             position:'absolute', bottom:'10px', left:'10px', zIndex:20,
             background:'rgba(0,0,0,0.6)',
@@ -783,6 +829,21 @@ export default function FaceScanner({
           }}>
             👁 BLINK: {Math.min(blinkCountRef.current, BLINKS_NEEDED)}/{BLINKS_NEEDED}
             {blinkCountRef.current >= BLINKS_NEEDED ? ' ✓ VERIFIED' : ''}
+          </div>
+        )}
+
+        {/* liveness bypassed badge */}
+        {camReady && !livenessEnabled && (
+          <div style={{
+            position:'absolute', bottom:'10px', left:'10px', zIndex:20,
+            background:'rgba(0,0,0,0.6)',
+            border:'1px solid #00ff88',
+            color: '#00ff88',
+            borderRadius:'8px', padding:'4px 10px',
+            fontSize:'0.7rem', fontFamily:'monospace',
+            backdropFilter:'blur(4px)',
+          }}>
+            👁 LIVENESS: BYPASSED
           </div>
         )}
       </div>
