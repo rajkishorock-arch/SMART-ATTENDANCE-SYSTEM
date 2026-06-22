@@ -4501,8 +4501,11 @@ export default function App() {
   const checkServerConnection = async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
-      const res = await fetch(`${API_BASE_URL}/health/`, { signal: controller.signal });
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for Render cold starts
+      const res = await fetch(`${API_BASE_URL}/health/`, {
+        signal: controller.signal,
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       clearTimeout(timeoutId);
       if (res.ok) {
         setServerWarmingUp(false);
@@ -4933,7 +4936,7 @@ export default function App() {
     setSettingsIpRanges('192.168.1.0/24');
   };
 
-  // Handle Login submission
+  // Handle Login submission (with auto-retry for Render cold starts)
   const handleLogin = async (e) => {
     e.preventDefault();
     playCyberSound('click');
@@ -4944,46 +4947,70 @@ export default function App() {
     formData.append('username', loginEmail);
     formData.append('password', loginPassword);
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Tenant-Slug': getActiveTenantSlug(),
-        },
-        body: formData,
-      });
+    const MAX_RETRIES = 2;
+    let lastError = null;
 
-      const data = await res.json();
-      if (res.ok) {
-        const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${data.access_token}` },
-        });
-
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          if (meData.role !== loginRole) {
-            playCyberSound('error');
-            setAuthError(getRoleMismatchMessage(loginRole, meData.role));
-            setIsLoading(false);
-            return;
-          }
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          setAuthError(`Server waking up... Retrying (${attempt}/${MAX_RETRIES})...`);
+          await new Promise(r => setTimeout(r, 3000)); // wait 3s between retries
         }
 
-        playCyberSound('success');
-        localStorage.setItem('token', data.access_token);
-        localStorage.setItem('loginRole', loginRole);
-        setToken(data.access_token);
-      } else {
-        playCyberSound('error');
-        setAuthError(data.detail || 'Incorrect email or password');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+        const res = await fetch(`${API_BASE_URL}/auth/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Tenant-Slug': getActiveTenantSlug(),
+          },
+          body: formData,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        const data = await res.json();
+        if (res.ok) {
+          const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${data.access_token}` },
+          });
+
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            if (meData.role !== loginRole) {
+              playCyberSound('error');
+              setAuthError(getRoleMismatchMessage(loginRole, meData.role));
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          playCyberSound('success');
+          setAuthError('');
+          localStorage.setItem('token', data.access_token);
+          localStorage.setItem('loginRole', loginRole);
+          setToken(data.access_token);
+          return; // success — exit retry loop
+        } else {
+          playCyberSound('error');
+          setAuthError(data.detail || 'Incorrect email or password');
+          setIsLoading(false);
+          return; // server responded with an auth error — no retry needed
+        }
+      } catch (err) {
+        lastError = err;
+        console.log(`Login attempt ${attempt + 1} failed:`, err.message);
+        // Continue to retry on network errors
       }
-    } catch (err) {
-      playCyberSound('error');
-      setAuthError('Connection error: ' + (err.message || 'Server unreachable') + '. Please check phone internet & Render status.');
-    } finally {
-      setIsLoading(false);
     }
+
+    // All retries exhausted
+    playCyberSound('error');
+    setAuthError('Server is starting up. Please wait 30-60 seconds and try again. (Render free tier cold start)');
+    setServerWarmingUp(true);
+    setIsLoading(false);
   };
 
   // Handle Logout

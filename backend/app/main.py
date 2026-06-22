@@ -571,7 +571,43 @@ def on_shutdown():
 
 @app.get("/", tags=["Root"])
 def read_root():
-    return {"message": "Welcome to the Face Recognition Attendance System API"}
+    from app.database import SessionLocal
+    from sqlalchemy import text
+    from app import models
+    db = SessionLocal()
+    diagnostics = {}
+    try:
+        db.execute(text("SELECT 1"))
+        diagnostics["basic_ping"] = "OK"
+        
+        try:
+            inst = db.query(models.Institution).first()
+            diagnostics["query_institution"] = f"OK (found ID {inst.id if inst else 'none'})"
+        except Exception as inst_err:
+            diagnostics["query_institution_error"] = str(inst_err)
+
+        try:
+            user = db.query(models.User).first()
+            diagnostics["query_user"] = f"OK (found ID {user.id if user else 'none'})"
+        except Exception as user_err:
+            diagnostics["query_user_error"] = str(user_err)
+
+        try:
+            audit = db.query(models.AuditLog).first()
+            diagnostics["query_audit"] = f"OK (found ID {audit.id if audit else 'none'})"
+        except Exception as audit_err:
+            diagnostics["query_audit_error"] = str(audit_err)
+
+    except Exception as e:
+        diagnostics["error"] = str(e)
+    finally:
+        db.close()
+        
+    return {
+        "message": "Welcome to the Face Recognition Attendance System API",
+        "diagnostics": diagnostics
+    }
+
 
 app.include_router(api_router, prefix="/api/v1")
 
