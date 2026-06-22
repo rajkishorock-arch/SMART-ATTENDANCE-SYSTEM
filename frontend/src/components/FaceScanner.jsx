@@ -52,9 +52,21 @@ function calcEAR(lm, idx) {
   } catch { return 0; }
 }
 
-/* Draw the desktop-style HUD onto a 2d canvas context */
-function drawHUD(ctx, cw, ch, tracks, scanPhase) {
+/* Draw the desktop-style HUD onto a 2d canvas context.
+   isMirrored=true means the video element is flipped (front cam),
+   so we flip the canvas context before drawing so that the HUD
+   (text, panels, brackets) all appear correctly oriented. */
+function drawHUD(ctx, cw, ch, tracks, scanPhase, isMirrored) {
   ctx.clearRect(0, 0, cw, ch);
+
+  // When front camera is active the video is CSS-mirrored.
+  // Mirror the canvas context too so the HUD stays aligned with
+  // the video, then un-mirror just for text rendering.
+  if (isMirrored) {
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.translate(-cw, 0);
+  }
 
   /* ── outer corner brackets (like the boot sequence corners) ── */
   const BL = 28, BT = 3;
@@ -117,7 +129,8 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase) {
     ctx.beginPath(); ctx.arc(bx+bw, fScanY, 3, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1;
 
-    /* info panel — exactly like desktop screenshot */
+    /* info panel — exactly like desktop screenshot.
+       We temporarily un-mirror context so text reads correctly. */
     const panelLines = isKnown ? [
       `NAME: ${info.name}`,
       `ROLL: ${info.roll}`,
@@ -138,34 +151,68 @@ function drawHUD(ctx, cw, ch, tracks, scanPhase) {
     let py = by;
     if (px + PW > cw) { px = bx; py = Math.max(8, by - PTOTAL - 8); }
 
-    // semi-transparent black bg
+    // Draw panel background + border in mirrored space (geometry OK)
     ctx.save();
     ctx.globalAlpha = 0.72;
     ctx.fillStyle = '#000';
     ctx.fillRect(px, py, PW, PTOTAL);
     ctx.globalAlpha = 1;
-    // colored border
     ctx.strokeStyle = color; ctx.lineWidth = 1;
     ctx.strokeRect(px, py, PW, PTOTAL);
     ctx.restore();
 
-    // text
-    ctx.font = '11px "Courier New", monospace';
-    panelLines.forEach((line, i) => {
-      const lineColor = i === panelLines.length - 1
-        ? (verified ? '#00ff88' : '#ffcc00')
-        : '#ffffff';
-      ctx.fillStyle = lineColor;
-      ctx.fillText(line, px + 8, py + PAD + 11 + i * PH);
-    });
+    // Un-mirror just for text so it reads left-to-right
+    ctx.save();
+    if (isMirrored) {
+      // We are currently in flipped space: x_screen = cw - x_canvas
+      // To draw text at screen position (px, py), we need canvas x = cw - px - PW
+      ctx.scale(-1, 1);
+      ctx.translate(-cw, 0);
+      // now we're back to normal screen space — mirror the x for text
+      const textX = cw - px - PW;
+      ctx.font = '11px "Courier New", monospace';
+      panelLines.forEach((line, i) => {
+        const lineColor = i === panelLines.length - 1
+          ? (verified ? '#00ff88' : '#ffcc00')
+          : '#ffffff';
+        ctx.fillStyle = lineColor;
+        ctx.fillText(line, textX + 8, py + PAD + 11 + i * PH);
+      });
+    } else {
+      ctx.font = '11px "Courier New", monospace';
+      panelLines.forEach((line, i) => {
+        const lineColor = i === panelLines.length - 1
+          ? (verified ? '#00ff88' : '#ffcc00')
+          : '#ffffff';
+        ctx.fillStyle = lineColor;
+        ctx.fillText(line, px + 8, py + PAD + 11 + i * PH);
+      });
+    }
+    ctx.restore();
   }
 
-  /* ── status text in corner ── */
-  ctx.font = 'bold 10px "Courier New", monospace';
-  ctx.fillStyle = '#00f2fe';
-  ctx.globalAlpha = 0.75;
-  ctx.fillText(`● BIOMETRIC SCAN ACTIVE`, 20, ch - 12);
+  /* ── status text in corner — un-mirror for readability ── */
+  ctx.save();
+  if (isMirrored) {
+    ctx.scale(-1, 1);
+    ctx.translate(-cw, 0);
+    ctx.font = 'bold 10px "Courier New", monospace';
+    ctx.fillStyle = '#00f2fe';
+    ctx.globalAlpha = 0.75;
+    ctx.fillText(`● BIOMETRIC SCAN ACTIVE`, 20, ch - 12);
+  } else {
+    ctx.font = 'bold 10px "Courier New", monospace';
+    ctx.fillStyle = '#00f2fe';
+    ctx.globalAlpha = 0.75;
+    ctx.fillText(`● BIOMETRIC SCAN ACTIVE`, 20, ch - 12);
+  }
   ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Restore mirrored transform
+  if (isMirrored) {
+    ctx.restore();
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -196,6 +243,7 @@ export default function FaceScanner({
   const blinkCountRef = useRef(0);
   const livenessRef   = useRef(false);
   const isScanningRef = useRef(false);  // prevent overlapping API calls
+  const facingModeRef = useRef('user'); // always-current copy for rAF loop
 
   /* ── state ── */
   const [camReady,    setCamReady]    = useState(false);
@@ -206,6 +254,10 @@ export default function FaceScanner({
   const [error,       setError]       = useState('');
   const [statusText,  setStatusText]  = useState('Camera Offline');
   const [lastResult,  setLastResult]  = useState(null); // for card below
+  const [backCamUnavailable, setBackCamUnavailable] = useState(false);
+
+  // Keep ref in sync with state so animation loop always sees current value
+  useEffect(() => { facingModeRef.current = facingMode; }, [facingMode]);
 
   /* ─────────────────────────────────── camera open ── */
   const openCamera = useCallback(async (mode = 'user') => {
@@ -224,6 +276,29 @@ export default function FaceScanner({
       setBootPct(30);
       setBootStep('CALIBRATING BIOMETRIC SENSORS...');
       let stream;
+
+      // Check if the requested facing mode camera actually exists on this device
+      if (mode === 'environment') {
+        let devices = [];
+        try {
+          devices = await navigator.mediaDevices.enumerateDevices();
+        } catch {}
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        // On most laptops there is only one front-facing camera.
+        // If only one video device exists, back camera is not available.
+        const hasBackCam = videoDevices.length > 1 ||
+          videoDevices.some(d => /back|rear|environment/i.test(d.label));
+        if (!hasBackCam) {
+          setBooting(false);
+          setFacingMode('user'); // revert to front
+          setBackCamUnavailable(true);
+          // Auto-hide the message after 4 seconds
+          setTimeout(() => setBackCamUnavailable(false), 4000);
+          addDiagnosticLog?.('INFO: Back camera not available on this device.');
+          return;
+        }
+      }
+
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width:{ideal:1280}, height:{ideal:720}, facingMode: mode }
@@ -233,7 +308,19 @@ export default function FaceScanner({
           stream = await navigator.mediaDevices.getUserMedia({
             video: { width:640, height:480, facingMode: mode }
           });
-        } catch {
+        } catch (innerErr) {
+          // If back camera fails with OverconstrainedError / NotFoundError, treat as unavailable
+          if (mode === 'environment' &&
+              (innerErr?.name === 'OverconstrainedError' ||
+               innerErr?.name === 'NotFoundError' ||
+               innerErr?.name === 'NotReadableError')) {
+            setBooting(false);
+            setFacingMode('user');
+            setBackCamUnavailable(true);
+            setTimeout(() => setBackCamUnavailable(false), 4000);
+            addDiagnosticLog?.('INFO: Back camera not available on this device.');
+            return;
+          }
           stream = await navigator.mediaDevices.getUserMedia({ video: true });
         }
       }
@@ -501,7 +588,9 @@ export default function FaceScanner({
         canvas.height = video.videoHeight;
       }
       const ctx = canvas.getContext('2d');
-      drawHUD(ctx, canvas.width, canvas.height, tracksRef.current, scanPhaseRef.current);
+      // Pass isMirrored so text panels render correctly (use ref — rAF closure would otherwise be stale)
+      const isMirrored = facingModeRef.current === 'user';
+      drawHUD(ctx, canvas.width, canvas.height, tracksRef.current, scanPhaseRef.current, isMirrored);
       animFrameRef.current = requestAnimationFrame(loop);
     };
 
@@ -573,7 +662,8 @@ export default function FaceScanner({
           }}
         />
 
-        {/* HUD canvas overlay */}
+        {/* HUD canvas overlay — NO CSS mirror here; mirroring is handled
+             inside drawHUD() so that text/panels always appear readable. */}
         <canvas
           ref={canvasRef}
           style={{
@@ -581,7 +671,6 @@ export default function FaceScanner({
             width: '100%', height: '100%',
             pointerEvents: 'none',
             display: camReady ? 'block' : 'none',
-            transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
           }}
         />
 
@@ -689,6 +778,31 @@ export default function FaceScanner({
           </div>
         )}
       </div>
+
+      {/* ── back camera unavailable friendly message ── */}
+      {backCamUnavailable && (
+        <div style={{
+          padding:'14px 18px',
+          background:'linear-gradient(135deg,rgba(255,165,0,0.12),rgba(255,100,0,0.08))',
+          border:'1px solid rgba(255,165,0,0.45)',
+          borderRadius:'12px',
+          display:'flex', alignItems:'center', gap:'12px',
+          animation:'fadeIn 0.3s ease',
+        }}>
+          <span style={{ fontSize:'1.6rem' }}>📷</span>
+          <div>
+            <div style={{ color:'#ffa500', fontSize:'0.85rem',
+                          fontFamily:'monospace', fontWeight:700,
+                          letterSpacing:'0.06em', marginBottom:'3px' }}>
+              REAR CAMERA UNAVAILABLE
+            </div>
+            <div style={{ color:'rgba(255,200,100,0.85)', fontSize:'0.78rem',
+                          fontFamily:'monospace' }}>
+              Your device doesn't have a back camera. Staying on front camera. 😊
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── error ── */}
       {error && (
