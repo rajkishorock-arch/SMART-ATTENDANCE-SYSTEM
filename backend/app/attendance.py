@@ -82,6 +82,7 @@ async def recognize_and_mark_attendance(
     subject_id: Optional[int] = None,
     custom_date: Optional[str] = None,
     custom_time: Optional[str] = None,
+    liveness_token: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -94,6 +95,12 @@ async def recognize_and_mark_attendance(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can run the attendance scanner."
         )
+
+    # Server-side liveness validation (optional but recommended)
+    if liveness_token:
+        from .liveness_service import verify_liveness_token
+        if not verify_liveness_token(liveness_token, current_user.email):
+            raise HTTPException(status_code=403, detail="Invalid or expired liveness token. Complete blink challenge first.")
         
     if current_user.role == "teacher":
         if subject_id is None:
@@ -164,7 +171,7 @@ async def recognize_and_mark_attendance(
         raise HTTPException(status_code=400, detail="Invalid image frame.")
 
     # Refresh student records from DB to ensure memory cache is current
-    recognition_service.load_student_records(db)
+    recognition_service.load_student_records(db, institution_id=current_user.institution_id)
 
     # Perform face recognition
     try:
@@ -351,6 +358,21 @@ def send_absentee_alerts(
                 date_str=today_str
             )
             queued_count += 1
+        parent = db.query(models.ParentAccount).filter(
+            models.ParentAccount.student_id == student.id,
+            models.ParentAccount.institution_id == current_user.institution_id,
+        ).first()
+        if parent and (parent.notify_sms or parent.notify_whatsapp):
+            from .notification_service import notify_parent_absent
+            background_tasks.add_task(
+                notify_parent_absent,
+                parent.phone or student.parent_phone,
+                parent.email,
+                student.name or "Student",
+                today_str,
+                parent.notify_sms,
+                parent.notify_whatsapp,
+            )
 
     # Log action in Audit logs
     crud.create_audit_log(

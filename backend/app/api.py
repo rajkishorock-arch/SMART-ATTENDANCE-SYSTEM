@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from . import auth, users, attendance, settings, subjects, health, feedback, chat, institutions, departments
+from . import liveness, bulk_import, analytics, parents, billing, sso, erp, audit_router, enrollment, offline_sync, schedules_auto
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
@@ -12,7 +13,16 @@ api_router.include_router(feedback.router, prefix="/feedbacks", tags=["Feedback"
 api_router.include_router(chat.router, prefix="/chat", tags=["AI Chatbot"])
 api_router.include_router(institutions.router, prefix="/institutions", tags=["Institutions"])
 api_router.include_router(departments.router, prefix="/departments", tags=["Departments"])
-
-
+api_router.include_router(liveness.router, prefix="/liveness", tags=["Liveness"])
+api_router.include_router(bulk_import.router, prefix="/bulk-import", tags=["Bulk Import"])
+api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+api_router.include_router(parents.router, prefix="/parents", tags=["Parents"])
+api_router.include_router(billing.router, prefix="/billing", tags=["Billing"])
+api_router.include_router(sso.router, prefix="/sso", tags=["SSO"])
+api_router.include_router(erp.router, prefix="/erp", tags=["ERP API"])
+api_router.include_router(audit_router.router, prefix="/audit", tags=["Audit Trail"])
+api_router.include_router(enrollment.router, prefix="/enrollment", tags=["Enrollment"])
+api_router.include_router(offline_sync.router, prefix="/offline", tags=["Offline Sync"])
+api_router.include_router(schedules_auto.router, prefix="/schedules-auto", tags=["Auto Session"])
 
 

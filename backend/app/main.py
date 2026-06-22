@@ -152,6 +152,41 @@ def update_schema():
             print("Added composite unique key (MySQL syntax)")
         except Exception:
             pass
+
+        # --- Advanced feature columns (idempotent migrations) ---
+        def add_column_if_missing(table, column, col_def):
+            if table not in inspector.get_table_names():
+                return
+            cols = [c['name'] for c in inspector.get_columns(table)]
+            if column not in cols:
+                try:
+                    db.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}"))
+                    db.commit()
+                    print(f"Added {column} to {table}")
+                except Exception as ex:
+                    print(f"Skip {table}.{column}: {ex}")
+
+        add_column_if_missing('institutions', 'app_name', 'VARCHAR(100) NULL')
+        add_column_if_missing('institutions', 'custom_domain', 'VARCHAR(200) NULL')
+        add_column_if_missing('institutions', 'faq_json', 'TEXT NULL')
+        add_column_if_missing('institutions', 'subscription_plan', "VARCHAR(50) DEFAULT 'free'")
+        add_column_if_missing('institutions', 'subscription_status', "VARCHAR(50) DEFAULT 'active'")
+        add_column_if_missing('institutions', 'razorpay_key_id', 'VARCHAR(100) NULL')
+        add_column_if_missing('institutions', 'student_limit', 'INT DEFAULT 500')
+        add_column_if_missing('users', 'department', 'VARCHAR(100) NULL')
+        add_column_if_missing('users', 'is_department_head', 'BOOLEAN DEFAULT 0')
+        add_column_if_missing('users', 'sso_provider', 'VARCHAR(50) NULL')
+        add_column_if_missing('users', 'sso_subject', 'VARCHAR(200) NULL')
+        add_column_if_missing('student', 'face_enrolled_at', 'DATETIME NULL')
+        add_column_if_missing('student', 'parent_name', 'VARCHAR(100) NULL')
+        add_column_if_missing('student', 'parent_email', 'VARCHAR(100) NULL')
+        add_column_if_missing('student', 'parent_phone', 'VARCHAR(45) NULL')
+        add_column_if_missing('student', 'consent_given', 'BOOLEAN DEFAULT 0')
+        add_column_if_missing('student', 'consent_at', 'DATETIME NULL')
+
+        # Create new tables for advanced features
+        from app.database import Base
+        Base.metadata.create_all(bind=engine)
     except Exception as e:
         print("Schema update check failed:", e)
     finally:

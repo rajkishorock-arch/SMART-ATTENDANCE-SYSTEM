@@ -36,9 +36,10 @@ def get_current_any_user(db: Session = Depends(get_db), token: str = Depends(sec
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = payload.get("sub")
         role: str = payload.get("role")
+        institution_id: int = payload.get("institution_id")
         if email is None or role is None:
             raise credentials_exception
-        return {"email": email, "role": role}
+        return {"email": email, "role": role, "institution_id": institution_id}
     except JWTError:
         raise credentials_exception
 
@@ -143,6 +144,21 @@ def chat_response(
             f"{payload.user_context}\n"
             f"Use this profile context to directly address personal queries (e.g. attendance percentage, mentor, roll number, name) if asked."
         )
+
+    # Institution-specific FAQ from database
+    try:
+        from .database import SessionLocal
+        from . import models
+        if user_info.get("institution_id"):
+            db_faq = SessionLocal()
+            inst = db_faq.query(models.Institution).filter(
+                models.Institution.id == user_info["institution_id"]
+            ).first()
+            if inst and inst.faq_json:
+                system_instruction += f"\n\n[INSTITUTION FAQ]\n{inst.faq_json}\nUse this FAQ to answer institution-specific questions."
+            db_faq.close()
+    except Exception:
+        pass
     
     body = {
         "contents": contents,

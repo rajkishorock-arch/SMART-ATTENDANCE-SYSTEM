@@ -1,11 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel
 import os
 from . import models, schemas, security
 from .database import get_db
 
 router = APIRouter()
+
+
+class InstitutionFaqUpdate(BaseModel):
+    faq_json: str
+    app_name: Optional[str] = None
 
 @router.get("/", response_model=List[schemas.InstitutionBrandingResponse])
 def list_institutions(db: Session = Depends(get_db)):
@@ -308,4 +314,25 @@ def update_institution(
     db.commit()
     db.refresh(inst)
     return inst
+
+
+@router.put("/{id}/faq")
+def update_institution_faq(
+    id: int,
+    payload: InstitutionFaqUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    if current_user.institution_id != id and current_user.institution_id != 1:
+        raise HTTPException(status_code=403, detail="Cannot update another institution")
+    inst = db.query(models.Institution).filter(models.Institution.id == id).first()
+    if not inst:
+        raise HTTPException(status_code=404, detail="Institution not found")
+    inst.faq_json = payload.faq_json
+    if payload.app_name:
+        inst.app_name = payload.app_name
+    db.commit()
+    return {"message": "FAQ updated", "institution_id": id}
 

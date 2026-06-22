@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import json
 from sqlalchemy.orm import Session
 
 class RecognitionService:
@@ -8,7 +9,20 @@ class RecognitionService:
         self.detector = None
         self.recognizer = None
         self.student_records = {}
+        self._cache_version = {}
         self._load_models()
+
+    def invalidate_cache(self, institution_id: int = None):
+        """Invalidate recognition cache for an institution or globally."""
+        from .cache_service import bump_recognition_version, cache_delete_pattern
+        if institution_id is not None:
+            bump_recognition_version(institution_id)
+            self._cache_version.pop(institution_id, None)
+            cache_delete_pattern(f"recognition:embeddings:{institution_id}")
+        else:
+            self.student_records = {}
+            self._cache_version = {}
+            cache_delete_pattern("recognition:")
 
     def _load_models(self):
         """Loads the YuNet detector and SFace recognizer via face_utils helper."""
@@ -21,19 +35,27 @@ class RecognitionService:
             self.detector = None
             self.recognizer = None
 
-    def load_student_records(self, db: Session):
-        """Loads all registered student profiles and their face embeddings from DB into memory."""
+    def load_student_records(self, db: Session, institution_id: int = None):
+        """Loads student embeddings, scoped by institution with version-based cache."""
         from . import models
-        import json
+        from .cache_service import get_recognition_version
+        
+        if institution_id is not None:
+            version = get_recognition_version(institution_id)
+            if self._cache_version.get(institution_id) == version and self.student_records:
+                return
         
         try:
-            students = db.query(models.StudentModel).filter(models.StudentModel.face_embedding != None).all()
-            self.student_records = {}
+            query = db.query(models.StudentModel).filter(models.StudentModel.face_embedding != None)
+            if institution_id is not None:
+                query = query.filter(models.StudentModel.institution_id == institution_id)
+            students = query.all()
+            records = {}
             for s in students:
                 try:
                     emb = json.loads(s.face_embedding)
                     emb_np = np.array(emb, dtype=np.float32).reshape(1, -1)
-                    self.student_records[s.id] = {
+                    records[s.id] = {
                         "name": s.name,
                         "roll": s.roll,
                         "dep": s.dep,
@@ -42,6 +64,9 @@ class RecognitionService:
                     }
                 except Exception as parse_err:
                     print(f"Failed to parse embedding for student ID {s.id}: {parse_err}")
+            self.student_records = records
+            if institution_id is not None:
+                self._cache_version[institution_id] = get_recognition_version(institution_id)
             print(f"Loaded {len(self.student_records)} student embeddings for recognition.")
         except Exception as db_err:
             print(f"Database query failed in load_student_records: {db_err}")

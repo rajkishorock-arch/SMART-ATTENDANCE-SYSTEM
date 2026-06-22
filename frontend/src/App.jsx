@@ -6,6 +6,11 @@ import { getActiveTenantSlug } from './utils/tenantConfig';
 import MobileControlPanel from './components/MobileControlPanel';
 import GamificationHub from './components/GamificationHub';
 import NotificationCenter from './components/NotificationCenter';
+import AdvancedFeaturesHub from './components/AdvancedFeaturesHub';
+import ConsentModal from './components/ConsentModal';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import { setupOfflineSyncListener } from './utils/offlineQueue';
+import { completeLivenessFlow } from './utils/livenessClient';
 import LiveActivityTicker from './components/LiveActivityTicker';
 import AppAmbientLayer from './components/animations/AppAmbientLayer';
 import ClickFxLayer from './components/animations/ClickFxLayer';
@@ -47,7 +52,8 @@ import {
   Mic,
   MicOff,
   Settings,
-  Phone
+  Phone,
+  BarChart3,
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -152,6 +158,12 @@ export default function App() {
   ]);
   const [lockdownActive, setLockdownActive] = useState(false);
   const [scannedStudent, setScannedStudent] = useState(null);
+  const [showConsentModal, setShowConsentModal] = useState(
+    () => localStorage.getItem('biometric_consent') !== 'true'
+  );
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const livenessTokenRef = useRef(null);
+  const [autoSessionInfo, setAutoSessionInfo] = useState(null);
 
   const addDiagnosticLog = (msg) => {
     const time = new Date().toLocaleTimeString();
@@ -390,6 +402,24 @@ export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || '');
   const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    return setupOfflineSyncListener(API_BASE_URL, () => token);
+  }, [token]);
+
+  const handleConsentAccept = async () => {
+    localStorage.setItem('biometric_consent', 'true');
+    setShowConsentModal(false);
+    if (token && userRole === 'student') {
+      try {
+        await fetch(`${API_BASE_URL}/users/students/me/consent`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (_) { /* optional */ }
+    }
+  };
   const [sessionFetchError, setSessionFetchError] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -1686,6 +1716,23 @@ export default function App() {
   const [schedules, setSchedules] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
+
+  useEffect(() => {
+    if (activeTab !== 'attendance' || !token || userRole === 'student') return;
+    fetch(`${API_BASE_URL}/schedules-auto/current-session`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.active && data.session) {
+          setAutoSessionInfo(data.session);
+          if (!selectedSubjectId && data.session.subject_id) {
+            setSelectedSubjectId(String(data.session.subject_id));
+          }
+        }
+      })
+      .catch(() => {});
+  }, [activeTab, token, userRole, selectedSubjectId]);
   const [selectedTeacherSubjectId, setSelectedTeacherSubjectId] = useState('');
   const [selectedReportSubjectId, setSelectedReportSubjectId] = useState('');
   const [selectedTeacherLogSubjectId, setSelectedTeacherLogSubjectId] = useState('');
@@ -2724,6 +2771,10 @@ export default function App() {
         if (sessionActive) {
           queryParams.append('custom_date', sessionDate);
           queryParams.append('custom_time', sessionPeriod);
+        }
+        if (livenessTokenRef.current) {
+          queryParams.append('liveness_token', livenessTokenRef.current);
+          livenessTokenRef.current = null;
         }
 
         const res = await fetch(`${API_BASE_URL}/attendance/recognize-frame?${queryParams.toString()}`, {
@@ -10338,6 +10389,20 @@ export default function App() {
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Configure active college departments and branches. Custom departments will dynamically populate dropdowns.</p>
                   </div>
 
+                  {/* Category Card: Productivity Hub */}
+                  <div 
+                    onClick={() => { setActiveSubSetting('productivity'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <BarChart3 size={24} style={{ color: '#10b981' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>NEW</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Productivity Hub</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Bulk CSV import, analytics, audit trail, ERP API keys, billing, and institution FAQ.</p>
+                  </div>
+
                   {/* Category Card 9: Multi-Tenant Registry & Management */}
                   {getActiveTenantSlug() === 'default' && currentUser?.institution_id === 1 && (
                     <div 
@@ -10963,6 +11028,16 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* ===== PRODUCTIVITY & ENTERPRISE HUB ===== */}
+            {activeSubSetting === 'productivity' && (
+              <AdvancedFeaturesHub
+                apiBaseUrl={API_BASE_URL}
+                token={token}
+                userRole={userRole}
+                currentUser={currentUser}
+              />
             )}
 
             {/* ===== ADVANCED SYSTEM CONFIG & EXTREME SECURITY CONSOLE ===== */}
@@ -14296,6 +14371,13 @@ export default function App() {
         onNavigate={navigateToTab}
         onLogout={handleLogout}
       />
+
+      <ConsentModal
+        open={showConsentModal && !!token}
+        onAccept={handleConsentAccept}
+        onDecline={() => setShowConsentModal(false)}
+      />
+      {showPrivacyPolicy && <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />}
 
       {token && userRole && (
         <BottomNav

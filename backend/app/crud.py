@@ -213,6 +213,8 @@ def mark_student_attendance(
     custom_time: Optional[str] = None,
     institution_id: Optional[int] = None
 ):
+    from sqlalchemy.exc import IntegrityError
+
     if custom_date:
         if "-" in custom_date:
             try:
@@ -260,8 +262,15 @@ def mark_student_attendance(
         institution_id=institution_id
     )
     db.add(db_attendance)
-    db.commit()
-    db.refresh(db_attendance)
+    try:
+        db.commit()
+        db.refresh(db_attendance)
+    except IntegrityError:
+        db.rollback()
+        existing = query.first()
+        if existing:
+            return existing, False
+        raise
     
     # 3. Write to CSV file (root/attendance.csv)
     try:

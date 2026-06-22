@@ -1,63 +1,80 @@
-# AI Attendance System Roadmap
+# AI Attendance System — Updated Roadmap (Implemented)
 
-This document outlines the advanced and pro-level features planned for the **AI-Powered Secure Face Recognition Attendance System**. We will implement these features step-by-step.
+## ✅ Phase 1: Deep Learning Face Recognition (SFace + YuNet)
+**Status:** Complete
 
----
+## ✅ Phase 2: Liveness Detection
+**Status:** Complete — Client-side EAR blink + **server-side challenge-response** (`/api/v1/liveness`)
 
-## Roadmap Phases
+## ✅ Phase 3: Student Self-Registration
+**Status:** Complete — Selfie upload with quality checks
 
-### 🟩 Phase 1: Deep Learning Face Recognition (Upgrade from LBPH)
-* **Goal**: Replace the outdated LBPH Face Recognizer with state-of-the-art Deep Learning embeddings using OpenCV's native **SFace (SphereFace)** and **YuNet** ONNX models.
-* **Key Tasks**:
-  * Auto-download YuNet (Detection) and SFace (Recognition) ONNX models.
-  * Upgrade registration to extract a 128-dimensional embedding vector from a single reference image (One-Shot Learning).
-  * Update database schema to store embedding vectors in the `student` table.
-  * Rewrite face recognition logic to calculate Cosine Similarity against database embeddings.
-* **Status**: ⏳ *Starting Next*
+## ✅ Phase 4: PDF Reports & Scheduled Mailing
+**Status:** Complete — APScheduler weekly/monthly jobs
 
----
+## ✅ Phase 5: Geofencing & IP Restriction
+**Status:** Complete
 
-### 🟨 Phase 2: Liveness Detection (Anti-Spoofing)
-* **Goal**: Prevent spoofing attacks (e.g., showing a photo of a student on a phone screen).
-* **Key Tasks**:
-  * Implement **Eye Blink Detection** using facial landmarks (calculating Eye Aspect Ratio - EAR).
-  * Implement **Texture/Motion analysis** to check if the face displays natural micro-expressions.
-* **Status**: 💤 *Planned*
+## ✅ Phase 6: Notifications
+**Status:** Complete — Email + **WhatsApp/SMS hooks** (Twilio, configure env vars)
 
 ---
 
-### 🟨 Phase 3: Student Self-Registration (Selfie Upload)
-* **Goal**: Offload registration work from administrators to students.
-* **Key Tasks**:
-  * Allow logged-in students to upload a selfie photo through the student portal.
-  * Run automated quality checks (brightness, blurriness, face count = 1).
-  * Automatically extract embeddings and update the student profile.
-* **Status**: 💤 *Planned*
+## ✅ New: Enterprise & Productivity Features
+
+| Feature | Endpoint / Location |
+|---------|---------------------|
+| DB unique constraints (attendance, roll, email) | `models.py` |
+| Conflict-safe attendance marking | `crud.mark_student_attendance` |
+| Recognition cache invalidation | `recognition_service.py` + Redis |
+| Offline attendance queue | `frontend/utils/offlineQueue.js` + `/offline/sync` |
+| Bulk CSV import | `/bulk-import/students`, `/subjects`, `/schedules` |
+| At-risk alerts & predictions | `/analytics/at-risk`, `/analytics/predictions` |
+| HOD department dashboard | `/analytics/department/{dept}` |
+| Duplicate face audit | `/enrollment/duplicates` |
+| Re-enrollment reminders | `/enrollment/re-enrollment-reminders` |
+| Timetable auto-session | `/schedules-auto/current-session` |
+| Parent portal | `/parents/login`, `/parents/child-attendance` |
+| Audit trail UI | `/audit/` + Productivity Hub |
+| Institution FAQ for chatbot | `PUT /institutions/{id}/faq` |
+| Custom branding | `institutions` model (logo, colors, app_name) |
+| Subscription / Razorpay billing | `/billing/plans`, `/billing/create-order` |
+| SSO (Google/Microsoft + demo) | `/sso/login` |
+| ERP API keys | `/erp/keys`, `/erp/attendance/export` |
+| Redis cache layer | `cache_service.py` (REDIS_URL env) |
+| Cloud storage (S3) | `storage_service.py` (STORAGE_BACKEND=s3) |
+| Biometric consent modal | `ConsentModal.jsx` |
+| Privacy policy | `PrivacyPolicy.jsx` |
+| Account deletion (GDPR/DPDP) | `DELETE /users/students/me/account` |
+| Android Play Store ready | Capacitor + AndroidManifest permissions |
 
 ---
 
-### 🟨 Phase 4: Automated PDF Reports & Scheduled Mailing
-* **Goal**: Automatically send weekly/monthly reports to teachers and HODs.
-* **Key Tasks**:
-  * Build a PDF generator to create beautiful, printable reports of class attendance.
-  * Integrate `APScheduler` or a cron task to run weekly reports.
-  * Auto-email these PDF reports to administrators.
-* **Status**: 💤 *Planned*
+## Environment Variables (Production)
 
----
+```
+REDIS_URL=redis://...
+STORAGE_BACKEND=s3
+S3_BUCKET=...
+S3_ACCESS_KEY=...
+S3_SECRET_KEY=...
+RAZORPAY_KEY_ID=...
+RAZORPAY_KEY_SECRET=...
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+GOOGLE_CLIENT_ID=...
+MICROSOFT_CLIENT_ID=...
+```
 
-### 🟨 Phase 5: Geofencing & IP Network Restriction
-* **Goal**: Restrict portal access to only be usable inside the campus.
-* **Key Tasks**:
-  * Restrict attendance actions to a list of allowed campus Wi-Fi IP addresses.
-  * Check browser GPS geolocation to verify if the student is within college boundaries.
-* **Status**: 💤 *Planned*
+## Android Play Store Build
 
----
+```bash
+cd frontend
+npm install
+npm run build
+npx cap sync android
+cd android
+./gradlew bundleRelease
+```
 
-### 🟨 Phase 6: Telegram/WhatsApp Real-time Notifications
-* **Goal**: Send instant notifications to students/parents.
-* **Key Tasks**:
-  * Create a Telegram Bot and integrate its webhooks.
-  * Configure Twilio API for sending instant WhatsApp alerts.
-* **Status**: 💤 *Planned*
+Upload `app/build/outputs/bundle/release/app-release.aab` to Google Play Console.

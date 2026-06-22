@@ -7,7 +7,7 @@ from sqlalchemy import (
     Boolean,
     Float,
     ForeignKey,
-    UniqueConstraint
+    UniqueConstraint,
 )
 from sqlalchemy.sql import func
 from .database import Base
@@ -25,6 +25,15 @@ class Institution(Base):
     logo_url = Column(String(255), nullable=True)
     primary_color = Column(String(50), nullable=True)
     secondary_color = Column(String(50), nullable=True)
+    app_name = Column(String(100), nullable=True)
+    custom_domain = Column(String(200), nullable=True)
+    faq_json = Column(Text, nullable=True)
+    
+    # Subscription / billing
+    subscription_plan = Column(String(50), default="free")
+    subscription_status = Column(String(50), default="active")
+    razorpay_key_id = Column(String(100), nullable=True)
+    student_limit = Column(Integer, default=500)
     
     # Institution specific master key
     master_key = Column(String(100), nullable=True)
@@ -36,8 +45,12 @@ class User(Base):
     name = Column(String(100), nullable=False)
     email = Column(String(100), index=True, nullable=False)
     password_hash = Column(String(200), nullable=False)
-    role = Column(String(50), default="admin") # 'admin', 'teacher'
+    role = Column(String(50), default="admin") # 'admin', 'teacher', 'hod'
+    department = Column(String(100), nullable=True)
+    is_department_head = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    sso_provider = Column(String(50), nullable=True)
+    sso_subject = Column(String(200), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     __table_args__ = (
@@ -64,6 +77,16 @@ class StudentModel(Base):
     photo = Column(String(45))
     password_hash = Column(String(255), nullable=True)
     face_embedding = Column(Text, nullable=True)
+    face_enrolled_at = Column(DateTime(timezone=True), nullable=True)
+    parent_name = Column(String(100), nullable=True)
+    parent_email = Column(String(100), nullable=True)
+    parent_phone = Column(String(45), nullable=True)
+    consent_given = Column(Boolean, default=False)
+    consent_at = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('institution_id', 'roll', name='_institution_roll_uc'),
+    )
 
 class Subject(Base):
     __tablename__ = "subjects"
@@ -94,6 +117,13 @@ class AttendanceModel(Base):
     date = Column(String(20), primary_key=True)
     attendance = Column(String(20)) # 'Present', 'Absent', 'Late'
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'institution_id', 'id', 'date', 'time', 'subject_id',
+            name='_attendance_session_uc'
+        ),
+    )
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -135,4 +165,70 @@ class Department(Base):
 
     __table_args__ = (
         UniqueConstraint('institution_id', 'name', name='_institution_dept_name_uc'),
+    )
+
+
+class ParentAccount(Base):
+    __tablename__ = "parent_accounts"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(100), nullable=False)
+    phone = Column(String(45), nullable=True)
+    password_hash = Column(String(200), nullable=False)
+    notify_email = Column(Boolean, default=True)
+    notify_sms = Column(Boolean, default=False)
+    notify_whatsapp = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('institution_id', 'email', name='_parent_email_uc'),
+    )
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    key_hash = Column(String(200), nullable=False)
+    key_prefix = Column(String(12), nullable=False)
+    scopes = Column(String(255), default="attendance:read")
+    is_active = Column(Boolean, default=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_by = Column(String(100), nullable=True)
+
+
+class SubscriptionPayment(Base):
+    __tablename__ = "subscription_payments"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    plan = Column(String(50), nullable=False)
+    amount = Column(Float, nullable=False)
+    currency = Column(String(10), default="INR")
+    status = Column(String(50), default="pending")
+    razorpay_order_id = Column(String(100), nullable=True)
+    razorpay_payment_id = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class OfflineAttendanceQueue(Base):
+    __tablename__ = "offline_attendance_queue"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = Column(String(64), nullable=False, index=True)
+    student_id = Column(Integer, nullable=False)
+    subject_id = Column(Integer, nullable=True)
+    marked_by = Column(String(100), nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    custom_date = Column(String(20), nullable=True)
+    custom_time = Column(String(20), nullable=True)
+    synced = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('institution_id', 'client_id', name='_offline_client_uc'),
     )

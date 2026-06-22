@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime, timezone
 import cv2
 import numpy as np
 import os
@@ -516,13 +517,14 @@ async def upload_student_selfie(
     # 6. Save face embedding & update photo flag
     current_student.face_embedding = embedding_json
     current_student.photo = "yes"
+    current_student.face_enrolled_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(current_student)
 
-    # 7. Refresh recognition service cache instantly
     try:
         from .recognition_service import recognition_service
-        recognition_service.load_student_records(db)
+        recognition_service.invalidate_cache(current_student.institution_id)
+        recognition_service.load_student_records(db, institution_id=current_student.institution_id)
     except Exception as e:
         print(f"Failed to refresh recognition cache: {e}")
 
@@ -744,13 +746,15 @@ async def upload_student_face_sample(
 
     db_student.face_embedding = embedding_json
     db_student.photo = "yes"
+    db_student.face_enrolled_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_student)
 
     # 4. Refresh recognition service cache instantly
     try:
         from .recognition_service import recognition_service
-        recognition_service.load_student_records(db)
+        recognition_service.invalidate_cache(current_user.institution_id)
+        recognition_service.load_student_records(db, institution_id=current_user.institution_id)
     except Exception as e:
         print(f"Failed to refresh recognition cache: {e}")
 
@@ -933,3 +937,35 @@ def change_user_password(
         institution_id=current_user.institution_id
     )
     return current_user
+
+
+@router.post("/students/me/consent")
+def record_student_consent(
+    db: Session = Depends(get_db),
+    current_student: models.StudentModel = Depends(security.get_current_student),
+):
+    current_student.consent_given = True
+    current_student.consent_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"message": "Consent recorded", "consent_at": current_student.consent_at.isoformat()}
+
+
+@router.delete("/students/me/account")
+def delete_student_account(
+    db: Session = Depends(get_db),
+    current_student: models.StudentModel = Depends(security.get_current_student),
+):
+    """GDPR/DPDP: delete student account and face data."""
+    student_id = current_student.id
+    institution_id = current_student.institution_id
+    db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.id == str(student_id),
+        models.AttendanceModel.institution_id == institution_id,
+    ).delete()
+    db.query(models.ParentAccount).filter(
+        models.ParentAccount.student_id == student_id,
+    ).delete()
+    crud.delete_student(db, student_id, institution_id=institution_id)
+    from .recognition_service import recognition_service
+    recognition_service.invalidate_cache(institution_id)
+    return {"message": "Account and biometric data deleted"}
