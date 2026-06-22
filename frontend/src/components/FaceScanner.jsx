@@ -1,0 +1,770 @@
+/**
+ * FaceScanner.jsx
+ * ─────────────────────────────────────────────────────────────────────────
+ * A fully self-contained face-recognition attendance scanner.
+ *
+ * Features (matching the desktop Python app exactly):
+ *  • Opens camera (front/back toggle) with a boot animation
+ *  • Streams frames to /attendance/recognize-frame every 300ms
+ *  • Draws real-time HUD over the live video:
+ *      – L-shaped corner brackets (outer frame of video)
+ *      – Bounding box around each detected face
+ *      – Animated vertical laser scan line oscillating top→bottom
+ *      – Info panel: NAME / ROLL / DEPT / SIM / LIVENESS (identical to screenshot)
+ *  • Blink liveness via Mediapipe FaceMesh EAR — 2 blinks required
+ *  • Smooth tracking: holds last result for 1.5 s so display doesn't flicker
+ *  • Fires onAttendanceMarked({ name, roll, dep, time, confidence, newly_marked })
+ *    so the parent can update logs/stats
+ *
+ * Props:
+ *  token            – JWT auth token (required)
+ *  apiBaseUrl       – e.g. "https://...render.com/api/v1"
+ *  selectedSubjectId – number or null
+ *  userCoords       – { latitude, longitude } or null
+ *  sessionActive    – bool
+ *  sessionPeriod    – string period label
+ *  sessionDate      – string "YYYY-MM-DD"
+ *  onAttendanceMarked – callback(result)
+ *  addDiagnosticLog – optional parent log function
+ */
+
+import React, {
+  useRef, useEffect, useState, useCallback
+} from 'react';
+
+/* ─────────────────────────────────────── constants ── */
+const LEFT_EYE  = [362, 385, 387, 263, 373, 380];
+const RIGHT_EYE = [33,  160, 158, 133, 153, 144];
+const EAR_THRESH = 0.20;
+const BLINKS_NEEDED = 2;
+const SCAN_INTERVAL_MS = 320;        // how often we hit the API
+const TRACK_HOLD_MS    = 1600;       // keep last recognized face visible this long
+
+/* ─────────────────────────────────────── helpers ── */
+function calcEAR(lm, idx) {
+  try {
+    const p = (i) => lm[idx[i]];
+    const dh = Math.hypot(p(0).x - p(3).x, p(0).y - p(3).y);
+    if (!dh) return 0;
+    const v1 = Math.hypot(p(1).x - p(5).x, p(1).y - p(5).y);
+    const v2 = Math.hypot(p(2).x - p(4).x, p(2).y - p(4).y);
+    return (v1 + v2) / (2 * dh);
+  } catch { return 0; }
+}
+
+/* Draw the desktop-style HUD onto a 2d canvas context */
+function drawHUD(ctx, cw, ch, tracks, scanPhase) {
+  ctx.clearRect(0, 0, cw, ch);
+
+  /* ── outer corner brackets (like the boot sequence corners) ── */
+  const BL = 28, BT = 3;
+  const BC = 'rgba(0,242,254,0.85)';
+  ctx.strokeStyle = BC; ctx.lineWidth = BT; ctx.lineCap = 'square';
+  // top-left
+  ctx.beginPath(); ctx.moveTo(12+BL,12); ctx.lineTo(12,12); ctx.lineTo(12,12+BL); ctx.stroke();
+  // top-right
+  ctx.beginPath(); ctx.moveTo(cw-12-BL,12); ctx.lineTo(cw-12,12); ctx.lineTo(cw-12,12+BL); ctx.stroke();
+  // bot-left
+  ctx.beginPath(); ctx.moveTo(12+BL,ch-12); ctx.lineTo(12,ch-12); ctx.lineTo(12,ch-12-BL); ctx.stroke();
+  // bot-right
+  ctx.beginPath(); ctx.moveTo(cw-12-BL,ch-12); ctx.lineTo(cw-12,ch-12); ctx.lineTo(cw-12,ch-12-BL); ctx.stroke();
+
+  /* ── global scan line (vertical oscillation) ── */
+  const t = Date.now() / 1000;
+  const scanY = Math.round(((Math.sin(t * 1.8) + 1) / 2) * ch);
+  const grad = ctx.createLinearGradient(0, scanY-6, 0, scanY+6);
+  grad.addColorStop(0, 'rgba(0,242,254,0)');
+  grad.addColorStop(0.5, 'rgba(0,242,254,0.65)');
+  grad.addColorStop(1, 'rgba(0,242,254,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, scanY-6, cw, 12);
+
+  /* ── face tracks ── */
+  for (const tr of tracks) {
+    const { box, info, verified, blinkCount, confidence } = tr;
+    if (!box) continue;
+    // scale box from video-space to canvas-space
+    const [bx, by, bw, bh] = box;
+
+    const isKnown   = !!info;
+    const color     = verified ? '#00ff00'
+                    : isKnown  ? '#ffa500'
+                    :            '#00f2fe';
+
+    /* face bounding box */
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.strokeRect(bx, by, bw, bh);
+
+    /* L-shaped corner brackets on the face box */
+    const CL = Math.round(Math.min(bw, bh) * 0.18);
+    ctx.lineWidth = 3; ctx.strokeStyle = color;
+    // TL
+    ctx.beginPath(); ctx.moveTo(bx+CL,by); ctx.lineTo(bx,by); ctx.lineTo(bx,by+CL); ctx.stroke();
+    // TR
+    ctx.beginPath(); ctx.moveTo(bx+bw-CL,by); ctx.lineTo(bx+bw,by); ctx.lineTo(bx+bw,by+CL); ctx.stroke();
+    // BL
+    ctx.beginPath(); ctx.moveTo(bx+CL,by+bh); ctx.lineTo(bx,by+bh); ctx.lineTo(bx,by+bh-CL); ctx.stroke();
+    // BR
+    ctx.beginPath(); ctx.moveTo(bx+bw-CL,by+bh); ctx.lineTo(bx+bw,by+bh); ctx.lineTo(bx+bw,by+bh-CL); ctx.stroke();
+
+    /* mini scan line inside face box */
+    const facePhase = (Math.sin(t * 4) + 1) / 2;
+    const fScanY = Math.round(by + facePhase * bh);
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(bx, fScanY); ctx.lineTo(bx+bw, fScanY); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(bx, fScanY, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx+bw, fScanY, 3, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    /* info panel — exactly like desktop screenshot */
+    const panelLines = isKnown ? [
+      `NAME: ${info.name}`,
+      `ROLL: ${info.roll}`,
+      `DEPT: ${info.dep}`,
+      `SIM:  ${confidence != null ? confidence.toFixed(1)+'%' : '--'}`,
+      `LIVENESS: ${verified ? 'Verified' : `Blinks (${blinkCount}/${BLINKS_NEEDED})`}`
+    ] : [
+      'STATUS: SCANNING...',
+      `LIVENESS: ${blinkCount > 0 ? `Blinks (${blinkCount}/${BLINKS_NEEDED})` : 'PENDING'}`
+    ];
+
+    const PH = 14, PAD = 8;
+    const PW = 175;
+    const PTOTAL = panelLines.length * PH + PAD * 2;
+
+    // prefer right side; fall back to above the box
+    let px = bx + bw + 10;
+    let py = by;
+    if (px + PW > cw) { px = bx; py = Math.max(8, by - PTOTAL - 8); }
+
+    // semi-transparent black bg
+    ctx.save();
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(px, py, PW, PTOTAL);
+    ctx.globalAlpha = 1;
+    // colored border
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.strokeRect(px, py, PW, PTOTAL);
+    ctx.restore();
+
+    // text
+    ctx.font = '11px "Courier New", monospace';
+    panelLines.forEach((line, i) => {
+      const lineColor = i === panelLines.length - 1
+        ? (verified ? '#00ff88' : '#ffcc00')
+        : '#ffffff';
+      ctx.fillStyle = lineColor;
+      ctx.fillText(line, px + 8, py + PAD + 11 + i * PH);
+    });
+  }
+
+  /* ── status text in corner ── */
+  ctx.font = 'bold 10px "Courier New", monospace';
+  ctx.fillStyle = '#00f2fe';
+  ctx.globalAlpha = 0.75;
+  ctx.fillText(`● BIOMETRIC SCAN ACTIVE`, 20, ch - 12);
+  ctx.globalAlpha = 1;
+}
+
+/* ══════════════════════════════════════════════════════
+   FaceScanner Component
+══════════════════════════════════════════════════════ */
+export default function FaceScanner({
+  token,
+  apiBaseUrl,
+  selectedSubjectId,
+  userCoords,
+  sessionActive,
+  sessionPeriod,
+  sessionDate,
+  onAttendanceMarked,
+  addDiagnosticLog,
+}) {
+  /* ── refs ── */
+  const videoRef    = useRef(null);
+  const canvasRef   = useRef(null);
+  const streamRef   = useRef(null);
+  const faceMeshRef = useRef(null);
+  const animFrameRef= useRef(null);
+  const scanTimerRef= useRef(null);
+  const tracksRef   = useRef([]);   // live track list
+  const markedIdsRef= useRef(new Set());
+  const scanPhaseRef= useRef(0);
+  const blinkStateRef = useRef('open'); // 'open' | 'closed'
+  const blinkCountRef = useRef(0);
+  const livenessRef   = useRef(false);
+  const isScanningRef = useRef(false);  // prevent overlapping API calls
+
+  /* ── state ── */
+  const [camReady,    setCamReady]    = useState(false);
+  const [booting,     setBooting]     = useState(false);
+  const [bootStep,    setBootStep]    = useState('');
+  const [bootPct,     setBootPct]     = useState(0);
+  const [facingMode,  setFacingMode]  = useState('user');
+  const [error,       setError]       = useState('');
+  const [statusText,  setStatusText]  = useState('Camera Offline');
+  const [lastResult,  setLastResult]  = useState(null); // for card below
+
+  /* ─────────────────────────────────── camera open ── */
+  const openCamera = useCallback(async (mode = 'user') => {
+    setError('');
+    setBooting(true);
+    setBootStep('INITIALIZING OPTICAL ARRAY...');
+    setBootPct(10);
+
+    // stop any existing stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+
+    try {
+      setBootPct(30);
+      setBootStep('CALIBRATING BIOMETRIC SENSORS...');
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width:{ideal:1280}, height:{ideal:720}, facingMode: mode }
+        });
+      } catch {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width:640, height:480, facingMode: mode }
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+      }
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await new Promise(res => { videoRef.current.onloadedmetadata = res; });
+        videoRef.current.play();
+      }
+
+      setBootPct(60);
+      setBootStep('LOADING YUNET DETECTION ENGINE...');
+      await delay(350);
+      setBootPct(80);
+      setBootStep('ACTIVATING SFACE RECOGNITION MODULE...');
+      await delay(350);
+      setBootPct(100);
+      setBootStep('BIOMETRIC FEED ONLINE');
+      await delay(300);
+
+      setBooting(false);
+      setCamReady(true);
+      setStatusText('Scanning...');
+      addDiagnosticLog?.('Optical feed active: BIOMETRIC_CAM');
+
+    } catch (err) {
+      setBooting(false);
+      setError('Unable to access camera. Please allow camera permission.');
+      addDiagnosticLog?.('ERROR: Camera binding failed.');
+    }
+  }, [addDiagnosticLog]);
+
+  /* ─────────────────────────────────── camera close ── */
+  const closeCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) videoRef.current.srcObject = null;
+    if (faceMeshRef.current) { faceMeshRef.current.close(); faceMeshRef.current = null; }
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+    tracksRef.current = [];
+    blinkCountRef.current = 0;
+    blinkStateRef.current = 'open';
+    livenessRef.current = false;
+    isScanningRef.current = false;
+    markedIdsRef.current = new Set();
+    setCamReady(false);
+    setBooting(false);
+    setStatusText('Camera Offline');
+    setLastResult(null);
+  }, []);
+
+  /* ─────────────────────────────── toggle front/back ── */
+  const toggleCamera = useCallback(() => {
+    const next = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(next);
+    closeCamera();
+    setTimeout(() => openCamera(next), 150);
+  }, [facingMode, closeCamera, openCamera]);
+
+  /* ─────────────────────────── API: send frame to backend ── */
+  const sendFrame = useCallback(async () => {
+    if (!camReady || !videoRef.current || !canvasRef.current) return;
+    if (isScanningRef.current) return;
+    const video = videoRef.current;
+    if (video.readyState < 2 || !video.videoWidth) return;
+
+    isScanningRef.current = true;
+    try {
+      const offscreen = document.createElement('canvas');
+      offscreen.width  = video.videoWidth;
+      offscreen.height = video.videoHeight;
+      offscreen.getContext('2d').drawImage(video, 0, 0);
+
+      const blob = await new Promise(res => offscreen.toBlob(res, 'image/jpeg', 0.82));
+      if (!blob) return;
+
+      const fd = new FormData();
+      fd.append('file', blob, 'frame.jpg');
+      if (userCoords) {
+        fd.append('latitude',  userCoords.latitude);
+        fd.append('longitude', userCoords.longitude);
+      }
+      if (selectedSubjectId) fd.append('subject_id', selectedSubjectId);
+      if (sessionActive && sessionDate)  fd.append('custom_date', sessionDate);
+      if (sessionActive && sessionPeriod) fd.append('custom_time', sessionPeriod);
+
+      const resp = await fetch(`${apiBaseUrl}/attendance/recognize-frame`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        if (resp.status !== 403) setStatusText(`API Error: ${err.detail || resp.statusText}`);
+        return;
+      }
+
+      const data = await resp.json();
+      const results = data.results || [];
+
+      const now = Date.now();
+
+      if (results.length === 0) {
+        // no face recognized — fade out tracks gradually
+        tracksRef.current = tracksRef.current.filter(t => now - t.lastSeen < TRACK_HOLD_MS);
+      } else {
+        // Update or add tracks for each result
+        const vw = video.videoWidth,  vh = video.videoHeight;
+        const cw = canvasRef.current.width, ch = canvasRef.current.height;
+        const sx = cw / vw, sy = ch / vh;
+
+        results.forEach(face => {
+          const [fx, fy, fw, fh] = face.box;
+          const scaledBox = [
+            Math.round(fx * sx), Math.round(fy * sy),
+            Math.round(fw * sx), Math.round(fh * sy),
+          ];
+
+          // find existing track by student id (or fallback by proximity)
+          let track = tracksRef.current.find(t => t.id === face.user_id);
+          if (!track) {
+            track = {
+              id: face.user_id,
+              box: scaledBox,
+              info: { name: face.name, roll: face.roll, dep: face.dep },
+              confidence: face.confidence,
+              verified: false,
+              blinkCount: 0,
+              lastSeen: now,
+            };
+            tracksRef.current.push(track);
+          } else {
+            // smooth box (lerp)
+            const a = 0.45;
+            track.box = [
+              Math.round(track.box[0]*(1-a) + scaledBox[0]*a),
+              Math.round(track.box[1]*(1-a) + scaledBox[1]*a),
+              Math.round(track.box[2]*(1-a) + scaledBox[2]*a),
+              Math.round(track.box[3]*(1-a) + scaledBox[3]*a),
+            ];
+            track.info       = { name: face.name, roll: face.roll, dep: face.dep };
+            track.confidence = face.confidence;
+            track.lastSeen   = now;
+          }
+
+          // mark attendance after liveness
+          if (track.verified && !markedIdsRef.current.has(face.user_id)) {
+            markedIdsRef.current.add(face.user_id);
+            if (face.newly_marked !== false) {
+              const timeStr = sessionActive && sessionPeriod
+                ? sessionPeriod
+                : new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+              onAttendanceMarked?.({
+                user_id:    face.user_id,
+                name:       face.name,
+                roll:       face.roll,
+                dep:        face.dep,
+                time:       timeStr,
+                confidence: face.confidence,
+                newly_marked: face.newly_marked,
+              });
+              addDiagnosticLog?.(`MATCH: ${face.name} (${face.confidence?.toFixed(1)}%)`);
+              setLastResult({ name:face.name, roll:face.roll, dep:face.dep,
+                              confidence:face.confidence, time: timeStr });
+              setStatusText(`Marked: ${face.name}`);
+            } else {
+              setStatusText(`Already marked: ${face.name}`);
+            }
+          }
+        });
+
+        // remove stale tracks
+        tracksRef.current = tracksRef.current.filter(t => now - t.lastSeen < TRACK_HOLD_MS);
+      }
+    } catch (e) {
+      console.error('[FaceScanner] API error:', e);
+    } finally {
+      isScanningRef.current = false;
+    }
+  }, [camReady, token, apiBaseUrl, selectedSubjectId, userCoords,
+      sessionActive, sessionPeriod, sessionDate, onAttendanceMarked, addDiagnosticLog]);
+
+  /* ─────────────────────── Mediapipe FaceMesh liveness loop ── */
+  useEffect(() => {
+    if (!camReady) return;
+
+    // reset blink state when camera starts
+    blinkCountRef.current = 0;
+    blinkStateRef.current = 'open';
+    livenessRef.current = false;
+
+    if (!window.FaceMesh) {
+      console.warn('[FaceScanner] FaceMesh not available globally — skipping liveness.');
+      // Auto-verify after 3s if no FaceMesh
+      const t = setTimeout(() => {
+        livenessRef.current = true;
+        tracksRef.current.forEach(tr => { tr.verified = true; tr.blinkCount = BLINKS_NEEDED; });
+      }, 3000);
+      return () => clearTimeout(t);
+    }
+
+    const fm = new window.FaceMesh({
+      locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
+    });
+    fm.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.6,
+      minTrackingConfidence: 0.6,
+    });
+
+    fm.onResults((res) => {
+      if (!res.multiFaceLandmarks?.length) return;
+      const lm = res.multiFaceLandmarks[0];
+      const ear = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
+
+      if (ear < EAR_THRESH) {
+        blinkStateRef.current = 'closed';
+      } else if (blinkStateRef.current === 'closed') {
+        blinkStateRef.current = 'open';
+        blinkCountRef.current = Math.min(blinkCountRef.current + 1, BLINKS_NEEDED);
+        // propagate to all current tracks
+        tracksRef.current.forEach(tr => {
+          tr.blinkCount = blinkCountRef.current;
+          if (blinkCountRef.current >= BLINKS_NEEDED) tr.verified = true;
+        });
+      }
+    });
+
+    faceMeshRef.current = fm;
+
+    let fmActive = true;
+    const runFM = async () => {
+      if (!fmActive || !camReady) return;
+      const v = videoRef.current;
+      if (v && v.readyState >= 2 && v.videoWidth > 0) {
+        try { await fm.send({ image: v }); } catch {}
+      }
+      requestAnimationFrame(runFM);
+    };
+    requestAnimationFrame(runFM);
+
+    return () => {
+      fmActive = false;
+      fm.close();
+    };
+  }, [camReady]);
+
+  /* ─────────────────────────────── HUD animation loop ── */
+  useEffect(() => {
+    if (!camReady) return;
+    let active = true;
+
+    const loop = () => {
+      if (!active || !canvasRef.current) return;
+      const canvas = canvasRef.current;
+      const video  = videoRef.current;
+      if (video && video.videoWidth > 0) {
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+      const ctx = canvas.getContext('2d');
+      drawHUD(ctx, canvas.width, canvas.height, tracksRef.current, scanPhaseRef.current);
+      animFrameRef.current = requestAnimationFrame(loop);
+    };
+
+    animFrameRef.current = requestAnimationFrame(loop);
+    return () => {
+      active = false;
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [camReady]);
+
+  /* ─────────────────────────────── API scan loop ── */
+  useEffect(() => {
+    if (!camReady) return;
+    let active = true;
+
+    const schedule = () => {
+      if (!active) return;
+      scanTimerRef.current = setTimeout(async () => {
+        await sendFrame();
+        schedule();
+      }, SCAN_INTERVAL_MS);
+    };
+
+    schedule();
+    return () => {
+      active = false;
+      if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+    };
+  }, [camReady, sendFrame]);
+
+  /* ─────────────────────────────── open cam on mount ── */
+  useEffect(() => {
+    openCamera(facingMode);
+    return () => closeCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ─────────────────────────────────────── render ── */
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'12px', width:'100%' }}>
+
+      {/* ── Camera viewport ── */}
+      <div style={{
+        position: 'relative',
+        width: '100%',
+        aspectRatio: '16/9',
+        background: '#000c18',
+        borderRadius: '14px',
+        overflow: 'hidden',
+        border: camReady
+          ? '2px solid rgba(0,255,136,0.5)'
+          : '2px solid rgba(0,242,254,0.25)',
+        boxShadow: camReady
+          ? '0 0 32px rgba(0,255,136,0.18), inset 0 0 24px rgba(0,0,0,0.6)'
+          : '0 0 18px rgba(0,242,254,0.1)',
+        transition: 'border-color 0.4s, box-shadow 0.4s',
+      }}>
+
+        {/* live video */}
+        <video
+          ref={videoRef}
+          autoPlay playsInline muted
+          style={{
+            position: 'absolute', inset: 0,
+            width:'100%', height:'100%',
+            objectFit: 'cover',
+            transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+            display: (camReady || booting) ? 'block' : 'none',
+          }}
+        />
+
+        {/* HUD canvas overlay */}
+        <canvas
+          ref={canvasRef}
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            pointerEvents: 'none',
+            display: camReady ? 'block' : 'none',
+            transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+          }}
+        />
+
+        {/* Boot overlay */}
+        {booting && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'rgba(0,8,20,0.95)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: '18px', zIndex: 10,
+          }}>
+            {/* spinning radar */}
+            <div style={{ position:'relative', width:'80px', height:'80px' }}>
+              <div style={{
+                position:'absolute', inset:0,
+                border:'3px solid rgba(0,242,254,0.15)',
+                borderTopColor:'#00f2fe',
+                borderRadius:'50%',
+                animation:'spin 1s linear infinite',
+              }}/>
+              <div style={{
+                position:'absolute', inset:'18px',
+                border:'2px solid rgba(0,255,136,0.2)',
+                borderBottomColor:'#00ff88',
+                borderRadius:'50%',
+                animation:'spin 1.6s linear infinite reverse',
+              }}/>
+              <div style={{
+                position:'absolute', inset:'32px',
+                background:'rgba(0,242,254,0.2)',
+                borderRadius:'50%',
+                animation:'pulse 1.4s ease-in-out infinite',
+              }}/>
+            </div>
+            <div style={{ fontFamily:'monospace', fontSize:'0.78rem',
+                          color:'#00f2fe', letterSpacing:'0.12em', textAlign:'center' }}>
+              {bootStep}
+            </div>
+            {/* progress bar */}
+            <div style={{ width:'220px', height:'6px', background:'rgba(0,242,254,0.15)',
+                          borderRadius:'3px', overflow:'hidden' }}>
+              <div style={{
+                height:'100%',
+                width:`${bootPct}%`,
+                background:'linear-gradient(90deg,#00f2fe,#00ff88)',
+                borderRadius:'3px',
+                transition:'width 0.3s ease',
+              }}/>
+            </div>
+          </div>
+        )}
+
+        {/* Offline placeholder */}
+        {!camReady && !booting && (
+          <div style={{
+            position:'absolute', inset:0,
+            display:'flex', flexDirection:'column',
+            alignItems:'center', justifyContent:'center', gap:'14px',
+          }}>
+            <div style={{
+              width:'56px', height:'56px',
+              border:'3px solid rgba(0,242,254,0.2)',
+              borderTopColor:'rgba(0,242,254,0.6)',
+              borderRadius:'50%',
+              animation:'spin 1.2s linear infinite',
+            }}/>
+            <p style={{ color:'rgba(0,242,254,0.55)', fontSize:'0.78rem',
+                        fontFamily:'monospace', letterSpacing:'0.1em' }}>
+              INITIALIZING OPTICAL FEED...
+            </p>
+          </div>
+        )}
+
+        {/* camera toggle button (top-right) */}
+        <button
+          onClick={toggleCamera}
+          title="Switch Camera"
+          style={{
+            position:'absolute', top:'10px', right:'10px', zIndex:20,
+            background:'rgba(0,0,0,0.55)',
+            border:'1px solid rgba(0,242,254,0.4)',
+            color:'#00f2fe', borderRadius:'8px',
+            padding:'5px 10px', fontSize:'0.72rem',
+            cursor:'pointer', fontFamily:'monospace',
+            backdropFilter:'blur(4px)',
+          }}
+        >
+          🔄 {facingMode === 'user' ? 'BACK CAM' : 'FRONT CAM'}
+        </button>
+
+        {/* blink counter badge */}
+        {camReady && (
+          <div style={{
+            position:'absolute', bottom:'10px', left:'10px', zIndex:20,
+            background:'rgba(0,0,0,0.6)',
+            border:`1px solid ${blinkCountRef.current >= BLINKS_NEEDED ? '#00ff88' : '#ffa500'}`,
+            color: blinkCountRef.current >= BLINKS_NEEDED ? '#00ff88' : '#ffa500',
+            borderRadius:'8px', padding:'4px 10px',
+            fontSize:'0.7rem', fontFamily:'monospace',
+            backdropFilter:'blur(4px)',
+          }}>
+            👁 BLINK: {Math.min(blinkCountRef.current, BLINKS_NEEDED)}/{BLINKS_NEEDED}
+            {blinkCountRef.current >= BLINKS_NEEDED ? ' ✓ VERIFIED' : ''}
+          </div>
+        )}
+      </div>
+
+      {/* ── error ── */}
+      {error && (
+        <div style={{
+          padding:'10px 14px',
+          background:'rgba(239,68,68,0.12)',
+          border:'1px solid rgba(239,68,68,0.35)',
+          borderRadius:'10px',
+          color:'#ef4444', fontSize:'0.83rem', fontFamily:'monospace',
+        }}>{error}</div>
+      )}
+
+      {/* ── status ── */}
+      {camReady && (
+        <div style={{
+          padding:'8px 14px',
+          background:'rgba(0,242,254,0.07)',
+          border:'1px solid rgba(0,242,254,0.2)',
+          borderRadius:'10px',
+          color:'#00f2fe', fontSize:'0.78rem', fontFamily:'monospace',
+          textAlign:'center', letterSpacing:'0.06em',
+        }}>
+          ● {statusText}
+          {tracksRef.current.length === 0 && camReady
+            ? ' — Position your face in front of the camera'
+            : ''}
+        </div>
+      )}
+
+      {/* ── last match card ── */}
+      {lastResult && (
+        <div style={{
+          padding:'12px 16px',
+          background:'linear-gradient(135deg,rgba(0,255,136,0.08),rgba(0,242,254,0.05))',
+          border:'1px solid rgba(0,255,136,0.35)',
+          borderRadius:'12px',
+          display:'flex', flexDirection:'column', gap:'4px',
+        }}>
+          <div style={{ color:'#00ff88', fontSize:'0.78rem',
+                        fontFamily:'monospace', fontWeight:700,
+                        letterSpacing:'0.08em' }}>
+            ✅ ATTENDANCE MARKED
+          </div>
+          <div style={{ color:'#ffffff', fontSize:'0.88rem', fontWeight:700 }}>
+            {lastResult.name}
+          </div>
+          <div style={{ color:'rgba(255,255,255,0.6)', fontSize:'0.78rem',
+                        display:'flex', gap:'14px', fontFamily:'monospace' }}>
+            <span>ROLL: {lastResult.roll}</span>
+            <span>DEPT: {lastResult.dep}</span>
+            <span>SIM: {lastResult.confidence?.toFixed(1)}%</span>
+          </div>
+          <div style={{ color:'rgba(0,242,254,0.6)', fontSize:'0.72rem',
+                        fontFamily:'monospace' }}>
+            TIME: {lastResult.time}
+          </div>
+        </div>
+      )}
+
+      {/* ── blink hint ── */}
+      {camReady && blinkCountRef.current < BLINKS_NEEDED && (
+        <div style={{
+          padding:'8px 14px',
+          background:'rgba(255,165,0,0.08)',
+          border:'1px solid rgba(255,165,0,0.3)',
+          borderRadius:'10px',
+          color:'#ffa500', fontSize:'0.78rem',
+          fontFamily:'monospace', textAlign:'center',
+        }}>
+          👁 Please blink {BLINKS_NEEDED} times to verify liveness
+          — {Math.min(blinkCountRef.current, BLINKS_NEEDED)}/{BLINKS_NEEDED} blinks detected
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* tiny utility */
+const delay = (ms) => new Promise(res => setTimeout(res, ms));

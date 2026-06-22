@@ -2872,11 +2872,11 @@ html {
 
 .scanner-modal-inner {
   width: 100%;
-  max-width: min(680px, 100%);
+  max-width: min(720px, 100%);
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  gap: 14px;
   flex-shrink: 0;
 }
 
@@ -2908,22 +2908,12 @@ html {
   word-break: break-word;
 }
 
-.scanner-modal-camera {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4/3;
-  max-height: min(70vh, 520px);
-  background: #000;
-  border-radius: 16px;
-  overflow: hidden;
-  flex-shrink: 0;
+/* FaceScanner video inside modal — 16/9 aspect ratio */
+.scanner-modal-inner > div [style*="aspect-ratio"],
+.scanner-modal-inner > div > div {
+  width: 100% !important;
 }
 
-.scanner-modal-overlay .scanner-modal-camera video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
 
 .scanner-modal-controls {
   display: flex;

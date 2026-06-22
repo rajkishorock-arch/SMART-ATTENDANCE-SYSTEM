@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import ScannerBootOverlay from './ScannerBootOverlay';
+import FaceScanner from './components/FaceScanner';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
 import { getActiveTenantSlug } from './utils/tenantConfig';
@@ -6118,34 +6119,32 @@ export default function App() {
       <ClickFxLayer activeTab={activeTab} enabled />
       <PageTransitionFlash activeTab={activeTab} />
 
-      {/* ===== FULLSCREEN SCANNER MODAL ===== */}
+      {/* ===== FULLSCREEN SCANNER MODAL — Deep Learning YuNet+SFace ===== */}
       {showScannerModal && (
         <div id="scanner-modal-overlay" className="scanner-modal-overlay">
           <div className="scanner-modal-inner">
+
           {/* Modal Header */}
           <div className="scanner-modal-header">
             <div className="scanner-modal-title-group">
               <div style={{
                 width: '10px', height: '10px', borderRadius: '50%',
-                background: attendanceActive ? '#10b981' : '#6b7280',
-                boxShadow: attendanceActive ? '0 0 8px #10b981' : 'none',
-                animation: attendanceActive ? 'pulse 1.5s infinite' : 'none',
+                background: '#10b981',
+                boxShadow: '0 0 8px #10b981',
+                animation: 'pulse 1.5s infinite',
                 flexShrink: 0,
               }} />
               <span className="scanner-modal-title">FACE RECOGNITION SCANNER</span>
               <span style={{
-                background: attendanceActive ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
-                border: `1px solid ${attendanceActive ? '#10b981' : '#6b7280'}`,
-                color: attendanceActive ? '#10b981' : '#9ca3af',
+                background: 'rgba(16,185,129,0.15)',
+                border: '1px solid #10b981',
+                color: '#10b981',
                 borderRadius: '6px', padding: '2px 10px', fontSize: '0.72rem', fontWeight: 700,
-                whiteSpace: 'nowrap',
-              }}>{scanStatus}</span>
+                whiteSpace: 'nowrap', fontFamily: 'monospace',
+              }}>YuNet + SFace DL</span>
             </div>
             <button
-              onClick={() => {
-                stopAttendanceCam();
-                setShowScannerModal(false);
-              }}
+              onClick={() => setShowScannerModal(false)}
               style={{
                 background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
                 color: '#ef4444', borderRadius: '10px', padding: '8px 18px',
@@ -6155,151 +6154,49 @@ export default function App() {
             >✕ Close</button>
           </div>
 
-          {/* Camera View */}
-          <div
-            className="scanner-modal-camera"
-            style={{
-              border: `2px solid ${attendanceActive ? 'rgba(0,242,254,0.4)' : 'rgba(255,255,255,0.08)'}`,
-              boxShadow: attendanceActive ? '0 0 40px rgba(0,242,254,0.15)' : 'none',
+          {/* ── FaceScanner — self-contained deep learning scanner ── */}
+          <FaceScanner
+            token={token}
+            apiBaseUrl={API_BASE_URL}
+            selectedSubjectId={selectedSubjectId}
+            userCoords={userCoords}
+            sessionActive={sessionActive}
+            sessionPeriod={sessionPeriod}
+            sessionDate={sessionDate}
+            addDiagnosticLog={addDiagnosticLog}
+            onAttendanceMarked={(result) => {
+              playCyberSound('success');
+              setScannedStudent({
+                name: result.name, roll: result.roll,
+                dep: result.dep, time: result.time,
+              });
+              if (result.newly_marked !== false) {
+                const now = new Date();
+                const dateStr = sessionActive && sessionDate
+                  ? sessionDate.split('-').reverse().join('/')
+                  : `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+                const newLog = {
+                  id: Date.now().toString(),
+                  roll: result.roll,
+                  name: result.name,
+                  department: result.dep,
+                  date: dateStr,
+                  time: result.time,
+                  attendance: 'Present',
+                  subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : 1,
+                };
+                setLogs(prev => [newLog, ...prev]);
+                setStats(prev => ({
+                  ...prev,
+                  total_present_today: (prev.total_present_today || 0) + 1,
+                }));
+                setScanStatus(`Marked: ${result.name}`);
+              } else {
+                setScanStatus(`Already marked: ${result.name}`);
+              }
             }}
-          >
-            {/* Corner HUD decoration */}
-            <div style={{ position: 'absolute', top: 12, left: 12, width: 28, height: 28, borderTop: '3px solid #00f2fe', borderLeft: '3px solid #00f2fe', borderRadius: '3px 0 0 0', zIndex: 10, opacity: 0.8 }} />
-            <div style={{ position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderTop: '3px solid #00f2fe', borderRight: '3px solid #00f2fe', borderRadius: '0 3px 0 0', zIndex: 10, opacity: 0.8 }} />
-            <div style={{ position: 'absolute', bottom: 12, left: 12, width: 28, height: 28, borderBottom: '3px solid #00f2fe', borderLeft: '3px solid #00f2fe', borderRadius: '0 0 0 3px', zIndex: 10, opacity: 0.8 }} />
-            <div style={{ position: 'absolute', bottom: 12, right: 12, width: 28, height: 28, borderBottom: '3px solid #00f2fe', borderRight: '3px solid #00f2fe', borderRadius: '0 0 3px 0', zIndex: 10, opacity: 0.8 }} />
+          />
 
-            {/* Scanning line animation */}
-            {attendanceActive && !scannerBootActive && (
-              <div style={{
-                position: 'absolute', left: 0, right: 0, height: '2px',
-                background: 'linear-gradient(90deg, transparent, #00f2fe, transparent)',
-                zIndex: 10, animation: 'scanLine 3s linear infinite', opacity: 0.7,
-              }} />
-            )}
-
-            {/* Robotic boot sequence */}
-            <ScannerBootOverlay
-              active={scannerBootActive}
-              onComplete={handleScannerBootComplete}
-              label="SEC_CAM_01"
-            />
-
-            {/* Live HUD after boot */}
-            {attendanceActive && !scannerBootActive && (
-              <div className="scanner-live-hud">
-                <div className="scanner-live-grid" />
-                <div className="scanner-live-radar-mini" />
-                <div className="scanner-live-status">● BIOMETRIC SCAN ACTIVE</div>
-              </div>
-            )}
-
-            <CameraAttractHud
-              active={attendanceActive && !scannerBootActive}
-              mode="attendance"
-              livenessStatus={livenessStatus}
-            />
-
-            {/* Video element */}
-            <video
-              ref={attendanceVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className={scannerBootActive ? 'scanner-video-booting' : ''}
-              style={{
-                width: '100%', height: '100%', objectFit: 'cover',
-                transform: 'scaleX(-1)',
-                display: (attendanceActive || scannerBootActive) ? 'block' : 'none',
-              }}
-            />
-            <canvas ref={attendanceCanvasRef} style={{ display: 'none' }} />
-
-            {/* Camera auto-initializing placeholder — shown while stream is starting */}
-            {!attendanceActive && !scannerBootActive && (
-              <div style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                background: 'radial-gradient(ellipse at center, rgba(0,242,254,0.05) 0%, rgba(0,0,0,0.92) 70%)',
-                gap: '20px',
-              }}>
-                {/* Animated scanner ring */}
-                <div style={{ position: 'relative', width: '80px', height: '80px' }}>
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    border: '3px solid rgba(0,242,254,0.12)',
-                    borderTopColor: '#00f2fe',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                  }} />
-                  <div style={{
-                    position: 'absolute', inset: '12px',
-                    border: '2px solid rgba(0,242,254,0.08)',
-                    borderBottomColor: 'rgba(0,242,254,0.5)',
-                    borderRadius: '50%',
-                    animation: 'spin 1.5s linear infinite reverse',
-                  }} />
-                  <div style={{
-                    position: 'absolute', inset: '24px',
-                    background: 'rgba(0,242,254,0.15)',
-                    borderRadius: '50%',
-                    animation: 'pulse 1.5s ease-in-out infinite',
-                  }} />
-                </div>
-                <p style={{ color: 'rgba(0,242,254,0.75)', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.14em', fontFamily: 'monospace' }}>INITIALIZING OPTICAL FEED...</p>
-              </div>
-            )}
-          </div>
-
-          {/* Modal Controls — camera auto-starts; only Stop is needed */}
-          <div className="scanner-modal-controls">
-            <button
-              onClick={stopAttendanceCam}
-              disabled={!attendanceActive && !scannerBootActive}
-              style={{
-                flex: 1, padding: '14px 24px',
-                background: (attendanceActive || scannerBootActive)
-                  ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
-                  : 'rgba(107,114,128,0.18)',
-                border: (attendanceActive || scannerBootActive)
-                  ? 'none'
-                  : '1px solid rgba(107,114,128,0.25)',
-                borderRadius: '12px',
-                color: (attendanceActive || scannerBootActive) ? '#fff' : '#6b7280',
-                fontWeight: 800, fontSize: '1rem',
-                cursor: (attendanceActive || scannerBootActive) ? 'pointer' : 'not-allowed',
-                letterSpacing: '0.04em',
-                boxShadow: (attendanceActive || scannerBootActive) ? '0 6px 24px rgba(239,68,68,0.35)' : 'none',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              {scannerBootActive ? '⏳ Booting...' : attendanceActive ? '⏹ Stop Scanner' : '⏳ Starting...'}
-            </button>
-          </div>
-
-          {/* Liveness & error messages */}
-          {attendanceError && (
-            <div style={{
-              width: '100%',
-              padding: '10px 16px',
-              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: '10px',
-              color: '#ef4444', fontSize: '0.85rem', fontWeight: 600,
-              wordBreak: 'break-word',
-            }}>{attendanceError}</div>
-          )}
-          {livenessMessage && attendanceActive && (
-            <div style={{
-              width: '100%',
-              padding: '10px 16px',
-              background: 'rgba(0,242,254,0.08)', border: '1px solid rgba(0,242,254,0.2)',
-              borderRadius: '10px',
-              color: '#00f2fe', fontSize: '0.85rem', fontWeight: 600,
-              textAlign: 'center',
-              wordBreak: 'break-word',
-            }}>{livenessMessage}</div>
-          )}
           </div>
         </div>
       )}
