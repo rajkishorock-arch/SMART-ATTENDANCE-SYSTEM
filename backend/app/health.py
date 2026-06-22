@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from .database import get_db
 from . import security, models
@@ -100,3 +100,56 @@ def get_detailed_health(
             "sface": "READY" if sface_exists else "MISSING",
         },
     }
+
+
+@router.post("/test-smtp")
+def test_smtp_configuration(
+    recipient_email: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Test endpoint to trigger a direct SMTP email delivery check."""
+    if current_user.role != "admin" or current_user.institution_id != 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only System Administrators of the default institution can run diagnostic email tests.",
+        )
+
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    from app.core import config
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "SMART ATTENDANCE SYSTEM - SMTP TEST"
+        msg["From"] = f'"{config.SMTP_SENDER_NAME}" <{config.SMTP_SENDER_EMAIL}>'
+        msg["To"] = recipient_email
+
+        html_content = f"""
+        <html>
+        <body>
+            <h2>SMTP Configuration Verified!</h2>
+            <p>This is a test email confirming that the SMTP connection works perfectly from the server environment.</p>
+            <p><strong>Host:</strong> {config.SMTP_HOST}</p>
+            <p><strong>Username:</strong> {config.SMTP_USERNAME}</p>
+        </body>
+        </html>
+        """
+        msg.attach(MIMEText(html_content, "html"))
+
+        server = smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT, timeout=10)
+        if config.SMTP_PORT == 587:
+            server.starttls()
+        
+        if config.SMTP_USERNAME and config.SMTP_USERNAME != "your_gmail_address@gmail.com":
+            server.login(config.SMTP_USERNAME, config.SMTP_PASSWORD)
+            
+        server.sendmail(config.SMTP_SENDER_EMAIL, recipient_email, msg.as_string())
+        server.quit()
+        return {"status": "success", "message": f"SMTP connection verified and email successfully sent to {recipient_email}"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"SMTP Connection Failed: {str(e)}"
+        )

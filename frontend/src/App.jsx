@@ -131,6 +131,8 @@ export default function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [editingInst, setEditingInst] = useState(null);
   const [isUpdatingInst, setIsUpdatingInst] = useState(false);
+  const [smtpTestEmail, setSmtpTestEmail] = useState('');
+  const [smtpTestStatus, setSmtpTestStatus] = useState({ loading: false, success: '', error: '' });
   const [neuralMeshCanvas, setNeuralMeshCanvas] = useState(null);
   const neuralMeshCanvasRef = useCallback((node) => {
     if (node !== null) {
@@ -2280,6 +2282,31 @@ export default function App() {
       setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
     } finally {
       setIsUpdatingInst(false);
+    }
+  };
+
+  const handleSmtpTest = async (e) => {
+    e.preventDefault();
+    if (!smtpTestEmail) return;
+    setSmtpTestStatus({ loading: true, success: '', error: '' });
+    try {
+      const res = await fetch(`${API_BASE_URL}/health/test-smtp?recipient_email=${encodeURIComponent(smtpTestEmail)}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSmtpTestStatus({ loading: false, success: data.message || 'SMTP Connection Verified! Email Sent Successfully.', error: '' });
+        playCyberSound('success');
+      } else {
+        setSmtpTestStatus({ loading: false, success: '', error: data.detail || 'SMTP Connection Failed.' });
+        playCyberSound('error');
+      }
+    } catch (err) {
+      setSmtpTestStatus({ loading: false, success: '', error: `Connection failed: ${err.message}` });
+      playCyberSound('error');
     }
   };
 
@@ -6979,150 +7006,241 @@ export default function App() {
                   )}
                 </h3>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
-                  {/* Gauge bars for CPU & RAM */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px', fontFamily: 'monospace' }}>
-                        <span style={{ color: 'var(--color-text-muted)' }}>CPU ENGINE:</span>
-                        <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.cpu_percent}%` : '0.0%'}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', flex: 1 }}>
+                  {/* Column 1: System Health & Core Specs */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Gauge bars for CPU & RAM */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px', fontFamily: 'monospace' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>CPU ENGINE:</span>
+                          <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.cpu_percent}%` : '0.0%'}</span>
+                        </div>
+                        <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ 
+                            height: '100%', 
+                            width: systemHealth ? `${systemHealth.metrics.cpu_percent}%` : '0%', 
+                            background: `linear-gradient(90deg, ${activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'}, ${activeTheme === 'matrix' ? '#00cc38' : activeTheme === 'obsidian' ? '#cc3232' : activeTheme === 'violet' ? '#8b5cf6' : '#4facfe'})`,
+                            borderRadius: '4px',
+                            transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                          }} />
+                        </div>
                       </div>
-                      <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ 
-                          height: '100%', 
-                          width: systemHealth ? `${systemHealth.metrics.cpu_percent}%` : '0%', 
-                          background: `linear-gradient(90deg, ${activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'}, ${activeTheme === 'matrix' ? '#00cc38' : activeTheme === 'obsidian' ? '#cc3232' : activeTheme === 'violet' ? '#8b5cf6' : '#4facfe'})`,
-                          borderRadius: '4px',
-                          transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }} />
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px', fontFamily: 'monospace' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>RAM BUFFER:</span>
+                          <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.memory_percent}%` : '0.0%'}</span>
+                        </div>
+                        <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ 
+                            height: '100%', 
+                            width: systemHealth ? `${systemHealth.metrics.memory_percent}%` : '0%', 
+                            background: `linear-gradient(90deg, ${activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'}, ${activeTheme === 'matrix' ? '#00cc38' : activeTheme === 'obsidian' ? '#cc3232' : activeTheme === 'violet' ? '#8b5cf6' : '#4facfe'})`,
+                            borderRadius: '4px',
+                            transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                          }} />
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px', fontFamily: 'monospace' }}>
-                        <span style={{ color: 'var(--color-text-muted)' }}>RAM BUFFER:</span>
-                        <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.memory_percent}%` : '0.0%'}</span>
+
+                    {/* Core checklist */}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr', 
+                      gap: '12px 20px', 
+                      background: 'rgba(8, 12, 20, 0.25)', 
+                      border: '1px solid var(--border-color)', 
+                      borderRadius: '10px', 
+                      padding: '16px', 
+                      fontSize: '0.8rem',
+                      fontFamily: 'monospace'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-text-muted)' }}>DATABASE:</span>
+                        <span style={{ 
+                          color: systemHealth?.database === 'CONNECTED' ? '#10b981' : '#ef4444', 
+                          fontWeight: 'bold' 
+                        }}>
+                          {systemHealth ? systemHealth.database : 'CHECKING...'}
+                        </span>
                       </div>
-                      <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ 
-                          height: '100%', 
-                          width: systemHealth ? `${systemHealth.metrics.memory_percent}%` : '0%', 
-                          background: `linear-gradient(90deg, ${activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'}, ${activeTheme === 'matrix' ? '#00cc38' : activeTheme === 'obsidian' ? '#cc3232' : activeTheme === 'violet' ? '#8b5cf6' : '#4facfe'})`,
-                          borderRadius: '4px',
-                          transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-text-muted)' }}>DB ENGINE / TYPE:</span>
+                        <span style={{ 
+                          color: systemHealth?.database_type === 'sqlite' ? '#f59e0b' : '#00f2fe',
+                          fontWeight: 'bold' 
+                        }}>
+                          {systemHealth ? (systemHealth.database_type === 'sqlite' ? 'LOCAL SQLITE (FALLBACK)' : systemHealth.database_type.toUpperCase()) : 'CHECKING...'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-text-muted)' }}>API LATENCY:</span>
+                        <span style={{ 
+                          color: apiLatency === -1 ? '#ef4444' : apiLatency < 40 ? '#10b981' : apiLatency < 100 ? '#f59e0b' : '#ef4444',
+                          fontWeight: 'bold' 
+                        }}>
+                          {apiLatency === -1 ? 'OFFLINE' : `${apiLatency} ms`}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-text-muted)' }}>DETECTION YUNET:</span>
+                        <span style={{ 
+                          color: systemHealth?.models?.yunet === 'READY' ? '#10b981' : '#ef4444', 
+                          fontWeight: 'bold' 
+                        }}>
+                          {systemHealth?.models?.yunet || 'CHECKING...'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-text-muted)' }}>RECOGNITION SFACE:</span>
+                        <span style={{ 
+                          color: systemHealth?.models?.sface === 'READY' ? '#10b981' : '#ef4444', 
+                          fontWeight: 'bold' 
+                        }}>
+                          {systemHealth?.models?.sface || 'CHECKING...'}
+                        </span>
                       </div>
                     </div>
+
+                    {/* System details */}
+                    <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div>UPTIME: <span style={{ color: '#f1f5f9' }}>{systemHealth ? (() => {
+                        const sec = systemHealth.metrics.uptime_seconds;
+                        const d = Math.floor(sec / (3600*24));
+                        const h = Math.floor((sec % (3600*24)) / 3600);
+                        const m = Math.floor((sec % 3600) / 60);
+                        const s = sec % 60;
+                        return `${d}d ${h}h ${m}m ${s}s`;
+                      })() : '0d 0h 0m 0s'}</span></div>
+                      <div>PLATFORM: <span style={{ color: '#f1f5f9' }}>{systemHealth ? `${systemHealth.platform.system} (${systemHealth.platform.release})` : 'DETECTING...'}</span></div>
+                      <div>ENVIRONMENT: <span style={{ color: '#f1f5f9' }}>Python {systemHealth ? systemHealth.platform.python_version : '...'}</span></div>
+                    </div>
+                    {/* Manual trigger button */}
+                    <button 
+                      onClick={() => {
+                        playCyberSound('click');
+                        setHealthLoading(true);
+                        fetchSystemHealth().finally(() => {
+                          setTimeout(() => setHealthLoading(false), 600);
+                        });
+                      }}
+                      disabled={healthLoading}
+                      className="action-btn"
+                      style={{ 
+                        marginTop: 'auto',
+                        padding: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        fontFamily: 'monospace',
+                        letterSpacing: '1px',
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {healthLoading && (
+                        <div style={{ 
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          height: '100%',
+                          width: '100%',
+                          background: 'rgba(0, 242, 254, 0.15)',
+                          animation: 'scannerPulse 1.2s infinite'
+                        }} />
+                      )}
+                      <span>{healthLoading ? 'RUNNING INTEGRITY CHECK...' : 'RUN CORE DIAGNOSTICS'}</span>
+                    </button>
                   </div>
 
-                  {/* Core checklist */}
+                  {/* Column 2: SMTP Mailer Diagnostics */}
                   <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '1fr 1fr', 
-                    gap: '12px 20px', 
-                    background: 'rgba(8, 12, 20, 0.25)', 
-                    border: '1px solid var(--border-color)', 
-                    borderRadius: '10px', 
-                    padding: '16px', 
-                    fontSize: '0.8rem',
-                    fontFamily: 'monospace'
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '16px',
+                    borderLeft: '1px solid rgba(255,255,255,0.08)',
+                    paddingLeft: '28px'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>DATABASE:</span>
-                      <span style={{ 
-                        color: systemHealth?.database === 'CONNECTED' ? '#10b981' : '#ef4444', 
-                        fontWeight: 'bold' 
-                      }}>
-                        {systemHealth ? systemHealth.database : 'CHECKING...'}
-                      </span>
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        ✉️ SMTP Mailer Diagnostics
+                      </h4>
+                      <p style={{ color: '#9ca3af', fontSize: '0.78rem', margin: '4px 0 0 0', lineHeight: '1.4' }}>
+                        Verify the live mail server connection by triggering a test transmission.
+                      </p>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>DB ENGINE / TYPE:</span>
-                      <span style={{ 
-                        color: systemHealth?.database_type === 'sqlite' ? '#f59e0b' : '#00f2fe',
-                        fontWeight: 'bold' 
-                      }}>
-                        {systemHealth ? (systemHealth.database_type === 'sqlite' ? 'LOCAL SQLITE (FALLBACK)' : systemHealth.database_type.toUpperCase()) : 'CHECKING...'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>API LATENCY:</span>
-                      <span style={{ 
-                        color: apiLatency === -1 ? '#ef4444' : apiLatency < 40 ? '#10b981' : apiLatency < 100 ? '#f59e0b' : '#ef4444',
-                        fontWeight: 'bold' 
-                      }}>
-                        {apiLatency === -1 ? 'OFFLINE' : `${apiLatency} ms`}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>DETECTION YUNET:</span>
-                      <span style={{ 
-                        color: systemHealth?.models?.yunet === 'READY' ? '#10b981' : '#ef4444', 
-                        fontWeight: 'bold' 
-                      }}>
-                        {systemHealth?.models?.yunet || 'CHECKING...'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>RECOGNITION SFACE:</span>
-                      <span style={{ 
-                        color: systemHealth?.models?.sface === 'READY' ? '#10b981' : '#ef4444', 
-                        fontWeight: 'bold' 
-                      }}>
-                        {systemHealth?.models?.sface || 'CHECKING...'}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* System details */}
-                  <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div>UPTIME: <span style={{ color: '#f1f5f9' }}>{systemHealth ? (() => {
-                      const sec = systemHealth.metrics.uptime_seconds;
-                      const d = Math.floor(sec / (3600*24));
-                      const h = Math.floor((sec % (3600*24)) / 3600);
-                      const m = Math.floor((sec % 3600) / 60);
-                      const s = sec % 60;
-                      return `${d}d ${h}h ${m}m ${s}s`;
-                    })() : '0d 0h 0m 0s'}</span></div>
-                    <div>PLATFORM: <span style={{ color: '#f1f5f9' }}>{systemHealth ? `${systemHealth.platform.system} (${systemHealth.platform.release})` : 'DETECTING...'}</span></div>
-                    <div>ENVIRONMENT: <span style={{ color: '#f1f5f9' }}>Python {systemHealth ? systemHealth.platform.python_version : '...'}</span></div>
-                  </div>
-                  {/* Manual trigger button */}
-                  <button 
-                    onClick={() => {
-                      playCyberSound('click');
-                      setHealthLoading(true);
-                      fetchSystemHealth().finally(() => {
-                        setTimeout(() => setHealthLoading(false), 600);
-                      });
-                    }}
-                    disabled={healthLoading}
-                    className="action-btn"
-                    style={{ 
-                      marginTop: 'auto',
-                      padding: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      fontFamily: 'monospace',
-                      letterSpacing: '1px',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {healthLoading && (
-                      <div style={{ 
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        height: '100%',
-                        width: '100%',
-                        background: 'rgba(0, 242, 254, 0.15)',
-                        animation: 'scannerPulse 1.2s infinite'
-                      }} />
+                    <form onSubmit={handleSmtpTest} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Recipient Test Email</label>
+                        <input
+                          type="email"
+                          className="form-input"
+                          placeholder="e.g. your-email@gmail.com"
+                          value={smtpTestEmail}
+                          onChange={(e) => setSmtpTestEmail(e.target.value)}
+                          required
+                          style={{
+                            padding: '10px 14px',
+                            background: 'rgba(8, 12, 20, 0.4)',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={smtpTestStatus.loading}
+                        className="action-btn"
+                        style={{
+                          padding: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          fontFamily: 'monospace',
+                          fontSize: '0.8rem',
+                          background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                          borderRadius: '8px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {smtpTestStatus.loading ? 'TRANSMITTING VERIFICATION...' : '⚡ TEST SMTP CONNECTION'}
+                      </button>
+                    </form>
+
+                    {smtpTestStatus.success && (
+                      <div style={{
+                        padding: '12px',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        borderRadius: '8px',
+                        color: '#10b981',
+                        fontSize: '0.78rem',
+                        fontFamily: 'monospace',
+                        lineHeight: '1.4'
+                      }}>
+                        ✅ {smtpTestStatus.success}
+                      </div>
                     )}
-                    <span>{healthLoading ? 'RUNNING INTEGRITY CHECK...' : 'RUN CORE DIAGNOSTICS'}</span>
-                  </button>
+
+                    {smtpTestStatus.error && (
+                      <div style={{
+                        padding: '12px',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        borderRadius: '8px',
+                        color: '#ef4444',
+                        fontSize: '0.78rem',
+                        fontFamily: 'monospace',
+                        lineHeight: '1.4',
+                        wordBreak: 'break-all'
+                      }}>
+                        ❌ {smtpTestStatus.error}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
