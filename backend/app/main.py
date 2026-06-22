@@ -257,7 +257,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_origin_regex=r"https://([^/]+\.)?smart-attendance-system-olive-ten\.vercel\.app|http://localhost(:\d+)?|capacitor://localhost|http://10\.\d+\.\d+\.\d+(:\d+)?|http://192\.168\.\d+\.\d+(:\d+)?",
+    allow_origin_regex=r"https://([^/]+\.)?smart-attendance-system-olive-ten\.vercel\.app|https?://localhost(:\d+)?|capacitor://localhost|https?://10\.\d+\.\d+\.\d+(:\d+)?|https?://192\.168\.\d+\.\d+(:\d+)?",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Master-Password", "X-Tenant-Slug"],
