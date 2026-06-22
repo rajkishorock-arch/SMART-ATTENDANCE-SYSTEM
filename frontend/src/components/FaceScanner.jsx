@@ -417,13 +417,7 @@ export default function FaceScanner({
       if (sessionActive && sessionDate)  fd.append('custom_date', sessionDate);
       if (sessionActive && sessionPeriod) fd.append('custom_time', sessionPeriod);
 
-      // Determine if we should write to the database (commit)
-      let shouldCommit = !livenessEnabled;
-      if (livenessEnabled) {
-        shouldCommit = tracksRef.current.some(t => t.verified && !markedIdsRef.current.has(t.id));
-      }
-
-      const resp = await fetch(`${apiBaseUrl}/attendance/recognize-frame?commit=${shouldCommit}`, {
+      const resp = await fetch(`${apiBaseUrl}/attendance/recognize-frame`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -489,29 +483,26 @@ export default function FaceScanner({
 
           // mark attendance after liveness
           if (track.verified && !markedIdsRef.current.has(face.user_id)) {
-            // Only add to markedIdsRef if the backend actually committed it (newly_marked is not null)
-            if (face.newly_marked !== null) {
-              markedIdsRef.current.add(face.user_id);
-              if (face.newly_marked !== false) {
-                const timeStr = sessionActive && sessionPeriod
-                  ? sessionPeriod
-                  : new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-                onAttendanceMarked?.({
-                  user_id:    face.user_id,
-                  name:       face.name,
-                  roll:       face.roll,
-                  dep:        face.dep,
-                  time:       timeStr,
-                  confidence: face.confidence,
-                  newly_marked: face.newly_marked,
-                });
-                addDiagnosticLog?.(`MATCH: ${face.name} (${face.confidence?.toFixed(1)}%)`);
-                setLastResult({ name:face.name, roll:face.roll, dep:face.dep,
-                                confidence:face.confidence, time: timeStr });
-                setStatusText(`Marked: ${face.name}`);
-              } else {
-                setStatusText(`Already marked: ${face.name}`);
-              }
+            markedIdsRef.current.add(face.user_id);
+            if (face.newly_marked !== false) {
+              const timeStr = sessionActive && sessionPeriod
+                ? sessionPeriod
+                : new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+              onAttendanceMarked?.({
+                user_id:    face.user_id,
+                name:       face.name,
+                roll:       face.roll,
+                dep:        face.dep,
+                time:       timeStr,
+                confidence: face.confidence,
+                newly_marked: face.newly_marked,
+              });
+              addDiagnosticLog?.(`MATCH: ${face.name} (${face.confidence?.toFixed(1)}%)`);
+              setLastResult({ name:face.name, roll:face.roll, dep:face.dep,
+                              confidence:face.confidence, time: timeStr });
+              setStatusText(`Marked: ${face.name}`);
+            } else {
+              setStatusText(`Already marked: ${face.name}`);
             }
           }
         });
