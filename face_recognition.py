@@ -134,7 +134,7 @@ class Face_Recognition:
 
             if retval and faces is not None and len(faces) > 0:
                 for face in faces:
-                    x, y, w, h = face[0:4]
+                    x, y, w, h = int(face[0]), int(face[1]), int(face[2]), int(face[3])
                     if w < 40 or h < 40:
                         continue
 
