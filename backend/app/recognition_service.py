@@ -21,8 +21,13 @@ class RecognitionService:
             self.detector = None
             self.recognizer = None
 
-    def load_student_records(self, db: Session):
-        """Loads all registered student profiles and their face embeddings from DB into memory."""
+    def load_student_records(self, db: Session, force: bool = False):
+        """Loads all registered student profiles and their face embeddings from DB into memory.
+        Uses in-memory cache if force=False and cache is already populated.
+        """
+        if not force and self.student_records:
+            return
+            
         from . import models
         import json
         
@@ -42,49 +47,51 @@ class RecognitionService:
                     }
                 except Exception as parse_err:
                     print(f"Failed to parse embedding for student ID {s.id}: {parse_err}")
-            print(f"Loaded {len(self.student_records)} student embeddings for recognition.")
+            print(f"Loaded/Refreshed {len(self.student_records)} student embeddings for recognition.")
         except Exception as db_err:
             print(f"Database query failed in load_student_records: {db_err}")
-
-    def _enhance_image(self, image: np.ndarray) -> np.ndarray:
-        """Apply CLAHE contrast enhancement in LAB color space for better detection in varied lighting."""
-        try:
-            lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-            l_channel, a, b = cv2.split(lab)
-            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
-            cl = clahe.apply(l_channel)
-            enhanced_lab = cv2.merge((cl, a, b))
-            return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
-        except Exception:
-            return image  # fallback: return original if enhancement fails
 
     def recognize_faces_in_frame(self, image: np.ndarray, institution_id: int = None):
         """Detects and recognizes faces in a single video frame using SFace and YuNet.
 
-        Improvements over v1:
-        - CLAHE preprocessing for robust detection under dim / harsh lighting
-        - Minimum face-size guard (40x40 px) to skip distant / blurry faces
-        - Two-pass detection: try enhanced image first, fall back to original
-        - Cosine threshold raised to 0.43 to cut false positive rate
+        Optimizations:
+        - Downscale high-resolution frames (max dimension 640px) to run real-time on CPU
+        - Remove heavy CLAHE preprocessing and two-pass detection for speed
+        - Match cosine similarity with threshold 0.43 (same as desktop app)
+        - Scale face box coordinates back to the original image coordinate space
         """
         if self.detector is None or self.recognizer is None:
             self._load_models()
             if self.detector is None or self.recognizer is None:
                 raise Exception("Models are not loaded. Cannot recognize faces.")
 
-        # --- Step 1: Pre-process frame for better detection ---
-        enhanced = self._enhance_image(image)
+        if image is None or image.size == 0:
+            return []
 
-        h, w = enhanced.shape[:2]
+        # --- Step 1: Downscale frame if too large for fast CPU detection/recognition ---
+        orig_h, orig_w = image.shape[:2]
+        max_dim = 640
+        
+        if orig_w > max_dim or orig_h > max_dim:
+            if orig_w > orig_h:
+                new_w = max_dim
+                new_h = int(orig_h * (max_dim / orig_w))
+            else:
+                new_h = max_dim
+                new_w = int(orig_w * (max_dim / orig_h))
+            
+            resized_image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            scale_x = orig_w / new_w
+            scale_y = orig_h / new_h
+        else:
+            resized_image = image
+            scale_x = 1.0
+            scale_y = 1.0
+
+        h, w = resized_image.shape[:2]
         self.detector.setInputSize((w, h))
 
-        retval, faces = self.detector.detect(enhanced)
-
-        # Two-pass: if enhanced image yields no face, retry with original
-        if not retval or faces is None or len(faces) == 0:
-            self.detector.setInputSize((image.shape[1], image.shape[0]))
-            retval, faces = self.detector.detect(image)
-            enhanced = image  # use original for alignment if fallback
+        retval, faces = self.detector.detect(resized_image)
 
         if not retval or faces is None or len(faces) == 0:
             return []
@@ -93,13 +100,13 @@ class RecognitionService:
         for face in faces:
             x, y, box_w, box_h = face[0:4]
 
-            # Skip tiny / distant faces (too blurry to match reliably)
-            if box_w < 40 or box_h < 40:
+            # Skip tiny / distant faces in resized image
+            if box_w < 20 or box_h < 20:
                 continue
 
             try:
-                # Align and crop the face using YuNet landmarks
-                aligned = self.recognizer.alignCrop(enhanced, face)
+                # Align and crop the face using YuNet landmarks on the resized image
+                aligned = self.recognizer.alignCrop(resized_image, face)
                 # Extract the 128-D SFace feature vector
                 feat = self.recognizer.feature(aligned)
             except Exception as extract_err:
@@ -119,15 +126,22 @@ class RecognitionService:
                     best_score = score
                     best_id = student_id
 
-            # Threshold 0.43 — stricter than default (0.363) to minimise false matches
+            # Threshold 0.43 (same as desktop app)
             if best_id is not None and best_score >= 0.43:
                 student = self.student_records[best_id]
+                
+                # Scale coordinates back to original image space
+                orig_x = int(x * scale_x)
+                orig_y = int(y * scale_y)
+                orig_box_w = int(box_w * scale_x)
+                orig_box_h = int(box_h * scale_y)
+
                 recognized_faces.append({
                     "user_id": best_id,
                     "name": student["name"],
                     "roll": student["roll"],
                     "dep": student["dep"],
-                    "box": [int(x), int(y), int(box_w), int(box_h)],
+                    "box": [orig_x, orig_y, orig_box_w, orig_box_h],
                     "confidence": round(min(100.0, max(0.0, best_score * 100)), 2)
                 })
 

@@ -522,7 +522,7 @@ async def upload_student_selfie(
     # 7. Refresh recognition service cache instantly
     try:
         from .recognition_service import recognition_service
-        recognition_service.load_student_records(db)
+        recognition_service.load_student_records(db, force=True)
     except Exception as e:
         print(f"Failed to refresh recognition cache: {e}")
 
@@ -750,7 +750,7 @@ async def upload_student_face_sample(
     # 4. Refresh recognition service cache instantly
     try:
         from .recognition_service import recognition_service
-        recognition_service.load_student_records(db)
+        recognition_service.load_student_records(db, force=True)
     except Exception as e:
         print(f"Failed to refresh recognition cache: {e}")
 

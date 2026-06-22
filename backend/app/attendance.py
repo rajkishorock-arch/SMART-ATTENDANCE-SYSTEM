@@ -163,8 +163,8 @@ async def recognize_and_mark_attendance(
     if img is None:
         raise HTTPException(status_code=400, detail="Invalid image frame.")
 
-    # Refresh student records from DB to ensure memory cache is current
-    recognition_service.load_student_records(db)
+    # Ensure student records are loaded in memory cache (uses cache if already loaded)
+    recognition_service.load_student_records(db, force=False)
 
     # Perform face recognition
     try:
