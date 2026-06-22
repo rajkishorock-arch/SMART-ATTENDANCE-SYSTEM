@@ -12,7 +12,11 @@ def send_telegram_message_async(message):
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "YOUR_CHAT_ID_HERE")
     
     if bot_token == "YOUR_BOT_TOKEN_HERE" or chat_id == "YOUR_CHAT_ID_HERE":
-        print(f"Telegram not configured. Log: {message}")
+        try:
+            print(f"Telegram not configured. Log: {message}")
+        except UnicodeEncodeError:
+            clean_message = message.encode('ascii', errors='replace').decode('ascii')
+            print(f"Telegram not configured. Log: {clean_message}")
         return
 
     def _send():
