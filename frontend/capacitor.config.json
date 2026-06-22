@@ -3,7 +3,7 @@
   "appName": "Smart Attendance",
   "webDir": "dist",
   "server": {
-    "androidScheme": "http"
+    "androidScheme": "https"
   },
   "plugins": {
     "SplashScreen": {

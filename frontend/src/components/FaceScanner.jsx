@@ -277,6 +277,15 @@ export default function FaceScanner({
       setBootStep('CALIBRATING BIOMETRIC SENSORS...');
       let stream;
 
+      // Guard: navigator.mediaDevices is only available in secure contexts (HTTPS).
+      // On Android WebView with http:// scheme, this would be undefined and crash the app.
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error(
+          'Camera API not available. This app requires a secure context (HTTPS). ' +
+          'If you are on Android, ensure androidScheme is set to "https" in capacitor.config.json.'
+        );
+      }
+
       // Check if the requested facing mode camera actually exists on this device.
       // Strategy: try getUserMedia first. If it fails with OverconstrainedError /
       // NotFoundError / NotReadableError (all mean "no such camera"), show a
