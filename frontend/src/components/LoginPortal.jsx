@@ -259,12 +259,12 @@ export default function LoginPortal({
           <form onSubmit={onSubmit} className="login-portal-form">
             <div className="form-group">
               <label className="form-label">
-                <Mail size={14} /> Email Address
+                <Mail size={14} /> Email or Institute Username
               </label>
               <input
-                type="email"
+                type="text"
                 className="form-input login-portal-input"
-                placeholder={`${activeRole.label.toLowerCase()}@email.com`}
+                placeholder="Email or college slug (e.g. du)"
                 autoComplete="username"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
