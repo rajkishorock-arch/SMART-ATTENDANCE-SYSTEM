@@ -237,6 +237,11 @@ class InstitutionCreate(BaseModel):
     admin_name: str
     admin_password: str
 
+# --- Institution Master Key Update ---
+class InstitutionMasterKeyUpdate(BaseModel):
+    current_master_key: str
+    new_master_key: str
+
 # --- Institution Update ---
 class InstitutionUpdate(BaseModel):
     name: Optional[str] = None

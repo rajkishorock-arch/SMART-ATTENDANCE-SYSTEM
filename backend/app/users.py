@@ -86,12 +86,12 @@ def create_new_user(
             detail="Only administrators can register new teaching staff."
         )
     
-    # Master key verification is ONLY required for default institution (ID 1)
-    if current_user.institution_id == 1:
+    # Master key verification is required for default institution (ID 1) OR when registering an admin (role == "admin")
+    if current_user.institution_id == 1 or user.role == "admin":
         if not verify_master_password(db, request, current_user.institution_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid Master Password! Master key verification is required to register new staff."
+                detail="Invalid Master Password! Master key verification is required to register administrators."
             )
     
     db_user = crud.get_user_by_email(db, email=user.email, institution_id=current_user.institution_id)
