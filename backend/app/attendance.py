@@ -82,6 +82,7 @@ async def recognize_and_mark_attendance(
     subject_id: Optional[int] = None,
     custom_date: Optional[str] = None,
     custom_time: Optional[str] = None,
+    commit: bool = True,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -179,32 +180,34 @@ async def recognize_and_mark_attendance(
         roll = face["roll"]
         dep = face["dep"]
         
-        # Mark attendance in database + CSV
-        db_attendance, newly_marked = crud.mark_student_attendance(
-            db, 
-            student_id=user_id, 
-            name=name, 
-            roll=roll, 
-            dep=dep, 
-            subject_id=subject_id,
-            custom_date=custom_date,
-            custom_time=custom_time,
-            institution_id=current_user.institution_id
-        )
-
-        
-        # If student's attendance is newly marked today, send an asynchronous confirmation email
-        if newly_marked:
-            student = crud.get_student_by_id(db, student_id=user_id, institution_id=current_user.institution_id)
-            if student and student.email:
-                background_tasks.add_task(
-                    send_presence_email,
-                    student_email=student.email,
-                    student_name=name,
-                    roll_no=roll,
-                    time_str=db_attendance.time,
-                    date_str=db_attendance.date
-                )
+        if commit:
+            # Mark attendance in database + CSV
+            db_attendance, newly_marked = crud.mark_student_attendance(
+                db, 
+                student_id=user_id, 
+                name=name, 
+                roll=roll, 
+                dep=dep, 
+                subject_id=subject_id,
+                custom_date=custom_date,
+                custom_time=custom_time,
+                institution_id=current_user.institution_id
+            )
+            
+            # If student's attendance is newly marked today, send an asynchronous confirmation email
+            if newly_marked:
+                student = crud.get_student_by_id(db, student_id=user_id, institution_id=current_user.institution_id)
+                if student and student.email:
+                    background_tasks.add_task(
+                        send_presence_email,
+                        student_email=student.email,
+                        student_name=name,
+                        roll_no=roll,
+                        time_str=db_attendance.time,
+                        date_str=db_attendance.date
+                    )
+        else:
+            newly_marked = None
         
         face_details = face.copy()
         face_details["newly_marked"] = newly_marked

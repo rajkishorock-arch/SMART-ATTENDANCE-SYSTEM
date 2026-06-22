@@ -5112,6 +5112,64 @@ html {
   }
 }
 
+/* ===== Responsive Camera Layout and Fullscreen Phone Styling ===== */
+@media (max-width: 768px) {
+  /* 1. Attendance scanner modal (Phone fullscreen) */
+  .scanner-modal-overlay {
+    padding: 0 !important;
+  }
+  .scanner-modal-inner {
+    max-width: 100% !important;
+    height: 100dvh !important;
+    gap: 0 !important;
+    border-radius: 0 !important;
+  }
+  .scanner-modal-header {
+    padding: 12px 16px !important;
+    background: rgba(8, 12, 20, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+  /* Make the camera feed container take up all available vertical space */
+  .scanner-modal-inner > div > div[style*="aspect-ratio"] {
+    aspect-ratio: auto !important;
+    flex: 1 !important;
+    height: 0 !important; 
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  .scanner-modal-controls {
+    padding: 16px !important;
+    background: rgba(8, 12, 20, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+  }
 
+  /* 2. Admin webcam capture modal (Phone fullscreen) */
+  .modal-overlay .glass-panel {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .modal-overlay .glass-panel .scanner-container {
+    flex: 1 !important;
+    height: 0 !important;
+    aspect-ratio: auto !important;
+    border-radius: 8px !important;
+  }
+}
 
-
+@media (min-width: 769px) {
+  /* Laptop layout: increase widths of both modals */
+  .scanner-modal-inner {
+    max-width: 1080px !important; 
+  }
+  .modal-overlay .glass-panel {
+    max-width: 720px !important;
+  }
+}
