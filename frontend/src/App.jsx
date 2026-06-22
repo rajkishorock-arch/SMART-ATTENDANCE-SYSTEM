@@ -12,6 +12,7 @@ import ClickFxLayer from './components/animations/ClickFxLayer';
 import PageTransitionFlash from './components/animations/PageTransitionFlash';
 import CameraAttractHud from './components/animations/CameraAttractHud';
 import { 
+  Activity,
   Users, 
   CheckCircle2, 
   AlertCircle, 
