@@ -385,6 +385,11 @@ export default function App() {
 
   // App Navigation & Modal State
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeSubSetting, setActiveSubSetting] = useState(null);
+
+  useEffect(() => {
+    setActiveSubSetting(null);
+  }, [activeTab]);
   
   // Feedback Form States
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -4238,6 +4243,7 @@ export default function App() {
 
   const navigateToTab = useCallback((tabId) => {
     setActiveTab(tabId);
+    setActiveSubSetting(null);
     setMobileSidebarOpen(false);
     setMobileControlOpen(false);
     playCyberSound('click');
@@ -4246,6 +4252,7 @@ export default function App() {
   const handleBottomScan = useCallback(() => {
     playCyberSound('click');
     setActiveTab('attendance');
+    setActiveSubSetting(null);
     setShowScannerModal(true);
     setMobileControlOpen(false);
   }, []);
@@ -6207,7 +6214,7 @@ export default function App() {
                   <button 
                     className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
                     style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('settings'); playCyberSound('click'); }}
+                    onClick={() => { navigateToTab('settings'); }}
                   >
                     <ShieldCheck size={18} />
                     Security Settings
@@ -9709,421 +9716,662 @@ export default function App() {
 
         {activeTab === 'settings' && userRole === 'admin' && (
           <div className="settings-section" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldCheck size={22} style={{ color: '#00f2fe' }} /> Security & Gatekeeping
-                </h3>
-                <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
-                  Configure physical and network restrictions to prevent proxy or remote attendance.
-                </p>
+            {activeSubSetting !== null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button 
+                  onClick={() => { setActiveSubSetting(null); playCyberSound('click'); }}
+                  className="btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}
+                >
+                  <ArrowLeft size={16} /> Back to Settings Hub
+                </button>
+                <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Settings Hub &gt; {activeSubSetting}
+                </span>
               </div>
+            )}
 
-              {settingsMessage && (
-                <div style={{ padding: '12px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', color: '#10b981', fontSize: '0.875rem' }}>
-                  {settingsMessage}
+            {activeSubSetting === null ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>⚙️ Settings Directory Hub</h2>
+                  <p style={{ color: '#9ca3af', fontSize: '0.9rem', margin: 0 }}>
+                    Select a settings category below to configure parameters, modify user access, or adjust preferences.
+                  </p>
                 </div>
-              )}
-
-              {settingsError && (
-                <div style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem' }}>
-                  {settingsError}
-                </div>
-              )}
-
-              {/* Geofencing Subsection */}
-              <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px' }}>
-                <div className="flex-between" style={{ marginBottom: '16px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>GPS Geofencing</h4>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '2px' }}>
-                      Restricts check-in to a specific geographical radius.
-                    </p>
-                  </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gap: '20px'
+                }}>
+                  {/* Category Card 1: GPS Geofencing */}
                   <div 
-                    onClick={() => setSettingsGeoEnabled(!settingsGeoEnabled)} 
-                    style={{
-                      width: '48px',
-                      height: '26px',
-                      backgroundColor: settingsGeoEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${settingsGeoEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
-                      borderRadius: '50px',
-                      padding: '2px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      transition: 'var(--transition)',
-                      boxShadow: settingsGeoEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
-                    }}
+                    onClick={() => { setActiveSubSetting('geofencing'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
                   >
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      backgroundColor: settingsGeoEnabled ? 'var(--color-primary)' : '#94a3b8',
-                      transform: settingsGeoEnabled ? 'translateX(22px)' : 'translateX(0px)',
-                      transition: 'var(--transition)',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>GPS Geofencing</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Restricts student check-in to a specific geographical radius.</p>
                   </div>
-                </div>
 
-                {settingsGeoEnabled && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Center Latitude</label>
-                      <input 
-                        type="number" 
-                        step="any"
-                        className="form-input" 
-                        value={settingsLat} 
-                        onChange={e => setSettingsLat(e.target.value)} 
-                      />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Center Longitude</label>
-                      <input 
-                        type="number" 
-                        step="any"
-                        className="form-input" 
-                        value={settingsLon} 
-                        onChange={e => setSettingsLon(e.target.value)} 
-                      />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Allowed Radius (meters)</label>
-                      <input 
-                        type="number" 
-                        className="form-input" 
-                        value={settingsRadius} 
-                        onChange={e => setSettingsRadius(e.target.value)} 
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                      <button
-                        onClick={() => {
-                          if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition(
-                              (position) => {
-                                setSettingsLat(position.coords.latitude);
-                                setSettingsLon(position.coords.longitude);
-                                setSettingsMessage("Fetched current coordinates!");
-                                setTimeout(() => setSettingsMessage(""), 2000);
-                              },
-                              (err) => {
-                                setSettingsError("Could not fetch location permissions.");
-                                setTimeout(() => setSettingsError(""), 3000);
-                              }
-                            );
-                          }
-                        }}
-                        className="btn-secondary"
-                        style={{ width: '100%', height: '46px', borderRadius: '8px', fontSize: '0.9rem' }}
-                      >
-                        Set Current Coordinates
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* IP network restrictions Subsection */}
-              <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px' }}>
-                <div className="flex-between" style={{ marginBottom: '16px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>IP Subnet Restrictions</h4>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '2px' }}>
-                      Allows attendance logging only from specified Wi-Fi networks/subnets.
-                    </p>
-                  </div>
+                  {/* Category Card 2: IP Subnet Restrictions */}
                   <div 
-                    onClick={() => setSettingsIpEnabled(!settingsIpEnabled)} 
-                    style={{
-                      width: '48px',
-                      height: '26px',
-                      backgroundColor: settingsIpEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${settingsIpEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
-                      borderRadius: '50px',
-                      padding: '2px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      transition: 'var(--transition)',
-                      boxShadow: settingsIpEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
-                    }}
+                    onClick={() => { setActiveSubSetting('ip'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
                   >
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      backgroundColor: settingsIpEnabled ? 'var(--color-primary)' : '#94a3b8',
-                      transform: settingsIpEnabled ? 'translateX(22px)' : 'translateX(0px)',
-                      transition: 'var(--transition)',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }} />
-                  </div>
-                </div>
-
-                {settingsIpEnabled && (
-                  <div className="form-group" style={{ margin: 0, marginTop: '16px' }}>
-                    <label className="form-label">Permitted IP Addresses / Subnets (comma separated)</label>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="e.g. 127.0.0.1, 192.168.1.0/24"
-                      value={settingsIpRanges} 
-                      onChange={e => setSettingsIpRanges(e.target.value)} 
-                    />
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginTop: '6px' }}>
-                      Separate multiple IP addresses or CIDR blocks with a comma. Examples: `127.0.0.1`, `192.168.1.0/24`.
-                    </span>
-                  </div>
-                )}
-
-                {/* Emergency Lockdown Simulation */}
-                <div style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: '12px', padding: '20px', marginTop: '24px', textAlign: 'left' }}>
-                  <div className="flex-between">
-                    <div>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <AlertCircle size={18} style={{ color: '#ef4444' }} /> Emergency System Lockdown
-                      </h4>
-                      <p style={{ color: '#fca5a5', opacity: 0.7, fontSize: '0.8rem', marginTop: '4px' }}>
-                        Cut off all face recognition feeds instantly and trigger audio alerts.
-                      </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Lock size={24} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
                     </div>
-                    <button
-                      disabled={currentUser?.institution_id !== 1}
-                      onClick={() => {
-                        const newLock = !lockdownActive;
-                        setLockdownActive(newLock);
-                        if (newLock) {
-                          addDiagnosticLog('WARNING: Emergency lockdown protocol engaged!');
-                        } else {
-                          addDiagnosticLog('Emergency lockdown terminated. Relays online.');
-                        }
-                      }}
-                      style={{
-                        background: lockdownActive ? '#10b981' : '#ef4444',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '8px',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
-                        boxShadow: lockdownActive ? '0 0 15px rgba(16, 185, 129, 0.3)' : '0 0 15px rgba(239, 68, 68, 0.3)',
-                        transition: 'all 0.3s ease'
-                      }}
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>IP Subnet Restrictions</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Allows attendance logging only from specified Wi-Fi networks/subnets.</p>
+                  </div>
+
+                  {/* Category Card 3: Emergency System Lockdown */}
+                  <div 
+                    onClick={() => { setActiveSubSetting('lockdown'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: currentUser?.institution_id !== 1 ? 0.7 : 1 }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <AlertCircle size={24} style={{ color: '#ef4444' }} />
+                      {currentUser?.institution_id !== 1 ? (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>🔒 Restricted</span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                      )}
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Emergency Lockdown</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Cut off all face recognition feeds instantly and trigger audio alerts.</p>
+                  </div>
+
+                  {/* Category Card 4: Themes & Sound Effects */}
+                  <div 
+                    onClick={() => { setActiveSubSetting('themes'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: currentUser?.institution_id !== 1 ? 0.7 : 1 }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Volume2 size={24} style={{ color: 'var(--color-primary)' }} />
+                      {currentUser?.institution_id !== 1 ? (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>🔒 Restricted</span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                      )}
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Themes & Cyber Audio</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Choose interface themes, retro CRT scanline overlay, and acoustic feedback sounds.</p>
+                  </div>
+
+                  {/* Category Card 5: Synth Equalizer Customizer */}
+                  <div 
+                    onClick={() => { setActiveSubSetting('equalizer'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: currentUser?.institution_id !== 1 ? 0.7 : 1 }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Settings size={24} style={{ color: 'var(--color-primary)' }} />
+                      {currentUser?.institution_id !== 1 ? (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>🔒 Restricted</span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                      )}
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Synth Equalizer</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Tune base frequency pitch register, sound modulators, and CPU hum drone volume.</p>
+                  </div>
+
+                  {/* Category Card 6: Advanced Security Console */}
+                  <div 
+                    onClick={() => { setActiveSubSetting('advanced'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: currentUser?.institution_id !== 1 ? 0.7 : 1 }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <ShieldCheck size={24} style={{ color: 'var(--color-primary)' }} />
+                      {currentUser?.institution_id !== 1 ? (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>🔒 Restricted</span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                      )}
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Advanced Security</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Biometric match confidence filter, EAR spoof strictness, AI cognitive level, and telemetry diagnostics.</p>
+                  </div>
+
+                  {/* Category Card 7: Admin Profile Settings */}
+                  <div 
+                    onClick={() => { setActiveSubSetting('profile'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <UserCheck size={24} style={{ color: '#a78bfa' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>My Admin Profile</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Modify administrator profile name, login email address, or update system password credentials.</p>
+                  </div>
+
+                  {/* Category Card 8: Admin Account Registry */}
+                  <div 
+                    onClick={() => { setActiveSubSetting('admins'); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <UserPlus size={24} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Register Administrators</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Seed and manage new auxiliary administrator credentials or activate/deactivate accounts.</p>
+                  </div>
+
+                  {/* Category Card 9: Multi-Tenant Registry & Management */}
+                  {getActiveTenantSlug() === 'default' && currentUser?.institution_id === 1 && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('multitenant'); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
                     >
-                      {lockdownActive ? 'Reset Relays' : 'ENGAGE LOCKDOWN'}
-                    </button>
-                  </div>
-                  {currentUser?.institution_id !== 1 && (
-                    <div style={{ fontSize: '0.75rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '10px' }}>
-                      <span>🔒 Control restricted to Default System Owner.</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>🏫</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Multi-Tenant Registry</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Register, monitor, and delete college tenants. Configure primary/secondary color schemes and seed initial admins.</p>
                     </div>
                   )}
                 </div>
               </div>
+            ) : (
+              <div>
+                {/* Geofencing Sub-view */}
+                {activeSubSetting === 'geofencing' && (
+                  <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ShieldCheck size={22} style={{ color: '#00f2fe' }} /> GPS Geofencing Configuration
+                      </h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
+                        Configure the physical latitude, longitude coordinates and allowed radius boundaries for check-in.
+                      </p>
+                    </div>
 
-              {/* Save Button */}
-              <button
-                onClick={saveSystemSettings}
-                className="bg-gradient-btn"
-                style={{ 
-                  marginTop: '16px', 
-                  padding: '14px 28px', 
-                  borderRadius: '12px', 
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  width: '100%',
-                  boxShadow: '0 4px 20px rgba(0, 242, 254, 0.25)'
-                }}
-                disabled={isSavingSettings}
-              >
-                {isSavingSettings ? '💾 Saving settings...' : '💾 Save Settings'}
-              </button>
-            </div>
+                    {settingsMessage && (
+                      <div style={{ padding: '12px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', color: '#10b981', fontSize: '0.875rem' }}>
+                        {settingsMessage}
+                      </div>
+                    )}
+
+                    {settingsError && (
+                      <div style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem' }}>
+                        {settingsError}
+                      </div>
+                    )}
+
+                    {/* Geofencing Subsection */}
+                    <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px' }}>
+                      <div className="flex-between" style={{ marginBottom: '16px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>GPS Geofencing</h4>
+                          <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '2px' }}>
+                            Restricts check-in to a specific geographical radius.
+                          </p>
+                        </div>
+                        <div 
+                          onClick={() => setSettingsGeoEnabled(!settingsGeoEnabled)} 
+                          style={{
+                            width: '48px',
+                            height: '26px',
+                            backgroundColor: settingsGeoEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${settingsGeoEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: '50px',
+                            padding: '2px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            transition: 'var(--transition)',
+                            boxShadow: settingsGeoEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
+                          }}
+                        >
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: settingsGeoEnabled ? 'var(--color-primary)' : '#94a3b8',
+                            transform: settingsGeoEnabled ? 'translateX(22px)' : 'translateX(0px)',
+                            transition: 'var(--transition)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                          }} />
+                        </div>
+                      </div>
+
+                      {settingsGeoEnabled && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label className="form-label">Center Latitude</label>
+                            <input 
+                              type="number" 
+                              step="any"
+                              className="form-input" 
+                              value={settingsLat} 
+                              onChange={e => setSettingsLat(e.target.value)} 
+                            />
+                          </div>
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label className="form-label">Center Longitude</label>
+                            <input 
+                              type="number" 
+                              step="any"
+                              className="form-input" 
+                              value={settingsLon} 
+                              onChange={e => setSettingsLon(e.target.value)} 
+                            />
+                          </div>
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label className="form-label">Allowed Radius (meters)</label>
+                            <input 
+                              type="number" 
+                              className="form-input" 
+                              value={settingsRadius} 
+                              onChange={e => setSettingsRadius(e.target.value)} 
+                            />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                            <button
+                              onClick={() => {
+                                if (navigator.geolocation) {
+                                  navigator.geolocation.getCurrentPosition(
+                                    (position) => {
+                                      setSettingsLat(position.coords.latitude);
+                                      setSettingsLon(position.coords.longitude);
+                                      setSettingsMessage("Fetched current coordinates!");
+                                      setTimeout(() => setSettingsMessage(""), 2000);
+                                    },
+                                    (err) => {
+                                      setSettingsError("Could not fetch location permissions.");
+                                      setTimeout(() => setSettingsError(""), 3000);
+                                    }
+                                  );
+                                }
+                              }}
+                              className="btn-secondary"
+                              style={{ width: '100%', height: '46px', borderRadius: '8px', fontSize: '0.9rem' }}
+                            >
+                              Set Current Coordinates
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={saveSystemSettings}
+                      className="bg-gradient-btn"
+                      style={{ 
+                        marginTop: '16px', 
+                        padding: '14px 28px', 
+                        borderRadius: '12px', 
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        width: '100%',
+                        boxShadow: '0 4px 20px rgba(0, 242, 254, 0.25)'
+                      }}
+                      disabled={isSavingSettings}
+                    >
+                      {isSavingSettings ? '💾 Saving settings...' : '💾 Save Settings'}
+                    </button>
+                  </div>
+                )}
+
+                {/* IP Subnet Restrictions Sub-view */}
+                {activeSubSetting === 'ip' && (
+                  <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Lock size={22} style={{ color: '#00f2fe' }} /> IP Subnet Restrictions
+                      </h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
+                        Allows attendance logging only from specified Wi-Fi networks/subnets.
+                      </p>
+                    </div>
+
+                    {settingsMessage && (
+                      <div style={{ padding: '12px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', color: '#10b981', fontSize: '0.875rem' }}>
+                        {settingsMessage}
+                      </div>
+                    )}
+
+                    {settingsError && (
+                      <div style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem' }}>
+                        {settingsError}
+                      </div>
+                    )}
+
+                    <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px' }}>
+                      <div className="flex-between" style={{ marginBottom: '16px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>IP Subnet Restrictions</h4>
+                          <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '2px' }}>
+                            Allows attendance logging only from specified Wi-Fi networks/subnets.
+                          </p>
+                        </div>
+                        <div 
+                          onClick={() => setSettingsIpEnabled(!settingsIpEnabled)} 
+                          style={{
+                            width: '48px',
+                            height: '26px',
+                            backgroundColor: settingsIpEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${settingsIpEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: '50px',
+                            padding: '2px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            transition: 'var(--transition)',
+                            boxShadow: settingsIpEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
+                          }}
+                        >
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: settingsIpEnabled ? 'var(--color-primary)' : '#94a3b8',
+                            transform: settingsIpEnabled ? 'translateX(22px)' : 'translateX(0px)',
+                            transition: 'var(--transition)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                          }} />
+                        </div>
+                      </div>
+
+                      {settingsIpEnabled && (
+                        <div className="form-group" style={{ margin: 0, marginTop: '16px' }}>
+                          <label className="form-label">Permitted IP Addresses / Subnets (comma separated)</label>
+                          <input 
+                            type="text" 
+                            className="form-input" 
+                            placeholder="e.g. 127.0.0.1, 192.168.1.0/24"
+                            value={settingsIpRanges} 
+                            onChange={e => setSettingsIpRanges(e.target.value)} 
+                          />
+                          <span style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginTop: '6px' }}>
+                            Separate multiple IP addresses or CIDR blocks with a comma. Examples: `127.0.0.1`, `192.168.1.0/24`.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={saveSystemSettings}
+                      className="bg-gradient-btn"
+                      style={{ 
+                        marginTop: '16px', 
+                        padding: '14px 28px', 
+                        borderRadius: '12px', 
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        width: '100%',
+                        boxShadow: '0 4px 20px rgba(0, 242, 254, 0.25)'
+                      }}
+                      disabled={isSavingSettings}
+                    >
+                      {isSavingSettings ? '💾 Saving settings...' : '💾 Save Settings'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Emergency System Lockdown Sub-view */}
+                {activeSubSetting === 'lockdown' && (
+                  <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AlertCircle size={22} style={{ color: '#ef4444' }} /> Emergency System Lockdown
+                      </h3>
+                      <p style={{ color: '#fca5a5', opacity: 0.7, fontSize: '0.875rem', marginTop: '4px' }}>
+                        Cut off all face recognition feeds instantly and trigger audio alerts.
+                      </p>
+                    </div>
+
+                    <div style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: '12px', padding: '20px', textAlign: 'left' }}>
+                      <div className="flex-between">
+                        <div>
+                          <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <AlertCircle size={18} style={{ color: '#ef4444' }} /> Emergency System Lockdown
+                          </h4>
+                          <p style={{ color: '#fca5a5', opacity: 0.7, fontSize: '0.8rem', marginTop: '4px' }}>
+                            Cut off all face recognition feeds instantly and trigger audio alerts.
+                          </p>
+                        </div>
+                        <button
+                          disabled={currentUser?.institution_id !== 1}
+                          onClick={() => {
+                            const newLock = !lockdownActive;
+                            setLockdownActive(newLock);
+                            if (newLock) {
+                              addDiagnosticLog('WARNING: Emergency lockdown protocol engaged!');
+                            } else {
+                              addDiagnosticLog('Emergency lockdown terminated. Relays online.');
+                            }
+                          }}
+                          style={{
+                            background: lockdownActive ? '#10b981' : '#ef4444',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '10px 20px',
+                            borderRadius: '8px',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                            opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                            boxShadow: lockdownActive ? '0 0 15px rgba(16, 185, 129, 0.3)' : '0 0 15px rgba(239, 68, 68, 0.3)',
+                            transition: 'all 0.3s ease'
+                          }}
+                        >
+                          {lockdownActive ? 'Reset Relays' : 'ENGAGE LOCKDOWN'}
+                        </button>
+                      </div>
+                      {currentUser?.institution_id !== 1 && (
+                        <div style={{ fontSize: '0.75rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '10px' }}>
+                          <span>🔒 Control restricted to Default System Owner.</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
             {/* ===== SYSTEM THEME & SOUND CONTROLS ===== */}
-            <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Volume2 size={22} style={{ color: 'var(--color-primary)' }} /> System Themes & Cyber Audio
-                </h3>
-                <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
-                  Choose a sci-fi system interface theme and customize acoustic synth feedback volumes.
-                </p>
-                {currentUser?.institution_id !== 1 && (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>🔒 Controls restricted to Default System Owner.</span>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                {/* Theme Selector */}
-                <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                  <label className="form-label" style={{ fontWeight: 600 }}>Active Theme</label>
-                  <select 
-                    disabled={currentUser?.institution_id !== 1}
-                    value={activeTheme} 
-                    onChange={(e) => {
-                      const newTheme = e.target.value;
-                      setActiveTheme(newTheme);
-                      playCyberSound('click');
-                    }}
-                    className="form-input"
-                    style={{ 
-                      width: '100%', 
-                      background: 'var(--bg-secondary)', 
-                      border: '1px solid var(--border-color)', 
-                      color: 'var(--color-text-main)',
-                      opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
-                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
-                    }}
-                  >
-                    <option value="cyberpunk">Cyberpunk Neon (Default)</option>
-                    <option value="matrix">Matrix Green</option>
-                    <option value="obsidian">Obsidian Red</option>
-                    <option value="violet">Deep Space Violet</option>
-                  </select>
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                    Swaps color primary coordinates instantly across all views.
-                  </span>
-                  
-                  {/* CRT Screen Toggle */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: '6px' }}>
-                    <div>
-                      <span className="form-label" style={{ fontWeight: 600, display: 'block', fontSize: '0.85rem' }}>CRT Terminal Scanlines</span>
-                      <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Enable retro cathode-ray tube screen curvature & flicker.</span>
+            {activeSubSetting === 'themes' && (
+              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Volume2 size={22} style={{ color: 'var(--color-primary)' }} /> System Themes & Cyber Audio
+                  </h3>
+                  <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
+                    Choose a sci-fi system interface theme and customize acoustic synth feedback volumes.
+                  </p>
+                  {currentUser?.institution_id !== 1 && (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>🔒 Controls restricted to Default System Owner.</span>
                     </div>
-                    <div 
-                      onClick={() => {
-                        if (currentUser?.institution_id !== 1) return;
-                        setCrtOverlayEnabled(!crtOverlayEnabled);
-                        playCyberSound('click');
-                      }} 
-                      style={{
-                        width: '48px',
-                        height: '26px',
-                        backgroundColor: crtOverlayEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
-                        border: `1px solid ${crtOverlayEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
-                        borderRadius: '50px',
-                        padding: '2px',
-                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        transition: 'var(--transition)',
-                        boxShadow: crtOverlayEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
-                      }}
-                    >
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: crtOverlayEnabled ? 'var(--color-primary)' : '#94a3b8',
-                        transform: crtOverlayEnabled ? 'translateX(22px)' : 'translateX(0px)',
-                        transition: 'var(--transition)',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                      }} />
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Audio Settings */}
-                <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
-                  <div className="flex-between">
-                    <div>
-                      <span className="form-label" style={{ fontWeight: 600, display: 'block' }}>Cyber Acoustic Feedback</span>
-                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Enable electronic synth sound cues on interaction.</span>
-                    </div>
-                    <div 
-                      onClick={() => {
-                        if (currentUser?.institution_id !== 1) return;
-                        const newSound = !soundEnabled;
-                        setSoundEnabled(newSound);
-                        localStorage.setItem('soundEnabled', newSound);
-                        if (newSound) {
-                          setTimeout(() => playCyberSound('click'), 50);
-                        }
-                      }} 
-                      style={{
-                        width: '48px',
-                        height: '26px',
-                        backgroundColor: soundEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
-                        border: `1px solid ${soundEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
-                        borderRadius: '50px',
-                        padding: '2px',
-                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        transition: 'var(--transition)',
-                        boxShadow: soundEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
-                      }}
-                    >
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: soundEnabled ? 'var(--color-primary)' : '#94a3b8',
-                        transform: soundEnabled ? 'translateX(22px)' : 'translateX(0px)',
-                        transition: 'var(--transition)',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                      }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div className="flex-between">
-                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />} Synth Volume: {Math.round(audioVolume * 100)}%
-                      </span>
-                    </div>
-                    <input 
-                      type="range"
-                      min="0.0"
-                      max="1.0"
-                      step="0.05"
-                      value={audioVolume}
-                      disabled={!soundEnabled || currentUser?.institution_id !== 1}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  {/* Theme Selector */}
+                  <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                    <label className="form-label" style={{ fontWeight: 600 }}>Active Theme</label>
+                    <select 
+                      disabled={currentUser?.institution_id !== 1}
+                      value={activeTheme} 
                       onChange={(e) => {
-                        const vol = parseFloat(e.target.value);
-                        setAudioVolume(vol);
-                        localStorage.setItem('audioVolume', vol);
+                        const newTheme = e.target.value;
+                        setActiveTheme(newTheme);
+                        playCyberSound('click');
                       }}
-                      onMouseUp={() => {
-                        if (soundEnabled && currentUser?.institution_id === 1) playCyberSound('click');
-                      }}
-                      onTouchEnd={() => {
-                        if (soundEnabled && currentUser?.institution_id === 1) playCyberSound('click');
-                      }}
+                      className="form-input"
                       style={{ 
                         width: '100%', 
-                        accentColor: 'var(--color-primary)', 
-                        height: '4px', 
-                        borderRadius: '2px', 
-                        cursor: (soundEnabled && currentUser?.institution_id === 1) ? 'pointer' : 'not-allowed',
-                        opacity: (soundEnabled && currentUser?.institution_id === 1) ? 1 : 0.5
+                        background: 'var(--bg-secondary)', 
+                        border: '1px solid var(--border-color)', 
+                        color: 'var(--color-text-main)',
+                        opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
+                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
                       }}
-                    />
+                    >
+                      <option value="cyberpunk">Cyberpunk Neon (Default)</option>
+                      <option value="matrix">Matrix Green</option>
+                      <option value="obsidian">Obsidian Red</option>
+                      <option value="violet">Deep Space Violet</option>
+                    </select>
+                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                      Swaps color primary coordinates instantly across all views.
+                    </span>
+                    
+                    {/* CRT Screen Toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: '6px' }}>
+                      <div>
+                        <span className="form-label" style={{ fontWeight: 600, display: 'block', fontSize: '0.85rem' }}>CRT Terminal Scanlines</span>
+                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Enable retro cathode-ray tube screen curvature & flicker.</span>
+                      </div>
+                      <div 
+                        onClick={() => {
+                          if (currentUser?.institution_id !== 1) return;
+                          setCrtOverlayEnabled(!crtOverlayEnabled);
+                          playCyberSound('click');
+                        }} 
+                        style={{
+                          width: '48px',
+                          height: '26px',
+                          backgroundColor: crtOverlayEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${crtOverlayEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: '50px',
+                          padding: '2px',
+                          cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                          opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          transition: 'var(--transition)',
+                          boxShadow: crtOverlayEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
+                        }}
+                      >
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          backgroundColor: crtOverlayEnabled ? 'var(--color-primary)' : '#94a3b8',
+                          transform: crtOverlayEnabled ? 'translateX(22px)' : 'translateX(0px)',
+                          transition: 'var(--transition)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Audio Settings */}
+                  <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
+                    <div className="flex-between">
+                      <div>
+                        <span className="form-label" style={{ fontWeight: 600, display: 'block' }}>Cyber Acoustic Feedback</span>
+                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Enable electronic synth sound cues on interaction.</span>
+                      </div>
+                      <div 
+                        onClick={() => {
+                          if (currentUser?.institution_id !== 1) return;
+                          const newSound = !soundEnabled;
+                          setSoundEnabled(newSound);
+                          localStorage.setItem('soundEnabled', newSound);
+                          if (newSound) {
+                            setTimeout(() => playCyberSound('click'), 50);
+                          }
+                        }} 
+                        style={{
+                          width: '48px',
+                          height: '26px',
+                          backgroundColor: soundEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${soundEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: '50px',
+                          padding: '2px',
+                          cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                          opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          transition: 'var(--transition)',
+                          boxShadow: soundEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
+                        }}
+                      >
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          backgroundColor: soundEnabled ? 'var(--color-primary)' : '#94a3b8',
+                          transform: soundEnabled ? 'translateX(22px)' : 'translateX(0px)',
+                          transition: 'var(--transition)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div className="flex-between">
+                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />} Synth Volume: {Math.round(audioVolume * 100)}%
+                        </span>
+                      </div>
+                      <input 
+                        type="range"
+                        min="0.0"
+                        max="1.0"
+                        step="0.05"
+                        value={audioVolume}
+                        disabled={!soundEnabled || currentUser?.institution_id !== 1}
+                        onChange={(e) => {
+                          const vol = parseFloat(e.target.value);
+                          setAudioVolume(vol);
+                          localStorage.setItem('audioVolume', vol);
+                        }}
+                        onMouseUp={() => {
+                          if (soundEnabled && currentUser?.institution_id === 1) playCyberSound('click');
+                        }}
+                        onTouchEnd={() => {
+                          if (soundEnabled && currentUser?.institution_id === 1) playCyberSound('click');
+                        }}
+                        style={{ 
+                          width: '100%', 
+                          accentColor: 'var(--color-primary)', 
+                          height: '4px', 
+                          borderRadius: '2px', 
+                          cursor: (soundEnabled && currentUser?.institution_id === 1) ? 'pointer' : 'not-allowed',
+                          opacity: (soundEnabled && currentUser?.institution_id === 1) ? 1 : 0.5
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Synth Acoustic Equalizer Panel */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Volume2 size={18} style={{ color: 'var(--color-primary)' }} /> Synth Equalizer & Acoustic Customizer
-                </h4>
-                {currentUser?.institution_id !== 1 && (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>🔒 Controls restricted to Default System Owner.</span>
-                  </div>
-                )}
+            {/* Synth Acoustic Equalizer Panel */}
+            {activeSubSetting === 'equalizer' && (
+              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Volume2 size={22} style={{ color: 'var(--color-primary)' }} /> Synth Equalizer & Acoustic Customizer
+                  </h3>
+                  <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
+                    Tune base frequency pitch register, sound modulators, and CPU hum drone volume.
+                  </p>
+                  {currentUser?.institution_id !== 1 && (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>🔒 Controls restricted to Default System Owner.</span>
+                    </div>
+                  )}
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
                   <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
                     <label className="form-label" style={{ fontWeight: 600 }}>Oscillator Modulator</label>
@@ -10249,10 +10497,11 @@ export default function App() {
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* ===== ADVANCED SYSTEM CONFIG & EXTREME SECURITY CONSOLE ===== */}
-            <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            {activeSubSetting === 'advanced' && (
+              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
               <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShieldCheck size={22} style={{ color: 'var(--color-primary)' }} /> Advanced System & Extreme Security Console
@@ -10498,17 +10747,19 @@ export default function App() {
                 </div>
               </div>
             </div>
+          )}
 
-            {/* ===== ADMIN ACCOUNT MANAGEMENT SECTION ===== */}
-            <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <UserCheck size={22} style={{ color: '#a78bfa' }} /> Admin Account Management
-                </h3>
-                <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
-                  Change your name, email, and password. You can also create a new admin account.
-                </p>
-              </div>
+            {/* ===== ADMIN ACCOUNT PROFILE SECTION ===== */}
+            {activeSubSetting === 'profile' && (
+              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <UserCheck size={22} style={{ color: '#a78bfa' }} /> Admin Profile Settings
+                  </h3>
+                  <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
+                    Update your name, email credentials, or change your password.
+                  </p>
+                </div>
 
               {/* UPDATE OWN PROFILE */}
               <div style={{ background: 'rgba(167,139,250,0.02)', border: '1px solid rgba(167,139,250,0.1)', borderRadius: '12px', padding: '20px' }}>
@@ -10638,9 +10889,24 @@ export default function App() {
                   {isUpdatingAdminProfile ? 'Saving...' : '💾 Save Profile'}
                 </button>
               </div>
+            </div>
+            )}
 
-              {/* CREATE NEW ADMIN */}
-              <div style={{ background: 'rgba(0,242,254,0.01)', border: '1px solid rgba(0,242,254,0.08)', borderRadius: '12px', padding: '20px' }}>
+            {/* ===== ADMIN ACCOUNT REGISTRATION SECTION ===== */}
+            {activeSubSetting === 'admins' && (
+              <>
+                <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <UserPlus size={22} style={{ color: '#00f2fe' }} /> Register Administrators
+                    </h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
+                      Seed and manage new auxiliary administrator credentials.
+                    </p>
+                  </div>
+
+                  {/* CREATE NEW ADMIN */}
+                  <div style={{ background: 'rgba(0,242,254,0.01)', border: '1px solid rgba(0,242,254,0.08)', borderRadius: '12px', padding: '20px' }}>
                 <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <UserPlus size={16} style={{ color: '#00f2fe' }} /> Create New Admin Account
                 </h4>
@@ -10937,9 +11203,11 @@ export default function App() {
                 </table>
               </div>
             </div>
+            </>
+            )}
 
             {/* MULTI-TENANT INSTITUTION MANAGEMENT (Only visible on DEFAULT tenant to system owner) */}
-            {getActiveTenantSlug() === 'default' && currentUser?.institution_id === 1 && (
+            {activeSubSetting === 'multitenant' && getActiveTenantSlug() === 'default' && currentUser?.institution_id === 1 && (
               <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
@@ -11168,6 +11436,8 @@ export default function App() {
             )}
           </div>
         )}
+      </div>
+    )}
 
         {activeTab === 'student-attendance' && (
           <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
