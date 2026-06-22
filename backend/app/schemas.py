@@ -225,3 +225,14 @@ class InstitutionBrandingResponse(BaseModel):
     class Config:
         from_attributes = True
         orm_mode = True
+
+# --- Institution Create ---
+class InstitutionCreate(BaseModel):
+    name: str
+    slug: str
+    primary_color: Optional[str] = "#4F46E5"
+    secondary_color: Optional[str] = "#06B6D4"
+    logo_url: Optional[str] = ""
+    admin_email: EmailStr
+    admin_name: str
+    admin_password: str

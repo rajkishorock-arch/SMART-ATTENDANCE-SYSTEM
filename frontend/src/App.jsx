@@ -1372,6 +1372,20 @@ export default function App() {
   const [diagnosticWarnings, setDiagnosticWarnings] = useState({ lighting: '', distance: '' });
   const [timetableSubTab, setTimetableSubTab] = useState('directory'); // 'directory' or 'planner'
 
+  // Multi-Tenant Institution Management States
+  const [institutionsList, setInstitutionsList] = useState([]);
+  const [newInstName, setNewInstName] = useState('');
+  const [newInstSlug, setNewInstSlug] = useState('');
+  const [newInstPrimary, setNewInstPrimary] = useState('#4F46E5');
+  const [newInstSecondary, setNewInstSecondary] = useState('#06B6D4');
+  const [newInstAdminEmail, setNewInstAdminEmail] = useState('');
+  const [newInstAdminName, setNewInstAdminName] = useState('');
+  const [newInstAdminPassword, setNewInstAdminPassword] = useState('');
+  const [isAddingInstitution, setIsAddingInstitution] = useState(false);
+  const [instSuccessMessage, setInstSuccessMessage] = useState('');
+  const [instErrorMessage, setInstErrorMessage] = useState('');
+
+
   // Student Portal Selfie face upload states
   const [studentWebcamActive, setStudentWebcamActive] = useState(false);
   const [selfieError, setSelfieError] = useState('');
@@ -1993,6 +2007,138 @@ export default function App() {
       setStudentSubjectStats(statsMap);
     } catch (err) {
       console.error('Error in fetchStudentSubjectStats:', err);
+    }
+  };
+
+  const fetchInstitutionsList = async () => {
+    if (isDemoMode) {
+      setInstitutionsList([
+        { id: 1, name: 'Default Institution', slug: 'default', primary_color: '#4F46E5', secondary_color: '#06B6D4' },
+        { id: 2, name: 'Delhi University', slug: 'du', primary_color: '#800020', secondary_color: '#DAA520' },
+        { id: 3, name: 'IIT Delhi', slug: 'iitd', primary_color: '#0D9488', secondary_color: '#F59E0B' }
+      ]);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/institutions/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInstitutionsList(data);
+      }
+    } catch (err) {
+      console.error('Error fetching institutions list:', err);
+    }
+  };
+
+  const handleCreateInstitution = async (e) => {
+    e.preventDefault();
+    setInstSuccessMessage('');
+    setInstErrorMessage('');
+    setIsAddingInstitution(true);
+
+    if (isDemoMode) {
+      setTimeout(() => {
+        const newId = institutionsList.length + 1;
+        setInstitutionsList([
+          ...institutionsList,
+          {
+            id: newId,
+            name: newInstName,
+            slug: newInstSlug.toLowerCase(),
+            primary_color: newInstPrimary,
+            secondary_color: newInstSecondary
+          }
+        ]);
+        setInstSuccessMessage('SIMULATOR ACTION: Institution registered successfully!');
+        setIsAddingInstitution(false);
+        // Reset fields
+        setNewInstName('');
+        setNewInstSlug('');
+        setNewInstAdminEmail('');
+        setNewInstAdminName('');
+        setNewInstAdminPassword('');
+      }, 500);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/institutions/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newInstName,
+          slug: newInstSlug.toLowerCase().trim(),
+          primary_color: newInstPrimary,
+          secondary_color: newInstSecondary,
+          logo_url: '',
+          admin_email: newInstAdminEmail.trim(),
+          admin_name: newInstAdminName.trim(),
+          admin_password: newInstAdminPassword
+        })
+      });
+
+      if (res.ok) {
+        setInstSuccessMessage('Institution created successfully!');
+        fetchInstitutionsList();
+        // Reset form
+        setNewInstName('');
+        setNewInstSlug('');
+        setNewInstAdminEmail('');
+        setNewInstAdminName('');
+        setNewInstAdminPassword('');
+        setTimeout(() => setInstSuccessMessage(''), 4000);
+      } else {
+        const errData = await res.json();
+        setInstErrorMessage(errData.detail || 'Failed to create institution.');
+      }
+    } catch (err) {
+      console.error('Error creating institution:', err);
+      setInstErrorMessage('Failed to connect to backend server.');
+    } finally {
+      setIsAddingInstitution(false);
+    }
+  };
+
+  const handleDeleteInstitution = async (id, name) => {
+    if (!window.confirm(`Are you absolutely sure you want to delete "${name}"?\nWarning: This will delete ALL users, students, schedules, and attendance data for this institution. This action CANNOT be undone.`)) {
+      return;
+    }
+
+    setInstSuccessMessage('');
+    setInstErrorMessage('');
+
+    if (isDemoMode) {
+      setInstitutionsList(institutionsList.filter(inst => inst.id !== id));
+      setInstSuccessMessage('SIMULATOR ACTION: Institution deleted successfully.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/institutions/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        setInstSuccessMessage('Institution deleted successfully.');
+        fetchInstitutionsList();
+        setTimeout(() => setInstSuccessMessage(''), 4000);
+      } else {
+        const errData = await res.json();
+        setInstErrorMessage(errData.detail || 'Failed to delete institution.');
+      }
+    } catch (err) {
+      console.error('Error deleting institution:', err);
+      setInstErrorMessage('Failed to connect to backend server.');
     }
   };
 
@@ -4241,6 +4387,9 @@ export default function App() {
         if (userRole === 'admin') {
           fetchSystemSettings();
           fetchTeachers();
+          if (getActiveTenantSlug() === 'default') {
+            fetchInstitutionsList();
+          }
         }
         break;
       case 'teachers':
@@ -10651,6 +10800,235 @@ export default function App() {
                 </table>
               </div>
             </div>
+
+            {/* MULTI-TENANT INSTITUTION MANAGEMENT (Only visible on DEFAULT tenant) */}
+            {getActiveTenantSlug() === 'default' && (
+              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      <span>🏫</span> Multi-Tenant Institution Registry & Management
+                    </h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
+                      Register, monitor, and manage institution domains, custom color palettes, and default admins.
+                    </p>
+                  </div>
+                  <span className="telemetry-stat-pill" style={{
+                    padding: '4px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    background: 'rgba(0, 242, 254, 0.1)',
+                    color: '#00f2fe',
+                    border: '1px solid rgba(0, 242, 254, 0.25)',
+                    letterSpacing: '0.5px'
+                  }}>
+                    TOTAL TENANTS: {institutionsList.length}
+                  </span>
+                </div>
+
+                {instSuccessMessage && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem' }}>
+                    ✅ {instSuccessMessage}
+                  </div>
+                )}
+                {instErrorMessage && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
+                    ❌ {instErrorMessage}
+                  </div>
+                )}
+
+                {/* Form to Add New Institution */}
+                <form onSubmit={handleCreateInstitution} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    ➕ Register New Institution
+                  </h4>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Institution Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. Jawaharlal Nehru University"
+                        value={newInstName}
+                        onChange={e => setNewInstName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Unique Subdomain / Slug (lowercase)</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. jnu"
+                        value={newInstSlug}
+                        onChange={e => setNewInstSlug(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Primary Color (Hex)</label>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={newInstPrimary}
+                          onChange={e => setNewInstPrimary(e.target.value)}
+                          style={{ width: '40px', height: '36px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
+                        />
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={newInstPrimary}
+                          onChange={e => setNewInstPrimary(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Secondary Color (Hex)</label>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={newInstSecondary}
+                          onChange={e => setNewInstSecondary(e.target.value)}
+                          style={{ width: '40px', height: '36px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
+                        />
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={newInstSecondary}
+                          onChange={e => setNewInstSecondary(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
+                      🔐 Seed Default Administrator Account
+                    </h5>
+                    <p style={{ color: '#9ca3af', fontSize: '0.75rem', margin: 0 }}>
+                      Every institution needs a default administrator to access the settings panel. Set their initial details here.
+                    </p>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '4px' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label">Admin Name</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. JNU Admin"
+                          value={newInstAdminName}
+                          onChange={e => setNewInstAdminName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label">Admin Email</label>
+                        <input
+                          type="email"
+                          className="form-input"
+                          placeholder="e.g. admin@jnu.edu"
+                          value={newInstAdminEmail}
+                          onChange={e => setNewInstAdminEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label">Admin Password</label>
+                        <input
+                          type="password"
+                          className="form-input"
+                          placeholder="••••••••"
+                          value={newInstAdminPassword}
+                          onChange={e => setNewInstAdminPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="bg-gradient-btn"
+                    style={{ padding: '12px 24px', borderRadius: '8px', fontSize: '0.88rem', alignSelf: 'flex-start', background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
+                    disabled={isAddingInstitution}
+                  >
+                    {isAddingInstitution ? 'Registering...' : '🚀 Register Institution & Seed Admin'}
+                  </button>
+                </form>
+
+                {/* Table of Institutions */}
+                <div style={{ width: '100%', overflowX: 'auto', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '16px' }}>
+                    🏫 Registered Institution Directory
+                  </h4>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>SLUG (SUBDOMAIN)</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>PRIMARY COLOR</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>SECONDARY COLOR</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {institutionsList.map((inst) => (
+                        <tr key={inst.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
+                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>#{inst.id}</td>
+                          <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>{inst.name}</td>
+                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', fontSize: '0.78rem', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.08)' }}>
+                              {inst.slug}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#4F46E5', border: '1px solid rgba(255,255,255,0.1)' }} />
+                              <span style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{inst.primary_color || '#4F46E5'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid rgba(255,255,255,0.1)' }} />
+                              <span style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{inst.secondary_color || '#06B6D4'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            {inst.id === 1 ? (
+                              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem', fontStyle: 'italic', paddingRight: '12px' }}>System Default</span>
+                            ) : (
+                              <button
+                                onClick={() => handleDeleteInstitution(inst.id, inst.name)}
+                                className="action-btn"
+                                style={{
+                                  padding: '5px 12px',
+                                  fontSize: '0.75rem',
+                                  background: 'rgba(239, 68, 68, 0.15)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  color: '#ef4444',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
