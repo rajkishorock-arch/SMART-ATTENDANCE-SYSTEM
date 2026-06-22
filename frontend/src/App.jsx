@@ -12941,7 +12941,7 @@ export default function App() {
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      Smart Attendance AI 
+                      Smart Attendance 
                       <span className="text-gradient" style={{ fontSize: '0.75rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.1)', border: '1px solid rgba(0, 242, 254, 0.2)' }}>
                         {botPersonality.toUpperCase()}
                       </span>
@@ -13036,7 +13036,7 @@ export default function App() {
                       </svg>
                     </div>
                     <div className="gpt-empty-title">How can I help you today?</div>
-                    <div className="gpt-empty-subtitle">Ask me anything about your attendance system, reports, students, or settings.</div>
+                    <div className="gpt-empty-subtitle">Ask me anything</div>
                   </div>
                 )}
                 {chatMessages.map((msg) => {
