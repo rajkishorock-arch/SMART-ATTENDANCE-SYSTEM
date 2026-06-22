@@ -2038,6 +2038,13 @@ export default function App() {
     e.preventDefault();
     setInstSuccessMessage('');
     setInstErrorMessage('');
+
+    const masterPass = prompt(`🔐 Master Key Verification Required\n\nEnter Master Password to register new Institution "${newInstName}":`);
+    if (!masterPass) {
+      setInstErrorMessage('Registration cancelled. Master key is required.');
+      return;
+    }
+
     setIsAddingInstitution(true);
 
     if (isDemoMode) {
@@ -2070,7 +2077,8 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Master-Password': masterPass
         },
         body: JSON.stringify({
           name: newInstName,

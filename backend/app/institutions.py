@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
+import os
 from . import models, schemas, security
 from .database import get_db
 
@@ -32,6 +33,7 @@ def get_branding(slug: str, db: Session = Depends(get_db)):
 @router.post("/", response_model=schemas.InstitutionBrandingResponse, status_code=status.HTTP_201_CREATED)
 def create_institution(
     payload: schemas.InstitutionCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -43,6 +45,15 @@ def create_institution(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the Default System Administrator can manage institutions."
+        )
+
+    # Verify master password header
+    master_header = request.headers.get("x-master-password")
+    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+    if master_header != expected_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid Master Password! Master key verification is required to add a new institution/college."
         )
 
     slug_clean = payload.slug.strip().lower()
