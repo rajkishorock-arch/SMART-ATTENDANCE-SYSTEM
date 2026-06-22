@@ -13029,34 +13029,14 @@ export default function App() {
 
               <div className="ai-chat-messages" ref={chatListRef}>
                 {chatMessages.length === 0 && !isChatLoading && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flex: 1,
-                    gap: '16px',
-                    padding: '40px 20px',
-                    color: 'rgba(156, 163, 175, 0.5)',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '50%',
-                      background: 'rgba(0, 242, 254, 0.06)',
-                      border: '1px solid rgba(0, 242, 254, 0.15)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      animation: 'pulse 3s infinite ease-in-out'
-                    }}>
-                      <Bot size={24} style={{ color: 'rgba(0, 242, 254, 0.4)' }} />
+                  <div className="gpt-empty-state">
+                    <div className="gpt-empty-logo">
+                      <svg width="24" height="24" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835 9.964 9.964 0 0 0-6.313-3.glimpse 10.079 10.079 0 0 0-9.617 6.977 9.967 9.967 0 0 0-6.67 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.313 3.027 10.079 10.079 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.67-4.834 10.079 10.079 0 0 0-1.24-11.817" fill="white"/>
+                      </svg>
                     </div>
-                    <div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>Start a conversation</div>
-                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.15)' }}>Ask anything or use the suggestion chips below</div>
-                    </div>
+                    <div className="gpt-empty-title">How can I help you today?</div>
+                    <div className="gpt-empty-subtitle">Ask me anything about your attendance system, reports, students, or settings.</div>
                   </div>
                 )}
                 {chatMessages.map((msg) => {
@@ -13078,66 +13058,82 @@ export default function App() {
 
                   return (
                     <div key={msg.id} className={`ai-message-bubble ${msg.role}`}>
-                      <div className="ai-message-avatar">
-                        {msg.role === 'model' ? <Bot size={18} /> : <Users size={18} />}
-                      </div>
-                      <div className="ai-message-content">
-                        <div className="ai-message-text">
-                          {displayContent.split('\n').map((para, i) => (
-                            <p key={i} style={{ marginBottom: i < displayContent.split('\n').length - 1 ? '12px' : 0 }}>
-                              {para.split('**').map((text, idx) => 
-                                idx % 2 === 1 ? <strong key={idx} style={{ color: 'var(--color-primary)' }}>{text}</strong> : text
-                              )}
-                            </p>
-                          ))}
-                          
-                          {msg.attachedImage && (
-                            <div style={{ marginTop: '8px' }}>
-                              <img src={msg.attachedImage} alt="User attachment" style={{ maxWidth: '200px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                              {msg.attachedImageName && <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: '2px' }}>{msg.attachedImageName}</div>}
-                            </div>
-                          )}
-                          
-                          {diagramType && renderInteractiveDiagram(diagramType)}
-                        </div>
-                        
-                        {msg.role === 'model' && (
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button 
-                              className="ai-voice-action" 
-                              onClick={() => { playCyberSound('click'); handleSpeakText(displayContent); }}
-                              title="Listen to Response"
-                            >
-                              <Volume2 size={14} />
-                              <span style={{ fontSize: '0.75rem', marginLeft: '4px', fontWeight: 600 }}>Listen</span>
-                            </button>
-                            <button 
-                              className="ai-voice-action" 
-                              onClick={() => { playCyberSound('click'); window.speechSynthesis.cancel(); }}
-                              title="Stop Audio"
-                              style={{ color: '#ef4444' }}
-                            >
-                              <VolumeX size={14} />
-                              <span style={{ fontSize: '0.75rem', marginLeft: '4px', fontWeight: 600 }}>Stop</span>
-                            </button>
+                      {msg.role === 'model' && (
+                        <div className="gpt-ai-row">
+                          <div className="gpt-ai-icon" style={{ flexShrink: 0 }}>
+                            <svg width="14" height="14" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 19.508.43a10.079 10.079 0 0 0-9.617 6.977 9.967 9.967 0 0 0-6.67 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.313 3.027 10.079 10.079 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.67-4.834 10.079 10.079 0 0 0-1.24-11.817z" fill="white"/>
+                            </svg>
                           </div>
-                        )}
-                      </div>
+                          <div className="ai-message-content">
+                            <div className="ai-message-text">
+                              {displayContent.split('\n').map((para, i) => (
+                                <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 12px 0' : 0 }}>
+                                  {para.split('**').map((text, idx) =>
+                                    idx % 2 === 1 ? <strong key={idx} style={{ color: '#ececec', fontWeight: 600 }}>{text}</strong> : text
+                                  )}
+                                </p>
+                              ))}
+                              {diagramType && renderInteractiveDiagram(diagramType)}
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                              <button
+                                className="ai-voice-action"
+                                onClick={() => { playCyberSound('click'); handleSpeakText(displayContent); }}
+                                title="Listen to Response"
+                              >
+                                <Volume2 size={14} />
+                                <span>Listen</span>
+                              </button>
+                              <button
+                                className="ai-voice-action"
+                                onClick={() => { playCyberSound('click'); window.speechSynthesis.cancel(); }}
+                                title="Stop Audio"
+                                style={{ color: '#8e8ea0' }}
+                              >
+                                <VolumeX size={14} />
+                                <span>Stop</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {msg.role === 'user' && (
+                        <div className="ai-message-content">
+                          <div className="ai-message-text">
+                            {displayContent.split('\n').map((para, i) => (
+                              <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 8px 0' : 0 }}>
+                                {para}
+                              </p>
+                            ))}
+                            {msg.attachedImage && (
+                              <div style={{ marginTop: '8px' }}>
+                                <img src={msg.attachedImage} alt="User attachment" style={{ maxWidth: '220px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                {msg.attachedImageName && <div style={{ fontSize: '0.72rem', color: '#8e8ea0', marginTop: '4px' }}>{msg.attachedImageName}</div>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
 
                 {isChatLoading && (
                   <div className="ai-message-bubble model">
-                    <div className="ai-message-avatar">
-                      <Bot size={18} />
-                    </div>
-                    <div className="ai-message-content">
-                      <div className="ai-message-text" style={{ padding: '16px 24px' }}>
-                        <div className="chatbot-typing-indicator" style={{ padding: 0 }}>
-                          <span />
-                          <span />
-                          <span />
+                    <div className="gpt-ai-row">
+                      <div className="gpt-ai-icon" style={{ flexShrink: 0 }}>
+                        <svg width="14" height="14" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 19.508.43a10.079 10.079 0 0 0-9.617 6.977 9.967 9.967 0 0 0-6.67 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.313 3.027 10.079 10.079 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.67-4.834 10.079 10.079 0 0 0-1.24-11.817z" fill="white"/>
+                        </svg>
+                      </div>
+                      <div className="ai-message-content">
+                        <div className="ai-message-text">
+                          <div className="chatbot-typing-indicator">
+                            <span />
+                            <span />
+                            <span />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -13145,6 +13141,7 @@ export default function App() {
                 )}
                 <div ref={chatBottomRef} />
               </div>
+
 
               {/* Suggestion Chips */}
               <div className="ai-chat-suggestions">
@@ -13171,51 +13168,52 @@ export default function App() {
                 </div>
               )}
 
-              {/* Input Form Bar */}
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendChatMessage();
-                }}
-                className="ai-chat-input-bar"
-              >
-                <input 
-                  type="file" 
-                  accept="image/*,.txt,.py,.js,.json,.csv,.c,.cpp" 
-                  onChange={handleBotFileSelect} 
-                  style={{ display: 'none' }} 
-                  id="bot-file-upload-panel" 
-                />
-                <label htmlFor="bot-file-upload-panel" className="ai-icon-btn" title="Attach file or image">
-                  <Paperclip size={18} />
-                </label>
-
-                <button
-                  type="button"
-                  onClick={handleToggleSpeechRecognition}
-                  className={`ai-icon-btn ${isListeningSpeech ? 'recording' : ''}`}
-                  title={isListeningSpeech ? "Stop voice listening" : "Ask using your voice"}
+              {/* Input Form Bar — ChatGPT style centered pill */}
+              <div className="ai-chat-input-bar">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendChatMessage();
+                  }}
                 >
-                  <Mic size={18} />
-                </button>
+                  <input
+                    type="file"
+                    accept="image/*,.txt,.py,.js,.json,.csv,.c,.cpp"
+                    onChange={handleBotFileSelect}
+                    style={{ display: 'none' }}
+                    id="bot-file-upload-panel"
+                  />
+                  <label htmlFor="bot-file-upload-panel" className="ai-icon-btn" title="Attach file or image">
+                    <Paperclip size={16} />
+                  </label>
 
-                <input 
-                  type="text"
-                  className="ai-chat-input-text"
-                  placeholder="Ask anything or paste an image (Ctrl+V)..."
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  disabled={isChatLoading}
-                />
+                  <button
+                    type="button"
+                    onClick={handleToggleSpeechRecognition}
+                    className={`ai-icon-btn ${isListeningSpeech ? 'recording' : ''}`}
+                    title={isListeningSpeech ? "Stop voice listening" : "Ask using your voice"}
+                  >
+                    <Mic size={16} />
+                  </button>
 
-                <button 
-                  type="submit"
-                  className="ai-send-btn"
-                  disabled={isChatLoading || !chatInput.trim()}
-                >
-                  <Send size={18} />
-                </button>
-              </form>
+                  <input
+                    type="text"
+                    className="ai-chat-input-text"
+                    placeholder="Message Smart Attendance AI..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    disabled={isChatLoading}
+                  />
+
+                  <button
+                    type="submit"
+                    className="ai-send-btn"
+                    disabled={isChatLoading || !chatInput.trim()}
+                  >
+                    <Send size={16} />
+                  </button>
+                </form>
+              </div>
             </div>
 
             {/* Right pane: settings */}
