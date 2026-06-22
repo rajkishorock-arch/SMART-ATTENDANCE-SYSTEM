@@ -73,24 +73,26 @@ def update_schema():
         safe_add_column('institutions', 'secondary_color', 'VARCHAR(50) NULL')
         safe_add_column('institutions', 'master_key', 'VARCHAR(100) NULL')
 
-        # Update unique index constraints on users table for multi-tenancy
-        safe_execute("DROP INDEX IF EXISTS ix_users_email", "Dropped ix_users_email index")
-        safe_execute("DROP INDEX IF EXISTS email", "Dropped email index")
-        
-        # MySQL syntax (will fail on PostgreSQL — that's OK, rollback handles it)
-        safe_execute("ALTER TABLE users DROP INDEX ix_users_email", "Dropped ix_users_email index (MySQL)")
-        safe_execute("ALTER TABLE users DROP INDEX email", "Dropped email index (MySQL)")
+        # Detect database dialect to run correct SQL syntax
+        db_dialect = engine.dialect.name  # 'postgresql', 'mysql', 'sqlite'
+        print(f"Database dialect: {db_dialect}")
 
-        # Add composite unique constraint for multi-tenancy
-        safe_execute(
-            "ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)",
-            "Added composite unique constraint"
-        )
-        # MySQL fallback
-        safe_execute(
-            "ALTER TABLE users ADD UNIQUE KEY uq_institution_email (institution_id, email)",
-            "Added composite unique key (MySQL)"
-        )
+        # Update unique index constraints on users table for multi-tenancy
+        if db_dialect == 'mysql':
+            safe_execute("ALTER TABLE users DROP INDEX ix_users_email", "Dropped ix_users_email index")
+            safe_execute("ALTER TABLE users DROP INDEX email", "Dropped email index")
+            safe_execute(
+                "ALTER TABLE users ADD UNIQUE KEY uq_institution_email (institution_id, email)",
+                "Added composite unique key"
+            )
+        else:
+            # PostgreSQL / SQLite
+            safe_execute("DROP INDEX IF EXISTS ix_users_email", "Dropped ix_users_email index")
+            safe_execute("DROP INDEX IF EXISTS email", "Dropped email index")
+            safe_execute(
+                "ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)",
+                "Added composite unique constraint"
+            )
 
         # --- Advanced feature columns (idempotent migrations) ---
         safe_add_column('institutions', 'app_name', 'VARCHAR(100) NULL')
