@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import FaceScanner from './components/FaceScanner';
 import BottomNav from './components/BottomNav';
@@ -419,6 +420,33 @@ export default function App() {
   useEffect(() => {
     setActiveSubSetting(null);
     setActiveDashboardSubTab(null);
+  }, [activeTab]);
+
+  /* ── Android Hardware Back Button — native navigation ── */
+  useEffect(() => {
+    if (!window.Capacitor) return; // only runs in native Android app
+    let listenerHandle = null;
+    const setupBackButton = async () => {
+      listenerHandle = await CapacitorApp.addListener('backButton', () => {
+        // If on any sub-tab or non-home tab, go back to dashboard
+        if (activeTab !== 'dashboard' && activeTab !== 'student-attendance') {
+          // For admin/teacher: go home
+          setActiveTab('dashboard');
+          setActiveSubSetting(null);
+          setActiveDashboardSubTab(null);
+        } else if (activeTab === 'student-attendance') {
+          // For students on their main page, exit the app
+          CapacitorApp.exitApp();
+        } else {
+          // Already at root home — exit app
+          CapacitorApp.exitApp();
+        }
+      });
+    };
+    setupBackButton();
+    return () => {
+      if (listenerHandle) listenerHandle.remove();
+    };
   }, [activeTab]);
   
   // Feedback Form States
