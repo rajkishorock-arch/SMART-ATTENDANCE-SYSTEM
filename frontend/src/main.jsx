@@ -34,23 +34,23 @@ class ErrorBoundary extends Component {
     console.error("ErrorBoundary caught an uncaught crash:", error, errorInfo);
     try {
       const now = Date.now();
-      const lastCrash = sessionStorage.getItem('app_last_crash_time');
-      const crashCountStr = sessionStorage.getItem('app_crash_count');
+      const lastCrash = localStorage.getItem('app_last_crash_time');
+      const crashCountStr = localStorage.getItem('app_crash_count');
       
       const lastCrashTime = lastCrash ? parseInt(lastCrash, 10) : 0;
       const crashCount = crashCountStr ? parseInt(crashCountStr, 10) : 0;
       
       if (now - lastCrashTime < 8000) {
         const newCount = crashCount + 1;
-        sessionStorage.setItem('app_crash_count', newCount.toString());
-        sessionStorage.setItem('app_last_crash_time', now.toString());
+        localStorage.setItem('app_crash_count', newCount.toString());
+        localStorage.setItem('app_last_crash_time', now.toString());
         if (newCount >= 3) {
           console.warn("Frequent crashes detected. Suppressing auto-refresh to prevent loop.");
           return; // Show custom error UI, do not reload
         }
       } else {
-        sessionStorage.setItem('app_crash_count', '1');
-        sessionStorage.setItem('app_last_crash_time', now.toString());
+        localStorage.setItem('app_crash_count', '1');
+        localStorage.setItem('app_last_crash_time', now.toString());
       }
       
       // Auto-reload after 600ms
@@ -63,7 +63,6 @@ class ErrorBoundary extends Component {
   }
 
   handleForceReset = () => {
-    sessionStorage.clear();
     localStorage.clear();
     window.location.reload();
   };
@@ -144,7 +143,7 @@ class ErrorBoundary extends Component {
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-start' }}>
               <button 
                 onClick={() => {
-                  sessionStorage.setItem('app_crash_count', '0');
+                  localStorage.setItem('app_crash_count', '0');
                   window.location.reload();
                 }} 
                 style={{

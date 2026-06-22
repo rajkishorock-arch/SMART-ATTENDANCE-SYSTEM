@@ -462,6 +462,7 @@ export default function App() {
   const voiceAssistantActiveRef = useRef(false);
   const wakeWordRecRef = useRef(null);
   const voiceAssistantErrorCountRef = useRef(0);
+  const wakeWordErrorCountRef = useRef(0);
   const [showVoicePulseFlash, setShowVoicePulseFlash] = useState(false);
 
   // New Voice State Machine & Resiliency Refs
@@ -556,6 +557,7 @@ export default function App() {
 
     recognition.onstart = () => {
       isWakeWordRunningRef.current = true;
+      wakeWordErrorCountRef.current = 0; // Reset error count on successful start
     };
 
     recognition.onresult = (event) => {
@@ -612,7 +614,9 @@ export default function App() {
 
     recognition.onerror = (e) => {
       console.warn("[Voice] Wake word listener error:", e.error);
-      if (e.error === 'not-allowed') {
+      wakeWordErrorCountRef.current += 1;
+      if (e.error === 'not-allowed' || wakeWordErrorCountRef.current > 5) {
+        console.warn("[Voice] Disabling wake word listener due to repeated errors.");
         voiceSystemStateRef.current = 'off';
       }
     };
@@ -4925,7 +4929,7 @@ export default function App() {
       }
     } catch (err) {
       playCyberSound('error');
-      setAuthError('Connection refused. Is the API server running?');
+      setAuthError('Connection error: ' + (err.message || 'Server unreachable') + '. Please check phone internet & Render status.');
     } finally {
       setIsLoading(false);
     }
