@@ -3,7 +3,8 @@
   "appName": "Smart Attendance",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "url": "https://smart-attendance-system-gamma.vercel.app/"
   },
   "plugins": {
     "SplashScreen": {
