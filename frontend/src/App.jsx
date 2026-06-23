@@ -18,67 +18,20 @@ import PageTransitionFlash from './components/animations/PageTransitionFlash';
 import CameraAttractHud from './components/animations/CameraAttractHud';
 import LeaveManagement from './components/LeaveManagement';
 import LeaveAdminDashboard from './components/LeaveAdminDashboard';
-import AdminDashboard from './components/AdminDashboard';
-import StudentManagement from './components/StudentManagement';
-import TeacherManagement from './components/TeacherManagement';
-import AttendanceManager from './components/AttendanceManager';
-import LogViewer from './components/LogViewer';
-import SessionHistory from './components/SessionHistory';
-import ReportManager from './components/ReportManager';
-import SecuritySettings from './components/SecuritySettings';
-import MyAttendance from './components/MyAttendance';
-import MyProfile from './components/MyProfile';
-import AiAssistant from './components/AiAssistant';
-import {
-  Activity,
-  Users,
-  CheckCircle2,
-  AlertCircle,
-  TrendingUp,
-  LogOut,
-  Plus,
-  Search,
-  FileSpreadsheet,
-  BookOpen,
-  Info,
-  ShieldCheck,
-  Calendar,
-  Layers,
-  Trash2,
-  Mail,
-  Lock,
-  Camera,
-  Video,
-  FileDown,
-  Edit,
-  Clock,
-  History,
-  UserCheck,
-  UserPlus,
-  Volume2,
-  VolumeX,
-  ArrowLeft,
-  MessageSquare,
-  Bot,
-  Send,
-  Paperclip,
-  Mic,
-  MicOff,
-  Settings,
-  Phone,
+import { 
+  Users, 
+  CheckCircle2, 
+  TrendingUp, 
+  LogOut, 
+  FileSpreadsheet, 
+  Mail, 
+  History, 
+  UserCheck, 
+  Settings, 
   BarChart3,
+  Bot,
+  Calendar
 } from 'lucide-react';
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -88,9 +41,6 @@ export default function App() {
   const [token, setToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
-  const [showBooting, setShowBooting] = useState(false);
-  const [scannerMode, setScannerMode] = useState('in');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isPortalVisible, setIsPortalVisible] = useState(true);
 
@@ -211,33 +161,17 @@ export default function App() {
         <header className="flex-between header-container" style={{ marginBottom: '16px' }}>
             <div>
               <h1 style={{ fontSize: '1.45rem', fontWeight: 700 }}>
-                {activeTab === 'dashboard' && 'Admin Analytics Dashboard'}
+                {activeTab === 'dashboard' && 'Dashboard'}
                 {activeTab === 'leave-management' && 'Leave Management'}
                 {activeTab === 'leave-admin' && 'Leave Request Management'}
-                {activeTab === 'student-profile' && 'My Profile'}
-                {activeTab === 'settings' && 'Security & System Settings'}
-                {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
               </h1>
               <p style={{ color: '#9ca3af', fontSize: '0.8rem' }}>
-                {activeTab === 'dashboard' && 'Real-time overview of attendance, system health, and user activity.'}
+                {activeTab === 'dashboard' && 'Welcome to your dashboard.'}
                 {activeTab === 'leave-management' && 'Apply for leave and track your requests'}
                 {activeTab === 'leave-admin' && 'Review and manage leave requests from students'}
-                {activeTab === 'student-profile' && 'View and manage your personal profile and credentials'}
-                {activeTab === 'settings' && 'Manage campus geofencing and IP subnet restriction boundaries'}
-                {activeTab === 'ai-assistant' && 'Interact using voice or upload files. Customise bot settings and suggestion filters.'}
               </p>
             </div>
         </header>
-
-        {activeTab === 'dashboard' && <AdminDashboard />}
-        {activeTab === 'students' && <StudentManagement token={token} />}
-        {activeTab === 'teachers' && userRole === 'admin' && <TeacherManagement token={token} />}
-        {activeTab === 'logs' && <LogViewer token={token} />}
-        {activeTab === 'attendance' && <AttendanceManager token={token} />}
-        {activeTab === 'session-history' && <SessionHistory token={token} />}
-        {activeTab === 'reports' && <ReportManager token={token} />}
-        {activeTab === 'settings' && userRole === 'admin' && <SecuritySettings token={token} />}
-        {activeTab === 'student-attendance' && <MyAttendance token={token} currentUser={currentUser} />}
 
         {activeTab === 'leave-management' && userRole === 'student' && (
           <LeaveManagement token={token} currentUser={currentUser} />
@@ -245,9 +179,6 @@ export default function App() {
         {activeTab === 'leave-admin' && (userRole === 'teacher' || userRole === 'admin') && (
           <LeaveAdminDashboard token={token} currentUser={currentUser} />
         )}
-
-        {activeTab === 'student-profile' && <MyProfile token={token} currentUser={currentUser} />}
-        {activeTab === 'ai-assistant' && <AiAssistant token={token} />}
 
       </main>
       </div>
