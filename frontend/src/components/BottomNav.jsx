@@ -29,6 +29,14 @@ export default function BottomNav({
         </button>
         <button
           type="button"
+          className={`bottom-nav-item ${activeTab === 'leave-management' ? 'active' : ''}`}
+          onClick={() => onNavigate('leave-management')}
+        >
+          <Calendar size={22} />
+          <span>Leave</span>
+        </button>
+        <button
+          type="button"
           className={`bottom-nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
           onClick={() => onNavigate('ai-assistant')}
         >

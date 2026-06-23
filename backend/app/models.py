@@ -232,3 +232,14 @@ class OfflineAttendanceQueue(Base):
     __table_args__ = (
         UniqueConstraint('institution_id', 'client_id', name='_offline_client_uc'),
     )
+
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id"), nullable=False)
+    start_date = Column(DateTime(timezone=True), nullable=False)
+    end_date = Column(DateTime(timezone=True), nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(50), default="pending") # pending, approved, rejected
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
