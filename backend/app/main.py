@@ -226,7 +226,7 @@ app.add_middleware(
     allow_origin_regex=r"https://([a-zA-Z0-9-]+\.)*vercel\.app|https://([a-zA-Z0-9-]+\.)*onrender\.com|https?://localhost(:\d+)?|capacitor://localhost|https?://10\.\d+\.\d+\.\d+(:\d+)?|https?://192\.168\.\d+\.\d+(:\d+)?",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Master-Password", "X-Tenant-Slug"],
+    allow_headers=["*"],
 )
 
 def migrate_existing_student_embeddings(db):
