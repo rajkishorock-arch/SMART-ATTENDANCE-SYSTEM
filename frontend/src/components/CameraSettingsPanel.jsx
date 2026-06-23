@@ -12,7 +12,7 @@ export default function CameraSettingsPanel({ onChange }) {
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '24px' }}>
+    <div className="glass-panel camera-settings-panel" style={{ padding: '24px' }}>
       <h3 style={{ color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
         <Camera size={20} /> Pro Camera Engine
       </h3>
@@ -20,7 +20,7 @@ export default function CameraSettingsPanel({ onChange }) {
         Turbo mode uses 30–60 FPS preview, lightweight mesh, and smaller frames for butter-smooth scanning.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '20px' }}>
+      <div className="camera-presets-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '20px' }}>
         {Object.entries(CAMERA_PRESETS).map(([key, p]) => (
           <button
             key={key}

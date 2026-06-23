@@ -9359,7 +9359,7 @@ export default function App() {
                   Class Sessions Registers
                 </h4>
                 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
+                <div className="session-history-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
                   {userRole === 'admin' ? (
                     <>
                       {/* Department Select */}
