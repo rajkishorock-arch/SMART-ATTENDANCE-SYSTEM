@@ -17,18 +17,29 @@ import ClickFxLayer from './components/animations/ClickFxLayer';
 import PageTransitionFlash from './components/animations/PageTransitionFlash';
 import CameraAttractHud from './components/animations/CameraAttractHud';
 import LeaveManagement from './components/LeaveManagement';
-import LeaveAdminDashboard from './components/LeaveAdminDashboard'; // Import the new component
-import { 
+import LeaveAdminDashboard from './components/LeaveAdminDashboard';
+import AdminDashboard from './components/AdminDashboard';
+import StudentManagement from './components/StudentManagement';
+import TeacherManagement from './components/TeacherManagement';
+import AttendanceManager from './components/AttendanceManager';
+import LogViewer from './components/LogViewer';
+import SessionHistory from './components/SessionHistory';
+import ReportManager from './components/ReportManager';
+import SecuritySettings from './components/SecuritySettings';
+import MyAttendance from './components/MyAttendance';
+import MyProfile from './components/MyProfile';
+import AiAssistant from './components/AiAssistant';
+import {
   Activity,
-  Users, 
-  CheckCircle2, 
-  AlertCircle, 
-  TrendingUp, 
-  LogOut, 
-  Plus, 
-  Search, 
-  FileSpreadsheet, 
-  BookOpen, 
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+  LogOut,
+  Plus,
+  Search,
+  FileSpreadsheet,
+  BookOpen,
   Info,
   ShieldCheck,
   Calendar,
@@ -57,31 +68,31 @@ import {
   Phone,
   BarChart3,
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from 'recharts';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
-// ... (rest of the file is unchanged until the App component)
-
 export default function App() {
-  // ... (all state definitions remain the same)
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentUser, setCurrentUser] = useState(null);
   const [token, setToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  
-  // ... other states
+  const [showScanner, setShowScanner] = useState(false);
+  const [showBooting, setShowBooting] = useState(false);
+  const [scannerMode, setScannerMode] = useState('in');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isPortalVisible, setIsPortalVisible] = useState(true);
 
   const isTabValidForRole = (tabId, role) => {
     if (role === 'student') {
@@ -95,17 +106,33 @@ export default function App() {
   };
 
   const navigateToTab = (tabId) => {
-    // ... navigation logic
      setActiveTab(tabId);
   };
 
+  const handleLogin = (userData, userToken, role) => {
+    setCurrentUser(userData);
+    setToken(userToken);
+    setUserRole(role);
+    setIsLoggedIn(true);
+    setIsPortalVisible(false);
+    const defaultTab = role === 'student' ? 'student-attendance' : 'dashboard';
+    setActiveTab(defaultTab);
+  };
 
-  // ... (rest of the file is unchanged until the main return statement)
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setToken(null);
+    setUserRole(null);
+    setIsLoggedIn(false);
+    setIsPortalVisible(true);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
-      {/* ... (existing JSX code) */}
-      <aside 
+        {!isLoggedIn && isPortalVisible && <LoginPortal onLogin={handleLogin} />}
+        {isLoggedIn && (
+            <div style={{ display: 'flex', height: '100vh' }}>
+      <aside
         className={`sidebar ${mobileSidebarOpen ? 'open' : ''}`}
         onClick={(e) => {
           if (e.target.closest('.nav-item')) {
@@ -113,12 +140,15 @@ export default function App() {
           }
         }}
       >
-        {/* ... (sidebar logo) */}
+        <div className="sidebar-logo">
+            <img src="/logo.png" alt="Logo" style={{height: 32, marginRight: 10}}/>
+            SMART ATTENDANCE
+        </div>
         <ul className="nav-links" style={{ flex: 1 }}>
           {userRole === 'student' ? (
             <>
               <li>
-                <button 
+                <button
                   className={`nav-item ${activeTab === 'student-attendance' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
                   onClick={() => { navigateToTab('student-attendance'); }}
@@ -128,7 +158,7 @@ export default function App() {
                 </button>
               </li>
                <li>
-                <button 
+                <button
                   className={`nav-item ${activeTab === 'leave-management' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
                   onClick={() => { navigateToTab('leave-management'); }}
@@ -138,7 +168,7 @@ export default function App() {
                 </button>
               </li>
               <li>
-                <button 
+                <button
                   className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
                   onClick={() => { navigateToTab('student-profile'); }}
@@ -148,7 +178,7 @@ export default function App() {
                 </button>
               </li>
               <li>
-                <button 
+                <button
                   className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
                   onClick={() => { navigateToTab('ai-assistant'); }}
@@ -160,7 +190,6 @@ export default function App() {
             </>
           ) : (
             <>
-              {/* Admin and Teacher nav links */}
               <li><button className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => navigateToTab('dashboard')}><TrendingUp size={18}/>Dashboard</button></li>
               <li><button className={`nav-item ${activeTab === 'students' ? 'active' : ''}`} onClick={() => navigateToTab('students')}><Users size={18}/>Students</button></li>
               {userRole === 'admin' && <li><button className={`nav-item ${activeTab === 'teachers' ? 'active' : ''}`} onClick={() => navigateToTab('teachers')}><UserCheck size={18}/>Teachers</button></li>}
@@ -173,15 +202,16 @@ export default function App() {
             </>
           )}
         </ul>
-        {/* ... (rest of sidebar) */}
+        <div className="sidebar-footer">
+            <button className="nav-item" onClick={handleLogout}><LogOut size={18}/>Logout</button>
+        </div>
       </aside>
 
       <main className="main-content">
         <header className="flex-between header-container" style={{ marginBottom: '16px' }}>
-            {/* ... (header content) */}
             <div>
               <h1 style={{ fontSize: '1.45rem', fontWeight: 700 }}>
-                {/* ... (other titles) */}
+                {activeTab === 'dashboard' && 'Admin Analytics Dashboard'}
                 {activeTab === 'leave-management' && 'Leave Management'}
                 {activeTab === 'leave-admin' && 'Leave Request Management'}
                 {activeTab === 'student-profile' && 'My Profile'}
@@ -189,7 +219,7 @@ export default function App() {
                 {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
               </h1>
               <p style={{ color: '#9ca3af', fontSize: '0.8rem' }}>
-                {/* ... (other descriptions) */}
+                {activeTab === 'dashboard' && 'Real-time overview of attendance, system health, and user activity.'}
                 {activeTab === 'leave-management' && 'Apply for leave and track your requests'}
                 {activeTab === 'leave-admin' && 'Review and manage leave requests from students'}
                 {activeTab === 'student-profile' && 'View and manage your personal profile and credentials'}
@@ -197,22 +227,18 @@ export default function App() {
                 {activeTab === 'ai-assistant' && 'Interact using voice or upload files. Customise bot settings and suggestion filters.'}
               </p>
             </div>
-         {/* ... (rest of header) */}\
         </header>
 
-        {/* ... (server warming up message) */}
+        {activeTab === 'dashboard' && <AdminDashboard />}
+        {activeTab === 'students' && <StudentManagement token={token} />}
+        {activeTab === 'teachers' && userRole === 'admin' && <TeacherManagement token={token} />}
+        {activeTab === 'logs' && <LogViewer token={token} />}
+        {activeTab === 'attendance' && <AttendanceManager token={token} />}
+        {activeTab === 'session-history' && <SessionHistory token={token} />}
+        {activeTab === 'reports' && <ReportManager token={token} />}
+        {activeTab === 'settings' && userRole === 'admin' && <SecuritySettings token={token} />}
+        {activeTab === 'student-attendance' && <MyAttendance token={token} currentUser={currentUser} />}
 
-        {/* Tab Content */}
-        {activeTab === 'dashboard' && (null)}
-        {activeTab === 'students' && (null)}
-        {activeTab === 'teachers' && userRole === 'admin' && (null)}
-        {activeTab === 'logs' && (null)}
-        {activeTab === 'attendance' && (null)}
-        {activeTab === 'session-history' && (null)}
-        {activeTab === 'reports' && (null)}
-        {activeTab === 'settings' && userRole === 'admin' && (null)}
-        {activeTab === 'student-attendance' && (null)}
-        
         {activeTab === 'leave-management' && userRole === 'student' && (
           <LeaveManagement token={token} currentUser={currentUser} />
         )}
@@ -220,27 +246,12 @@ export default function App() {
           <LeaveAdminDashboard token={token} currentUser={currentUser} />
         )}
 
-        {activeTab === 'student-profile' && (null)}
-        {activeTab === 'ai-assistant' && (null)}
+        {activeTab === 'student-profile' && <MyProfile token={token} currentUser={currentUser} />}
+        {activeTab === 'ai-assistant' && <AiAssistant token={token} />}
 
       </main>
-
-      {/* ... (all modals and other components) */}
-
-      {token && userRole && (
-        <BottomNav
-          userRole={userRole}
-          activeTab={activeTab}
-          onNavigate={navigateToTab}
-          onScanPress={()=>{}}
-          onMorePress={() => {
-            //playCyberSound('click');
-            setMobileControlOpen(true);
-          }}
-        />
+      </div>
       )}
-
-      {/* ... (rest of the file) */}
     </div>
   );
 }
