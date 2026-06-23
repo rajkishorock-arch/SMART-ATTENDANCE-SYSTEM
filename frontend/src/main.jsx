@@ -3,10 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { getActiveTenantSlug } from './utils/tenantConfig'
 
+import { getApiBaseUrl } from './utils/platform';
+
 // Global Fetch Interceptor to inject X-Tenant-Slug header into all backend API calls
 const originalFetch = window.fetch;
 window.fetch = async function (url, options = {}) {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+  const apiBase = getApiBaseUrl();
   const urlStr = typeof url === 'string' ? url : (url instanceof URL ? url.href : '');
   
   if (urlStr.includes('/api/v1') || (apiBase && urlStr.startsWith(apiBase))) {
@@ -133,11 +135,11 @@ class ErrorBoundary extends Component {
               color: '#f87171',
               overflowX: 'auto',
               marginBottom: '28px',
-              maxHeight: '120px',
+              maxHeight: '260px',
               whiteSpace: 'pre-wrap',
               fontFamily: 'monospace'
             }}>
-              <strong>EXCEPTION:</strong> {this.state.error ? this.state.error.toString() : 'Unknown Error'}
+              <strong>EXCEPTION:</strong> {this.state.error ? (this.state.error.stack || this.state.error.toString()) : 'Unknown Error'}
             </div>
             
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-start' }}>

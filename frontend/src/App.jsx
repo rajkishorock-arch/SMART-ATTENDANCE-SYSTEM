@@ -67,7 +67,11 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+import { getApiBaseUrl, requestNativePermissions } from './utils/platform';
+import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
+import CameraSettingsPanel from './components/CameraSettingsPanel';
+
+let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
 const getLocalDateString = (d = new Date()) => {
   const year = d.getFullYear();
@@ -112,6 +116,7 @@ function calculateEAR(landmarks, eyeIndices) {
   }
 }
 export default function App() {
+  API_BASE_URL = getApiBaseUrl();
   const [masterKeyPrompt, setMasterKeyPrompt] = useState({
     isOpen: false,
     title: '',
@@ -206,6 +211,28 @@ export default function App() {
       }
     };
     loadTenantBranding();
+  }, []);
+
+  // Handle native mobile status bar styling & permissions
+  useEffect(() => {
+    const styleStatusBar = async () => {
+      try {
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
+        await StatusBar.setStyle({ style: Style.Dark });
+        await StatusBar.setBackgroundColor({ color: '#080c14' });
+        addDiagnosticLog(`[SYS] Mobile status bar styled.`);
+      } catch (e) {
+        console.warn("Native status bar styling not active:", e);
+      }
+      
+      // Request native camera/location permissions early
+      try {
+        await requestNativePermissions();
+      } catch (e) {
+        console.warn("Permissions request error:", e);
+      }
+    };
+    styleStatusBar();
   }, []);
 
   const getSuggestions = () => {
@@ -449,7 +476,8 @@ export default function App() {
     setActiveSubSetting(null);
     setActiveDashboardSubTab(null);
   }, [activeTab]);
-  
+
+
   // Feedback Form States
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState('suggestion'); // 'bug', 'suggestion', 'general'
@@ -501,6 +529,55 @@ export default function App() {
   const isActiveAssistantRunningRef = useRef(false);
   const isChatbotMicRunningRef = useRef(false);
   const isSpeakingRef = useRef(false);
+
+  // Handle Android Native Back Button Navigation
+  useEffect(() => {
+    let active = true;
+    let handle = null;
+
+    const initBackButton = async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app');
+        if (!active) return;
+        handle = await CapApp.addListener('backButton', () => {
+          if (activeSubSetting) {
+            setActiveSubSetting(null);
+          } else if (activeDashboardSubTab) {
+            setActiveDashboardSubTab(null);
+          } else if (showChatBot) {
+            setShowChatBot(false);
+          } else if (showFeedbackModal) {
+            setShowFeedbackModal(false);
+          } else if (showPrivacyPolicy) {
+            setShowPrivacyPolicy(false);
+          } else if (activeTab !== 'dashboard' && activeTab !== 'student-attendance') {
+            if (userRole === 'student') {
+              setActiveTab('student-attendance');
+            } else {
+              setActiveTab('dashboard');
+            }
+          } else {
+            CapApp.exitApp();
+          }
+        });
+      } catch (e) {
+        console.warn("Native back button handler not active:", e);
+      }
+    };
+
+    initBackButton();
+
+    return () => {
+      active = false;
+      if (handle) {
+        if (typeof handle.then === 'function') {
+          handle.then(h => h.remove()).catch(() => {});
+        } else if (typeof handle.remove === 'function') {
+          handle.remove();
+        }
+      }
+    };
+  }, [activeTab, activeSubSetting, activeDashboardSubTab, showChatBot, showFeedbackModal, showPrivacyPolicy, userRole]);
 
   // Unified Speech Recognition State Machine Coordinator
   const syncVoiceListeners = useCallback(() => {
@@ -1589,6 +1666,9 @@ export default function App() {
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isSendingAlerts, setIsSendingAlerts] = useState(false);
   const [serverWarmingUp, setServerWarmingUp] = useState(false);
+  const [cameraScanSettings, setCameraScanSettings] = useState(() => loadCameraSettings());
+  const meshFrameSkipRef = useRef(0);
+  const lastLandmarksRef = useRef(null);
   const [isDemoMode, setIsDemoMode] = React.useState(localStorage.getItem('isDemoMode') === 'true');
 
   // Refs for video, canvas & stream
@@ -2588,28 +2668,19 @@ export default function App() {
 
     setScannerBootActive(true);
     try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
-        });
-      } catch (e1) {
-        console.warn("HD camera constraints failed, trying 640x480 fallback", e1);
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 640, height: 480, facingMode: 'user' } 
-          });
-        } catch (e2) {
-          console.warn("SD camera constraints failed, trying general video fallback", e2);
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        }
-      }
+      await requestNativePermissions();
+      const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
+      const stream = await openCameraStream(cameraScanSettings.preset || 'turbo');
       if (attendanceVideoRef.current) {
         attendanceVideoRef.current.srcObject = stream;
+        attendanceVideoRef.current.setAttribute('playsinline', 'true');
+        if (cameraScanSettings.mirrorPreview !== false) {
+          attendanceVideoRef.current.style.transform = 'scaleX(-1)';
+        }
       }
       attendanceStreamRef.current = stream;
       setScanStatus('Boot sequence...');
-      addDiagnosticLog('Optical array initializing: SEC_CAM_01');
+      addDiagnosticLog(`Optical array online (${preset.label})`);
     } catch (err) {
       setScannerBootActive(false);
       setAttendanceError('Unable to access webcam. Please check permissions.');
@@ -2654,21 +2725,23 @@ export default function App() {
 
 
   const triggerFaceRecognition = async () => {
-    if (!attendanceVideoRef.current || !attendanceCanvasRef.current) return;
+    if (!attendanceVideoRef.current) return;
+    if (!lastLandmarksRef.current?.length) {
+      setScanStatus('No face detected — look at camera');
+      return;
+    }
     const video = attendanceVideoRef.current;
-    const canvas = attendanceCanvasRef.current;
-    const context = canvas.getContext('2d');
+    const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
 
-    canvas.width = 640;
-    canvas.height = 480;
-    
-    // Capture high quality frame
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await captureFrameBlob(
+      video,
+      preset.captureWidth,
+      preset.captureHeight,
+      preset.jpegQuality
+    );
+    if (!blob) return;
 
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-
-      if (isDemoMode) {
+    if (isDemoMode) {
         setIsScanning(true);
         setScanStatus('Logging presence...');
         addDiagnosticLog('Signature acquisition: Compiling SFace vector locally...');
@@ -2811,6 +2884,9 @@ export default function App() {
 
             setScanStatus(newly_marked ? `Recognized: ${name} (${confidence}%)` : `Recognized: ${name} (Already Marked)`);
             playCyberSound('success');
+            if (cameraScanSettings.hapticFeedback && navigator.vibrate) {
+              navigator.vibrate(newly_marked ? [40, 30, 40] : 20);
+            }
             
             const now = new Date();
             const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -2881,7 +2957,6 @@ export default function App() {
           }
         }, 4000);
       }
-    }, 'image/jpeg', 0.9);
   };
 
   // Apply theme class to body and update localStorage
@@ -3454,11 +3529,12 @@ export default function App() {
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
 
+    const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
     faceMesh.setOptions({
       maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.65,
+      refineLandmarks: preset.refineLandmarks,
+      minDetectionConfidence: preset.minDetectionConfidence,
+      minTrackingConfidence: Math.max(0.5, preset.minDetectionConfidence - 0.05),
     });
 
     faceMesh.onResults((results) => {
@@ -3476,7 +3552,7 @@ export default function App() {
 
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
           const landmarks = results.multiFaceLandmarks[0];
-          
+          lastLandmarksRef.current = landmarks;
           // Render mesh grid / Thermal Heatmap
           if (thermalHudEnabled) {
             const nose = landmarks[1];
@@ -3648,10 +3724,14 @@ export default function App() {
       if (!active || !attendanceActive) return;
       
       if (video.readyState === 4 && video.videoWidth > 0 && video.videoHeight > 0) {
-        try {
-          await faceMesh.send({ image: video });
-        } catch (err) {
-          console.error("FaceMesh send frame error:", err);
+        const skip = preset.meshSkipFrames || 0;
+        meshFrameSkipRef.current = (meshFrameSkipRef.current + 1) % (skip + 1);
+        if (meshFrameSkipRef.current === 0) {
+          try {
+            await faceMesh.send({ image: video });
+          } catch (err) {
+            console.error("FaceMesh send frame error:", err);
+          }
         }
       }
       
@@ -3660,7 +3740,7 @@ export default function App() {
       }
     };
 
-    setTimeout(sendFrames, 1000);
+    setTimeout(sendFrames, 300);
 
     return () => {
       active = false;
@@ -3671,7 +3751,7 @@ export default function App() {
         faceMeshRef.current = null;
       }
     };
-  }, [attendanceActive]);
+  }, [attendanceActive, cameraScanSettings.preset]);
 
   // Turn off camera if user switches tabs
   useEffect(() => {
@@ -4500,14 +4580,8 @@ export default function App() {
 
   const checkServerConnection = async () => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for Render cold starts
-      const res = await fetch(`${API_BASE_URL}/health/`, {
-        signal: controller.signal,
-        headers: { 'Cache-Control': 'no-cache' },
-      });
-      clearTimeout(timeoutId);
-      if (res.ok) {
+      const ok = await wakeBackend(API_BASE_URL);
+      if (ok) {
         setServerWarmingUp(false);
         return true;
       }
@@ -4942,23 +5016,28 @@ export default function App() {
     playCyberSound('click');
     setAuthError('');
     setIsLoading(true);
+    setServerWarmingUp(true);
+
+    // Wake sleeping Render instance before auth attempt
+    await wakeBackend(API_BASE_URL);
 
     const formData = new URLSearchParams();
-    formData.append('username', loginEmail);
+    formData.append('username', loginEmail.trim());
     formData.append('password', loginPassword);
 
-    const MAX_RETRIES = 2;
+    const MAX_RETRIES = 5;
     let lastError = null;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         if (attempt > 0) {
-          setAuthError(`Server waking up... Retrying (${attempt}/${MAX_RETRIES})...`);
-          await new Promise(r => setTimeout(r, 3000)); // wait 3s between retries
+          setAuthError(`Cloud server waking up... Retry ${attempt}/${MAX_RETRIES}`);
+          await new Promise((r) => setTimeout(r, 4000 + attempt * 2000));
+          await wakeBackend(API_BASE_URL);
         }
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
 
         const res = await fetch(`${API_BASE_URL}/auth/token`, {
           method: 'POST',
@@ -4971,8 +5050,15 @@ export default function App() {
         });
         clearTimeout(timeoutId);
 
-        const data = await res.json();
-        if (res.ok) {
+        let data = {};
+        const raw = await res.text();
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          throw new Error('Server returned invalid response. Backend may still be starting.');
+        }
+
+        if (res.ok && data.access_token) {
           const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
             headers: { Authorization: `Bearer ${data.access_token}` },
           });
@@ -4983,32 +5069,44 @@ export default function App() {
               playCyberSound('error');
               setAuthError(getRoleMismatchMessage(loginRole, meData.role));
               setIsLoading(false);
+              setServerWarmingUp(false);
               return;
             }
           }
 
           playCyberSound('success');
           setAuthError('');
+          setServerWarmingUp(false);
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('loginRole', loginRole);
+          localStorage.setItem('userRole', loginRole);
           setToken(data.access_token);
-          return; // success — exit retry loop
-        } else {
-          playCyberSound('error');
-          setAuthError(data.detail || 'Incorrect email or password');
+          setUserRole(loginRole);
           setIsLoading(false);
-          return; // server responded with an auth error — no retry needed
+          fetchSessionInfo(data.access_token);
+          return;
         }
+
+        const detail = data.detail;
+        const msg = Array.isArray(detail)
+          ? detail.map((d) => d.msg || JSON.stringify(d)).join(', ')
+          : (detail || 'Incorrect email or password');
+        playCyberSound('error');
+        setAuthError(msg);
+        setIsLoading(false);
+        setServerWarmingUp(false);
+        return;
       } catch (err) {
         lastError = err;
         console.log(`Login attempt ${attempt + 1} failed:`, err.message);
-        // Continue to retry on network errors
       }
     }
 
-    // All retries exhausted
     playCyberSound('error');
-    setAuthError('Server is starting up. Please wait 30-60 seconds and try again. (Render free tier cold start)');
+    const hint = lastError?.name === 'AbortError'
+      ? 'Request timed out — Render server is still waking up.'
+      : (lastError?.message || 'Network error');
+    setAuthError(`${hint} Tap "Wake Cloud Server" below, wait 45s, then login again. Default admin password: raj@9211`);
     setServerWarmingUp(true);
     setIsLoading(false);
   };
@@ -6159,6 +6257,12 @@ export default function App() {
         setLoginPassword={setLoginPassword}
         authError={authError}
         isLoading={isLoading}
+        serverWarmingUp={serverWarmingUp}
+        onWakeServer={async () => {
+          setServerWarmingUp(true);
+          const ok = await wakeBackend(API_BASE_URL);
+          if (ok) setServerWarmingUp(false);
+        }}
         onSubmit={handleLogin}
         onExploreGuest={handleExploreGuest}
       />
@@ -11059,12 +11163,17 @@ export default function App() {
 
             {/* ===== PRODUCTIVITY & ENTERPRISE HUB ===== */}
             {activeSubSetting === 'productivity' && (
-              <AdvancedFeaturesHub
-                apiBaseUrl={API_BASE_URL}
-                token={token}
-                userRole={userRole}
-                currentUser={currentUser}
-              />
+              <>
+                <AdvancedFeaturesHub
+                  apiBaseUrl={API_BASE_URL}
+                  token={token}
+                  userRole={userRole}
+                  currentUser={currentUser}
+                />
+                <div style={{ marginTop: '20px' }}>
+                  <CameraSettingsPanel onChange={setCameraScanSettings} />
+                </div>
+              </>
             )}
 
             {/* ===== ADVANCED SYSTEM CONFIG & EXTREME SECURITY CONSOLE ===== */}

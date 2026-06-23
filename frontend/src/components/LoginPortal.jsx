@@ -9,6 +9,9 @@ import {
   Crown,
 } from 'lucide-react';
 import RoboticLoginCanvas from './animations/RoboticLoginCanvas';
+import { getApiBaseUrl } from '../utils/platform';
+import { wakeBackend } from '../utils/cameraScanner';
+
 
 const ROLES = [
   {
@@ -50,7 +53,9 @@ export default function LoginPortal({
   crtOverlayEnabled,
   serverWarmingUp,
   onExploreGuest,
-  onTenantChange, // Optional: if provided, called instead of window.location.reload()
+  onTenantChange,
+  onWakeServer,
+  serverStatus,
 }) {
   const [bootLine, setBootLine] = useState('');
   const [bootIndex, setBootIndex] = useState(0);
@@ -86,7 +91,7 @@ export default function LoginPortal({
   useEffect(() => {
     const fetchInstitutions = async () => {
       try {
-        const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+        const apiBase = getApiBaseUrl();
         const res = await fetch(`${apiBase}/institutions/`);
         if (res.ok) {
           const data = await res.json();
@@ -190,13 +195,34 @@ export default function LoginPortal({
               color: '#f59e0b',
               marginBottom: '16px',
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: 'column',
               gap: '10px'
             }}>
-              <AlertCircle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
-              <span style={{ fontSize: '0.8rem', textAlign: 'left', lineHeight: '1.4' }}>
-                <strong>Cloud Server Warming Up:</strong> Waking up sleeping server instance. Please wait (~45 seconds) for portal database connection.
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <AlertCircle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.8rem', textAlign: 'left', lineHeight: '1.4' }}>
+                  <strong>Cloud Server Warming Up:</strong> Render free tier sleeps after inactivity. Wait ~45 seconds or tap Wake Server below.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (onWakeServer) onWakeServer();
+                  else await wakeBackend(getApiBaseUrl());
+                }}
+                style={{
+                  padding: '8px 14px',
+                  background: 'rgba(245, 158, 11, 0.2)',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  borderRadius: '8px',
+                  color: '#fbbf24',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontSize: '0.78rem',
+                }}
+              >
+                ⚡ Wake Cloud Server
+              </button>
             </div>
           )}
 
@@ -262,6 +288,10 @@ export default function LoginPortal({
               </div>
             </div>
           </div>
+
+          <p style={{ color: '#64748b', fontSize: '0.72rem', marginBottom: '12px', lineHeight: 1.5 }}>
+            Default Institution admin: <strong style={{ color: '#94a3b8' }}>rajkishorock@gmail.com</strong> / password: <strong style={{ color: '#94a3b8' }}>raj@9211</strong>
+          </p>
 
           <form onSubmit={onSubmit} className="login-portal-form">
             <div className="form-group">

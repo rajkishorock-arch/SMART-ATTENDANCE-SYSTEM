@@ -44,3 +44,5 @@ Thumbs.db
 .gemini/
 
 .vercel
+*.keystore
+frontend/android/app/release.keystore

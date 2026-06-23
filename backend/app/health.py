@@ -11,6 +11,12 @@ router = APIRouter()
 START_TIME = time.time()
 
 
+@router.get("/ping")
+def ping():
+    """Ultra-light wake endpoint for Render cold starts (no DB)."""
+    return {"ok": True, "ts": time.time()}
+
+
 @router.get("/")
 def get_system_health(db: Session = Depends(get_db)):
     """Public health check — minimal info only."""
