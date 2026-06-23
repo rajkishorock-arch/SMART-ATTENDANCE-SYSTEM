@@ -113,9 +113,10 @@ export default function App() {
 
       {isLoggedIn && (
         <div style={{ display: 'flex', height: '100vh' }}>
-          <aside className={`sidebar ${mobileSidebarOpen ? 'open' : ''}
-          onClick={(e) => { if (e.target.closest('.nav-item')) { setMobileSidebarOpen(false); } }}
-        >
+          <aside 
+            className={`sidebar ${mobileSidebarOpen ? 'open' : ''}`}
+            onClick={(e) => { if (e.target.closest('.nav-item')) { setMobileSidebarOpen(false); } }}
+          >
             <div className="sidebar-logo">
               <img src="/logo.png" alt="Logo" style={{height: 32, marginRight: 10}}/>
               SMART ATTENDANCE
