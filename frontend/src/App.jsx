@@ -6458,7 +6458,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Modal Controls — camera auto-starts; only Stop is needed */}
+          {/* Modal Controls — camera auto-starts; Stop and Liveness Toggle */}
           <div className="scanner-modal-controls">
             <button
               onClick={stopAttendanceCam}
@@ -6481,6 +6481,36 @@ export default function App() {
               }}
             >
               {scannerBootActive ? '⏳ Booting...' : attendanceActive ? '⏹ Stop Scanner' : '⏳ Starting...'}
+            </button>
+            <button
+              onClick={() => {
+                setLivenessBypass(prev => !prev);
+                playCyberSound('click');
+              }}
+              style={{
+                flex: 1, padding: '14px 24px',
+                background: livenessBypass 
+                  ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.25))' 
+                  : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(4, 120, 87, 0.25))',
+                border: livenessBypass 
+                  ? '1px solid rgba(239, 68, 68, 0.5)' 
+                  : '1px solid rgba(16, 185, 129, 0.5)',
+                borderRadius: '12px',
+                color: livenessBypass ? '#ef4444' : '#10b981',
+                fontWeight: 800, fontSize: '0.95rem',
+                cursor: 'pointer',
+                letterSpacing: '0.04em',
+                boxShadow: livenessBypass 
+                  ? '0 0 15px rgba(239, 68, 68, 0.2)' 
+                  : '0 0 15px rgba(16, 185, 129, 0.2)',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              {livenessBypass ? '⚡ Liveness: BYPASS' : '🛡️ Liveness: ON'}
             </button>
           </div>
 
@@ -11210,9 +11240,9 @@ export default function App() {
                 <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
                   Fine-tune biometric confidence filters, anti-spoofing liveness sensors, AI cognitive profiles, and diagnostics.
                 </p>
-                {currentUser?.institution_id !== 1 && (
+                {userRole !== 'admin' && (
                   <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>🔒 Controls restricted to Default System Owner.</span>
+                    <span>🔒 Controls restricted to System Administrator.</span>
                   </div>
                 )}
               </div>
@@ -11243,7 +11273,7 @@ export default function App() {
                       <input 
                         type="checkbox"
                         checked={biometricConfidenceFilterEnabled}
-                        disabled={currentUser?.institution_id !== 1}
+                        disabled={userRole !== 'admin'}
                         onChange={(e) => {
                           setBiometricConfidenceFilterEnabled(e.target.checked);
                           playCyberSound('click');
@@ -11254,8 +11284,8 @@ export default function App() {
                         position: 'absolute',
                         top: 0, left: 0, right: 0, bottom: 0,
                         backgroundColor: biometricConfidenceFilterEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)',
-                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
-                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                        opacity: userRole !== 'admin' ? 0.5 : 1,
+                        cursor: userRole !== 'admin' ? 'not-allowed' : 'pointer',
                         transition: '.3s',
                         borderRadius: '20px',
                         boxShadow: biometricConfidenceFilterEnabled ? '0 0 10px var(--color-primary)' : 'none'
@@ -11286,21 +11316,21 @@ export default function App() {
                         max="0.99"
                         step="0.01"
                         value={biometricMatchThreshold}
-                        disabled={!biometricConfidenceFilterEnabled || currentUser?.institution_id !== 1}
+                        disabled={!biometricConfidenceFilterEnabled || userRole !== 'admin'}
                         onChange={(e) => {
                           setBiometricMatchThreshold(parseFloat(e.target.value));
                         }}
                         onMouseUp={() => {
-                          if (currentUser?.institution_id === 1) playCyberSound('click');
+                          if (userRole === 'admin') playCyberSound('click');
                         }}
                         onTouchEnd={() => {
-                          if (currentUser?.institution_id === 1) playCyberSound('click');
+                          if (userRole === 'admin') playCyberSound('click');
                         }}
                         style={{ 
                           width: '100%', 
                           accentColor: 'var(--color-primary)',
-                          cursor: (biometricConfidenceFilterEnabled && currentUser?.institution_id === 1) ? 'pointer' : 'not-allowed',
-                          opacity: (biometricConfidenceFilterEnabled && currentUser?.institution_id === 1) ? 1 : 0.5
+                          cursor: (biometricConfidenceFilterEnabled && userRole === 'admin') ? 'pointer' : 'not-allowed',
+                          opacity: (biometricConfidenceFilterEnabled && userRole === 'admin') ? 1 : 0.5
                         }}
                       />
                       <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
@@ -11326,21 +11356,21 @@ export default function App() {
                     max="0.30"
                     step="0.01"
                     value={antiSpoofingThreshold}
-                    disabled={currentUser?.institution_id !== 1}
+                    disabled={userRole !== 'admin'}
                     onChange={(e) => {
                       setAntiSpoofingThreshold(parseFloat(e.target.value));
                     }}
                     onMouseUp={() => {
-                      if (currentUser?.institution_id === 1) playCyberSound('click');
+                      if (userRole === 'admin') playCyberSound('click');
                     }}
                     onTouchEnd={() => {
-                      if (currentUser?.institution_id === 1) playCyberSound('click');
+                      if (userRole === 'admin') playCyberSound('click');
                     }}
                     style={{ 
                       width: '100%', 
                       accentColor: '#10b981',
-                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                      opacity: currentUser?.institution_id !== 1 ? 0.5 : 1
+                      cursor: userRole !== 'admin' ? 'not-allowed' : 'pointer',
+                      opacity: userRole !== 'admin' ? 0.5 : 1
                     }}
                   />
                   <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
@@ -11354,7 +11384,7 @@ export default function App() {
                     <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Liveness Verification (Anti-Spoofing)</label>
                     <button
                       type="button"
-                      disabled={currentUser?.institution_id !== 1}
+                      disabled={userRole !== 'admin'}
                       onClick={() => {
                         setLivenessBypass(prev => !prev);
                         playCyberSound('click');
@@ -11366,10 +11396,10 @@ export default function App() {
                         borderRadius: '8px',
                         color: livenessBypass ? '#ef4444' : '#10b981',
                         fontWeight: 700,
-                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                        cursor: userRole !== 'admin' ? 'not-allowed' : 'pointer',
                         fontSize: '0.78rem',
                         textTransform: 'uppercase',
-                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1
+                        opacity: userRole !== 'admin' ? 0.5 : 1
                       }}
                     >
                       {livenessBypass ? 'Bypassed (Instant)' : 'Active (Blink)'}
@@ -11387,7 +11417,7 @@ export default function App() {
                   <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>AI Assistant Cognitive Level</label>
                   <select 
                     value={aiCognitiveLevel}
-                    disabled={currentUser?.institution_id !== 1}
+                    disabled={userRole !== 'admin'}
                     onChange={(e) => {
                       setAiCognitiveLevel(e.target.value);
                       playCyberSound('click');
@@ -11398,8 +11428,8 @@ export default function App() {
                       background: 'var(--bg-secondary)', 
                       border: '1px solid var(--border-color)', 
                       color: 'var(--color-text-main)',
-                      opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
-                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
+                      opacity: userRole !== 'admin' ? 0.6 : 1,
+                      cursor: userRole !== 'admin' ? 'not-allowed' : 'default'
                     }}
                   >
                     <option value="standard">Standard Copilot Mode</option>
@@ -11415,7 +11445,7 @@ export default function App() {
                   <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Diagnostics Logging Verbosity</label>
                   <select 
                     value={diagnosticLevel}
-                    disabled={currentUser?.institution_id !== 1}
+                    disabled={userRole !== 'admin'}
                     onChange={(e) => {
                       setDiagnosticLevel(e.target.value);
                       playCyberSound('click');
@@ -11426,8 +11456,8 @@ export default function App() {
                       background: 'var(--bg-secondary)', 
                       border: '1px solid var(--border-color)', 
                       color: 'var(--color-text-main)',
-                      opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
-                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
+                      opacity: userRole !== 'admin' ? 0.6 : 1,
+                      cursor: userRole !== 'admin' ? 'not-allowed' : 'default'
                     }}
                   >
                     <option value="NONE">NONE (Mute Console)</option>
@@ -11437,7 +11467,7 @@ export default function App() {
                   </select>
                   
                   <button
-                    disabled={currentUser?.institution_id !== 1}
+                    disabled={userRole !== 'admin'}
                     onClick={() => {
                       playCyberSound('success');
                       const logsData = {
@@ -11473,8 +11503,8 @@ export default function App() {
                       justifyContent: 'center', 
                       gap: '8px', 
                       marginTop: '4px',
-                      opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
-                      cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer'
+                      opacity: userRole !== 'admin' ? 0.5 : 1,
+                      cursor: userRole !== 'admin' ? 'not-allowed' : 'pointer'
                     }}
                   >
                     📥 Export Core Telemetry & Logs
