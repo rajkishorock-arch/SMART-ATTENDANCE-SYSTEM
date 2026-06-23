@@ -515,3 +515,26 @@ def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: s
         institution_id=institution_id
     )
     return db_feedback
+
+# --- Leave Management ---
+def create_leave_request(db: Session, leave_request: schemas.LeaveRequestCreate, institution_id: int):
+    db_leave = models.LeaveRequest(**leave_request.dict(), institution_id=institution_id)
+    db.add(db_leave)
+    db.commit()
+    db.refresh(db_leave)
+    return db_leave
+
+def get_all_leave_requests(db: Session, institution_id: int):
+    return db.query(models.LeaveRequest).filter(models.LeaveRequest.institution_id == institution_id).all()
+
+def get_leave_requests_by_student(db: Session, student_id: int):
+    # In a real multi-tenant app, you'd also filter by institution_id
+    return db.query(models.LeaveRequest).filter(models.LeaveRequest.student_id == student_id).all()
+
+def update_leave_request_status(db: Session, leave_request_id: int, status: str):
+    db_leave = db.query(models.LeaveRequest).filter(models.LeaveRequest.id == leave_request_id).first()
+    if db_leave:
+        db_leave.status = status
+        db.commit()
+        db.refresh(db_leave)
+    return db_leave

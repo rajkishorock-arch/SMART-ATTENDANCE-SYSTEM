@@ -265,3 +265,26 @@ class Department(DepartmentBase):
     class Config:
         from_attributes = True
         orm_mode = True
+
+# --- Leave Management ---
+class LeaveRequestBase(BaseModel):
+    student_id: int
+    start_date: datetime
+    end_date: datetime
+    reason: str
+
+class LeaveRequestCreate(LeaveRequestBase):
+    pass
+
+class LeaveRequest(LeaveRequestBase):
+    id: int
+    institution_id: int
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+        orm_mode = True
+
+class LeaveStatusUpdate(BaseModel):
+    status: str # "approved" or "rejected"

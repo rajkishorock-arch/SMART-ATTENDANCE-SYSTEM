@@ -1,17 +1,21 @@
 import os
-import requests
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
+from typing import List, Optional
+import google.generativeai as genai
 from jose import jwt, JWTError
+from sqlalchemy.orm import Session
 
 from .core.config import GEMINI_API_KEY
 from .database import get_db
 from .core import config
-from . import security, models, database
+from . import security, models
 
 router = APIRouter()
+
+# Configure the Gemini API key
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 # Schema for chat request
 class ChatMessage(BaseModel):
@@ -80,12 +84,10 @@ def chat_response(
 ):
     user_query = payload.message
     
-    # If no API key is configured, return the fallback response
     if not GEMINI_API_KEY:
         if payload.image_base64:
             return {"response": "An image was uploaded, but the Gemini AI API Key is not configured by the system administrator. Therefore, I cannot analyze this file. " + get_fallback_response(user_query)}
         
-        # If user asks about their stats/mentor/roll, and context is provided
         q = user_query.lower()
         if payload.user_context and ("my attendance" in q or "my profile" in q or "who is my teacher" in q or "my mentor" in q or "my roll" in q or "my percent" in q or "apna attendance" in q):
             lines = payload.user_context.split('\n')
@@ -94,95 +96,56 @@ def chat_response(
             
         return {"response": get_fallback_response(user_query)}
         
-    # Prepare payload for Gemini API
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-    
-    # Map history to Gemini role format ('user' and 'model')
-    contents = []
-    for h in payload.history:
-        contents.append({
-            "role": "user" if h.role == "user" else "model",
-            "parts": [{"text": h.content}]
-        })
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
-    # Append the new user query (handling multimodal parts)
-    parts = [{"text": user_query}]
-    if payload.image_base64 and payload.image_mime_type:
-        parts.append({
-            "inlineData": {
-                "mimeType": payload.image_mime_type,
-                "data": payload.image_base64
-            }
-        })
-
-    contents.append({
-        "role": "user",
-        "parts": parts
-    })
-    
-    system_instruction = (
-        "You are a highly advanced general-purpose AI assistant like GPT-4, integrated within the Smart Attendance System portal. "
-        "While you possess deep, specialized knowledge to help students, teachers, and admins troubleshoot geofencing, facial recognition registration, "
-        "network issues, and portal features, you are ALSO fully trained and authorized to answer ANY general knowledge, programming/coding, mathematics, "
-        "history, literature, science, or general conversational questions without restrictions. "
-        "NEVER claim that a question falls outside your designated operational scope or boundaries. "
-        "Answer all general knowledge and academic queries thoroughly, intelligently, and clearly in formatted markdown, like a professional pro GPT assistant. "
-        "Be helpful, interactive, and friendly."
-    )
-    if payload.personality == "futuristic":
-        system_instruction += " Adopt a highly futuristic, sci-fi robotic tone with cybernetic terminology, glowing holographic responses, and technological metaphors."
-    elif payload.personality == "casual":
-        system_instruction += " Adopt a very friendly, casual, informal, and conversational tone, like a helpful study group classmate."
-    elif payload.personality == "tutor":
-        system_instruction += " Adopt a patient academic tutor personality. Explain concepts step-by-step with clear definitions, educational context, and analogies."
-    elif payload.personality == "robotic":
-        system_instruction += " Adopt a logical, systematic, direct machine-like tone. Give concise, highly structured data outputs without conversational fluff."
-    
-    if payload.user_context:
-        system_instruction += (
-            f"\n\n[CURRENT USER PROFILE & STATISTICS CONTEXT]\n"
-            f"{payload.user_context}\n"
-            f"Use this profile context to directly address personal queries (e.g. attendance percentage, mentor, roll number, name) if asked."
+        # Build conversation history
+        history = []
+        for h in payload.history:
+            history.append({"role": h.role, "parts": [h.content]})
+        
+        # System instruction setup
+        system_instruction = (
+            "You are a highly advanced general-purpose AI assistant like GPT-4, integrated within the Smart Attendance System portal. "
+            "While you possess deep, specialized knowledge to help students, teachers, and admins troubleshoot geofencing, facial recognition registration, "
+            "network issues, and portal features, you are ALSO fully trained and authorized to answer ANY general knowledge, programming/coding, mathematics, "
+            "history, literature, science, or general conversational questions without restrictions. "
+            "NEVER claim that a question falls outside your designated operational scope or boundaries. "
+            "Answer all general knowledge and academic queries thoroughly, intelligently, and clearly in formatted markdown, like a professional pro GPT assistant. "
+            "Be helpful, interactive, and friendly."
         )
+        if payload.personality == "futuristic":
+            system_instruction += " Adopt a highly futuristic, sci-fi robotic tone with cybernetic terminology, glowing holographic responses, and technological metaphors."
+        elif payload.personality == "casual":
+            system_instruction += " Adopt a very friendly, casual, informal, and conversational tone, like a helpful study group classmate."
+        elif payload.personality == "tutor":
+            system_instruction += " Adopt a patient academic tutor personality. Explain concepts step-by-step with clear definitions, educational context, and analogies."
+        elif payload.personality == "robotic":
+            system_instruction += " Adopt a logical, systematic, direct machine-like tone. Give concise, highly structured data outputs without conversational fluff."
+        
+        if payload.user_context:
+            system_instruction += (
+                f"\n\n[CURRENT USER PROFILE & STATISTICS CONTEXT]\n"
+                f"{payload.user_context}\n"
+                f"Use this profile context to directly address personal queries (e.g. attendance percentage, mentor, roll number, name) if asked."
+            )
+        
+        # Start a chat session with the system instruction and history
+        chat_session = model.start_chat(
+            history=history,
+        )
+        
+        # Prepare the content to send
+        content_parts = [user_query]
+        if payload.image_base64 and payload.image_mime_type:
+            content_parts.append({
+                "mime_type": payload.image_mime_type,
+                "data": payload.image_base64
+            })
+            
+        response = chat_session.send_message(content_parts, stream=False)
+        return {"response": response.text}
 
-    # Institution-specific FAQ from database
-    try:
-        from .database import SessionLocal
-        from . import models
-        if user_info.get("institution_id"):
-            db_faq = SessionLocal()
-            inst = db_faq.query(models.Institution).filter(
-                models.Institution.id == user_info["institution_id"]
-            ).first()
-            if inst and inst.faq_json:
-                system_instruction += f"\n\n[INSTITUTION FAQ]\n{inst.faq_json}\nUse this FAQ to answer institution-specific questions."
-            db_faq.close()
-    except Exception:
-        pass
-    
-    body = {
-        "contents": contents,
-        "systemInstruction": {
-            "parts": [{"text": system_instruction}]
-        }
-    }
-    
-    try:
-        res = requests.post(api_url, json=body, timeout=10)
-        if res.status_code == 200:
-            data = res.json()
-            # Extract text from response
-            candidates = data.get("candidates", [])
-            if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
-                if parts:
-                    return {"response": parts[0].get("text", "")}
-            return {"response": "I processed your request but could not generate a reply. Please try again."}
-        else:
-            print("Gemini API Error:", res.status_code, res.text)
-            # Fail silently to fallback
-            return {"response": get_fallback_response(user_query)}
     except Exception as e:
-        print("Failed to contact Gemini API:", e)
-        # Fail silently to fallback
+        print(f"Gemini API Error: {e}")
         return {"response": get_fallback_response(user_query)}

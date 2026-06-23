@@ -7,6 +7,7 @@ import {
   Calendar,
   UserCircle,
   Bot,
+  Mail,
 } from 'lucide-react';
 
 export default function BottomNav({
@@ -26,6 +27,14 @@ export default function BottomNav({
         >
           <Calendar size={22} />
           <span>Attendance</span>
+        </button>
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'leave-management' ? 'active' : ''}`}
+          onClick={() => onNavigate('leave-management')}
+        >
+          <Calendar size={22} />
+          <span>Leave</span>
         </button>
         <button
           type="button"
@@ -75,13 +84,13 @@ export default function BottomNav({
       >
         <Camera size={26} />
       </button>
-      <button
+       <button
         type="button"
-        className={`bottom-nav-item ${activeTab === 'logs' ? 'active' : ''}`}
-        onClick={() => onNavigate('logs')}
+        className={`bottom-nav-item ${activeTab === 'leave-admin' ? 'active' : ''}`}
+        onClick={() => onNavigate('leave-admin')}
       >
-        <FileSpreadsheet size={22} />
-        <span>Logs</span>
+        <Mail size={22} />
+        <span>Leave</span>
       </button>
       <button
         type="button"
