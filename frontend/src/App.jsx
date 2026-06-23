@@ -203,15 +203,15 @@ export default function App() {
         {/* ... (server warming up message) */}
 
         {/* Tab Content */}
-        {activeTab === 'dashboard' && ( /* ... */ )}
-        {activeTab === 'students' && ( /* ... */ )}
-        {activeTab === 'teachers' && userRole === 'admin' && ( /* ... */ )}
-        {activeTab === 'logs' && ( /* ... */ )}
-        {activeTab === 'attendance' && ( /* ... */ )}
-        {activeTab === 'session-history' && ( /* ... */ )}
-        {activeTab === 'reports' && ( /* ... */ )}
-        {activeTab === 'settings' && userRole === 'admin' && ( /* ... */ )}
-        {activeTab === 'student-attendance' && ( /* ... */ )}
+        {activeTab === 'dashboard' && (null)}
+        {activeTab === 'students' && (null)}
+        {activeTab === 'teachers' && userRole === 'admin' && (null)}
+        {activeTab === 'logs' && (null)}
+        {activeTab === 'attendance' && (null)}
+        {activeTab === 'session-history' && (null)}
+        {activeTab === 'reports' && (null)}
+        {activeTab === 'settings' && userRole === 'admin' && (null)}
+        {activeTab === 'student-attendance' && (null)}
         
         {activeTab === 'leave-management' && userRole === 'student' && (
           <LeaveManagement token={token} currentUser={currentUser} />
@@ -220,8 +220,8 @@ export default function App() {
           <LeaveAdminDashboard token={token} currentUser={currentUser} />
         )}
 
-        {activeTab === 'student-profile' && ( /* ... */ )}
-        {activeTab === 'ai-assistant' && ( /* ... */ )}
+        {activeTab === 'student-profile' && (null)}
+        {activeTab === 'ai-assistant' && (null)}
 
       </main>
 
