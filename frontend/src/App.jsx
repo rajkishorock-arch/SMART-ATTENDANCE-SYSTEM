@@ -1584,6 +1584,8 @@ export default function App() {
   const [biometricMatchThreshold, setBiometricMatchThreshold] = useState(parseFloat(localStorage.getItem('biometricMatchThreshold') || '0.92'));
   const [biometricConfidenceFilterEnabled, setBiometricConfidenceFilterEnabled] = useState(localStorage.getItem('biometricConfidenceFilterEnabled') !== 'false');
   const [antiSpoofingThreshold, setAntiSpoofingThreshold] = useState(parseFloat(localStorage.getItem('antiSpoofingThreshold') || '0.22'));
+  const [livenessBypass, setLivenessBypass] = useState(localStorage.getItem('livenessBypass') === 'true');
+  const livenessBypassRef = React.useRef(livenessBypass);
   const [aiCognitiveLevel, setAiCognitiveLevel] = useState(localStorage.getItem('aiCognitiveLevel') || 'standard');
   const [diagnosticLevel, setDiagnosticLevel] = useState(localStorage.getItem('diagnosticLevel') || 'DEBUG');
 
@@ -1636,6 +1638,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('antiSpoofingThreshold', antiSpoofingThreshold);
   }, [antiSpoofingThreshold]);
+  useEffect(() => {
+    localStorage.setItem('livenessBypass', livenessBypass);
+    livenessBypassRef.current = livenessBypass;
+  }, [livenessBypass]);
   useEffect(() => {
     localStorage.setItem('aiCognitiveLevel', aiCognitiveLevel);
   }, [aiCognitiveLevel]);
@@ -3685,28 +3691,38 @@ export default function App() {
           //   distance: eyeDistance < 0.24 ? 'Please Move Closer' : ''
           // });
 
-          const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES);
-          const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES);
-          const avgEAR = (leftEAR + rightEAR) / 2.0;
-
-          if (livenessStatusRef.current === 'verifying') {
-            const earThreshold = antiSpoofingThreshold;
-            if (avgEAR < earThreshold) {
-              eyeStateRef.current = 'closed';
-              setLivenessMessage('Eyes Closed. Now open them.');
-              addDiagnosticLog('Ocular state: Blink trigger detected');
-            } else if (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') {
-              eyeStateRef.current = 'open';
+          if (livenessBypassRef.current) {
+            if (livenessStatusRef.current === 'verifying') {
               livenessStatusRef.current = 'verified';
               setLivenessStatus('verified');
-              setLivenessMessage('Liveness Verified! Scanning face...');
-              addDiagnosticLog('Ocular verification complete: PASS');
-              
-              if (voiceAnnounceLiveness) {
-                handleSpeak("Liveness verified. Scanning face.");
-              }
-              
+              setLivenessMessage('Scanning face...');
+              addDiagnosticLog('Liveness verification: BYPASSED (Instant scan active)');
               triggerFaceRecognition();
+            }
+          } else {
+            const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES);
+            const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES);
+            const avgEAR = (leftEAR + rightEAR) / 2.0;
+
+            if (livenessStatusRef.current === 'verifying') {
+              const earThreshold = antiSpoofingThreshold;
+              if (avgEAR < earThreshold) {
+                eyeStateRef.current = 'closed';
+                setLivenessMessage('Eyes Closed. Now open them.');
+                addDiagnosticLog('Ocular state: Blink trigger detected');
+              } else if (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') {
+                eyeStateRef.current = 'open';
+                livenessStatusRef.current = 'verified';
+                setLivenessStatus('verified');
+                setLivenessMessage('Liveness Verified! Scanning face...');
+                addDiagnosticLog('Ocular verification complete: PASS');
+                
+                if (voiceAnnounceLiveness) {
+                  handleSpeak("Liveness verified. Scanning face.");
+                }
+                
+                triggerFaceRecognition();
+              }
             }
           }
         } else {
@@ -4328,7 +4344,14 @@ export default function App() {
         body: formData
       });
 
-      const data = await res.json();
+      let data = {};
+      const raw = await res.text();
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error(`Server returned non-JSON response (${res.status}). If uploading a file, it might be too large (max 5MB).`);
+      }
+
       if (res.ok) {
         playCyberSound('success');
         setSelfieSuccess('Face registered successfully! Embedded SFace vector updated.');
@@ -4337,11 +4360,11 @@ export default function App() {
         stopStudentWebcam();
       } else {
         playCyberSound('error');
-        setSelfieError(data.detail || 'Quality check failed. Please ensure face is clear and well-lit.');
+        setSelfieError(data.detail || `Quality check failed (Error ${res.status}). Please ensure face is clear and well-lit.`);
       }
     } catch (err) {
       playCyberSound('error');
-      setSelfieError('Connection failed. Make sure the backend server is running.');
+      setSelfieError(err.message || 'Connection failed. Make sure the backend server is running.');
     } finally {
       setIsUploadingSelfie(false);
     }
@@ -4714,6 +4737,7 @@ export default function App() {
   // Refresh data when switching tabs
   useEffect(() => {
     if (!token || !userRole) return;
+    if (userRole === 'student' && !['student-attendance', 'student-profile', 'ai-assistant'].includes(activeTab)) return;
 
     switch (activeTab) {
       case 'dashboard':
@@ -5022,7 +5046,7 @@ export default function App() {
     await wakeBackend(API_BASE_URL);
 
     const formData = new URLSearchParams();
-    formData.append('username', loginEmail.trim());
+    formData.append('username', loginEmail.trim().toLowerCase());
     formData.append('password', loginPassword);
 
     const MAX_RETRIES = 5;
@@ -11324,6 +11348,40 @@ export default function App() {
                   </span>
                 </div>
 
+                {/* Liveness Verification Bypass Toggle */}
+                <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Liveness Verification (Anti-Spoofing)</label>
+                    <button
+                      type="button"
+                      disabled={currentUser?.institution_id !== 1}
+                      onClick={() => {
+                        setLivenessBypass(prev => !prev);
+                        playCyberSound('click');
+                      }}
+                      style={{
+                        padding: '6px 14px',
+                        background: livenessBypass ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                        border: `1px solid ${livenessBypass ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+                        borderRadius: '8px',
+                        color: livenessBypass ? '#ef4444' : '#10b981',
+                        fontWeight: 700,
+                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                        fontSize: '0.78rem',
+                        textTransform: 'uppercase',
+                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1
+                      }}
+                    >
+                      {livenessBypass ? 'Bypassed (Instant)' : 'Active (Blink)'}
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    {livenessBypass 
+                      ? '⚡ Bypassed: Facial recognition will run instantly as soon as any face is detected in the camera frame.'
+                      : '🛡️ Active: Requires the student to perform a physical eye blink to verify liveness before recognition.'}
+                  </span>
+                </div>
+
                 {/* AI Cognitive Mode */}
                 <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
                   <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>AI Assistant Cognitive Level</label>
@@ -12471,9 +12529,9 @@ export default function App() {
                     {(() => {
                       if (studentLogs.length === 0) return 'No Logs Found';
                       const sorted = [...studentLogs].sort((a, b) => {
-                        const dateA = a.date.split('/').reverse().join('-');
-                        const dateB = b.date.split('/').reverse().join('-');
-                        return new Date(`${dateB}T${b.time}`) - new Date(`${dateA}T${a.time}`);
+                        const dateA = (a.date || '').split('/').reverse().join('-');
+                        const dateB = (b.date || '').split('/').reverse().join('-');
+                        return new Date(`${dateB}T${b.time || '00:00'}`) - new Date(`${dateA}T${a.time || '00:00'}`);
                       });
                       return `${sorted[0].date} ${sorted[0].time}`;
                     })()}
@@ -12712,7 +12770,7 @@ export default function App() {
                   boxShadow: 'var(--glow-shadow)',
                   marginBottom: '16px'
                 }}>
-                  {currentUser?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
+                  {(currentUser?.name?.split(' ') || []).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
                 </div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{currentUser?.name}</h3>
                 <span style={{ color: '#00f2fe', fontSize: '0.85rem', fontWeight: 600, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

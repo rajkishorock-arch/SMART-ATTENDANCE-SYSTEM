@@ -16,7 +16,7 @@ def create_audit_log(db: Session, log: schemas.AuditLogCreate, institution_id: O
 
 # --- User (Admins/Teachers) ---
 def get_user_by_email(db: Session, email: str, institution_id: Optional[int] = None):
-    query = db.query(models.User).filter(models.User.email == email)
+    query = db.query(models.User).filter(func.lower(models.User.email) == func.lower(email.strip()))
     if institution_id is not None:
         query = query.filter(models.User.institution_id == institution_id)
     return query.first()
@@ -49,7 +49,7 @@ def get_student_by_id(db: Session, student_id: int, institution_id: Optional[int
     return query.first()
 
 def get_student_by_email(db: Session, email: str, institution_id: Optional[int] = None):
-    query = db.query(models.StudentModel).filter(models.StudentModel.email == email)
+    query = db.query(models.StudentModel).filter(func.lower(models.StudentModel.email) == func.lower(email.strip()))
     if institution_id is not None:
         query = query.filter(models.StudentModel.institution_id == institution_id)
     return query.first()
