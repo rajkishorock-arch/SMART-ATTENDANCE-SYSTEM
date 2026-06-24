@@ -206,18 +206,31 @@ def test_smtp_configuration(
 
 @router.get("/update-check")
 def check_for_updates(db: Session = Depends(get_db)):
-    """Public endpoint to check the latest release version & download URL."""
+    """Public endpoint to check the latest release version & download URL.
+    Only returns version mismatch when update_active=True (toggle is ON)."""
     from app.crud import get_system_settings
     try:
         # Fetch system settings for Default Institution (ID 1)
         settings = get_system_settings(db, institution_id=1)
+        
+        # If update toggle is OFF, return a stable version that won't trigger update banner
+        update_active = getattr(settings, 'update_active', False)
+        if not update_active:
+            return {
+                "latest_version": "0.0.0",  # Won't match any real version → no banner shown
+                "update_download_url": "",
+                "update_active": False
+            }
+        
         return {
             "latest_version": settings.latest_version or "1.0.1",
-            "update_download_url": settings.update_download_url or ""
+            "update_download_url": settings.update_download_url or "",
+            "update_active": True
         }
     except Exception as e:
         print("Error checking updates:", e)
         return {
-            "latest_version": "1.0.1",
-            "update_download_url": ""
+            "latest_version": "0.0.0",
+            "update_download_url": "",
+            "update_active": False
         }

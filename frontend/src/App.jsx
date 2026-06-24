@@ -536,6 +536,7 @@ export default function App() {
   const APP_VERSION = '1.0.2';
   const [updateAvailable, setUpdateAvailable] = useState(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
+  const [updateDownloadedToast, setUpdateDownloadedToast] = useState(false); // success toast after download click
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
   useEffect(() => {
@@ -1582,6 +1583,21 @@ export default function App() {
   const [isReleasingUpdate, setIsReleasingUpdate] = useState(false);
   const [releaseSuccessMessage, setReleaseSuccessMessage] = useState('');
   const [releaseErrorMessage, setReleaseErrorMessage] = useState('');
+  const [buildStatus, setBuildStatus] = useState('idle');
+  const [buildVersion, setBuildVersion] = useState('');
+  const [buildError, setBuildError] = useState('');
+  const [showManualReleaseForm, setShowManualReleaseForm] = useState(false);
+  const [isTriggeringBuild, setIsTriggeringBuild] = useState(false);
+  const [activeReleaseVersion, setActiveReleaseVersion] = useState('');
+  const [activeReleaseUrl, setActiveReleaseUrl] = useState('');
+  // Toggle Update States
+  const [currentUpdateActive, setCurrentUpdateActive] = useState(false); // mirrors DB update_active
+  const [toggleMasterPassword, setToggleMasterPassword] = useState('');
+  const [isTogglingUpdate, setIsTogglingUpdate] = useState(false);
+  const [toggleSuccessMessage, setToggleSuccessMessage] = useState('');
+  const [toggleErrorMessage, setToggleErrorMessage] = useState('');
+  const [showToggleMasterKeyModal, setShowToggleMasterKeyModal] = useState(false);
+  const [pendingToggleValue, setPendingToggleValue] = useState(false); // the target ON/OFF value
 
 
   // Student Portal Selfie face upload states
@@ -2628,6 +2644,45 @@ export default function App() {
     }
   };
 
+  const handleToggleUpdateActive = async () => {
+    if (!toggleMasterPassword.trim()) {
+      setToggleErrorMessage('Master password is required.');
+      return;
+    }
+    setToggleErrorMessage('');
+    setToggleSuccessMessage('');
+    setIsTogglingUpdate(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/toggle-update-active`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          master_password: toggleMasterPassword,
+          active: pendingToggleValue
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentUpdateActive(pendingToggleValue);
+        setToggleSuccessMessage(data.message || (pendingToggleValue ? '✅ Update is now LIVE for all users!' : '🔕 Update banner deactivated.'));
+        setToggleMasterPassword('');
+        setShowToggleMasterKeyModal(false);
+        if (typeof playCyberSound === 'function') playCyberSound('success');
+      } else {
+        setToggleErrorMessage(data.detail || 'Failed to toggle update status.');
+        if (typeof playCyberSound === 'function') playCyberSound('error');
+      }
+    } catch (e) {
+      setToggleErrorMessage('Network error. Please try again.');
+      if (typeof playCyberSound === 'function') playCyberSound('error');
+    } finally {
+      setIsTogglingUpdate(false);
+    }
+  };
+
   const handleSmtpTest = async (e) => {
     e.preventDefault();
     if (!smtpTestEmail) return;
@@ -2669,9 +2724,74 @@ export default function App() {
         setSettingsRadius(data.allowed_radius_meters);
         setSettingsIpEnabled(data.ip_restriction_enabled);
         setSettingsIpRanges(data.allowed_ip_ranges);
+        
+        // Automated Build & Release states
+        setBuildStatus(data.build_status || 'idle');
+        setBuildVersion(data.build_version || '');
+        setBuildError(data.build_error || '');
+        setCurrentUpdateActive(data.update_active || false);
+        setActiveReleaseVersion(data.latest_version || '');
+        setActiveReleaseUrl(data.update_download_url || '');
       }
     } catch (err) {
       console.error('Error fetching settings:', err);
+    }
+  };
+
+  // Poll build status when a build is running
+  React.useEffect(() => {
+    let intervalId = null;
+    if (buildStatus === 'building' && !isDemoMode && token) {
+      intervalId = setInterval(() => {
+        fetchSystemSettings();
+      }, 10000); // Poll every 10 seconds
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [buildStatus, token, isDemoMode]);
+
+  const handleTriggerBuild = async (e) => {
+    e.preventDefault();
+    if (isDemoMode) {
+      setReleaseErrorMessage('Not supported in Simulation/Demo mode.');
+      return;
+    }
+    if (!releaseVersion.trim() || !releaseMasterPassword.trim()) {
+      setReleaseErrorMessage('Version and Master Password are required.');
+      return;
+    }
+    setReleaseSuccessMessage('');
+    setReleaseErrorMessage('');
+    setIsTriggeringBuild(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/trigger-build`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          master_password: releaseMasterPassword,
+          version: releaseVersion
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReleaseSuccessMessage(data.message || 'Automated APK build triggered successfully!');
+        setBuildStatus('building');
+        setBuildVersion(releaseVersion);
+        setReleaseMasterPassword('');
+        if (typeof playCyberSound === 'function') playCyberSound('success');
+      } else {
+        setReleaseErrorMessage(data.detail || 'Failed to trigger automated build.');
+        if (typeof playCyberSound === 'function') playCyberSound('error');
+      }
+    } catch (e) {
+      setReleaseErrorMessage('Network error. Please check your connection and try again.');
+      if (typeof playCyberSound === 'function') playCyberSound('error');
+    } finally {
+      setIsTriggeringBuild(false);
     }
   };
 
@@ -6497,6 +6617,12 @@ export default function App() {
             href={updateAvailable.downloadUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              setUpdateDismissed(true);
+              setUpdateDownloadedToast(true);
+              // Auto-hide toast after 6 seconds
+              setTimeout(() => setUpdateDownloadedToast(false), 6000);
+            }}
             style={{
               background: '#fff',
               color: '#0d9488',
@@ -6508,7 +6634,7 @@ export default function App() {
               whiteSpace: 'nowrap',
             }}
           >
-            Download Update
+            ⬇️ Download Update
           </a>
           <button
             onClick={() => setUpdateDismissed(true)}
@@ -6522,6 +6648,44 @@ export default function App() {
               lineHeight: 1,
             }}
             aria-label="Dismiss update"
+          >×</button>
+        </div>
+      )}
+
+      {/* Update Download Success Toast */}
+      {updateDownloadedToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '90px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 99999,
+          background: 'linear-gradient(135deg, #065f46, #0891b2)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '14px 20px',
+          borderRadius: '12px',
+          fontFamily: "'Inter', sans-serif",
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          border: '1px solid rgba(16,185,129,0.4)',
+          maxWidth: '90vw',
+          animation: 'slideUp 0.4s ease-out',
+          whiteSpace: 'nowrap',
+        }}>
+          <span style={{ fontSize: '1.3rem' }}>✅</span>
+          <div>
+            <div style={{ fontWeight: 700 }}>Update Download Started!</div>
+            <div style={{ fontSize: '0.75rem', opacity: 0.85, marginTop: '2px' }}>
+              v{updateAvailable?.version} — Install the APK and restart the app.
+            </div>
+          </div>
+          <button
+            onClick={() => setUpdateDownloadedToast(false)}
+            style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '1.1rem', cursor: 'pointer', padding: '0 2px', lineHeight: 1, marginLeft: '8px' }}
           >×</button>
         </div>
       )}
@@ -12719,105 +12883,319 @@ export default function App() {
             {/* SYSTEM RELEASE UPDATES (Only visible to the System Owner rajkishorock@gmail.com) */}
             {activeSubSetting === 'release_updates' && currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
               <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                {/* Header */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                       <ArrowUpCircle size={22} style={{ color: '#10b981' }} /> System Release Updates
                     </h3>
                     <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
-                      Publish new system-wide APK updates and manage download availability for students & faculty.
+                      Publish and control system-wide APK updates for all users instantly.
                     </p>
                   </div>
                   <span className="telemetry-stat-pill" style={{
-                    padding: '4px 14px',
-                    borderRadius: '20px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    color: '#10b981',
-                    border: '1px solid rgba(16, 185, 129, 0.25)',
-                    letterSpacing: '0.5px'
+                    padding: '4px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700,
+                    background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)', letterSpacing: '0.5px'
                   }}>
                     APP VERSION: v{APP_VERSION}
                   </span>
                 </div>
 
-                {releaseSuccessMessage && (
-                  <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem' }}>
-                    ✅ {releaseSuccessMessage}
-                  </div>
-                )}
-                {releaseErrorMessage && (
-                  <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
-                    ❌ {releaseErrorMessage}
-                  </div>
-                )}
-
-                <form onSubmit={handlePublishReleaseUpdate} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    🚀 Publish a New Version Release
-                  </h4>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">New Release Version (e.g., 1.0.2)</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="e.g. 1.0.2"
-                        value={releaseVersion}
-                        onChange={e => setReleaseVersion(e.target.value)}
-                        required
-                      />
+                {/* ═══ MASTER TOGGLE — ONE CLICK RELEASE ═══ */}
+                <div style={{
+                  background: currentUpdateActive
+                    ? 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(8,145,178,0.06))'
+                    : 'rgba(255,255,255,0.02)',
+                  border: currentUpdateActive
+                    ? '1px solid rgba(16,185,129,0.3)'
+                    : '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '20px',
+                  flexWrap: 'wrap',
+                  transition: 'all 0.3s ease',
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '1.4rem' }}>{currentUpdateActive ? '🟢' : '⚫'}</span>
+                      <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: currentUpdateActive ? '#10b981' : '#f8fafc' }}>
+                        {currentUpdateActive ? 'Update is LIVE — All Users Will See the Banner' : 'Update is INACTIVE — No Banner Shown to Users'}
+                      </h4>
                     </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Update Download URL (.apk Link)</label>
-                      <input
-                        type="url"
-                        className="form-input"
-                        placeholder="e.g. https://github.com/owner/repo/releases/download/v1.0.2/app-debug.apk"
-                        value={releaseDownloadUrl}
-                        onChange={e => setReleaseDownloadUrl(e.target.value)}
-                        required
-                      />
-                    </div>
+                    <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+                      {currentUpdateActive
+                        ? `🚀 Version update is currently active. All users will see the download banner. Turn OFF to hide it.`
+                        : '💤 Toggle ON to instantly release the update banner to ALL users (requires Master Key).'}
+                    </p>
                   </div>
 
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Owner Master Password</label>
-                    <input
-                      type="password"
-                      className="form-input"
-                      placeholder="Enter system master password to authorize"
-                      value={releaseMasterPassword}
-                      onChange={e => setReleaseMasterPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="bg-gradient-btn"
-                    style={{ padding: '12px 24px', borderRadius: '8px', fontSize: '0.88rem', alignSelf: 'flex-start', background: 'linear-gradient(135deg, #10b981, #0891b2)' }}
-                    disabled={isReleasingUpdate}
+                  {/* TOGGLE SWITCH */}
+                  <div
+                    onClick={() => {
+                      const newVal = !currentUpdateActive;
+                      setPendingToggleValue(newVal);
+                      setToggleMasterPassword('');
+                      setToggleErrorMessage('');
+                      setToggleSuccessMessage('');
+                      setShowToggleMasterKeyModal(true);
+                      playCyberSound('click');
+                    }}
+                    style={{
+                      width: '64px', height: '34px',
+                      borderRadius: '17px',
+                      background: currentUpdateActive
+                        ? 'linear-gradient(135deg, #10b981, #0891b2)'
+                        : 'rgba(255,255,255,0.1)',
+                      border: currentUpdateActive ? '2px solid rgba(16,185,129,0.5)' : '2px solid rgba(255,255,255,0.15)',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'all 0.3s ease',
+                      flexShrink: 0,
+                      boxShadow: currentUpdateActive ? '0 0 16px rgba(16,185,129,0.3)' : 'none',
+                    }}
+                    title={currentUpdateActive ? 'Click to deactivate update banner' : 'Click to activate update banner for all users'}
                   >
-                    {isReleasingUpdate ? 'Publishing Release...' : '📢 Release System Update'}
-                  </button>
-                </form>
+                    <div style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: currentUpdateActive ? '32px' : '3px',
+                      width: '24px', height: '24px',
+                      borderRadius: '50%',
+                      background: '#fff',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      transition: 'left 0.3s ease',
+                    }} />
+                  </div>
+                </div>
+
+                {/* Toggle Success/Error Messages */}
+                {toggleSuccessMessage && (
+                  <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {toggleSuccessMessage}
+                  </div>
+                )}
+                {toggleErrorMessage && (
+                  <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
+                    ❌ {toggleErrorMessage}
+                  </div>
+                )}
+
+                {/* Current Active Release Info */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '20px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.8rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>CURRENT PUBLISHED VERSION</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>{activeReleaseVersion ? `v${activeReleaseVersion}` : 'None'}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.8rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>APK DOWNLOAD LINK</span>
+                    {activeReleaseUrl ? (
+                      <a href={activeReleaseUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#3b82f6', textDecoration: 'underline', wordBreak: 'break-all', display: 'block' }}>
+                        {activeReleaseUrl}
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: '0.85rem', color: '#6b7280', display: 'block' }}>Not configured</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ═══ CI/CD AUTO BUILD STATUS CARD ═══ */}
+                {buildStatus !== 'idle' && (
+                  <div style={{
+                    background: buildStatus === 'building' ? 'rgba(59, 130, 246, 0.06)' : buildStatus === 'success' ? 'rgba(16, 185, 129, 0.06)' : 'rgba(239, 68, 68, 0.06)',
+                    border: buildStatus === 'building' ? '1px solid rgba(59, 130, 246, 0.25)' : buildStatus === 'success' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {buildStatus === 'building' && (
+                          <div style={{
+                            width: '18px', height: '18px',
+                            border: '2px solid rgba(59, 130, 246, 0.2)',
+                            borderTop: '2px solid #3b82f6',
+                            borderRadius: '50%',
+                            animation: 'spin 1s infinite linear'
+                          }} />
+                        )}
+                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: buildStatus === 'building' ? '#3b82f6' : buildStatus === 'success' ? '#10b981' : '#ef4444' }}>
+                          {buildStatus === 'building' && `⚡ Automated Build in Progress (v${buildVersion})`}
+                          {buildStatus === 'success' && `✅ Build Succeeded (v${buildVersion})`}
+                          {buildStatus === 'failed' && `❌ Build Failed (v${buildVersion})`}
+                        </h4>
+                      </div>
+                      {buildStatus !== 'building' && (
+                        <button
+                          onClick={() => {
+                            setBuildStatus('idle');
+                            setBuildError('');
+                          }}
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e5e7eb', padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer' }}
+                        >
+                          Dismiss Status
+                        </button>
+                      )}
+                    </div>
+                    <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+                      {buildStatus === 'building' && `React code is compiling, assets are syncing, and Android APK v${buildVersion} is being signed and packaged on GitHub Actions. Usually takes ~3 mins. The update goes live automatically when complete.`}
+                      {buildStatus === 'success' && `Automated release build of APK v${buildVersion} finished successfully. The version is live and download link is set.`}
+                      {buildStatus === 'failed' && `Auto-build pipeline failed. Error: ${buildError}`}
+                    </p>
+                    {buildStatus === 'building' && (
+                      <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginTop: '6px', position: 'relative' }}>
+                        <div className="progress-bar-loading" style={{ height: '100%', background: '#3b82f6', borderRadius: '2px', width: '35%', position: 'absolute' }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ═══ AUTO BUILD / MANUAL RELEASE FORM ═══ */}
+                {!showManualReleaseForm ? (
+                  <form onSubmit={handleTriggerBuild} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🚀 Auto-Build & Release APK via GitHub Actions
+                    </h4>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '0', lineHeight: 1.5 }}>
+                      Specify the new release version and enter your master password. The system will automatically build the signed APK and publish it without any manual Android Studio compiling.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label">New Release Version (e.g., 1.0.3)</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. 1.0.3"
+                          value={releaseVersion}
+                          onChange={e => setReleaseVersion(e.target.value)}
+                          disabled={buildStatus === 'building'}
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label">Owner Master Password</label>
+                        <input
+                          type="password"
+                          className="form-input"
+                          placeholder="Enter master password to authorize"
+                          value={releaseMasterPassword}
+                          onChange={e => setReleaseMasterPassword(e.target.value)}
+                          disabled={buildStatus === 'building'}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        type="submit"
+                        className="bg-gradient-btn"
+                        style={{ padding: '12px 24px', borderRadius: '8px', fontSize: '0.88rem', background: 'linear-gradient(135deg, #10b981, #0891b2)' }}
+                        disabled={isTriggeringBuild || buildStatus === 'building'}
+                      >
+                        {isTriggeringBuild ? 'Triggering...' : '🚀 Trigger Auto-Build'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReleaseSuccessMessage('');
+                          setReleaseErrorMessage('');
+                          setShowManualReleaseForm(true);
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: '#9ca3af', textDecoration: 'underline', fontSize: '0.8rem', cursor: 'pointer', padding: '8px 0' }}
+                      >
+                        Configure Version & Download URL Manually
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handlePublishReleaseUpdate} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      💾 Configure Version & Download URL Manually
+                    </h4>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '0', lineHeight: 1.5 }}>
+                      Directly save the version number and custom .apk download link.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label">Release Version (e.g., 1.0.2)</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. 1.0.2"
+                          value={releaseVersion}
+                          onChange={e => setReleaseVersion(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label">Update Download URL (.apk Link)</label>
+                        <input
+                          type="url"
+                          className="form-input"
+                          placeholder="e.g. https://github.com/.../app-debug.apk"
+                          value={releaseDownloadUrl}
+                          onChange={e => setReleaseDownloadUrl(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Owner Master Password</label>
+                      <input
+                        type="password"
+                        className="form-input"
+                        placeholder="Enter master password to authorize"
+                        value={releaseMasterPassword}
+                        onChange={e => setReleaseMasterPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        type="submit"
+                        className="bg-gradient-btn"
+                        style={{ padding: '12px 24px', borderRadius: '8px', fontSize: '0.88rem', background: 'linear-gradient(135deg, #10b981, #0891b2)' }}
+                        disabled={isReleasingUpdate}
+                      >
+                        {isReleasingUpdate ? 'Saving...' : '💾 Save Version & URL'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReleaseSuccessMessage('');
+                          setReleaseErrorMessage('');
+                          setShowManualReleaseForm(false);
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: '#9ca3af', textDecoration: 'underline', fontSize: '0.8rem', cursor: 'pointer', padding: '8px 0' }}
+                      >
+                        Back to Auto-Build via GitHub Actions
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>ℹ️ Release Deployment Info</h4>
-                  <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, lineHeight: 1.5 }}>
-                    Once a release is successfully published using the Master Password:
-                  </p>
-                  <ul style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '0 0 0 20px', padding: 0, lineHeight: 1.5 }}>
-                    <li>All running client instances will check the release endpoint in the background.</li>
-                    <li>If a version difference is detected, an in-app banner with a download button will immediately display at the top of the interface.</li>
-                    <li>The update download url will allow users to directly download the updated application build.</li>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>ℹ️ How It Works (Automated Release)</h4>
+                  <ul style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '4px 0 0 20px', padding: 0, lineHeight: 1.8 }}>
+                    <li><strong style={{ color: '#e2e8f0' }}>Step 1:</strong> Enter the target release version and your master key, then click "Trigger Auto-Build".</li>
+                    <li><strong style={{ color: '#e2e8f0' }}>Step 2:</strong> GitHub Actions compiles, signs, uploads the APK to GitHub Releases, and calls back this backend.</li>
+                    <li><strong style={{ color: '#e2e8f0' }}>Step 3:</strong> Once compiled, the download link updates automatically, and the update is made LIVE for all users.</li>
+                    <li><strong style={{ color: '#e2e8f0' }}>Step 4:</strong> To stop displaying the update banner, simply toggle the master active switch above to OFF.</li>
                   </ul>
                 </div>
               </div>
             )}
+
           </div>
         )}
       </div>
@@ -14533,22 +14911,35 @@ export default function App() {
 
       {/* Webcam Capture Modal */}
       {showWebcamModal && captureStudent && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: '32px', textAlign: 'center' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px' }}>Capture Face Samples</h3>
-            <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '24px' }}>
-              Student: <strong style={{ color: '#00f2fe' }}>{captureStudent.name}</strong> ({captureStudent.roll})
-            </p>
+        <div className="webcam-capture-modal-overlay">
+          <div className="webcam-capture-modal-inner glass-panel">
+            {/* Header */}
+            <div className="webcam-capture-modal-header">
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#f8fafc' }}>📸 Capture Face Samples</h3>
+                <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0' }}>
+                  Student: <strong style={{ color: '#00f2fe' }}>{captureStudent.name}</strong> ({captureStudent.roll})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeWebcamModal}
+                disabled={isCapturing}
+                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#9ca3af', cursor: 'pointer', padding: '6px 10px', fontSize: '1.1rem', lineHeight: 1 }}
+                aria-label="Close"
+              >✕</button>
+            </div>
 
             {webcamError && (
-              <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px', textAlign: 'left' }}>
+              <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', textAlign: 'left' }}>
                 <AlertCircle size={16} />
                 <span>{webcamError}</span>
               </div>
             )}
 
+
             {/* Video Feed Area */}
-            <div className="scanner-container" style={{ position: 'relative', width: '100%', aspectRatio: '4/3', background: '#111827', borderRadius: '12px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.05)', marginBottom: '24px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
+            <div className="webcam-capture-modal-video scanner-container" style={{ position: 'relative', width: '100%', background: '#111827', borderRadius: '12px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.05)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
               <div className="scanner-bracket bracket-tl" />
               <div className="scanner-bracket bracket-tr" />
               <div className="scanner-bracket bracket-bl" />
@@ -14658,7 +15049,7 @@ export default function App() {
             </div>
 
             {/* Controls */}
-            <div style={{ display: 'flex', gap: '16px', marginTop: '20px' }}>
+            <div className="webcam-capture-modal-controls">
               <button 
                 type="button" 
                 onClick={closeWebcamModal} 
@@ -14694,6 +15085,7 @@ export default function App() {
         </div>
       )}
 
+
       {/* Training Status Overlay */}
       {isTraining && (
         <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 200, flexDirection: 'column', gap: '24px' }}>
@@ -14702,6 +15094,93 @@ export default function App() {
             {trainMessage}
           </h3>
           <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>Scanning datasets, preprocessing images and retraining classifier.xml...</p>
+        </div>
+      )}
+
+      {/* ===== TOGGLE UPDATE ACTIVE — Master Key Confirmation Modal ===== */}
+      {showToggleMasterKeyModal && (
+        <div
+          className="flex-center modal-overlay"
+          style={{ position: 'fixed', inset: 0, zIndex: 100050, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowToggleMasterKeyModal(false); }}
+        >
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '420px', margin: '16px',
+            padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px',
+            border: pendingToggleValue ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)',
+            animation: 'fadeInUp 0.3s ease',
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: pendingToggleValue ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.4rem', flexShrink: 0,
+              }}>
+                {pendingToggleValue ? '🚀' : '🔕'}
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
+                  {pendingToggleValue ? 'Activate Update for All Users?' : 'Deactivate Update Banner?'}
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.4 }}>
+                  {pendingToggleValue
+                    ? 'All users will see the update download banner immediately.'
+                    : 'The update banner will be hidden from all users.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Master Key Input */}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                🔑 Master Password Required
+              </label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder="Enter system master password..."
+                value={toggleMasterPassword}
+                onChange={e => setToggleMasterPassword(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleToggleUpdateActive(); }}
+                autoFocus
+                style={{ fontSize: '0.9rem' }}
+              />
+              {toggleErrorMessage && (
+                <p style={{ color: '#ef4444', fontSize: '0.78rem', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ❌ {toggleErrorMessage}
+                </p>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ flex: 1, padding: '11px 16px' }}
+                onClick={() => { setShowToggleMasterKeyModal(false); setToggleMasterPassword(''); setToggleErrorMessage(''); }}
+                disabled={isTogglingUpdate}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bg-gradient-btn"
+                style={{
+                  flex: 1, padding: '11px 16px', borderRadius: '8px', fontWeight: 600,
+                  background: pendingToggleValue
+                    ? 'linear-gradient(135deg, #10b981, #0891b2)'
+                    : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                }}
+                onClick={handleToggleUpdateActive}
+                disabled={isTogglingUpdate || !toggleMasterPassword.trim()}
+              >
+                {isTogglingUpdate ? '⏳ Processing...' : (pendingToggleValue ? '✅ Activate Update' : '🔕 Deactivate')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

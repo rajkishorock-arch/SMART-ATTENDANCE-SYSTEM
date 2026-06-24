@@ -110,6 +110,10 @@ class SystemSettingsBase(BaseModel):
     allowed_ip_ranges: str
     latest_version: Optional[str] = "1.0.1"
     update_download_url: Optional[str] = ""
+    update_active: Optional[bool] = False
+    build_status: Optional[str] = "idle"
+    build_version: Optional[str] = None
+    build_error: Optional[str] = None
 
 class SystemSettingsUpdate(BaseModel):
     geofencing_enabled: Optional[bool] = None
@@ -120,6 +124,10 @@ class SystemSettingsUpdate(BaseModel):
     allowed_ip_ranges: Optional[str] = None
     latest_version: Optional[str] = None
     update_download_url: Optional[str] = None
+    update_active: Optional[bool] = None
+    build_status: Optional[str] = None
+    build_version: Optional[str] = None
+    build_error: Optional[str] = None
 
 class SystemSettingsResponse(SystemSettingsBase):
     id: int
@@ -133,6 +141,22 @@ class ReleaseUpdatePayload(BaseModel):
     latest_version: str
     update_download_url: str
     release_notes: Optional[str] = ""
+
+class ToggleUpdatePayload(BaseModel):
+    master_password: str
+    active: bool  # True = enable update for all users, False = disable
+
+class TriggerBuildPayload(BaseModel):
+    master_password: str
+    version: str
+
+class BuildCallbackPayload(BaseModel):
+    status: str
+    version: str
+    download_url: Optional[str] = None
+    error: Optional[str] = None
+    token: str
+
 
 # --- Subject ---
 class SubjectBase(BaseModel):

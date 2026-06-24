@@ -145,6 +145,11 @@ class SystemSettings(Base):
     allowed_ip_ranges = Column(Text, default="127.0.0.1,192.168.1.0/24")
     latest_version = Column(String(50), nullable=True, default="1.0.1")
     update_download_url = Column(Text, nullable=True, default="")
+    update_active = Column(Boolean, default=False)  # Toggle: True = update is live for all users
+    build_status = Column(String(50), nullable=True, default="idle")
+    build_version = Column(String(50), nullable=True)
+    build_error = Column(Text, nullable=True)
+
 
 class Feedback(Base):
     __tablename__ = "feedbacks"

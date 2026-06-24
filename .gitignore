@@ -46,3 +46,4 @@ Thumbs.db
 .vercel
 *.keystore
 frontend/android/app/release.keystore
+keystore_base64.txt
