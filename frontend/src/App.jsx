@@ -71,6 +71,7 @@ import {
 
 import { DEFAULT_API_BASE_URL, getApiBaseUrl, requestNativePermissions } from './utils/platform';
 import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
+import { fetchWithRetry } from './utils/apiClient';
 import { getLocalDateString, shiftDate } from './utils/dateUtils';
 import { calculateEAR, LEFT_EYE_INDICES, RIGHT_EYE_INDICES } from './utils/faceMath';
 import CameraSettingsPanel from './components/CameraSettingsPanel';
@@ -1735,6 +1736,8 @@ export default function App() {
   const [cameraScanSettings, setCameraScanSettings] = useState(() => loadCameraSettings());
   const meshFrameSkipRef = useRef(0);
   const lastLandmarksRef = useRef(null);
+  const scanInFlightRef = useRef(false);
+  const lastFallbackScanAtRef = useRef(0);
   const [isDemoMode, setIsDemoMode] = React.useState(localStorage.getItem('isDemoMode') === 'true');
 
   // Refs for video, canvas & stream
@@ -2603,7 +2606,8 @@ export default function App() {
     setReleaseErrorMessage('');
     setIsReleasingUpdate(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/settings/release-update`, {
+      await wakeBackend(API_BASE_URL, 5000);
+      const res = await fetchWithRetry(`${API_BASE_URL}/settings/release-update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2628,7 +2632,7 @@ export default function App() {
         if (typeof playCyberSound === 'function') playCyberSound('error');
       }
     } catch (e) {
-      setReleaseErrorMessage('Network/Connection error. Please try again.');
+      setReleaseErrorMessage(`Network/Connection error: ${e.message || 'Please try again.'}`);
       if (typeof playCyberSound === 'function') playCyberSound('error');
     } finally {
       setIsReleasingUpdate(false);
@@ -2644,7 +2648,8 @@ export default function App() {
     setToggleSuccessMessage('');
     setIsTogglingUpdate(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/settings/toggle-update-active`, {
+      await wakeBackend(API_BASE_URL, 5000);
+      const res = await fetchWithRetry(`${API_BASE_URL}/settings/toggle-update-active`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2655,7 +2660,7 @@ export default function App() {
           active: pendingToggleValue
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setCurrentUpdateActive(pendingToggleValue);
         setToggleSuccessMessage(data.message || (pendingToggleValue ? '✅ Update is now LIVE for all users!' : '🔕 Update banner deactivated.'));
@@ -2667,7 +2672,7 @@ export default function App() {
         if (typeof playCyberSound === 'function') playCyberSound('error');
       }
     } catch (e) {
-      setToggleErrorMessage('Network error. Please try again.');
+      setToggleErrorMessage(`Network error: ${e.message || 'Please try again.'}`);
       if (typeof playCyberSound === 'function') playCyberSound('error');
     } finally {
       setIsTogglingUpdate(false);
@@ -2994,12 +2999,16 @@ export default function App() {
   };
 
 
-  const triggerFaceRecognition = async () => {
+  const triggerFaceRecognition = async ({ allowWithoutMesh = false, fallbackReason = '' } = {}) => {
     if (!attendanceVideoRef.current) return;
-    if (!lastLandmarksRef.current?.length) {
+    if (scanInFlightRef.current) return;
+    const hasLandmarks = !!lastLandmarksRef.current?.length;
+    if (!hasLandmarks && cameraScanSettings.serverFallbackScan === false) return;
+    if (!hasLandmarks && !allowWithoutMesh) {
       setScanStatus('No face detected — look at camera');
       return;
     }
+    scanInFlightRef.current = true;
     const video = attendanceVideoRef.current;
     const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
 
@@ -3009,12 +3018,15 @@ export default function App() {
       preset.captureHeight,
       preset.jpegQuality
     );
-    if (!blob) return;
+    if (!blob) {
+      scanInFlightRef.current = false;
+      return;
+    }
 
     if (isDemoMode) {
         setIsScanning(true);
-        setScanStatus('Logging presence...');
-        addDiagnosticLog('Signature acquisition: Compiling SFace vector locally...');
+        setScanStatus(hasLandmarks ? 'Logging presence...' : 'Deep learning fallback scan...');
+        addDiagnosticLog(hasLandmarks ? 'Signature acquisition: Compiling SFace vector locally...' : `Fallback acquisition active: ${fallbackReason || 'no landmarks'}`);
         
         setTimeout(() => {
           const candidates = students.length > 0 ? students : [
@@ -3029,6 +3041,7 @@ export default function App() {
             playCyberSound('error');
             addDiagnosticLog(`WARNING: Biometric match rejected due to low confidence (${confidenceVal}% < ${Math.round(biometricMatchThreshold * 100)}%)`);
             setIsScanning(false);
+            scanInFlightRef.current = false;
             
             setTimeout(() => {
               eyeStateRef.current = 'open';
@@ -3078,6 +3091,7 @@ export default function App() {
           }
           
           setIsScanning(false);
+          scanInFlightRef.current = false;
           
           setTimeout(() => {
             setScannedStudent(null);
@@ -3100,8 +3114,11 @@ export default function App() {
 
       try {
         setIsScanning(true);
-        setScanStatus('Logging presence...');
-        addDiagnosticLog('Signature acquisition: Compiling SFace vector...');
+        setScanStatus(hasLandmarks ? 'Logging presence...' : 'Deep learning fallback scan...');
+        addDiagnosticLog(hasLandmarks ? 'Signature acquisition: Compiling SFace vector...' : `FaceMesh fallback: sending frame to server SFace/YuNet (${fallbackReason || 'no landmarks'}).`);
+        if (!hasLandmarks && cameraScanSettings.wakeBackendBeforeScan !== false) {
+          await wakeBackend(API_BASE_URL, 3500);
+        }
         
         const queryParams = new URLSearchParams();
         if (userCoords) {
@@ -3120,13 +3137,13 @@ export default function App() {
           livenessTokenRef.current = null;
         }
 
-        const res = await fetch(`${API_BASE_URL}/attendance/recognize-frame?${queryParams.toString()}`, {
+        const res = await fetchWithRetry(`${API_BASE_URL}/attendance/recognize-frame?${queryParams.toString()}`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
           },
           body: formData
-        });
+        }, { retries: hasLandmarks ? 0 : 1, timeoutMs: hasLandmarks ? 15000 : 18000, retryDelayMs: 700 });
 
         if (res.ok) {
           const data = await res.json();
@@ -3141,6 +3158,7 @@ export default function App() {
               playCyberSound('error');
               addDiagnosticLog(`WARNING: Live match rejected due to threshold restriction (${confidenceVal}% < ${Math.round(biometricMatchThreshold * 100)}%)`);
               setIsScanning(false);
+              scanInFlightRef.current = false;
               
               setTimeout(() => {
                 eyeStateRef.current = 'open';
@@ -3214,6 +3232,7 @@ export default function App() {
         addDiagnosticLog('ERROR: Match server timed out.');
       } finally {
         setIsScanning(false);
+        scanInFlightRef.current = false;
         // Reset liveness status after 4 seconds to scan next student
         setTimeout(() => {
           setScannedStudent(null);
@@ -3991,6 +4010,17 @@ export default function App() {
           }
         } else {
           // setDiagnosticWarnings({ lighting: '', distance: '' }); // disabled
+          lastLandmarksRef.current = null;
+          if (cameraScanSettings.serverFallbackScan !== false && livenessStatusRef.current === 'verifying') {
+            const now = Date.now();
+            const intervalMs = cameraScanSettings.fallbackScanIntervalMs || 1400;
+            if (!scanInFlightRef.current && now - lastFallbackScanAtRef.current >= intervalMs) {
+              lastFallbackScanAtRef.current = now;
+              setLivenessMessage('Deep learning fallback scan...');
+              setScanStatus('Deep learning scan...');
+              triggerFaceRecognition({ allowWithoutMesh: true, fallbackReason: 'facemesh_no_landmarks' });
+            }
+          }
         }
       }
     });
@@ -4031,7 +4061,7 @@ export default function App() {
         faceMeshRef.current = null;
       }
     };
-  }, [attendanceActive, cameraScanSettings.preset]);
+  }, [attendanceActive, cameraScanSettings.preset, cameraScanSettings.serverFallbackScan, cameraScanSettings.fallbackScanIntervalMs, cameraScanSettings.wakeBackendBeforeScan]);
 
   // Turn off camera if user switches tabs
   useEffect(() => {
