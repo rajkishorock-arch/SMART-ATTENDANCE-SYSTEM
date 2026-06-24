@@ -533,7 +533,7 @@ export default function App() {
   const isSpeakingRef = useRef(false);
 
   // In-App Update Checker
-  const APP_VERSION = '1.0.1';
+  const APP_VERSION = '1.0.2';
   const [updateAvailable, setUpdateAvailable] = useState(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
