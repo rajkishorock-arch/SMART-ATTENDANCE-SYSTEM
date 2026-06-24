@@ -4,7 +4,9 @@ from typing import List, Optional
 from pydantic import BaseModel
 import os
 from . import models, schemas, security
+from .billing import PLANS, get_student_usage
 from .database import get_db
+from .security_utils import verify_global_master_key, verify_master_key_for_institution
 
 router = APIRouter()
 
@@ -12,6 +14,24 @@ router = APIRouter()
 class InstitutionFaqUpdate(BaseModel):
     faq_json: str
     app_name: Optional[str] = None
+
+
+def normalize_custom_domain(domain: Optional[str]) -> Optional[str]:
+    if domain is None:
+        return None
+    cleaned = domain.strip().lower()
+    cleaned = cleaned.replace("https://", "").replace("http://", "").strip("/")
+    return cleaned or None
+
+
+def validate_plan(plan: Optional[str]) -> str:
+    plan_name = (plan or "free").strip().lower()
+    if plan_name not in PLANS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid subscription plan '{plan_name}'.",
+        )
+    return plan_name
 
 @router.get("/", response_model=List[schemas.InstitutionBrandingResponse])
 def list_institutions(db: Session = Depends(get_db)):
@@ -56,8 +76,7 @@ def create_institution(
 
     # Verify master password header
     master_header = request.headers.get("x-master-password")
-    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header != expected_key:
+    if not verify_global_master_key(master_header):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid Master Password! Master key verification is required to add a new institution/college."
@@ -78,6 +97,23 @@ def create_institution(
             detail=f"An institution named '{payload.name}' already exists."
         )
 
+    custom_domain = normalize_custom_domain(payload.custom_domain)
+    if custom_domain:
+        existing_domain = db.query(models.Institution).filter(
+            models.Institution.custom_domain == custom_domain
+        ).first()
+        if existing_domain:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Custom domain '{custom_domain}' is already assigned to another institution."
+            )
+
+    plan_name = validate_plan(payload.subscription_plan)
+    plan_limit = PLANS[plan_name]["student_limit"]
+    student_limit = payload.student_limit or plan_limit
+    if student_limit < 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student limit must be at least 1.")
+
     # Generate college-specific master password
     import secrets
     import string
@@ -93,6 +129,11 @@ def create_institution(
         primary_color=payload.primary_color,
         secondary_color=payload.secondary_color,
         logo_url=payload.logo_url,
+        app_name=payload.app_name,
+        custom_domain=custom_domain,
+        subscription_plan=plan_name,
+        subscription_status="active",
+        student_limit=student_limit,
         is_active=True,
         master_key=generated_master_key
     )
@@ -140,6 +181,82 @@ def create_institution(
 
     return new_inst
 
+
+@router.get("/{id}/saas-summary")
+def get_institution_saas_summary(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
+    if current_user.institution_id != 1 and current_user.institution_id != id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot view another institution")
+
+    inst = db.query(models.Institution).filter(models.Institution.id == id).first()
+    if not inst:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Institution not found")
+
+    usage = get_student_usage(db, id)
+    admin_count = db.query(models.User).filter(
+        models.User.institution_id == id,
+        models.User.role == "admin",
+    ).count()
+    teacher_count = db.query(models.User).filter(
+        models.User.institution_id == id,
+        models.User.role == "teacher",
+    ).count()
+    department_count = db.query(models.Department).filter(models.Department.institution_id == id).count()
+    subject_count = db.query(models.Subject).filter(models.Subject.institution_id == id).count()
+
+    setup_steps = [
+        {
+            "id": "branding",
+            "label": "Branding configured",
+            "complete": bool(inst.app_name or inst.logo_url or (inst.primary_color and inst.secondary_color)),
+        },
+        {
+            "id": "admins",
+            "label": "At least one admin exists",
+            "complete": admin_count > 0,
+        },
+        {
+            "id": "academics",
+            "label": "Departments or subjects configured",
+            "complete": department_count > 0 or subject_count > 0,
+        },
+        {
+            "id": "students",
+            "label": "Students imported or registered",
+            "complete": usage["student_count"] > 0,
+        },
+        {
+            "id": "subscription",
+            "label": "Subscription active",
+            "complete": usage["status"] == "active",
+        },
+    ]
+
+    return {
+        "institution": {
+            "id": inst.id,
+            "name": inst.name,
+            "slug": inst.slug,
+            "app_name": inst.app_name,
+            "custom_domain": inst.custom_domain,
+            "is_active": inst.is_active,
+        },
+        "usage": usage,
+        "counts": {
+            "admins": admin_count,
+            "teachers": teacher_count,
+            "departments": department_count,
+            "subjects": subject_count,
+        },
+        "setup_steps": setup_steps,
+        "setup_complete": all(step["complete"] for step in setup_steps),
+    }
+
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
 def delete_institution(
     id: int,
@@ -159,8 +276,7 @@ def delete_institution(
 
     # Verify master password header
     master_header = request.headers.get("x-master-password")
-    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header != expected_key:
+    if not verify_global_master_key(master_header):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid Master Password! Master key verification is required to delete an institution."
@@ -208,13 +324,7 @@ def update_college_master_key(
         raise HTTPException(status_code=404, detail="Institution not found")
         
     current_key_input = payload.current_master_key.strip()
-    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    
-    is_valid = False
-    if current_key_input == global_key:
-        is_valid = True
-    elif inst.master_key and current_key_input == inst.master_key:
-        is_valid = True
+    is_valid = verify_master_key_for_institution(db, current_key_input, inst_id)
         
     if not is_valid:
         raise HTTPException(
@@ -254,8 +364,7 @@ def update_institution(
 
     # Verify master password header
     master_header = request.headers.get("x-master-password")
-    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header != expected_key:
+    if not verify_global_master_key(master_header):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid Master Password! Master key verification is required to update an institution."
@@ -310,6 +419,35 @@ def update_institution(
         inst.secondary_color = payload.secondary_color
     if payload.logo_url is not None:
         inst.logo_url = payload.logo_url
+    if payload.app_name is not None:
+        inst.app_name = payload.app_name.strip() or None
+    if payload.custom_domain is not None:
+        custom_domain = normalize_custom_domain(payload.custom_domain)
+        if custom_domain:
+            existing_domain = db.query(models.Institution).filter(
+                models.Institution.custom_domain == custom_domain,
+                models.Institution.id != id
+            ).first()
+            if existing_domain:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Custom domain '{custom_domain}' is already assigned to another institution."
+                )
+        inst.custom_domain = custom_domain
+    if payload.subscription_plan is not None:
+        plan_name = validate_plan(payload.subscription_plan)
+        inst.subscription_plan = plan_name
+        if not payload.student_limit:
+            inst.student_limit = PLANS[plan_name]["student_limit"]
+    if payload.subscription_status is not None:
+        status_clean = payload.subscription_status.strip().lower()
+        if status_clean not in {"active", "trialing", "past_due", "cancelled", "suspended"}:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid subscription status.")
+        inst.subscription_status = status_clean
+    if payload.student_limit is not None:
+        if payload.student_limit < 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student limit must be at least 1.")
+        inst.student_limit = payload.student_limit
 
     db.commit()
     db.refresh(inst)
@@ -335,4 +473,3 @@ def update_institution_faq(
         inst.app_name = payload.app_name
     db.commit()
     return {"message": "FAQ updated", "institution_id": id}
-

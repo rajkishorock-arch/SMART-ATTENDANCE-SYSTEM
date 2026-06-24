@@ -12,6 +12,7 @@ class LivenessStepReport(BaseModel):
     challenge_id: str
     step: str
     ear_value: float = 0.25
+    client_timestamp_ms: Optional[int] = None
 
 
 @router.post("/challenge")

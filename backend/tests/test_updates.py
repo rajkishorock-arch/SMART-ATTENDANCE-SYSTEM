@@ -44,7 +44,8 @@ def test_db():
         id=1,
         institution_id=1,
         latest_version="1.0.1",
-        update_download_url="https://example.com/app.apk"
+        update_download_url="https://example.com/app.apk",
+        update_active=True
     )
     db.add(settings)
     

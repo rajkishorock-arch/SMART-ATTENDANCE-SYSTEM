@@ -36,6 +36,8 @@ def sync_offline_attendance(
     if current_user.role not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Staff only")
     synced, skipped, errors = 0, 0, []
+    processed_client_ids = []
+    failed_client_ids = []
     for item in payload.items:
         existing_queue = db.query(models.OfflineAttendanceQueue).filter(
             models.OfflineAttendanceQueue.institution_id == current_user.institution_id,
@@ -43,10 +45,12 @@ def sync_offline_attendance(
         ).first()
         if existing_queue:
             skipped += 1
+            processed_client_ids.append(item.client_id)
             continue
         student = crud.get_student_by_id(db, item.student_id, current_user.institution_id)
         if not student:
             errors.append(f"Student {item.student_id} not found")
+            failed_client_ids.append(item.client_id)
             continue
         try:
             _, newly_marked = crud.mark_student_attendance(
@@ -78,13 +82,22 @@ def sync_offline_attendance(
                 synced += 1
             else:
                 skipped += 1
+            processed_client_ids.append(item.client_id)
         except IntegrityError:
             db.rollback()
             skipped += 1
+            processed_client_ids.append(item.client_id)
         except Exception as e:
             db.rollback()
             errors.append(str(e))
-    return {"synced": synced, "skipped": skipped, "errors": errors[:10]}
+            failed_client_ids.append(item.client_id)
+    return {
+        "synced": synced,
+        "skipped": skipped,
+        "errors": errors[:10],
+        "processed_client_ids": processed_client_ids,
+        "failed_client_ids": failed_client_ids,
+    }
 
 
 @router.get("/status")

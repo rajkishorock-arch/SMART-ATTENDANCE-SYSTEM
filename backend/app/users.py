@@ -10,6 +10,7 @@ from . import crud, models, schemas, security
 from .database import get_db
 from .face_utils import preprocess_face
 from .train_service import train_model
+from .security_utils import verify_master_key_for_institution
 
 # Initialize Haar cascade face classifier
 app_dir = os.path.dirname(os.path.abspath(__file__))
@@ -26,19 +27,7 @@ def verify_master_password(db: Session, request: Request, institution_id: int) -
     master_header = request.headers.get("x-master-password")
     if not master_header:
         return False
-    
-    # 1. Always allow global developer key
-    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header == global_key:
-        return True
-        
-    # 2. Allow college specific master key if not default institution (ID 1)
-    if institution_id != 1:
-        inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-        if inst and inst.master_key and master_header == inst.master_key:
-            return True
-            
-    return False
+    return verify_master_key_for_institution(db, master_header, institution_id)
 
 def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student_id: int = None, institution_id: int = None) -> bool:
     """
@@ -623,6 +612,8 @@ def add_student(
     db_student = crud.get_student_by_id(db, student_id=student.id, institution_id=current_user.institution_id)
     if db_student:
         raise HTTPException(status_code=400, detail="Student with this ID already exists")
+    from .billing import ensure_student_capacity
+    ensure_student_capacity(db, current_user.institution_id, incoming=1)
     new_s = crud.create_student(db, student=student, institution_id=current_user.institution_id)
     crud.create_audit_log(
         db, 

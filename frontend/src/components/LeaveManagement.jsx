@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Send, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { getApiBaseUrl } from '../utils/platform';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+const API_BASE_URL = getApiBaseUrl();
 
 export default function LeaveManagement({ token, currentUser }) {
   const [startDate, setStartDate] = useState('');

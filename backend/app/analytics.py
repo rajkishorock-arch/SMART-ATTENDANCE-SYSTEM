@@ -13,6 +13,55 @@ IST = timezone(timedelta(hours=5, minutes=30))
 AT_RISK_THRESHOLD = 75.0
 
 
+def build_risk_distribution(students):
+    distribution = {"high": 0, "medium": 0, "low": 0, "excellent": 0}
+    for student in students:
+        pct = student.get("percentage", 0)
+        if pct < 60:
+            distribution["high"] += 1
+        elif pct < 75:
+            distribution["medium"] += 1
+        elif pct < 90:
+            distribution["low"] += 1
+        else:
+            distribution["excellent"] += 1
+    return distribution
+
+
+def build_attendance_insights(report):
+    students = report.get("students", [])
+    total = len(students)
+    avg = round(sum(s.get("percentage", 0) for s in students) / total, 2) if total else 0.0
+    at_risk = [s for s in students if s.get("percentage", 0) < AT_RISK_THRESHOLD and s.get("total_days", 0) > 0]
+    no_data = [s for s in students if s.get("total_days", 0) == 0]
+    top = sorted(students, key=lambda x: x.get("percentage", 0), reverse=True)[:5]
+    needs_attention = sorted(at_risk, key=lambda x: x.get("percentage", 0))[:10]
+    return {
+        "total_students": total,
+        "average_attendance": avg,
+        "working_days": report.get("total_working_days", 0),
+        "at_risk_count": len(at_risk),
+        "no_data_count": len(no_data),
+        "risk_distribution": build_risk_distribution(students),
+        "top_performers": top,
+        "needs_attention": needs_attention,
+        "recommendations": build_recommendations(avg, len(at_risk), len(no_data)),
+    }
+
+
+def build_recommendations(average_attendance, at_risk_count, no_data_count):
+    recommendations = []
+    if average_attendance < 75:
+        recommendations.append("Average attendance is below 75%; schedule mentor follow-ups for low-attendance students.")
+    if at_risk_count:
+        recommendations.append(f"{at_risk_count} student(s) need attention based on current attendance trends.")
+    if no_data_count:
+        recommendations.append(f"{no_data_count} student(s) have no attendance data in the selected scope.")
+    if not recommendations:
+        recommendations.append("Attendance health looks stable; continue monitoring weekly trends.")
+    return recommendations
+
+
 @router.get("/at-risk")
 def get_at_risk_students(
     department: Optional[str] = None,
@@ -68,6 +117,30 @@ def get_attendance_predictions(
         })
     predictions.sort(key=lambda x: x["risk_score"], reverse=True)
     return {"predictions": predictions[:50]}
+
+
+@router.get("/insights")
+def get_attendance_insights(
+    department: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Executive analytics summary with risk distribution and recommended actions."""
+    if current_user.role not in ("admin", "teacher", "hod"):
+        raise HTTPException(status_code=403, detail="Staff only")
+    report = crud.get_attendance_report(
+        db,
+        start_date_str=start_date,
+        end_date_str=end_date,
+        department=department,
+        institution_id=current_user.institution_id,
+    )
+    insights = build_attendance_insights(report)
+    insights["department"] = department
+    insights["date_range"] = {"start_date": start_date, "end_date": end_date}
+    return insights
 
 
 @router.get("/department/{department}")

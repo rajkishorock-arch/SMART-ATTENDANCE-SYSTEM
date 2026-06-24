@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 export const isNative = Capacitor.isNativePlatform();
 export const isAndroid = Capacitor.getPlatform() === 'android';
 export const isIOS = Capacitor.getPlatform() === 'ios';
+export const DEFAULT_API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
 // Dynamic API base URL resolver.
 // If VITE_API_BASE_URL is specified in env, it uses it.
@@ -16,7 +17,7 @@ export function getApiBaseUrl() {
   if (devUrl) return devUrl;
 
   // Default production server
-  return 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+  return DEFAULT_API_BASE_URL;
 }
 
 // Request camera and location permissions natively via Capacitor plugins.

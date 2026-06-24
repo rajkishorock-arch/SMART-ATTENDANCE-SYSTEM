@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+import os
 
 from . import crud, schemas, models, security
 from .database import get_db
+from .core import config
+from .security_utils import verify_master_key_for_system_action
 
 router = APIRouter()
 
@@ -57,25 +60,14 @@ def publish_system_update(
     """
     Publish a new system-wide release update. (System Owner only, master password verified).
     """
-    if current_user.email.strip().lower() != "rajkishorock@gmail.com":
+    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the System Owner (rajkishorock@gmail.com) can publish release updates."
+            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can publish release updates."
         )
         
-    import os
-    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    
-    # Also resolve college specific master key
-    college_key = None
-    if current_user.institution_id:
-        inst = db.query(models.Institution).filter(models.Institution.id == current_user.institution_id).first()
-        if inst:
-            college_key = inst.master_key
-            
-    # Verify input master password
     input_key = payload.master_password.strip()
-    is_verified = (input_key == global_key) or (college_key and input_key == college_key)
+    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id)
     
     if not is_verified:
         raise HTTPException(
@@ -113,25 +105,14 @@ def toggle_update_active(
     - When active=False: Update banner is hidden for all users.
     Requires Master Password verification. (System Owner only)
     """
-    if current_user.email.strip().lower() != "rajkishorock@gmail.com":
+    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the System Owner (rajkishorock@gmail.com) can toggle release updates."
+            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can toggle release updates."
         )
 
-    import os
-    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-
-    # Also resolve college specific master key
-    college_key = None
-    if current_user.institution_id:
-        inst = db.query(models.Institution).filter(models.Institution.id == current_user.institution_id).first()
-        if inst:
-            college_key = inst.master_key
-
-    # Verify master password
     input_key = payload.master_password.strip()
-    is_verified = (input_key == global_key) or (college_key and input_key == college_key)
+    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id)
 
     if not is_verified:
         raise HTTPException(
@@ -173,26 +154,14 @@ def trigger_build(
     """
     Trigger the automated APK build on GitHub Actions (System Owner only).
     """
-    from fastapi import Request as FastAPIRequest
-    if current_user.email.strip().lower() != "rajkishorock@gmail.com":
+    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the System Owner (rajkishorock@gmail.com) can trigger builds."
+            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can trigger builds."
         )
 
-    import os
-    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    
-    # Also resolve college specific master key
-    college_key = None
-    if current_user.institution_id:
-        inst = db.query(models.Institution).filter(models.Institution.id == current_user.institution_id).first()
-        if inst:
-            college_key = inst.master_key
-            
-    # Verify input master password
     input_key = payload.master_password.strip()
-    is_verified = (input_key == global_key) or (college_key and input_key == college_key)
+    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id)
     
     if not is_verified:
         raise HTTPException(
@@ -204,7 +173,7 @@ def trigger_build(
     github_pat = os.getenv("GITHUB_PAT")
     github_repo = os.getenv("GITHUB_REPO", "rajkishorock-arch/SMART-ATTENDANCE-SYSTEM")
     github_branch = os.getenv("GITHUB_BRANCH", "master")
-    callback_token = os.getenv("BUILD_CALLBACK_TOKEN", "fallback_token_9211")
+    callback_token = config.BUILD_CALLBACK_TOKEN
 
     if not github_pat:
         raise HTTPException(
@@ -303,8 +272,7 @@ def github_build_callback(
     """
     Callback endpoint used by GitHub Actions build runner to notify build success/failure.
     """
-    import os
-    expected_token = os.getenv("BUILD_CALLBACK_TOKEN", "fallback_token_9211")
+    expected_token = config.BUILD_CALLBACK_TOKEN
     
     if payload.token != expected_token:
         raise HTTPException(
@@ -370,5 +338,3 @@ def get_build_status(
         "update_download_url": settings.update_download_url,
         "update_active": settings.update_active
     }
-
-

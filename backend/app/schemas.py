@@ -255,6 +255,11 @@ class InstitutionBrandingResponse(BaseModel):
     logo_url: Optional[str] = None
     primary_color: Optional[str] = None
     secondary_color: Optional[str] = None
+    app_name: Optional[str] = None
+    custom_domain: Optional[str] = None
+    subscription_plan: Optional[str] = None
+    subscription_status: Optional[str] = None
+    student_limit: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -267,6 +272,10 @@ class InstitutionCreate(BaseModel):
     primary_color: Optional[str] = "#4F46E5"
     secondary_color: Optional[str] = "#06B6D4"
     logo_url: Optional[str] = ""
+    app_name: Optional[str] = None
+    custom_domain: Optional[str] = None
+    subscription_plan: Optional[str] = "free"
+    student_limit: Optional[int] = None
     admin_email: EmailStr
     admin_name: str
     admin_password: str
@@ -283,6 +292,11 @@ class InstitutionUpdate(BaseModel):
     primary_color: Optional[str] = None
     secondary_color: Optional[str] = None
     logo_url: Optional[str] = None
+    app_name: Optional[str] = None
+    custom_domain: Optional[str] = None
+    subscription_plan: Optional[str] = None
+    subscription_status: Optional[str] = None
+    student_limit: Optional[int] = None
 
 # --- Department ---
 class DepartmentBase(BaseModel):

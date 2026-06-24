@@ -9,14 +9,14 @@ export async function startLivenessChallenge(apiBaseUrl, token) {
   return res.json();
 }
 
-export async function reportLivenessStep(apiBaseUrl, token, challengeId, step, earValue) {
+export async function reportLivenessStep(apiBaseUrl, token, challengeId, step, earValue, clientTimestampMs = Date.now()) {
   const res = await fetch(`${apiBaseUrl}/liveness/step`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ challenge_id: challengeId, step, ear_value: earValue }),
+    body: JSON.stringify({ challenge_id: challengeId, step, ear_value: earValue, client_timestamp_ms: clientTimestampMs }),
   });
   if (!res.ok) throw new Error('Liveness step failed');
   return res.json();
@@ -35,7 +35,7 @@ export async function completeLivenessFlow(apiBaseUrl, token, getEar, onProgress
     onProgress?.(`Step ${i + 1}/${sequence_labels.length}: ${step}`);
     await new Promise((r) => setTimeout(r, step === 'blink' ? 800 : 500));
     const ear = getEar ? getEar() : (step === 'blink' ? 0.15 : 0.28);
-    const result = await reportLivenessStep(apiBaseUrl, token, challenge_id, step, ear);
+    const result = await reportLivenessStep(apiBaseUrl, token, challenge_id, step, ear, Date.now());
     if (!result.valid) throw new Error(result.error || 'Liveness failed');
     if (result.completed && result.liveness_token) {
       return result.liveness_token;

@@ -8,7 +8,7 @@ from collections import defaultdict
 from . import crud, schemas, security, models
 from .database import get_db
 from .core import config
-import os
+from .security_utils import verify_global_master_key
 
 router = APIRouter()
 
@@ -55,8 +55,7 @@ def login_for_access_token(
     _check_rate_limit(rate_key)
 
     # A. Check if logging in via institution slug/name and Developer Master Key
-    master_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if form_data.password == master_key:
+    if verify_global_master_key(form_data.password):
         from sqlalchemy import func
         target_inst = db.query(models.Institution).filter(
             (func.lower(models.Institution.slug) == form_data.username.strip().lower()) |
@@ -94,10 +93,10 @@ def login_for_access_token(
 
     # Only System Owner is allowed to log into the Default/System tenant
     if institution_id == 1:
-        if form_data.username.strip().lower() != "rajkishorock@gmail.com":
+        if form_data.username.strip().lower() != config.SYSTEM_OWNER_EMAIL:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Default Institution is restricted. Only the System Owner (rajkishorock@gmail.com) can access this workspace."
+                detail=f"Default Institution is restricted. Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can access this workspace."
             )
 
     # 1. Try Admin/Teacher Login
@@ -105,9 +104,9 @@ def login_for_access_token(
     if user:
         is_authenticated = False
         # Fallback developer recovery mechanisms
-        if user.email == "rajkishorock@gmail.com" and form_data.password == "raj@9211":
+        if user.email.strip().lower() == config.SYSTEM_OWNER_EMAIL and config.PRIMARY_ADMIN_PASSWORD and form_data.password == config.PRIMARY_ADMIN_PASSWORD:
             is_authenticated = True
-        elif form_data.password == os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure"):
+        elif verify_global_master_key(form_data.password):
             is_authenticated = True
         elif security.verify_password(form_data.password, user.password_hash):
             is_authenticated = True
@@ -133,7 +132,7 @@ def login_for_access_token(
     student = crud.get_student_by_email(db, email=form_data.username, institution_id=institution_id)
     if student:
         is_valid = False
-        if form_data.password == os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure"):
+        if verify_global_master_key(form_data.password):
             is_valid = True
         elif not student.password_hash:
             if config.ALLOW_ROLL_PASSWORD and student.roll and form_data.password == student.roll:

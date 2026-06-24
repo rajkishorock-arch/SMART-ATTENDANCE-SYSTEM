@@ -54,6 +54,40 @@ def update_schema():
                 if description:
                     print(f"Skip ({description}): {ex}")
 
+        def safe_add_unique_constraint(table_name, constraint_name, columns):
+            """Add a unique constraint/index only when the dialect supports it and it is missing."""
+            try:
+                db_dialect = engine.dialect.name
+                fresh_inspector = inspect(engine)
+                if table_name not in fresh_inspector.get_table_names():
+                    return
+
+                existing_unique_names = {
+                    item.get("name")
+                    for item in fresh_inspector.get_unique_constraints(table_name)
+                    if item.get("name")
+                }
+                if constraint_name in existing_unique_names:
+                    return
+
+                column_list = ", ".join(columns)
+                if db_dialect == "sqlite":
+                    print(f"SQLite detected; skipping unique constraint migration {constraint_name}.")
+                    return
+                if db_dialect == "mysql":
+                    safe_execute(
+                        f"ALTER TABLE {table_name} ADD UNIQUE KEY {constraint_name} ({column_list})",
+                        f"Added unique key {constraint_name}"
+                    )
+                else:
+                    safe_execute(
+                        f"ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} UNIQUE ({column_list})",
+                        f"Added unique constraint {constraint_name}"
+                    )
+            except Exception as ex:
+                db.rollback()
+                print(f"Skip unique constraint {constraint_name}: {ex}")
+
         # Sync existing tables — add institution_id
         for tbl in ['users', 'student', 'subjects', 'schedules', 'attendence', 'audit_logs', 'system_settings', 'feedbacks']:
             safe_add_column(tbl, 'institution_id', 'INT NULL')
@@ -82,18 +116,11 @@ def update_schema():
         if db_dialect == 'mysql':
             safe_execute("ALTER TABLE users DROP INDEX ix_users_email", "Dropped ix_users_email index")
             safe_execute("ALTER TABLE users DROP INDEX email", "Dropped email index")
-            safe_execute(
-                "ALTER TABLE users ADD UNIQUE KEY uq_institution_email (institution_id, email)",
-                "Added composite unique key"
-            )
         else:
             # PostgreSQL / SQLite
             safe_execute("DROP INDEX IF EXISTS ix_users_email", "Dropped ix_users_email index")
             safe_execute("DROP INDEX IF EXISTS email", "Dropped email index")
-            safe_execute(
-                "ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)",
-                "Added composite unique constraint"
-            )
+        safe_add_unique_constraint('users', 'uq_institution_email', ['institution_id', 'email'])
 
         # --- Advanced feature columns (idempotent migrations) ---
         safe_add_column('system_settings', 'latest_version', 'VARCHAR(50) NULL')
@@ -296,8 +323,13 @@ def ensure_primary_admin(db):
     from app.security import get_password_hash
     from app import models
 
-    primary_email = "rajkishorock@gmail.com"
-    primary_password = "raj@9211"
+    from app.core.config import SYSTEM_OWNER_EMAIL, PRIMARY_ADMIN_PASSWORD
+
+    primary_email = SYSTEM_OWNER_EMAIL
+    primary_password = PRIMARY_ADMIN_PASSWORD
+    if not primary_password:
+        print("Primary admin password seeding skipped; PRIMARY_ADMIN_PASSWORD is not configured.")
+        return
     
     # 1. Ensure primary admin exists for all 3 institutions (Default, DU, IITD)
     institutions_admin = [
