@@ -289,9 +289,7 @@ export default function LoginPortal({
             </div>
           </div>
 
-          <p style={{ color: '#64748b', fontSize: '0.72rem', marginBottom: '12px', lineHeight: 1.5 }}>
-            Default Institution admin: <strong style={{ color: '#94a3b8' }}>rajkishorock@gmail.com</strong> / password: <strong style={{ color: '#94a3b8' }}>raj@9211</strong>
-          </p>
+
 
           <form onSubmit={onSubmit} className="login-portal-form">
             <div className="form-group">

@@ -108,6 +108,8 @@ class SystemSettingsBase(BaseModel):
     allowed_radius_meters: float
     ip_restriction_enabled: bool
     allowed_ip_ranges: str
+    latest_version: Optional[str] = "1.0.1"
+    update_download_url: Optional[str] = ""
 
 class SystemSettingsUpdate(BaseModel):
     geofencing_enabled: Optional[bool] = None
@@ -116,6 +118,8 @@ class SystemSettingsUpdate(BaseModel):
     allowed_radius_meters: Optional[float] = None
     ip_restriction_enabled: Optional[bool] = None
     allowed_ip_ranges: Optional[str] = None
+    latest_version: Optional[str] = None
+    update_download_url: Optional[str] = None
 
 class SystemSettingsResponse(SystemSettingsBase):
     id: int
@@ -123,6 +127,12 @@ class SystemSettingsResponse(SystemSettingsBase):
     class Config:
         from_attributes = True
         orm_mode = True
+
+class ReleaseUpdatePayload(BaseModel):
+    master_password: str
+    latest_version: str
+    update_download_url: str
+    release_notes: Optional[str] = ""
 
 # --- Subject ---
 class SubjectBase(BaseModel):

@@ -54,6 +54,7 @@ import {
   Settings,
   Phone,
   BarChart3,
+  ArrowUpCircle,
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -155,7 +156,7 @@ export default function App() {
   const [hudMetrics, setHudMetrics] = useState({ fps: '30.0', lighting: '92%', quality: 'EXCELLENT' });
   const [activeTheme, setActiveTheme] = useState(localStorage.getItem('theme') || 'cyberpunk');
   const [audioVolume, setAudioVolume] = useState(parseFloat(localStorage.getItem('audioVolume') || '0.5'));
-  const [soundEnabled, setSoundEnabled] = useState(localStorage.getItem('soundEnabled') !== 'false');
+  const [soundEnabled, setSoundEnabled] = useState(localStorage.getItem('soundEnabled') === 'true');
 
   const [diagnosticLogs, setDiagnosticLogs] = useState([
     '[SYS] Bios boot sequence completed.',
@@ -376,6 +377,7 @@ export default function App() {
 
   const playCyberSound = (type) => {
     if (!soundEnabled) return;
+    if (typeof window === 'undefined') return;
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
@@ -501,7 +503,7 @@ export default function App() {
   const [botPersonality, setBotPersonality] = useState('futuristic');
   const [botVoiceEnabled, setBotVoiceEnabled] = useState(false);
   const [botWakeWordEnabled, setBotWakeWordEnabled] = useState(
-    localStorage.getItem('botWakeWordEnabled') !== 'false'
+    localStorage.getItem('botWakeWordEnabled') === 'true'
   );
   const [botVoiceSpeed, setBotVoiceSpeed] = useState(1.0);
   const [botVoicePitch, setBotVoicePitch] = useState(1.0);
@@ -529,6 +531,23 @@ export default function App() {
   const isActiveAssistantRunningRef = useRef(false);
   const isChatbotMicRunningRef = useRef(false);
   const isSpeakingRef = useRef(false);
+
+  // In-App Update Checker
+  const APP_VERSION = '1.0.1';
+  const [updateAvailable, setUpdateAvailable] = useState(null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOfflineMode(false);
+    const handleOffline = () => setIsOfflineMode(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Handle Android Native Back Button Navigation
   useEffect(() => {
@@ -578,6 +597,32 @@ export default function App() {
       }
     };
   }, [activeTab, activeSubSetting, activeDashboardSubTab, showChatBot, showFeedbackModal, showPrivacyPolicy, userRole]);
+
+  // In-App Update Checker — pings backend /health/update-check on load + every 4 hrs
+  useEffect(() => {
+    const checkForUpdate = async () => {
+      try {
+        const resp = await fetch(`${API_BASE_URL}/health/update-check`, {
+          cache: 'no-store'
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const latestVersion = (data.latest_version || '').replace(/^v/, '');
+        if (latestVersion && latestVersion !== APP_VERSION) {
+          setUpdateAvailable({
+            version: latestVersion,
+            downloadUrl: data.update_download_url || ''
+          });
+          setUpdateDismissed(false);
+        }
+      } catch (e) {
+        // silently ignore — no network is fine
+      }
+    };
+    checkForUpdate();
+    const interval = setInterval(checkForUpdate, 4 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Unified Speech Recognition State Machine Coordinator
   const syncVoiceListeners = useCallback(() => {
@@ -1530,6 +1575,14 @@ export default function App() {
   const [instSuccessMessage, setInstSuccessMessage] = useState('');
   const [instErrorMessage, setInstErrorMessage] = useState('');
 
+  // System Release Update States
+  const [releaseVersion, setReleaseVersion] = useState('');
+  const [releaseDownloadUrl, setReleaseDownloadUrl] = useState('');
+  const [releaseMasterPassword, setReleaseMasterPassword] = useState('');
+  const [isReleasingUpdate, setIsReleasingUpdate] = useState(false);
+  const [releaseSuccessMessage, setReleaseSuccessMessage] = useState('');
+  const [releaseErrorMessage, setReleaseErrorMessage] = useState('');
+
 
   // Student Portal Selfie face upload states
   const [studentWebcamActive, setStudentWebcamActive] = useState(false);
@@ -1683,13 +1736,27 @@ export default function App() {
   const streamRef = React.useRef(null);
 
   // Data States
-  const [stats, setStats] = React.useState({
-    total_students: 0,
-    total_present_today: 0,
-    total_absent_today: 0,
-    average_attendance_rate: 0,
-    department_stats: {},
-    weekly_trends: []
+  const [stats, setStats] = React.useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_stats');
+      return cached ? JSON.parse(cached) : {
+        total_students: 0,
+        total_present_today: 0,
+        total_absent_today: 0,
+        average_attendance_rate: 0,
+        department_stats: {},
+        weekly_trends: []
+      };
+    } catch (_) {
+      return {
+        total_students: 0,
+        total_present_today: 0,
+        total_absent_today: 0,
+        average_attendance_rate: 0,
+        department_stats: {},
+        weekly_trends: []
+      };
+    }
   });
 
   const chartRef1 = React.useRef(null);
@@ -1724,10 +1791,30 @@ export default function App() {
       observers.forEach(obs => obs.disconnect());
     };
   }, [activeTab, stats]);
-  const [students, setStudents] = useState([]);
-  const [logs, setLogs] = useState([]);
-  const [departments, setDepartments] = useState(['CSE(IOT)', 'ECE', 'Mechanical']);
-  const [departmentsList, setDepartmentsList] = useState([]);
+  const [students, setStudents] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_students');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
+  const [logs, setLogs] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_logs');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
+  const [departments, setDepartments] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_departments');
+      return cached ? JSON.parse(cached) : ['CSE(IOT)', 'ECE', 'Mechanical'];
+    } catch (_) { return ['CSE(IOT)', 'ECE', 'Mechanical']; }
+  });
+  const [departmentsList, setDepartmentsList] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_departmentsList');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
   const [newDeptName, setNewDeptName] = useState('');
   const [newDeptCode, setNewDeptCode] = useState('');
   const [deptError, setDeptError] = useState('');
@@ -1798,9 +1885,24 @@ export default function App() {
   const [geoTrackingError, setGeoTrackingError] = useState('');
 
   // Subject & Timetable States
-  const [subjects, setSubjects] = useState([]);
-  const [schedules, setSchedules] = useState([]);
-  const [teachers, setTeachers] = useState([]);
+  const [subjects, setSubjects] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_subjects');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
+  const [schedules, setSchedules] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_schedules');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
+  const [teachers, setTeachers] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_teachers');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
 
   useEffect(() => {
@@ -1895,6 +1997,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setStats(data);
+        localStorage.setItem('cached_stats', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -1982,8 +2085,11 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setDepartmentsList(data);
+        localStorage.setItem('cached_departmentsList', JSON.stringify(data));
         if (data && data.length > 0) {
-          setDepartments(data.map(d => d.name));
+          const names = data.map(d => d.name);
+          setDepartments(names);
+          localStorage.setItem('cached_departments', JSON.stringify(names));
         } else {
           setDepartments(['CSE(IOT)', 'ECE', 'Mechanical']);
         }
@@ -2019,6 +2125,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setStudents(data);
+        localStorage.setItem('cached_students', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Error fetching students:', err);
@@ -2042,6 +2149,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setLogs(data);
+        localStorage.setItem('cached_logs', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Error fetching logs:', err);
@@ -2064,6 +2172,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setSubjects(data);
+        localStorage.setItem('cached_subjects', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Error fetching subjects:', err);
@@ -2153,6 +2262,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setSchedules(data);
+        localStorage.setItem('cached_schedules', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Error fetching schedules:', err);
@@ -2172,6 +2282,7 @@ export default function App() {
         const data = await res.json();
         const teacherUsers = data.filter(u => u.role === 'teacher' || u.role === 'admin');
         setTeachers(teacherUsers);
+        localStorage.setItem('cached_teachers', JSON.stringify(teacherUsers));
       }
     } catch (err) {
       console.error('Error fetching teachers:', err);
@@ -2472,6 +2583,48 @@ export default function App() {
       setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
     } finally {
       setIsUpdatingInst(false);
+    }
+  };
+
+  const handlePublishReleaseUpdate = async (e) => {
+    e.preventDefault();
+    if (isDemoMode) {
+      setReleaseErrorMessage('Not supported in Simulation/Demo mode.');
+      return;
+    }
+    setReleaseSuccessMessage('');
+    setReleaseErrorMessage('');
+    setIsReleasingUpdate(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/release-update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          master_password: releaseMasterPassword,
+          latest_version: releaseVersion,
+          update_download_url: releaseDownloadUrl
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReleaseSuccessMessage(data.message || 'System update successfully released!');
+        setReleaseVersion('');
+        setReleaseDownloadUrl('');
+        setReleaseMasterPassword('');
+        if (typeof playCyberSound === 'function') playCyberSound('success');
+      } else {
+        const err = await res.json();
+        setReleaseErrorMessage(err.detail || 'Failed to publish release update.');
+        if (typeof playCyberSound === 'function') playCyberSound('error');
+      }
+    } catch (e) {
+      setReleaseErrorMessage('Network/Connection error. Please try again.');
+      if (typeof playCyberSound === 'function') playCyberSound('error');
+    } finally {
+      setIsReleasingUpdate(false);
     }
   };
 
@@ -6318,6 +6471,61 @@ export default function App() {
         </div>
       )}
       <div className="app-container app-with-fx">
+
+      {/* In-App Update Banner */}
+      {updateAvailable && !updateDismissed && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0,
+          zIndex: 99999,
+          background: 'linear-gradient(135deg, #0d9488, #0891b2)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          padding: 'calc(env(safe-area-inset-top, 8px) + 10px) 16px 10px',
+          fontFamily: "'Inter', sans-serif",
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          animation: 'slideDown 0.4s ease-out',
+          flexWrap: 'wrap',
+        }}>
+          <span>🚀 v{updateAvailable.version} update available!</span>
+          <a
+            href={updateAvailable.downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: '#fff',
+              color: '#0d9488',
+              padding: '5px 14px',
+              borderRadius: '6px',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Download Update
+          </a>
+          <button
+            onClick={() => setUpdateDismissed(true)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255,255,255,0.8)',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              padding: '0 4px',
+              lineHeight: 1,
+            }}
+            aria-label="Dismiss update"
+          >×</button>
+        </div>
+      )}
+
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
       <AppAmbientLayer activeTab={activeTab} isMobile={isMobileView} />
@@ -10603,6 +10811,22 @@ export default function App() {
                       <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Register, monitor, and delete college tenants. Configure primary/secondary color schemes and seed initial admins.</p>
                     </div>
                   )}
+
+                  {/* Category Card 11: System Release Updates */}
+                  {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('release_updates'); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <ArrowUpCircle size={24} style={{ color: '#10b981' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>System Release Updates</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Publish new system-wide APK versions and manage update downloads for all users.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -12488,6 +12712,109 @@ export default function App() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* SYSTEM RELEASE UPDATES (Only visible to the System Owner rajkishorock@gmail.com) */}
+            {activeSubSetting === 'release_updates' && currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      <ArrowUpCircle size={22} style={{ color: '#10b981' }} /> System Release Updates
+                    </h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
+                      Publish new system-wide APK updates and manage download availability for students & faculty.
+                    </p>
+                  </div>
+                  <span className="telemetry-stat-pill" style={{
+                    padding: '4px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    letterSpacing: '0.5px'
+                  }}>
+                    APP VERSION: v{APP_VERSION}
+                  </span>
+                </div>
+
+                {releaseSuccessMessage && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem' }}>
+                    ✅ {releaseSuccessMessage}
+                  </div>
+                )}
+                {releaseErrorMessage && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
+                    ❌ {releaseErrorMessage}
+                  </div>
+                )}
+
+                <form onSubmit={handlePublishReleaseUpdate} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🚀 Publish a New Version Release
+                  </h4>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">New Release Version (e.g., 1.0.2)</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. 1.0.2"
+                        value={releaseVersion}
+                        onChange={e => setReleaseVersion(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Update Download URL (.apk Link)</label>
+                      <input
+                        type="url"
+                        className="form-input"
+                        placeholder="e.g. https://github.com/owner/repo/releases/download/v1.0.2/app-debug.apk"
+                        value={releaseDownloadUrl}
+                        onChange={e => setReleaseDownloadUrl(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Owner Master Password</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="Enter system master password to authorize"
+                      value={releaseMasterPassword}
+                      onChange={e => setReleaseMasterPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="bg-gradient-btn"
+                    style={{ padding: '12px 24px', borderRadius: '8px', fontSize: '0.88rem', alignSelf: 'flex-start', background: 'linear-gradient(135deg, #10b981, #0891b2)' }}
+                    disabled={isReleasingUpdate}
+                  >
+                    {isReleasingUpdate ? 'Publishing Release...' : '📢 Release System Update'}
+                  </button>
+                </form>
+
+                <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>ℹ️ Release Deployment Info</h4>
+                  <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, lineHeight: 1.5 }}>
+                    Once a release is successfully published using the Master Password:
+                  </p>
+                  <ul style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '0 0 0 20px', padding: 0, lineHeight: 1.5 }}>
+                    <li>All running client instances will check the release endpoint in the background.</li>
+                    <li>If a version difference is detected, an in-app banner with a download button will immediately display at the top of the interface.</li>
+                    <li>The update download url will allow users to directly download the updated application build.</li>
+                  </ul>
                 </div>
               </div>
             )}

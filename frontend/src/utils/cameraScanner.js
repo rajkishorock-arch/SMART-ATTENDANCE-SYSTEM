@@ -120,9 +120,9 @@ export function estimateFaceBox(landmarks, canvasW, canvasH) {
   };
 }
 
-export async function wakeBackend(apiBaseUrl) {
+export async function wakeBackend(apiBaseUrl, timeoutMs = 6000) {
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 90000);
+  const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${apiBaseUrl}/health/ping`, {
       signal: controller.signal,
@@ -133,7 +133,7 @@ export async function wakeBackend(apiBaseUrl) {
   } catch {
     clearTimeout(t);
     try {
-      const res2 = await fetch(`${apiBaseUrl}/health/`, { signal: AbortSignal.timeout(90000) });
+      const res2 = await fetch(`${apiBaseUrl}/health/`, { signal: AbortSignal.timeout(timeoutMs) });
       return res2.ok;
     } catch {
       return false;

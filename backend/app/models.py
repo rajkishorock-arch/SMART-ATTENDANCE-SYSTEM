@@ -143,6 +143,8 @@ class SystemSettings(Base):
     allowed_radius_meters = Column(Float, default=100.0)
     ip_restriction_enabled = Column(Boolean, default=False)
     allowed_ip_ranges = Column(Text, default="127.0.0.1,192.168.1.0/24")
+    latest_version = Column(String(50), nullable=True, default="1.0.1")
+    update_download_url = Column(Text, nullable=True, default="")
 
 class Feedback(Base):
     __tablename__ = "feedbacks"
