@@ -4,7 +4,7 @@ import hashlib
 import secrets
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -24,54 +24,6 @@ PLANS = {
 }
 
 
-def get_plan(plan_name: Optional[str]) -> dict:
-    return PLANS.get(plan_name or "free", PLANS["free"])
-
-
-def get_effective_student_limit(inst: models.Institution) -> int:
-    plan_info = get_plan(inst.subscription_plan if inst else None)
-    if inst and inst.student_limit:
-        return inst.student_limit
-    return plan_info["student_limit"]
-
-
-def get_student_usage(db: Session, institution_id: int) -> dict:
-    inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-    if not inst:
-        raise HTTPException(status_code=404, detail="Institution not found")
-    student_count = db.query(models.StudentModel).filter(
-        models.StudentModel.institution_id == institution_id
-    ).count()
-    plan_info = get_plan(inst.subscription_plan)
-    student_limit = get_effective_student_limit(inst)
-    return {
-        "plan": inst.subscription_plan or "free",
-        "status": inst.subscription_status or "active",
-        "student_count": student_count,
-        "student_limit": student_limit,
-        "remaining_students": max(0, student_limit - student_count),
-        "plan_details": plan_info,
-    }
-
-
-def ensure_student_capacity(db: Session, institution_id: int, incoming: int = 1):
-    usage = get_student_usage(db, institution_id)
-    if usage["status"] != "active":
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Institution subscription is not active. Please activate billing before adding students.",
-        )
-    if usage["student_count"] + incoming > usage["student_limit"]:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=(
-                f"Student limit reached for the {usage['plan']} plan "
-                f"({usage['student_count']}/{usage['student_limit']}). Upgrade the plan to add more students."
-            ),
-        )
-    return usage
-
-
 class CreateOrderRequest(BaseModel):
     plan: str = "starter"
 
@@ -88,7 +40,20 @@ def subscription_status(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
-    return get_student_usage(db, current_user.institution_id)
+    inst = db.query(models.Institution).filter(
+        models.Institution.id == current_user.institution_id
+    ).first()
+    student_count = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == current_user.institution_id
+    ).count()
+    plan_info = PLANS.get(inst.subscription_plan or "free", PLANS["free"])
+    return {
+        "plan": inst.subscription_plan,
+        "status": inst.subscription_status,
+        "student_count": student_count,
+        "student_limit": inst.student_limit or plan_info["student_limit"],
+        "plan_details": plan_info,
+    }
 
 
 @router.post("/create-order")

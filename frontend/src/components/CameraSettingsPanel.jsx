@@ -48,8 +48,6 @@ export default function CameraSettingsPanel({ onChange }) {
         { key: 'autoFocusBox', label: 'Auto face focus box' },
         { key: 'mirrorPreview', label: 'Mirror preview (selfie mode)' },
         { key: 'hapticFeedback', label: 'Haptic feedback on match (mobile)' },
-        { key: 'serverFallbackScan', label: 'Deep learning fallback scan' },
-        { key: 'wakeBackendBeforeScan', label: 'Auto wake server before scan' },
       ].map(({ key, label }) => (
         <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#cbd5e1', marginBottom: '10px', cursor: 'pointer' }}>
           <input

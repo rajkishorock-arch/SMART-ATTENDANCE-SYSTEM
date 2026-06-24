@@ -100,27 +100,16 @@ class RecognitionService:
         # --- Step 1: Pre-process frame for better detection ---
         enhanced = self._enhance_image(image)
 
-        detection_image = enhanced
-        box_scale = 1.0
         h, w = enhanced.shape[:2]
         self.detector.setInputSize((w, h))
 
         retval, faces = self.detector.detect(enhanced)
 
-        # Two-pass: if enhanced image yields no face, retry with original.
+        # Two-pass: if enhanced image yields no face, retry with original
         if not retval or faces is None or len(faces) == 0:
             self.detector.setInputSize((image.shape[1], image.shape[0]))
             retval, faces = self.detector.detect(image)
-            detection_image = image
-
-        # Third pass: upscale small/mobile frames so distant faces survive YuNet input.
-        if not retval or faces is None or len(faces) == 0:
-            upscale = 1.5
-            upscaled = cv2.resize(enhanced, None, fx=upscale, fy=upscale, interpolation=cv2.INTER_CUBIC)
-            self.detector.setInputSize((upscaled.shape[1], upscaled.shape[0]))
-            retval, faces = self.detector.detect(upscaled)
-            detection_image = upscaled
-            box_scale = upscale
+            enhanced = image  # use original for alignment if fallback
 
         if not retval or faces is None or len(faces) == 0:
             return []
@@ -135,7 +124,7 @@ class RecognitionService:
 
             try:
                 # Align and crop the face using YuNet landmarks
-                aligned = self.recognizer.alignCrop(detection_image, face)
+                aligned = self.recognizer.alignCrop(enhanced, face)
                 # Extract the 128-D SFace feature vector
                 feat = self.recognizer.feature(aligned)
             except Exception as extract_err:
@@ -163,7 +152,7 @@ class RecognitionService:
                     "name": student["name"],
                     "roll": student["roll"],
                     "dep": student["dep"],
-                    "box": [int(x / box_scale), int(y / box_scale), int(box_w / box_scale), int(box_h / box_scale)],
+                    "box": [int(x), int(y), int(box_w), int(box_h)],
                     "confidence": round(min(100.0, max(0.0, best_score * 100)), 2)
                 })
 

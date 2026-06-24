@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas, security, crud
 from .database import get_db
-from .billing import ensure_student_capacity
 
 router = APIRouter()
 
@@ -36,7 +35,6 @@ async def bulk_import_students(
             if existing:
                 skipped += 1
                 continue
-            ensure_student_capacity(db, current_user.institution_id, incoming=1)
             student = schemas.StudentCreate(
                 id=0,
                 name=row.get("name", "").strip() or roll,

@@ -52,32 +52,12 @@ export function getCameraPreset(mode = 'turbo') {
   return CAMERA_PRESETS[mode] || CAMERA_PRESETS.turbo;
 }
 
-const DEFAULT_CAMERA_SETTINGS = {
-  preset: 'turbo',
-  ...getCameraPreset('turbo'),
-  autoFocusBox: true,
-  mirrorPreview: true,
-  hapticFeedback: true,
-  serverFallbackScan: true,
-  wakeBackendBeforeScan: true,
-  fallbackScanIntervalMs: 1400,
-};
-
 export function loadCameraSettings() {
   try {
     const raw = localStorage.getItem('camera_scan_settings');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const presetKey = parsed.preset || DEFAULT_CAMERA_SETTINGS.preset;
-      return {
-        ...DEFAULT_CAMERA_SETTINGS,
-        ...getCameraPreset(presetKey),
-        ...parsed,
-        preset: presetKey,
-      };
-    }
+    if (raw) return { ...CAMERA_PRESETS.balanced, ...JSON.parse(raw), preset: JSON.parse(raw).preset || 'turbo' };
   } catch (_) { /* ignore */ }
-  return DEFAULT_CAMERA_SETTINGS;
+  return { preset: 'turbo', ...getCameraPreset('turbo'), autoFocusBox: true, mirrorPreview: true, hapticFeedback: true };
 }
 
 export function saveCameraSettings(settings) {

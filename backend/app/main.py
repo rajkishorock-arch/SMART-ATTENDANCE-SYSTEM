@@ -29,18 +29,22 @@ def update_schema():
         # Helper to safely add a column — with proper rollback for PostgreSQL
         def safe_add_column(table_name, column_name, col_def):
             try:
-                # Re-inspect columns each time (in case inspector cache is stale)
-                if table_name not in inspector.get_table_names():
+                fresh_inspector = inspect(engine)
+                if table_name not in fresh_inspector.get_table_names():
                     return
-                cols = [c['name'] for c in inspector.get_columns(table_name)]
-                if column_name not in cols:
+                cols = [c['name'].lower() for c in fresh_inspector.get_columns(table_name)]
+                if column_name.lower() not in cols:
                     print(f"Adding {column_name} column to {table_name} table...")
                     db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {col_def}"))
                     db.commit()
                     print(f"Column {column_name} added successfully to {table_name} table.")
             except Exception as ex:
                 db.rollback()
-                print(f"Skip {table_name}.{column_name}: {ex}")
+                err_msg = str(ex).lower()
+                if "already exists" in err_msg or "duplicate column" in err_msg or "duplicate key" in err_msg:
+                    pass
+                else:
+                    print(f"Skip {table_name}.{column_name}: {ex}")
 
         # Helper to safely execute a SQL statement — with proper rollback
         def safe_execute(sql, description=""):
@@ -53,40 +57,6 @@ def update_schema():
                 db.rollback()
                 if description:
                     print(f"Skip ({description}): {ex}")
-
-        def safe_add_unique_constraint(table_name, constraint_name, columns):
-            """Add a unique constraint/index only when the dialect supports it and it is missing."""
-            try:
-                db_dialect = engine.dialect.name
-                fresh_inspector = inspect(engine)
-                if table_name not in fresh_inspector.get_table_names():
-                    return
-
-                existing_unique_names = {
-                    item.get("name")
-                    for item in fresh_inspector.get_unique_constraints(table_name)
-                    if item.get("name")
-                }
-                if constraint_name in existing_unique_names:
-                    return
-
-                column_list = ", ".join(columns)
-                if db_dialect == "sqlite":
-                    print(f"SQLite detected; skipping unique constraint migration {constraint_name}.")
-                    return
-                if db_dialect == "mysql":
-                    safe_execute(
-                        f"ALTER TABLE {table_name} ADD UNIQUE KEY {constraint_name} ({column_list})",
-                        f"Added unique key {constraint_name}"
-                    )
-                else:
-                    safe_execute(
-                        f"ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} UNIQUE ({column_list})",
-                        f"Added unique constraint {constraint_name}"
-                    )
-            except Exception as ex:
-                db.rollback()
-                print(f"Skip unique constraint {constraint_name}: {ex}")
 
         # Sync existing tables — add institution_id
         for tbl in ['users', 'student', 'subjects', 'schedules', 'attendence', 'audit_logs', 'system_settings', 'feedbacks']:
@@ -116,11 +86,18 @@ def update_schema():
         if db_dialect == 'mysql':
             safe_execute("ALTER TABLE users DROP INDEX ix_users_email", "Dropped ix_users_email index")
             safe_execute("ALTER TABLE users DROP INDEX email", "Dropped email index")
+            safe_execute(
+                "ALTER TABLE users ADD UNIQUE KEY uq_institution_email (institution_id, email)",
+                "Added composite unique key"
+            )
         else:
             # PostgreSQL / SQLite
             safe_execute("DROP INDEX IF EXISTS ix_users_email", "Dropped ix_users_email index")
             safe_execute("DROP INDEX IF EXISTS email", "Dropped email index")
-        safe_add_unique_constraint('users', 'uq_institution_email', ['institution_id', 'email'])
+            safe_execute(
+                "ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)",
+                "Added composite unique constraint"
+            )
 
         # --- Advanced feature columns (idempotent migrations) ---
         safe_add_column('system_settings', 'latest_version', 'VARCHAR(50) NULL')
@@ -156,62 +133,74 @@ def update_schema():
 def migrate_multi_tenant_seed(db):
     from app import models
     # 1. Check if default institution exists, create if not
-    default_inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
-    if not default_inst:
-        print("Migration: Creating Default Institution (ID: 1)...")
-        default_inst = models.Institution(
-            id=1,
-            name="Default Institution",
-            slug="default",
-            primary_color="#4F46E5",
-            secondary_color="#06B6D4",
-            logo_url=""
-        )
-        db.add(default_inst)
-        db.commit()
-        print("Migration: Default Institution created.")
-    else:
-        # Update default institution branding if it's unset
-        updated = False
-        if not default_inst.primary_color:
-            default_inst.primary_color = "#4F46E5"
-            updated = True
-        if not default_inst.secondary_color:
-            default_inst.secondary_color = "#06B6D4"
-            updated = True
-        if updated:
+    try:
+        default_inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
+        if not default_inst:
+            print("Migration: Creating Default Institution (ID: 1)...")
+            default_inst = models.Institution(
+                id=1,
+                name="Default Institution",
+                slug="default",
+                primary_color="#4F46E5",
+                secondary_color="#06B6D4",
+                logo_url=""
+            )
+            db.add(default_inst)
             db.commit()
+            print("Migration: Default Institution created.")
+        else:
+            # Update default institution branding if it's unset
+            updated = False
+            if not default_inst.primary_color:
+                default_inst.primary_color = "#4F46E5"
+                updated = True
+            if not default_inst.secondary_color:
+                default_inst.secondary_color = "#06B6D4"
+                updated = True
+            if updated:
+                db.commit()
+    except Exception as inst_err:
+        db.rollback()
+        print(f"Migration: Error checking/creating default institution: {inst_err}")
 
     # Create additional institutions for testing subdomain layout routing
-    du_inst = db.query(models.Institution).filter(models.Institution.slug == "du").first()
-    if not du_inst:
-        print("Migration: Creating DU Institution (ID: 2)...")
-        du_inst = models.Institution(
-            id=2,
-            name="Delhi University",
-            slug="du",
-            primary_color="#800020",      # Maroon/Burgundy
-            secondary_color="#DAA520",    # Goldenrod
-            logo_url=""
-        )
-        db.add(du_inst)
-        db.commit()
-        print("Migration: DU Institution created.")
+    try:
+        du_inst = db.query(models.Institution).filter(models.Institution.slug == "du").first()
+        if not du_inst:
+            print("Migration: Creating DU Institution (ID: 2)...")
+            du_inst = models.Institution(
+                id=2,
+                name="Delhi University",
+                slug="du",
+                primary_color="#800020",      # Maroon/Burgundy
+                secondary_color="#DAA520",    # Goldenrod
+                logo_url=""
+            )
+            db.add(du_inst)
+            db.commit()
+            print("Migration: DU Institution created.")
+    except Exception as du_err:
+        db.rollback()
+        print(f"Migration: Error checking/creating DU institution: {du_err}")
 
-    iitd_inst = db.query(models.Institution).filter(models.Institution.slug == "iitd").first()
-    if not iitd_inst:
-        print("Migration: Creating IIT Delhi Institution (ID: 3)...")
-        iitd_inst = models.Institution(
-            id=3,
-            name="IIT Delhi",
-            slug="iitd",
-            primary_color="#0D9488",      # Teal-600
-            secondary_color="#F59E0B",    # Amber-500
-            logo_url=""
-        )
-        db.add(iitd_inst)
-        db.commit()
-        print("Migration: IIT Delhi Institution created.")
+    try:
+        iitd_inst = db.query(models.Institution).filter(models.Institution.slug == "iitd").first()
+        if not iitd_inst:
+            print("Migration: Creating IIT Delhi Institution (ID: 3)...")
+            iitd_inst = models.Institution(
+                id=3,
+                name="IIT Delhi",
+                slug="iitd",
+                primary_color="#0D9488",      # Teal-600
+                secondary_color="#F59E0B",    # Amber-500
+                logo_url=""
+            )
+            db.add(iitd_inst)
+            db.commit()
+            print("Migration: IIT Delhi Institution created.")
+    except Exception as iitd_err:
+        db.rollback()
+        print(f"Migration: Error checking/creating IITD institution: {iitd_err}")
 
     # 2. Back-fill null institution_ids
     tables_to_migrate = [
@@ -235,6 +224,7 @@ def migrate_multi_tenant_seed(db):
                 )
                 db.commit()
         except Exception as e:
+            db.rollback()
             print(f"Migration error for table {table_name}: {e}")
 
 
@@ -313,6 +303,7 @@ def migrate_existing_student_embeddings(db):
                             break # Move to next student
         print(f"Migration: Successfully migrated {migrated_count} student(s) face embeddings.")
     except Exception as e:
+        db.rollback()
         print(f"Migration: Error migrating embeddings: {e}")
 
 
@@ -323,13 +314,8 @@ def ensure_primary_admin(db):
     from app.security import get_password_hash
     from app import models
 
-    from app.core.config import SYSTEM_OWNER_EMAIL, PRIMARY_ADMIN_PASSWORD
-
-    primary_email = SYSTEM_OWNER_EMAIL
-    primary_password = PRIMARY_ADMIN_PASSWORD
-    if not primary_password:
-        print("Primary admin password seeding skipped; PRIMARY_ADMIN_PASSWORD is not configured.")
-        return
+    primary_email = "rajkishorock@gmail.com"
+    primary_password = "raj@9211"
     
     # 1. Ensure primary admin exists for all 3 institutions (Default, DU, IITD)
     institutions_admin = [
@@ -342,31 +328,35 @@ def ensure_primary_admin(db):
         inst_id = inst_admin["id"]
         admin_name = inst_admin["name"]
         
-        # Check if institution actually exists before seeding
-        inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
-        if not inst_exists:
-            continue
-            
-        admin = get_user_by_email(db, email=primary_email, institution_id=inst_id)
-        if not admin:
-            create_user(
-                db,
-                user=UserCreate(
-                    email=primary_email,
-                    name=admin_name,
-                    password=primary_password,
-                    role="admin",
-                ),
-                institution_id=inst_id
-            )
-            print(f"Primary admin account created for institution {inst_id}.")
-        else:
-            admin.password_hash = get_password_hash(primary_password)
-            admin.name = admin_name
-            admin.role = "admin"
-            admin.is_active = True
-            db.commit()
-            print(f"Primary admin account synced for institution {inst_id}.")
+        try:
+            # Check if institution actually exists before seeding
+            inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
+            if not inst_exists:
+                continue
+                
+            admin = get_user_by_email(db, email=primary_email, institution_id=inst_id)
+            if not admin:
+                create_user(
+                    db,
+                    user=UserCreate(
+                        email=primary_email,
+                        name=admin_name,
+                        password=primary_password,
+                        role="admin",
+                    ),
+                    institution_id=inst_id
+                )
+                print(f"Primary admin account created for institution {inst_id}.")
+            else:
+                admin.password_hash = get_password_hash(primary_password)
+                admin.name = admin_name
+                admin.role = "admin"
+                admin.is_active = True
+                db.commit()
+                print(f"Primary admin account synced for institution {inst_id}.")
+        except Exception as admin_err:
+            db.rollback()
+            print(f"Error seeding admin for institution {inst_id}: {admin_err}")
 
     # 2. Ensure distinct test students exist for each institution
     test_students = [
@@ -401,33 +391,37 @@ def ensure_primary_admin(db):
     
     for s_info in test_students:
         inst_id = s_info["inst_id"]
-        # Check if institution exists
-        inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
-        if not inst_exists:
-            continue
+        try:
+            # Check if institution exists
+            inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
+            if not inst_exists:
+                continue
+                
+            s_exists = db.query(models.StudentModel).filter(
+                models.StudentModel.email == s_info["email"],
+                models.StudentModel.institution_id == inst_id
+            ).first()
             
-        s_exists = db.query(models.StudentModel).filter(
-            models.StudentModel.email == s_info["email"],
-            models.StudentModel.institution_id == inst_id
-        ).first()
-        
-        if not s_exists:
-            new_s = models.StudentModel(
-                id=s_info["id"],
-                name=s_info["name"],
-                roll=s_info["roll"],
-                dep=s_info["dep"],
-                course=s_info["course"],
-                year="2026",
-                semester="1st",
-                email=s_info["email"],
-                password_hash=get_password_hash("student123"),
-                photo="no",
-                institution_id=inst_id
-            )
-            db.add(new_s)
-            db.commit()
-            print(f"Test student '{s_info['name']}' seeded for institution {inst_id}.")
+            if not s_exists:
+                new_s = models.StudentModel(
+                    id=s_info["id"],
+                    name=s_info["name"],
+                    roll=s_info["roll"],
+                    dep=s_info["dep"],
+                    course=s_info["course"],
+                    year="2026",
+                    semester="1st",
+                    email=s_info["email"],
+                    password_hash=get_password_hash("student123"),
+                    photo="no",
+                    institution_id=inst_id
+                )
+                db.add(new_s)
+                db.commit()
+                print(f"Test student '{s_info['name']}' seeded for institution {inst_id}.")
+        except Exception as student_err:
+            db.rollback()
+            print(f"Error seeding student '{s_info['name']}': {student_err}")
 
 
 @app.on_event("startup")

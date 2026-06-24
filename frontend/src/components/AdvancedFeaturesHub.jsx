@@ -3,7 +3,6 @@ import {
   Upload, Users, AlertTriangle, BarChart3, Key, CreditCard,
   FileText, Bell, RefreshCw, Shield, Download, Building2,
 } from 'lucide-react';
-import { authHeaders, fetchJson as requestJson } from '../utils/apiClient';
 
 export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, currentUser }) {
   const [tab, setTab] = useState('bulk');
@@ -11,19 +10,24 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
   const [message, setMessage] = useState('');
   const [atRisk, setAtRisk] = useState([]);
   const [predictions, setPredictions] = useState([]);
-  const [insights, setInsights] = useState(null);
   const [duplicates, setDuplicates] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [apiKeys, setApiKeys] = useState([]);
   const [billing, setBilling] = useState(null);
-  const [saasSummary, setSaasSummary] = useState(null);
   const [deptStats, setDeptStats] = useState(null);
   const [faqText, setFaqText] = useState('');
   const [deptName, setDeptName] = useState('CS');
 
-  const headers = useCallback(() => authHeaders(token), [token]);
-  const fetchJson = useCallback((url, options = {}) => requestJson(url, token, options), [token]);
+  const headers = useCallback(() => ({
+    Authorization: `Bearer ${token}`,
+  }), [token]);
+
+  const fetchJson = async (url, options = {}) => {
+    const res = await fetch(url, { ...options, headers: { ...headers(), ...options.headers } });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Request failed');
+    return res.json();
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -31,7 +35,6 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
       Promise.all([
         fetchJson(`${apiBaseUrl}/analytics/at-risk`).then((d) => setAtRisk(d.students || [])),
         fetchJson(`${apiBaseUrl}/analytics/predictions`).then((d) => setPredictions(d.predictions || [])),
-        fetchJson(`${apiBaseUrl}/analytics/insights`).then(setInsights),
       ]).catch((e) => setMessage(e.message));
     }
     if (tab === 'enrollment') {
@@ -48,11 +51,8 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
     }
     if (tab === 'billing' && userRole === 'admin') {
       fetchJson(`${apiBaseUrl}/billing/status`).then(setBilling).catch((e) => setMessage(e.message));
-      if (currentUser?.institution_id) {
-        fetchJson(`${apiBaseUrl}/institutions/${currentUser.institution_id}/saas-summary`).then(setSaasSummary).catch((e) => setMessage(e.message));
-      }
     }
-  }, [tab, token, apiBaseUrl, userRole, headers, currentUser?.institution_id]);
+  }, [tab, token, apiBaseUrl, userRole, headers]);
 
   const handleBulkUpload = async (entity, file) => {
     if (!file) return;
@@ -179,29 +179,6 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
 
       {tab === 'analytics' && (
         <div>
-          {insights && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-              <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
-                <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Average</div>
-                <strong style={{ color: '#f8fafc', fontSize: '1.2rem' }}>{insights.average_attendance}%</strong>
-              </div>
-              <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
-                <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>At Risk</div>
-                <strong style={{ color: '#f87171', fontSize: '1.2rem' }}>{insights.at_risk_count}</strong>
-              </div>
-              <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
-                <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Working Days</div>
-                <strong style={{ color: '#60a5fa', fontSize: '1.2rem' }}>{insights.working_days}</strong>
-              </div>
-            </div>
-          )}
-          {insights?.recommendations?.length > 0 && (
-            <div style={{ marginBottom: '16px', color: '#cbd5e1', fontSize: '0.85rem' }}>
-              {insights.recommendations.map((item) => (
-                <div key={item} style={{ padding: '6px 0' }}>{item}</div>
-              ))}
-            </div>
-          )}
           <h4 style={{ color: '#f87171' }}><AlertTriangle size={16} /> At-Risk Students ({atRisk.length})</h4>
           <div style={{ maxHeight: '200px', overflow: 'auto', marginBottom: '16px' }}>
             {atRisk.map((s) => (
@@ -281,18 +258,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
       {tab === 'billing' && billing && (
         <div style={{ color: '#cbd5e1' }}>
           <p>Plan: <strong>{billing.plan}</strong> ({billing.status})</p>
-          <p>Students: {billing.student_count} / {billing.student_limit} ({billing.remaining_students ?? 0} remaining)</p>
-          {saasSummary && (
-            <div style={{ marginTop: '16px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '14px' }}>
-              <h4 style={{ color: '#f8fafc', margin: '0 0 10px' }}>Institution Setup</h4>
-              {saasSummary.setup_steps?.map((step) => (
-                <div key={step.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '6px 0', fontSize: '0.85rem' }}>
-                  <span>{step.label}</span>
-                  <strong style={{ color: step.complete ? '#10b981' : '#f59e0b' }}>{step.complete ? 'Complete' : 'Pending'}</strong>
-                </div>
-              ))}
-            </div>
-          )}
+          <p>Students: {billing.student_count} / {billing.student_limit}</p>
         </div>
       )}
 
