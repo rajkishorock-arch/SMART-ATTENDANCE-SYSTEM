@@ -698,285 +698,80 @@ def get_attendance_sessions_history(
         
     return history
 
-
-@router.post("/manual")
-def mark_manual_attendance(
+@router.put("/status")
+def update_attendance_status(
     payload: schemas.ManualAttendanceCreate,
-    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
     """
-    Manually mark attendance for a specific student without face recognition.
-    Restricted to teachers (for their own subject) and admins.
-    Full security checks (geofencing, IP restriction) still apply.
-    Every action is logged in the audit trail.
+    Manually update a student's attendance status for a session.
+    If the status is 'Absent', the record is removed.
+    If the status is 'Present' or 'Late', a record is updated or created.
     """
     if current_user.role not in ["admin", "teacher"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only teachers or administrators can mark attendance manually."
+            detail="Unauthorized: Only teachers and admins can manually update attendance."
         )
 
-    # Validate attendance status value
-    valid_statuses = ["Present", "Absent", "Late"]
-    if payload.attendance_status not in valid_statuses:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid attendance status. Must be one of: {', '.join(valid_statuses)}"
-        )
+    # Resolve date and time
+    date_str = payload.custom_date
+    if not date_str:
+        date_str = datetime.now(IST).strftime("%d/%m/%Y")
+    else:
+        # Convert date to standard DD/MM/YYYY if provided in YYYY-MM-DD
+        if "-" in date_str:
+            try:
+                date_str = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m/%Y")
+            except ValueError:
+                pass
 
-    # Fetch system settings for security checks
-    settings = crud.get_system_settings(db, institution_id=current_user.institution_id)
+    time_str = payload.custom_time
+    if not time_str:
+        time_str = datetime.now(IST).strftime("%H:%M:%S")
 
-    # IP Network Restriction Check (same as face scan)
-    if settings.ip_restriction_enabled:
-        client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
-        if not security_utils.verify_client_ip(
-            client_ip, settings.allowed_ip_ranges, restriction_enabled=True
-        ):
+    # Authorize teacher access (can only update attendance for their own subject)
+    if current_user.role == "teacher":
+        if payload.subject_id is None:
             raise HTTPException(
-                status_code=403,
-                detail=f"Access denied: IP restriction active. Your IP ({client_ip}) is not authorized."
+                status_code=400,
+                detail="subject_id is required for teachers."
+            )
+        subject = db.query(models.Subject).filter(
+            models.Subject.id == payload.subject_id,
+            models.Subject.institution_id == current_user.institution_id
+        ).first()
+        if not subject or subject.teacher_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Unauthorized: You can only manage attendance for your assigned subjects."
             )
 
-    # Resolve subject and validate teacher authorization
-    subject_id = payload.subject_id
-    if current_user.role == "teacher":
-        if subject_id is None:
-            # Auto-resolve teacher's subject
-            subject = db.query(models.Subject).filter(
-                models.Subject.teacher_id == current_user.id,
-                models.Subject.institution_id == current_user.institution_id
-            ).first()
-            if not subject:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="You have no assigned subject. Cannot mark manual attendance."
-                )
-            subject_id = subject.id
-        else:
-            # Verify teacher owns this subject
-            subject = db.query(models.Subject).filter(
-                models.Subject.id == subject_id,
-                models.Subject.institution_id == current_user.institution_id
-            ).first()
-            if not subject or subject.teacher_id != current_user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Unauthorized: You can only mark attendance for your assigned subject."
-                )
-
-    # Fetch the student
-    student = crud.get_student_by_id(
-        db, student_id=payload.student_id, institution_id=current_user.institution_id
-    )
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found in your institution.")
-
-    # Build date and time strings
-    IST_TZ = timezone(timedelta(hours=5, minutes=30))
-    if payload.custom_date:
-        if "-" in payload.custom_date:
-            try:
-                date_str = datetime.strptime(payload.custom_date, "%Y-%m-%d").strftime("%d/%m/%Y")
-            except ValueError:
-                date_str = payload.custom_date
-        else:
-            date_str = payload.custom_date
-    else:
-        date_str = datetime.now(IST_TZ).strftime("%d/%m/%Y")
-
-    time_str = payload.custom_time if payload.custom_time else datetime.now(IST_TZ).strftime("%H:%M:%S")
-
-    # Check if already marked for this student/subject/date/time
-    existing_query = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.id == str(student.id),
-        models.AttendanceModel.date == date_str,
-        models.AttendanceModel.institution_id == current_user.institution_id
-    )
-    if payload.custom_time:
-        existing_query = existing_query.filter(models.AttendanceModel.time == time_str)
-    if subject_id is not None:
-        existing_query = existing_query.filter(models.AttendanceModel.subject_id == subject_id)
-    else:
-        existing_query = existing_query.filter(models.AttendanceModel.subject_id == None)
-
-    existing = existing_query.first()
-
-    if existing:
-        # Update existing record
-        existing.attendance = payload.attendance_status
-        existing.remarks = payload.remarks or existing.remarks
-        existing.marked_by = current_user.email
-        db.commit()
-        db.refresh(existing)
-        record = existing
-        action_verb = "Updated"
-    else:
-        # Create new attendance record
-        import uuid
-        record = models.AttendanceModel(
-            id=str(student.id),
-            institution_id=current_user.institution_id,
-            roll=student.roll,
-            name=student.name,
-            department=student.dep,
-            time=time_str,
-            date=date_str,
-            attendance=payload.attendance_status,
-            subject_id=subject_id,
-            remarks=payload.remarks,
-            marked_by=current_user.email
+    try:
+        crud.update_attendance_status(
+            db=db,
+            student_id=payload.student_id,
+            date_str=date_str,
+            time_str=time_str,
+            status=payload.attendance_status,
+            subject_id=payload.subject_id,
+            institution_id=current_user.institution_id
         )
-        db.add(record)
-        db.commit()
-        db.refresh(record)
-        action_verb = "Marked"
-
-    # Write audit log
-    subject_info = f" (Subject ID: {subject_id})" if subject_id else ""
-    crud.create_audit_log(
-        db,
-        log=schemas.AuditLogCreate(
-            user_email=current_user.email,
-            action=f"Manual Attendance: {action_verb} {payload.attendance_status} for {student.name} ({student.roll}) on {date_str} at {time_str}{subject_info}. Remarks: {payload.remarks or 'None'}"
-        ),
-        institution_id=current_user.institution_id
-    )
-
-    return {
-        "status": "success",
-        "action": action_verb,
-        "student_name": student.name,
-        "student_roll": student.roll,
-        "attendance": payload.attendance_status,
-        "date": date_str,
-        "time": time_str,
-        "subject_id": subject_id,
-        "remarks": payload.remarks,
-        "marked_by": current_user.email
-    }
-
-
-@router.get("/leaderboard")
-def get_attendance_leaderboard(
-    department: Optional[str] = None,
-    subject_id: Optional[int] = None,
-    limit: int = 10,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
-):
-    """
-    Get top students by attendance percentage for a department/subject.
-    Returns ranked list with attendance rates for leaderboard display.
-    """
-    if current_user.role not in ["admin", "teacher"]:
-        raise HTTPException(status_code=403, detail="Only teachers or administrators can view the leaderboard.")
-
-    # Get all students in scope
-    student_query = db.query(models.StudentModel).filter(
-        models.StudentModel.institution_id == current_user.institution_id
-    )
-    if department:
-        student_query = student_query.filter(models.StudentModel.dep == department)
-    students = student_query.all()
-
-    if not students:
-        return {"leaderboard": [], "total_students": 0}
-
-    # Calculate attendance percentage for each student
-    leaderboard = []
-    for s in students:
-        attn_query = db.query(models.AttendanceModel).filter(
-            models.AttendanceModel.id == str(s.id),
-            models.AttendanceModel.institution_id == current_user.institution_id
+        # Log to audit trail
+        crud.create_audit_log(
+            db=db,
+            audit_log=schemas.AuditLogCreate(
+                user_email=current_user.email,
+                action=f"Manually set attendance status to {payload.attendance_status} for student ID {payload.student_id} on {date_str} {time_str}."
+            ),
+            institution_id=current_user.institution_id
         )
-        if subject_id:
-            attn_query = attn_query.filter(models.AttendanceModel.subject_id == subject_id)
-
-        total = attn_query.count()
-        present = attn_query.filter(models.AttendanceModel.attendance == "Present").count()
-        pct = round((present / total * 100), 1) if total > 0 else 0.0
-
-        leaderboard.append({
-            "rank": 0,
-            "student_id": s.id,
-            "name": s.name,
-            "roll": s.roll,
-            "dep": s.dep,
-            "total_classes": total,
-            "present_count": present,
-            "attendance_pct": pct
-        })
-
-    # Sort by attendance percentage descending
-    leaderboard.sort(key=lambda x: (-x["attendance_pct"], x["name"]))
-    for i, entry in enumerate(leaderboard[:limit]):
-        entry["rank"] = i + 1
-
-    return {
-        "leaderboard": leaderboard[:limit],
-        "total_students": len(students)
-    }
+        return {"status": "success", "message": "Attendance status updated successfully."}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update attendance status: {str(e)}")
 
 
-@router.get("/heatmap")
-def get_attendance_heatmap(
-    months: int = 3,
-    subject_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
-):
-    """
-    Returns daily attendance density for the last N months.
-    Useful for rendering a GitHub-style heatmap calendar.
-    """
-    if current_user.role not in ["admin", "teacher"]:
-        raise HTTPException(status_code=403, detail="Only teachers or administrators can view heatmap data.")
-
-    IST_TZ = timezone(timedelta(hours=5, minutes=30))
-    end_date = datetime.now(IST_TZ)
-    start_date = end_date - timedelta(days=months * 30)
-
-    # Query all attendance in date range
-    query = db.query(
-        models.AttendanceModel.date,
-        models.AttendanceModel.attendance
-    ).filter(
-        models.AttendanceModel.institution_id == current_user.institution_id
-    )
-    if subject_id:
-        query = query.filter(models.AttendanceModel.subject_id == subject_id)
-
-    records = query.all()
-
-    # Build date -> {present, absent, late} map
-    heat_map = {}
-    for date_str, attn in records:
-        if date_str not in heat_map:
-            heat_map[date_str] = {"present": 0, "absent": 0, "late": 0, "total": 0}
-        heat_map[date_str]["total"] += 1
-        if attn == "Present":
-            heat_map[date_str]["present"] += 1
-        elif attn == "Absent":
-            heat_map[date_str]["absent"] += 1
-        elif attn == "Late":
-            heat_map[date_str]["late"] += 1
-
-    # Convert to list format sorted by date
-    result = []
-    for date_str, counts in sorted(heat_map.items()):
-        total = counts["total"]
-        pct = round(counts["present"] / total * 100) if total > 0 else 0
-        result.append({
-            "date": date_str,
-            "present": counts["present"],
-            "absent": counts["absent"],
-            "late": counts["late"],
-            "total": total,
-            "pct": pct
-        })
-
-    return {"heatmap": result}
 

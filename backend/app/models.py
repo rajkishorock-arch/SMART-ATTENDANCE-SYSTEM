@@ -117,8 +117,6 @@ class AttendanceModel(Base):
     date = Column(String(20), primary_key=True)
     attendance = Column(String(20)) # 'Present', 'Absent', 'Late'
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
-    remarks = Column(String(255), nullable=True)  # Optional note for manual attendance
-    marked_by = Column(String(100), nullable=True)  # 'face_scan' or teacher email
 
     __table_args__ = (
         UniqueConstraint(
@@ -151,7 +149,6 @@ class SystemSettings(Base):
     build_status = Column(String(50), nullable=True, default="idle")
     build_version = Column(String(50), nullable=True)
     build_error = Column(Text, nullable=True)
-    update_beta_active = Column(Boolean, default=False)  # Beta channel: only owner sees the update
 
 
 class Feedback(Base):

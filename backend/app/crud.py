@@ -538,3 +538,64 @@ def update_leave_request_status(db: Session, leave_request_id: int, status: str)
         db.commit()
         db.refresh(db_leave)
     return db_leave
+
+def update_attendance_status(
+    db: Session,
+    student_id: int,
+    date_str: str,
+    time_str: str,
+    status: str,
+    subject_id: Optional[int] = None,
+    institution_id: Optional[int] = None
+):
+    query = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.id == str(student_id),
+        models.AttendanceModel.date == date_str,
+        models.AttendanceModel.time == time_str
+    )
+    if institution_id is not None:
+        query = query.filter(models.AttendanceModel.institution_id == institution_id)
+    if subject_id is not None:
+        query = query.filter(models.AttendanceModel.subject_id == subject_id)
+    else:
+        query = query.filter(models.AttendanceModel.subject_id == None)
+
+    existing = query.first()
+
+    if status == "Absent":
+        if existing:
+            db.delete(existing)
+            db.commit()
+        return None
+    else:
+        if existing:
+            existing.attendance = status
+            db.commit()
+            db.refresh(existing)
+            return existing
+        else:
+            student = db.query(models.StudentModel).filter(
+                models.StudentModel.id == student_id
+            )
+            if institution_id is not None:
+                student = student.filter(models.StudentModel.institution_id == institution_id)
+            student = student.first()
+            if not student:
+                raise ValueError("Student not found")
+
+            db_attendance = models.AttendanceModel(
+                id=str(student_id),
+                roll=student.roll,
+                name=student.name,
+                department=student.dep,
+                time=time_str,
+                date=date_str,
+                attendance=status,
+                subject_id=subject_id,
+                institution_id=institution_id
+            )
+            db.add(db_attendance)
+            db.commit()
+            db.refresh(db_attendance)
+            return db_attendance
+

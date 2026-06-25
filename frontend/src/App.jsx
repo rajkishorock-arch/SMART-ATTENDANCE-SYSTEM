@@ -441,7 +441,14 @@ export default function App() {
   // Authentication State
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || '');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('cached_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (_) {
+      return null;
+    }
+  });
 
   useEffect(() => {
     if (!token) return undefined;
@@ -467,6 +474,11 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Multi-select States
+  const [selectedStudentIds, setSelectedStudentIds] = useState(new Set());
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState(new Set());
+  const [selectedLogIds, setSelectedLogIds] = useState(new Set());
+
   // Student Portal States
   const [studentLogs, setStudentLogs] = useState([]);
   const [isLoadingStudentLogs, setIsLoadingStudentLogs] = useState(false);
@@ -484,22 +496,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubSetting, setActiveSubSetting] = useState(null);
   const [activeDashboardSubTab, setActiveDashboardSubTab] = useState(null);
-
-  // Manual Attendance States
-  const [isManualAttendanceOpen, setIsManualAttendanceOpen] = useState(false);
-  const [manualSubjectId, setManualSubjectId] = useState('');
-  const [manualDate, setManualDate] = useState(getLocalDateString());
-  const [manualPeriod, setManualPeriod] = useState('Period 1');
-  const [manualAttendanceData, setManualAttendanceData] = useState({}); // student_id -> { status: 'Present', remarks: '' }
-  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
-  const [manualSearchQuery, setManualSearchQuery] = useState('');
-
-  // Heatmap States
-  const [heatmapYear, setHeatmapYear] = useState(new Date().getFullYear());
-  const [heatmapMonth, setHeatmapMonth] = useState(new Date().getMonth()); // 0-indexed
-
-  // Leaderboard States
-  const [leaderboardDeptFilter, setLeaderboardDeptFilter] = useState('');
 
   useEffect(() => {
     setActiveSubSetting(null);
@@ -565,7 +561,6 @@ export default function App() {
   const [updateDownloadedToast, setUpdateDownloadedToast] = useState(false);
   const [serverLatestVersion, setServerLatestVersion] = useState('');
   const [updateActiveFlag, setUpdateActiveFlag] = useState(false);
-  const [updateBetaActiveFlag, setUpdateBetaActiveFlag] = useState(false);
   const [explorationSettings, setExplorationSettings] = useState(() => loadExplorationSettings());
   const [subscriptionPlan, setSubscriptionPlan] = useState('free');
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
@@ -642,15 +637,8 @@ export default function App() {
       const latestVersion = (data.latest_version || '').replace(/^v/i, '');
       setServerLatestVersion(latestVersion);
       setUpdateActiveFlag(!!data.update_active);
-      setUpdateBetaActiveFlag(!!data.update_beta_active);
 
-      const isOwner = currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com';
-      const isBetaActive = !!data.update_beta_active;
-      const isLiveActive = !!data.update_active;
-      const showBanner = (data.update_available && shouldShowUpdateBanner(latestVersion, isLiveActive)) ||
-                         (isOwner && data.beta_update_available && shouldShowUpdateBanner(latestVersion, isBetaActive));
-
-      if (showBanner) {
+      if (data.update_available && shouldShowUpdateBanner(latestVersion, data.update_active)) {
         setUpdateAvailable({
           version: latestVersion,
           downloadUrl: data.update_download_url || '',
@@ -664,7 +652,7 @@ export default function App() {
     } catch (e) {
       // silently ignore — no network is fine
     }
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     checkForUpdate();
@@ -674,10 +662,6 @@ export default function App() {
 
   // Fetch subscription plan for premium gating
   useEffect(() => {
-    if (currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com') {
-      setSubscriptionPlan('enterprise');
-      return;
-    }
     if (!token || userRole !== 'admin') return;
     fetch(`${API_BASE_URL}/billing/status`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -687,7 +671,7 @@ export default function App() {
         if (data?.plan) setSubscriptionPlan(data.plan);
       })
       .catch(() => {});
-  }, [token, userRole, currentUser]);
+  }, [token, userRole]);
 
   // Unified Speech Recognition State Machine Coordinator
   const syncVoiceListeners = useCallback(() => {
@@ -1663,24 +1647,6 @@ export default function App() {
   const [showToggleMasterKeyModal, setShowToggleMasterKeyModal] = useState(false);
   const [pendingToggleValue, setPendingToggleValue] = useState(false); // the target ON/OFF value
 
-  // Toggle Beta Update States
-  const [currentUpdateBetaActive, setCurrentUpdateBetaActive] = useState(false);
-  const [toggleBetaMasterPassword, setToggleBetaMasterPassword] = useState('');
-  const [isTogglingBeta, setIsTogglingBeta] = useState(false);
-  const [betaToggleSuccessMessage, setBetaToggleSuccessMessage] = useState('');
-  const [betaToggleErrorMessage, setBetaToggleErrorMessage] = useState('');
-  const [showToggleBetaMasterKeyModal, setShowToggleBetaMasterKeyModal] = useState(false);
-  const [pendingBetaToggleValue, setPendingBetaToggleValue] = useState(false);
-
-  // Owner Premium Access Control States
-  const [premiumControlInstId, setPremiumControlInstId] = useState('');
-  const [premiumControlPlan, setPremiumControlPlan] = useState('enterprise');
-  const [premiumControlStudentLimit, setPremiumControlStudentLimit] = useState(10000);
-  const [premiumControlMasterPassword, setPremiumControlMasterPassword] = useState('');
-  const [isSubmittingPremiumControl, setIsSubmittingPremiumControl] = useState(false);
-  const [premiumControlSuccess, setPremiumControlSuccess] = useState('');
-  const [premiumControlError, setPremiumControlError] = useState('');
-
 
   // Student Portal Selfie face upload states
   const [studentWebcamActive, setStudentWebcamActive] = useState(false);
@@ -1808,6 +1774,7 @@ export default function App() {
   const faceMeshRef = React.useRef(null);
   
   const attendanceVideoRef = React.useRef(null);
+  const attendanceImageRef = React.useRef(null);
   const attendanceCanvasRef = React.useRef(null);
   const attendanceStreamRef = React.useRef(null);
 
@@ -2027,87 +1994,6 @@ export default function App() {
   const [selectedTeacherSubjectId, setSelectedTeacherSubjectId] = useState('');
   const [selectedReportSubjectId, setSelectedReportSubjectId] = useState('');
   const [selectedTeacherLogSubjectId, setSelectedTeacherLogSubjectId] = useState('');
-
-  // Computed institution 100% attendance streak
-  // NOTE: Placed here (after logs/students/subjects/logSearch are declared) to avoid TDZ crash
-  const institutionStreak = useMemo(() => {
-    const dateGroups = {};
-    logs.forEach(log => {
-      if (!dateGroups[log.date]) {
-        dateGroups[log.date] = { total: 0, present: 0 };
-      }
-      dateGroups[log.date].total++;
-      if (log.attendance === 'Present' || log.attendance === 'Late') {
-        dateGroups[log.date].present++;
-      }
-    });
-    const sortedDates = Object.keys(dateGroups).sort((a, b) => {
-      const parseDate = (dStr) => {
-        const parts = dStr.split('/');
-        return new Date(parts[2], parts[1] - 1, parts[0]);
-      };
-      return parseDate(b) - parseDate(a);
-    });
-    let streak = 0;
-    for (const d of sortedDates) {
-      const group = dateGroups[d];
-      const rate = group.total > 0 ? (group.present / group.total) * 100 : 0;
-      if (rate === 100) { streak++; } else { break; }
-    }
-    return streak;
-  }, [logs]);
-
-  // Computed student leaderboard list
-  const studentLeaderboard = useMemo(() => {
-    return students.map(student => {
-      const sLogs = logs.filter(l => l.roll === student.roll);
-      const total = sLogs.length;
-      const present = sLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-      const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-      return { ...student, totalClasses: total, presentClasses: present, rate };
-    }).sort((a, b) => b.rate - a.rate || a.name.localeCompare(b.name));
-  }, [students, logs]);
-
-  // Heatmap logs filter helper
-  const heatmapLogs = useMemo(() => {
-    return logs.filter(log => {
-      const matchesSearch =
-        (log.name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
-        (log.roll || '').toLowerCase().includes(logSearch.toLowerCase()) ||
-        (log.id || '').toLowerCase().includes(logSearch.toLowerCase());
-      let matchesDept = true;
-      if (userRole === 'admin') {
-        matchesDept = !logDeptFilter || log.department === logDeptFilter;
-      } else if (userRole === 'teacher') {
-        const teacherSubjectIds = subjects
-          .filter(s => s.teacher_id === currentUser?.details?.id)
-          .map(s => s.id);
-        if (selectedTeacherLogSubjectId) {
-          matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId);
-        } else {
-          if (teacherSubjectIds.length === 0) {
-            matchesDept = true;
-          } else {
-            const teacherDepts = subjects
-              .filter(s => s.teacher_id === currentUser?.details?.id)
-              .map(s => s.department);
-            matchesDept = teacherSubjectIds.includes(log.subject_id) ||
-              (log.subject_id == null && teacherDepts.includes(log.department));
-          }
-        }
-      }
-      return matchesSearch && matchesDept;
-    });
-  }, [logs, logSearch, userRole, logDeptFilter, subjects, selectedTeacherLogSubjectId, currentUser]);
-
-  useEffect(() => {
-    if (currentUser?.details?.department) {
-      setLeaderboardDeptFilter(currentUser.details.department);
-    } else if (currentUser?.department) {
-      setLeaderboardDeptFilter(currentUser.department);
-    }
-  }, [currentUser]);
-
   
   // Attendance Session Setup States for Teachers
   const [sessionActive, setSessionActive] = useState(false);
@@ -2433,6 +2319,70 @@ export default function App() {
     }
   };
 
+  // Toggle student attendance status manually
+  const toggleStudentSessionAttendance = async (studentId, currentStatus, dateVal, periodVal) => {
+    if (isDemoMode) {
+      setSessionHistory(prevHistory => {
+        return prevHistory.map(sess => {
+          if (sess.date === dateVal && sess.period === periodVal) {
+            const nextStatus = currentStatus === 'Present' ? 'Absent' : 'Present';
+            const updatedStudents = sess.students.map(st => {
+              if (st.id === studentId) {
+                return { ...st, status: nextStatus };
+              }
+              return st;
+            });
+            const present_count = updatedStudents.filter(st => st.status === 'Present').length;
+            const absent_count = updatedStudents.filter(st => st.status === 'Absent').length;
+            return {
+              ...sess,
+              present_count,
+              absent_count,
+              students: updatedStudents
+            };
+          }
+          return sess;
+        });
+      });
+      playCyberSound('success');
+      return;
+    }
+
+    try {
+      const nextStatus = currentStatus === 'Present' ? 'Absent' : 'Present';
+      const sId = selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
+      const res = await fetch(`${API_BASE_URL}/attendance/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          attendance_status: nextStatus,
+          subject_id: sId ? parseInt(sId) : null,
+          custom_date: dateVal,
+          custom_time: periodVal
+        })
+      });
+
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (res.ok) {
+        playCyberSound('success');
+        fetchSessionHistory();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.detail || 'Failed to update attendance status.');
+      }
+    } catch (err) {
+      console.error('Error toggling student attendance:', err);
+      alert('Failed to connect to backend server.');
+    }
+  };
 
   // Fetch schedules
   const fetchSchedules = async () => {
@@ -2550,75 +2500,6 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error fetching institutions list:', err);
-    }
-  };
-
-  const handleSubmitManualAttendance = async () => {
-    setIsSubmittingManual(true);
-    playCyberSound('click');
-    
-    const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
-    const subjectDept = selectedSubject ? selectedSubject.department : '';
-    const classStudents = students.filter(s => !subjectDept || s.dep === subjectDept);
-    
-    let successCount = 0;
-    let failCount = 0;
-    
-    for (const student of classStudents) {
-      const stateData = manualAttendanceData[student.id] || { status: 'Present', remarks: '' };
-      
-      try {
-        const payload = {
-          student_id: student.id,
-          attendance_status: stateData.status,
-          subject_id: parseInt(manualSubjectId),
-          custom_date: manualDate,
-          custom_time: null,
-          remarks: stateData.remarks || null
-        };
-        
-        const response = await fetch(`${API_BASE_URL}/attendance/manual`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
-        
-        if (response.ok) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      } catch (err) {
-        failCount++;
-      }
-    }
-    
-    setIsSubmittingManual(false);
-    setIsManualAttendanceOpen(false);
-    
-    if (successCount > 0) {
-      alert(`Successfully marked manual attendance for ${successCount} students.${failCount > 0 ? ` Failed for ${failCount} students.` : ''}`);
-      playCyberSound('success');
-      
-      // Refresh logs
-      try {
-        const logsRes = await fetch(`${API_BASE_URL}/attendance/logs`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (logsRes.ok) {
-          const logsData = await logsRes.json();
-          setLogs(logsData);
-          localStorage.setItem('cached_logs', JSON.stringify(logsData));
-        }
-      } catch (e) {
-        console.error("Failed to refresh logs after manual attendance:", e);
-      }
-    } else {
-      alert('Failed to mark manual attendance. Please check network and security settings.');
-      playCyberSound('error');
     }
   };
 
@@ -2926,110 +2807,6 @@ export default function App() {
     }
   };
 
-  const handleToggleBetaActive = async () => {
-    if (!toggleBetaMasterPassword.trim()) {
-      setBetaToggleErrorMessage('Master password is required.');
-      return;
-    }
-    setBetaToggleErrorMessage('');
-    setBetaToggleSuccessMessage('');
-    setIsTogglingBeta(true);
-    try {
-      await wakeBackend(API_BASE_URL, 12000);
-      const res = await fetch(`${API_BASE_URL}/settings/toggle-beta-active`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          master_password: toggleBetaMasterPassword,
-          active: pendingBetaToggleValue
-        })
-      });
-      let data = {};
-      try {
-        data = await res.json();
-      } catch (_) {
-        data = { detail: res.ok ? 'Unexpected server response.' : `Server error (${res.status}).` };
-      }
-      if (res.ok) {
-        setCurrentUpdateBetaActive(pendingBetaToggleValue);
-        setBetaToggleSuccessMessage(data.message || (pendingBetaToggleValue ? '🔬 Beta update is now ENABLED for owner!' : '🔬 Beta release deactivated.'));
-        setToggleBetaMasterPassword('');
-        setShowToggleBetaMasterKeyModal(false);
-        if (typeof playCyberSound === 'function') playCyberSound('success');
-      } else {
-        setBetaToggleErrorMessage(data.detail || 'Failed to toggle beta status.');
-        if (typeof playCyberSound === 'function') playCyberSound('error');
-      }
-    } catch (e) {
-      setBetaToggleErrorMessage(e?.message?.includes('abort') ? 'Server wake-up timed out. Please try again.' : `Network error: ${e?.message || 'Please try again.'}`);
-      if (typeof playCyberSound === 'function') playCyberSound('error');
-    } finally {
-      setIsTogglingBeta(false);
-    }
-  };
-
-  const handleOwnerPremiumControl = async (action) => {
-    if (!premiumControlMasterPassword.trim()) {
-      setPremiumControlError('Master password is required.');
-      return;
-    }
-    if (!premiumControlInstId) {
-      setPremiumControlError('Institution ID is required.');
-      return;
-    }
-    setPremiumControlError('');
-    setPremiumControlSuccess('');
-    setIsSubmittingPremiumControl(true);
-    try {
-      await wakeBackend(API_BASE_URL, 12000);
-      const endpoint = action === 'grant' ? 'owner-grant-premium' : 'owner-revoke-premium';
-      const body = action === 'grant' 
-        ? {
-            master_password: premiumControlMasterPassword,
-            institution_id: parseInt(premiumControlInstId),
-            plan: premiumControlPlan,
-            student_limit: parseInt(premiumControlStudentLimit)
-          }
-        : {
-            master_password: premiumControlMasterPassword,
-            institution_id: parseInt(premiumControlInstId)
-          };
-
-      const res = await fetch(`${API_BASE_URL}/billing/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-      });
-
-      let data = {};
-      try {
-        data = await res.json();
-      } catch (_) {
-        data = { detail: res.ok ? 'Unexpected response.' : `Server error (${res.status}).` };
-      }
-
-      if (res.ok) {
-        setPremiumControlSuccess(data.message || `Successfully completed ${action} operation.`);
-        setPremiumControlMasterPassword('');
-        if (typeof playCyberSound === 'function') playCyberSound('success');
-      } else {
-        setPremiumControlError(data.detail || `Failed to perform ${action} operation.`);
-        if (typeof playCyberSound === 'function') playCyberSound('error');
-      }
-    } catch (e) {
-      setPremiumControlError(`Network error: ${e?.message || 'Please try again.'}`);
-      if (typeof playCyberSound === 'function') playCyberSound('error');
-    } finally {
-      setIsSubmittingPremiumControl(false);
-    }
-  };
-
   const handleSmtpTest = async (e) => {
     e.preventDefault();
     if (!smtpTestEmail) return;
@@ -3077,7 +2854,6 @@ export default function App() {
         setBuildVersion(data.build_version || '');
         setBuildError(data.build_error || '');
         setCurrentUpdateActive(data.update_active || false);
-        setCurrentUpdateBetaActive(data.update_beta_active || false);
         setActiveReleaseVersion(data.latest_version || '');
         setActiveReleaseUrl(data.update_download_url || '');
       }
@@ -3294,6 +3070,19 @@ export default function App() {
     }
 
     setScannerBootActive(true);
+    if (cameraScanSettings?.cameraSource === 'external') {
+      if (!cameraScanSettings.externalIpUrl) {
+        setScannerBootActive(false);
+        setAttendanceError('Please configure WiFi Camera IP/URL in Settings first.');
+        setScanStatus('Camera Error');
+        addDiagnosticLog('ERROR: WiFi Camera URL not configured.');
+        return;
+      }
+      setScanStatus('Connecting to WiFi IP Camera...');
+      addDiagnosticLog('Optical feed: WiFi IP Camera (' + cameraScanSettings.externalIpUrl + ')');
+      return;
+    }
+
     try {
       await requestNativePermissions();
       const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
@@ -3370,12 +3159,13 @@ export default function App() {
 
 
   const triggerFaceRecognition = async () => {
-    if (!attendanceVideoRef.current || recognitionBusyRef.current) return;
+    const isExternal = cameraScanSettings?.cameraSource === 'external';
+    const video = isExternal ? attendanceImageRef.current : attendanceVideoRef.current;
+    if (!video || recognitionBusyRef.current) return;
     if (!lastLandmarksRef.current?.length && !lastFaceDetectedRef.current) {
       setScanStatus('No face detected — look at camera');
       return;
     }
-    const video = attendanceVideoRef.current;
     const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
 
     const blob = await captureFrameBlob(
@@ -4155,13 +3945,14 @@ export default function App() {
 
   // Fast client-side face detection (BlazeFace) — runs every frame for instant feedback
   useEffect(() => {
-    if (!attendanceActive || !attendanceVideoRef.current) {
+    const isExternal = cameraScanSettings?.cameraSource === 'external';
+    const video = isExternal ? attendanceImageRef.current : attendanceVideoRef.current;
+    if (!attendanceActive || !video) {
       return undefined;
     }
 
     let active = true;
     const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
-    const video = attendanceVideoRef.current;
 
     const runDetector = async () => {
       try {
@@ -4179,10 +3970,10 @@ export default function App() {
 
           const hasDetection = results.detections?.length > 0;
           if (hasDetection) {
-            const vid = attendanceVideoRef.current;
-            const w = vid?.videoWidth || 640;
-            const h = vid?.videoHeight || 480;
-            const box = extractFaceBox(results.detections[0], w, h);
+            const isVideo = video instanceof HTMLVideoElement;
+            const w = isVideo ? video.videoWidth : video.naturalWidth;
+            const h = isVideo ? video.videoHeight : video.naturalHeight;
+            const box = extractFaceBox(results.detections[0], w || 640, h || 480);
             lastFaceBoxRef.current = box;
             lastFaceDetectedRef.current = true;
             setFaceDetected(true);
@@ -4203,7 +3994,9 @@ export default function App() {
 
         const detectLoop = async () => {
           if (!active || !attendanceActive) return;
-          if (video.readyState === 4 && video.videoWidth > 0 && video.videoHeight > 0) {
+          const isVideo = video instanceof HTMLVideoElement;
+          const isReady = isVideo ? (video.readyState === 4 && video.videoWidth > 0 && video.videoHeight > 0) : (video.complete && video.naturalWidth > 0);
+          if (isReady) {
             try {
               await detector.send({ image: video });
             } catch (err) {
@@ -4212,8 +4005,10 @@ export default function App() {
             if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxRef.current && !lastLandmarksRef.current?.length) {
               const canvas = attendanceCanvasRef.current;
               if (canvas) {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                const w = isVideo ? video.videoWidth : video.naturalWidth;
+                const h = isVideo ? video.videoHeight : video.naturalHeight;
+                canvas.width = w;
+                canvas.height = h;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -4249,7 +4044,9 @@ export default function App() {
 
   // Initialize and run FaceMesh liveness detection loop
   useEffect(() => {
-    if (!attendanceActive || !attendanceVideoRef.current) {
+    const isExternal = cameraScanSettings?.cameraSource === 'external';
+    const video = isExternal ? attendanceImageRef.current : attendanceVideoRef.current;
+    if (!attendanceActive || !video) {
       livenessStatusRef.current = 'pending';
       setLivenessStatus('pending');
       setLivenessMessage('Camera Offline');
@@ -4287,11 +4084,9 @@ export default function App() {
 
       const canvas = attendanceCanvasRef.current;
       if (canvas) {
-        const video = attendanceVideoRef.current;
-        if (video) {
-          canvas.width = video.videoWidth || 640;
-          canvas.height = video.videoHeight || 480;
-        }
+        const isVideo = video instanceof HTMLVideoElement;
+        canvas.width = (isVideo ? video.videoWidth : video.naturalWidth) || 640;
+        canvas.height = (isVideo ? video.videoHeight : video.naturalHeight) || 480;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -4479,13 +4274,16 @@ export default function App() {
 
     faceMeshRef.current = faceMesh;
 
-    const video = attendanceVideoRef.current;
+    const isExternal = cameraScanSettings?.cameraSource === 'external';
+    const video = isExternal ? attendanceImageRef.current : attendanceVideoRef.current;
     let active = true;
 
     const sendFrames = async () => {
       if (!active || !attendanceActive) return;
       
-      if (video.readyState === 4 && video.videoWidth > 0 && video.videoHeight > 0) {
+      const isVideo = video instanceof HTMLVideoElement;
+      const isReady = isVideo ? (video.readyState === 4 && video.videoWidth > 0 && video.videoHeight > 0) : (video.complete && video.naturalWidth > 0);
+      if (isReady) {
         const skip = preset.meshSkipFrames || 0;
         meshFrameSkipRef.current = (meshFrameSkipRef.current + 1) % (skip + 1);
         if (meshFrameSkipRef.current === 0) {
@@ -4839,6 +4637,7 @@ export default function App() {
         setUserRole(data.role);
         setCurrentUser(data);
         localStorage.setItem('userRole', data.role);
+        localStorage.setItem('cached_user', JSON.stringify(data));
 
         // ── Blank-screen fix: eagerly prefetch data using the fresh authToken
         //    This runs in parallel with the render cycle so data arrives before
@@ -5887,6 +5686,7 @@ export default function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('isDemoMode');
+    localStorage.removeItem('cached_user');
     sessionInitializedRef.current = false;
     setToken('');
     setUserRole('');
@@ -6193,6 +5993,52 @@ export default function App() {
       console.error('Error deleting student:', err);
     }
   };
+
+  // Bulk Delete Students
+  const handleBulkDeleteStudents = async () => {
+    if (selectedStudentIds.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete the ${selectedStudentIds.size} selected students? All attendance records for these students will also be deleted.`)) {
+      return;
+    }
+
+    if (isDemoMode) {
+      const idsToDelete = Array.from(selectedStudentIds);
+      setStudents(prev => prev.filter(s => !idsToDelete.includes(s.id)));
+      setSelectedStudentIds(new Set());
+      alert('SIMULATOR ACTION: Selected student profiles deleted locally.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const idsToDelete = Array.from(selectedStudentIds);
+      let successCount = 0;
+      let failCount = 0;
+      for (const id of idsToDelete) {
+        const res = await fetch(`${API_BASE_URL}/users/students/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+      setSelectedStudentIds(new Set());
+      fetchStudents();
+      fetchStats();
+      fetchLogs();
+      alert(`Bulk deletion complete: ${successCount} deleted successfully, ${failCount} failed.`);
+    } catch (err) {
+      console.error('Error during bulk student delete:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   // Add Student
   const handleAddStudent = async (e) => {
@@ -6582,6 +6428,60 @@ export default function App() {
     }
   };
 
+  // Bulk Delete Teachers
+  const handleBulkDeleteTeachers = async () => {
+    if (selectedTeacherIds.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete the ${selectedTeacherIds.size} selected teacher accounts?`)) {
+      return;
+    }
+
+    if (isDemoMode) {
+      const idsToDelete = Array.from(selectedTeacherIds);
+      setTeachers(prev => prev.filter(t => !idsToDelete.includes(t.id)));
+      setSelectedTeacherIds(new Set());
+      setTeacherSuccess('SIMULATOR ACTION: Selected teachers deleted locally.');
+      return;
+    }
+
+    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to bulk delete ${selectedTeacherIds.size} teacher accounts:`);
+    if (!masterPass) {
+      setTeacherError('Deletion cancelled. Master key is required.');
+      return;
+    }
+    setTeacherError('');
+    setTeacherSuccess('');
+
+    try {
+      setIsLoading(true);
+      const idsToDelete = Array.from(selectedTeacherIds);
+      let successCount = 0;
+      let failCount = 0;
+      for (const id of idsToDelete) {
+        const res = await fetch(`${API_BASE_URL}/users/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'X-Master-Password': masterPass
+          }
+        });
+        if (res.ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+      setSelectedTeacherIds(new Set());
+      setTeacherSuccess(`Bulk deletion complete: ${successCount} deleted, ${failCount} failed.`);
+      fetchTeachers();
+    } catch (err) {
+      console.error('Error bulk deleting teachers:', err);
+      setTeacherError('An error occurred during bulk deletion.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   const handleAddSubject = async (e) => {
     e.preventDefault();
     setSubjectError('');
@@ -6691,7 +6591,11 @@ export default function App() {
     const headers = ['ID', 'Roll Number', 'Name', 'Department', 'Time', 'Date', 'Status'];
     const csvRows = [headers.join(',')];
 
-    filteredLogs.forEach(log => {
+    const logsToExport = selectedLogIds.size > 0
+      ? filteredLogs.filter(log => selectedLogIds.has(log.id))
+      : filteredLogs;
+
+    logsToExport.forEach(log => {
       const row = [
         `"${log.id}"`,
         `"${log.roll}"`,
@@ -7279,19 +7183,43 @@ export default function App() {
               livenessStatus={livenessStatus}
             />
 
-            {/* Video element */}
-            <video
-              ref={attendanceVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className={scannerBootActive ? 'scanner-video-booting' : ''}
-              style={{
-                width: '100%', height: '100%', objectFit: 'cover',
-                transform: 'scaleX(-1)',
-                display: (attendanceActive || scannerBootActive) ? 'block' : 'none',
-              }}
-            />
+            {/* Video or Image element based on cameraSource */}
+            {cameraScanSettings?.cameraSource === 'external' ? (
+              <img
+                ref={attendanceImageRef}
+                src={(attendanceActive || scannerBootActive) ? cameraScanSettings.externalIpUrl : ''}
+                crossOrigin="anonymous"
+                className={scannerBootActive ? 'scanner-video-booting' : ''}
+                style={{
+                  width: '100%', height: '100%', objectFit: 'cover',
+                  transform: cameraScanSettings.mirrorPreview !== false ? 'scaleX(-1)' : 'none',
+                  display: (attendanceActive || scannerBootActive) ? 'block' : 'none',
+                }}
+                onLoad={() => {
+                  if (scannerBootActive) {
+                    handleScannerBootComplete();
+                  }
+                }}
+                onError={() => {
+                  setScannerBootActive(false);
+                  setAttendanceError('Failed to load WiFi IP Camera feed. Please verify the URL and connection.');
+                  setScanStatus('Camera Error');
+                }}
+              />
+            ) : (
+              <video
+                ref={attendanceVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className={scannerBootActive ? 'scanner-video-booting' : ''}
+                style={{
+                  width: '100%', height: '100%', objectFit: 'cover',
+                  transform: cameraScanSettings.mirrorPreview !== false ? 'scaleX(-1)' : 'none',
+                  display: (attendanceActive || scannerBootActive) ? 'block' : 'none',
+                }}
+              />
+            )}
             <canvas
               ref={attendanceCanvasRef}
               style={{
@@ -7669,34 +7597,7 @@ export default function App() {
                 <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
             </button>
-            {((userRole === 'student' && activeTab !== 'student-attendance') || 
-              (userRole && userRole !== 'student' && activeTab !== 'dashboard')) && (
-              <button 
-                className="btn-back"
-                onClick={() => {
-                  playCyberSound('click');
-                  window.history.back();
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: 'var(--color-primary, #00f2fe)',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  marginRight: '4px',
-                  transition: 'all 0.2s',
-                  fontWeight: '600'
-                }}
-              >
-                <ArrowLeft size={16} />
-                Back
-              </button>
-            )}
+
             <div>
               <h1 style={{ fontSize: '1.45rem', fontWeight: 700 }}>
                 {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
@@ -8681,6 +8582,38 @@ export default function App() {
               ) : null}
             </div>
 
+            {/* Bulk Action Bar */}
+            {selectedStudentIds.size > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
+                background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: '12px', marginBottom: '16px', animation: 'fadeInUp 0.3s ease'
+              }}>
+                <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.85rem' }}>
+                  {selectedStudentIds.size} student{selectedStudentIds.size > 1 ? 's' : ''} selected
+                </span>
+                <button
+                  onClick={() => setSelectedStudentIds(new Set())}
+                  style={{
+                    padding: '5px 12px', fontSize: '0.75rem', background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8',
+                    borderRadius: '6px', cursor: 'pointer'
+                  }}
+                >Clear</button>
+                <button
+                  onClick={handleBulkDeleteStudents}
+                  style={{
+                    padding: '5px 14px', fontSize: '0.75rem', background: 'rgba(239,68,68,0.15)',
+                    border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444',
+                    borderRadius: '6px', cursor: 'pointer', fontWeight: 700,
+                    display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <Trash2 size={12} /> Delete Selected
+                </button>
+              </div>
+            )}
+
             {/* List */}
             {filteredStudents.length === 0 ? (
               <div className="flex-center" style={{ padding: '60px 0', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '16px' }}>
@@ -8692,6 +8625,20 @@ export default function App() {
                 <table className="custom-table">
                   <thead>
                     <tr>
+                      <th style={{ width: '40px', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.has(s.id))}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setSelectedStudentIds(new Set(filteredStudents.map(s => s.id)));
+                            } else {
+                              setSelectedStudentIds(new Set());
+                            }
+                          }}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#00f2fe' }}
+                        />
+                      </th>
                       <th style={{ width: '80px' }}>ID</th>
                       <th>Roll Number</th>
                       <th>Name</th>
@@ -8704,7 +8651,19 @@ export default function App() {
                   </thead>
                   <tbody>
                     {filteredStudents.map(student => (
-                      <tr key={student.id}>
+                      <tr key={student.id} style={{ background: selectedStudentIds.has(student.id) ? 'rgba(0,242,254,0.03)' : undefined }}>
+                        <td style={{ textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedStudentIds.has(student.id)}
+                            onChange={e => {
+                              const next = new Set(selectedStudentIds);
+                              if (e.target.checked) next.add(student.id); else next.delete(student.id);
+                              setSelectedStudentIds(next);
+                            }}
+                            style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: '#00f2fe' }}
+                          />
+                        </td>
                         <td style={{ color: '#00f2fe', fontWeight: 600 }}>#{student.id}</td>
                         <td style={{ fontWeight: 700, color: '#fff' }}>{student.roll}</td>
                         <td style={{ fontWeight: 500 }}>{student.name}</td>
@@ -8976,10 +8935,57 @@ export default function App() {
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>Listing all registered teachers, mapped subjects, and timetable schedules</p>
                   </div>
 
+                  {/* Bulk Action Bar */}
+                  {selectedTeacherIds.size > 0 && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
+                      background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '12px', marginBottom: '16px', animation: 'fadeInUp 0.3s ease'
+                    }}>
+                      <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.85rem' }}>
+                        {selectedTeacherIds.size} teacher{selectedTeacherIds.size > 1 ? 's' : ''} selected
+                      </span>
+                      <button
+                        onClick={() => setSelectedTeacherIds(new Set())}
+                        style={{
+                          padding: '5px 12px', fontSize: '0.75rem', background: 'transparent',
+                          border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8',
+                          borderRadius: '6px', cursor: 'pointer'
+                        }}
+                      >Clear</button>
+                      <button
+                        onClick={handleBulkDeleteTeachers}
+                        style={{
+                          padding: '5px 14px', fontSize: '0.75rem', background: 'rgba(239,68,68,0.15)',
+                          border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444',
+                          borderRadius: '6px', cursor: 'pointer', fontWeight: 700,
+                          display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                      >
+                        <Trash2 size={12} /> Delete Selected
+                      </button>
+                    </div>
+                  )}
+
                   <div className="table-container" style={{ maxHeight: '550px', overflowY: 'auto' }}>
                     <table className="custom-table">
                       <thead>
                         <tr>
+                          <th style={{ width: '40px', textAlign: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={teachers.filter(t => t.role === 'teacher').length > 0 && teachers.filter(t => t.role === 'teacher').every(t => selectedTeacherIds.has(t.id))}
+                              onChange={e => {
+                                const filteredTeachers = teachers.filter(t => t.role === 'teacher');
+                                if (e.target.checked) {
+                                  setSelectedTeacherIds(new Set(filteredTeachers.map(t => t.id)));
+                                } else {
+                                  setSelectedTeacherIds(new Set());
+                                }
+                              }}
+                              style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#00f2fe' }}
+                            />
+                          </th>
                           <th style={{ width: '60px' }}>ID</th>
                           <th>Name</th>
                           <th>Email</th>
@@ -8990,14 +8996,26 @@ export default function App() {
                       <tbody>
                         {teachers.filter(t => t.role === 'teacher').length === 0 ? (
                           <tr>
-                            <td colSpan="5" style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>No teachers registered.</td>
+                            <td colSpan="6" style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>No teachers registered.</td>
                           </tr>
                         ) : (
                           teachers.filter(t => t.role === 'teacher').map(t => {
                             const tSubjects = subjects.filter(sub => sub.teacher_id === t.id);
                             
                             return (
-                              <tr key={t.id}>
+                              <tr key={t.id} style={{ background: selectedTeacherIds.has(t.id) ? 'rgba(0,242,254,0.03)' : undefined }}>
+                                <td style={{ textAlign: 'center' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTeacherIds.has(t.id)}
+                                    onChange={e => {
+                                      const next = new Set(selectedTeacherIds);
+                                      if (e.target.checked) next.add(t.id); else next.delete(t.id);
+                                      setSelectedTeacherIds(next);
+                                    }}
+                                    style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: '#00f2fe' }}
+                                  />
+                                </td>
                                 <td style={{ color: '#00f2fe', fontWeight: 600 }}>#{t.id}</td>
                                 <td style={{ fontWeight: 700, color: '#fff' }}>{t.name}</td>
                                 <td style={{ color: 'var(--color-text-muted)' }}>{t.email}</td>
@@ -9552,6 +9570,38 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Bulk Action Bar for Logs */}
+              {selectedLogIds.size > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
+                  background: 'rgba(0, 242, 254, 0.05)', border: '1px solid rgba(0, 242, 254, 0.2)',
+                  borderRadius: '12px', marginBottom: '16px', animation: 'fadeInUp 0.3s ease'
+                }}>
+                  <span style={{ color: '#00f2fe', fontWeight: 700, fontSize: '0.85rem' }}>
+                    {selectedLogIds.size} log{selectedLogIds.size > 1 ? 's' : ''} selected
+                  </span>
+                  <button
+                    onClick={() => setSelectedLogIds(new Set())}
+                    style={{
+                      padding: '5px 12px', fontSize: '0.75rem', background: 'transparent',
+                      border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8',
+                      borderRadius: '6px', cursor: 'pointer'
+                    }}
+                  >Clear Selection</button>
+                  <button
+                    onClick={exportToCSV}
+                    style={{
+                      padding: '5px 14px', fontSize: '0.75rem', background: 'rgba(0,242,254,0.1)',
+                      border: '1px solid rgba(0,242,254,0.3)', color: '#00f2fe',
+                      borderRadius: '6px', cursor: 'pointer', fontWeight: 700,
+                      display: 'flex', alignItems: 'center', gap: '6px'
+                    }}
+                  >
+                    <FileDown size={12} /> Export Selected to CSV
+                  </button>
+                </div>
+              )}
+
               {/* Main Logs View Rendering */}
               {filteredLogs.length === 0 ? (
                 <div className="flex-center" style={{ padding: '60px 0', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '16px' }}>
@@ -9564,6 +9614,20 @@ export default function App() {
                   <table className="custom-table">
                     <thead>
                       <tr>
+                        <th style={{ width: '40px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={filteredLogs.length > 0 && filteredLogs.every(log => selectedLogIds.has(log.id))}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedLogIds(new Set(filteredLogs.map(log => log.id)));
+                              } else {
+                                setSelectedLogIds(new Set());
+                              }
+                            }}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#00f2fe' }}
+                          />
+                        </th>
                         <th style={{ width: '80px' }}>ID</th>
                         <th>Roll Number</th>
                         <th>Name</th>
@@ -9582,8 +9646,23 @@ export default function App() {
                             playCyberSound('click');
                             setSelectedAuditLog(log);
                           }}
-                          style={{ cursor: 'pointer' }}
+                          style={{ 
+                            cursor: 'pointer',
+                            background: selectedLogIds.has(log.id) ? 'rgba(0,242,254,0.03)' : undefined 
+                          }}
                         >
+                          <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedLogIds.has(log.id)}
+                              onChange={e => {
+                                const next = new Set(selectedLogIds);
+                                if (e.target.checked) next.add(log.id); else next.delete(log.id);
+                                setSelectedLogIds(next);
+                              }}
+                              style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: '#00f2fe' }}
+                            />
+                          </td>
                           <td style={{ color: '#00f2fe', fontWeight: 600 }}>#{log.id}</td>
                           <td style={{ fontWeight: 700, color: '#fff' }}>{log.roll}</td>
                           <td style={{ fontWeight: 500 }}>{log.name}</td>
@@ -10053,43 +10132,6 @@ export default function App() {
                   }}
                 >
                   Start Check-in Session
-                </button>
-
-                {/* Manual Attendance Button */}
-                <button 
-                  onClick={() => {
-                    if (userRole === 'admin' && !selectedSubjectId) {
-                      alert('Please select a subject first to use Manual Register.');
-                      return;
-                    }
-                    const subId = userRole === 'teacher' 
-                      ? subjects.find(s => s.teacher_id === currentUser?.details?.id)?.id?.toString() || ''
-                      : selectedSubjectId;
-                    setManualSubjectId(subId);
-                    setManualDate(sessionDate);
-                    setManualPeriod(sessionPeriod);
-                    setManualAttendanceData({});
-                    setManualSearchQuery('');
-                    setIsManualAttendanceOpen(true);
-                    playCyberSound('click');
-                  }}
-                  type="button"
-                  className="btn-secondary active-haptic"
-                  style={{ 
-                    padding: '12px', 
-                    borderRadius: '12px', 
-                    fontWeight: 600, 
-                    fontSize: '0.9rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    border: '1px solid rgba(167, 139, 250, 0.3)',
-                    color: '#a78bfa',
-                    background: 'rgba(167, 139, 250, 0.06)'
-                  }}
-                >
-                  ✋ Manual Register (No Face Auth)
                 </button>
               </div>
             </div>
@@ -10727,17 +10769,29 @@ export default function App() {
                                            {/* Name & Status */}
                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                              <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem' }}>{st.name}</div>
-                                             <span style={{ 
-                                               padding: '3px 10px', 
-                                               borderRadius: '50px', 
-                                               fontSize: '0.65rem', 
-                                               fontWeight: 700,
-                                               background: statusBg,
-                                               border: statusBorder,
-                                               color: statusColor
-                                             }}>
+                                             <button 
+                                               onClick={() => {
+                                                 playCyberSound('click');
+                                                 toggleStudentSessionAttendance(st.id, st.status, session.date, session.period);
+                                               }}
+                                               style={{ 
+                                                 padding: '4px 12px', 
+                                                 borderRadius: '50px', 
+                                                 fontSize: '0.65rem', 
+                                                 fontWeight: 700,
+                                                 background: statusBg,
+                                                 border: statusBorder,
+                                                 color: statusColor,
+                                                 cursor: 'pointer',
+                                                 outline: 'none',
+                                                  transition: 'all 0.2s',
+                                                 textTransform: 'uppercase'
+                                               }}
+                                               onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.2)'; }}
+                                               onMouseLeave={e => { e.currentTarget.style.filter = 'brightness(1.0)'; }}
+                                             >
                                                {st.status.toUpperCase()}
-                                             </span>
+                                             </button>
                                            </div>
                                            
                                            {/* Roll No */}
@@ -10776,7 +10830,12 @@ export default function App() {
                                          </tr>
                                        </thead>
                                        <tbody>
-                                         {filteredStudents.map((st) => (
+                                         {filteredStudents.map((st) => {
+                                           const isPresent = st.status === 'Present';
+                                           const statusBg = isPresent ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+                                           const statusBorder = isPresent ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
+                                           const statusColor = isPresent ? '#10b981' : '#ef4444';
+                                            return (
                                            <tr key={st.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', color: '#f1f5f9' }}>
                                              <td style={{ padding: '12px 12px', fontWeight: 700, color: '#fff' }}>{st.roll}</td>
                                              <td style={{ padding: '12px 12px', fontWeight: 500 }}>{st.name}</td>
@@ -10784,18 +10843,29 @@ export default function App() {
                                              <td style={{ padding: '12px 12px', color: 'var(--color-text-muted)' }}>{st.semester}</td>
                                              <td style={{ padding: '12px 12px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{st.email}</td>
                                              <td style={{ padding: '12px 12px', textAlign: 'center' }}>
-                                               <span style={{ 
-                                                 padding: '3px 10px', 
-                                                 borderRadius: '50px', 
-                                                 fontSize: '0.7rem', 
-                                                 fontWeight: 700,
-                                                 display: 'inline-block',
-                                                 background: st.status === 'Present' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                                 border: st.status === 'Present' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
-                                                 color: st.status === 'Present' ? '#10b981' : '#ef4444'
-                                               }}>
-                                                 {st.status.toUpperCase()}
-                                               </span>
+                                               <button 
+                                                onClick={() => {
+                                                  playCyberSound('click');
+                                                  toggleStudentSessionAttendance(st.id, st.status, session.date, session.period);
+                                                }}
+                                                style={{ 
+                                                  padding: '4px 12px', 
+                                                  borderRadius: '50px', 
+                                                  fontSize: '0.65rem', 
+                                                  fontWeight: 700,
+                                                  background: statusBg,
+                                                  border: statusBorder,
+                                                  color: statusColor,
+                                                  cursor: 'pointer',
+                                                  outline: 'none',
+                                                  transition: 'all 0.2s',
+                                                  textTransform: 'uppercase'
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.2)'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.filter = 'brightness(1.0)'; }}
+                                              >
+                                                {st.status.toUpperCase()}
+                                              </button>
                                              </td>
                                            </tr>
                                          ))}
@@ -10817,7 +10887,10 @@ export default function App() {
                                         key={st.id}
                                         onMouseEnter={() => setHoveredStudentCard(st)}
                                         onMouseLeave={() => setHoveredStudentCard(null)}
-                                        onClick={() => playCyberSound('click')}
+                                        onClick={() => {
+                                          playCyberSound('click');
+                                          toggleStudentSessionAttendance(st.id, st.status, session.date, session.period);
+                                        }}
                                         style={{
                                           background: bgLight,
                                           border: `1px solid ${borderLight}`,
@@ -11602,22 +11675,6 @@ export default function App() {
                       </div>
                       <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>System Release Updates</h3>
                       <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Publish new system-wide APK versions and manage update downloads for all users.</p>
-                    </div>
-                  )}
-
-                  {/* Category Card 13: Owner Premium Access Control */}
-                  {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
-                    <div 
-                      onClick={() => { setActiveSubSetting('owner_premium_control'); playCyberSound('click'); }}
-                      className="glass-panel hover-card" 
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '1.4rem' }}>👑</span>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
-                      </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Premium Access Control</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Grant or revoke Premium/Enterprise plans for any institution instantly.</p>
                     </div>
                   )}
                 </div>
@@ -13644,88 +13701,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* ═══ BETA TOGGLE — TEST BEFORE RELEASE ═══ */}
-                <div style={{
-                  background: currentUpdateBetaActive
-                    ? 'linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(124, 58, 237, 0.06))'
-                    : 'rgba(255,255,255,0.02)',
-                  border: currentUpdateBetaActive
-                    ? '1px solid rgba(167, 139, 250, 0.3)'
-                    : '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '20px',
-                  flexWrap: 'wrap',
-                  transition: 'all 0.3s ease',
-                  marginTop: '16px'
-                }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '1.4rem' }}>{currentUpdateBetaActive ? '🔬' : '⚫'}</span>
-                      <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: currentUpdateBetaActive ? '#a78bfa' : '#f8fafc' }}>
-                        {currentUpdateBetaActive ? 'Beta Testing is ACTIVE — Visible to Owner Only' : 'Beta Testing is INACTIVE'}
-                      </h4>
-                    </div>
-                    <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
-                      {currentUpdateBetaActive
-                        ? `🔬 Beta channel is active. Only you (the System Owner) will see the update banner to test compilation. Regular users will not see it.`
-                        : '🔬 Toggle ON to release the update banner ONLY to your device (requires Master Key) before making it public.'}
-                    </p>
-                  </div>
-
-                  {/* BETA TOGGLE SWITCH */}
-                  <div
-                    onClick={() => {
-                      const newVal = !currentUpdateBetaActive;
-                      setPendingBetaToggleValue(newVal);
-                      setToggleBetaMasterPassword('');
-                      setBetaToggleErrorMessage('');
-                      setBetaToggleSuccessMessage('');
-                      setShowToggleBetaMasterKeyModal(true);
-                      playCyberSound('click');
-                    }}
-                    style={{
-                      width: '64px', height: '34px',
-                      borderRadius: '17px',
-                      background: currentUpdateBetaActive
-                        ? 'linear-gradient(135deg, #a78bfa, #7c3aed)'
-                        : 'rgba(255,255,255,0.1)',
-                      border: currentUpdateBetaActive ? '2px solid rgba(167, 139, 250, 0.5)' : '2px solid rgba(255, 255, 255, 0.15)',
-                      cursor: 'pointer',
-                      position: 'relative',
-                      transition: 'all 0.3s ease',
-                      flexShrink: 0,
-                      boxShadow: currentUpdateBetaActive ? '0 0 16px rgba(167, 139, 250, 0.3)' : 'none',
-                    }}
-                    title={currentUpdateBetaActive ? 'Click to deactivate beta' : 'Click to activate beta'}
-                  >
-                    <div style={{
-                      position: 'absolute',
-                      top: '3px',
-                      left: currentUpdateBetaActive ? '32px' : '3px',
-                      width: '24px', height: '24px',
-                      borderRadius: '50%',
-                      background: '#fff',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                      transition: 'left 0.3s ease',
-                    }} />
-                  </div>
-                </div>
-
                 {/* Toggle Success/Error Messages */}
-                {betaToggleSuccessMessage && (
-                  <div style={{ padding: '12px 16px', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: '8px', color: '#a78bfa', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {betaToggleSuccessMessage}
-                  </div>
-                )}
-                {betaToggleErrorMessage && (
-                  <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
-                    ❌ {betaToggleErrorMessage}
-                  </div>
-                )}
                 {toggleSuccessMessage && (
                   <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {toggleSuccessMessage}
@@ -13946,141 +13922,6 @@ export default function App() {
                     <li><strong style={{ color: '#e2e8f0' }}>Step 3:</strong> Once compiled, the download link updates automatically, and the update is made LIVE for all users.</li>
                     <li><strong style={{ color: '#e2e8f0' }}>Step 4:</strong> To stop displaying the update banner, simply toggle the master active switch above to OFF.</li>
                   </ul>
-                </div>
-              </div>
-            )}
-
-            {activeSubSetting === 'owner_premium_control' && currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
-              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                      👑 Premium Access Control Panel
-                    </h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
-                      Grant, revoke, or upgrade institution subscription levels without payment.
-                    </p>
-                  </div>
-                </div>
-
-                {premiumControlSuccess && (
-                  <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem' }}>
-                    {premiumControlSuccess}
-                  </div>
-                )}
-                {premiumControlError && (
-                  <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
-                    ❌ {premiumControlError}
-                  </div>
-                )}
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-                  {/* Grant Section */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#10b981', margin: 0 }}>🌟 Grant Premium Plan</h4>
-                    
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Target Institution ID</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        placeholder="e.g. 2"
-                        value={premiumControlInstId}
-                        onChange={e => setPremiumControlInstId(e.target.value)}
-                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
-                      />
-                    </div>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Premium Plan</label>
-                      <select
-                        className="form-input"
-                        value={premiumControlPlan}
-                        onChange={e => setPremiumControlPlan(e.target.value)}
-                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
-                      >
-                        <option value="starter">Starter</option>
-                        <option value="premium">Premium</option>
-                        <option value="enterprise">Enterprise</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Student Limit</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        placeholder="e.g. 10000"
-                        value={premiumControlStudentLimit}
-                        onChange={e => setPremiumControlStudentLimit(e.target.value)}
-                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
-                      />
-                    </div>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Owner Master Password</label>
-                      <input
-                        type="password"
-                        className="form-input"
-                        placeholder="Enter master password..."
-                        value={premiumControlMasterPassword}
-                        onChange={e => setPremiumControlMasterPassword(e.target.value)}
-                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOwnerPremiumControl('grant')}
-                      className="bg-gradient-btn active-haptic"
-                      style={{ padding: '12px 20px', borderRadius: '8px', fontSize: '0.88rem', background: 'linear-gradient(135deg, #10b981, #059669)' }}
-                      disabled={isSubmittingPremiumControl}
-                    >
-                      {isSubmittingPremiumControl ? 'Processing...' : '✅ Grant Premium Access'}
-                    </button>
-                  </div>
-
-                  {/* Revoke Section */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444', margin: 0 }}>⚠️ Revoke Premium Plan</h4>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, lineHeight: 1.5 }}>
-                      Downgrades the institution's plan status immediately back to "free" tier.
-                    </p>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Target Institution ID</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        placeholder="e.g. 2"
-                        value={premiumControlInstId}
-                        onChange={e => setPremiumControlInstId(e.target.value)}
-                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
-                      />
-                    </div>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Owner Master Password</label>
-                      <input
-                        type="password"
-                        className="form-input"
-                        placeholder="Enter master password..."
-                        value={premiumControlMasterPassword}
-                        onChange={e => setPremiumControlMasterPassword(e.target.value)}
-                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOwnerPremiumControl('revoke')}
-                      className="btn-secondary active-haptic"
-                      style={{ padding: '12px 20px', borderRadius: '8px', fontSize: '0.88rem', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#ef4444' }}
-                      disabled={isSubmittingPremiumControl}
-                    >
-                      {isSubmittingPremiumControl ? 'Processing...' : '⚠️ Downgrade to Free'}
-                    </button>
-                  </div>
                 </div>
               </div>
             )}
@@ -16076,93 +15917,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ===== TOGGLE BETA ACTIVE — Master Key Confirmation Modal ===== */}
-      {showToggleBetaMasterKeyModal && (
-        <div
-          className="flex-center modal-overlay"
-          style={{ position: 'fixed', inset: 0, zIndex: 100050, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowToggleBetaMasterKeyModal(false); }}
-        >
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '420px', margin: '16px',
-            padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px',
-            border: pendingBetaToggleValue ? '1px solid rgba(167,139,250,0.3)' : '1px solid rgba(239,68,68,0.3)',
-            animation: 'fadeInUp 0.3s ease',
-          }}>
-            {/* Modal Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '44px', height: '44px', borderRadius: '12px',
-                background: pendingBetaToggleValue ? 'rgba(167,139,250,0.15)' : 'rgba(239,68,68,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.4rem', flexShrink: 0,
-              }}>
-                {pendingBetaToggleValue ? '🔬' : '🔕'}
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
-                  {pendingBetaToggleValue ? 'Activate Beta Update for Owner?' : 'Deactivate Beta Update?'}
-                </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.4 }}>
-                  {pendingBetaToggleValue
-                    ? 'Only the system owner device will see the update download banner.'
-                    : 'The beta update banner will be hidden.'}
-                </p>
-              </div>
-            </div>
-
-            {/* Master Key Input */}
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                🔑 Master Password Required
-              </label>
-              <input
-                type="password"
-                className="form-input"
-                placeholder="Enter system master password..."
-                value={toggleBetaMasterPassword}
-                onChange={e => setToggleBetaMasterPassword(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleToggleBetaActive(); }}
-                autoFocus
-                style={{ fontSize: '0.9rem' }}
-              />
-              {betaToggleErrorMessage && (
-                <p style={{ color: '#ef4444', fontSize: '0.78rem', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  ❌ {betaToggleErrorMessage}
-                </p>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ flex: 1, padding: '11px 16px' }}
-                onClick={() => { setShowToggleBetaMasterKeyModal(false); setToggleBetaMasterPassword(''); setBetaToggleErrorMessage(''); }}
-                disabled={isTogglingBeta}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="bg-gradient-btn"
-                style={{
-                  flex: 1, padding: '11px 16px', borderRadius: '8px', fontWeight: 600,
-                  background: pendingBetaToggleValue
-                    ? 'linear-gradient(135deg, #a78bfa, #7c3aed)'
-                    : 'linear-gradient(135deg, #ef4444, #dc2626)',
-                }}
-                onClick={handleToggleBetaActive}
-                disabled={isTogglingBeta || !toggleBetaMasterPassword.trim()}
-              >
-                {isTogglingBeta ? '⏳ Processing...' : pendingBetaToggleValue ? '🔬 Activate Beta' : '🔕 Deactivate'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Floating Action Button (FAB) for Feedback - only shown when logged in */}
       {token && (
         <button 
           className="feedback-fab" 
@@ -16780,207 +16535,6 @@ export default function App() {
               >
                 Verify
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== MANUAL ATTENDANCE MODAL ===== */}
-      {isManualAttendanceOpen && (
-        <div
-          className="flex-center modal-overlay"
-          style={{ position: 'fixed', inset: 0, zIndex: 100060, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setIsManualAttendanceOpen(false); }}
-        >
-          <div className="glass-panel" style={{
-            width: '100%',
-            maxWidth: '700px',
-            margin: '16px',
-            padding: '0',
-            border: '1px solid rgba(167, 139, 250, 0.35)',
-            borderRadius: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            maxHeight: '90vh',
-            overflow: 'hidden',
-            animation: 'fadeInUp 0.3s ease'
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              padding: '24px 28px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'rgba(167, 139, 250, 0.05)',
-              flexShrink: 0
-            }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  ✋ Manual Attendance Register
-                </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.4 }}>
-                  Subject: <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(manualSubjectId))?.name || 'N/A'}</strong> • Date: <strong>{manualDate}</strong> • Slot: <strong>{manualPeriod}</strong>
-                </p>
-              </div>
-              <button 
-                onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
-                style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '1.5rem', cursor: 'pointer', flexShrink: 0 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-                onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Search input */}
-            <div style={{ padding: '16px 28px 8px', flexShrink: 0 }}>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="🔍 Search student name or roll number..."
-                  value={manualSearchQuery}
-                  onChange={e => setManualSearchQuery(e.target.value)}
-                  style={{ background: 'rgba(8, 12, 20, 0.4)', paddingLeft: '16px' }}
-                />
-              </div>
-            </div>
-
-            {/* Students Register List */}
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 28px 16px', minHeight: 0 }}>
-              {(() => {
-                const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
-                const subjectDept = selectedSubject ? selectedSubject.department : '';
-                const classStudents = students.filter(s => {
-                  const matchesDept = !subjectDept || s.dep === subjectDept;
-                  const matchesSearch = !manualSearchQuery || 
-                    s.name.toLowerCase().includes(manualSearchQuery.toLowerCase()) ||
-                    s.roll.toLowerCase().includes(manualSearchQuery.toLowerCase());
-                  return matchesDept && matchesSearch;
-                });
-
-                if (classStudents.length === 0) {
-                  return (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                      No students found {subjectDept ? `in department: ${subjectDept}` : ''}.
-                    </div>
-                  );
-                }
-
-                return classStudents.map((student, idx) => {
-                  const stateData = manualAttendanceData[student.id] || { status: 'Present', remarks: '' };
-                  const statusColor = stateData.status === 'Present' ? '#10b981' : stateData.status === 'Late' ? '#f59e0b' : '#ef4444';
-                  return (
-                    <div key={student.id} style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px',
-                      background: `rgba(255, 255, 255, 0.01)`,
-                      border: `1px solid ${statusColor}15`,
-                      borderLeft: `3px solid ${statusColor}`,
-                      borderRadius: '10px',
-                      padding: '10px 14px',
-                      animation: `fadeInUp 0.25s ease both ${idx * 20}ms`
-                    }}>
-                      {/* Name & Roll */}
-                      <div style={{ flex: '1', minWidth: '160px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f1f5f9' }}>{student.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>Roll: {student.roll} • {student.dep}</div>
-                      </div>
-
-                      {/* Status Toggle buttons */}
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {['Present', 'Late', 'Absent'].map(status => {
-                          const isSelected = stateData.status === status;
-                          let selectedStyle = {};
-                          if (isSelected) {
-                            if (status === 'Present') selectedStyle = { background: 'rgba(16, 185, 129, 0.18)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.5)' };
-                            else if (status === 'Late') selectedStyle = { background: 'rgba(245, 158, 11, 0.18)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.5)' };
-                            else selectedStyle = { background: 'rgba(239, 68, 68, 0.18)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.5)' };
-                          }
-                          return (
-                            <button
-                              key={status}
-                              type="button"
-                              onClick={() => {
-                                setManualAttendanceData(prev => ({
-                                  ...prev,
-                                  [student.id]: { ...stateData, status }
-                                }));
-                              }}
-                              style={{
-                                padding: '5px 10px',
-                                borderRadius: '6px',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                transition: 'all 0.15s',
-                                background: 'transparent',
-                                color: '#64748b',
-                                border: '1px solid rgba(255,255,255,0.05)',
-                                ...(isSelected ? selectedStyle : {})
-                              }}
-                            >
-                              {status}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Remarks Input */}
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Note (optional)"
-                        value={stateData.remarks}
-                        onChange={e => {
-                          setManualAttendanceData(prev => ({
-                            ...prev,
-                            [student.id]: { ...stateData, remarks: e.target.value }
-                          }));
-                        }}
-                        style={{
-                          background: 'rgba(8, 12, 20, 0.25)',
-                          padding: '6px 10px',
-                          fontSize: '0.75rem',
-                          width: '160px',
-                          minWidth: '120px',
-                          border: '1px solid rgba(255,255,255,0.04)'
-                        }}
-                      />
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                Default status is <strong style={{ color: '#10b981' }}>Present</strong> — change per student as needed.
-              </span>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
-                  className="btn-secondary active-haptic"
-                  style={{ padding: '10px 20px', borderRadius: '10px', fontSize: '0.85rem' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={isSubmittingManual}
-                  onClick={handleSubmitManualAttendance}
-                  className="bg-gradient-btn active-haptic"
-                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '0.85rem', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', minWidth: '160px' }}
-                >
-                  {isSubmittingManual ? 'Submitting...' : '✅ Submit Register'}
-                </button>
-              </div>
             </div>
           </div>
         </div>

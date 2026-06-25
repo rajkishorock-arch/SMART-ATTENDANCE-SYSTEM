@@ -58,6 +58,56 @@ export default function CameraSettingsPanel({ onChange }) {
           {label}
         </label>
       ))}
+
+      {/* Camera Source Selector */}
+      <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', marginBottom: '20px' }}>
+        <h4 style={{ color: '#f8fafc', fontSize: '0.9rem', marginBottom: '10px' }}>Camera Source</h4>
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', cursor: 'pointer', fontSize: '0.85rem' }}>
+            <input
+              type="radio"
+              name="cameraSource"
+              value="device"
+              checked={settings.cameraSource !== 'external'}
+              onChange={() => apply({ ...settings, cameraSource: 'device' })}
+            />
+            Device Camera
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', cursor: 'pointer', fontSize: '0.85rem' }}>
+            <input
+              type="radio"
+              name="cameraSource"
+              value="external"
+              checked={settings.cameraSource === 'external'}
+              onChange={() => apply({ ...settings, cameraSource: 'external' })}
+            />
+            WiFi IP Camera
+          </label>
+        </div>
+
+        {settings.cameraSource === 'external' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ color: '#94a3b8', fontSize: '0.8rem' }}>MJPEG Stream / shot URL:</label>
+            <input
+              type="text"
+              placeholder="e.g. http://192.168.1.100:8080/video"
+              value={settings.externalIpUrl || ''}
+              onChange={(e) => apply({ ...settings, externalIpUrl: e.target.value })}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(15,23,42,0.5)',
+                color: '#fff',
+                fontSize: '0.85rem',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
