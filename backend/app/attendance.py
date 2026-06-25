@@ -611,7 +611,11 @@ def mark_manual_attendance_bulk(
 
     for rec in records:
         try:
-            student_id = str(rec.get("student_id", ""))
+            raw_student_id = rec.get("student_id", "")
+            if not raw_student_id and raw_student_id != 0:
+                fail_count += 1
+                continue
+            student_id = str(raw_student_id)
             attendance_status = rec.get("attendance_status", "Present")
             subject_id = rec.get("subject_id")
             custom_date = rec.get("custom_date")  # YYYY-MM-DD
@@ -637,9 +641,15 @@ def mark_manual_attendance_bulk(
                     models.Subject.institution_id == current_user.institution_id
                 ).first()
 
-            # Get student info
+            # Get student info — safe int conversion
+            try:
+                student_int_id = int(student_id)
+            except (ValueError, TypeError):
+                fail_count += 1
+                continue
+
             student = db.query(models.StudentModel).filter(
-                models.StudentModel.id == int(student_id),
+                models.StudentModel.id == student_int_id,
                 models.StudentModel.institution_id == current_user.institution_id
             ).first()
 
