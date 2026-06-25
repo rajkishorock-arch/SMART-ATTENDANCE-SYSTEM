@@ -71,6 +71,8 @@ class AttendanceBase(BaseModel):
     attendance: str
     subject_id: Optional[int] = None
     subject_name: Optional[str] = None
+    remarks: Optional[str] = None
+    marked_by: Optional[str] = None
 
 
 class AttendanceCreate(AttendanceBase):
@@ -111,6 +113,7 @@ class SystemSettingsBase(BaseModel):
     latest_version: Optional[str] = "1.0.1"
     update_download_url: Optional[str] = ""
     update_active: Optional[bool] = False
+    update_beta_active: Optional[bool] = False
     build_status: Optional[str] = "idle"
     build_version: Optional[str] = None
     build_error: Optional[str] = None
@@ -125,6 +128,7 @@ class SystemSettingsUpdate(BaseModel):
     latest_version: Optional[str] = None
     update_download_url: Optional[str] = None
     update_active: Optional[bool] = None
+    update_beta_active: Optional[bool] = None
     build_status: Optional[str] = None
     build_version: Optional[str] = None
     build_error: Optional[str] = None
@@ -146,6 +150,10 @@ class ToggleUpdatePayload(BaseModel):
     master_password: str
     active: bool  # True = enable update for all users, False = disable
 
+class ToggleBetaPayload(BaseModel):
+    master_password: str
+    active: bool  # True = enable beta update for owner, False = disable
+
 class TriggerBuildPayload(BaseModel):
     master_password: str
     version: str
@@ -156,6 +164,29 @@ class BuildCallbackPayload(BaseModel):
     download_url: Optional[str] = None
     error: Optional[str] = None
     token: str
+
+
+# --- Manual Attendance ---
+class ManualAttendanceCreate(BaseModel):
+    student_id: int
+    attendance_status: str  # 'Present', 'Absent', 'Late'
+    subject_id: Optional[int] = None
+    custom_date: Optional[str] = None
+    custom_time: Optional[str] = None
+    remarks: Optional[str] = None
+
+
+# --- Owner Premium Grant/Revoke ---
+class OwnerPremiumGrantPayload(BaseModel):
+    master_password: str
+    institution_id: int
+    plan: Optional[str] = "enterprise"
+    student_limit: Optional[int] = 10000
+
+
+class OwnerPremiumRevokePayload(BaseModel):
+    master_password: str
+    institution_id: int
 
 
 # --- Subject ---

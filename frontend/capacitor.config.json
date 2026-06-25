@@ -15,5 +15,8 @@
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
     }
+  },
+  "ios": {
+    "contentInset": "automatic"
   }
 }

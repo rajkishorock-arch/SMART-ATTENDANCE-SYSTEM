@@ -287,14 +287,16 @@ def github_build_callback(
         settings.latest_version = payload.version.strip()
         if payload.download_url:
             settings.update_download_url = payload.download_url.strip()
-        settings.update_active = True  # Automatically push update live!
+        # ✅ Beta channel: only push to owner first, NOT all users yet
+        settings.update_beta_active = True
+        settings.update_active = False  # Will be set True only after owner approves
         settings.build_error = None
         
         crud.create_audit_log(
             db,
             log=schemas.AuditLogCreate(
                 user_email="system@github-actions.internal",
-                action=f"Automated build SUCCEEDED for version {payload.version}. APK is now live at: {payload.download_url}"
+                action=f"Automated build SUCCEEDED for version {payload.version}. APK ready for owner beta testing at: {payload.download_url}. Use toggle-beta-active to release to all users."
             ),
             institution_id=1
         )
@@ -336,5 +338,57 @@ def get_build_status(
         "build_error": settings.build_error,
         "latest_version": settings.latest_version,
         "update_download_url": settings.update_download_url,
-        "update_active": settings.update_active
+        "update_active": settings.update_active,
+        "update_beta_active": getattr(settings, "update_beta_active", False)
     }
+
+
+@router.post("/toggle-beta-active")
+def toggle_beta_update_active(
+    payload: schemas.ToggleBetaPayload,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Toggle the BETA update channel ON or OFF.
+    - When active=True: Only the System Owner's device sees the update (for testing).
+    - When active=False: Beta channel disabled.
+    - Use toggle-update-active to release to ALL users after owner approves.
+    Requires Master Password. (System Owner only)
+    """
+    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can toggle the beta release channel."
+        )
+
+    input_key = payload.master_password.strip()
+    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id)
+
+    if not is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect master password. Verification failed."
+        )
+
+    settings = crud.get_system_settings(db, institution_id=1)
+    settings.update_beta_active = payload.active
+    db.commit()
+    db.refresh(settings)
+
+    action_word = "ENABLED" if payload.active else "DISABLED"
+    crud.create_audit_log(
+        db,
+        log=schemas.AuditLogCreate(
+            user_email=current_user.email,
+            action=f"Beta Update Channel {action_word}: update_beta_active={payload.active}"
+        ),
+        institution_id=current_user.institution_id
+    )
+
+    msg = (
+        f"🧪 Beta update channel is now ACTIVE! Only your device will see the update. Version: {settings.latest_version}"
+        if payload.active
+        else "🔕 Beta update channel has been deactivated."
+    )
+    return {"status": "success", "message": msg, "update_beta_active": payload.active}

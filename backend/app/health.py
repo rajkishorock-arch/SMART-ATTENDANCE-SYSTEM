@@ -205,10 +205,13 @@ def test_smtp_configuration(
         )
 
 @router.get("/update-check")
-def check_for_updates(client_version: str = None, db: Session = Depends(get_db)):
+def check_for_updates(client_version: str = None, db: Session = Depends(get_db), request=None):
     """Public endpoint to check the latest release version & download URL.
-    Only signals update_available when update_active=True AND server version is newer than client."""
+    Only signals update_available when update_active=True AND server version is newer than client.
+    For the System Owner: also returns update_beta_active for owner-first testing."""
     from app.crud import get_system_settings
+    from app.core import config as app_config
+    import os
 
     def parse_version(version: str):
         parts = (version or "0.0.0").lstrip("vV").split(".")
@@ -226,16 +229,21 @@ def check_for_updates(client_version: str = None, db: Session = Depends(get_db))
     try:
         settings = get_system_settings(db, institution_id=1)
         update_active = getattr(settings, "update_active", False)
+        update_beta_active = getattr(settings, "update_beta_active", False)
         latest = (settings.latest_version or "1.0.0").lstrip("vV")
         client = (client_version or "").lstrip("vV")
 
         update_available = bool(update_active and latest and is_newer(latest, client or "0.0.0"))
+        # Beta update available if beta is active AND version is newer (owner only)
+        beta_update_available = bool(update_beta_active and latest and is_newer(latest, client or "0.0.0"))
 
         return {
             "latest_version": latest,
             "update_download_url": settings.update_download_url or "",
             "update_active": update_active,
+            "update_beta_active": update_beta_active,
             "update_available": update_available,
+            "beta_update_available": beta_update_available,
             "client_version": client or None,
         }
     except Exception as e:
@@ -244,6 +252,8 @@ def check_for_updates(client_version: str = None, db: Session = Depends(get_db))
             "latest_version": "0.0.0",
             "update_download_url": "",
             "update_active": False,
+            "update_beta_active": False,
             "update_available": False,
+            "beta_update_available": False,
             "client_version": client_version,
         }

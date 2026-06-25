@@ -485,6 +485,112 @@ export default function App() {
   const [activeSubSetting, setActiveSubSetting] = useState(null);
   const [activeDashboardSubTab, setActiveDashboardSubTab] = useState(null);
 
+  // Manual Attendance States
+  const [isManualAttendanceOpen, setIsManualAttendanceOpen] = useState(false);
+  const [manualSubjectId, setManualSubjectId] = useState('');
+  const [manualDate, setManualDate] = useState(getLocalDateString());
+  const [manualPeriod, setManualPeriod] = useState('Period 1');
+  const [manualAttendanceData, setManualAttendanceData] = useState({}); // student_id -> { status: 'Present', remarks: '' }
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  const [manualSearchQuery, setManualSearchQuery] = useState('');
+
+  // Heatmap States
+  const [heatmapYear, setHeatmapYear] = useState(new Date().getFullYear());
+  const [heatmapMonth, setHeatmapMonth] = useState(new Date().getMonth()); // 0-indexed
+
+  // Leaderboard States
+  const [leaderboardDeptFilter, setLeaderboardDeptFilter] = useState('');
+
+  // Computed institution 100% attendance streak
+  const institutionStreak = useMemo(() => {
+    const dateGroups = {};
+    logs.forEach(log => {
+      if (!dateGroups[log.date]) {
+        dateGroups[log.date] = { total: 0, present: 0 };
+      }
+      dateGroups[log.date].total++;
+      if (log.attendance === 'Present' || log.attendance === 'Late') {
+        dateGroups[log.date].present++;
+      }
+    });
+    const sortedDates = Object.keys(dateGroups).sort((a, b) => {
+      const parseDate = (dStr) => {
+        const parts = dStr.split('/');
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      };
+      return parseDate(b) - parseDate(a);
+    });
+    
+    let streak = 0;
+    for (const d of sortedDates) {
+      const group = dateGroups[d];
+      const rate = group.total > 0 ? (group.present / group.total) * 100 : 0;
+      if (rate === 100) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }, [logs]);
+
+  // Computed student leaderboard list
+  const studentLeaderboard = useMemo(() => {
+    return students.map(student => {
+      const studentLogs = logs.filter(l => l.roll === student.roll);
+      const total = studentLogs.length;
+      const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+      const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+      return {
+        ...student,
+        totalClasses: total,
+        presentClasses: present,
+        rate
+      };
+    }).sort((a, b) => b.rate - a.rate || a.name.localeCompare(b.name));
+  }, [students, logs]);
+
+  // Heatmap logs filter helper
+  const heatmapLogs = useMemo(() => {
+    return logs.filter(log => {
+      const matchesSearch = 
+        (log.name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+        (log.roll || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+        (log.id || '').toLowerCase().includes(logSearch.toLowerCase());
+
+      let matchesDept = true;
+      if (userRole === 'admin') {
+        matchesDept = !logDeptFilter || log.department === logDeptFilter;
+      } else if (userRole === 'teacher') {
+        const teacherSubjectIds = subjects
+            .filter(s => s.teacher_id === currentUser?.details?.id)
+            .map(s => s.id);
+        if (selectedTeacherLogSubjectId) {
+          matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId);
+        } else {
+          if (teacherSubjectIds.length === 0) {
+            matchesDept = true;
+          } else {
+            const teacherDepts = subjects
+              .filter(s => s.teacher_id === currentUser?.details?.id)
+              .map(s => s.department);
+            matchesDept = teacherSubjectIds.includes(log.subject_id) ||
+              (log.subject_id == null && teacherDepts.includes(log.department));
+          }
+        }
+      }
+      return matchesSearch && matchesDept;
+    });
+  }, [logs, logSearch, userRole, logDeptFilter, subjects, selectedTeacherLogSubjectId, currentUser]);
+
+  useEffect(() => {
+    if (currentUser?.details?.department) {
+      setLeaderboardDeptFilter(currentUser.details.department);
+    } else if (currentUser?.department) {
+      setLeaderboardDeptFilter(currentUser.department);
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     setActiveSubSetting(null);
     setActiveDashboardSubTab(null);
@@ -549,6 +655,7 @@ export default function App() {
   const [updateDownloadedToast, setUpdateDownloadedToast] = useState(false);
   const [serverLatestVersion, setServerLatestVersion] = useState('');
   const [updateActiveFlag, setUpdateActiveFlag] = useState(false);
+  const [updateBetaActiveFlag, setUpdateBetaActiveFlag] = useState(false);
   const [explorationSettings, setExplorationSettings] = useState(() => loadExplorationSettings());
   const [subscriptionPlan, setSubscriptionPlan] = useState('free');
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
@@ -625,8 +732,15 @@ export default function App() {
       const latestVersion = (data.latest_version || '').replace(/^v/i, '');
       setServerLatestVersion(latestVersion);
       setUpdateActiveFlag(!!data.update_active);
+      setUpdateBetaActiveFlag(!!data.update_beta_active);
 
-      if (data.update_available && shouldShowUpdateBanner(latestVersion, data.update_active)) {
+      const isOwner = currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com';
+      const isBetaActive = !!data.update_beta_active;
+      const isLiveActive = !!data.update_active;
+      const showBanner = (data.update_available && shouldShowUpdateBanner(latestVersion, isLiveActive)) ||
+                         (isOwner && data.beta_update_available && shouldShowUpdateBanner(latestVersion, isBetaActive));
+
+      if (showBanner) {
         setUpdateAvailable({
           version: latestVersion,
           downloadUrl: data.update_download_url || '',
@@ -640,7 +754,7 @@ export default function App() {
     } catch (e) {
       // silently ignore — no network is fine
     }
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     checkForUpdate();
@@ -650,6 +764,10 @@ export default function App() {
 
   // Fetch subscription plan for premium gating
   useEffect(() => {
+    if (currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com') {
+      setSubscriptionPlan('enterprise');
+      return;
+    }
     if (!token || userRole !== 'admin') return;
     fetch(`${API_BASE_URL}/billing/status`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -659,7 +777,7 @@ export default function App() {
         if (data?.plan) setSubscriptionPlan(data.plan);
       })
       .catch(() => {});
-  }, [token, userRole]);
+  }, [token, userRole, currentUser]);
 
   // Unified Speech Recognition State Machine Coordinator
   const syncVoiceListeners = useCallback(() => {
@@ -1635,6 +1753,24 @@ export default function App() {
   const [showToggleMasterKeyModal, setShowToggleMasterKeyModal] = useState(false);
   const [pendingToggleValue, setPendingToggleValue] = useState(false); // the target ON/OFF value
 
+  // Toggle Beta Update States
+  const [currentUpdateBetaActive, setCurrentUpdateBetaActive] = useState(false);
+  const [toggleBetaMasterPassword, setToggleBetaMasterPassword] = useState('');
+  const [isTogglingBeta, setIsTogglingBeta] = useState(false);
+  const [betaToggleSuccessMessage, setBetaToggleSuccessMessage] = useState('');
+  const [betaToggleErrorMessage, setBetaToggleErrorMessage] = useState('');
+  const [showToggleBetaMasterKeyModal, setShowToggleBetaMasterKeyModal] = useState(false);
+  const [pendingBetaToggleValue, setPendingBetaToggleValue] = useState(false);
+
+  // Owner Premium Access Control States
+  const [premiumControlInstId, setPremiumControlInstId] = useState('');
+  const [premiumControlPlan, setPremiumControlPlan] = useState('enterprise');
+  const [premiumControlStudentLimit, setPremiumControlStudentLimit] = useState(10000);
+  const [premiumControlMasterPassword, setPremiumControlMasterPassword] = useState('');
+  const [isSubmittingPremiumControl, setIsSubmittingPremiumControl] = useState(false);
+  const [premiumControlSuccess, setPremiumControlSuccess] = useState('');
+  const [premiumControlError, setPremiumControlError] = useState('');
+
 
   // Student Portal Selfie face upload states
   const [studentWebcamActive, setStudentWebcamActive] = useState(false);
@@ -2426,6 +2562,75 @@ export default function App() {
     }
   };
 
+  const handleSubmitManualAttendance = async () => {
+    setIsSubmittingManual(true);
+    playCyberSound('click');
+    
+    const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
+    const subjectDept = selectedSubject ? selectedSubject.department : '';
+    const classStudents = students.filter(s => !subjectDept || s.dep === subjectDept);
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const student of classStudents) {
+      const stateData = manualAttendanceData[student.id] || { status: 'Present', remarks: '' };
+      
+      try {
+        const payload = {
+          student_id: student.id,
+          attendance_status: stateData.status,
+          subject_id: parseInt(manualSubjectId),
+          custom_date: manualDate,
+          custom_time: null,
+          remarks: stateData.remarks || null
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/attendance/manual`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        failCount++;
+      }
+    }
+    
+    setIsSubmittingManual(false);
+    setIsManualAttendanceOpen(false);
+    
+    if (successCount > 0) {
+      alert(`Successfully marked manual attendance for ${successCount} students.${failCount > 0 ? ` Failed for ${failCount} students.` : ''}`);
+      playCyberSound('success');
+      
+      // Refresh logs
+      try {
+        const logsRes = await fetch(`${API_BASE_URL}/attendance/logs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (logsRes.ok) {
+          const logsData = await logsRes.json();
+          setLogs(logsData);
+          localStorage.setItem('cached_logs', JSON.stringify(logsData));
+        }
+      } catch (e) {
+        console.error("Failed to refresh logs after manual attendance:", e);
+      }
+    } else {
+      alert('Failed to mark manual attendance. Please check network and security settings.');
+      playCyberSound('error');
+    }
+  };
+
   const handleCreateInstitution = async (e) => {
     e.preventDefault();
     setInstSuccessMessage('');
@@ -2730,6 +2935,110 @@ export default function App() {
     }
   };
 
+  const handleToggleBetaActive = async () => {
+    if (!toggleBetaMasterPassword.trim()) {
+      setBetaToggleErrorMessage('Master password is required.');
+      return;
+    }
+    setBetaToggleErrorMessage('');
+    setBetaToggleSuccessMessage('');
+    setIsTogglingBeta(true);
+    try {
+      await wakeBackend(API_BASE_URL, 12000);
+      const res = await fetch(`${API_BASE_URL}/settings/toggle-beta-active`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          master_password: toggleBetaMasterPassword,
+          active: pendingBetaToggleValue
+        })
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        data = { detail: res.ok ? 'Unexpected server response.' : `Server error (${res.status}).` };
+      }
+      if (res.ok) {
+        setCurrentUpdateBetaActive(pendingBetaToggleValue);
+        setBetaToggleSuccessMessage(data.message || (pendingBetaToggleValue ? '🔬 Beta update is now ENABLED for owner!' : '🔬 Beta release deactivated.'));
+        setToggleBetaMasterPassword('');
+        setShowToggleBetaMasterKeyModal(false);
+        if (typeof playCyberSound === 'function') playCyberSound('success');
+      } else {
+        setBetaToggleErrorMessage(data.detail || 'Failed to toggle beta status.');
+        if (typeof playCyberSound === 'function') playCyberSound('error');
+      }
+    } catch (e) {
+      setBetaToggleErrorMessage(e?.message?.includes('abort') ? 'Server wake-up timed out. Please try again.' : `Network error: ${e?.message || 'Please try again.'}`);
+      if (typeof playCyberSound === 'function') playCyberSound('error');
+    } finally {
+      setIsTogglingBeta(false);
+    }
+  };
+
+  const handleOwnerPremiumControl = async (action) => {
+    if (!premiumControlMasterPassword.trim()) {
+      setPremiumControlError('Master password is required.');
+      return;
+    }
+    if (!premiumControlInstId) {
+      setPremiumControlError('Institution ID is required.');
+      return;
+    }
+    setPremiumControlError('');
+    setPremiumControlSuccess('');
+    setIsSubmittingPremiumControl(true);
+    try {
+      await wakeBackend(API_BASE_URL, 12000);
+      const endpoint = action === 'grant' ? 'owner-grant-premium' : 'owner-revoke-premium';
+      const body = action === 'grant' 
+        ? {
+            master_password: premiumControlMasterPassword,
+            institution_id: parseInt(premiumControlInstId),
+            plan: premiumControlPlan,
+            student_limit: parseInt(premiumControlStudentLimit)
+          }
+        : {
+            master_password: premiumControlMasterPassword,
+            institution_id: parseInt(premiumControlInstId)
+          };
+
+      const res = await fetch(`${API_BASE_URL}/billing/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        data = { detail: res.ok ? 'Unexpected response.' : `Server error (${res.status}).` };
+      }
+
+      if (res.ok) {
+        setPremiumControlSuccess(data.message || `Successfully completed ${action} operation.`);
+        setPremiumControlMasterPassword('');
+        if (typeof playCyberSound === 'function') playCyberSound('success');
+      } else {
+        setPremiumControlError(data.detail || `Failed to perform ${action} operation.`);
+        if (typeof playCyberSound === 'function') playCyberSound('error');
+      }
+    } catch (e) {
+      setPremiumControlError(`Network error: ${e?.message || 'Please try again.'}`);
+      if (typeof playCyberSound === 'function') playCyberSound('error');
+    } finally {
+      setIsSubmittingPremiumControl(false);
+    }
+  };
+
   const handleSmtpTest = async (e) => {
     e.preventDefault();
     if (!smtpTestEmail) return;
@@ -2777,6 +3086,7 @@ export default function App() {
         setBuildVersion(data.build_version || '');
         setBuildError(data.build_error || '');
         setCurrentUpdateActive(data.update_active || false);
+        setCurrentUpdateBetaActive(data.update_beta_active || false);
         setActiveReleaseVersion(data.latest_version || '');
         setActiveReleaseUrl(data.update_download_url || '');
       }
@@ -9753,6 +10063,43 @@ export default function App() {
                 >
                   Start Check-in Session
                 </button>
+
+                {/* Manual Attendance Button */}
+                <button 
+                  onClick={() => {
+                    if (userRole === 'admin' && !selectedSubjectId) {
+                      alert('Please select a subject first to use Manual Register.');
+                      return;
+                    }
+                    const subId = userRole === 'teacher' 
+                      ? subjects.find(s => s.teacher_id === currentUser?.details?.id)?.id?.toString() || ''
+                      : selectedSubjectId;
+                    setManualSubjectId(subId);
+                    setManualDate(sessionDate);
+                    setManualPeriod(sessionPeriod);
+                    setManualAttendanceData({});
+                    setManualSearchQuery('');
+                    setIsManualAttendanceOpen(true);
+                    playCyberSound('click');
+                  }}
+                  type="button"
+                  className="btn-secondary active-haptic"
+                  style={{ 
+                    padding: '12px', 
+                    borderRadius: '12px', 
+                    fontWeight: 600, 
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    border: '1px solid rgba(167, 139, 250, 0.3)',
+                    color: '#a78bfa',
+                    background: 'rgba(167, 139, 250, 0.06)'
+                  }}
+                >
+                  ✋ Manual Register (No Face Auth)
+                </button>
               </div>
             </div>
           </div>
@@ -11264,6 +11611,22 @@ export default function App() {
                       </div>
                       <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>System Release Updates</h3>
                       <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Publish new system-wide APK versions and manage update downloads for all users.</p>
+                    </div>
+                  )}
+
+                  {/* Category Card 13: Owner Premium Access Control */}
+                  {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('owner_premium_control'); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.4rem' }}>👑</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Premium Access Control</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Grant or revoke Premium/Enterprise plans for any institution instantly.</p>
                     </div>
                   )}
                 </div>
@@ -13290,7 +13653,88 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* ═══ BETA TOGGLE — TEST BEFORE RELEASE ═══ */}
+                <div style={{
+                  background: currentUpdateBetaActive
+                    ? 'linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(124, 58, 237, 0.06))'
+                    : 'rgba(255,255,255,0.02)',
+                  border: currentUpdateBetaActive
+                    ? '1px solid rgba(167, 139, 250, 0.3)'
+                    : '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '20px',
+                  flexWrap: 'wrap',
+                  transition: 'all 0.3s ease',
+                  marginTop: '16px'
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '1.4rem' }}>{currentUpdateBetaActive ? '🔬' : '⚫'}</span>
+                      <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: currentUpdateBetaActive ? '#a78bfa' : '#f8fafc' }}>
+                        {currentUpdateBetaActive ? 'Beta Testing is ACTIVE — Visible to Owner Only' : 'Beta Testing is INACTIVE'}
+                      </h4>
+                    </div>
+                    <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+                      {currentUpdateBetaActive
+                        ? `🔬 Beta channel is active. Only you (the System Owner) will see the update banner to test compilation. Regular users will not see it.`
+                        : '🔬 Toggle ON to release the update banner ONLY to your device (requires Master Key) before making it public.'}
+                    </p>
+                  </div>
+
+                  {/* BETA TOGGLE SWITCH */}
+                  <div
+                    onClick={() => {
+                      const newVal = !currentUpdateBetaActive;
+                      setPendingBetaToggleValue(newVal);
+                      setToggleBetaMasterPassword('');
+                      setBetaToggleErrorMessage('');
+                      setBetaToggleSuccessMessage('');
+                      setShowToggleBetaMasterKeyModal(true);
+                      playCyberSound('click');
+                    }}
+                    style={{
+                      width: '64px', height: '34px',
+                      borderRadius: '17px',
+                      background: currentUpdateBetaActive
+                        ? 'linear-gradient(135deg, #a78bfa, #7c3aed)'
+                        : 'rgba(255,255,255,0.1)',
+                      border: currentUpdateBetaActive ? '2px solid rgba(167, 139, 250, 0.5)' : '2px solid rgba(255, 255, 255, 0.15)',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'all 0.3s ease',
+                      flexShrink: 0,
+                      boxShadow: currentUpdateBetaActive ? '0 0 16px rgba(167, 139, 250, 0.3)' : 'none',
+                    }}
+                    title={currentUpdateBetaActive ? 'Click to deactivate beta' : 'Click to activate beta'}
+                  >
+                    <div style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: currentUpdateBetaActive ? '32px' : '3px',
+                      width: '24px', height: '24px',
+                      borderRadius: '50%',
+                      background: '#fff',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      transition: 'left 0.3s ease',
+                    }} />
+                  </div>
+                </div>
+
                 {/* Toggle Success/Error Messages */}
+                {betaToggleSuccessMessage && (
+                  <div style={{ padding: '12px 16px', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: '8px', color: '#a78bfa', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {betaToggleSuccessMessage}
+                  </div>
+                )}
+                {betaToggleErrorMessage && (
+                  <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
+                    ❌ {betaToggleErrorMessage}
+                  </div>
+                )}
                 {toggleSuccessMessage && (
                   <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {toggleSuccessMessage}
@@ -13511,6 +13955,141 @@ export default function App() {
                     <li><strong style={{ color: '#e2e8f0' }}>Step 3:</strong> Once compiled, the download link updates automatically, and the update is made LIVE for all users.</li>
                     <li><strong style={{ color: '#e2e8f0' }}>Step 4:</strong> To stop displaying the update banner, simply toggle the master active switch above to OFF.</li>
                   </ul>
+                </div>
+              </div>
+            )}
+
+            {activeSubSetting === 'owner_premium_control' && currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      👑 Premium Access Control Panel
+                    </h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
+                      Grant, revoke, or upgrade institution subscription levels without payment.
+                    </p>
+                  </div>
+                </div>
+
+                {premiumControlSuccess && (
+                  <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem' }}>
+                    {premiumControlSuccess}
+                  </div>
+                )}
+                {premiumControlError && (
+                  <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
+                    ❌ {premiumControlError}
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                  {/* Grant Section */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#10b981', margin: 0 }}>🌟 Grant Premium Plan</h4>
+                    
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Target Institution ID</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="e.g. 2"
+                        value={premiumControlInstId}
+                        onChange={e => setPremiumControlInstId(e.target.value)}
+                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Premium Plan</label>
+                      <select
+                        className="form-input"
+                        value={premiumControlPlan}
+                        onChange={e => setPremiumControlPlan(e.target.value)}
+                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
+                      >
+                        <option value="starter">Starter</option>
+                        <option value="premium">Premium</option>
+                        <option value="enterprise">Enterprise</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Student Limit</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="e.g. 10000"
+                        value={premiumControlStudentLimit}
+                        onChange={e => setPremiumControlStudentLimit(e.target.value)}
+                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Owner Master Password</label>
+                      <input
+                        type="password"
+                        className="form-input"
+                        placeholder="Enter master password..."
+                        value={premiumControlMasterPassword}
+                        onChange={e => setPremiumControlMasterPassword(e.target.value)}
+                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOwnerPremiumControl('grant')}
+                      className="bg-gradient-btn active-haptic"
+                      style={{ padding: '12px 20px', borderRadius: '8px', fontSize: '0.88rem', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                      disabled={isSubmittingPremiumControl}
+                    >
+                      {isSubmittingPremiumControl ? 'Processing...' : '✅ Grant Premium Access'}
+                    </button>
+                  </div>
+
+                  {/* Revoke Section */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444', margin: 0 }}>⚠️ Revoke Premium Plan</h4>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, lineHeight: 1.5 }}>
+                      Downgrades the institution's plan status immediately back to "free" tier.
+                    </p>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Target Institution ID</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="e.g. 2"
+                        value={premiumControlInstId}
+                        onChange={e => setPremiumControlInstId(e.target.value)}
+                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Owner Master Password</label>
+                      <input
+                        type="password"
+                        className="form-input"
+                        placeholder="Enter master password..."
+                        value={premiumControlMasterPassword}
+                        onChange={e => setPremiumControlMasterPassword(e.target.value)}
+                        style={{ background: 'rgba(8, 12, 20, 0.4)' }}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOwnerPremiumControl('revoke')}
+                      className="btn-secondary active-haptic"
+                      style={{ padding: '12px 20px', borderRadius: '8px', fontSize: '0.88rem', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#ef4444' }}
+                      disabled={isSubmittingPremiumControl}
+                    >
+                      {isSubmittingPremiumControl ? 'Processing...' : '⚠️ Downgrade to Free'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -15506,7 +16085,93 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) for Feedback - only shown when logged in */}
+      {/* ===== TOGGLE BETA ACTIVE — Master Key Confirmation Modal ===== */}
+      {showToggleBetaMasterKeyModal && (
+        <div
+          className="flex-center modal-overlay"
+          style={{ position: 'fixed', inset: 0, zIndex: 100050, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowToggleBetaMasterKeyModal(false); }}
+        >
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '420px', margin: '16px',
+            padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px',
+            border: pendingBetaToggleValue ? '1px solid rgba(167,139,250,0.3)' : '1px solid rgba(239,68,68,0.3)',
+            animation: 'fadeInUp 0.3s ease',
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: pendingBetaToggleValue ? 'rgba(167,139,250,0.15)' : 'rgba(239,68,68,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.4rem', flexShrink: 0,
+              }}>
+                {pendingBetaToggleValue ? '🔬' : '🔕'}
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
+                  {pendingBetaToggleValue ? 'Activate Beta Update for Owner?' : 'Deactivate Beta Update?'}
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.4 }}>
+                  {pendingBetaToggleValue
+                    ? 'Only the system owner device will see the update download banner.'
+                    : 'The beta update banner will be hidden.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Master Key Input */}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                🔑 Master Password Required
+              </label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder="Enter system master password..."
+                value={toggleBetaMasterPassword}
+                onChange={e => setToggleBetaMasterPassword(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleToggleBetaActive(); }}
+                autoFocus
+                style={{ fontSize: '0.9rem' }}
+              />
+              {betaToggleErrorMessage && (
+                <p style={{ color: '#ef4444', fontSize: '0.78rem', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ❌ {betaToggleErrorMessage}
+                </p>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ flex: 1, padding: '11px 16px' }}
+                onClick={() => { setShowToggleBetaMasterKeyModal(false); setToggleBetaMasterPassword(''); setBetaToggleErrorMessage(''); }}
+                disabled={isTogglingBeta}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bg-gradient-btn"
+                style={{
+                  flex: 1, padding: '11px 16px', borderRadius: '8px', fontWeight: 600,
+                  background: pendingBetaToggleValue
+                    ? 'linear-gradient(135deg, #a78bfa, #7c3aed)'
+                    : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                }}
+                onClick={handleToggleBetaActive}
+                disabled={isTogglingBeta || !toggleBetaMasterPassword.trim()}
+              >
+                {isTogglingBeta ? '⏳ Processing...' : pendingBetaToggleValue ? '🔬 Activate Beta' : '🔕 Deactivate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {token && (
         <button 
           className="feedback-fab" 
@@ -16124,6 +16789,207 @@ export default function App() {
               >
                 Verify
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MANUAL ATTENDANCE MODAL ===== */}
+      {isManualAttendanceOpen && (
+        <div
+          className="flex-center modal-overlay"
+          style={{ position: 'fixed', inset: 0, zIndex: 100060, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setIsManualAttendanceOpen(false); }}
+        >
+          <div className="glass-panel" style={{
+            width: '100%',
+            maxWidth: '700px',
+            margin: '16px',
+            padding: '0',
+            border: '1px solid rgba(167, 139, 250, 0.35)',
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            animation: 'fadeInUp 0.3s ease'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '24px 28px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(167, 139, 250, 0.05)',
+              flexShrink: 0
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ✋ Manual Attendance Register
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.4 }}>
+                  Subject: <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(manualSubjectId))?.name || 'N/A'}</strong> • Date: <strong>{manualDate}</strong> • Slot: <strong>{manualPeriod}</strong>
+                </p>
+              </div>
+              <button 
+                onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '1.5rem', cursor: 'pointer', flexShrink: 0 }}
+                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Search input */}
+            <div style={{ padding: '16px 28px 8px', flexShrink: 0 }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="🔍 Search student name or roll number..."
+                  value={manualSearchQuery}
+                  onChange={e => setManualSearchQuery(e.target.value)}
+                  style={{ background: 'rgba(8, 12, 20, 0.4)', paddingLeft: '16px' }}
+                />
+              </div>
+            </div>
+
+            {/* Students Register List */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 28px 16px', minHeight: 0 }}>
+              {(() => {
+                const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
+                const subjectDept = selectedSubject ? selectedSubject.department : '';
+                const classStudents = students.filter(s => {
+                  const matchesDept = !subjectDept || s.dep === subjectDept;
+                  const matchesSearch = !manualSearchQuery || 
+                    s.name.toLowerCase().includes(manualSearchQuery.toLowerCase()) ||
+                    s.roll.toLowerCase().includes(manualSearchQuery.toLowerCase());
+                  return matchesDept && matchesSearch;
+                });
+
+                if (classStudents.length === 0) {
+                  return (
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                      No students found {subjectDept ? `in department: ${subjectDept}` : ''}.
+                    </div>
+                  );
+                }
+
+                return classStudents.map((student, idx) => {
+                  const stateData = manualAttendanceData[student.id] || { status: 'Present', remarks: '' };
+                  const statusColor = stateData.status === 'Present' ? '#10b981' : stateData.status === 'Late' ? '#f59e0b' : '#ef4444';
+                  return (
+                    <div key={student.id} style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      background: `rgba(255, 255, 255, 0.01)`,
+                      border: `1px solid ${statusColor}15`,
+                      borderLeft: `3px solid ${statusColor}`,
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      animation: `fadeInUp 0.25s ease both ${idx * 20}ms`
+                    }}>
+                      {/* Name & Roll */}
+                      <div style={{ flex: '1', minWidth: '160px' }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f1f5f9' }}>{student.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>Roll: {student.roll} • {student.dep}</div>
+                      </div>
+
+                      {/* Status Toggle buttons */}
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {['Present', 'Late', 'Absent'].map(status => {
+                          const isSelected = stateData.status === status;
+                          let selectedStyle = {};
+                          if (isSelected) {
+                            if (status === 'Present') selectedStyle = { background: 'rgba(16, 185, 129, 0.18)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.5)' };
+                            else if (status === 'Late') selectedStyle = { background: 'rgba(245, 158, 11, 0.18)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.5)' };
+                            else selectedStyle = { background: 'rgba(239, 68, 68, 0.18)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.5)' };
+                          }
+                          return (
+                            <button
+                              key={status}
+                              type="button"
+                              onClick={() => {
+                                setManualAttendanceData(prev => ({
+                                  ...prev,
+                                  [student.id]: { ...stateData, status }
+                                }));
+                              }}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                                background: 'transparent',
+                                color: '#64748b',
+                                border: '1px solid rgba(255,255,255,0.05)',
+                                ...(isSelected ? selectedStyle : {})
+                              }}
+                            >
+                              {status}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Remarks Input */}
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Note (optional)"
+                        value={stateData.remarks}
+                        onChange={e => {
+                          setManualAttendanceData(prev => ({
+                            ...prev,
+                            [student.id]: { ...stateData, remarks: e.target.value }
+                          }));
+                        }}
+                        style={{
+                          background: 'rgba(8, 12, 20, 0.25)',
+                          padding: '6px 10px',
+                          fontSize: '0.75rem',
+                          width: '160px',
+                          minWidth: '120px',
+                          border: '1px solid rgba(255,255,255,0.04)'
+                        }}
+                      />
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                Default status is <strong style={{ color: '#10b981' }}>Present</strong> — change per student as needed.
+              </span>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
+                  className="btn-secondary active-haptic"
+                  style={{ padding: '10px 20px', borderRadius: '10px', fontSize: '0.85rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingManual}
+                  onClick={handleSubmitManualAttendance}
+                  className="bg-gradient-btn active-haptic"
+                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '0.85rem', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', minWidth: '160px' }}
+                >
+                  {isSubmittingManual ? 'Submitting...' : '✅ Submit Register'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
