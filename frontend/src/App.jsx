@@ -4274,8 +4274,6 @@ export default function App() {
 
     faceMeshRef.current = faceMesh;
 
-    const isExternal = cameraScanSettings?.cameraSource === 'external';
-    const video = isExternal ? attendanceImageRef.current : attendanceVideoRef.current;
     let active = true;
 
     const sendFrames = async () => {
@@ -10868,7 +10866,8 @@ export default function App() {
                                               </button>
                                              </td>
                                            </tr>
-                                         ))}
+                                         );
+                                         })}
                                        </tbody>
                                      </table>
                                    </div>
