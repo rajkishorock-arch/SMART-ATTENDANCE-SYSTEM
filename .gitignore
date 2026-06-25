@@ -30,7 +30,7 @@ attendance.csv
 backend/attendance.csv
 
 # Large ML Models & ONNX weights (Avoid GitHub file size limits)
-*.xml
+# *.xml
 *.onnx
 backend/models/
 classifier.xml
