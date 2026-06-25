@@ -7,14 +7,14 @@ on:
         description: 'Version to build (e.g. 1.0.3)'
         required: true
         type: string
-      callback_url:
-        description: 'URL to notify when the build is finished'
-        required: true
-        type: string
-      callback_token:
-        description: 'Secure token for callback authorization'
-        required: true
-        type: string
+      # callback_url:
+      #   description: 'URL to notify when the build is finished'
+      #   required: true
+      #   type: string
+      # callback_token:
+      #   description: 'Secure token for callback authorization'
+      #   required: true
+      #   type: string
 
 jobs:
   build:
@@ -90,26 +90,26 @@ jobs:
           download_url="https://github.com/${{ github.repository }}/releases/download/${version_tag}/app-release.apk"
           echo "download_url=$download_url" >> $GITHUB_ENV
 
-      - name: Send Success Callback to Backend
-        if: success()
-        run: |
-          curl -X POST "${{ github.event.inputs.callback_url }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "status": "success",
-              "version": "${{ github.event.inputs.version }}",
-              "download_url": "${{ env.download_url }}",
-              "token": "${{ github.event.inputs.callback_token }}"
-            }'
+      # - name: Send Success Callback to Backend
+      #   if: success()
+      #   run: |
+      #     curl -X POST "${{ github.event.inputs.callback_url }}" \
+      #       -H "Content-Type: application/json" \
+      #       -d '{
+      #         "status": "success",
+      #         "version": "${{ github.event.inputs.version }}",
+      #         "download_url": "${{ env.download_url }}",
+      #         "token": "${{ github.event.inputs.callback_token }}"
+      #       }'
 
-      - name: Send Failure Callback to Backend
-        if: failure()
-        run: |
-          curl -X POST "${{ github.event.inputs.callback_url }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "status": "failed",
-              "version": "${{ github.event.inputs.version }}",
-              "error": "GitHub Actions build pipeline failed. Please check build logs for error details.",
-              "token": "${{ github.event.inputs.callback_token }}"
-            }'
+      # - name: Send Failure Callback to Backend
+      #   if: failure()
+      #   run: |
+      #     curl -X POST "${{ github.event.inputs.callback_url }}" \
+      #       -H "Content-Type: application/json" \
+      #       -d '{
+      #         "status": "failed",
+      #         "version": "${{ github.event.inputs.version }}",
+      #         "error": "GitHub Actions build pipeline failed. Please check build logs for error details.",
+      #         "token": "${{ github.event.inputs.callback_token }}"
+      #       }'
