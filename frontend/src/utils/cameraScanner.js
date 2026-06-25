@@ -12,8 +12,9 @@ export const CAMERA_PRESETS = {
     captureWidth: 480,
     captureHeight: 360,
     jpegQuality: 0.72,
-    meshSkipFrames: 1,
-    minDetectionConfidence: 0.5,
+    meshSkipFrames: 0,
+    minDetectionConfidence: 0.4,
+    faceDetectionConfidence: 0.42,
     refineLandmarks: false,
   },
   balanced: {
@@ -28,7 +29,8 @@ export const CAMERA_PRESETS = {
     captureHeight: 480,
     jpegQuality: 0.82,
     meshSkipFrames: 0,
-    minDetectionConfidence: 0.65,
+    minDetectionConfidence: 0.55,
+    faceDetectionConfidence: 0.5,
     refineLandmarks: true,
   },
   quality: {
@@ -43,7 +45,8 @@ export const CAMERA_PRESETS = {
     captureHeight: 720,
     jpegQuality: 0.9,
     meshSkipFrames: 0,
-    minDetectionConfidence: 0.7,
+    minDetectionConfidence: 0.65,
+    faceDetectionConfidence: 0.55,
     refineLandmarks: true,
   },
 };

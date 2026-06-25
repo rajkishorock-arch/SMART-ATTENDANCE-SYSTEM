@@ -45,7 +45,7 @@ export default function CameraSettingsPanel({ onChange }) {
       </div>
 
       {[
-        { key: 'autoFocusBox', label: 'Auto face focus box' },
+        { key: 'autoFocusBox', label: 'Auto face focus box (YuNet-style lock)' },
         { key: 'mirrorPreview', label: 'Mirror preview (selfie mode)' },
         { key: 'hapticFeedback', label: 'Haptic feedback on match (mobile)' },
       ].map(({ key, label }) => (

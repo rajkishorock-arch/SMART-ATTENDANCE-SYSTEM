@@ -44,6 +44,11 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 MICROSOFT_CLIENT_ID = os.getenv("MICROSOFT_CLIENT_ID", "")
 
+DEVELOPER_MASTER_KEY = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
+SYSTEM_OWNER_EMAIL = os.getenv("SYSTEM_OWNER_EMAIL", "rajkishorock@gmail.com").strip().lower()
+PRIMARY_ADMIN_PASSWORD = os.getenv("PRIMARY_ADMIN_PASSWORD", "raj@9211")
+BUILD_CALLBACK_TOKEN = os.getenv("BUILD_CALLBACK_TOKEN", "")
+
 
 def validate_config():
     errors = []

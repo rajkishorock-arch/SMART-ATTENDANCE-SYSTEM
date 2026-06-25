@@ -70,6 +70,7 @@ import {
 
 import { getApiBaseUrl, requestNativePermissions } from './utils/platform';
 import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
+import { createFaceDetector, extractFaceBox, drawFaceBox } from './utils/faceDetectionEngine';
 import CameraSettingsPanel from './components/CameraSettingsPanel';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
@@ -1744,6 +1745,11 @@ export default function App() {
   const [cameraScanSettings, setCameraScanSettings] = useState(() => loadCameraSettings());
   const meshFrameSkipRef = useRef(0);
   const lastLandmarksRef = useRef(null);
+  const lastFaceBoxRef = useRef(null);
+  const lastFaceDetectedRef = useRef(false);
+  const faceDetectorRef = useRef(null);
+  const recognitionBusyRef = useRef(false);
+  const [faceDetected, setFaceDetected] = useState(false);
   const [isDemoMode, setIsDemoMode] = React.useState(localStorage.getItem('isDemoMode') === 'true');
 
   // Refs for video, canvas & stream
@@ -2653,6 +2659,7 @@ export default function App() {
     setToggleSuccessMessage('');
     setIsTogglingUpdate(true);
     try {
+      await wakeBackend(API_BASE_URL, 12000);
       const res = await fetch(`${API_BASE_URL}/settings/toggle-update-active`, {
         method: 'POST',
         headers: {
@@ -2664,7 +2671,12 @@ export default function App() {
           active: pendingToggleValue
         })
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        data = { detail: res.ok ? 'Unexpected server response.' : `Server error (${res.status}). Database may still be migrating — wait 30s and retry.` };
+      }
       if (res.ok) {
         setCurrentUpdateActive(pendingToggleValue);
         setToggleSuccessMessage(data.message || (pendingToggleValue ? '✅ Update is now LIVE for all users!' : '🔕 Update banner deactivated.'));
@@ -2676,7 +2688,7 @@ export default function App() {
         if (typeof playCyberSound === 'function') playCyberSound('error');
       }
     } catch (e) {
-      setToggleErrorMessage('Network error. Please try again.');
+      setToggleErrorMessage(e?.message?.includes('abort') ? 'Server wake-up timed out. Tap Wake Cloud Server on login, then retry.' : `Network error: ${e?.message || 'Please try again.'}`);
       if (typeof playCyberSound === 'function') playCyberSound('error');
     } finally {
       setIsTogglingUpdate(false);
@@ -2953,8 +2965,14 @@ export default function App() {
       if (attendanceVideoRef.current) {
         attendanceVideoRef.current.srcObject = stream;
         attendanceVideoRef.current.setAttribute('playsinline', 'true');
+        attendanceVideoRef.current.muted = true;
         if (cameraScanSettings.mirrorPreview !== false) {
           attendanceVideoRef.current.style.transform = 'scaleX(-1)';
+        }
+        try {
+          await attendanceVideoRef.current.play();
+        } catch (playErr) {
+          console.warn('Camera play() deferred:', playErr);
         }
       }
       attendanceStreamRef.current = stream;
@@ -2976,6 +2994,10 @@ export default function App() {
     addDiagnosticLog('Secure optical feed active: SEC_CAM_01');
     addDiagnosticLog('Initializing FaceMesh coordinate mapping...');
     handleSpeak("Scanner started. Ready for scanning.");
+    const video = attendanceVideoRef.current;
+    if (video?.srcObject) {
+      video.play().catch((err) => console.warn('Post-boot video play failed:', err));
+    }
   }, []);
 
   const stopAttendanceCam = () => {
@@ -2998,14 +3020,22 @@ export default function App() {
     setGeoTrackingError('');
     setScanStatus('Camera Offline');
     setDiagnosticWarnings({ lighting: '', distance: '' });
+    lastFaceBoxRef.current = null;
+    lastFaceDetectedRef.current = false;
+    setFaceDetected(false);
+    recognitionBusyRef.current = false;
+    if (faceDetectorRef.current) {
+      try { faceDetectorRef.current.close(); } catch (_) { /* ignore */ }
+      faceDetectorRef.current = null;
+    }
     addDiagnosticLog('Ocular feed terminated.');
     handleSpeak("Scanner stopped.");
   };
 
 
   const triggerFaceRecognition = async () => {
-    if (!attendanceVideoRef.current) return;
-    if (!lastLandmarksRef.current?.length) {
+    if (!attendanceVideoRef.current || recognitionBusyRef.current) return;
+    if (!lastLandmarksRef.current?.length && !lastFaceDetectedRef.current) {
       setScanStatus('No face detected — look at camera');
       return;
     }
@@ -3019,6 +3049,7 @@ export default function App() {
       preset.jpegQuality
     );
     if (!blob) return;
+    recognitionBusyRef.current = true;
 
     if (isDemoMode) {
         setIsScanning(true);
@@ -3038,6 +3069,7 @@ export default function App() {
             playCyberSound('error');
             addDiagnosticLog(`WARNING: Biometric match rejected due to low confidence (${confidenceVal}% < ${Math.round(biometricMatchThreshold * 100)}%)`);
             setIsScanning(false);
+            recognitionBusyRef.current = false;
             
             setTimeout(() => {
               eyeStateRef.current = 'open';
@@ -3087,6 +3119,7 @@ export default function App() {
           }
           
           setIsScanning(false);
+          recognitionBusyRef.current = false;
           
           setTimeout(() => {
             setScannedStudent(null);
@@ -3223,6 +3256,7 @@ export default function App() {
         addDiagnosticLog('ERROR: Match server timed out.');
       } finally {
         setIsScanning(false);
+        recognitionBusyRef.current = false;
         // Reset liveness status after 4 seconds to scan next student
         setTimeout(() => {
           setScannedStudent(null);
@@ -3781,6 +3815,100 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showScannerModal]);
 
+  // Fast client-side face detection (BlazeFace) — runs every frame for instant feedback
+  useEffect(() => {
+    if (!attendanceActive || !attendanceVideoRef.current) {
+      return undefined;
+    }
+
+    let active = true;
+    const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
+    const video = attendanceVideoRef.current;
+
+    const runDetector = async () => {
+      try {
+        const detector = await createFaceDetector({
+          minDetectionConfidence: preset.faceDetectionConfidence ?? 0.42,
+        });
+        if (!active) {
+          detector.close();
+          return;
+        }
+        faceDetectorRef.current = detector;
+
+        detector.onResults((results) => {
+          if (!attendanceActive) return;
+
+          const hasDetection = results.detections?.length > 0;
+          if (hasDetection) {
+            const vid = attendanceVideoRef.current;
+            const w = vid?.videoWidth || 640;
+            const h = vid?.videoHeight || 480;
+            const box = extractFaceBox(results.detections[0], w, h);
+            lastFaceBoxRef.current = box;
+            lastFaceDetectedRef.current = true;
+            setFaceDetected(true);
+            if (livenessStatusRef.current === 'verifying') {
+              setLivenessMessage('Face locked — blink to verify');
+              setScanStatus('Face detected — blink once');
+            }
+          } else {
+            lastFaceBoxRef.current = null;
+            lastFaceDetectedRef.current = false;
+            setFaceDetected(false);
+            if (livenessStatusRef.current === 'verifying') {
+              setLivenessMessage('Position your face in the frame');
+              setScanStatus('Searching for face...');
+            }
+          }
+        });
+
+        const detectLoop = async () => {
+          if (!active || !attendanceActive) return;
+          if (video.readyState === 4 && video.videoWidth > 0 && video.videoHeight > 0) {
+            try {
+              await detector.send({ image: video });
+            } catch (err) {
+              console.error('Face detection frame error:', err);
+            }
+            if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxRef.current && !lastLandmarksRef.current?.length) {
+              const canvas = attendanceCanvasRef.current;
+              if (canvas) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  drawFaceBox(ctx, lastFaceBoxRef.current, {
+                    color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
+                    label: 'FACE LOCKED',
+                  });
+                }
+              }
+            }
+          }
+          if (active && attendanceActive) {
+            requestAnimationFrame(detectLoop);
+          }
+        };
+        setTimeout(detectLoop, 100);
+      } catch (err) {
+        console.error('Face detection init failed:', err);
+        addDiagnosticLog('WARN: Fast face detector unavailable — using mesh-only mode.');
+      }
+    };
+
+    runDetector();
+
+    return () => {
+      active = false;
+      if (faceDetectorRef.current) {
+        try { faceDetectorRef.current.close(); } catch (_) { /* ignore */ }
+        faceDetectorRef.current = null;
+      }
+    };
+  }, [attendanceActive, cameraScanSettings.preset, cameraScanSettings.autoFocusBox]);
+
   // Initialize and run FaceMesh liveness detection loop
   useEffect(() => {
     if (!attendanceActive || !attendanceVideoRef.current) {
@@ -3828,6 +3956,13 @@ export default function App() {
         }
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxRef.current) {
+          drawFaceBox(ctx, lastFaceBoxRef.current, {
+            color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
+            label: livenessStatusRef.current === 'verified' ? 'SCANNING IDENTITY' : 'FACE LOCKED',
+          });
+        }
 
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
           const landmarks = results.multiFaceLandmarks[0];
@@ -6791,7 +6926,20 @@ export default function App() {
                 display: (attendanceActive || scannerBootActive) ? 'block' : 'none',
               }}
             />
-            <canvas ref={attendanceCanvasRef} style={{ display: 'none' }} />
+            <canvas
+              ref={attendanceCanvasRef}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transform: cameraScanSettings.mirrorPreview !== false ? 'scaleX(-1)' : 'none',
+                pointerEvents: 'none',
+                zIndex: 6,
+                display: attendanceActive && cameraScanSettings.autoFocusBox !== false ? 'block' : 'none',
+              }}
+            />
 
             {/* Camera auto-initializing placeholder — shown while stream is starting */}
             {!attendanceActive && !scannerBootActive && (
@@ -15152,6 +15300,9 @@ export default function App() {
                   ❌ {toggleErrorMessage}
                 </p>
               )}
+              <p style={{ color: '#64748b', fontSize: '0.72rem', margin: '8px 0 0', lineHeight: 1.4 }}>
+                Use your institution master key or the global developer key configured on Render (DEVELOPER_MASTER_KEY).
+              </p>
             </div>
 
             {/* Action Buttons */}

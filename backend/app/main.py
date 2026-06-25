@@ -102,6 +102,10 @@ def update_schema():
         # --- Advanced feature columns (idempotent migrations) ---
         safe_add_column('system_settings', 'latest_version', 'VARCHAR(50) NULL')
         safe_add_column('system_settings', 'update_download_url', 'TEXT NULL')
+        safe_add_column('system_settings', 'update_active', 'BOOLEAN DEFAULT FALSE')
+        safe_add_column('system_settings', 'build_status', 'VARCHAR(50) NULL')
+        safe_add_column('system_settings', 'build_version', 'VARCHAR(50) NULL')
+        safe_add_column('system_settings', 'build_error', 'TEXT NULL')
         safe_add_column('institutions', 'app_name', 'VARCHAR(100) NULL')
         safe_add_column('institutions', 'custom_domain', 'VARCHAR(200) NULL')
         safe_add_column('institutions', 'faq_json', 'TEXT NULL')
