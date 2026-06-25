@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Request
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Request, Body
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 import cv2
 import numpy as np
 from datetime import datetime, timezone, timedelta, date
@@ -535,6 +535,182 @@ def send_test_report_email(
         return {"message": f"Test attendance report successfully emailed to {current_user.email}!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate/send test report: {str(e)}")
+
+@router.get("/my-calendar")
+def get_student_attendance_calendar(
+    db: Session = Depends(get_db),
+    current_student: models.StudentModel = Depends(security.get_current_student),
+):
+    """
+    Returns student's own attendance records grouped by subject and date.
+    Used for the Subject-wise Attendance Blueprint Calendar.
+    """
+    # Fetch all subjects for this institution
+    subjects = db.query(models.Subject).filter(
+        models.Subject.institution_id == current_student.institution_id
+    ).all()
+
+    # Fetch all attendance records for this student
+    logs = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.id == str(current_student.id),
+        models.AttendanceModel.institution_id == current_student.institution_id
+    ).all()
+
+    # Group logs by subject_id -> { date -> status }
+    subject_calendar = {}
+    for log in logs:
+        sub_id = log.subject_id
+        if sub_id is None:
+            continue
+        if sub_id not in subject_calendar:
+            subject_calendar[sub_id] = {}
+        subject_calendar[sub_id][log.date] = log.attendance  # Present / Absent / Late
+
+    # Build response
+    result = []
+    for subject in subjects:
+        # Only include subjects for student's department or subjects that have logs
+        if subject.department and subject.department != current_student.dep:
+            if subject.id not in subject_calendar:
+                continue
+        cal = subject_calendar.get(subject.id, {})
+        result.append({
+            "subject_id": subject.id,
+            "subject_name": subject.name,
+            "subject_code": subject.code,
+            "department": subject.department or "",
+            "calendar": cal  # { "25/06/2026": "Present", "24/06/2026": "Absent", ... }
+        })
+
+    return result
+
+
+@router.post("/manual")
+def mark_manual_attendance_bulk(
+    payload: Dict[str, Any] = Body(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Bulk manual attendance marking. Accepts a list of student attendance records
+    and saves each one to the DB (same table as face recognition attendance).
+    This ensures manual records appear in Session History.
+    """
+    if current_user.role not in ["admin", "teacher"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only teachers and admins can mark manual attendance."
+        )
+
+    records = payload.get("records", [])
+    if not records:
+        raise HTTPException(status_code=400, detail="No records provided.")
+
+    success_count = 0
+    fail_count = 0
+
+    for rec in records:
+        try:
+            student_id = str(rec.get("student_id", ""))
+            attendance_status = rec.get("attendance_status", "Present")
+            subject_id = rec.get("subject_id")
+            custom_date = rec.get("custom_date")  # YYYY-MM-DD
+            period = rec.get("period", "Period 1")
+            remarks = rec.get("remarks")
+
+            # Convert date to DD/MM/YYYY
+            date_str = datetime.now(IST).strftime("%d/%m/%Y")
+            if custom_date:
+                if "-" in str(custom_date):
+                    try:
+                        date_str = datetime.strptime(custom_date, "%Y-%m-%d").strftime("%d/%m/%Y")
+                    except ValueError:
+                        date_str = custom_date
+                else:
+                    date_str = custom_date
+
+            # Get subject info
+            subject = None
+            if subject_id:
+                subject = db.query(models.Subject).filter(
+                    models.Subject.id == subject_id,
+                    models.Subject.institution_id == current_user.institution_id
+                ).first()
+
+            # Get student info
+            student = db.query(models.StudentModel).filter(
+                models.StudentModel.id == int(student_id),
+                models.StudentModel.institution_id == current_user.institution_id
+            ).first()
+
+            if not student:
+                fail_count += 1
+                continue
+
+            if attendance_status == "Absent":
+                # Remove existing record for this student+date+period
+                existing = db.query(models.AttendanceModel).filter(
+                    models.AttendanceModel.id == student_id,
+                    models.AttendanceModel.date == date_str,
+                    models.AttendanceModel.time == period,
+                    models.AttendanceModel.subject_id == subject_id,
+                    models.AttendanceModel.institution_id == current_user.institution_id
+                ).first()
+                if existing:
+                    db.delete(existing)
+                    db.commit()
+            else:
+                # Upsert: update if exists, create if not
+                existing = db.query(models.AttendanceModel).filter(
+                    models.AttendanceModel.id == student_id,
+                    models.AttendanceModel.date == date_str,
+                    models.AttendanceModel.time == period,
+                    models.AttendanceModel.subject_id == subject_id,
+                    models.AttendanceModel.institution_id == current_user.institution_id
+                ).first()
+
+                if existing:
+                    existing.attendance = attendance_status
+                    db.commit()
+                else:
+                    new_record = models.AttendanceModel(
+                        id=student_id,
+                        name=student.name,
+                        roll=student.roll or "",
+                        department=student.dep or "",
+                        date=date_str,
+                        time=period,
+                        attendance=attendance_status,
+                        subject_id=subject_id,
+                        institution_id=current_user.institution_id
+                    )
+                    db.add(new_record)
+                    db.commit()
+
+            success_count += 1
+
+        except Exception as e:
+            db.rollback()
+            fail_count += 1
+            continue
+
+    # Audit log
+    crud.create_audit_log(
+        db=db,
+        audit_log=schemas.AuditLogCreate(
+            user_email=current_user.email,
+            action=f"Bulk manual attendance marked: {success_count} success, {fail_count} failed."
+        ),
+        institution_id=current_user.institution_id
+    )
+
+    return {
+        "status": "success",
+        "success_count": success_count,
+        "fail_count": fail_count,
+        "message": f"Manual attendance saved: {success_count} records."
+    }
+
 
 @router.get("/sessions-history")
 def get_attendance_sessions_history(

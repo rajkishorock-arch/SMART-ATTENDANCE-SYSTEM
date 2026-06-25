@@ -483,6 +483,11 @@ export default function App() {
   const [studentLogs, setStudentLogs] = useState([]);
   const [isLoadingStudentLogs, setIsLoadingStudentLogs] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  // Subject-wise Blueprint Calendar States
+  const [blueprintData, setBlueprintData] = useState([]); // [{subject_id, subject_name, subject_code, calendar: {date->status}}]
+  const [blueprintLoading, setBlueprintLoading] = useState(false);
+  const [selectedBlueprintSubject, setSelectedBlueprintSubject] = useState(null); // subject_id
+  const [blueprintCalendarDate, setBlueprintCalendarDate] = useState(new Date());
   
   // Student Portal Change Password states
   const [oldPassword, setOldPassword] = useState('');
@@ -1647,6 +1652,15 @@ export default function App() {
   const [showToggleMasterKeyModal, setShowToggleMasterKeyModal] = useState(false);
   const [pendingToggleValue, setPendingToggleValue] = useState(false); // the target ON/OFF value
 
+  // Manual Attendance States
+  const [isManualAttendanceOpen, setIsManualAttendanceOpen] = useState(false);
+  const [manualSubjectId, setManualSubjectId] = useState('');
+  const [manualDate, setManualDate] = useState(getLocalDateString());
+  const [manualPeriod, setManualPeriod] = useState('Period 1');
+  const [manualAttendanceData, setManualAttendanceData] = useState({}); // student_id -> { status: 'Present', remarks: '' }
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  const [manualSearchQuery, setManualSearchQuery] = useState('');
+
 
   // Student Portal Selfie face upload states
   const [studentWebcamActive, setStudentWebcamActive] = useState(false);
@@ -2316,6 +2330,75 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error fetching session history:', err);
+    }
+  };
+
+  // Handle Manual Attendance submission - uses new bulk POST endpoint
+  const handleSubmitManualAttendance = async () => {
+    setIsSubmittingManual(true);
+    playCyberSound('click');
+
+    const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
+    const subjectDept = selectedSubject ? selectedSubject.department : '';
+    const classStudents = students.filter(s => !subjectDept || s.dep === subjectDept);
+
+    try {
+      // Build bulk records array
+      const records = classStudents.map(student => {
+        const stateData = manualAttendanceData[student.id] || { status: 'Present', remarks: '' };
+        return {
+          student_id: student.id,
+          attendance_status: stateData.status,
+          subject_id: parseInt(manualSubjectId),
+          custom_date: manualDate,
+          period: manualPeriod,
+          remarks: stateData.remarks || null
+        };
+      });
+
+      const response = await fetch(`${API_BASE_URL}/attendance/manual`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ records })
+      });
+
+      setIsSubmittingManual(false);
+      setIsManualAttendanceOpen(false);
+
+      if (response.ok) {
+        const result = await response.json();
+        const successCount = result.success_count || 0;
+        const failCount = result.fail_count || 0;
+        alert(`Successfully marked manual attendance for ${successCount} students.${failCount > 0 ? ` Failed for ${failCount} students.` : ''}`);
+        playCyberSound('success');
+        // Refresh session history so manual records appear merged
+        fetchSessionHistory();
+        // Refresh logs
+        try {
+          const logsRes = await fetch(`${API_BASE_URL}/attendance/logs`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (logsRes.ok) {
+            const logsData = await logsRes.json();
+            setLogs(logsData);
+            localStorage.setItem('cached_logs', JSON.stringify(logsData));
+          }
+        } catch (e) {
+          console.error("Failed to refresh logs after manual attendance:", e);
+        }
+      } else {
+        const err = await response.json().catch(() => ({}));
+        alert(err.detail || 'Failed to mark manual attendance. Please check network and security settings.');
+        playCyberSound('error');
+      }
+    } catch (err) {
+      setIsSubmittingManual(false);
+      setIsManualAttendanceOpen(false);
+      alert('Failed to mark manual attendance. Please check network and security settings.');
+      playCyberSound('error');
     }
   };
 
@@ -10131,6 +10214,43 @@ export default function App() {
                 >
                   Start Check-in Session
                 </button>
+
+                {/* Manual Attendance Button */}
+                <button
+                  onClick={() => {
+                    if (userRole === 'admin' && !selectedSubjectId) {
+                      alert('Please select a subject first to use Manual Register.');
+                      return;
+                    }
+                    const subId = userRole === 'teacher'
+                      ? subjects.find(s => s.teacher_id === currentUser?.details?.id)?.id?.toString() || ''
+                      : selectedSubjectId;
+                    setManualSubjectId(subId);
+                    setManualDate(sessionDate);
+                    setManualPeriod(sessionPeriod);
+                    setManualAttendanceData({});
+                    setManualSearchQuery('');
+                    setIsManualAttendanceOpen(true);
+                    playCyberSound('click');
+                  }}
+                  type="button"
+                  className="btn-secondary active-haptic"
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    border: '1px solid rgba(167, 139, 250, 0.3)',
+                    color: '#a78bfa',
+                    background: 'rgba(167, 139, 250, 0.06)'
+                  }}
+                >
+                  ✋ Manual Register (No Face Auth)
+                </button>
               </div>
             </div>
           </div>
@@ -14212,6 +14332,232 @@ export default function App() {
                 </div>
               )}
             </div>
+            {/* ===== SUBJECT-WISE ATTENDANCE BLUEPRINT CALENDAR ===== */}
+            {(() => {
+              // Fetch blueprint data if not loaded
+              const loadBlueprint = async () => {
+                if (blueprintLoading || blueprintData.length > 0) return;
+                setBlueprintLoading(true);
+                try {
+                  const res = await fetch(`${API_BASE_URL}/attendance/my-calendar`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    setBlueprintData(data);
+                    if (data.length > 0 && !selectedBlueprintSubject) {
+                      setSelectedBlueprintSubject(data[0].subject_id);
+                    }
+                  }
+                } catch (e) { console.error('Blueprint fetch error:', e); }
+                finally { setBlueprintLoading(false); }
+              };
+              if (blueprintData.length === 0 && !blueprintLoading && token) { loadBlueprint(); }
+
+              const activeSubject = blueprintData.find(s => s.subject_id === selectedBlueprintSubject) || blueprintData[0];
+              const calYear = blueprintCalendarDate.getFullYear();
+              const calMonth = blueprintCalendarDate.getMonth();
+              const startDay = new Date(calYear, calMonth, 1).getDay();
+              const numDays = new Date(calYear, calMonth + 1, 0).getDate();
+              const monthName = blueprintCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+              // Count stats from calendar data
+              const getStats = (subject) => {
+                if (!subject) return { present: 0, absent: 0, late: 0, total: 0 };
+                const vals = Object.values(subject.calendar || {});
+                return {
+                  present: vals.filter(v => v === 'Present').length,
+                  late: vals.filter(v => v === 'Late').length,
+                  absent: vals.filter(v => v === 'Absent').length,
+                  total: vals.length
+                };
+              };
+              const stats = getStats(activeSubject);
+              const pct = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
+
+              return (
+                <div className="glass-panel" style={{ padding: '28px', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>My Attendance Blueprint</h3>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>Subject-wise calendar — green = present, red = absent</p>
+                    </div>
+                  </div>
+
+                  {blueprintLoading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#9ca3af', gap: '12px', alignItems: 'center' }}>
+                      <div style={{ width: '28px', height: '28px', border: '3px solid rgba(0,242,254,0.1)', borderTopColor: '#00f2fe', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      Loading blueprint...
+                    </div>
+                  ) : blueprintData.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                      No attendance records found yet. Your blueprint will appear once attendance is marked.
+                    </div>
+                  ) : (
+                    <>
+                      {/* Subject Tabs */}
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                        {blueprintData.map(sub => (
+                          <button
+                            key={sub.subject_id}
+                            onClick={() => setSelectedBlueprintSubject(sub.subject_id)}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '20px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              border: selectedBlueprintSubject === sub.subject_id
+                                ? '1px solid rgba(139, 92, 246, 0.6)'
+                                : '1px solid rgba(255,255,255,0.06)',
+                              background: selectedBlueprintSubject === sub.subject_id
+                                ? 'rgba(139, 92, 246, 0.18)'
+                                : 'rgba(255,255,255,0.03)',
+                              color: selectedBlueprintSubject === sub.subject_id ? '#a78bfa' : '#9ca3af'
+                            }}
+                          >
+                            {sub.subject_code} — {sub.subject_name}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Stats Bar */}
+                      {activeSubject && (
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px', padding: '14px 18px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: pct >= 75 ? '#10b981' : '#ef4444' }}>{pct}%</div>
+                            <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: '2px' }}>Attendance</div>
+                          </div>
+                          <div style={{ width: '1px', background: 'rgba(255,255,255,0.06)' }} />
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#10b981' }}>{stats.present}</div>
+                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Present</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b' }}>{stats.late}</div>
+                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Late</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#ef4444' }}>{stats.absent}</div>
+                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Absent</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#64748b' }}>{stats.total}</div>
+                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Total Days</div>
+                          </div>
+                          {pct < 75 && stats.total > 0 && (
+                            <div style={{ marginLeft: 'auto', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 700 }}>⚠ Below 75% — Shortage</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Calendar Navigation */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <button
+                          onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev); d.setMonth(d.getMonth() - 1); return d; })}
+                          className="btn-secondary"
+                          style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px' }}
+                        >◀ Prev</button>
+                        <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#e2e8f0' }}>{monthName}</span>
+                        <button
+                          onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev); d.setMonth(d.getMonth() + 1); return d; })}
+                          className="btn-secondary"
+                          style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px' }}
+                        >Next ▶</button>
+                      </div>
+
+                      {/* Calendar Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '8px' }}>
+                        {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                          <div key={d} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', padding: '6px 0' }}>{d}</div>
+                        ))}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '5px' }}>
+                        {/* Empty alignment cells */}
+                        {Array.from({ length: startDay }, (_, i) => (
+                          <div key={`e${i}`} />
+                        ))}
+                        {/* Day cells */}
+                        {Array.from({ length: numDays }, (_, i) => {
+                          const day = i + 1;
+                          const dateStr = `${String(day).padStart(2,'0')}/${String(calMonth+1).padStart(2,'0')}/${calYear}`;
+                          const status = activeSubject?.calendar?.[dateStr];
+                          const today = new Date();
+                          const isToday = today.getDate() === day && today.getMonth() === calMonth && today.getFullYear() === calYear;
+
+                          let bg = 'rgba(255,255,255,0.02)';
+                          let border = '1px solid rgba(255,255,255,0.05)';
+                          let color = '#475569';
+                          let dot = null;
+                          let label = null;
+
+                          if (status === 'Present') {
+                            bg = 'rgba(16,185,129,0.1)';
+                            border = '1px solid rgba(16,185,129,0.3)';
+                            color = '#10b981';
+                            dot = '✓';
+                            label = 'P';
+                          } else if (status === 'Late') {
+                            bg = 'rgba(245,158,11,0.1)';
+                            border = '1px solid rgba(245,158,11,0.3)';
+                            color = '#f59e0b';
+                            dot = '~';
+                            label = 'L';
+                          } else if (status === 'Absent') {
+                            bg = 'rgba(239,68,68,0.1)';
+                            border = '1px solid rgba(239,68,68,0.3)';
+                            color = '#ef4444';
+                            dot = '✗';
+                            label = 'A';
+                          }
+
+                          if (isToday) {
+                            border = '2px solid rgba(0,242,254,0.5)';
+                          }
+
+                          return (
+                            <div
+                              key={day}
+                              title={status ? `${dateStr}: ${status}` : dateStr}
+                              style={{
+                                background: bg,
+                                border,
+                                borderRadius: '8px',
+                                padding: '6px 2px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minHeight: '52px',
+                                cursor: 'default',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              <span style={{ fontSize: '0.82rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#00f2fe' : color }}>{day}</span>
+                              {dot && (
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, color, marginTop: '2px' }}>{label}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Legend */}
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '16px', fontSize: '0.73rem', color: '#9ca3af' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.4)', display: 'inline-block' }}/>P = Present</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', display: 'inline-block' }}/>A = Absent</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', display: 'inline-block' }}/>L = Late</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', border: '2px solid rgba(0,242,254,0.5)', display: 'inline-block' }}/>Today</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -16534,6 +16880,207 @@ export default function App() {
               >
                 Verify
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MANUAL ATTENDANCE MODAL ===== */}
+      {isManualAttendanceOpen && (
+        <div
+          className="flex-center modal-overlay"
+          style={{ position: 'fixed', inset: 0, zIndex: 100060, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setIsManualAttendanceOpen(false); }}
+        >
+          <div className="glass-panel" style={{
+            width: '100%',
+            maxWidth: '700px',
+            margin: '16px',
+            padding: '0',
+            border: '1px solid rgba(167, 139, 250, 0.35)',
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            animation: 'fadeInUp 0.3s ease'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '24px 28px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(167, 139, 250, 0.05)',
+              flexShrink: 0
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ✋ Manual Attendance Register
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.4 }}>
+                  Subject: <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(manualSubjectId))?.name || 'N/A'}</strong> • Date: <strong>{manualDate}</strong> • Slot: <strong>{manualPeriod}</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '1.5rem', cursor: 'pointer', flexShrink: 0 }}
+                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Search input */}
+            <div style={{ padding: '16px 28px 8px', flexShrink: 0 }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="🔍 Search student name or roll number..."
+                  value={manualSearchQuery}
+                  onChange={e => setManualSearchQuery(e.target.value)}
+                  style={{ background: 'rgba(8, 12, 20, 0.4)', paddingLeft: '16px' }}
+                />
+              </div>
+            </div>
+
+            {/* Students Register List */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 28px 16px', minHeight: 0 }}>
+              {(() => {
+                const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
+                const subjectDept = selectedSubject ? selectedSubject.department : '';
+                const classStudents = students.filter(s => {
+                  const matchesDept = !subjectDept || s.dep === subjectDept;
+                  const matchesSearch = !manualSearchQuery ||
+                    s.name.toLowerCase().includes(manualSearchQuery.toLowerCase()) ||
+                    s.roll.toLowerCase().includes(manualSearchQuery.toLowerCase());
+                  return matchesDept && matchesSearch;
+                });
+
+                if (classStudents.length === 0) {
+                  return (
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                      No students found {subjectDept ? `in department: ${subjectDept}` : ''}.
+                    </div>
+                  );
+                }
+
+                return classStudents.map((student, idx) => {
+                  const stateData = manualAttendanceData[student.id] || { status: 'Present', remarks: '' };
+                  const statusColor = stateData.status === 'Present' ? '#10b981' : stateData.status === 'Late' ? '#f59e0b' : '#ef4444';
+                  return (
+                    <div key={student.id} style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      background: `rgba(255, 255, 255, 0.01)`,
+                      border: `1px solid ${statusColor}15`,
+                      borderLeft: `3px solid ${statusColor}`,
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      animation: `fadeInUp 0.25s ease both ${idx * 20}ms`
+                    }}>
+                      {/* Name & Roll */}
+                      <div style={{ flex: '1', minWidth: '160px' }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f1f5f9' }}>{student.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>Roll: {student.roll} • {student.dep}</div>
+                      </div>
+
+                      {/* Status Toggle buttons */}
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {['Present', 'Late', 'Absent'].map(status => {
+                          const isSelected = stateData.status === status;
+                          let selectedStyle = {};
+                          if (isSelected) {
+                            if (status === 'Present') selectedStyle = { background: 'rgba(16, 185, 129, 0.18)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.5)' };
+                            else if (status === 'Late') selectedStyle = { background: 'rgba(245, 158, 11, 0.18)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.5)' };
+                            else selectedStyle = { background: 'rgba(239, 68, 68, 0.18)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.5)' };
+                          }
+                          return (
+                            <button
+                              key={status}
+                              type="button"
+                              onClick={() => {
+                                setManualAttendanceData(prev => ({
+                                  ...prev,
+                                  [student.id]: { ...stateData, status }
+                                }));
+                              }}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                                background: 'transparent',
+                                color: '#64748b',
+                                border: '1px solid rgba(255,255,255,0.05)',
+                                ...(isSelected ? selectedStyle : {})
+                              }}
+                            >
+                              {status}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Remarks Input */}
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Note (optional)"
+                        value={stateData.remarks}
+                        onChange={e => {
+                          setManualAttendanceData(prev => ({
+                            ...prev,
+                            [student.id]: { ...stateData, remarks: e.target.value }
+                          }));
+                        }}
+                        style={{
+                          background: 'rgba(8, 12, 20, 0.25)',
+                          padding: '6px 10px',
+                          fontSize: '0.75rem',
+                          width: '160px',
+                          minWidth: '120px',
+                          border: '1px solid rgba(255,255,255,0.04)'
+                        }}
+                      />
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                Default status is <strong style={{ color: '#10b981' }}>Present</strong> — change per student as needed.
+              </span>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
+                  className="btn-secondary active-haptic"
+                  style={{ padding: '10px 20px', borderRadius: '10px', fontSize: '0.85rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingManual}
+                  onClick={handleSubmitManualAttendance}
+                  className="bg-gradient-btn active-haptic"
+                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '0.85rem', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', minWidth: '160px' }}
+                >
+                  {isSubmittingManual ? 'Submitting...' : '✅ Submit Register'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
