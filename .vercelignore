@@ -6,9 +6,17 @@ venv/
 env/
 .env/
 __pycache__/
+.pytest_cache/
+.idea/
+models/
+plane_book/
+api/
 *.onnx
 *.xml
 *.csv
+*.db
+*.pyc
+*.py
 haarcascade_frontalface_default.xml
 classifier.xml
 test_login.py
@@ -20,5 +28,5 @@ student.py
 train.py
 voice_utils.py
 notification_utils.py
-voice_utils.py
-*.pyc
+keystore_base64.txt
+attendance.csv
