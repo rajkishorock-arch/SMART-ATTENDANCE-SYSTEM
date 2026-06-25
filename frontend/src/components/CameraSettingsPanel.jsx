@@ -4,11 +4,19 @@ import { CAMERA_PRESETS, loadCameraSettings, saveCameraSettings } from '../utils
 
 export default function CameraSettingsPanel({ onChange }) {
   const [settings, setSettings] = useState(() => loadCameraSettings());
+  const [localUrl, setLocalUrl] = useState(settings.externalIpUrl || '');
+  const [saveStatus, setSaveStatus] = useState('');
 
   const apply = (next) => {
     setSettings(next);
     saveCameraSettings(next);
     onChange?.(next);
+  };
+
+  const handleSaveUrl = () => {
+    apply({ ...settings, externalIpUrl: localUrl });
+    setSaveStatus('Saved successfully! ✓');
+    setTimeout(() => setSaveStatus(''), 2500);
   };
 
   return (
@@ -88,23 +96,49 @@ export default function CameraSettingsPanel({ onChange }) {
         {settings.cameraSource === 'external' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ color: '#94a3b8', fontSize: '0.8rem' }}>MJPEG Stream / shot URL:</label>
-            <input
-              type="text"
-              placeholder="e.g. http://192.168.1.100:8080/video"
-              value={settings.externalIpUrl || ''}
-              onChange={(e) => apply({ ...settings, externalIpUrl: e.target.value })}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(15,23,42,0.5)',
-                color: '#fff',
-                fontSize: '0.85rem',
-                outline: 'none',
-                width: '100%',
-                boxSizing: 'border-box'
-              }}
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="e.g. http://192.168.1.100:8080/video"
+                value={localUrl}
+                onChange={(e) => setLocalUrl(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(15,23,42,0.5)',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  flexGrow: 1,
+                  boxSizing: 'border-box'
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleSaveUrl}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  background: 'var(--color-primary)',
+                  color: '#0d1323',
+                  border: 'none',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.filter = 'brightness(1.0)'; }}
+              >
+                Save
+              </button>
+            </div>
+            {saveStatus && (
+              <span style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '2px', display: 'block' }}>
+                {saveStatus}
+              </span>
+            )}
           </div>
         )}
       </div>
