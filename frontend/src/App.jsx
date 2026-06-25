@@ -501,96 +501,6 @@ export default function App() {
   // Leaderboard States
   const [leaderboardDeptFilter, setLeaderboardDeptFilter] = useState('');
 
-  // Computed institution 100% attendance streak
-  const institutionStreak = useMemo(() => {
-    const dateGroups = {};
-    logs.forEach(log => {
-      if (!dateGroups[log.date]) {
-        dateGroups[log.date] = { total: 0, present: 0 };
-      }
-      dateGroups[log.date].total++;
-      if (log.attendance === 'Present' || log.attendance === 'Late') {
-        dateGroups[log.date].present++;
-      }
-    });
-    const sortedDates = Object.keys(dateGroups).sort((a, b) => {
-      const parseDate = (dStr) => {
-        const parts = dStr.split('/');
-        return new Date(parts[2], parts[1] - 1, parts[0]);
-      };
-      return parseDate(b) - parseDate(a);
-    });
-    
-    let streak = 0;
-    for (const d of sortedDates) {
-      const group = dateGroups[d];
-      const rate = group.total > 0 ? (group.present / group.total) * 100 : 0;
-      if (rate === 100) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    return streak;
-  }, [logs]);
-
-  // Computed student leaderboard list
-  const studentLeaderboard = useMemo(() => {
-    return students.map(student => {
-      const studentLogs = logs.filter(l => l.roll === student.roll);
-      const total = studentLogs.length;
-      const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-      const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-      return {
-        ...student,
-        totalClasses: total,
-        presentClasses: present,
-        rate
-      };
-    }).sort((a, b) => b.rate - a.rate || a.name.localeCompare(b.name));
-  }, [students, logs]);
-
-  // Heatmap logs filter helper
-  const heatmapLogs = useMemo(() => {
-    return logs.filter(log => {
-      const matchesSearch = 
-        (log.name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
-        (log.roll || '').toLowerCase().includes(logSearch.toLowerCase()) ||
-        (log.id || '').toLowerCase().includes(logSearch.toLowerCase());
-
-      let matchesDept = true;
-      if (userRole === 'admin') {
-        matchesDept = !logDeptFilter || log.department === logDeptFilter;
-      } else if (userRole === 'teacher') {
-        const teacherSubjectIds = subjects
-            .filter(s => s.teacher_id === currentUser?.details?.id)
-            .map(s => s.id);
-        if (selectedTeacherLogSubjectId) {
-          matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId);
-        } else {
-          if (teacherSubjectIds.length === 0) {
-            matchesDept = true;
-          } else {
-            const teacherDepts = subjects
-              .filter(s => s.teacher_id === currentUser?.details?.id)
-              .map(s => s.department);
-            matchesDept = teacherSubjectIds.includes(log.subject_id) ||
-              (log.subject_id == null && teacherDepts.includes(log.department));
-          }
-        }
-      }
-      return matchesSearch && matchesDept;
-    });
-  }, [logs, logSearch, userRole, logDeptFilter, subjects, selectedTeacherLogSubjectId, currentUser]);
-
-  useEffect(() => {
-    if (currentUser?.details?.department) {
-      setLeaderboardDeptFilter(currentUser.details.department);
-    } else if (currentUser?.department) {
-      setLeaderboardDeptFilter(currentUser.department);
-    }
-  }, [currentUser]);
-
   useEffect(() => {
     setActiveSubSetting(null);
     setActiveDashboardSubTab(null);
@@ -2117,6 +2027,87 @@ export default function App() {
   const [selectedTeacherSubjectId, setSelectedTeacherSubjectId] = useState('');
   const [selectedReportSubjectId, setSelectedReportSubjectId] = useState('');
   const [selectedTeacherLogSubjectId, setSelectedTeacherLogSubjectId] = useState('');
+
+  // Computed institution 100% attendance streak
+  // NOTE: Placed here (after logs/students/subjects/logSearch are declared) to avoid TDZ crash
+  const institutionStreak = useMemo(() => {
+    const dateGroups = {};
+    logs.forEach(log => {
+      if (!dateGroups[log.date]) {
+        dateGroups[log.date] = { total: 0, present: 0 };
+      }
+      dateGroups[log.date].total++;
+      if (log.attendance === 'Present' || log.attendance === 'Late') {
+        dateGroups[log.date].present++;
+      }
+    });
+    const sortedDates = Object.keys(dateGroups).sort((a, b) => {
+      const parseDate = (dStr) => {
+        const parts = dStr.split('/');
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      };
+      return parseDate(b) - parseDate(a);
+    });
+    let streak = 0;
+    for (const d of sortedDates) {
+      const group = dateGroups[d];
+      const rate = group.total > 0 ? (group.present / group.total) * 100 : 0;
+      if (rate === 100) { streak++; } else { break; }
+    }
+    return streak;
+  }, [logs]);
+
+  // Computed student leaderboard list
+  const studentLeaderboard = useMemo(() => {
+    return students.map(student => {
+      const sLogs = logs.filter(l => l.roll === student.roll);
+      const total = sLogs.length;
+      const present = sLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+      const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+      return { ...student, totalClasses: total, presentClasses: present, rate };
+    }).sort((a, b) => b.rate - a.rate || a.name.localeCompare(b.name));
+  }, [students, logs]);
+
+  // Heatmap logs filter helper
+  const heatmapLogs = useMemo(() => {
+    return logs.filter(log => {
+      const matchesSearch =
+        (log.name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+        (log.roll || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+        (log.id || '').toLowerCase().includes(logSearch.toLowerCase());
+      let matchesDept = true;
+      if (userRole === 'admin') {
+        matchesDept = !logDeptFilter || log.department === logDeptFilter;
+      } else if (userRole === 'teacher') {
+        const teacherSubjectIds = subjects
+          .filter(s => s.teacher_id === currentUser?.details?.id)
+          .map(s => s.id);
+        if (selectedTeacherLogSubjectId) {
+          matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId);
+        } else {
+          if (teacherSubjectIds.length === 0) {
+            matchesDept = true;
+          } else {
+            const teacherDepts = subjects
+              .filter(s => s.teacher_id === currentUser?.details?.id)
+              .map(s => s.department);
+            matchesDept = teacherSubjectIds.includes(log.subject_id) ||
+              (log.subject_id == null && teacherDepts.includes(log.department));
+          }
+        }
+      }
+      return matchesSearch && matchesDept;
+    });
+  }, [logs, logSearch, userRole, logDeptFilter, subjects, selectedTeacherLogSubjectId, currentUser]);
+
+  useEffect(() => {
+    if (currentUser?.details?.department) {
+      setLeaderboardDeptFilter(currentUser.details.department);
+    } else if (currentUser?.department) {
+      setLeaderboardDeptFilter(currentUser.department);
+    }
+  }, [currentUser]);
+
   
   // Attendance Session Setup States for Teachers
   const [sessionActive, setSessionActive] = useState(false);
