@@ -55,8 +55,29 @@ def update_schema():
                     print(description)
             except Exception as ex:
                 db.rollback()
+                err_msg = str(ex).lower()
                 if description:
-                    print(f"Skip ({description}): {ex}")
+                    if "already exists" in err_msg or "duplicate" in err_msg:
+                        print(f"Skip ({description}): already exists")
+                    else:
+                        print(f"Skip ({description}): {ex}")
+
+        def constraint_exists(constraint_name):
+            try:
+                if db_dialect == 'postgresql':
+                    row = db.execute(
+                        text("SELECT 1 FROM pg_constraint WHERE conname = :name"),
+                        {"name": constraint_name},
+                    ).fetchone()
+                    return row is not None
+                if db_dialect == 'sqlite':
+                    rows = db.execute(text("SELECT name FROM sqlite_master WHERE type='table'")).fetchall()
+                    # SQLite: check index list on users
+                    idx = db.execute(text("PRAGMA index_list(users)")).fetchall()
+                    return any(r[1] == constraint_name for r in idx if len(r) > 1)
+            except Exception:
+                db.rollback()
+            return False
 
         # Sync existing tables — add institution_id
         for tbl in ['users', 'student', 'subjects', 'schedules', 'attendence', 'audit_logs', 'system_settings', 'feedbacks']:
@@ -94,10 +115,13 @@ def update_schema():
             # PostgreSQL / SQLite
             safe_execute("DROP INDEX IF EXISTS ix_users_email", "Dropped ix_users_email index")
             safe_execute("DROP INDEX IF EXISTS email", "Dropped email index")
-            safe_execute(
-                "ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)",
-                "Added composite unique constraint"
-            )
+            if not constraint_exists("uq_institution_email"):
+                safe_execute(
+                    "ALTER TABLE users ADD CONSTRAINT uq_institution_email UNIQUE (institution_id, email)",
+                    "Added composite unique constraint"
+                )
+            else:
+                print("Constraint uq_institution_email already exists — skipped.")
 
         # --- Advanced feature columns (idempotent migrations) ---
         safe_add_column('system_settings', 'latest_version', 'VARCHAR(50) NULL')

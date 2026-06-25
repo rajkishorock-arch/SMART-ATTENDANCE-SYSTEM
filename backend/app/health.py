@@ -205,32 +205,45 @@ def test_smtp_configuration(
         )
 
 @router.get("/update-check")
-def check_for_updates(db: Session = Depends(get_db)):
+def check_for_updates(client_version: str = None, db: Session = Depends(get_db)):
     """Public endpoint to check the latest release version & download URL.
-    Only returns version mismatch when update_active=True (toggle is ON)."""
+    Only signals update_available when update_active=True AND server version is newer than client."""
     from app.crud import get_system_settings
+
+    def parse_version(version: str):
+        parts = (version or "0.0.0").lstrip("vV").split(".")
+        return [int(p) if p.isdigit() else 0 for p in parts] + [0, 0, 0]
+
+    def is_newer(latest: str, current: str) -> bool:
+        la, cu = parse_version(latest)[:3], parse_version(current)[:3]
+        for lv, cv in zip(la, cu):
+            if lv > cv:
+                return True
+            if lv < cv:
+                return False
+        return False
+
     try:
-        # Fetch system settings for Default Institution (ID 1)
         settings = get_system_settings(db, institution_id=1)
-        
-        # If update toggle is OFF, return a stable version that won't trigger update banner
-        update_active = getattr(settings, 'update_active', False)
-        if not update_active:
-            return {
-                "latest_version": "0.0.0",  # Won't match any real version → no banner shown
-                "update_download_url": "",
-                "update_active": False
-            }
-        
+        update_active = getattr(settings, "update_active", False)
+        latest = (settings.latest_version or "1.0.0").lstrip("vV")
+        client = (client_version or "").lstrip("vV")
+
+        update_available = bool(update_active and latest and is_newer(latest, client or "0.0.0"))
+
         return {
-            "latest_version": settings.latest_version or "1.0.1",
+            "latest_version": latest,
             "update_download_url": settings.update_download_url or "",
-            "update_active": True
+            "update_active": update_active,
+            "update_available": update_available,
+            "client_version": client or None,
         }
     except Exception as e:
         print("Error checking updates:", e)
         return {
             "latest_version": "0.0.0",
             "update_download_url": "",
-            "update_active": False
+            "update_active": False,
+            "update_available": False,
+            "client_version": client_version,
         }

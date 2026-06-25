@@ -71,6 +71,16 @@ import {
 import { getApiBaseUrl, requestNativePermissions } from './utils/platform';
 import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
 import { createFaceDetector, extractFaceBox, drawFaceBox } from './utils/faceDetectionEngine';
+import {
+  APP_VERSION,
+  acknowledgeUpdateVersion,
+  markCurrentVersionInstalled,
+  shouldShowUpdateBanner,
+} from './utils/versionManager';
+import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
+import VersionBadge from './components/VersionBadge';
+import PremiumUpgradeHub from './components/PremiumUpgradeHub';
+import ExplorationLab from './components/ExplorationLab';
 import CameraSettingsPanel from './components/CameraSettingsPanel';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
@@ -534,10 +544,13 @@ export default function App() {
   const isSpeakingRef = useRef(false);
 
   // In-App Update Checker
-  const APP_VERSION = '1.0.2';
   const [updateAvailable, setUpdateAvailable] = useState(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
-  const [updateDownloadedToast, setUpdateDownloadedToast] = useState(false); // success toast after download click
+  const [updateDownloadedToast, setUpdateDownloadedToast] = useState(false);
+  const [serverLatestVersion, setServerLatestVersion] = useState('');
+  const [updateActiveFlag, setUpdateActiveFlag] = useState(false);
+  const [explorationSettings, setExplorationSettings] = useState(() => loadExplorationSettings());
+  const [subscriptionPlan, setSubscriptionPlan] = useState('free');
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
   useEffect(() => {
@@ -601,30 +614,52 @@ export default function App() {
   }, [activeTab, activeSubSetting, activeDashboardSubTab, showChatBot, showFeedbackModal, showPrivacyPolicy, userRole]);
 
   // In-App Update Checker — pings backend /health/update-check on load + every 4 hrs
-  useEffect(() => {
-    const checkForUpdate = async () => {
-      try {
-        const resp = await fetch(`${API_BASE_URL}/health/update-check`, {
-          cache: 'no-store'
+  const checkForUpdate = useCallback(async () => {
+    try {
+      const resp = await fetch(
+        `${API_BASE_URL}/health/update-check?client_version=${encodeURIComponent(APP_VERSION)}`,
+        { cache: 'no-store' }
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const latestVersion = (data.latest_version || '').replace(/^v/i, '');
+      setServerLatestVersion(latestVersion);
+      setUpdateActiveFlag(!!data.update_active);
+
+      if (data.update_available && shouldShowUpdateBanner(latestVersion, data.update_active)) {
+        setUpdateAvailable({
+          version: latestVersion,
+          downloadUrl: data.update_download_url || '',
         });
-        if (!resp.ok) return;
-        const data = await resp.json();
-        const latestVersion = (data.latest_version || '').replace(/^v/, '');
-        if (latestVersion && latestVersion !== APP_VERSION) {
-          setUpdateAvailable({
-            version: latestVersion,
-            downloadUrl: data.update_download_url || ''
-          });
-          setUpdateDismissed(false);
-        }
-      } catch (e) {
-        // silently ignore — no network is fine
+        setUpdateDismissed(false);
+      } else {
+        setUpdateAvailable(null);
+        setUpdateDismissed(true);
+        markCurrentVersionInstalled();
       }
-    };
+    } catch (e) {
+      // silently ignore — no network is fine
+    }
+  }, []);
+
+  useEffect(() => {
     checkForUpdate();
     const interval = setInterval(checkForUpdate, 4 * 60 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [checkForUpdate]);
+
+  // Fetch subscription plan for premium gating
+  useEffect(() => {
+    if (!token || userRole !== 'admin') return;
+    fetch(`${API_BASE_URL}/billing/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.plan) setSubscriptionPlan(data.plan);
+      })
+      .catch(() => {});
+  }, [token, userRole]);
 
   // Unified Speech Recognition State Machine Coordinator
   const syncVoiceListeners = useCallback(() => {
@@ -3085,6 +3120,7 @@ export default function App() {
           
           setScanStatus(newly_marked ? `Recognized: ${matched.name} (${confidence}%)` : `Recognized: ${matched.name} (Already Marked)`);
           playCyberSound('success');
+          if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
           
           const now = new Date();
           const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -3196,6 +3232,7 @@ export default function App() {
 
             setScanStatus(newly_marked ? `Recognized: ${name} (${confidence}%)` : `Recognized: ${name} (Already Marked)`);
             playCyberSound('success');
+            if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
             if (cameraScanSettings.hapticFeedback && navigator.vibrate) {
               navigator.vibrate(newly_marked ? [40, 30, 40] : 20);
             }
@@ -6748,14 +6785,17 @@ export default function App() {
           flexWrap: 'wrap',
         }}>
           <span>🚀 v{updateAvailable.version} update available!</span>
-          <a
-            href={updateAvailable.downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
             onClick={() => {
+              if (updateAvailable?.downloadUrl) {
+                window.open(updateAvailable.downloadUrl, '_blank', 'noopener,noreferrer');
+              }
+              acknowledgeUpdateVersion(updateAvailable.version);
+              setUpdateAvailable(null);
               setUpdateDismissed(true);
               setUpdateDownloadedToast(true);
-              // Auto-hide toast after 6 seconds
+              markCurrentVersionInstalled();
               setTimeout(() => setUpdateDownloadedToast(false), 6000);
             }}
             style={{
@@ -6765,14 +6805,39 @@ export default function App() {
               borderRadius: '6px',
               fontWeight: 700,
               fontSize: '0.8rem',
-              textDecoration: 'none',
+              border: 'none',
+              cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
           >
             ⬇️ Download Update
-          </a>
+          </button>
           <button
-            onClick={() => setUpdateDismissed(true)}
+            type="button"
+            onClick={() => {
+              acknowledgeUpdateVersion(updateAvailable.version);
+              setUpdateAvailable(null);
+              setUpdateDismissed(true);
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              border: '1px solid rgba(255,255,255,0.25)',
+              cursor: 'pointer',
+            }}
+          >
+            ✓ Already updated
+          </button>
+          <button
+            onClick={() => {
+              acknowledgeUpdateVersion(updateAvailable?.version);
+              setUpdateDismissed(true);
+              setUpdateAvailable(null);
+            }}
             style={{
               background: 'transparent',
               border: 'none',
@@ -6813,9 +6878,9 @@ export default function App() {
         }}>
           <span style={{ fontSize: '1.3rem' }}>✅</span>
           <div>
-            <div style={{ fontWeight: 700 }}>Update Download Started!</div>
+            <div style={{ fontWeight: 700 }}>Update acknowledged — banner hidden</div>
             <div style={{ fontSize: '0.75rem', opacity: 0.85, marginTop: '2px' }}>
-              v{updateAvailable?.version} — Install the APK and restart the app.
+              You are on v{APP_VERSION}. Install v{updateAvailable?.version || serverLatestVersion} APK if on Android, then tap &quot;Already updated&quot;.
             </div>
           </div>
           <button
@@ -6828,8 +6893,8 @@ export default function App() {
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
       <AppAmbientLayer activeTab={activeTab} isMobile={isMobileView} />
-      <ClickFxLayer activeTab={activeTab} enabled />
-      <PageTransitionFlash activeTab={activeTab} />
+      <ClickFxLayer activeTab={activeTab} enabled={explorationSettings.clickRipples !== false} />
+      <PageTransitionFlash activeTab={activeTab} enabled={explorationSettings.smoothPageTransitions !== false} />
 
       {/* ===== FULLSCREEN SCANNER MODAL ===== */}
       {showScannerModal && (
@@ -7090,6 +7155,14 @@ export default function App() {
             <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
           </div>
           <span className="text-gradient" style={{ fontWeight: 800 }}>{tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE"}</span>
+        </div>
+        <div style={{ padding: '0 16px 12px', display: 'flex', justifyContent: 'center' }}>
+          <VersionBadge
+            compact
+            serverLatest={serverLatestVersion}
+            updateActive={updateActiveFlag}
+            onCheckUpdate={checkForUpdate}
+          />
         </div>
 
         <ul className="nav-links" style={{ flex: 1 }}>
@@ -7520,10 +7593,20 @@ export default function App() {
             {activeDashboardSubTab === null ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>📊 Admin Analytics Dashboard</h2>
-                  <p style={{ color: '#9ca3af', fontSize: '0.9rem', margin: 0 }}>
-                    Select a monitoring directory below to visualize system logs, check biometric statuses, view user sessions, or run core diagnostics.
-                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                    <div>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>📊 Admin Analytics Dashboard</h2>
+                      <p style={{ color: '#9ca3af', fontSize: '0.9rem', margin: '8px 0 0' }}>
+                        Select a monitoring directory below to visualize system logs, check biometric statuses, view user sessions, or run core diagnostics.
+                      </p>
+                    </div>
+                    <VersionBadge
+                      compact
+                      serverLatest={serverLatestVersion}
+                      updateActive={updateActiveFlag}
+                      onCheckUpdate={checkForUpdate}
+                    />
+                  </div>
                 </div>
                 <div style={{
                   display: 'grid',
@@ -11108,6 +11191,50 @@ export default function App() {
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Bulk CSV import, analytics, audit trail, ERP API keys, billing, and institution FAQ.</p>
                   </div>
 
+                  {/* Category Card: Exploration Lab */}
+                  <div
+                    onClick={() => { setActiveSubSetting('exploration'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>✨</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>FUN</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Exploration Lab</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Hidden FX, scanner sound packs, confetti mode, particle density, and secret discoveries.</p>
+                  </div>
+
+                  {/* Category Card: Premium Subscription */}
+                  {userRole === 'admin' && (
+                    <div
+                      onClick={() => { setActiveSubSetting('premium'); playCyberSound('click'); }}
+                      className="glass-panel hover-card"
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.4rem' }}>👑</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24' }}>PRO</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Premium & Payments</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Upgrade plans via Razorpay — unlock pro themes, higher student limits, and enterprise ERP.</p>
+                    </div>
+                  )}
+
+                  {/* Category Card: App Version */}
+                  <div
+                    onClick={() => { setActiveSubSetting('app_version'); playCyberSound('click'); checkForUpdate(); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <ArrowUpCircle size={24} style={{ color: '#0891b2' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(8, 145, 178, 0.12)', color: '#22d3ee' }}>v{APP_VERSION}</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>App Version & Updates</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>See if you are on the latest build, check for new releases, and confirm update installation.</p>
+                  </div>
+
                   {/* Category Card 9: Multi-Tenant Registry & Management */}
                   {getActiveTenantSlug() === 'default' && currentUser?.institution_id === 1 && (
                     <div 
@@ -11764,6 +11891,50 @@ export default function App() {
                   <CameraSettingsPanel onChange={setCameraScanSettings} />
                 </div>
               </>
+            )}
+
+            {activeSubSetting === 'exploration' && (
+              <ExplorationLab
+                isPremium={subscriptionPlan !== 'free'}
+                onApply={setExplorationSettings}
+              />
+            )}
+
+            {activeSubSetting === 'premium' && userRole === 'admin' && (
+              <PremiumUpgradeHub
+                apiBaseUrl={API_BASE_URL}
+                token={token}
+                currentUser={currentUser}
+                onPlanActivated={(plan) => setSubscriptionPlan(plan)}
+              />
+            )}
+
+            {activeSubSetting === 'app_version' && (
+              <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <h3 style={{ color: '#f8fafc', margin: 0 }}>App Version & Update Status</h3>
+                <VersionBadge
+                  serverLatest={serverLatestVersion}
+                  updateActive={updateActiveFlag}
+                  onCheckUpdate={checkForUpdate}
+                />
+                <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0 }}>
+                  After installing a new APK, tap the button below to confirm and hide the update banner until the next release.
+                </p>
+                <button
+                  type="button"
+                  className="bg-gradient-btn"
+                  onClick={() => {
+                    markCurrentVersionInstalled();
+                    if (serverLatestVersion) acknowledgeUpdateVersion(serverLatestVersion);
+                    setUpdateAvailable(null);
+                    setUpdateDismissed(true);
+                    playCyberSound('success');
+                  }}
+                  style={{ alignSelf: 'flex-start', padding: '10px 18px', borderRadius: '8px' }}
+                >
+                  ✓ I installed the latest update (v{APP_VERSION})
+                </button>
+              </div>
             )}
 
             {/* ===== ADVANCED SYSTEM CONFIG & EXTREME SECURITY CONSOLE ===== */}

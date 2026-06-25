@@ -97,11 +97,17 @@ def client(test_db):
     app.dependency_overrides.clear()
 
 def test_get_update_check(client):
-    response = client.get("/api/v1/health/update-check")
+    response = client.get("/api/v1/health/update-check?client_version=1.0.0")
     assert response.status_code == 200
     data = response.json()
     assert data["latest_version"] == "1.0.1"
     assert data["update_download_url"] == "https://example.com/app.apk"
+    assert data["update_available"] is True
+
+    newer_client = client.get("/api/v1/health/update-check?client_version=1.0.2")
+    assert newer_client.status_code == 200
+    newer_data = newer_client.json()
+    assert newer_data["update_available"] is False
 
 def test_release_update_unauthorized_user(client):
     # Authenticate as other@gmail.com (tenant 'other')
