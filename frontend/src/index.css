@@ -5599,4 +5599,30 @@ html {
   margin: 0 auto 16px auto;
 }
 
+/* Keep the Capacitor Android/WebView shell vertically scrollable on phones. */
+@media (max-width: 768px) {
+  html.native-app,
+  html.native-app body {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.native-app #root,
+  html.native-app .app-container,
+  html.native-app .main-content {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow-y: visible !important;
+    touch-action: pan-y;
+  }
+
+  html.native-app .main-content {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
 
