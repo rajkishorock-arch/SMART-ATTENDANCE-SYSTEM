@@ -49,6 +49,7 @@ class User(Base):
     department = Column(String(100), nullable=True)
     is_department_head = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    premium_access = Column(Boolean, default=False)
     sso_provider = Column(String(50), nullable=True)
     sso_subject = Column(String(200), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -146,9 +147,13 @@ class SystemSettings(Base):
     latest_version = Column(String(50), nullable=True, default="1.0.1")
     update_download_url = Column(Text, nullable=True, default="")
     update_active = Column(Boolean, default=False)  # Toggle: True = update is live for all users
+    update_beta_active = Column(Boolean, default=False)  # Owner-only beta channel for testing
     build_status = Column(String(50), nullable=True, default="idle")
     build_version = Column(String(50), nullable=True)
     build_error = Column(Text, nullable=True)
+    update_rollout = Column(String(30), nullable=True, default="public")
+    owner_preview_version = Column(String(50), nullable=True)
+    owner_preview_download_url = Column(Text, nullable=True)
 
 
 class Feedback(Base):

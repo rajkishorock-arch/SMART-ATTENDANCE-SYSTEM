@@ -11,7 +11,7 @@ if not JWT_SECRET_KEY and ENV == "development":
     JWT_SECRET_KEY = "local-dev-secret-key-change-before-production-use"
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
 
 CORS_ORIGINS = [
     origin.strip()

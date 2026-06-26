@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from . import auth, users, attendance, settings, subjects, health, feedback, chat, institutions, departments
-from . import liveness, bulk_import, analytics, parents, billing, sso, erp, audit_router, enrollment, offline_sync, schedules_auto
+from . import liveness, bulk_import, analytics, parents, billing, sso, erp, audit_router, enrollment, offline_sync, schedules_auto, premium
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
@@ -24,5 +24,5 @@ api_router.include_router(audit_router.router, prefix="/audit", tags=["Audit Tra
 api_router.include_router(enrollment.router, prefix="/enrollment", tags=["Enrollment"])
 api_router.include_router(offline_sync.router, prefix="/offline", tags=["Offline Sync"])
 api_router.include_router(schedules_auto.router, prefix="/schedules-auto", tags=["Auto Session"])
+api_router.include_router(premium.router, prefix="/premium", tags=["Premium Access"])
 
-

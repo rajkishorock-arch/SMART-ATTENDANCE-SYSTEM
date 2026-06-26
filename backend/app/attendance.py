@@ -707,7 +707,7 @@ def mark_manual_attendance_bulk(
     # Audit log
     crud.create_audit_log(
         db=db,
-        audit_log=schemas.AuditLogCreate(
+        log=schemas.AuditLogCreate(
             user_email=current_user.email,
             action=f"Bulk manual attendance marked: {success_count} success, {fail_count} failed."
         ),
@@ -947,7 +947,7 @@ def update_attendance_status(
         # Log to audit trail
         crud.create_audit_log(
             db=db,
-            audit_log=schemas.AuditLogCreate(
+            log=schemas.AuditLogCreate(
                 user_email=current_user.email,
                 action=f"Manually set attendance status to {payload.attendance_status} for student ID {payload.student_id} on {date_str} {time_str}."
             ),

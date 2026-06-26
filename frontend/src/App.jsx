@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { isNative, getApiBaseUrl, requestNativePermissions } from './utils/platform';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -68,7 +69,6 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-import { getApiBaseUrl, requestNativePermissions } from './utils/platform';
 import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
 import { createFaceDetector, extractFaceBox, drawFaceBox } from './utils/faceDetectionEngine';
 import {
@@ -82,6 +82,7 @@ import VersionBadge from './components/VersionBadge';
 import PremiumUpgradeHub from './components/PremiumUpgradeHub';
 import ExplorationLab from './components/ExplorationLab';
 import CameraSettingsPanel from './components/CameraSettingsPanel';
+import OwnerPremiumPanel from './components/OwnerPremiumPanel';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -225,23 +226,18 @@ export default function App() {
     loadTenantBranding();
   }, []);
 
-  // Handle native mobile status bar styling & permissions
   useEffect(() => {
+    if (isNative) {
+      document.documentElement.classList.add('native-app');
+    }
     const styleStatusBar = async () => {
       try {
         const { StatusBar, Style } = await import('@capacitor/status-bar');
         await StatusBar.setStyle({ style: Style.Dark });
         await StatusBar.setBackgroundColor({ color: '#080c14' });
-        addDiagnosticLog(`[SYS] Mobile status bar styled.`);
+        await StatusBar.setOverlaysWebView({ overlay: false });
       } catch (e) {
-        console.warn("Native status bar styling not active:", e);
-      }
-      
-      // Request native camera/location permissions early
-      try {
-        await requestNativePermissions();
-      } catch (e) {
-        console.warn("Permissions request error:", e);
+        console.warn('Native status bar styling not active:', e);
       }
     };
     styleStatusBar();
@@ -568,6 +564,7 @@ export default function App() {
   const [updateActiveFlag, setUpdateActiveFlag] = useState(false);
   const [explorationSettings, setExplorationSettings] = useState(() => loadExplorationSettings());
   const [subscriptionPlan, setSubscriptionPlan] = useState('free');
+  const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
   useEffect(() => {
@@ -633,20 +630,22 @@ export default function App() {
   // In-App Update Checker — pings backend /health/update-check on load + every 4 hrs
   const checkForUpdate = useCallback(async () => {
     try {
+      const ownerEmail = currentUser?.email ? encodeURIComponent(currentUser.email) : '';
       const resp = await fetch(
-        `${API_BASE_URL}/health/update-check?client_version=${encodeURIComponent(APP_VERSION)}`,
+        `${API_BASE_URL}/health/update-check?client_version=${encodeURIComponent(APP_VERSION)}${ownerEmail ? `&user_email=${ownerEmail}` : ''}`,
         { cache: 'no-store' }
       );
       if (!resp.ok) return;
       const data = await resp.json();
       const latestVersion = (data.latest_version || '').replace(/^v/i, '');
       setServerLatestVersion(latestVersion);
-      setUpdateActiveFlag(!!data.update_active);
+      setUpdateActiveFlag(!!data.update_active || !!data.update_beta_active);
 
-      if (data.update_available && shouldShowUpdateBanner(latestVersion, data.update_active)) {
+      if (data.update_available && shouldShowUpdateBanner(latestVersion, true)) {
         setUpdateAvailable({
           version: latestVersion,
           downloadUrl: data.update_download_url || '',
+          isOwnerBeta: !!data.is_owner_beta,
         });
         setUpdateDismissed(false);
       } else {
@@ -657,7 +656,7 @@ export default function App() {
     } catch (e) {
       // silently ignore — no network is fine
     }
-  }, []);
+  }, [currentUser?.email]);
 
   useEffect(() => {
     checkForUpdate();
@@ -665,15 +664,16 @@ export default function App() {
     return () => clearInterval(interval);
   }, [checkForUpdate]);
 
-  // Fetch subscription plan for premium gating
+  // Fetch premium + subscription status
   useEffect(() => {
-    if (!token || userRole !== 'admin') return;
-    fetch(`${API_BASE_URL}/billing/status`, {
+    if (!token) return;
+    fetch(`${API_BASE_URL}/premium/status`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.plan) setSubscriptionPlan(data.plan);
+        if (data?.premium) setHasPremiumAccess(true);
+        if (data?.subscription_plan) setSubscriptionPlan(data.subscription_plan);
       })
       .catch(() => {});
   }, [token, userRole]);
@@ -1645,6 +1645,8 @@ export default function App() {
   const [activeReleaseUrl, setActiveReleaseUrl] = useState('');
   // Toggle Update States
   const [currentUpdateActive, setCurrentUpdateActive] = useState(false); // mirrors DB update_active
+  const [currentBetaActive, setCurrentBetaActive] = useState(false);
+  const [pendingToggleMode, setPendingToggleMode] = useState('public'); // 'public' | 'beta'
   const [toggleMasterPassword, setToggleMasterPassword] = useState('');
   const [isTogglingUpdate, setIsTogglingUpdate] = useState(false);
   const [toggleSuccessMessage, setToggleSuccessMessage] = useState('');
@@ -2335,6 +2337,10 @@ export default function App() {
 
   // Handle Manual Attendance submission - uses new bulk POST endpoint
   const handleSubmitManualAttendance = async () => {
+    if (!manualSubjectId || Number.isNaN(parseInt(manualSubjectId, 10))) {
+      alert('Please select a subject before submitting manual attendance.');
+      return;
+    }
     setIsSubmittingManual(true);
     playCyberSound('click');
 
@@ -2374,21 +2380,12 @@ export default function App() {
         const failCount = result.fail_count || 0;
         alert(`Successfully marked manual attendance for ${successCount} students.${failCount > 0 ? ` Failed for ${failCount} students.` : ''}`);
         playCyberSound('success');
-        // Refresh session history so manual records appear merged
-        fetchSessionHistory();
-        // Refresh logs
-        try {
-          const logsRes = await fetch(`${API_BASE_URL}/attendance/logs`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (logsRes.ok) {
-            const logsData = await logsRes.json();
-            setLogs(logsData);
-            localStorage.setItem('cached_logs', JSON.stringify(logsData));
-          }
-        } catch (e) {
-          console.error("Failed to refresh logs after manual attendance:", e);
-        }
+        setSelectedHistorySubjectId(String(manualSubjectId));
+        setHistoryFilterDate(manualDate);
+        setHistoryFilterPeriod(manualPeriod);
+        fetchSessionHistory(manualSubjectId, manualDate, manualPeriod);
+        fetchStats();
+        fetchLogs();
       } else {
         const err = await response.json().catch(() => ({}));
         alert(err.detail || 'Failed to mark manual attendance. Please check network and security settings.');
@@ -2855,7 +2852,10 @@ export default function App() {
     setIsTogglingUpdate(true);
     try {
       await wakeBackend(API_BASE_URL, 12000);
-      const res = await fetch(`${API_BASE_URL}/settings/toggle-update-active`, {
+      const endpoint = pendingToggleMode === 'beta'
+        ? `${API_BASE_URL}/settings/toggle-beta-active`
+        : `${API_BASE_URL}/settings/toggle-update-active`;
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2873,8 +2873,13 @@ export default function App() {
         data = { detail: res.ok ? 'Unexpected server response.' : `Server error (${res.status}). Database may still be migrating — wait 30s and retry.` };
       }
       if (res.ok) {
-        setCurrentUpdateActive(pendingToggleValue);
-        setToggleSuccessMessage(data.message || (pendingToggleValue ? '✅ Update is now LIVE for all users!' : '🔕 Update banner deactivated.'));
+        if (pendingToggleMode === 'beta') {
+          setCurrentBetaActive(pendingToggleValue);
+          setToggleSuccessMessage(data.message || (pendingToggleValue ? '🧪 Beta channel ON — only your phone sees the update.' : 'Beta channel off.'));
+        } else {
+          setCurrentUpdateActive(pendingToggleValue);
+          setToggleSuccessMessage(data.message || (pendingToggleValue ? '✅ Update is now LIVE for all users!' : '🔕 Update banner deactivated.'));
+        }
         setToggleMasterPassword('');
         setShowToggleMasterKeyModal(false);
         if (typeof playCyberSound === 'function') playCyberSound('success');
@@ -2937,6 +2942,7 @@ export default function App() {
         setBuildVersion(data.build_version || '');
         setBuildError(data.build_error || '');
         setCurrentUpdateActive(data.update_active || false);
+        setCurrentBetaActive(data.update_beta_active || false);
         setActiveReleaseVersion(data.latest_version || '');
         setActiveReleaseUrl(data.update_download_url || '');
       }
@@ -3383,65 +3389,66 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           if (data.results && data.results.length > 0) {
-            const matched = data.results[0];
-            const { user_id, name, roll, dep, newly_marked, confidence } = matched;
-            const confidenceVal = parseFloat(confidence);
-            const isMatchPass = !biometricConfidenceFilterEnabled || isNaN(confidenceVal) || (confidenceVal / 100) >= biometricMatchThreshold;
+            const validMatches = data.results.filter((m) => {
+              const confidenceVal = parseFloat(m.confidence);
+              return !biometricConfidenceFilterEnabled || isNaN(confidenceVal) || (confidenceVal / 100) >= biometricMatchThreshold;
+            });
 
-            if (!isMatchPass) {
-              setScanStatus(`Low Confidence: ${confidenceVal}% - Verification Failed`);
+            if (validMatches.length === 0) {
+              setScanStatus('Low confidence on all detected faces — adjust position/lighting');
               playCyberSound('error');
-              addDiagnosticLog(`WARNING: Live match rejected due to threshold restriction (${confidenceVal}% < ${Math.round(biometricMatchThreshold * 100)}%)`);
               setIsScanning(false);
-              
-              setTimeout(() => {
-                eyeStateRef.current = 'open';
-                livenessStatusRef.current = 'verifying';
-                setLivenessStatus('verifying');
-                setLivenessMessage('Please blink your eyes to verify.');
-                setScanStatus('Scanning...');
-              }, 3000);
               return;
             }
 
-            setScanStatus(newly_marked ? `Recognized: ${name} (${confidence}%)` : `Recognized: ${name} (Already Marked)`);
+            const newlyMarkedList = validMatches.filter((m) => m.newly_marked);
+            const count = validMatches.length;
+            if (count > 1) {
+              setScanStatus(`Classroom scan: ${count} students — ${newlyMarkedList.length} newly marked`);
+            } else {
+              const m = validMatches[0];
+              setScanStatus(m.newly_marked ? `Recognized: ${m.name} (${m.confidence}%)` : `Recognized: ${m.name} (Already Marked)`);
+            }
             playCyberSound('success');
             if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
             if (cameraScanSettings.hapticFeedback && navigator.vibrate) {
-              navigator.vibrate(newly_marked ? [40, 30, 40] : 20);
+              navigator.vibrate(newlyMarkedList.length ? [40, 30, 40] : 20);
             }
-            
+
             const now = new Date();
             const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
 
-            setScannedStudent({ name, roll, dep, time: timeStr });
-            addDiagnosticLog(`MATCH FOUND: ${name} (Accuracy: ${confidence}%)`);
+            const primary = validMatches[0];
+            setScannedStudent({ name: primary.name, roll: primary.roll, dep: primary.dep, time: timeStr });
 
-            setRecognizedStudents(prev => {
-              if (prev.some(s => s.id === user_id)) {
-                return prev;
-              }
-              return [
-                {
-                  id: user_id,
-                  name,
-                  roll,
-                  dep,
+            validMatches.forEach((matched) => {
+              addDiagnosticLog(`MATCH FOUND: ${matched.name} (Accuracy: ${matched.confidence}%)`);
+              setRecognizedStudents((prev) => {
+                if (prev.some((s) => s.id === matched.user_id)) return prev;
+                return [{
+                  id: matched.user_id,
+                  name: matched.name,
+                  roll: matched.roll,
+                  dep: matched.dep,
                   time: timeStr,
                   date: dateStr,
-                  status: newly_marked ? 'Present' : 'Already Marked'
-                },
-                ...prev
-              ];
+                  status: matched.newly_marked ? 'Present' : 'Already Marked',
+                }, ...prev];
+              });
             });
+
             fetchStats();
             fetchLogs();
 
-            if (newly_marked) {
-              handleSpeak(`Attendance marked for ${name}.`);
+            if (newlyMarkedList.length > 1) {
+              handleSpeak(`Attendance marked for ${newlyMarkedList.length} students.`);
+            } else if (newlyMarkedList.length === 1) {
+              handleSpeak(`Attendance marked for ${newlyMarkedList[0].name}.`);
+            } else if (count === 1) {
+              handleSpeak(`${primary.name}, your attendance is already marked.`);
             } else {
-              handleSpeak(`${name}, your attendance is already marked.`);
+              handleSpeak(`${count} students recognized. All already marked.`);
             }
           } else {
             playCyberSound('error');
@@ -4156,7 +4163,7 @@ export default function App() {
 
     const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
     faceMesh.setOptions({
-      maxNumFaces: 1,
+      maxNumFaces: cameraScanSettings.classroomMultiScan !== false ? 10 : 1,
       refineLandmarks: preset.refineLandmarks,
       minDetectionConfidence: preset.minDetectionConfidence,
       minTrackingConfidence: Math.max(0.5, preset.minDetectionConfidence - 0.05),
@@ -4765,6 +4772,14 @@ export default function App() {
     } catch (err) {
       console.error("Failed to fetch session info (network error):", err);
       setSessionFetchError(true);
+      const cached = localStorage.getItem('cached_user');
+      const cachedRole = localStorage.getItem('userRole');
+      if (cached && authToken) {
+        try {
+          setCurrentUser(JSON.parse(cached));
+          if (cachedRole) setUserRole(cachedRole);
+        } catch (_) { /* ignore */ }
+      }
     }
   };
 
@@ -5136,6 +5151,18 @@ export default function App() {
       }
     }
   }, []);
+
+  // Restore cached session instantly on app open (stay logged in until logout)
+  useEffect(() => {
+    if (token && !currentUser) {
+      try {
+        const cached = localStorage.getItem('cached_user');
+        if (cached) setCurrentUser(JSON.parse(cached));
+        const role = localStorage.getItem('userRole');
+        if (role) setUserRole(role);
+      } catch (_) { /* ignore */ }
+    }
+  }, [token, currentUser]);
 
   // Initialize session on mount or token change
   useEffect(() => {
@@ -7070,7 +7097,7 @@ export default function App() {
           animation: 'slideDown 0.4s ease-out',
           flexWrap: 'wrap',
         }}>
-          <span>🚀 v{updateAvailable.version} update available!</span>
+          <span>{updateAvailable.isOwnerBeta ? '🧪 Owner beta' : '🚀'} v{updateAvailable.version} {updateAvailable.isOwnerBeta ? 'ready to test!' : 'update available!'}</span>
           <button
             type="button"
             onClick={() => {
@@ -7891,6 +7918,9 @@ export default function App() {
                     />
                   </div>
                 </div>
+                {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+                  <OwnerPremiumPanel apiBaseUrl={API_BASE_URL} token={token} />
+                )}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -12425,7 +12455,7 @@ export default function App() {
 
             {activeSubSetting === 'exploration' && (
               <ExplorationLab
-                isPremium={subscriptionPlan !== 'free'}
+                isPremium={hasPremiumAccess}
                 onApply={setExplorationSettings}
               />
             )}
@@ -13750,6 +13780,38 @@ export default function App() {
                   </span>
                 </div>
 
+                {/* ═══ OWNER BETA CHANNEL — test on your phone first ═══ */}
+                <div style={{
+                  background: currentBetaActive ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.02)',
+                  border: currentBetaActive ? '1px solid rgba(251,191,36,0.35)' : '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '16px', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap',
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 6px', color: currentBetaActive ? '#fbbf24' : '#f8fafc' }}>
+                      🧪 Step 1: Owner Beta Test (Your Phone Only)
+                    </h4>
+                    <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.82rem' }}>
+                      {currentBetaActive
+                        ? 'Update banner shows ONLY on your device. Test the APK, then use Step 2 to release to everyone.'
+                        : 'Enable beta to receive the update on your phone first before all users.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="bg-gradient-btn"
+                    onClick={() => {
+                      setPendingToggleMode('beta');
+                      setPendingToggleValue(!currentBetaActive);
+                      setToggleMasterPassword('');
+                      setToggleErrorMessage('');
+                      setShowToggleMasterKeyModal(true);
+                    }}
+                    style={{ padding: '10px 16px', borderRadius: '8px', whiteSpace: 'nowrap' }}
+                  >
+                    {currentBetaActive ? 'Disable Beta' : 'Enable Owner Beta'}
+                  </button>
+                </div>
+
                 {/* ═══ MASTER TOGGLE — ONE CLICK RELEASE ═══ */}
                 <div style={{
                   background: currentUpdateActive
@@ -13771,7 +13833,7 @@ export default function App() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
                       <span style={{ fontSize: '1.4rem' }}>{currentUpdateActive ? '🟢' : '⚫'}</span>
                       <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: currentUpdateActive ? '#10b981' : '#f8fafc' }}>
-                        {currentUpdateActive ? 'Update is LIVE — All Users Will See the Banner' : 'Update is INACTIVE — No Banner Shown to Users'}
+                        {currentUpdateActive ? 'Step 2: LIVE for ALL Users' : 'Step 2: Public Release (All Users)'}
                       </h4>
                     </div>
                     <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
@@ -13784,6 +13846,7 @@ export default function App() {
                   {/* TOGGLE SWITCH */}
                   <div
                     onClick={() => {
+                      setPendingToggleMode('public');
                       const newVal = !currentUpdateActive;
                       setPendingToggleValue(newVal);
                       setToggleMasterPassword('');

@@ -205,10 +205,14 @@ def test_smtp_configuration(
         )
 
 @router.get("/update-check")
-def check_for_updates(client_version: str = None, db: Session = Depends(get_db)):
-    """Public endpoint to check the latest release version & download URL.
-    Only signals update_available when update_active=True AND server version is newer than client."""
+def check_for_updates(
+    client_version: str = None,
+    user_email: str = None,
+    db: Session = Depends(get_db),
+):
+    """Check updates. Owner sees beta channel first; public only when update_active=True."""
     from app.crud import get_system_settings
+    from app.core import config
 
     def parse_version(version: str):
         parts = (version or "0.0.0").lstrip("vV").split(".")
@@ -225,18 +229,34 @@ def check_for_updates(client_version: str = None, db: Session = Depends(get_db))
 
     try:
         settings = get_system_settings(db, institution_id=1)
-        update_active = getattr(settings, "update_active", False)
         latest = (settings.latest_version or "1.0.0").lstrip("vV")
         client = (client_version or "").lstrip("vV")
+        download_url = settings.update_download_url or ""
+        update_active = getattr(settings, "update_active", False)
+        beta_active = getattr(settings, "update_beta_active", False)
+        is_owner = bool(
+            user_email and user_email.strip().lower() == config.SYSTEM_OWNER_EMAIL
+        )
 
-        update_available = bool(update_active and latest and is_newer(latest, client or "0.0.0"))
+        update_available = False
+        rollout = "none"
+
+        if beta_active and is_owner and is_newer(latest, client or "0.0.0"):
+            update_available = True
+            rollout = "owner_beta"
+        elif update_active and is_newer(latest, client or "0.0.0"):
+            update_available = True
+            rollout = "public"
 
         return {
             "latest_version": latest,
-            "update_download_url": settings.update_download_url or "",
+            "update_download_url": download_url,
             "update_active": update_active,
+            "update_beta_active": beta_active,
             "update_available": update_available,
+            "rollout": rollout,
             "client_version": client or None,
+            "is_owner_beta": rollout == "owner_beta",
         }
     except Exception as e:
         print("Error checking updates:", e)
@@ -244,6 +264,8 @@ def check_for_updates(client_version: str = None, db: Session = Depends(get_db))
             "latest_version": "0.0.0",
             "update_download_url": "",
             "update_active": False,
+            "update_beta_active": False,
             "update_available": False,
+            "rollout": "none",
             "client_version": client_version,
         }

@@ -3435,6 +3435,139 @@ html {
     padding-top: env(safe-area-inset-top, 24px) !important;
   }
 
+  /* Camera Settings Panel — mobile readable layout */
+  .mobile-camera-panel {
+    padding: 20px 16px !important;
+    overflow: visible !important;
+  }
+  .mobile-camera-title {
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-size: 1rem;
+  }
+  .mobile-camera-subtitle {
+    color: #94a3b8;
+    font-size: 0.82rem;
+    margin: 0 0 16px;
+    line-height: 1.45;
+  }
+  .camera-preset-btn {
+    padding: 12px 8px !important;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(15,23,42,0.5);
+    color: #e2e8f0;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    min-height: 72px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .camera-preset-btn.active {
+    border: 2px solid #00f2fe;
+    background: rgba(0,242,254,0.1);
+  }
+  .camera-option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .camera-option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(8,12,20,0.5);
+    color: #e2e8f0;
+    font-size: 0.82rem;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .camera-option-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    line-height: 1.35;
+  }
+  .camera-source-block {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 16px;
+  }
+  .camera-source-block h4 {
+    color: #f8fafc;
+    font-size: 0.9rem;
+    margin: 0 0 10px;
+  }
+  .camera-radio-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: rgba(15,23,42,0.4);
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .camera-url-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .camera-url-row input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(15,23,42,0.6);
+    color: #fff;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+  }
+  .camera-url-row button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: #00f2fe;
+    color: #0d1323;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* Native app shell — respect status bar / notch */
+  html.native-app,
+  html.native-app body {
+    padding: 0;
+    overscroll-behavior-y: none;
+  }
+  html.native-app #root {
+    padding-top: env(safe-area-inset-top, 0px);
+    min-height: 100dvh;
+    box-sizing: border-box;
+  }
+  html.native-app .main-content {
+    padding-top: calc(12px + env(safe-area-inset-top, 24px)) !important;
+  }
+
   /* Camera Settings Panel (Productivity Camera Control) mobile fit */
   .camera-settings-panel {
     padding: 16px 12px !important;
