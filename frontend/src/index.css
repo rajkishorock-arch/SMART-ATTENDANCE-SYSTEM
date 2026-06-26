@@ -5599,9 +5599,11 @@ html {
   margin: 0 auto 16px auto;
 }
 
-/* Keep the Capacitor Android/WebView shell vertically scrollable on phones. */
+/* Keep the phone shell vertically scrollable in Capacitor, PWA, and mobile browsers. */
 @media (max-width: 768px) {
   html.native-app,
+  html.mobile-shell,
+  html.mobile-shell body,
   html.native-app body {
     height: auto !important;
     min-height: 100dvh !important;
@@ -5613,14 +5615,18 @@ html {
 
   html.native-app #root,
   html.native-app .app-container,
-  html.native-app .main-content {
+  html.native-app .main-content,
+  html.mobile-shell #root,
+  html.mobile-shell .app-container,
+  html.mobile-shell .main-content {
     height: auto !important;
     min-height: 100dvh !important;
     overflow-y: visible !important;
     touch-action: pan-y;
   }
 
-  html.native-app .main-content {
+  html.native-app .main-content,
+  html.mobile-shell .main-content {
     padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }

@@ -227,9 +227,28 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
+    const applyMobileScrollUnlock = () => {
+      const isMobileShell = isNative || mobileQuery.matches;
+      document.documentElement.classList.toggle('mobile-shell', isMobileShell);
+      if (!isMobileShell) return;
+
+      document.documentElement.style.overflowY = 'auto';
+      document.documentElement.style.height = 'auto';
+      document.body.style.overflowY = 'auto';
+      document.body.style.height = 'auto';
+      document.body.style.touchAction = 'pan-y';
+      if (document.scrollingElement) {
+        document.scrollingElement.style.overflowY = 'auto';
+      }
+    };
+
     if (isNative) {
       document.documentElement.classList.add('native-app');
     }
+    applyMobileScrollUnlock();
+    mobileQuery.addEventListener?.('change', applyMobileScrollUnlock);
+
     const styleStatusBar = async () => {
       try {
         const { StatusBar, Style } = await import('@capacitor/status-bar');
@@ -241,6 +260,10 @@ export default function App() {
       }
     };
     styleStatusBar();
+
+    return () => {
+      mobileQuery.removeEventListener?.('change', applyMobileScrollUnlock);
+    };
   }, []);
 
   const getSuggestions = () => {
