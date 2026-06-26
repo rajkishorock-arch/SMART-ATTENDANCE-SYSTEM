@@ -2439,10 +2439,12 @@ export default function App() {
             });
             const present_count = updatedStudents.filter(st => st.status === 'Present').length;
             const absent_count = updatedStudents.filter(st => st.status === 'Absent').length;
+            const leave_count = updatedStudents.filter(st => st.status === 'On Leave').length;
             return {
               ...sess,
               present_count,
               absent_count,
+              leave_count,
               students: updatedStudents
             };
           }
@@ -4622,7 +4624,7 @@ export default function App() {
 
   // Export report to CSV
   const exportReportToCSV = () => {
-    const headers = ['Student ID', 'Roll Number', 'Name', 'Department', 'Attended Days', 'Total Days', 'Attendance Rate (%)', 'Status'];
+    const headers = ['Student ID', 'Roll Number', 'Name', 'Department', 'Attended Days', 'Approved Leave Days', 'Effective Days', 'Absent Days', 'Total Days', 'Attendance Rate (%)', 'Status'];
     const csvRows = [headers.join(',')];
 
     reportData.students.forEach(student => {
@@ -4633,6 +4635,9 @@ export default function App() {
         `"${student.name}"`,
         `"${student.dep}"`,
         `"${student.present_days}"`,
+        `"${student.leave_days ?? 0}"`,
+        `"${student.effective_days ?? student.total_days}"`,
+        `"${student.absent_days ?? 0}"`,
         `"${student.total_days}"`,
         `"${student.percentage}%"`,
         `"${statusText}"`
@@ -10752,8 +10757,9 @@ export default function App() {
                     {sessionHistory.map((session) => {
                       const sessionKey = `${session.date}-${session.period}`;
                       const isExpanded = !!expandedSessions[sessionKey];
-                      const totalStudentsCount = session.present_count + session.absent_count || 1;
-                      const sessionFillRate = Math.round((session.present_count / totalStudentsCount) * 100);
+                      const totalStudentsCount = session.present_count + session.absent_count + (session.leave_count || 0) || 1;
+                      const actionableCount = session.present_count + session.absent_count;
+                      const sessionFillRate = actionableCount > 0 ? Math.round((session.present_count / actionableCount) * 100) : 100;
 
                       // Search, filter, and view local variables
                       const sSearch = sessionSearches[sessionKey] || "";
@@ -10764,7 +10770,8 @@ export default function App() {
                         const matchesSearch = (st.name || '').toLowerCase().includes(sSearch.toLowerCase()) || (st.roll || '').toLowerCase().includes(sSearch.toLowerCase());
                         const matchesStatus = sFilter === 'all' || 
                           (sFilter === 'present' && st.status === 'Present') || 
-                          (sFilter === 'absent' && st.status === 'Absent');
+                          (sFilter === 'absent' && st.status === 'Absent') ||
+                          (sFilter === 'leave' && st.status === 'On Leave');
                         return matchesSearch && matchesStatus;
                       });
 
@@ -10824,6 +10831,9 @@ export default function App() {
                               <span style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '5px 12px', borderRadius: '20px', color: '#ef4444', fontWeight: 700 }}>
                                 A: {session.absent_count}
                               </span>
+                              <span style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '5px 12px', borderRadius: '20px', color: '#f59e0b', fontWeight: 700 }}>
+                                L: {session.leave_count || 0}
+                              </span>
                               <span style={{ 
                                 transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
                                 transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
@@ -10864,7 +10874,7 @@ export default function App() {
                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                                   {/* Filter chips */}
                                   <div style={{ display: 'flex', background: 'rgba(8, 12, 20, 0.5)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                                    {['all', 'present', 'absent'].map(status => (
+                                    {['all', 'present', 'absent', 'leave'].map(status => (
                                       <button
                                         key={status}
                                         onClick={() => {
@@ -10945,9 +10955,10 @@ export default function App() {
                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
                                      {filteredStudents.map((st) => {
                                        const isPresent = st.status === 'Present';
-                                       const statusBg = isPresent ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
-                                       const statusBorder = isPresent ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
-                                       const statusColor = isPresent ? '#10b981' : '#ef4444';
+                                       const isLeave = st.status === 'On Leave';
+                                       const statusBg = isPresent ? 'rgba(16, 185, 129, 0.1)' : isLeave ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.1)';
+                                       const statusBorder = isPresent ? '1px solid rgba(16, 185, 129, 0.2)' : isLeave ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(239, 68, 68, 0.2)';
+                                       const statusColor = isPresent ? '#10b981' : isLeave ? '#f59e0b' : '#ef4444';
                                        
                                        return (
                                          <div 
@@ -10956,7 +10967,7 @@ export default function App() {
                                            style={{ 
                                              padding: '16px', 
                                              borderRadius: '12px', 
-                                             border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`,
+                                             border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.15)' : isLeave ? 'rgba(245, 158, 11, 0.18)' : 'rgba(239, 68, 68, 0.15)'}`,
                                              display: 'flex',
                                              flexDirection: 'column',
                                              gap: '12px',
@@ -11029,9 +11040,10 @@ export default function App() {
                                        <tbody>
                                          {filteredStudents.map((st) => {
                                            const isPresent = st.status === 'Present';
-                                           const statusBg = isPresent ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
-                                           const statusBorder = isPresent ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
-                                           const statusColor = isPresent ? '#10b981' : '#ef4444';
+                                           const isLeave = st.status === 'On Leave';
+                                           const statusBg = isPresent ? 'rgba(16, 185, 129, 0.1)' : isLeave ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.1)';
+                                           const statusBorder = isPresent ? '1px solid rgba(16, 185, 129, 0.2)' : isLeave ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(239, 68, 68, 0.2)';
+                                           const statusColor = isPresent ? '#10b981' : isLeave ? '#f59e0b' : '#ef4444';
                                             return (
                                            <tr key={st.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', color: '#f1f5f9' }}>
                                              <td style={{ padding: '12px 12px', fontWeight: 700, color: '#fff' }}>{st.roll}</td>
@@ -11076,9 +11088,10 @@ export default function App() {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '16px', marginTop: '16px' }}>
                                   {filteredStudents.map((st) => {
                                     const isPresent = st.status === 'Present';
-                                    const cellColor = isPresent ? '#10b981' : '#ef4444';
-                                    const bgLight = isPresent ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
-                                    const borderLight = isPresent ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+                                    const isLeave = st.status === 'On Leave';
+                                    const cellColor = isPresent ? '#10b981' : isLeave ? '#f59e0b' : '#ef4444';
+                                    const bgLight = isPresent ? 'rgba(16, 185, 129, 0.05)' : isLeave ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.05)';
+                                    const borderLight = isPresent ? 'rgba(16, 185, 129, 0.2)' : isLeave ? 'rgba(245, 158, 11, 0.24)' : 'rgba(239, 68, 68, 0.2)';
                                     
                                     return (
                                       <div
@@ -11107,7 +11120,7 @@ export default function App() {
                                         onMouseOver={(e) => {
                                           e.currentTarget.style.borderColor = cellColor;
                                           e.currentTarget.style.transform = 'translateY(-2px)';
-                                          e.currentTarget.style.boxShadow = `0 4px 12px ${isPresent ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}`;
+                                          e.currentTarget.style.boxShadow = `0 4px 12px ${isPresent ? 'rgba(16, 185, 129, 0.1)' : isLeave ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.1)'}`;
                                         }}
                                         onMouseOut={(e) => {
                                           e.currentTarget.style.borderColor = borderLight;
@@ -11120,7 +11133,7 @@ export default function App() {
                                           height: '34px',
                                           borderRadius: '50%',
                                           background: 'rgba(255, 255, 255, 0.03)',
-                                          border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
+                                          border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.25)' : isLeave ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.25)'}`,
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
@@ -11156,7 +11169,7 @@ export default function App() {
                                   width: '240px',
                                   padding: '12px 16px',
                                   background: 'rgba(8, 12, 20, 0.95)',
-                                  border: `1px solid ${hoveredStudentCard.status === 'Present' ? '#10b981' : '#ef4444'}`,
+                                  border: `1px solid ${hoveredStudentCard.status === 'Present' ? '#10b981' : hoveredStudentCard.status === 'On Leave' ? '#f59e0b' : '#ef4444'}`,
                                   boxShadow: '0 8px 25px rgba(0,0,0,0.5)',
                                   borderRadius: '8px',
                                   zIndex: 10,
@@ -11167,7 +11180,7 @@ export default function App() {
                                 }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '4px', marginBottom: '6px' }}>
                                     <strong style={{ color: '#fff' }}>STUDENT INFO</strong>
-                                    <span style={{ color: hoveredStudentCard.status === 'Present' ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>{hoveredStudentCard.status.toUpperCase()}</span>
+                                    <span style={{ color: hoveredStudentCard.status === 'Present' ? '#10b981' : hoveredStudentCard.status === 'On Leave' ? '#f59e0b' : '#ef4444', fontWeight: 'bold' }}>{hoveredStudentCard.status.toUpperCase()}</span>
                                   </div>
                                   <div style={{ color: 'var(--color-text-muted)', marginBottom: '2px' }}>NAME: <span style={{ color: '#fff' }}>{hoveredStudentCard.name}</span></div>
                                   <div style={{ color: 'var(--color-text-muted)', marginBottom: '2px' }}>ROLL: <span style={{ color: '#fff' }}>{hoveredStudentCard.roll}</span></div>
@@ -11470,6 +11483,9 @@ export default function App() {
                         <th>Name</th>
                         <th>Department</th>
                         <th style={{ textAlign: 'center' }}>Attended Days</th>
+                        <th style={{ textAlign: 'center' }}>Leave Days</th>
+                        <th style={{ textAlign: 'center' }}>Effective Days</th>
+                        <th style={{ textAlign: 'center' }}>Absent Days</th>
                         <th style={{ textAlign: 'center' }}>Total Days</th>
                         <th style={{ textAlign: 'right' }}>Attendance Rate</th>
                         <th className="hide-on-print" style={{ textAlign: 'center' }}>Status</th>
@@ -11486,6 +11502,9 @@ export default function App() {
                           <td style={{ fontWeight: 500 }}>{student.name}</td>
                           <td>{student.dep}</td>
                           <td style={{ textAlign: 'center' }}>{student.present_days}</td>
+                          <td style={{ textAlign: 'center' }}>{student.leave_days ?? 0}</td>
+                          <td style={{ textAlign: 'center' }}>{student.effective_days ?? student.total_days}</td>
+                          <td style={{ textAlign: 'center' }}>{student.absent_days ?? 0}</td>
                           <td style={{ textAlign: 'center' }}>{student.total_days}</td>
                           <td style={{ textAlign: 'right', fontWeight: 700, color: student.low_attendance ? '#ef4444' : '#10b981' }}>
                             {student.percentage}%
@@ -14479,13 +14498,14 @@ export default function App() {
 
               // Count stats from calendar data
               const getStats = (subject) => {
-                if (!subject) return { present: 0, absent: 0, late: 0, total: 0 };
+                if (!subject) return { present: 0, absent: 0, late: 0, leave: 0, total: 0 };
                 const vals = Object.values(subject.calendar || {});
                 return {
                   present: vals.filter(v => v === 'Present').length,
                   late: vals.filter(v => v === 'Late').length,
                   absent: vals.filter(v => v === 'Absent').length,
-                  total: vals.length
+                  leave: vals.filter(v => v === 'On Leave').length,
+                  total: vals.filter(v => v !== 'On Leave').length
                 };
               };
               const stats = getStats(activeSubject);
@@ -14497,7 +14517,7 @@ export default function App() {
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>My Attendance Blueprint</h3>
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>Subject-wise calendar — green = present, red = absent</p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>Subject-wise calendar — green = present, red = absent, amber = approved leave</p>
                     </div>
                   </div>
 

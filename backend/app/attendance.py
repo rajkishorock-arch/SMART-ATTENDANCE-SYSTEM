@@ -341,10 +341,19 @@ def send_absentee_alerts(
     if not students:
         return {"message": "No students found.", "queued_count": 0}
 
+    leave_lookup = crud.get_approved_leave_dates_by_student(
+        db,
+        institution_id=current_user.institution_id,
+        student_ids=[student.id for student in students],
+        start_date=datetime.now(IST).date(),
+        end_date=datetime.now(IST).date(),
+    )
+    on_leave_today = {student_id for student_id, dates in leave_lookup.items() if today_str in dates}
+
     # Find absent students
     absent_students = []
     for student in students:
-        if str(student.id) not in present_student_ids:
+        if str(student.id) not in present_student_ids and student.id not in on_leave_today:
             absent_students.append(student)
 
     # Queue absentee warning emails
@@ -566,6 +575,13 @@ def get_student_attendance_calendar(
             subject_calendar[sub_id] = {}
         subject_calendar[sub_id][log.date] = log.attendance  # Present / Absent / Late
 
+    leave_lookup = crud.get_approved_leave_dates_by_student(
+        db,
+        institution_id=current_student.institution_id,
+        student_ids=[current_student.id],
+    )
+    leave_dates = leave_lookup.get(current_student.id, set())
+
     # Build response
     result = []
     for subject in subjects:
@@ -574,6 +590,8 @@ def get_student_attendance_calendar(
             if subject.id not in subject_calendar:
                 continue
         cal = subject_calendar.get(subject.id, {})
+        for leave_date in leave_dates:
+            cal.setdefault(leave_date, "On Leave")
         result.append({
             "subject_id": subject.id,
             "subject_name": subject.name,
@@ -850,14 +868,25 @@ def get_attendance_sessions_history(
     
     for d, p in sorted_keys:
         present_student_ids = sessions_map[(d, p)]
+        session_leave_lookup = crud.get_approved_leave_dates_by_student(
+            db,
+            institution_id=current_user.institution_id,
+            student_ids=[s.id for s in students],
+            start_date=crud.parse_attendance_date(d),
+            end_date=crud.parse_attendance_date(d),
+        )
         session_students = []
         present_count = 0
         absent_count = 0
+        leave_count = 0
         
         for s in students:
             is_present = str(s.id) in present_student_ids
+            is_on_leave = not is_present and d in session_leave_lookup.get(s.id, set())
             if is_present:
                 present_count += 1
+            elif is_on_leave:
+                leave_count += 1
             else:
                 absent_count += 1
                 
@@ -871,7 +900,7 @@ def get_attendance_sessions_history(
                 "semester": s.semester or "",
                 "email": s.email or "",
                 "phone": s.phone or "",
-                "status": "Present" if is_present else "Absent"
+                "status": "Present" if is_present else ("On Leave" if is_on_leave else "Absent")
             })
             
         history.append({
@@ -879,6 +908,7 @@ def get_attendance_sessions_history(
             "period": p,
             "present_count": present_count,
             "absent_count": absent_count,
+            "leave_count": leave_count,
             "students": session_students
         })
         
@@ -958,6 +988,5 @@ def update_attendance_status(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update attendance status: {str(e)}")
-
 
 

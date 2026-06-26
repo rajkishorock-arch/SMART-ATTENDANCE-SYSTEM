@@ -6,6 +6,53 @@ IST = timezone(timedelta(hours=5, minutes=30))
 from typing import Optional
 from . import models, schemas, security
 
+
+def parse_attendance_date(value: Optional[str]) -> Optional[date]:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value.strip(), "%d/%m/%Y").date()
+    except ValueError:
+        return None
+
+
+def format_attendance_date(value: date) -> str:
+    return value.strftime("%d/%m/%Y")
+
+
+def get_approved_leave_dates_by_student(
+    db: Session,
+    institution_id: int,
+    student_ids: Optional[list[int]] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+):
+    query = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.institution_id == institution_id,
+        models.LeaveRequest.status == "approved",
+    )
+    if student_ids:
+        query = query.filter(models.LeaveRequest.student_id.in_(student_ids))
+
+    leave_lookup = {}
+    for leave in query.all():
+        current = leave.start_date.date()
+        leave_end = leave.end_date.date()
+        if start_date and leave_end < start_date:
+            continue
+        if end_date and current > end_date:
+            continue
+
+        while current <= leave_end:
+            if start_date and current < start_date:
+                current += timedelta(days=1)
+                continue
+            if end_date and current > end_date:
+                break
+            leave_lookup.setdefault(leave.student_id, set()).add(format_attendance_date(current))
+            current += timedelta(days=1)
+    return leave_lookup
+
 # --- Audit Log ---
 def create_audit_log(db: Session, log: schemas.AuditLogCreate, institution_id: Optional[int] = None):
     db_log = models.AuditLog(user_email=log.user_email, action=log.action, institution_id=institution_id)
@@ -323,14 +370,10 @@ def get_attendance_report(
         except ValueError:
             pass
 
-    def parse_date_str(d_str: str) -> Optional[date]:
-        try:
-            return datetime.strptime(d_str.strip(), "%d/%m/%Y").date()
-        except ValueError:
-            return None
-
     # Fetch attendance logs for this subject
-    attendance_query = db.query(models.AttendanceModel).filter(models.AttendanceModel.attendance == "Present")
+    attendance_query = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.attendance.in_(["Present", "Late"])
+    )
     if institution_id is not None:
         attendance_query = attendance_query.filter(models.AttendanceModel.institution_id == institution_id)
         
@@ -343,7 +386,7 @@ def get_attendance_report(
     
     system_dates = set()
     for log in all_logs:
-        log_date = parse_date_str(log.date)
+        log_date = parse_attendance_date(log.date)
         if log_date:
             if start_date and log_date < start_date:
                 continue
@@ -377,7 +420,7 @@ def get_attendance_report(
     from collections import Counter
     presents_count = Counter()
     for log in all_logs:
-        log_date = parse_date_str(log.date)
+        log_date = parse_attendance_date(log.date)
         if log_date:
             if start_date and log_date < start_date:
                 continue
@@ -385,19 +428,36 @@ def get_attendance_report(
                 continue
             presents_count[log.id] += 1
 
+    leave_lookup = {}
+    if institution_id is not None and students:
+        leave_lookup = get_approved_leave_dates_by_student(
+            db,
+            institution_id=institution_id,
+            student_ids=[s.id for s in students],
+            start_date=start_date,
+            end_date=end_date,
+        )
+
     student_reports = []
     for s in students:
         present_days = presents_count[str(s.id)]
-        percentage = round((present_days / total_working_days * 100.0), 2) if total_working_days > 0 else 0.0
-        low_attendance = percentage < 75.0 and total_working_days > 0
+        leave_days = len(leave_lookup.get(s.id, set()).intersection(system_dates))
+        effective_days = max(total_working_days - leave_days, 0)
+        absent_days = max(effective_days - present_days, 0)
+        percentage = round((present_days / effective_days * 100.0), 2) if effective_days > 0 else 0.0
+        low_attendance = percentage < 75.0 and effective_days > 0
 
         student_reports.append({
             "id": s.id,
             "roll": s.roll,
             "name": s.name,
             "dep": s.dep,
+            "email": s.email,
             "present_days": present_days,
             "total_days": total_working_days,
+            "effective_days": effective_days,
+            "leave_days": leave_days,
+            "absent_days": absent_days,
             "percentage": percentage,
             "low_attendance": low_attendance
         })
