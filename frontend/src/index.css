@@ -3557,7 +3557,8 @@ html {
   html.native-app,
   html.native-app body {
     padding: 0;
-    overscroll-behavior-y: none;
+    /* overscroll-behavior-y: none was blocking scroll on phone - fixed */
+    overscroll-behavior-y: contain;
   }
   html.native-app #root {
     padding-top: env(safe-area-inset-top, 0px);
@@ -5599,7 +5600,32 @@ html {
   margin: 0 auto 16px auto;
 }
 
-/* Keep the phone shell vertically scrollable in Capacitor, PWA, and mobile browsers. */
+/* ===== MOBILE & CAPACITOR SCROLL FIX =====
+   Keep the phone shell vertically scrollable in Capacitor, PWA, and mobile browsers. */
+
+/* Native Capacitor app - phone mein scroll karne ke liye */
+html.native-app,
+html.native-app body {
+  height: auto !important;
+  min-height: 100dvh !important;
+  overflow-y: auto !important;
+  /* overscroll-behavior-y: none was blocking scroll - removed */
+  overscroll-behavior-y: contain !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  position: static !important;
+}
+
+html.native-app #root {
+  height: auto !important;
+  min-height: 100dvh !important;
+  overflow-y: visible !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  position: static !important;
+}
+
+/* Mobile browser (non-native) */
 @media (max-width: 768px) {
   html.native-app,
   html.mobile-shell,
@@ -5608,25 +5634,38 @@ html {
     height: auto !important;
     min-height: 100dvh !important;
     overflow-y: auto !important;
-    overscroll-behavior-y: contain;
-    touch-action: pan-y;
-    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: static !important;
   }
 
   html.native-app #root,
+  html.mobile-shell #root {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow-y: visible !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: static !important;
+  }
+
   html.native-app .app-container,
+  html.mobile-shell .app-container {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow-y: visible !important;
+    touch-action: pan-y !important;
+    position: static !important;
+  }
+
   html.native-app .main-content,
-  html.mobile-shell #root,
-  html.mobile-shell .app-container,
   html.mobile-shell .main-content {
     height: auto !important;
     min-height: 100dvh !important;
     overflow-y: visible !important;
-    touch-action: pan-y;
-  }
-
-  html.native-app .main-content,
-  html.mobile-shell .main-content {
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
     padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
