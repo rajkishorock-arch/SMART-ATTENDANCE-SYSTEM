@@ -8,6 +8,8 @@ import MobileControlPanel from './components/MobileControlPanel';
 import GamificationHub from './components/GamificationHub';
 import NotificationCenter from './components/NotificationCenter';
 import AdvancedFeaturesHub from './components/AdvancedFeaturesHub';
+import LeaveManagement from './components/LeaveManagement';
+import LeaveAdminDashboard from './components/LeaveAdminDashboard';
 import ConsentModal from './components/ConsentModal';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { setupOfflineSyncListener } from './utils/offlineQueue';
@@ -4765,11 +4767,11 @@ export default function App() {
           const currentHash = window.location.hash.replace(/^#\/?/, '');
           const isTabValid = (tabId, role) => {
             if (role === 'student') {
-              return ['student-attendance', 'student-profile'].includes(tabId);
+              return ['student-attendance', 'leave-management', 'student-profile', 'ai-assistant'].includes(tabId);
             } else if (role === 'teacher') {
-              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
+              return ['dashboard', 'students', 'attendance', 'leave-admin', 'logs', 'session-history', 'reports', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
             } else if (role === 'admin') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'leave-admin', 'logs', 'session-history', 'reports', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
             }
             return false;
           };
@@ -5226,11 +5228,11 @@ export default function App() {
   useEffect(() => {
     const isTabValidForRole = (tabId, role) => {
       if (role === 'student') {
-        return ['student-attendance', 'student-profile'].includes(tabId);
+        return ['student-attendance', 'leave-management', 'student-profile', 'ai-assistant'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'leave-admin', 'logs', 'session-history', 'reports', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'leave-admin', 'logs', 'session-history', 'reports', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
       }
       return false;
     };
@@ -5413,7 +5415,7 @@ export default function App() {
   // Refresh data when switching tabs
   useEffect(() => {
     if (!token || !userRole) return;
-    if (userRole === 'student' && !['student-attendance', 'student-profile', 'ai-assistant'].includes(activeTab)) return;
+    if (userRole === 'student' && !['student-attendance', 'leave-management', 'student-profile', 'ai-assistant'].includes(activeTab)) return;
 
     switch (activeTab) {
       case 'dashboard':
@@ -7539,6 +7541,16 @@ export default function App() {
                 </button>
               </li>
               <li>
+                <button
+                  className={`nav-item ${activeTab === 'leave-management' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  onClick={() => { setActiveTab('leave-management'); playCyberSound('click'); }}
+                >
+                  <Mail size={18} />
+                  Leave Requests
+                </button>
+              </li>
+              <li>
                 <button 
                   className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
@@ -7601,6 +7613,16 @@ export default function App() {
                 >
                   <Video size={18} />
                   Face Attendance
+                </button>
+              </li>
+              <li>
+                <button
+                  className={`nav-item ${activeTab === 'leave-admin' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  onClick={() => { setActiveTab('leave-admin'); playCyberSound('click'); }}
+                >
+                  <Mail size={18} />
+                  Leave Approvals
                 </button>
               </li>
               <li>
@@ -7736,9 +7758,11 @@ export default function App() {
                 {activeTab === 'teachers' && 'Teacher Directory'}
                 {activeTab === 'logs' && 'Real-time Logs'}
                 {activeTab === 'attendance' && 'Live Scanner'}
+                {activeTab === 'leave-admin' && 'Leave Approval Center'}
                 {activeTab === 'reports' && 'Attendance Reports & Alerts'}
                 {activeTab === 'session-history' && 'Session-wise History'}
                 {activeTab === 'student-attendance' && `Welcome, ${currentUser?.name || 'Student'}`}
+                {activeTab === 'leave-management' && 'Leave Management'}
                 {activeTab === 'student-profile' && 'My Profile'}
                 {activeTab === 'settings' && 'Security & System Settings'}
                 {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
@@ -7749,9 +7773,11 @@ export default function App() {
                 {activeTab === 'teachers' && 'Manage registered teaching staff and weekly timetables'}
                 {activeTab === 'logs' && 'View and download student attendance registers'}
                 {activeTab === 'attendance' && 'Log attendance using live facial recognition scanner'}
+                {activeTab === 'leave-admin' && 'Review, approve, and track student leave requests'}
                 {activeTab === 'reports' && 'Generate academic reports, analytics, and attendance alerts'}
                 {activeTab === 'session-history' && 'Track day-by-day session registers and student present/absent statuses'}
                 {activeTab === 'student-attendance' && 'Track your attendance history and metrics'}
+                {activeTab === 'leave-management' && 'Submit leave requests and monitor approval status'}
                 {activeTab === 'student-profile' && 'View and manage your personal profile and credentials'}
                 {activeTab === 'settings' && 'Manage campus geofencing and IP subnet restriction boundaries'}
                 {activeTab === 'ai-assistant' && 'Interact using voice or upload files. Customise bot settings and suggestion filters.'}
@@ -11588,6 +11614,10 @@ export default function App() {
           </div>
         )}
 
+        {activeTab === 'leave-admin' && userRole !== 'student' && (
+          <LeaveAdminDashboard token={token} currentUser={currentUser} />
+        )}
+
         {activeTab === 'settings' && userRole === 'admin' && (
           <div className="settings-section" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {activeSubSetting !== null && (
@@ -14645,6 +14675,10 @@ export default function App() {
               );
             })()}
           </div>
+        )}
+
+        {activeTab === 'leave-management' && userRole === 'student' && (
+          <LeaveManagement token={token} currentUser={currentUser} />
         )}
 
         {activeTab === 'student-profile' && (

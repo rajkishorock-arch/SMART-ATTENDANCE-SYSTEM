@@ -360,6 +360,7 @@ class LeaveRequest(LeaveRequestBase):
     institution_id: int
     status: str
     created_at: datetime
+    student_name: Optional[str] = None
 
     class Config:
         from_attributes = True

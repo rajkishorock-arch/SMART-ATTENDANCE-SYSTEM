@@ -38,14 +38,19 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
 
   const handleUpdateStatus = async (id, status) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/leaves/${id}?status=${status}`, {
+      const res = await fetch(`${API_BASE_URL}/leaves/${id}`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
       });
       if (res.ok) {
         fetchLeaveRequests(); // Re-fetch to show the updated status
       } else {
-        setError('Failed to update leave request status.');
+        const errData = await res.json().catch(() => ({}));
+        setError(errData.detail || 'Failed to update leave request status.');
       }
     } catch (err) {
       setError('An error occurred while updating status.');

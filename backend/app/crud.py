@@ -518,25 +518,72 @@ def create_feedback(db: Session, feedback: schemas.FeedbackCreate, user_email: s
 
 # --- Leave Management ---
 def create_leave_request(db: Session, leave_request: schemas.LeaveRequestCreate, institution_id: int):
+    overlapping = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.institution_id == institution_id,
+        models.LeaveRequest.student_id == leave_request.student_id,
+        models.LeaveRequest.status.in_(["pending", "approved"]),
+        models.LeaveRequest.start_date <= leave_request.end_date,
+        models.LeaveRequest.end_date >= leave_request.start_date,
+    ).first()
+    if overlapping:
+        raise ValueError("An overlapping leave request already exists for the selected dates.")
+
     db_leave = models.LeaveRequest(**leave_request.dict(), institution_id=institution_id)
     db.add(db_leave)
     db.commit()
     db.refresh(db_leave)
+    student = db.query(models.StudentModel).filter(
+        models.StudentModel.id == db_leave.student_id,
+        models.StudentModel.institution_id == institution_id,
+    ).first()
+    db_leave.student_name = student.name if student else None
     return db_leave
 
 def get_all_leave_requests(db: Session, institution_id: int):
-    return db.query(models.LeaveRequest).filter(models.LeaveRequest.institution_id == institution_id).all()
+    leaves = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.institution_id == institution_id
+    ).order_by(models.LeaveRequest.created_at.desc()).all()
+    student_ids = [leave.student_id for leave in leaves]
+    students = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == institution_id,
+        models.StudentModel.id.in_(student_ids) if student_ids else False,
+    ).all() if student_ids else []
+    name_map = {student.id: student.name for student in students}
+    for leave in leaves:
+        leave.student_name = name_map.get(leave.student_id)
+    return leaves
 
-def get_leave_requests_by_student(db: Session, student_id: int):
-    # In a real multi-tenant app, you'd also filter by institution_id
-    return db.query(models.LeaveRequest).filter(models.LeaveRequest.student_id == student_id).all()
+def get_leave_requests_by_student(db: Session, student_id: int, institution_id: int):
+    leaves = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.student_id == student_id,
+        models.LeaveRequest.institution_id == institution_id,
+    ).order_by(models.LeaveRequest.created_at.desc()).all()
+    student = db.query(models.StudentModel).filter(
+        models.StudentModel.id == student_id,
+        models.StudentModel.institution_id == institution_id,
+    ).first()
+    for leave in leaves:
+        leave.student_name = student.name if student else None
+    return leaves
 
-def update_leave_request_status(db: Session, leave_request_id: int, status: str):
-    db_leave = db.query(models.LeaveRequest).filter(models.LeaveRequest.id == leave_request_id).first()
+def update_leave_request_status(db: Session, leave_request_id: int, status: str, institution_id: int):
+    normalized_status = (status or "").strip().lower()
+    if normalized_status not in {"approved", "rejected"}:
+        raise ValueError("Leave status must be either 'approved' or 'rejected'.")
+
+    db_leave = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.id == leave_request_id,
+        models.LeaveRequest.institution_id == institution_id,
+    ).first()
     if db_leave:
-        db_leave.status = status
+        db_leave.status = normalized_status
         db.commit()
         db.refresh(db_leave)
+        student = db.query(models.StudentModel).filter(
+            models.StudentModel.id == db_leave.student_id,
+            models.StudentModel.institution_id == institution_id,
+        ).first()
+        db_leave.student_name = student.name if student else None
     return db_leave
 
 def update_attendance_status(
@@ -598,4 +645,3 @@ def update_attendance_status(
             db.commit()
             db.refresh(db_attendance)
             return db_attendance
-
