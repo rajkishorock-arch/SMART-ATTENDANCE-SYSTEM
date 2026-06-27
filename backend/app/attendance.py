@@ -960,4 +960,124 @@ def update_attendance_status(
         raise HTTPException(status_code=500, detail=f"Failed to update attendance status: {str(e)}")
 
 
+@router.post("/scan-qr")
+def checkin_via_student_qr(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Teachers & Admins scan the dynamic QR Code presented on a student's phone.
+    Verifies the JWT token, extracts the student details, and registers attendance instantly.
+    """
+    if current_user.role not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Only teachers or administrators can scan attendance QR codes.")
+        
+    qr_token = payload.get("token")
+    subject_id = payload.get("subject_id")
+    
+    if not qr_token:
+        raise HTTPException(status_code=400, detail="QR check-in token is required.")
+        
+    from jose import jwt, JWTError
+    import time
+    
+    # 1. Decode and verify the student's dynamic token
+    try:
+        data = jwt.decode(qr_token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
+    except JWTError as e:
+        raise HTTPException(status_code=400, detail="Invalid check-in token. Please ask the student to refresh the QR code.")
+        
+    # 2. Check token expiration
+    exp = data.get("exp")
+    if not exp or int(time.time()) > exp:
+        raise HTTPException(status_code=400, detail="QR code has expired. Please ask the student to refresh their screen.")
+        
+    student_id = data.get("student_id")
+    institution_id = data.get("institution_id")
+    
+    # 3. Security validation: make sure the student belongs to the scanner's institution
+    if institution_id != current_user.institution_id:
+        raise HTTPException(status_code=400, detail="Access Denied: Student belongs to another workspace.")
+        
+    # 4. Fetch student model
+    student = db.query(models.StudentModel).filter(
+        models.StudentModel.id == student_id,
+        models.StudentModel.institution_id == institution_id
+    ).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student record not found.")
+        
+    # 5. Determine active subject (use assigned subject if teacher)
+    active_subject_id = subject_id
+    if current_user.role == "teacher" and not active_subject_id:
+        # Fallback to teacher's primary assigned subject
+        teacher_subject = db.query(models.Subject).filter(
+            models.Subject.teacher_id == current_user.id,
+            models.Subject.institution_id == current_user.institution_id
+        ).first()
+        if teacher_subject:
+            active_subject_id = teacher_subject.id
+            
+    # 6. Check-in logic: Register student attendance
+    now = datetime.now(timezone(timedelta(hours=5, minutes=30))) # India standard time
+    time_str = now.strftime("%I:%M:%S %p")
+    date_str = now.strftime("%Y-%m-%d")
+    
+    # Create or update log in db
+    attendance_id = f"{student.id}_{date_str}_{active_subject_id or 'none'}"
+    
+    db_attendance = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.id == attendance_id
+    ).first()
+    
+    if db_attendance:
+        db_attendance.attendance = "Present"
+        db_attendance.time = time_str
+    else:
+        db_attendance = models.AttendanceModel(
+            id=attendance_id,
+            institution_id=institution_id,
+            roll=student.roll,
+            name=student.name,
+            department=student.dep,
+            time=time_str,
+            date=date_str,
+            attendance="Present",
+            subject_id=active_subject_id
+        )
+        db.add(db_attendance)
+        
+    db.commit()
+    
+    # Refresh cache
+    try:
+        recognition_service.invalidate_cache(institution_id)
+        recognition_service.load_student_records(db, institution_id=institution_id)
+    except Exception as cache_err:
+        print(f"Failed to reload student records cache: {cache_err}")
+        
+    # Log to audit trail
+    crud.create_audit_log(
+        db=db,
+        log=schemas.AuditLogCreate(
+            user_email=current_user.email,
+            action=f"Scanned QR Code and marked student '{student.name}' (Roll: {student.roll}) PRESENT."
+        ),
+        institution_id=current_user.institution_id
+    )
+    
+    return {
+        "status": "success",
+        "message": f"Successfully checked in {student.name} (Roll: {student.roll})!",
+        "student": {
+            "id": student.id,
+            "name": student.name,
+            "roll": student.roll,
+            "dep": student.dep,
+            "course": student.course
+        }
+    }
+
+
 

@@ -1018,3 +1018,166 @@ def delete_student_account(
     from .recognition_service import recognition_service
     recognition_service.invalidate_cache(institution_id)
     return {"message": "Account and biometric data deleted"}
+
+
+# --- Leave Requests & Dynamic QR code ---
+
+@router.post("/students/me/leave-requests", response_model=schemas.LeaveRequestResponse, status_code=status.HTTP_201_CREATED)
+def apply_leave_request(
+    payload: schemas.LeaveRequestCreate,
+    db: Session = Depends(get_db),
+    current_student: models.StudentModel = Depends(security.get_current_student)
+):
+    """Student applies for a new leave request."""
+    new_leave = models.LeaveRequest(
+        institution_id=current_student.institution_id,
+        student_id=current_student.id,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        leave_type=payload.leave_type,
+        reason=payload.reason,
+        status="Pending"
+    )
+    db.add(new_leave)
+    db.commit()
+    db.refresh(new_leave)
+    
+    return schemas.LeaveRequestResponse(
+        id=new_leave.id,
+        student_id=new_leave.student_id,
+        student_name=current_student.name,
+        student_roll=current_student.roll,
+        student_dep=current_student.dep,
+        start_date=new_leave.start_date,
+        end_date=new_leave.end_date,
+        leave_type=new_leave.leave_type,
+        reason=new_leave.reason,
+        status=new_leave.status,
+        created_at=new_leave.created_at
+    )
+
+@router.get("/students/me/leave-requests", response_model=List[schemas.LeaveRequestResponse])
+def list_student_my_leaves(
+    db: Session = Depends(get_db),
+    current_student: models.StudentModel = Depends(security.get_current_student)
+):
+    """List all leave requests filed by the logged-in student."""
+    leaves = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.student_id == current_student.id,
+        models.LeaveRequest.institution_id == current_student.institution_id
+    ).order_by(models.LeaveRequest.created_at.desc()).all()
+    
+    res = []
+    for l in leaves:
+        res.append(schemas.LeaveRequestResponse(
+            id=l.id,
+            student_id=l.student_id,
+            student_name=current_student.name,
+            student_roll=current_student.roll,
+            student_dep=current_student.dep,
+            start_date=l.start_date,
+            end_date=l.end_date,
+            leave_type=l.leave_type,
+            reason=l.reason,
+            status=l.status,
+            reviewed_by=l.reviewed_by,
+            reviewed_at=l.reviewed_at,
+            created_at=l.created_at
+        ))
+    return res
+
+@router.get("/leaves", response_model=List[schemas.LeaveRequestResponse])
+def list_institution_leaves(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Admins & Teachers: List all leave requests for the institution."""
+    if current_user.role not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+        
+    leaves = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.institution_id == current_user.institution_id
+    ).order_by(models.LeaveRequest.status.desc(), models.LeaveRequest.created_at.desc()).all()
+    
+    res = []
+    for l in leaves:
+        student = db.query(models.StudentModel).filter(models.StudentModel.id == l.student_id).first()
+        res.append(schemas.LeaveRequestResponse(
+            id=l.id,
+            student_id=l.student_id,
+            student_name=student.name if student else "Unknown",
+            student_roll=student.roll if student else "N/A",
+            student_dep=student.dep if student else "N/A",
+            start_date=l.start_date,
+            end_date=l.end_date,
+            leave_type=l.leave_type,
+            reason=l.reason,
+            status=l.status,
+            reviewed_by=l.reviewed_by,
+            reviewed_at=l.reviewed_at,
+            created_at=l.created_at
+        ))
+    return res
+
+@router.put("/leaves/{id}/review", response_model=schemas.LeaveRequestResponse)
+def review_leave_request(
+    id: int,
+    payload: schemas.LeaveStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Admins & Teachers: Approve or Reject a student's leave request."""
+    if current_user.role not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+        
+    leave = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.id == id,
+        models.LeaveRequest.institution_id == current_user.institution_id
+    ).first()
+    if not leave:
+        raise HTTPException(status_code=404, detail="Leave request not found.")
+        
+    leave.status = payload.status
+    leave.reviewed_by = current_user.id
+    leave.reviewed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(leave)
+    
+    student = db.query(models.StudentModel).filter(models.StudentModel.id == leave.student_id).first()
+    return schemas.LeaveRequestResponse(
+        id=leave.id,
+        student_id=leave.student_id,
+        student_name=student.name if student else "Unknown",
+        student_roll=student.roll if student else "N/A",
+        student_dep=student.dep if student else "N/A",
+        start_date=leave.start_date,
+        end_date=leave.end_date,
+        leave_type=leave.leave_type,
+        reason=leave.reason,
+        status=leave.status,
+        reviewed_by=leave.reviewed_by,
+        reviewed_at=leave.reviewed_at,
+        created_at=leave.created_at
+    )
+
+@router.get("/students/me/qr-token")
+def generate_student_qr_token(
+    current_student: models.StudentModel = Depends(security.get_current_student)
+):
+    """
+    Generates a secure, signed check-in token valid for 60 seconds.
+    """
+    from jose import jwt
+    from .core import config
+    import time
+    
+    payload = {
+        "student_id": current_student.id,
+        "roll": current_student.roll,
+        "name": current_student.name,
+        "institution_id": current_student.institution_id,
+        "exp": int(time.time()) + 60, # 60 seconds lifetime
+        "purpose": "qr_checkin"
+    }
+    token = jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.ALGORITHM)
+    return {"token": token, "expires_in": 60}

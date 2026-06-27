@@ -199,6 +199,21 @@ class ParentAccount(Base):
     )
 
 
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    start_date = Column(String(50), nullable=False)
+    end_date = Column(String(50), nullable=False)
+    leave_type = Column(String(50), nullable=False) # 'Medical', 'Personal', 'Official'
+    reason = Column(Text, nullable=False)
+    status = Column(String(30), default="Pending") # 'Pending', 'Approved', 'Rejected'
+    reviewed_by = Column(Integer, nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class ApiKey(Base):
     __tablename__ = "api_keys"
     id = Column(Integer, primary_key=True, index=True)

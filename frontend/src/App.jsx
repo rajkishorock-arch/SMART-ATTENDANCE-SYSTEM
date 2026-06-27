@@ -128,6 +128,214 @@ function calculateEAR(landmarks, eyeIndices) {
     return 0.0;
   }
 }
+
+// =====================================================================
+// LEAVE APPLICATION FORM - Used on student dashboard
+// =====================================================================
+function LeaveApplicationForm({ token, API_BASE_URL, onLeaveApplied, playCyberSound }) {
+  const [form, setForm] = React.useState({ start_date: '', end_date: '', leave_type: 'Medical', reason: '' });
+  const [submitting, setSubmitting] = React.useState(false);
+  const [msg, setMsg] = React.useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.start_date || !form.end_date || !form.reason.trim()) {
+      setMsg({ type: 'error', text: 'Please fill in all fields.' });
+      return;
+    }
+    setSubmitting(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/students/me/leave-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(form)
+      });
+      if (res.ok) {
+        setMsg({ type: 'success', text: '✅ Leave request submitted successfully!' });
+        setForm({ start_date: '', end_date: '', leave_type: 'Medical', reason: '' });
+        playCyberSound('success');
+        if (onLeaveApplied) onLeaveApplied();
+      } else {
+        const err = await res.json();
+        setMsg({ type: 'error', text: err.detail || 'Failed to submit leave request.' });
+      }
+    } catch (e) {
+      setMsg({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div>
+          <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>From Date</label>
+          <input type="date" value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))}
+            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }} />
+        </div>
+        <div>
+          <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>To Date</label>
+          <input type="date" value={form.end_date} onChange={e => setForm(p => ({ ...p, end_date: e.target.value }))}
+            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }} />
+        </div>
+      </div>
+      <div>
+        <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Leave Type</label>
+        <select value={form.leave_type} onChange={e => setForm(p => ({ ...p, leave_type: e.target.value }))}
+          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(30,30,45,0.98)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }}>
+          <option>Medical</option>
+          <option>Personal</option>
+          <option>Official</option>
+          <option>Family Emergency</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Reason</label>
+        <textarea value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} rows={3}
+          placeholder="Briefly explain your reason for leave..."
+          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem', resize: 'vertical', boxSizing: 'border-box' }} />
+      </div>
+      {msg && (
+        <p style={{ fontSize: '0.8rem', fontWeight: 600, margin: 0, color: msg.type === 'success' ? '#10b981' : '#ef4444' }}>{msg.text}</p>
+      )}
+      <button type="submit" disabled={submitting}
+        style={{ padding: '10px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: '0.85rem', cursor: submitting ? 'not-allowed' : 'pointer', background: submitting ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #fb923c, #f97316)', color: submitting ? '#9ca3af' : 'white', transition: 'all 0.2s' }}>
+        {submitting ? '⏳ Submitting...' : '📩 Submit Leave Request'}
+      </button>
+    </form>
+  );
+}
+
+// =====================================================================
+// VIRTUAL ID CARD MODAL - Glowing ID card with rotating QR code
+// =====================================================================
+function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
+  const [qrToken, setQrToken] = React.useState(null);
+  const [countdown, setCountdown] = React.useState(60);
+  const [loading, setLoading] = React.useState(false);
+
+  const fetchQrToken = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/students/me/qr-token`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQrToken(data.token);
+        setCountdown(data.expires_in || 60);
+      }
+    } catch (e) {
+      console.error('QR token fetch failed', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, API_BASE_URL]);
+
+  React.useEffect(() => {
+    fetchQrToken();
+  }, [fetchQrToken]);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          fetchQrToken();
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [fetchQrToken]);
+
+  // Build QR code image URL using Google Charts API (no npm needed)
+  const qrUrl = qrToken
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}&bgcolor=0d0d1a&color=00f2fe&margin=10`
+    : null;
+
+  const detail = currentUser?.details || {};
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 99999,
+      background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '20px',
+      animation: 'fadeIn 0.3s ease'
+    }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(13,13,26,0.98) 0%, rgba(22,22,44,0.98) 100%)',
+        border: '1px solid rgba(0,242,254,0.3)',
+        borderRadius: '24px', padding: '36px 32px',
+        width: '100%', maxWidth: '400px',
+        boxShadow: '0 0 60px rgba(0,242,254,0.15), 0 0 120px rgba(139,92,246,0.08)',
+        position: 'relative', overflow: 'hidden'
+      }}>
+        {/* Glow effect blobs */}
+        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(0,242,254,0.12), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(139,92,246,0.1), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+        <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: '#9ca3af', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'inline-block', padding: '4px 16px', borderRadius: '20px', background: 'rgba(0,242,254,0.1)', border: '1px solid rgba(0,242,254,0.25)', color: '#00f2fe', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>
+            🎓 Smart Attendance System
+          </div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 4px', background: 'linear-gradient(135deg, #00f2fe, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {currentUser?.name}
+          </h2>
+          <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0 }}>{detail.dep || 'N/A'} · {detail.course || 'N/A'}</p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+          {[
+            { label: 'Roll No', value: detail.roll || 'N/A' },
+            { label: 'Year', value: detail.year || 'N/A' },
+            { label: 'Semester', value: detail.semester || 'N/A' },
+            { label: 'Mentor', value: detail.teacher || 'N/A' },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <p style={{ color: '#6b7280', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>{label}</p>
+              <p style={{ color: '#f3f4f6', fontSize: '0.9rem', fontWeight: 600, margin: '2px 0 0' }}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+          <p style={{ color: '#9ca3af', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1.5px', margin: 0 }}>Dynamic QR — Show to Teacher</p>
+          <div style={{
+            borderRadius: '16px', padding: '8px', width: '216px', height: '216px',
+            background: '#0d0d1a', border: '2px solid rgba(0,242,254,0.35)',
+            boxShadow: '0 0 30px rgba(0,242,254,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            {loading ? (
+              <div style={{ color: '#00f2fe', fontSize: '0.8rem' }}>Generating QR...</div>
+            ) : qrUrl ? (
+              <img src={qrUrl} alt="QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px' }} />
+            ) : (
+              <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center' }}>Failed to load QR code</div>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: `${(countdown / 60) * 80}px`, height: '4px', borderRadius: '2px', background: countdown > 20 ? '#10b981' : '#ef4444', transition: 'width 1s linear, background 0.5s' }} />
+            <p style={{ color: countdown > 20 ? '#10b981' : '#ef4444', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
+              {countdown}s
+            </p>
+          </div>
+          <p style={{ color: '#6b7280', fontSize: '0.72rem', textAlign: 'center', margin: 0 }}>
+            QR refreshes automatically every 60 seconds for security.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   API_BASE_URL = getApiBaseUrl();
   const [masterKeyPrompt, setMasterKeyPrompt] = useState({
@@ -479,6 +687,8 @@ export default function App() {
   const [studentLogs, setStudentLogs] = useState([]);
   const [isLoadingStudentLogs, setIsLoadingStudentLogs] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [showVirtualId, setShowVirtualId] = useState(false);
+  const [geofenceStatus, setGeofenceStatus] = useState({ checked: false, inside: false, distance: null });
   // Subject-wise Blueprint Calendar States
   const [blueprintData, setBlueprintData] = useState([]); // [{subject_id, subject_name, subject_code, calendar: {date->status}}]
   const [blueprintLoading, setBlueprintLoading] = useState(false);
@@ -2506,6 +2716,42 @@ export default function App() {
 
   // Student subject stats
   const [studentSubjectStats, setStudentSubjectStats] = useState({});
+  const [studentLeaveRequests, setStudentLeaveRequests] = useState([]);
+  const [adminLeaveRequests, setAdminLeaveRequests] = useState([]);
+  const [isFetchingLeaves, setIsFetchingLeaves] = useState(false);
+
+  const fetchStudentLeaves = async () => {
+    if (isDemoMode) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/students/me/leave-requests`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStudentLeaveRequests(data);
+      }
+    } catch (err) {
+      console.error('Error fetching student leaves:', err);
+    }
+  };
+
+  const fetchAdminLeaves = async () => {
+    if (isDemoMode) return;
+    setIsFetchingLeaves(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/leaves`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdminLeaveRequests(data);
+      }
+    } catch (err) {
+      console.error('Error fetching admin leaves:', err);
+    } finally {
+      setIsFetchingLeaves(false);
+    }
+  };
 
   const fetchStudentSubjectStats = async (studentDept, studentId) => {
     if (isDemoMode) return;
@@ -5319,6 +5565,7 @@ export default function App() {
         if (!isMounted) return;
         if (userRole === 'student') {
           fetchStudentLogs(token);
+          fetchStudentLeaves();
           if (currentUser?.details) {
             fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
           }
@@ -5328,6 +5575,7 @@ export default function App() {
           fetchStats();
           fetchLogs();
           fetchSchedules();
+          fetchAdminLeaves();
           if (userRole === 'admin') {
             fetchTeachers();
             fetchFeedbacks();
@@ -5345,6 +5593,7 @@ export default function App() {
             setServerWarmingUp(false);
             if (userRole === 'student') {
               fetchStudentLogs(token);
+              fetchStudentLeaves();
               if (currentUser?.details) {
                 fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
               }
@@ -5354,6 +5603,7 @@ export default function App() {
               fetchStats();
               fetchLogs();
               fetchSchedules();
+              fetchAdminLeaves();
               if (userRole === 'admin') {
                 fetchTeachers();
                 fetchFeedbacks();
@@ -5974,16 +6224,42 @@ export default function App() {
       userContextStr += `- Role: ${userRole}\n`;
       if (currentUser.details) {
         if (currentUser.details.roll) userContextStr += `- Roll Number: ${currentUser.details.roll}\n`;
-        if (currentUser.details.department) userContextStr += `- Department/Branch: ${currentUser.details.department}\n`;
+        if (currentUser.details.dep) userContextStr += `- Department/Branch: ${currentUser.details.dep}\n`;
+        if (currentUser.details.course) userContextStr += `- Course: ${currentUser.details.course}\n`;
+        if (currentUser.details.year) userContextStr += `- Year: ${currentUser.details.year}\n`;
+        if (currentUser.details.semester) userContextStr += `- Semester: ${currentUser.details.semester}\n`;
         if (currentUser.details.phone) userContextStr += `- Contact Phone: ${currentUser.details.phone}\n`;
         if (currentUser.details.teacher) userContextStr += `- Mentor / Assigned Teacher: ${currentUser.details.teacher}\n`;
       }
       if (userRole === 'student' && studentLogs) {
         const total = studentLogs.length;
         const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+        const absent = studentLogs.filter(l => l.attendance === 'Absent').length;
         const rate = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+        const minRequired = 0.75;
+        const canBunk = Math.floor(present / minRequired - total);
+        const needMore = total > 0 ? Math.ceil((minRequired * total - present) / (1 - minRequired)) : 0;
         userContextStr += `- Student Attendance Rate: ${rate}%\n`;
-        userContextStr += `- Attendance Count: ${present} Present out of ${total} classes\n`;
+        userContextStr += `- Attendance Count: ${present} Present, ${absent} Absent out of ${total} total classes\n`;
+        if (parseFloat(rate) >= 75) {
+          userContextStr += `- Attendance Status: SAFE (above 75%). Can bunk up to ${canBunk > 0 ? canBunk : 0} more classes safely.\n`;
+        } else {
+          userContextStr += `- Attendance Status: WARNING (below 75%). Must attend ${needMore} more classes to reach 75%.\n`;
+        }
+        // Subject-wise stats
+        if (Object.keys(studentSubjectStats).length > 0) {
+          userContextStr += `\n[Subject-wise Attendance]:\n`;
+          Object.values(studentSubjectStats).forEach(s => {
+            userContextStr += `- ${s.subjectName} (${s.subjectCode || 'N/A'}): ${s.percentage?.toFixed(1) || 0}% (${s.presentDays || 0}/${s.totalDays || 0} classes)${s.lowAttendance ? ' ⚠️ LOW' : ''}\n`;
+          });
+        }
+        // Leave requests
+        if (studentLeaveRequests.length > 0) {
+          userContextStr += `\n[My Leave Requests]:\n`;
+          studentLeaveRequests.forEach(l => {
+            userContextStr += `- ${l.leave_type} leave from ${l.start_date} to ${l.end_date}: ${l.status}\n`;
+          });
+        }
       }
     }
     if (aiCognitiveLevel === 'hyper') {
@@ -7067,6 +7343,15 @@ export default function App() {
   // Dashboard Main View
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
+      {/* ===== VIRTUAL ID CARD MODAL ===== */}
+      {showVirtualId && (
+        <VirtualIdCardModal
+          currentUser={currentUser}
+          token={token}
+          API_BASE_URL={API_BASE_URL}
+          onClose={() => setShowVirtualId(false)}
+        />
+      )}
       {isDemoMode && (
         <div style={{
           background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
@@ -11832,12 +12117,33 @@ export default function App() {
                       <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Publish new system-wide APK versions and manage update downloads for all users.</p>
                     </div>
                   )}
+
+                  {/* Category Card 12: Leave Management */}
+                  <div 
+                    onClick={() => { setActiveSubSetting('leave_management'); fetchAdminLeaves(); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(251,146,60,0.2)' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>📋</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(251,146,60,0.12)', color: '#fb923c' }}>👩‍🏫 Teacher/Admin</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Leave Management</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Review, approve, or reject student leave requests with full history.</p>
+                    {adminLeaveRequests.filter(r => r.status === 'Pending').length > 0 && (
+                      <span style={{ alignSelf: 'flex-start', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                        {adminLeaveRequests.filter(r => r.status === 'Pending').length} Pending
+                      </span>
+                    )}
+                  </div>
+
                 </div>
               </div>
             ) : (
               <div>
                 {/* Geofencing Sub-view */}
                 {activeSubSetting === 'geofencing' && (
+
                   <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
                     <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
                       <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -13762,6 +14068,83 @@ export default function App() {
               </div>
             )}
 
+            {/* LEAVE MANAGEMENT SUB-VIEW */}
+            {activeSubSetting === 'leave_management' && (
+              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>📋 Leave Management</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.82rem', marginTop: '4px' }}>Review and approve/reject student leave requests.</p>
+                  </div>
+                  <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.82rem' }} onClick={fetchAdminLeaves}>
+                    🔄 Refresh
+                  </button>
+                </div>
+                {isFetchingLeaves ? (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', padding: '32px' }}>Loading leave requests...</div>
+                ) : adminLeaveRequests.length === 0 ? (
+                  <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', color: '#9ca3af' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</div>
+                    No leave requests found for your institution.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {adminLeaveRequests.map(req => (
+                      <div key={req.id} className="glass-panel" style={{ padding: '20px 24px', borderRadius: '14px', border: `1px solid ${req.status === 'Approved' ? 'rgba(16,185,129,0.15)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.2)'}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                          <div>
+                            <p style={{ fontWeight: 700, color: '#f3f4f6', margin: 0, fontSize: '1rem' }}>{req.student_name}</p>
+                            <p style={{ color: '#9ca3af', margin: '2px 0 0', fontSize: '0.8rem' }}>Roll: {req.student_roll} · {req.student_dep}</p>
+                          </div>
+                          <span style={{
+                            padding: '4px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700, flexShrink: 0,
+                            background: req.status === 'Approved' ? 'rgba(16,185,129,0.12)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
+                            color: req.status === 'Approved' ? '#10b981' : req.status === 'Rejected' ? '#ef4444' : '#f59e0b',
+                            border: `1px solid ${req.status === 'Approved' ? 'rgba(16,185,129,0.3)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`
+                          }}>
+                            {req.status === 'Approved' ? '✅ Approved' : req.status === 'Rejected' ? '❌ Rejected' : '⏳ Pending'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.82rem', color: '#d1d5db' }}>
+                          <span>📅 <strong>{req.start_date}</strong> → <strong>{req.end_date}</strong></span>
+                          <span>🏷️ {req.leave_type}</span>
+                        </div>
+                        <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, fontStyle: 'italic' }}>"{req.reason}"</p>
+                        {req.status === 'Pending' && (
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                            <button
+                              className="btn btn-primary"
+                              style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                              onClick={async () => {
+                                const res = await fetch(`${API_BASE_URL}/users/leaves/${req.id}/review`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                  body: JSON.stringify({ status: 'Approved' })
+                                });
+                                if (res.ok) { fetchAdminLeaves(); playCyberSound('success'); }
+                              }}
+                            >✅ Approve</button>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                              onClick={async () => {
+                                const res = await fetch(`${API_BASE_URL}/users/leaves/${req.id}/review`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                  body: JSON.stringify({ status: 'Rejected' })
+                                });
+                                if (res.ok) { fetchAdminLeaves(); playCyberSound('error'); }
+                              }}
+                            >❌ Reject</button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* SYSTEM RELEASE UPDATES (Only visible to the System Owner rajkishorock@gmail.com) */}
             {activeSubSetting === 'release_updates' && currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
               <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -14119,6 +14502,62 @@ export default function App() {
         {activeTab === 'student-attendance' && (
           <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
             <GamificationHub logs={studentLogs} />
+
+            {/* ===== CAMPUS GEOFENCE LIVE INDICATOR ===== */}
+            {(() => {
+              const geo = geofenceStatus;
+              return (
+                <div className="glass-panel" style={{ padding: '20px 24px', borderRadius: '16px', border: `1px solid ${geo.checked ? (geo.inside ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)') : 'rgba(0,242,254,0.15)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: geo.checked ? (geo.inside ? 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(0,0,0,0))' : 'linear-gradient(135deg, rgba(239,68,68,0.06), rgba(0,0,0,0))') : 'transparent' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: geo.checked ? (geo.inside ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)') : 'rgba(0,242,254,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
+                      {geo.checked ? (geo.inside ? '🟢' : '🔴') : '📡'}
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 700, color: geo.checked ? (geo.inside ? '#10b981' : '#ef4444') : '#00f2fe', margin: 0, fontSize: '0.95rem' }}>
+                        {geo.checked ? (geo.inside ? '✅ Inside Campus Zone' : '⚠️ Outside Campus Zone') : '📡 Campus Location Check'}
+                      </p>
+                      <p style={{ color: '#9ca3af', fontSize: '0.78rem', margin: '2px 0 0' }}>
+                        {geo.checked
+                          ? geo.distance !== null ? `Distance to campus center: ~${Math.round(geo.distance)}m` : 'Location determined.'
+                          : 'Check if you are within the campus geofence boundary.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!navigator.geolocation) {
+                        setGeofenceStatus({ checked: true, inside: false, distance: null });
+                        return;
+                      }
+                      navigator.geolocation.getCurrentPosition(pos => {
+                        const { latitude, longitude } = pos.coords;
+                        // Use the campus center from geofence settings or fallback default
+                        const campusLat = parseFloat(localStorage.getItem('geo_lat') || '0');
+                        const campusLng = parseFloat(localStorage.getItem('geo_lng') || '0');
+                        const radiusM = parseFloat(localStorage.getItem('geo_radius') || '200');
+                        if (!campusLat || !campusLng) {
+                          setGeofenceStatus({ checked: true, inside: true, distance: null });
+                          return;
+                        }
+                        // Haversine distance
+                        const R = 6371000;
+                        const dLat = (latitude - campusLat) * Math.PI / 180;
+                        const dLng = (longitude - campusLng) * Math.PI / 180;
+                        const a = Math.sin(dLat/2)**2 + Math.cos(campusLat * Math.PI / 180) * Math.cos(latitude * Math.PI / 180) * Math.sin(dLng/2)**2;
+                        const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        setGeofenceStatus({ checked: true, inside: dist <= radiusM, distance: Math.round(dist) });
+                      }, () => {
+                        setGeofenceStatus({ checked: true, inside: false, distance: null });
+                      });
+                    }}
+                    style={{ padding: '9px 20px', borderRadius: '10px', border: '1px solid rgba(0,242,254,0.3)', background: 'rgba(0,242,254,0.06)', color: '#00f2fe', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                  >
+                    📍 Check My Location
+                  </button>
+                </div>
+              );
+            })()}
+
             {/* Stats Row */}
             <div className="dashboard-grid">
               {/* Card 1: Attendance Percentage */}
@@ -14192,6 +14631,135 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* ===== ATTENDANCE FORECAST + VIRTUAL ID + LEAVE REQUEST ROW ===== */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+              {/* Attendance Forecast Card */}
+              <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(0,242,254,0.15)' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>📊</span> Attendance Forecast
+                </h3>
+                {(() => {
+                  const total = studentLogs.length;
+                  const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+                  const rate = total > 0 ? (present / total) * 100 : 0;
+                  const minRequired = 0.75;
+                  // Classes needed to reach 75%: solve (present)/(total+x) >= 0.75
+                  // => present >= 0.75*(total+x) => x <= present/0.75 - total
+                  // If already >= 75%, can bunk: solve (present)/(total+x) >= 0.75
+                  // => x <= present/0.75 - total (bunkable if result is > 0)
+                  const canBunk = Math.floor(present / minRequired - total);
+                  const needMore = Math.ceil((minRequired * total - present) / (1 - minRequired));
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {/* Circular Progress */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ position: 'relative', width: '80px', height: '80px', flexShrink: 0 }}>
+                          <svg width="80" height="80" viewBox="0 0 80 80">
+                            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+                            <circle
+                              cx="40" cy="40" r="34" fill="none"
+                              stroke={rate >= 75 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#ef4444'}
+                              strokeWidth="8" strokeLinecap="round"
+                              strokeDasharray={`${2 * Math.PI * 34}`}
+                              strokeDashoffset={`${2 * Math.PI * 34 * (1 - rate / 100)}`}
+                              transform="rotate(-90 40 40)"
+                              style={{ transition: 'stroke-dashoffset 1s ease' }}
+                            />
+                          </svg>
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 700, color: rate >= 75 ? '#10b981' : '#ef4444' }}>
+                            {rate.toFixed(0)}%
+                          </div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          {rate >= 75 ? (
+                            <>
+                              <p style={{ color: '#10b981', fontWeight: 700, fontSize: '0.9rem' }}>✅ You're Safe!</p>
+                              <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '4px' }}>
+                                {canBunk > 0 ? `You can bunk up to ${canBunk} more class${canBunk !== 1 ? 'es' : ''} safely.` : 'Attend all upcoming classes to stay safe.'}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.9rem' }}>⚠️ Below 75%!</p>
+                              <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '4px' }}>
+                                {total === 0 ? 'No attendance records yet.' : `Attend the next ${needMore} class${needMore !== 1 ? 'es' : ''} to reach 75%.`}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#9ca3af', borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '10px' }}>
+                        <span>Present: <strong style={{ color: '#f3f4f6' }}>{present}</strong></span>
+                        <span>Absent: <strong style={{ color: '#f3f4f6' }}>{total - present}</strong></span>
+                        <span>Total: <strong style={{ color: '#f3f4f6' }}>{total}</strong></span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Virtual ID Card Trigger */}
+              <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(139,92,246,0.2)', background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(0,242,254,0.05))', cursor: 'pointer' }}
+                onClick={() => setShowVirtualId(true)}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>🪪</span> Virtual ID & QR Check-in
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
+                  <div style={{ width: '70px', height: '70px', borderRadius: '12px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', boxShadow: '0 0 20px rgba(139,92,246,0.4)' }}>
+                    🎫
+                  </div>
+                  <p style={{ color: '#9ca3af', fontSize: '0.82rem', textAlign: 'center' }}>
+                    Show your glowing ID card with a dynamic QR code for instant check-in.
+                  </p>
+                  <button className="btn btn-primary" style={{ width: '100%', padding: '10px', borderRadius: '10px', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Open Virtual ID Card
+                  </button>
+                </div>
+              </div>
+
+              {/* Apply Leave Request */}
+              <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(251,146,60,0.2)', background: 'linear-gradient(135deg, rgba(251,146,60,0.06), rgba(0,0,0,0))' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>📝</span> Apply for Leave
+                </h3>
+                <LeaveApplicationForm
+                  token={token}
+                  API_BASE_URL={API_BASE_URL}
+                  onLeaveApplied={fetchStudentLeaves}
+                  playCyberSound={playCyberSound}
+                />
+              </div>
+            </div>
+
+            {/* My Leave Requests History */}
+            {studentLeaveRequests.length > 0 && (
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📋</span> My Leave Requests
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {studentLeaveRequests.map(req => (
+                    <div key={req.id} className="glass-panel" style={{ padding: '16px 20px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', border: `1px solid ${req.status === 'Approved' ? 'rgba(16,185,129,0.2)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{req.leave_type}</span>
+                        <p style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f3f4f6', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
+                        <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{req.reason}</p>
+                      </div>
+                      <span style={{
+                        padding: '5px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
+                        background: req.status === 'Approved' ? 'rgba(16,185,129,0.15)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
+                        color: req.status === 'Approved' ? '#10b981' : req.status === 'Rejected' ? '#ef4444' : '#f59e0b',
+                        border: `1px solid ${req.status === 'Approved' ? 'rgba(16,185,129,0.3)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`
+                      }}>
+                        {req.status === 'Approved' ? '✅' : req.status === 'Rejected' ? '❌' : '⏳'} {req.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Subject-wise Attendance Cards */}
             <div>
