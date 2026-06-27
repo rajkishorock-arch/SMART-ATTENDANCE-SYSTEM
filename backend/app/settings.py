@@ -17,10 +17,10 @@ def get_system_settings(
     """
     Fetch current security and system settings (Admins only).
     """
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "teacher"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can view security settings."
+            detail="Only administrators or teachers can view security settings."
         )
     return crud.get_system_settings(db, institution_id=current_user.institution_id)
 
@@ -33,10 +33,10 @@ def update_system_settings(
     """
     Update system settings (Admins only).
     """
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "teacher"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can modify security settings."
+            detail="Only administrators or teachers can modify security settings."
         )
         
     updated = crud.update_system_settings(db, settings_update, institution_id=current_user.institution_id)
@@ -326,10 +326,10 @@ def get_build_status(
     """
     Fetch current build state and settings (Admins only).
     """
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "teacher"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can view build settings."
+            detail="Only administrators or teachers can view build settings."
         )
     settings = crud.get_system_settings(db, institution_id=1)
     return {

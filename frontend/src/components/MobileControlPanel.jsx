@@ -26,7 +26,7 @@ export default function MobileControlPanel({
     { id: 'reports', label: 'Reports & Alerts', icon: BarChart3, roles: ['admin', 'teacher'] },
     { id: 'session-history', label: 'Session History', icon: History, roles: ['admin', 'teacher'] },
     { id: 'teachers', label: 'Teachers & Timetable', icon: Users, roles: ['admin'] },
-    { id: 'settings', label: 'Security Settings', icon: ShieldCheck, roles: ['admin'] },
+    { id: 'settings', label: 'Security Settings', icon: ShieldCheck, roles: ['admin', 'teacher'] },
     { id: 'student-profile', label: 'My Profile', icon: UserCircle, roles: ['admin', 'teacher'] },
     { id: 'attendance', label: 'Face Attendance', icon: BookOpen, roles: ['admin', 'teacher'] },
     { id: 'ai-assistant', label: 'AI Assistant', icon: Bot, roles: ['admin', 'teacher', 'student'] },
@@ -65,7 +65,7 @@ export default function MobileControlPanel({
         </div>
 
         <div className="control-panel-actions">
-          {userRole === 'admin' && (
+          {(userRole === 'admin' || userRole === 'teacher') && (
             <button
               type="button"
               className="control-panel-action-btn"
