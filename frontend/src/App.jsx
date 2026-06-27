@@ -15010,6 +15010,202 @@ export default function App() {
                 </div>
               )}
 
+              {/* Student Personal Preferences & Privacy Consent Panel */}
+              {userRole === 'student' && (
+                <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      <Sliders size={20} style={{ color: 'var(--color-primary)' }} /> Personal Preferences & Privacy
+                    </h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
+                      Customize your active interface theme, interactive audio, and biometric consent.
+                    </p>
+                  </div>
+
+                  {/* Themes and CRT Toggle */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem' }}>Interface Theme</label>
+                      <select 
+                        value={activeTheme} 
+                        onChange={(e) => {
+                          setActiveTheme(e.target.value);
+                          playCyberSound('click');
+                        }}
+                        className="form-input"
+                        style={{ 
+                          width: '100%', 
+                          background: 'var(--bg-secondary)', 
+                          border: '1px solid var(--border-color)', 
+                          color: 'var(--color-text-main)',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <option value="cyberpunk">Cyberpunk Neon</option>
+                        <option value="matrix">Matrix Green</option>
+                        <option value="obsidian">Obsidian Red</option>
+                        <option value="violet">Deep Space Violet</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '10px 14px' }}>
+                      <div>
+                        <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#f8fafc' }}>CRT Terminal lines</span>
+                        <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Enable terminal scanlines</span>
+                      </div>
+                      <div 
+                        onClick={() => {
+                          setCrtOverlayEnabled(!crtOverlayEnabled);
+                          playCyberSound('click');
+                        }} 
+                        style={{
+                          width: '42px',
+                          height: '22px',
+                          backgroundColor: crtOverlayEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${crtOverlayEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: '50px',
+                          padding: '2px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          transition: 'var(--transition)'
+                        }}
+                      >
+                        <div style={{
+                          width: '16px',
+                          height: '16px',
+                          borderRadius: '50%',
+                          backgroundColor: crtOverlayEnabled ? 'var(--color-primary)' : '#94a3b8',
+                          transform: crtOverlayEnabled ? 'translateX(20px)' : 'translateX(0px)',
+                          transition: 'var(--transition)'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Audio Controls */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#f8fafc' }}>Sound Cues</span>
+                        <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Enable cyber sounds</span>
+                      </div>
+                      <div 
+                        onClick={() => {
+                          const newSound = !soundEnabled;
+                          setSoundEnabled(newSound);
+                          localStorage.setItem('soundEnabled', newSound);
+                          if (newSound) {
+                            setTimeout(() => playCyberSound('click'), 50);
+                          }
+                        }} 
+                        style={{
+                          width: '42px',
+                          height: '22px',
+                          backgroundColor: soundEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${soundEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: '50px',
+                          padding: '2px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          transition: 'var(--transition)'
+                        }}
+                      >
+                        <div style={{
+                          width: '16px',
+                          height: '16px',
+                          borderRadius: '50%',
+                          backgroundColor: soundEnabled ? 'var(--color-primary)' : '#94a3b8',
+                          transform: soundEnabled ? 'translateX(20px)' : 'translateX(0px)',
+                          transition: 'var(--transition)'
+                        }} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />} Synth Volume: {Math.round(audioVolume * 100)}%
+                      </span>
+                      <input 
+                        type="range"
+                        min="0.0"
+                        max="1.0"
+                        step="0.05"
+                        value={audioVolume}
+                        disabled={!soundEnabled}
+                        onChange={(e) => {
+                          const vol = parseFloat(e.target.value);
+                          setAudioVolume(vol);
+                          localStorage.setItem('audioVolume', vol);
+                        }}
+                        onMouseUp={() => { if (soundEnabled) playCyberSound('click'); }}
+                        onTouchEnd={() => { if (soundEnabled) playCyberSound('click'); }}
+                        style={{ 
+                          width: '100%', 
+                          accentColor: 'var(--color-primary)', 
+                          height: '4px', 
+                          borderRadius: '2px', 
+                          cursor: soundEnabled ? 'pointer' : 'not-allowed',
+                          opacity: soundEnabled ? 1 : 0.5
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Biometric Privacy and Consent Revoke */}
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#f8fafc', textAlign: 'left' }}>Biometric Data Privacy (DPDP Act Compliance)</span>
+                    
+                    {currentUser?.details?.photo === 'yes' ? (
+                      <div style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: '8px', padding: '12px', fontSize: '0.78rem', color: '#10b981', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                          <CheckCircle2 size={14} /> Active Biometric Consent
+                        </div>
+                        <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.75rem', lineHeight: '1.4' }}>
+                          Your 128D facial representation vector is securely stored. You have consented to biometric attendance logs.
+                        </p>
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('WARNING: Revoking consent will permanently delete your facial templates from our server. You will not be able to mark attendance via face scanner until you re-register. Do you want to proceed?')) return;
+                            try {
+                              const res = await fetch(`${API_BASE_URL}/users/students/me/revoke-consent`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                              });
+                              if (!res.ok) throw new Error('Revocation failed');
+                              playCyberSound('success');
+                              setCurrentUser(prev => ({
+                                ...prev,
+                                details: { ...prev.details, photo: 'no' }
+                              }));
+                              localStorage.setItem('biometric_consent', 'false');
+                              alert('Your biometric profile has been deleted and consent has been revoked.');
+                            } catch (e) {
+                              playCyberSound('error');
+                              alert('Error: ' + e.message);
+                            }
+                          }}
+                          className="btn-secondary"
+                          style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)', color: '#ef4444', borderRadius: '6px', cursor: 'pointer', marginTop: '4px' }}
+                        >
+                          Revoke Consent & Delete Face
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '8px', padding: '12px', fontSize: '0.78rem', color: '#f59e0b', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                          <AlertCircle size={14} /> Consent Revoked / Face Not Enrolled
+                        </div>
+                        <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.75rem', lineHeight: '1.4' }}>
+                          No biometric facial metrics are saved on the server. Please register your face template using the webcam capture card above to enable attendance features.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Change Password Block */}
               <div className="glass-panel" style={{ padding: '32px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px' }}>Change Account Password</h3>

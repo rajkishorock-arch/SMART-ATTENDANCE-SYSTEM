@@ -428,14 +428,19 @@ async def upload_student_selfie(
     Allows a logged-in student to upload a selfie to register or update their own face credentials.
     Runs automated quality checks (Face count, Blurriness, and Brightness) first.
     """
-    # 1. Read and decode the image
+    # 1. Read and decode the image (with EXIF auto-rotation and auto-resize)
     contents = await file.read()
-    nparr = np.frombuffer(contents, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    from . import face_utils
+    
+    img = face_utils.correct_exif_orientation(contents)
+    if img is None:
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
     if img is None:
         raise HTTPException(status_code=400, detail="Invalid image file provided.")
 
+    img = face_utils.resize_large_image(img)
     h_img, w_img = img.shape[:2]
 
     # 2. Check face count using YuNet detector
@@ -710,10 +715,14 @@ async def upload_student_face_sample(
             detail="Only teachers or administrators can register student face photos."
         )
 
-    # 1. Read and decode the uploaded image file
+    # 1. Read and decode the uploaded image file (with EXIF auto-rotation)
     contents = await file.read()
-    nparr = np.frombuffer(contents, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    from . import face_utils
+    
+    img = face_utils.correct_exif_orientation(contents)
+    if img is None:
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
     if img is None:
         raise HTTPException(status_code=400, detail="Invalid image file provided.")
@@ -948,6 +957,46 @@ def record_student_consent(
     current_student.consent_at = datetime.now(timezone.utc)
     db.commit()
     return {"message": "Consent recorded", "consent_at": current_student.consent_at.isoformat()}
+@router.post("/students/me/revoke-consent")
+def revoke_student_consent(
+    db: Session = Depends(get_db),
+    current_student: models.StudentModel = Depends(security.get_current_student),
+):
+    """GDPR/DPDP: Revoke biometric consent and delete face registration data, but keep student account."""
+    institution_id = current_student.institution_id
+    current_student.face_embedding = None
+    current_student.photo = "no"
+    current_student.consent_given = False
+    current_student.consent_at = None
+    db.commit()
+
+    # Try to delete face reference image file
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.join(base_dir, "data", f"tenant_{institution_id}")
+        file_name = f"user.{current_student.id}.1.jpg"
+        file_path = os.path.join(data_dir, file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except Exception as e:
+        print(f"Failed to delete reference face image file: {e}")
+
+    from .recognition_service import recognition_service
+    recognition_service.invalidate_cache(institution_id)
+    try:
+        recognition_service.load_student_records(db, institution_id=institution_id)
+    except Exception as cache_err:
+        print(f"Failed to reload student records cache: {cache_err}")
+
+    crud.create_audit_log(
+        db, 
+        log=schemas.AuditLogCreate(
+            user_email=current_student.email, 
+            action=f"Student '{current_student.name}' (ID: {current_student.id}) revoked biometric consent and deleted their face profile."
+        ),
+        institution_id=institution_id
+    )
+    return {"message": "Biometric consent revoked and face data deleted successfully."}
 
 
 @router.delete("/students/me/account")

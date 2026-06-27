@@ -60,6 +60,46 @@ def get_face_engines():
         _recognizer = cv2.FaceRecognizerSF_create(sface_path, "")
     return _detector, _recognizer
 
+def resize_large_image(image, max_dim=1000):
+    """
+    Resizes an image if its width or height exceeds max_dim, preserving aspect ratio.
+    """
+    if image is None or image.size == 0:
+        return image
+    h, w = image.shape[:2]
+    if max(h, w) <= max_dim:
+        return image
+    
+    if w > h:
+        new_w = max_dim
+        new_h = int(h * (max_dim / w))
+    else:
+        new_h = max_dim
+        new_w = int(w * (max_dim / h))
+        
+    return cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+def correct_exif_orientation(image_bytes: bytes) -> np.ndarray:
+    """
+    Reads image bytes using PIL, corrects EXIF orientation,
+    and returns a BGR OpenCV-compatible numpy array.
+    """
+    from PIL import Image, ImageOps
+    import io
+    try:
+        pil_img = Image.open(io.BytesIO(image_bytes))
+        pil_img = ImageOps.exif_transpose(pil_img)
+        rgb_img = np.array(pil_img)
+        if len(rgb_img.shape) == 2:
+            return cv2.cvtColor(rgb_img, cv2.COLOR_GRAY2BGR)
+        elif rgb_img.shape[2] == 4:
+            return cv2.cvtColor(rgb_img, cv2.COLOR_RGBA2BGR)
+        else:
+            return cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR)
+    except Exception as e:
+        print(f"EXIF orientation correction failed: {e}")
+        return None
+
 def get_face_embedding(image):
     """
     Given a BGR image, detects the face, aligns/crops it, and extracts the 128D SFace embedding vector.
@@ -70,6 +110,7 @@ def get_face_embedding(image):
         return None
         
     try:
+        image = resize_large_image(image)
         detector, recognizer = get_face_engines()
         
         # Set the input size dynamically based on the image dimensions
