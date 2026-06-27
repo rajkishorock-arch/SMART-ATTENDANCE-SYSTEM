@@ -1810,6 +1810,7 @@ export default function App() {
   const meshFrameSkipRef = useRef(0);
   const lastLandmarksRef = useRef(null);
   const lastFaceBoxRef = useRef(null);
+  const lastFaceBoxesRef = useRef([]); // To support multiple face boxes
   const lastFaceDetectedRef = useRef(false);
   const faceDetectorRef = useRef(null);
   const recognitionBusyRef = useRef(false);
@@ -4069,15 +4070,17 @@ export default function App() {
             const isVideo = video instanceof HTMLVideoElement;
             const w = isVideo ? video.videoWidth : video.naturalWidth;
             const h = isVideo ? video.videoHeight : video.naturalHeight;
-            const box = extractFaceBox(results.detections[0], w || 640, h || 480);
-            lastFaceBoxRef.current = box;
+            const boxes = results.detections.map(det => extractFaceBox(det, w || 640, h || 480)).filter(Boolean);
+            lastFaceBoxesRef.current = boxes;
+            lastFaceBoxRef.current = boxes[0] || null;
             lastFaceDetectedRef.current = true;
             setFaceDetected(true);
             if (livenessStatusRef.current === 'verifying') {
-              setLivenessMessage('Face locked — blink to verify');
-              setScanStatus('Face detected — blink once');
+              setLivenessMessage(livenessBypassRef.current ? 'Scanning...' : 'Face locked — blink to verify');
+              setScanStatus(livenessBypassRef.current ? 'Scanning...' : 'Face detected — blink once');
             }
           } else {
+            lastFaceBoxesRef.current = [];
             lastFaceBoxRef.current = null;
             lastFaceDetectedRef.current = false;
             setFaceDetected(false);
@@ -4098,7 +4101,7 @@ export default function App() {
             } catch (err) {
               console.error('Face detection frame error:', err);
             }
-            if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxRef.current && !lastLandmarksRef.current?.length) {
+            if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxesRef.current?.length && !lastLandmarksRef.current?.length) {
               const canvas = attendanceCanvasRef.current;
               if (canvas) {
                 const w = isVideo ? video.videoWidth : video.naturalWidth;
@@ -4108,9 +4111,11 @@ export default function App() {
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                   ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  drawFaceBox(ctx, lastFaceBoxRef.current, {
-                    color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
-                    label: 'FACE LOCKED',
+                  lastFaceBoxesRef.current.forEach((box, index) => {
+                    drawFaceBox(ctx, box, {
+                      color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
+                      label: index === 0 ? 'PRIMARY FACE' : `FACE #${index + 1}`,
+                    });
                   });
                 }
               }
@@ -4186,10 +4191,12 @@ export default function App() {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxRef.current) {
-          drawFaceBox(ctx, lastFaceBoxRef.current, {
-            color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
-            label: livenessStatusRef.current === 'verified' ? 'SCANNING IDENTITY' : 'FACE LOCKED',
+        if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxesRef.current?.length) {
+          lastFaceBoxesRef.current.forEach((box, index) => {
+            drawFaceBox(ctx, box, {
+              color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
+              label: index === 0 ? 'SCANNING IDENTITY' : `FACE #${index + 1}`,
+            });
           });
         }
 
