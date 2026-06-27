@@ -204,6 +204,7 @@ class LeaveRequest(Base):
     id = Column(Integer, primary_key=True, index=True)
     institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
     student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True)
     start_date = Column(String(50), nullable=False)
     end_date = Column(String(50), nullable=False)
     leave_type = Column(String(50), nullable=False) # 'Medical', 'Personal', 'Official'

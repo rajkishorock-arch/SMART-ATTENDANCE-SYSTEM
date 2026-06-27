@@ -351,6 +351,7 @@ class LeaveRequestBase(BaseModel):
     end_date: str
     leave_type: str
     reason: str
+    subject_id: Optional[int] = None
 
 class LeaveRequestCreate(LeaveRequestBase):
     pass
@@ -361,6 +362,9 @@ class LeaveRequestResponse(BaseModel):
     student_name: Optional[str] = None
     student_roll: Optional[str] = None
     student_dep: Optional[str] = None
+    subject_id: Optional[int] = None
+    subject_name: Optional[str] = None
+    subject_code: Optional[str] = None
     start_date: str
     end_date: str
     leave_type: str

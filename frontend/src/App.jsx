@@ -133,8 +133,8 @@ function calculateEAR(landmarks, eyeIndices) {
 // =====================================================================
 // LEAVE APPLICATION FORM - Used on student dashboard
 // =====================================================================
-function LeaveApplicationForm({ token, API_BASE_URL, onLeaveApplied, playCyberSound }) {
-  const [form, setForm] = React.useState({ start_date: '', end_date: '', leave_type: 'Medical', reason: '' });
+function LeaveApplicationForm({ token, API_BASE_URL, onLeaveApplied, playCyberSound, subjects = [] }) {
+  const [form, setForm] = React.useState({ start_date: '', end_date: '', leave_type: 'Medical', reason: '', subject_id: '' });
   const [submitting, setSubmitting] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
 
@@ -150,11 +150,14 @@ function LeaveApplicationForm({ token, API_BASE_URL, onLeaveApplied, playCyberSo
       const res = await fetch(`${API_BASE_URL}/users/students/me/leave-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          subject_id: form.subject_id ? parseInt(form.subject_id) : null
+        })
       });
       if (res.ok) {
         setMsg({ type: 'success', text: '✅ Leave request submitted successfully!' });
-        setForm({ start_date: '', end_date: '', leave_type: 'Medical', reason: '' });
+        setForm({ start_date: '', end_date: '', leave_type: 'Medical', reason: '', subject_id: '' });
         playCyberSound('success');
         if (onLeaveApplied) onLeaveApplied();
       } else {
@@ -181,6 +184,16 @@ function LeaveApplicationForm({ token, API_BASE_URL, onLeaveApplied, playCyberSo
           <input type="date" value={form.end_date} onChange={e => setForm(p => ({ ...p, end_date: e.target.value }))}
             style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }} />
         </div>
+      </div>
+      <div>
+        <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Subject (Optional)</label>
+        <select value={form.subject_id} onChange={e => setForm(p => ({ ...p, subject_id: e.target.value }))}
+          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(30,30,45,0.98)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }}>
+          <option value="">Personal / General Leave (All Subjects)</option>
+          {subjects.map(sub => (
+            <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+          ))}
+        </select>
       </div>
       <div>
         <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Leave Type</label>
@@ -651,7 +664,7 @@ function QrScannerModal({ token, API_BASE_URL, selectedSubjectId, subjects, onCl
 }
 function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
   const [qrToken, setQrToken] = React.useState(null);
-  const [countdown, setCountdown] = React.useState(60);
+  const [countdown, setCountdown] = React.useState(30);
   const [loading, setLoading] = React.useState(false);
 
   const fetchQrToken = React.useCallback(async () => {
@@ -663,7 +676,7 @@ function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
       if (res.ok) {
         const data = await res.json();
         setQrToken(data.token);
-        setCountdown(data.expires_in || 60);
+        setCountdown(data.expires_in || 30);
       }
     } catch (e) {
       console.error('QR token fetch failed', e);
@@ -681,7 +694,7 @@ function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
       setCountdown(prev => {
         if (prev <= 1) {
           fetchQrToken();
-          return 60;
+          return 30;
         }
         return prev - 1;
       });
@@ -759,13 +772,13 @@ function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: `${(countdown / 60) * 80}px`, height: '4px', borderRadius: '2px', background: countdown > 20 ? '#10b981' : '#ef4444', transition: 'width 1s linear, background 0.5s' }} />
-            <p style={{ color: countdown > 20 ? '#10b981' : '#ef4444', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
+            <div style={{ width: `${(countdown / 30) * 80}px`, height: '4px', borderRadius: '2px', background: countdown > 10 ? '#10b981' : '#ef4444', transition: 'width 1s linear, background 0.5s' }} />
+            <p style={{ color: countdown > 10 ? '#10b981' : '#ef4444', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
               {countdown}s
             </p>
           </div>
           <p style={{ color: '#6b7280', fontSize: '0.72rem', textAlign: 'center', margin: 0 }}>
-            QR refreshes automatically every 60 seconds for security.
+            QR refreshes automatically every 30 seconds for security.
           </p>
         </div>
       </div>
@@ -6136,6 +6149,7 @@ export default function App() {
         break;
       case 'student-attendance':
         fetchStudentLogs(token);
+        fetchSubjects();
         if (currentUser?.details) {
           fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
         }
@@ -14646,7 +14660,7 @@ export default function App() {
                         </div>
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.82rem', color: '#d1d5db' }}>
                           <span>📅 <strong>{req.start_date}</strong> → <strong>{req.end_date}</strong></span>
-                          <span>🏷️ {req.leave_type}</span>
+                          <span>🏷️ {req.leave_type} {req.subject_name ? `(${req.subject_name} - ${req.subject_code})` : ' (General)'}</span>
                         </div>
                         <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, fontStyle: 'italic' }}>"{req.reason}"</p>
                         {req.status === 'Pending' && (
@@ -15268,6 +15282,7 @@ export default function App() {
                   API_BASE_URL={API_BASE_URL}
                   onLeaveApplied={fetchStudentLeaves}
                   playCyberSound={playCyberSound}
+                  subjects={subjects}
                 />
               </div>
             </div>
@@ -15282,7 +15297,9 @@ export default function App() {
                   {studentLeaveRequests.map(req => (
                     <div key={req.id} className="glass-panel" style={{ padding: '16px 20px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', border: `1px solid ${req.status === 'Approved' ? 'rgba(16,185,129,0.2)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
                       <div>
-                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{req.leave_type}</span>
+                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                          {req.leave_type} {req.subject_name ? `(${req.subject_name} - ${req.subject_code})` : ' (General)'}
+                        </span>
                         <p style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f3f4f6', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
                         <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{req.reason}</p>
                       </div>

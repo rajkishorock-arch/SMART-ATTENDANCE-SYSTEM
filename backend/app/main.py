@@ -157,6 +157,7 @@ def update_schema():
         safe_add_column('leave_requests', 'leave_type', "VARCHAR(50) DEFAULT 'Medical'")
         safe_add_column('leave_requests', 'reviewed_by', 'INT NULL')
         safe_add_column('leave_requests', 'reviewed_at', 'TIMESTAMP NULL')
+        safe_add_column('leave_requests', 'subject_id', 'INT NULL')
 
         # Convert start_date and end_date to VARCHAR(50) if they were created as DateTime
         try:

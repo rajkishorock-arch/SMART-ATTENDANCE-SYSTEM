@@ -1032,6 +1032,7 @@ def apply_leave_request(
     new_leave = models.LeaveRequest(
         institution_id=current_student.institution_id,
         student_id=current_student.id,
+        subject_id=payload.subject_id,
         start_date=payload.start_date,
         end_date=payload.end_date,
         leave_type=payload.leave_type,
@@ -1042,12 +1043,17 @@ def apply_leave_request(
     db.commit()
     db.refresh(new_leave)
     
+    subject = db.query(models.Subject).filter(models.Subject.id == new_leave.subject_id).first() if new_leave.subject_id else None
+    
     return schemas.LeaveRequestResponse(
         id=new_leave.id,
         student_id=new_leave.student_id,
         student_name=current_student.name,
         student_roll=current_student.roll,
         student_dep=current_student.dep,
+        subject_id=new_leave.subject_id,
+        subject_name=subject.name if subject else None,
+        subject_code=subject.code if subject else None,
         start_date=new_leave.start_date,
         end_date=new_leave.end_date,
         leave_type=new_leave.leave_type,
@@ -1061,7 +1067,7 @@ def list_student_my_leaves(
     db: Session = Depends(get_db),
     current_student: models.StudentModel = Depends(security.get_current_student)
 ):
-    """List all leave requests filed by the logged-in student."""
+    """List leave requests applied by the current student."""
     leaves = db.query(models.LeaveRequest).filter(
         models.LeaveRequest.student_id == current_student.id,
         models.LeaveRequest.institution_id == current_student.institution_id
@@ -1069,12 +1075,16 @@ def list_student_my_leaves(
     
     res = []
     for l in leaves:
+        subject = db.query(models.Subject).filter(models.Subject.id == l.subject_id).first() if l.subject_id else None
         res.append(schemas.LeaveRequestResponse(
             id=l.id,
             student_id=l.student_id,
             student_name=current_student.name,
             student_roll=current_student.roll,
             student_dep=current_student.dep,
+            subject_id=l.subject_id,
+            subject_name=subject.name if subject else None,
+            subject_code=subject.code if subject else None,
             start_date=l.start_date,
             end_date=l.end_date,
             leave_type=l.leave_type,
@@ -1095,19 +1105,35 @@ def list_institution_leaves(
     if current_user.role not in ["admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Not authorized.")
         
-    leaves = db.query(models.LeaveRequest).filter(
-        models.LeaveRequest.institution_id == current_user.institution_id
-    ).order_by(models.LeaveRequest.status.desc(), models.LeaveRequest.created_at.desc()).all()
+    if current_user.role == "teacher":
+        teacher_subjects = db.query(models.Subject).filter(
+            models.Subject.teacher_id == current_user.id,
+            models.Subject.institution_id == current_user.institution_id
+        ).all()
+        teacher_subject_ids = [s.id for s in teacher_subjects]
+        
+        leaves = db.query(models.LeaveRequest).filter(
+            models.LeaveRequest.institution_id == current_user.institution_id,
+            models.LeaveRequest.subject_id.in_(teacher_subject_ids)
+        ).order_by(models.LeaveRequest.status.desc(), models.LeaveRequest.created_at.desc()).all()
+    else: # admin
+        leaves = db.query(models.LeaveRequest).filter(
+            models.LeaveRequest.institution_id == current_user.institution_id
+        ).order_by(models.LeaveRequest.status.desc(), models.LeaveRequest.created_at.desc()).all()
     
     res = []
     for l in leaves:
         student = db.query(models.StudentModel).filter(models.StudentModel.id == l.student_id).first()
+        subject = db.query(models.Subject).filter(models.Subject.id == l.subject_id).first() if l.subject_id else None
         res.append(schemas.LeaveRequestResponse(
             id=l.id,
             student_id=l.student_id,
             student_name=student.name if student else "Unknown",
             student_roll=student.roll if student else "N/A",
             student_dep=student.dep if student else "N/A",
+            subject_id=l.subject_id,
+            subject_name=subject.name if subject else None,
+            subject_code=subject.code if subject else None,
             start_date=l.start_date,
             end_date=l.end_date,
             leave_type=l.leave_type,
@@ -1165,7 +1191,7 @@ def generate_student_qr_token(
     current_student: models.StudentModel = Depends(security.get_current_student)
 ):
     """
-    Generates a secure, signed check-in token valid for 60 seconds.
+    Generates a secure, signed check-in token valid for 30 seconds.
     """
     from jose import jwt
     from .core import config
@@ -1176,8 +1202,8 @@ def generate_student_qr_token(
         "roll": current_student.roll,
         "name": current_student.name,
         "institution_id": current_student.institution_id,
-        "exp": int(time.time()) + 60, # 60 seconds lifetime
+        "exp": int(time.time()) + 30, # 30 seconds lifetime
         "purpose": "qr_checkin"
     }
     token = jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.ALGORITHM)
-    return {"token": token, "expires_in": 60}
+    return {"token": token, "expires_in": 30}
