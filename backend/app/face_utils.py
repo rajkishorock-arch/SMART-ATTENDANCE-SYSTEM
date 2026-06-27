@@ -50,15 +50,15 @@ def download_onnx_models():
 
 def get_face_engines():
     """
-    Returns (detector, recognizer) singleton instances. Loads them on first call.
+    Returns (detector, recognizer) instances. Re-creates detector to prevent
+    multi-threaded race conditions when modifying input size concurrently.
     """
-    global _detector, _recognizer
-    if _detector is None or _recognizer is None:
-        yunet_path, sface_path = download_onnx_models()
-        # Initialize detector with a default input size (320x240)
-        _detector = cv2.FaceDetectorYN_create(yunet_path, "", (320, 240))
+    global _recognizer
+    yunet_path, sface_path = download_onnx_models()
+    if _recognizer is None:
         _recognizer = cv2.FaceRecognizerSF_create(sface_path, "")
-    return _detector, _recognizer
+    detector = cv2.FaceDetectorYN_create(yunet_path, "", (320, 240))
+    return detector, _recognizer
 
 def resize_large_image(image, max_dim=1000):
     """
