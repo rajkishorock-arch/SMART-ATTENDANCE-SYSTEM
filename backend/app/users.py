@@ -491,7 +491,7 @@ async def upload_student_selfie(
     # 4. Check Blurriness of the entire image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     variance = cv2.Laplacian(gray, cv2.CV_64F).var()
-    if variance < 50.0:
+    if variance < 15.0:
         raise HTTPException(
             status_code=422,
             detail=f"Quality Check Failed: Image is blurry (blur score: {round(variance, 1)}). Please hold your camera steady."

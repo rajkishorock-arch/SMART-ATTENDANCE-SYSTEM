@@ -153,6 +153,23 @@ def update_schema():
         safe_add_column('student', 'consent_given', 'BOOLEAN DEFAULT FALSE')
         safe_add_column('student', 'consent_at', 'TIMESTAMP NULL')
 
+        # --- leave_requests schema updates ---
+        safe_add_column('leave_requests', 'leave_type', "VARCHAR(50) DEFAULT 'Medical'")
+        safe_add_column('leave_requests', 'reviewed_by', 'INT NULL')
+        safe_add_column('leave_requests', 'reviewed_at', 'TIMESTAMP NULL')
+
+        # Convert start_date and end_date to VARCHAR(50) if they were created as DateTime
+        try:
+            if db_dialect == 'postgresql':
+                safe_execute("ALTER TABLE leave_requests ALTER COLUMN start_date TYPE VARCHAR(50)", "Altered start_date type to VARCHAR")
+                safe_execute("ALTER TABLE leave_requests ALTER COLUMN end_date TYPE VARCHAR(50)", "Altered end_date type to VARCHAR")
+            elif db_dialect == 'mysql':
+                safe_execute("ALTER TABLE leave_requests MODIFY COLUMN start_date VARCHAR(50) NOT NULL", "Altered start_date type to VARCHAR")
+                safe_execute("ALTER TABLE leave_requests MODIFY COLUMN end_date VARCHAR(50) NOT NULL", "Altered end_date type to VARCHAR")
+        except Exception as e:
+            print("Skipped start_date/end_date column type modification:", e)
+
+
         # Create new tables for advanced features
         from app.database import Base
         Base.metadata.create_all(bind=engine)

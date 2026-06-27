@@ -5002,7 +5002,7 @@ export default function App() {
           const currentHash = window.location.hash.replace(/^#\/?/, '');
           const isTabValid = (tabId, role) => {
             if (role === 'student') {
-              return ['student-attendance', 'student-profile'].includes(tabId);
+              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings'].includes(tabId);
             } else if (role === 'teacher') {
               return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
             } else if (role === 'admin') {
@@ -5463,7 +5463,7 @@ export default function App() {
   useEffect(() => {
     const isTabValidForRole = (tabId, role) => {
       if (role === 'student') {
-        return ['student-attendance', 'student-profile'].includes(tabId);
+        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings'].includes(tabId);
       } else if (role === 'teacher') {
         return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
       } else if (role === 'admin') {
@@ -7909,7 +7909,7 @@ export default function App() {
                   Reports & Alerts
                 </button>
               </li>
-              {(userRole === 'admin' || userRole === 'teacher') && (
+              {(userRole === 'admin' || userRole === 'teacher' || userRole === 'student') && (
                 <li>
                   <button 
                     className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
@@ -7917,7 +7917,7 @@ export default function App() {
                     onClick={() => { navigateToTab('settings'); }}
                   >
                     <ShieldCheck size={18} />
-                    Security Settings
+                    {userRole === 'student' ? 'Settings & Status' : 'Security Settings'}
                   </button>
                 </li>
               )}
@@ -11861,7 +11861,7 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'settings' && (userRole === 'admin' || userRole === 'teacher') && (
+        {activeTab === 'settings' && (
           <div className="settings-section" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {activeSubSetting !== null && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -11899,7 +11899,9 @@ export default function App() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: userRole === 'student' ? 'rgba(0, 242, 254, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: userRole === 'student' ? '#00f2fe' : '#10b981' }}>
+                        {userRole === 'student' ? '🟢 View Status' : '🏢 All Admins'}
+                      </span>
                     </div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>GPS Geofencing</h3>
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Restricts student check-in to a specific geographical radius.</p>
@@ -11913,7 +11915,9 @@ export default function App() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Lock size={24} style={{ color: '#00f2fe' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: userRole === 'student' ? 'rgba(0, 242, 254, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: userRole === 'student' ? '#00f2fe' : '#10b981' }}>
+                        {userRole === 'student' ? '🟢 View Status' : '🏢 All Admins'}
+                      </span>
                     </div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>IP Subnet Restrictions</h3>
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Allows attendance logging only from specified Wi-Fi networks/subnets.</p>
@@ -11923,11 +11927,13 @@ export default function App() {
                   <div 
                     onClick={() => { setActiveSubSetting('lockdown'); playCyberSound('click'); }}
                     className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: currentUser?.institution_id !== 1 ? 0.7 : 1 }}
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: (userRole !== 'student' && currentUser?.institution_id !== 1) ? 0.7 : 1 }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <AlertCircle size={24} style={{ color: '#ef4444' }} />
-                      {currentUser?.institution_id !== 1 ? (
+                      {userRole === 'student' ? (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.12)', color: '#00f2fe' }}>🟢 View Status</span>
+                      ) : currentUser?.institution_id !== 1 ? (
                         <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>🔒 Restricted</span>
                       ) : (
                         <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
@@ -11974,88 +11980,100 @@ export default function App() {
                   </div>
 
                   {/* Category Card 6: Advanced Security Console */}
-                  <div 
-                    onClick={() => { setActiveSubSetting('advanced'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <ShieldCheck size={24} style={{ color: 'var(--color-primary)' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 Admins & Teachers</span>
+                  {userRole !== 'student' && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('advanced'); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <ShieldCheck size={24} style={{ color: 'var(--color-primary)' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 Admins & Teachers</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Advanced Security</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Biometric match confidence filter, EAR spoof strictness, AI cognitive level, and telemetry diagnostics.</p>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Advanced Security</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Biometric match confidence filter, EAR spoof strictness, AI cognitive level, and telemetry diagnostics.</p>
-                  </div>
+                  )}
 
                   {/* Category Card 7: Admin Profile Settings */}
-                  <div 
-                    onClick={() => { setActiveSubSetting('profile'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <UserCheck size={24} style={{ color: '#a78bfa' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                  {userRole !== 'student' && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('profile'); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <UserCheck size={24} style={{ color: '#a78bfa' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>My Admin Profile</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Modify administrator profile name, login email address, or update system password credentials.</p>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>My Admin Profile</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Modify administrator profile name, login email address, or update system password credentials.</p>
-                  </div>
+                  )}
 
                   {/* Category Card 8: Admin Account Registry */}
-                  <div 
-                    onClick={() => { setActiveSubSetting('admins'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <UserPlus size={24} style={{ color: '#00f2fe' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                  {userRole !== 'student' && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('admins'); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <UserPlus size={24} style={{ color: '#00f2fe' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Register Administrators</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Seed and manage new auxiliary administrator credentials or activate/deactivate accounts.</p>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Register Administrators</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Seed and manage new auxiliary administrator credentials or activate/deactivate accounts.</p>
-                  </div>
+                  )}
 
                   {/* Category Card 10: Manage Departments */}
-                  <div 
-                    onClick={() => { setActiveSubSetting('departments'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <BookOpen size={24} style={{ color: '#ec4899' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(236, 72, 153, 0.12)', color: '#ec4899' }}>🏫 Setup</span>
+                  {userRole !== 'student' && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('departments'); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <BookOpen size={24} style={{ color: '#ec4899' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(236, 72, 153, 0.12)', color: '#ec4899' }}>🏫 Setup</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Manage Departments</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Configure active college departments and branches. Custom departments will dynamically populate dropdowns.</p>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Manage Departments</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Configure active college departments and branches. Custom departments will dynamically populate dropdowns.</p>
-                  </div>
+                  )}
 
                   {/* Category Card: Productivity Hub */}
-                  <div 
-                    onClick={() => { setActiveSubSetting('productivity'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <BarChart3 size={24} style={{ color: '#10b981' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>NEW</span>
+                  {userRole !== 'student' && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('productivity'); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <BarChart3 size={24} style={{ color: '#10b981' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>NEW</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Productivity Hub</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Bulk CSV import, analytics, audit trail, ERP API keys, billing, and institution FAQ.</p>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Productivity Hub</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Bulk CSV import, analytics, audit trail, ERP API keys, billing, and institution FAQ.</p>
-                  </div>
+                  )}
 
                   {/* Category Card: Exploration Lab */}
-                  <div
-                    onClick={() => { setActiveSubSetting('exploration'); playCyberSound('click'); }}
-                    className="glass-panel hover-card"
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>✨</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>FUN</span>
+                  {userRole !== 'student' && (
+                    <div
+                      onClick={() => { setActiveSubSetting('exploration'); playCyberSound('click'); }}
+                      className="glass-panel hover-card"
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.4rem' }}>✨</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>FUN</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Exploration Lab</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Hidden FX, scanner sound packs, confetti mode, particle density, and secret discoveries.</p>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Exploration Lab</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Hidden FX, scanner sound packs, confetti mode, particle density, and secret discoveries.</p>
-                  </div>
+                  )}
 
                   {/* Category Card: Premium Subscription */}
                   {userRole === 'admin' && (
@@ -12088,7 +12106,7 @@ export default function App() {
                   </div>
 
                   {/* Category Card 9: Multi-Tenant Registry & Management */}
-                  {getActiveTenantSlug() === 'default' && currentUser?.institution_id === 1 && (
+                  {userRole !== 'student' && getActiveTenantSlug() === 'default' && currentUser?.institution_id === 1 && (
                     <div 
                       onClick={() => { setActiveSubSetting('multitenant'); playCyberSound('click'); }}
                       className="glass-panel hover-card" 
@@ -12104,7 +12122,7 @@ export default function App() {
                   )}
 
                   {/* Category Card 11: System Release Updates */}
-                  {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+                  {userRole !== 'student' && currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
                     <div 
                       onClick={() => { setActiveSubSetting('release_updates'); playCyberSound('click'); }}
                       className="glass-panel hover-card" 
@@ -12120,23 +12138,25 @@ export default function App() {
                   )}
 
                   {/* Category Card 12: Leave Management */}
-                  <div 
-                    onClick={() => { setActiveSubSetting('leave_management'); fetchAdminLeaves(); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(251,146,60,0.2)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>📋</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(251,146,60,0.12)', color: '#fb923c' }}>👩‍🏫 Teacher/Admin</span>
+                  {userRole !== 'student' && (
+                    <div 
+                      onClick={() => { setActiveSubSetting('leave_management'); fetchAdminLeaves(); playCyberSound('click'); }}
+                      className="glass-panel hover-card" 
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(251,146,60,0.2)' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.4rem' }}>📋</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(251,146,60,0.12)', color: '#fb923c' }}>👩‍🏫 Teacher/Admin</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Leave Management</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Review, approve, or reject student leave requests with full history.</p>
+                      {adminLeaveRequests.filter(r => r.status === 'Pending').length > 0 && (
+                        <span style={{ alignSelf: 'flex-start', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                          {adminLeaveRequests.filter(r => r.status === 'Pending').length} Pending
+                        </span>
+                      )}
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Leave Management</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Review, approve, or reject student leave requests with full history.</p>
-                    {adminLeaveRequests.filter(r => r.status === 'Pending').length > 0 && (
-                      <span style={{ alignSelf: 'flex-start', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
-                        {adminLeaveRequests.filter(r => r.status === 'Pending').length} Pending
-                      </span>
-                    )}
-                  </div>
+                  )}
 
                 </div>
               </div>
@@ -12177,7 +12197,7 @@ export default function App() {
                           </p>
                         </div>
                         <div 
-                          onClick={() => setSettingsGeoEnabled(!settingsGeoEnabled)} 
+                          onClick={() => { if (userRole !== 'student') setSettingsGeoEnabled(!settingsGeoEnabled); }} 
                           style={{
                             width: '48px',
                             height: '26px',
@@ -12185,7 +12205,7 @@ export default function App() {
                             border: `1px solid ${settingsGeoEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
                             borderRadius: '50px',
                             padding: '2px',
-                            cursor: 'pointer',
+                            cursor: userRole === 'student' ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             transition: 'var(--transition)',
@@ -12205,7 +12225,7 @@ export default function App() {
                       </div>
 
                       {settingsGeoEnabled && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: userRole === 'student' ? '1fr 1fr 1fr' : '1fr 1fr', gap: '16px', marginTop: '16px' }}>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label className="form-label">Center Latitude</label>
                             <input 
@@ -12214,6 +12234,7 @@ export default function App() {
                               className="form-input" 
                               value={settingsLat} 
                               onChange={e => setSettingsLat(e.target.value)} 
+                              disabled={userRole === 'student'}
                             />
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
@@ -12224,6 +12245,7 @@ export default function App() {
                               className="form-input" 
                               value={settingsLon} 
                               onChange={e => setSettingsLon(e.target.value)} 
+                              disabled={userRole === 'student'}
                             />
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
@@ -12233,52 +12255,59 @@ export default function App() {
                               className="form-input" 
                               value={settingsRadius} 
                               onChange={e => setSettingsRadius(e.target.value)} 
+                              disabled={userRole === 'student'}
                             />
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                            <button
-                              onClick={() => {
-                                if (navigator.geolocation) {
-                                  navigator.geolocation.getCurrentPosition(
-                                    (position) => {
-                                      setSettingsLat(position.coords.latitude);
-                                      setSettingsLon(position.coords.longitude);
-                                      setSettingsMessage("Fetched current coordinates!");
-                                      setTimeout(() => setSettingsMessage(""), 2000);
-                                    },
-                                    (err) => {
-                                      setSettingsError("Could not fetch location permissions.");
-                                      setTimeout(() => setSettingsError(""), 3000);
-                                    }
-                                  );
-                                }
-                              }}
-                              className="btn-secondary"
-                              style={{ width: '100%', height: '46px', borderRadius: '8px', fontSize: '0.9rem' }}
-                            >
-                              Set Current Coordinates
-                            </button>
-                          </div>
+                          {userRole !== 'student' && (
+                            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                              <button
+                                onClick={() => {
+                                  if (navigator.geolocation) {
+                                    navigator.geolocation.getCurrentPosition(
+                                      (position) => {
+                                        setSettingsLat(position.coords.latitude);
+                                        setSettingsLon(position.coords.longitude);
+                                        setSettingsMessage("Fetched current coordinates!");
+                                        setTimeout(() => setSettingsMessage(""), 2000);
+                                      },
+                                      (err) => {
+                                        setSettingsError("Could not fetch location permissions.");
+                                        setTimeout(() => setSettingsError(""), 3000);
+                                      }
+                                    );
+                                  }
+                                }}
+                                className="btn-secondary"
+                                style={{ width: '100%', height: '46px', borderRadius: '8px', fontSize: '0.9rem' }}
+                              >
+                                Set Current Coordinates
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
 
-                    <button
-                      onClick={saveSystemSettings}
-                      className="bg-gradient-btn"
-                      style={{ 
-                        marginTop: '16px', 
-                        padding: '14px 28px', 
-                        borderRadius: '12px', 
-                        fontSize: '0.95rem',
-                        fontWeight: 600,
-                        width: '100%',
-                        boxShadow: '0 4px 20px rgba(0, 242, 254, 0.25)'
-                      }}
-                      disabled={isSavingSettings}
-                    >
-                      {isSavingSettings ? '💾 Saving settings...' : '💾 Save Settings'}
-                    </button>
+                    {userRole !== 'student' ? (
+                      <button
+                        onClick={saveSystemSettings}
+                        className="bg-gradient-btn"
+                        style={{ 
+                          marginTop: '16px', 
+                          padding: '14px 28px', 
+                          borderRadius: '12px', 
+                          fontSize: '0.95rem',
+                          fontWeight: 600,
+                          width: '100%',
+                          boxShadow: '0 4px 20px rgba(0, 242, 254, 0.25)'
+                        }}
+                        disabled={isSavingSettings}
+                      >
+                        {isSavingSettings ? '💾 Saving settings...' : '💾 Save Settings'}
+                      </button>
+                    ) : (
+                      <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.85rem', margin: '8px 0 0' }}>🔒 Read-Only Mode (Configured by Administrator)</p>
+                    )}
                   </div>
                 )}
 
@@ -12315,7 +12344,7 @@ export default function App() {
                           </p>
                         </div>
                         <div 
-                          onClick={() => setSettingsIpEnabled(!settingsIpEnabled)} 
+                          onClick={() => { if (userRole !== 'student') setSettingsIpEnabled(!settingsIpEnabled); }} 
                           style={{
                             width: '48px',
                             height: '26px',
@@ -12323,7 +12352,7 @@ export default function App() {
                             border: `1px solid ${settingsIpEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
                             borderRadius: '50px',
                             padding: '2px',
-                            cursor: 'pointer',
+                            cursor: userRole === 'student' ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             transition: 'var(--transition)',
@@ -12351,6 +12380,7 @@ export default function App() {
                             placeholder="e.g. 127.0.0.1, 192.168.1.0/24"
                             value={settingsIpRanges} 
                             onChange={e => setSettingsIpRanges(e.target.value)} 
+                            disabled={userRole === 'student'}
                           />
                           <span style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginTop: '6px' }}>
                             Separate multiple IP addresses or CIDR blocks with a comma. Examples: `127.0.0.1`, `192.168.1.0/24`.
@@ -12359,22 +12389,26 @@ export default function App() {
                       )}
                     </div>
 
-                    <button
-                      onClick={saveSystemSettings}
-                      className="bg-gradient-btn"
-                      style={{ 
-                        marginTop: '16px', 
-                        padding: '14px 28px', 
-                        borderRadius: '12px', 
-                        fontSize: '0.95rem',
-                        fontWeight: 600,
-                        width: '100%',
-                        boxShadow: '0 4px 20px rgba(0, 242, 254, 0.25)'
-                      }}
-                      disabled={isSavingSettings}
-                    >
-                      {isSavingSettings ? '💾 Saving settings...' : '💾 Save Settings'}
-                    </button>
+                    {userRole !== 'student' ? (
+                      <button
+                        onClick={saveSystemSettings}
+                        className="bg-gradient-btn"
+                        style={{ 
+                          marginTop: '16px', 
+                          padding: '14px 28px', 
+                          borderRadius: '12px', 
+                          fontSize: '0.95rem',
+                          fontWeight: 600,
+                          width: '100%',
+                          boxShadow: '0 4px 20px rgba(0, 242, 254, 0.25)'
+                        }}
+                        disabled={isSavingSettings}
+                      >
+                        {isSavingSettings ? '💾 Saving settings...' : '💾 Save Settings'}
+                      </button>
+                    ) : (
+                      <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.85rem', margin: '8px 0 0' }}>🔒 Read-Only Mode (Configured by Administrator)</p>
+                    )}
                   </div>
                 )}
 
@@ -12401,7 +12435,7 @@ export default function App() {
                           </p>
                         </div>
                         <button
-                          disabled={currentUser?.institution_id !== 1}
+                          disabled={userRole === 'student' || currentUser?.institution_id !== 1}
                           onClick={() => {
                             const newLock = !lockdownActive;
                             setLockdownActive(newLock);
@@ -12419,8 +12453,8 @@ export default function App() {
                             borderRadius: '8px',
                             fontSize: '0.85rem',
                             fontWeight: 600,
-                            cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                            opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                            cursor: (userRole === 'student' || currentUser?.institution_id !== 1) ? 'not-allowed' : 'pointer',
+                            opacity: (userRole === 'student' || currentUser?.institution_id !== 1) ? 0.5 : 1,
                             boxShadow: lockdownActive ? '0 0 15px rgba(16, 185, 129, 0.3)' : '0 0 15px rgba(239, 68, 68, 0.3)',
                             transition: 'all 0.3s ease'
                           }}
@@ -12428,9 +12462,9 @@ export default function App() {
                           {lockdownActive ? 'Reset Relays' : 'ENGAGE LOCKDOWN'}
                         </button>
                       </div>
-                      {currentUser?.institution_id !== 1 && (
+                      {(userRole === 'student' || currentUser?.institution_id !== 1) && (
                         <div style={{ fontSize: '0.75rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '10px' }}>
-                          <span>🔒 Control restricted to Default System Owner.</span>
+                          <span>🔒 Control restricted to Default System Owner. Current Status: {lockdownActive ? '🚨 ENGAGED' : '🟢 Idle'}</span>
                         </div>
                       )}
                     </div>
