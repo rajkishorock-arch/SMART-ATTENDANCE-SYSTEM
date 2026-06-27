@@ -1715,7 +1715,7 @@ button:active,
     min-height: 100dvh;
     width: 100% !important;
     max-width: 100% !important;
-    overflow-y: auto !important;
+    overflow-y: visible !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
