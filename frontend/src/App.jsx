@@ -12140,11 +12140,6 @@ export default function App() {
                   <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
                     Choose a sci-fi system interface theme and customize acoustic synth feedback volumes.
                   </p>
-                  {currentUser?.institution_id !== 1 && (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>🔒 Controls restricted to Default System Owner.</span>
-                    </div>
-                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -12152,7 +12147,6 @@ export default function App() {
                   <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
                     <label className="form-label" style={{ fontWeight: 600 }}>Active Theme</label>
                     <select 
-                      disabled={currentUser?.institution_id !== 1}
                       value={activeTheme} 
                       onChange={(e) => {
                         const newTheme = e.target.value;
@@ -12165,8 +12159,8 @@ export default function App() {
                         background: 'var(--bg-secondary)', 
                         border: '1px solid var(--border-color)', 
                         color: 'var(--color-text-main)',
-                        opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
-                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
+                        opacity: 1,
+                        cursor: 'default'
                       }}
                     >
                       <option value="cyberpunk">Cyberpunk Neon (Default)</option>
@@ -12186,7 +12180,6 @@ export default function App() {
                       </div>
                       <div 
                         onClick={() => {
-                          if (currentUser?.institution_id !== 1) return;
                           setCrtOverlayEnabled(!crtOverlayEnabled);
                           playCyberSound('click');
                         }} 
@@ -12197,8 +12190,8 @@ export default function App() {
                           border: `1px solid ${crtOverlayEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
                           borderRadius: '50px',
                           padding: '2px',
-                          cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                          opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                          cursor: 'pointer',
+                          opacity: 1,
                           display: 'flex',
                           alignItems: 'center',
                           transition: 'var(--transition)',
@@ -12227,7 +12220,6 @@ export default function App() {
                       </div>
                       <div 
                         onClick={() => {
-                          if (currentUser?.institution_id !== 1) return;
                           const newSound = !soundEnabled;
                           setSoundEnabled(newSound);
                           localStorage.setItem('soundEnabled', newSound);
@@ -12242,8 +12234,8 @@ export default function App() {
                           border: `1px solid ${soundEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
                           borderRadius: '50px',
                           padding: '2px',
-                          cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                          opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                          cursor: 'pointer',
+                          opacity: 1,
                           display: 'flex',
                           alignItems: 'center',
                           transition: 'var(--transition)',
@@ -12274,25 +12266,25 @@ export default function App() {
                         max="1.0"
                         step="0.05"
                         value={audioVolume}
-                        disabled={!soundEnabled || currentUser?.institution_id !== 1}
+                        disabled={!soundEnabled}
                         onChange={(e) => {
                           const vol = parseFloat(e.target.value);
                           setAudioVolume(vol);
                           localStorage.setItem('audioVolume', vol);
                         }}
                         onMouseUp={() => {
-                          if (soundEnabled && currentUser?.institution_id === 1) playCyberSound('click');
+                          if (soundEnabled) playCyberSound('click');
                         }}
                         onTouchEnd={() => {
-                          if (soundEnabled && currentUser?.institution_id === 1) playCyberSound('click');
+                          if (soundEnabled) playCyberSound('click');
                         }}
                         style={{ 
                           width: '100%', 
                           accentColor: 'var(--color-primary)', 
                           height: '4px', 
                           borderRadius: '2px', 
-                          cursor: (soundEnabled && currentUser?.institution_id === 1) ? 'pointer' : 'not-allowed',
-                          opacity: (soundEnabled && currentUser?.institution_id === 1) ? 1 : 0.5
+                          cursor: soundEnabled ? 'pointer' : 'not-allowed',
+                          opacity: soundEnabled ? 1 : 0.5
                         }}
                       />
                     </div>
@@ -12311,17 +12303,11 @@ export default function App() {
                   <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
                     Tune base frequency pitch register, sound modulators, and CPU hum drone volume.
                   </p>
-                  {currentUser?.institution_id !== 1 && (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>🔒 Controls restricted to Default System Owner.</span>
-                    </div>
-                  )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
                   <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
                     <label className="form-label" style={{ fontWeight: 600 }}>Oscillator Modulator</label>
                     <select 
-                      disabled={currentUser?.institution_id !== 1}
                       value={synthModulator} 
                       onChange={(e) => {
                         setSynthModulator(e.target.value);
@@ -12333,8 +12319,8 @@ export default function App() {
                         background: 'var(--bg-secondary)', 
                         border: '1px solid var(--border-color)', 
                         color: 'var(--color-text-main)',
-                        opacity: currentUser?.institution_id !== 1 ? 0.6 : 1,
-                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'default'
+                        opacity: 1,
+                        cursor: 'default'
                       }}
                     >
                       <option value="classic">Classic (Default Mix)</option>
@@ -12356,21 +12342,20 @@ export default function App() {
                       max="1.5"
                       step="0.05"
                       value={synthPitchScale}
-                      disabled={currentUser?.institution_id !== 1}
                       onChange={(e) => {
                         setSynthPitchScale(parseFloat(e.target.value));
                       }}
                       onMouseUp={() => {
-                        if (currentUser?.institution_id === 1) playCyberSound('click');
+                        playCyberSound('click');
                       }}
                       onTouchEnd={() => {
-                        if (currentUser?.institution_id === 1) playCyberSound('click');
+                        playCyberSound('click');
                       }}
                       style={{ 
                         width: '100%', 
                         accentColor: 'var(--color-primary)',
-                        cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentUser?.institution_id !== 1 ? 0.5 : 1
+                        cursor: 'pointer',
+                        opacity: 1
                       }}
                     />
                     <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
@@ -12385,7 +12370,6 @@ export default function App() {
                         <input 
                           type="checkbox" 
                           checked={ambientHumActive} 
-                          disabled={currentUser?.institution_id !== 1}
                           onChange={e => {
                             setAmbientHumActive(e.target.checked);
                             playCyberSound('click');
@@ -12394,10 +12378,10 @@ export default function App() {
                         />
                         <span style={{
                           position: 'absolute',
-                          cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
+                          cursor: 'pointer',
                           top: 0, left: 0, right: 0, bottom: 0,
                           backgroundColor: ambientHumActive ? 'var(--color-primary)' : '#334155',
-                          opacity: currentUser?.institution_id !== 1 ? 0.5 : 1,
+                          opacity: 1,
                           transition: '.3s',
                           borderRadius: '22px'
                         }}>
@@ -12423,15 +12407,14 @@ export default function App() {
                           max="0.4"
                           step="0.02"
                           value={ambientHumVolume}
-                          disabled={currentUser?.institution_id !== 1}
                           onChange={(e) => {
                             setAmbientHumVolume(parseFloat(e.target.value));
                           }}
                           style={{ 
                             width: '100%', 
                             accentColor: 'var(--color-primary)',
-                            cursor: currentUser?.institution_id !== 1 ? 'not-allowed' : 'pointer',
-                            opacity: currentUser?.institution_id !== 1 ? 0.5 : 1
+                            cursor: 'pointer',
+                            opacity: 1
                           }}
                         />
                       </div>
