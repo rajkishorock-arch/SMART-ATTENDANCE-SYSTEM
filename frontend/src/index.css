@@ -3567,7 +3567,9 @@ html {
   html.native-app,
   html.native-app body {
     padding: 0;
-    overscroll-behavior-y: none;
+    overscroll-behavior-y: auto !important;
+    overflow-y: auto !important;
+    height: auto !important;
   }
   html.native-app #root {
     padding-top: env(safe-area-inset-top, 0px);
