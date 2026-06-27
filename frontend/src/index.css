@@ -5609,4 +5609,35 @@ html {
   margin: 0 auto 16px auto;
 }
 
+/* ==========================================================================
+   MOBILE & TABLET SCROLL ENHANCEMENTS AND FIXES (CRITICAL WEBVIEW & APK FIX)
+   ========================================================================== */
+@media (max-width: 992px) {
+  html, 
+  body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: auto !important; /* Allow native system gestures and scrolling */
+  }
 
+  #root,
+  .app-container,
+  .main-content {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: visible !important; /* Ensure it grows and bubbles scroll up */
+    overflow-x: hidden !important;
+    touch-action: auto !important;
+  }
+
+  /* Prevent any absolute or fixed ambient layers from intercepting drag gestures */
+  .app-ambient-canvas,
+  .click-fx-layer,
+  .crt-overlay,
+  .crt-vignette {
+    pointer-events: none !important;
+  }
+}
