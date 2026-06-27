@@ -8,30 +8,28 @@ router = APIRouter(
     tags=["leaves"],
 )
 
-@router.post("/", response_model=schemas.LeaveRequest)
+@router.post("/", response_model=schemas.LeaveRequestResponse)
 def create_leave_request(
     leave_request: schemas.LeaveRequestCreate, 
     db: Session = Depends(get_db)
 ):
-    return crud.create_leave_request(db=db, leave_request=leave_request)
+    return crud.create_leave_request(db=db, leave_request=leave_request, institution_id=0)
 
-@router.get("/student/{student_id}", response_model=list[schemas.LeaveRequest])
+@router.get("/student/{student_id}", response_model=list[schemas.LeaveRequestResponse])
 def get_leave_requests_by_student(
     student_id: int, 
     db: Session = Depends(get_db)
 ):
     return crud.get_leave_requests_by_student(db=db, student_id=student_id)
 
-@router.get("/teacher/{teacher_id}", response_model=list[schemas.LeaveRequest])
+@router.get("/teacher/{teacher_id}", response_model=list[schemas.LeaveRequestResponse])
 def get_leave_requests_for_teacher(
     teacher_id: int, 
     db: Session = Depends(get_db)
 ):
-    # This is a simplified example. In a real application, you'd have a more complex logic 
-    # to determine which students belong to a teacher.
-    return crud.get_all_leave_requests(db=db)
+    return crud.get_all_leave_requests(db=db, institution_id=0)
 
-@router.put("/{leave_request_id}", response_model=schemas.LeaveRequest)
+@router.put("/{leave_request_id}", response_model=schemas.LeaveRequestResponse)
 def update_leave_request_status(
     leave_request_id: int,
     status: str,
