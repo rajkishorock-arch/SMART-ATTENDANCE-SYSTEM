@@ -602,7 +602,7 @@ def read_root():
 
 
 app.include_router(api_router, prefix="/api/v1")
-app.include_router(leave_router, prefix="/api/v1", tags=["Leave Management"])
+app.include_router(leave_router, tags=["Leave Management"])
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

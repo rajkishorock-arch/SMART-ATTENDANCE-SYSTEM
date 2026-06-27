@@ -56,6 +56,7 @@ import {
   Phone,
   BarChart3,
   ArrowUpCircle,
+  Sliders,
 } from 'lucide-react';
 import { 
   AreaChart, 
