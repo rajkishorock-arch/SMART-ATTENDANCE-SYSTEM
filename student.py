@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 from tkinter import messagebox
 import mysql.connector
 import cv2
+import numpy as np
 from face_utils import open_camera, preprocess_face, get_db_connection, get_face_engines
 
 class Student:
