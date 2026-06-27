@@ -3247,7 +3247,7 @@ export default function App() {
   };
 
 
-  const triggerFaceRecognition = async () => {
+   const triggerFaceRecognition = async () => {
     const isExternal = cameraScanSettings?.cameraSource === 'external';
     const video = isExternal ? attendanceImageRef.current : attendanceVideoRef.current;
     if (!video || recognitionBusyRef.current) return;
@@ -3265,6 +3265,7 @@ export default function App() {
     );
     if (!blob) return;
     recognitionBusyRef.current = true;
+    let matchSuccess = false;
 
     if (isDemoMode) {
         setIsScanning(true);
@@ -3276,7 +3277,7 @@ export default function App() {
             { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)' }
           ];
           const matched = candidates[Math.floor(Math.random() * candidates.length)];
-           const confidenceVal = parseFloat((88.0 + Math.random() * 11.0).toFixed(1));
+          const confidenceVal = parseFloat((88.0 + Math.random() * 11.0).toFixed(1));
           const isMatchPass = !biometricConfidenceFilterEnabled || (confidenceVal / 100) >= biometricMatchThreshold;
           
           if (!isMatchPass) {
@@ -3290,13 +3291,14 @@ export default function App() {
               eyeStateRef.current = 'open';
               livenessStatusRef.current = 'verifying';
               setLivenessStatus('verifying');
-              setLivenessMessage('Please blink your eyes to verify.');
+              setLivenessMessage(livenessBypassRef.current ? 'Scanning...' : 'Please blink your eyes to verify.');
               setScanStatus('Scanning...');
-            }, 3000);
+            }, 400);
             return;
           }
           const confidence = confidenceVal.toString();
           const newly_marked = Math.random() > 0.3;
+          matchSuccess = true;
           
           setScanStatus(newly_marked ? `Recognized: ${matched.name} (${confidence}%)` : `Recognized: ${matched.name} (Already Marked)`);
           playCyberSound('success');
@@ -3342,12 +3344,12 @@ export default function App() {
             eyeStateRef.current = 'open';
             livenessStatusRef.current = 'verifying';
             setLivenessStatus('verifying');
-            setLivenessMessage('Please blink your eyes to verify.');
+            setLivenessMessage(livenessBypassRef.current ? 'Scanning...' : 'Please blink your eyes to verify.');
             setScanStatus('Scanning...');
-            if (voiceAnnounceLiveness) {
+            if (voiceAnnounceLiveness && !livenessBypassRef.current) {
               handleSpeak("Please blink your eyes to verify.");
             }
-          }, 4000);
+          }, 3500);
           
         }, 1200);
         return;
@@ -3401,6 +3403,7 @@ export default function App() {
               return;
             }
 
+            matchSuccess = true;
             const newlyMarkedList = validMatches.filter((m) => m.newly_marked);
             const count = validMatches.length;
             if (count > 1) {
@@ -3475,18 +3478,21 @@ export default function App() {
       } finally {
         setIsScanning(false);
         recognitionBusyRef.current = false;
-        // Reset liveness status after 4 seconds to scan next student
+        
+        // Cooldown configuration
+        const cooldownTime = matchSuccess ? 3500 : 400;
+        
         setTimeout(() => {
           setScannedStudent(null);
           eyeStateRef.current = 'open';
           livenessStatusRef.current = 'verifying';
           setLivenessStatus('verifying');
-          setLivenessMessage('Please blink your eyes to verify.');
+          setLivenessMessage(livenessBypassRef.current ? 'Scanning...' : 'Please blink your eyes to verify.');
           setScanStatus('Scanning...');
-          if (voiceAnnounceLiveness) {
+          if (voiceAnnounceLiveness && !matchSuccess && !livenessBypassRef.current) {
             handleSpeak("Please blink your eyes to verify.");
           }
-        }, 4000);
+        }, cooldownTime);
       }
   };
 
