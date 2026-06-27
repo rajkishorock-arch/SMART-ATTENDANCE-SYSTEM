@@ -47,4 +47,3 @@ Thumbs.db
 *.keystore
 frontend/android/app/release.keystore
 keystore_base64.txt
-.aider*

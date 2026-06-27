@@ -81,8 +81,11 @@ body {
   color: var(--color-text-main);
   min-height: 100vh;
   overflow-x: hidden;
+  overflow-y: auto;
   line-height: 1.6;
   position: relative;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Abstract Floating Ambient Lights */
@@ -148,7 +151,6 @@ body::after {
   box-shadow: var(--glass-shadow);
   transition: var(--transition);
   position: relative;
-  overflow: hidden;
   animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -1709,10 +1711,14 @@ button:active,
 
   .main-content {
     margin-left: 0 !important;
-    padding: calc(16px + env(safe-area-inset-top, 24px)) 14px calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: calc(16px + env(safe-area-inset-top, 24px)) 14px calc(100px + env(safe-area-inset-bottom, 0px)) !important;
     min-height: 100dvh;
     width: 100% !important;
     max-width: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
   }
 
   .sidebar {
@@ -1742,14 +1748,18 @@ button:active,
     font-size: 0.78rem !important;
   }
 
+  /* On mobile, glass panels should NOT hide overflow so touch scroll works */
   .glass-panel {
+    overflow: visible !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     background: rgba(13, 20, 35, 0.92) !important;
+    touch-action: pan-y !important;
   }
 
   .main-content > div {
     animation: none !important;
+    touch-action: pan-y !important;
   }
 
   body::before,
@@ -3557,8 +3567,7 @@ html {
   html.native-app,
   html.native-app body {
     padding: 0;
-    /* overscroll-behavior-y: none was blocking scroll on phone - fixed */
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: none;
   }
   html.native-app #root {
     padding-top: env(safe-area-inset-top, 0px);
@@ -5598,76 +5607,6 @@ html {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
   margin: 0 auto 16px auto;
-}
-
-/* ===== MOBILE & CAPACITOR SCROLL FIX =====
-   Keep the phone shell vertically scrollable in Capacitor, PWA, and mobile browsers. */
-
-/* Native Capacitor app - phone mein scroll karne ke liye */
-html.native-app,
-html.native-app body {
-  height: auto !important;
-  min-height: 100dvh !important;
-  overflow-y: auto !important;
-  /* overscroll-behavior-y: none was blocking scroll - removed */
-  overscroll-behavior-y: contain !important;
-  touch-action: pan-y !important;
-  -webkit-overflow-scrolling: touch !important;
-  position: static !important;
-}
-
-html.native-app #root {
-  height: auto !important;
-  min-height: 100dvh !important;
-  overflow-y: visible !important;
-  touch-action: pan-y !important;
-  -webkit-overflow-scrolling: touch !important;
-  position: static !important;
-}
-
-/* Mobile browser (non-native) */
-@media (max-width: 768px) {
-  html.native-app,
-  html.mobile-shell,
-  html.mobile-shell body,
-  html.native-app body {
-    height: auto !important;
-    min-height: 100dvh !important;
-    overflow-y: auto !important;
-    overscroll-behavior-y: contain !important;
-    touch-action: pan-y !important;
-    -webkit-overflow-scrolling: touch !important;
-    position: static !important;
-  }
-
-  html.native-app #root,
-  html.mobile-shell #root {
-    height: auto !important;
-    min-height: 100dvh !important;
-    overflow-y: visible !important;
-    touch-action: pan-y !important;
-    -webkit-overflow-scrolling: touch !important;
-    position: static !important;
-  }
-
-  html.native-app .app-container,
-  html.mobile-shell .app-container {
-    height: auto !important;
-    min-height: 100dvh !important;
-    overflow-y: visible !important;
-    touch-action: pan-y !important;
-    position: static !important;
-  }
-
-  html.native-app .main-content,
-  html.mobile-shell .main-content {
-    height: auto !important;
-    min-height: 100dvh !important;
-    overflow-y: visible !important;
-    touch-action: pan-y !important;
-    -webkit-overflow-scrolling: touch !important;
-    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
-  }
 }
 
 

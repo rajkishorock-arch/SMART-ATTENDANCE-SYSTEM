@@ -219,201 +219,6 @@ export default function App() {
         } else {
           addDiagnosticLog(`[SYS] Branding fetch failed. Using default settings.`);
         }
-  Plus, 
-  Search, 
-  FileSpreadsheet, 
-  BookOpen, 
-  Info,
-  ShieldCheck,
-  Calendar,
-  Layers,
-  Trash2,
-  Mail,
-  Lock,
-  Camera,
-  Video,
-  FileDown,
-  Edit,
-  Clock,
-  History,
-  UserCheck,
-  UserPlus,
-  Volume2,
-  VolumeX,
-  ArrowLeft,
-  MessageSquare,
-  Bot,
-  Send,
-  Paperclip,
-  Mic,
-  MicOff,
-  Settings,
-  Phone,
-  BarChart3,
-  ArrowUpCircle,
-} from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from 'recharts';
-
-import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
-import { createFaceDetector, extractFaceBox, drawFaceBox } from './utils/faceDetectionEngine';
-import {
-  APP_VERSION,
-  acknowledgeUpdateVersion,
-  markCurrentVersionInstalled,
-  shouldShowUpdateBanner,
-} from './utils/versionManager';
-import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
-import VersionBadge from './components/VersionBadge';
-import PremiumUpgradeHub from './components/PremiumUpgradeHub';
-import ExplorationLab from './components/ExplorationLab';
-import CameraSettingsPanel from './components/CameraSettingsPanel';
-import OwnerPremiumPanel from './components/OwnerPremiumPanel';
-
-let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
-
-const getLocalDateString = (d = new Date()) => {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const shiftDate = (currentDateStr, days, setter) => {
-  if (!currentDateStr) return;
-  const parts = currentDateStr.split('-');
-  if (parts.length !== 3) return;
-  const d = new Date(parts[0], parts[1] - 1, parts[2]);
-  if (isNaN(d.getTime())) return;
-  d.setDate(d.getDate() + days);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  setter(`${yyyy}-${mm}-${dd}`);
-};
-
-const LEFT_EYE_INDICES = [362, 385, 387, 263, 373, 380];
-const RIGHT_EYE_INDICES = [33, 160, 158, 133, 153, 144];
-
-function calculateEAR(landmarks, eyeIndices) {
-  try {
-    const p1 = landmarks[eyeIndices[0]];
-    const p2 = landmarks[eyeIndices[1]];
-    const p3 = landmarks[eyeIndices[2]];
-    const p4 = landmarks[eyeIndices[3]];
-    const p5 = landmarks[eyeIndices[4]];
-    const p6 = landmarks[eyeIndices[5]];
-
-    const distHorizontal = Math.hypot(p1.x - p4.x, p1.y - p4.y);
-    const distVertical1 = Math.hypot(p2.x - p6.x, p2.y - p6.y);
-    const distVertical2 = Math.hypot(p3.x - p5.x, p3.y - p5.y);
-
-    if (distHorizontal === 0) return 0.0;
-    return (distVertical1 + distVertical2) / (2.0 * distHorizontal);
-  } catch (e) {
-    return 0.0;
-  }
-}
-export default function App() {
-  API_BASE_URL = getApiBaseUrl();
-  const [masterKeyPrompt, setMasterKeyPrompt] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    value: '',
-    onConfirm: null,
-    onCancel: null
-  });
-
-  const requestMasterPassword = (title, message) => {
-    return new Promise((resolve) => {
-      setMasterKeyPrompt({
-        isOpen: true,
-        title: title || '🔐 Master Key Verification Required',
-        message: message || 'Please enter the Developer Master Password to proceed:',
-        value: '',
-        onConfirm: (val) => resolve(val),
-        onCancel: () => resolve(null)
-      });
-    });
-  };
-
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-  const [editingInst, setEditingInst] = useState(null);
-  const [isUpdatingInst, setIsUpdatingInst] = useState(false);
-  const [smtpTestEmail, setSmtpTestEmail] = useState('');
-  const [smtpTestStatus, setSmtpTestStatus] = useState({ loading: false, success: '', error: '' });
-  const [neuralMeshCanvas, setNeuralMeshCanvas] = useState(null);
-  const neuralMeshCanvasRef = useCallback((node) => {
-    if (node !== null) {
-      setNeuralMeshCanvas(node);
-    }
-  }, []);
-
-  // Biometric / Sound / Theme States
-  const [hudMetrics, setHudMetrics] = useState({ fps: '30.0', lighting: '92%', quality: 'EXCELLENT' });
-  const [activeTheme, setActiveTheme] = useState(localStorage.getItem('theme') || 'cyberpunk');
-  const [audioVolume, setAudioVolume] = useState(parseFloat(localStorage.getItem('audioVolume') || '0.5'));
-  const [soundEnabled, setSoundEnabled] = useState(localStorage.getItem('soundEnabled') === 'true');
-
-  const [diagnosticLogs, setDiagnosticLogs] = useState([
-    '[SYS] Bios boot sequence completed.',
-    '[SYS] Quantum mesh engine idle.'
-  ]);
-  const [lockdownActive, setLockdownActive] = useState(false);
-  const [scannedStudent, setScannedStudent] = useState(null);
-  const [showConsentModal, setShowConsentModal] = useState(
-    () => localStorage.getItem('biometric_consent') !== 'true'
-  );
-  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
-  const livenessTokenRef = useRef(null);
-  const [autoSessionInfo, setAutoSessionInfo] = useState(null);
-
-  const addDiagnosticLog = (msg) => {
-    const time = new Date().toLocaleTimeString();
-    setDiagnosticLogs((prev) => {
-      const updated = [...prev, `[${time}] ${msg}`];
-      if (updated.length > 7) {
-        return updated.slice(updated.length - 7);
-      }
-      return updated;
-    });
-  };
-
-  const [tenantBranding, setTenantBranding] = useState(null);
-  
-  useEffect(() => {
-    const loadTenantBranding = async () => {
-      try {
-        const slug = getActiveTenantSlug();
-        const res = await fetch(`${API_BASE_URL}/institutions/branding/${slug}`);
-        if (res.ok) {
-          const branding = await res.json();
-          setTenantBranding(branding);
-          
-          if (branding.primary_color) {
-            document.documentElement.style.setProperty('--color-primary', branding.primary_color);
-            document.documentElement.style.setProperty('--border-color-glow', `${branding.primary_color}59`);
-            document.documentElement.style.setProperty('--glow-shadow', `0 0 25px ${branding.primary_color}33`);
-          }
-          if (branding.secondary_color) {
-            document.documentElement.style.setProperty('--color-secondary', branding.secondary_color);
-          }
-          
-          document.title = `${branding.name} - Smart Attendance System`;
-          addDiagnosticLog(`[SYS] Loaded branding: ${branding.name}`);
-        } else {
-          addDiagnosticLog(`[SYS] Branding fetch failed. Using default settings.`);
-        }
       } catch (err) {
         console.error("Branding load error:", err);
       }
@@ -422,49 +227,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const mobileQuery = window.matchMedia('(max-width: 768px)');
-    const applyMobileScrollUnlock = () => {
-      const isMobileShell = isNative || mobileQuery.matches;
-      document.documentElement.classList.toggle('mobile-shell', isMobileShell);
-      if (!isMobileShell) return;
-
-      // Fix html element
-      document.documentElement.style.overflowY = 'auto';
-      document.documentElement.style.height = 'auto';
-      document.documentElement.style.position = 'static';
-      document.documentElement.style.touchAction = 'pan-y';
-      document.documentElement.style.webkitOverflowScrolling = 'touch';
-
-      // Fix body element
-      document.body.style.overflowY = 'auto';
-      document.body.style.height = 'auto';
-      document.body.style.position = 'static';
-      document.body.style.touchAction = 'pan-y';
-      document.body.style.webkitOverflowScrolling = 'touch';
-
-      // Fix #root element (Capacitor wraps in this)
-      const root = document.getElementById('root');
-      if (root) {
-        root.style.overflowY = 'visible';
-        root.style.height = 'auto';
-        root.style.minHeight = '100dvh';
-        root.style.position = 'static';
-        root.style.touchAction = 'pan-y';
-        root.style.webkitOverflowScrolling = 'touch';
-      }
-
-      if (document.scrollingElement) {
-        document.scrollingElement.style.overflowY = 'auto';
-        document.scrollingElement.style.touchAction = 'pan-y';
-      }
-    };
-
     if (isNative) {
       document.documentElement.classList.add('native-app');
     }
-    applyMobileScrollUnlock();
-    mobileQuery.addEventListener?.('change', applyMobileScrollUnlock);
-
     const styleStatusBar = async () => {
       try {
         const { StatusBar, Style } = await import('@capacitor/status-bar');
@@ -476,11 +241,12 @@ export default function App() {
       }
     };
     styleStatusBar();
-
-    return () => {
-      mobileQuery.removeEventListener?.('change', applyMobileScrollUnlock);
-    };
   }, []);
+
+  const getSuggestions = () => {
+    switch (botSuggestionCategory) {
+      case 'attendance':
+        return [
           "Why did face scan show already marked?",
           "How to view session-wise history?",
           "What is geofencing location filter?"
@@ -8152,9 +7918,6 @@ export default function App() {
                     />
                   </div>
                 </div>
-                {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
-                  <OwnerPremiumPanel apiBaseUrl={API_BASE_URL} token={token} />
-                )}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -12695,17 +12458,26 @@ export default function App() {
             )}
 
             {activeSubSetting === 'premium' && userRole === 'admin' && (
-              <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {/* Owner Premium Grant Panel - visible to system owner only */}
+                {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+                  <div className="glass-panel" style={{ padding: '28px', borderLeft: '3px solid #fbbf24' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '1.3rem' }}>👑</span>
+                      <h3 style={{ margin: 0, color: '#fbbf24', fontSize: '1.1rem', fontWeight: 700 }}>Owner Premium Access Control</h3>
+                      <span style={{ fontSize: '0.7rem', background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>OWNER ONLY</span>
+                    </div>
+                    <OwnerPremiumPanel apiBaseUrl={API_BASE_URL} token={token} />
+                  </div>
+                )}
+                {/* Premium Upgrade Hub for all admins */}
                 <PremiumUpgradeHub
                   apiBaseUrl={API_BASE_URL}
                   token={token}
                   currentUser={currentUser}
                   onPlanActivated={(plan) => setSubscriptionPlan(plan)}
                 />
-                {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
-                  <OwnerPremiumPanel apiBaseUrl={API_BASE_URL} token={token} />
-                )}
-              </>
+              </div>
             )}
 
             {activeSubSetting === 'app_version' && (
