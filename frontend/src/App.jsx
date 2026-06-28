@@ -78,6 +78,7 @@ import {
   markCurrentVersionInstalled,
   shouldShowUpdateBanner,
   isUpdateNewer,
+  isVersionAcknowledged,
 } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
 import VersionBadge from './components/VersionBadge';
@@ -1673,8 +1674,8 @@ export default function App() {
       setServerLatestVersion(latestVersion);
       setUpdateActiveFlag(!!data.update_active || !!data.update_beta_active);
 
-      // Explicitly check if update is available on server
-      const hasNewUpdate = data.update_available || isUpdateNewer(latestVersion, APP_VERSION);
+      // Explicitly check if update is available on server and has not been acknowledged/dismissed
+      const hasNewUpdate = (data.update_available || isUpdateNewer(latestVersion, APP_VERSION)) && (isManual || !isVersionAcknowledged(latestVersion));
 
       if (hasNewUpdate) {
         const downloadUrl = data.update_download_url || `https://github.com/rajkishorock-arch/SMART-ATTENDANCE-SYSTEM/releases/download/v${latestVersion}/app-release.apk`;
