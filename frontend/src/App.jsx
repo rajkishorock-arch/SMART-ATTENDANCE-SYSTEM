@@ -10062,7 +10062,7 @@ export default function App() {
             </div>
 
             {timetableSubTab === 'directory' ? (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1.2fr 1.8fr', gap: isMobileView ? '20px' : '32px', width: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1.2fr 1.8fr', gap: isMobileView ? '20px' : '32px', width: '100%', minWidth: 0, maxWidth: '100%' }}>
                 {/* Form for manual registration / edit */}
                 <div className="glass-panel" style={{ padding: '32px' }}>
                   <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', marginBottom: '24px' }}>
@@ -10226,7 +10226,7 @@ export default function App() {
                 </div>
 
                 {/* Teacher Directory Table */}
-                <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0, width: '100%', maxWidth: '100%' }}>
                   <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', fontFamily: 'Outfit, sans-serif' }}>Teaching Staff Directory</h3>
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>Listing all registered teachers, mapped subjects, and timetable schedules</p>
