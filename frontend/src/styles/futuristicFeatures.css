@@ -7,6 +7,26 @@
   margin-bottom: 20px;
 }
 
+@media (max-width: 768px) {
+  .live-command-center {
+    display: flex !important;
+    overflow-x: auto !important;
+    padding-bottom: 8px !important;
+    gap: 12px !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    width: 100% !important;
+  }
+  .live-command-center::-webkit-scrollbar {
+    display: none !important;
+  }
+  .live-command-center .command-card {
+    flex: 0 0 140px !important;
+    scroll-snap-align: start !important;
+  }
+}
+
 .command-card {
   background: rgba(13, 20, 35, 0.75);
   border: 1px solid rgba(0, 242, 254, 0.15);
