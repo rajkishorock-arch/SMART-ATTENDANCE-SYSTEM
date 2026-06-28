@@ -343,16 +343,17 @@ function QrScannerModal({ token, API_BASE_URL, selectedSubjectId, subjects, onCl
           const canvas = canvasRef.current;
           if (canvas) {
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            canvas.width = 300;
-            canvas.height = 300;
             
-            // Draw cropped center square for performance and better targeting
-            const size = Math.min(video.videoWidth, video.videoHeight) * 0.6;
-            const sx = (video.videoWidth - size) / 2;
-            const sy = (video.videoHeight - size) / 2;
+            // OPTIMIZED: Capture full viewport with correct aspect ratio instead of distorting to square crop box
+            const targetWidth = 480;
+            const scale = targetWidth / video.videoWidth;
+            const targetHeight = Math.round(video.videoHeight * scale);
             
-            ctx.drawImage(video, sx, sy, size, size, 0, 0, 300, 300);
-            const imageData = ctx.getImageData(0, 0, 300, 300);
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            
+            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+            const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
             
             if (window.jsQR) {
               const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
