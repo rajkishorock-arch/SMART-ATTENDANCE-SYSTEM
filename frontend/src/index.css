@@ -3393,11 +3393,13 @@ html {
   }
 
   .notification-panel {
-    top: auto;
-    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-    left: 12px;
-    right: 12px;
-    width: auto;
+    top: calc(70px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    left: auto;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    width: 320px;
+    max-width: calc(100vw - 24px);
+    max-height: min(380px, calc(100dvh - 100px));
   }
 
   .scanner-modal-camera {

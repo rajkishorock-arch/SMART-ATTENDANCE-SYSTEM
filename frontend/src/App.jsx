@@ -1485,8 +1485,10 @@ export default function App() {
       setShowOnboardingGuide(true);
       sessionStorage.setItem('onboarding_seen', 'true');
     }
-    if (token && !localStorage.getItem('onboarding_tour_done')) {
+    if (token && sessionStorage.getItem('just_logged_in_tour') === 'true' && !localStorage.getItem('onboarding_tour_done')) {
       setTimeout(() => setShowOnboardingTour(true), 1500);
+      localStorage.setItem('onboarding_tour_done', 'true');
+      sessionStorage.removeItem('just_logged_in_tour');
     }
     const fx = loadFuturisticSettings();
     applyTheme(fx.themeId || 'default', fx.customPrimary);
@@ -6657,6 +6659,7 @@ export default function App() {
     playCyberSound('success');
     setIsDemoMode(true);
     localStorage.setItem('isDemoMode', 'true');
+    sessionStorage.setItem('just_logged_in_tour', 'true');
     setToken('guest-demo-token');
     localStorage.setItem('token', 'guest-demo-token');
     setUserRole(selectedRole);
@@ -6870,6 +6873,7 @@ export default function App() {
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('loginRole', loginRole);
           localStorage.setItem('userRole', loginRole);
+          sessionStorage.setItem('just_logged_in_tour', 'true');
           setToken(data.access_token);
           setUserRole(loginRole);
           setIsLoading(false);
@@ -6908,6 +6912,7 @@ export default function App() {
     localStorage.removeItem('userRole');
     localStorage.removeItem('isDemoMode');
     localStorage.removeItem('cached_user');
+    localStorage.removeItem('onboarding_tour_done');
     sessionInitializedRef.current = false;
     setToken('');
     setUserRole('');
@@ -8263,87 +8268,130 @@ export default function App() {
       {updateAvailable && !updateDismissed && (
         <div style={{
           position: 'fixed',
-          top: 0, left: 0, right: 0,
+          top: isMobileView ? '16px' : 0,
+          right: isMobileView ? '16px' : 0,
+          left: isMobileView ? 'auto' : 0,
+          width: isMobileView ? '290px' : '100%',
+          borderRadius: isMobileView ? '16px' : 0,
           zIndex: 99999,
-          background: 'linear-gradient(135deg, #0d9488, #0891b2)',
+          background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+          border: isMobileView ? '1px solid rgba(0, 242, 254, 0.3)' : 'none',
           color: '#fff',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-          padding: 'calc(env(safe-area-inset-top, 8px) + 10px) 16px 10px',
+          flexDirection: isMobileView ? 'column' : 'row',
+          alignItems: isMobileView ? 'stretch' : 'center',
+          justifyContent: isMobileView ? 'flex-start' : 'center',
+          gap: isMobileView ? '10px' : '12px',
+          padding: isMobileView ? '14px 16px' : 'calc(env(safe-area-inset-top, 8px) + 10px) 16px 10px',
           fontFamily: "'Inter', sans-serif",
-          fontSize: '0.85rem',
+          fontSize: '0.82rem',
           fontWeight: 600,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-          animation: 'slideDown 0.4s ease-out',
-          flexWrap: 'wrap',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+          animation: isMobileView ? 'fadeInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'slideDown 0.4s ease-out',
         }}>
-          <span>{updateAvailable.isOwnerBeta ? '🧪 Owner beta' : '🚀'} v{updateAvailable.version} {updateAvailable.isOwnerBeta ? 'ready to test!' : 'update available!'}</span>
-          <button
-            type="button"
-            onClick={() => {
-              if (updateAvailable?.downloadUrl) {
-                window.open(updateAvailable.downloadUrl, '_blank', 'noopener,noreferrer');
-              }
-              acknowledgeUpdateVersion(updateAvailable.version);
-              setUpdateAvailable(null);
-              setUpdateDismissed(true);
-              setUpdateDownloadedToast(true);
-              markCurrentVersionInstalled();
-              setTimeout(() => setUpdateDownloadedToast(false), 6000);
-            }}
-            style={{
-              background: '#fff',
-              color: '#0d9488',
-              padding: '5px 14px',
-              borderRadius: '6px',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              border: 'none',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            ⬇️ Download Update
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              acknowledgeUpdateVersion(updateAvailable.version);
-              setUpdateAvailable(null);
-              setUpdateDismissed(true);
-            }}
-            style={{
-              background: 'rgba(255,255,255,0.15)',
-              color: '#fff',
-              padding: '5px 12px',
-              borderRadius: '6px',
-              fontWeight: 600,
-              fontSize: '0.75rem',
-              border: '1px solid rgba(255,255,255,0.25)',
-              cursor: 'pointer',
-            }}
-          >
-            ✓ Already updated
-          </button>
-          <button
-            onClick={() => {
-              acknowledgeUpdateVersion(updateAvailable?.version);
-              setUpdateDismissed(true);
-              setUpdateAvailable(null);
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(255,255,255,0.8)',
-              fontSize: '1.2rem',
-              cursor: 'pointer',
-              padding: '0 4px',
-              lineHeight: 1,
-            }}
-            aria-label="Dismiss update"
-          >×</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.8rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {updateAvailable.isOwnerBeta ? '🧪' : '🚀'} New update v{updateAvailable.version} is ready!
+            </span>
+            {isMobileView && (
+              <button
+                onClick={() => {
+                  acknowledgeUpdateVersion(updateAvailable?.version);
+                  setUpdateDismissed(true);
+                  setUpdateAvailable(null);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
+                  padding: '0 4px',
+                  lineHeight: 1,
+                }}
+                aria-label="Dismiss update"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', justifyContent: isMobileView ? 'space-between' : 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (updateAvailable?.downloadUrl) {
+                  window.open(updateAvailable.downloadUrl, '_blank', 'noopener,noreferrer');
+                }
+                acknowledgeUpdateVersion(updateAvailable.version);
+                setUpdateAvailable(null);
+                setUpdateDismissed(true);
+                setUpdateDownloadedToast(true);
+                markCurrentVersionInstalled();
+                setTimeout(() => setUpdateDownloadedToast(false), 6000);
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #00f2fe, #4facfe)',
+                color: '#0f172a',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                border: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexGrow: 1,
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(0, 242, 254, 0.2)',
+              }}
+            >
+              ⬇️ Download APK
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                acknowledgeUpdateVersion(updateAvailable.version);
+                setUpdateAvailable(null);
+                setUpdateDismissed(true);
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                color: '#cbd5e1',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                border: '1px solid rgba(255,255,255,0.1)',
+                cursor: 'pointer',
+                flexGrow: isMobileView ? 0 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+          
+          {!isMobileView && (
+            <button
+              onClick={() => {
+                acknowledgeUpdateVersion(updateAvailable?.version);
+                setUpdateDismissed(true);
+                setUpdateAvailable(null);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'rgba(255,255,255,0.8)',
+                fontSize: '1.2rem',
+                cursor: 'pointer',
+                padding: '0 4px',
+                lineHeight: 1,
+              }}
+              aria-label="Dismiss update"
+            >
+              ×
+            </button>
+          )}
         </div>
       )}
 
@@ -8393,7 +8441,7 @@ export default function App() {
         />
       )}
       {showOnboardingTour && (
-        <OnboardingTour isMobile={isMobileView} onComplete={() => setShowOnboardingTour(false)} />
+        <OnboardingTour isMobile={isMobileView} onComplete={() => { setShowOnboardingTour(false); localStorage.setItem('onboarding_tour_done', 'true'); }} />
       )}
 
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
