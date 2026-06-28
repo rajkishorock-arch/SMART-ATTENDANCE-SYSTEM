@@ -662,6 +662,329 @@ function QrScannerModal({ token, API_BASE_URL, selectedSubjectId, subjects, onCl
     </div>
   );
 }
+// =====================================================================
+// INTERACTIVE ONBOARDING GUIDE MODAL
+// =====================================================================
+function OnboardingGuideModal({ onClose, playCyberSound }) {
+  const [slide, setSlide] = React.useState(0);
+
+  const slides = [
+    {
+      title: "🧭 Welcome to Smart Attendance!",
+      desc: "Let's take a quick 1-minute tour to understand how to use and navigate the system easily.",
+      icon: "✨",
+      color: "#00f2fe",
+      content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#d1d5db' }}>
+          <p><strong>1. Main Navigation Sidebar:</strong> Switch between logs, reports, profiles, leaves, and configurations on the left panel (bottom menu on mobile).</p>
+          <p><strong>2. Profile & Status Check:</strong> Click on "My Profile" at any time to view your enrolled credentials, department mapping, and settings details.</p>
+          <p><strong>3. Institution Customization:</strong> Admins can manage themes, lock down access subnet IPs, and establish geofencing parameters.</p>
+        </div>
+      )
+    },
+    {
+      title: "🎓 Student Dashboard Walkthrough",
+      desc: "Here is how students can track their status and register presence dynamically.",
+      icon: "🎓",
+      color: "#fb923c",
+      content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#d1d5db' }}>
+          <p><strong>📊 Attendance Forecast:</strong> Real-time indicator displaying your presence rate. Shows if you are safe or how many classes you must attend to cross the 75% limit.</p>
+          <p><strong>🪪 Virtual ID Check-in:</strong> Open your Virtual ID card to generate a dynamic check-in QR code that rotates every 30 seconds for security. Present it to the teacher's scanner.</p>
+          <p><strong>📝 Subject-wise Leaves:</strong> Apply for medical/personal leaves select-wise. These route directly to the respective subject teacher.</p>
+        </div>
+      )
+    },
+    {
+      title: "🏫 Teacher & Admin Control Panel",
+      desc: "Manage classes, schedules, and record student attendance smoothly.",
+      icon: "🏫",
+      color: "#a78bfa",
+      content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#d1d5db' }}>
+          <p><strong>⚡ Start Session:</strong> Set the subject and date, then initialize the class session to open scanning checks.</p>
+          <p><strong>📸 Dual Scan Options:</strong> Use high-precision <strong>Face Scanner</strong> to verify registered biometric faces, or <strong>Scan Student QR</strong> to verify dynamic check-in tokens.</p>
+          <p><strong>📋 Review Leaves:</strong> Teachers review leaves for their respective subjects. Admins oversee the entire system logs centrally.</p>
+        </div>
+      )
+    },
+    {
+      title: "🤖 AI Assistant & Speech Commands",
+      desc: "Leverage advanced voice features and virtual support directly.",
+      icon: "🤖",
+      color: "#10b981",
+      content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#d1d5db' }}>
+          <p><strong>💬 AI Chatbot Counselor:</strong> Talk to the smart assistant for instant help on leaves, system stats, or profile details.</p>
+          <p><strong>🗣️ Voice Speech Commands:</strong> Click the microphone and say commands to control the app automatically:
+            <br />• <em>"start scanner"</em> — launches face recognition modal.
+            <br />• <em>"open profile"</em> / <em>"open leaves"</em> — navigates tabs.
+            <br />• <em>"logout"</em> — logs out of the app.
+          </p>
+        </div>
+      )
+    }
+  ];
+
+  const handleNext = () => {
+    if (playCyberSound) playCyberSound('click');
+    if (slide < slides.length - 1) {
+      setSlide(slide + 1);
+    } else {
+      onClose();
+    }
+  };
+
+  const handlePrev = () => {
+    if (playCyberSound) playCyberSound('click');
+    if (slide > 0) {
+      setSlide(slide - 1);
+    }
+  };
+
+  const current = slides[slide];
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 999999,
+      background: 'rgba(5, 8, 20, 0.9)', backdropFilter: 'blur(10px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '20px',
+      animation: 'fadeIn 0.25s ease'
+    }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{
+        background: 'linear-gradient(135deg, #090c15 0%, #15182b 100%)',
+        border: `1.5px solid ${current.color}40`,
+        borderRadius: '24px', padding: '32px',
+        width: '100%', maxWidth: '480px',
+        boxShadow: `0 0 40px ${current.color}15, 0 10px 40px rgba(0,0,0,0.5)`,
+        position: 'relative', overflow: 'hidden',
+        transition: 'all 0.3s ease-out',
+        animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+      }}>
+        {/* Glowing decorative indicator */}
+        <div style={{
+          position: 'absolute', top: '-60px', right: '-60px',
+          width: '160px', height: '160px',
+          background: `radial-gradient(circle, ${current.color}15 0%, transparent 70%)`,
+          borderRadius: '50%', pointerEvents: 'none'
+        }} />
+
+        <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: '#9ca3af', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>✕</button>
+
+        {/* Slide Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${current.color}15`, border: `1px solid ${current.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem' }}>
+            {current.icon}
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>{current.title}</h2>
+            <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '4px 0 0' }}>{current.desc}</p>
+          </div>
+        </div>
+
+        {/* Slide Content */}
+        <div className="glass-panel" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '20px', borderRadius: '16px', minHeight: '190px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {current.content}
+        </div>
+
+        {/* Navigation Actions */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Progress Indicators */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {slides.map((_, idx) => (
+              <div key={idx} style={{ width: idx === slide ? '24px' : '8px', height: '8px', borderRadius: '4px', background: idx === slide ? current.color : 'rgba(255,255,255,0.15)', transition: 'all 0.3s ease' }} />
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {slide > 0 && (
+              <button onClick={handlePrev} style={{ padding: '8px 18px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#d1d5db', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
+                Back
+              </button>
+            )}
+            <button onClick={handleNext} style={{ padding: '10px 24px', borderRadius: '10px', background: current.color, border: 'none', color: '#000', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 15px ${current.color}30`, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+              {slide === slides.length - 1 ? "Start Exploring" : "Next Step"}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// AI ATTENDANCE FORECASTER & BUNK SIMULATOR CARD
+// =====================================================================
+function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
+  const [selectedSubId, setSelectedSubId] = React.useState('');
+  const [simType, setSimType] = React.useState('attend'); // 'attend' or 'bunk'
+  const [simCount, setSimCount] = React.useState(2);
+
+  React.useEffect(() => {
+    if (blueprintData.length > 0 && !selectedSubId) {
+      setSelectedSubId(blueprintData[0].subject_id);
+    }
+  }, [blueprintData, selectedSubId]);
+
+  if (blueprintData.length === 0) {
+    return (
+      <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(0,242,254,0.15)', background: 'rgba(255,255,255,0.01)', textAlign: 'center', color: '#9ca3af' }}>
+        <p style={{ fontSize: '1.4rem', margin: '0 0 8px' }}>🤖</p>
+        <p style={{ fontSize: '0.85rem', margin: 0 }}>Attendance logs are empty. Simulator will activate once class logs are recorded.</p>
+      </div>
+    );
+  }
+
+  const activeSub = blueprintData.find(s => s.subject_id === parseInt(selectedSubId)) || blueprintData[0];
+  
+  // Calculate stats
+  const vals = Object.values(activeSub?.calendar || {});
+  const present = vals.filter(v => v === 'Present').length;
+  const late = vals.filter(v => v === 'Late').length;
+  const absent = vals.filter(v => v === 'Absent').length;
+  const total = vals.length;
+  const currentRate = total > 0 ? ((present + late) / total) * 100 : 0;
+
+  // Simulate changes
+  const simTotal = total + simCount;
+  const simPresent = simType === 'attend' ? (present + late) + simCount : (present + late);
+  const simRate = simTotal > 0 ? (simPresent / simTotal) * 100 : 0;
+
+  const isSafe = simRate >= 75;
+
+  // Recommendation generator
+  const getRecommendation = () => {
+    if (total === 0) {
+      return `New course registered. Attending your initial classes is critical to establish a strong attendance base.`;
+    }
+    if (simType === 'bunk') {
+      if (simRate < 75) {
+        return `⚠️ Critically Unsafe! Bunking the next ${simCount} lecture(s) of ${activeSub.subject_name} will drag your attendance down to ${simRate.toFixed(1)}% (below the 75% limit). You should attend all classes.`;
+      } else if (simRate < 77) {
+        return `⚠️ Risk Warning! Bunking will drop your attendance to ${simRate.toFixed(1)}%. You will remain just above the border zone. Avoid missing classes.`;
+      } else {
+        const canBunkMax = Math.floor((present + late) / 0.75 - total);
+        return `🟢 You can safely bunk. Your attendance will remain at ${simRate.toFixed(1)}%. Technically, you can miss up to ${canBunkMax} lectures of this subject without dropping below 75%.`;
+      }
+    } else {
+      if (currentRate < 75 && simRate >= 75) {
+        return `🎉 Breakthrough! Attending the next ${simCount} lecture(s) will lift your attendance to ${simRate.toFixed(1)}%, successfully restoring your status back into the safe zone.`;
+      } else if (currentRate < 75) {
+        const remaining = Math.ceil((0.75 * total - (present + late)) / 0.25);
+        return `📈 Keep going! Attending these ${simCount} classes raises your status to ${simRate.toFixed(1)}%. You need to attend at least ${remaining} consecutive classes to reach 75%.`;
+      } else {
+        return `🚀 Excellent drive! Attending ${simCount} more classes increases your rating to ${simRate.toFixed(1)}%, solidifying your safe buffer and academic profile.`;
+      }
+    }
+  };
+
+  return (
+    <div className="glass-panel" style={{
+      padding: '24px', borderRadius: '20px',
+      border: `1px solid ${isSafe ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+      background: 'linear-gradient(135deg, rgba(9,12,21,0.98) 0%, rgba(22,22,44,0.98) 100%)',
+      boxShadow: `0 8px 32px rgba(0,0,0,0.3)`
+    }}>
+      {/* Title */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(0,242,254,0.1)', border: '1px solid rgba(0,242,254,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+            🤖
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc' }}>AI Attendance Forecaster & Bunk Simulator</h3>
+            <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>Select a subject to project future attendance and safety margins</p>
+          </div>
+        </div>
+
+        {/* Subject Select */}
+        <select value={selectedSubId} onChange={e => {
+          setSelectedSubId(e.target.value);
+          if (playCyberSound) playCyberSound('click');
+        }} style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(30,30,45,0.98)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.8rem', outline: 'none' }}>
+          {blueprintData.map(sub => (
+            <option key={sub.subject_id} value={sub.subject_id}>{sub.subject_name} ({sub.subject_code})</option>
+          ))}
+        </select>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flexWrap: 'wrap' }}>
+        {/* Left Side: Inputs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Toggle Type */}
+          <div>
+            <label style={{ fontSize: '0.72rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>Simulation Scenario</label>
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '4px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={() => { setSimType('attend'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'attend' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent', color: simType === 'attend' ? '#000' : '#9ca3af', transition: 'all 0.2s' }}>
+                🟢 Attend Lectures
+              </button>
+              <button onClick={() => { setSimType('bunk'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'bunk' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent', color: simType === 'bunk' ? '#fff' : '#9ca3af', transition: 'all 0.2s' }}>
+                🔴 Bunk Lectures
+              </button>
+            </div>
+          </div>
+
+          {/* Slider Count */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <label style={{ fontSize: '0.72rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px' }}>Number of Classes</label>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: simType === 'attend' ? '#10b981' : '#ef4444' }}>{simCount} class{simCount !== 1 ? 'es' : ''}</span>
+            </div>
+            <input type="range" min="1" max="15" value={simCount} onChange={e => setSimCount(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: simType === 'attend' ? '#10b981' : '#ef4444', height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.1)', cursor: 'pointer' }} />
+          </div>
+        </div>
+
+        {/* Right Side: Projections Output */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Current Attendance</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: currentRate >= 75 ? '#10b981' : '#ef4444' }}>{currentRate.toFixed(1)}%</span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '10px' }}>
+            <span style={{ fontSize: '0.75rem', color: '#d1d5db', fontWeight: 600 }}>Forecasted Attendance</span>
+            <span style={{
+              fontSize: '1.2rem', fontWeight: 800,
+              color: isSafe ? '#10b981' : '#ef4444',
+              textShadow: isSafe ? '0 0 10px rgba(16,185,129,0.3)' : '0 0 10px rgba(239,68,68,0.3)'
+            }}>{simRate.toFixed(1)}%</span>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ width: `${Math.min(simRate, 100)}%`, height: '100%', background: isSafe ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #ef4444, #f87171)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
+          </div>
+
+          {/* Safety margin badge */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <span style={{
+              padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase',
+              background: isSafe ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+              color: isSafe ? '#10b981' : '#ef4444',
+              border: `1px solid ${isSafe ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`
+            }}>
+              {isSafe ? '🟢 SAFE BUFFER' : '🔴 WARNING: BELOW 75%'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Recommendation Message */}
+      <div style={{
+        marginTop: '16px', padding: '12px 16px', borderRadius: '10px',
+        background: isSafe ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.04)',
+        borderLeft: `3px solid ${isSafe ? '#10b981' : '#ef4444'}`,
+        color: '#d1d5db', fontSize: '0.8rem', lineHeight: 1.45
+      }}>
+        <strong>🤖 AI Coach:</strong> {getRecommendation()}
+      </div>
+    </div>
+  );
+}
+
 function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
   const [qrToken, setQrToken] = React.useState(null);
   const [countdown, setCountdown] = React.useState(30);
@@ -1138,7 +1461,15 @@ export default function App() {
   const [isLoadingStudentLogs, setIsLoadingStudentLogs] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [showVirtualId, setShowVirtualId] = useState(false);
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
   const [showQrScannerModal, setShowQrScannerModal] = useState(false);
+  
+  useEffect(() => {
+    if (token && !sessionStorage.getItem('onboarding_seen')) {
+      setShowOnboardingGuide(true);
+      sessionStorage.setItem('onboarding_seen', 'true');
+    }
+  }, [token]);
   const [geofenceStatus, setGeofenceStatus] = useState({ checked: false, inside: false, distance: null });
   // Subject-wise Blueprint Calendar States
   const [blueprintData, setBlueprintData] = useState([]); // [{subject_id, subject_name, subject_code, calendar: {date->status}}]
@@ -7985,6 +8316,46 @@ export default function App() {
             style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '1.1rem', cursor: 'pointer', padding: '0 2px', lineHeight: 1, marginLeft: '8px' }}
           >×</button>
         </div>
+      )}
+
+      {/* ===== ONBOARDING GUIDE MODAL ===== */}
+      {showOnboardingGuide && (
+        <OnboardingGuideModal
+          onClose={() => setShowOnboardingGuide(false)}
+          playCyberSound={playCyberSound}
+        />
+      )}
+
+      {/* Floating Tour Guide Launcher */}
+      {token && (
+        <button
+          onClick={() => {
+            playCyberSound('click');
+            setShowOnboardingGuide(true);
+          }}
+          style={{
+            position: 'fixed', bottom: '84px', left: '24px', zIndex: 9999,
+            background: 'rgba(9, 12, 21, 0.85)', backdropFilter: 'blur(10px)',
+            border: '1.5px solid rgba(0, 242, 254, 0.4)',
+            boxShadow: '0 0 15px rgba(0, 242, 254, 0.15)',
+            borderRadius: '30px', padding: '10px 20px',
+            color: '#00f2fe', fontSize: '0.82rem', fontWeight: 800,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+            e.currentTarget.style.borderColor = 'rgba(0, 242, 254, 0.8)';
+            e.currentTarget.style.boxShadow = '0 0 25px rgba(0, 242, 254, 0.3)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.borderColor = 'rgba(0, 242, 254, 0.4)';
+            e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 242, 254, 0.15)';
+          }}
+        >
+          🧭 Quick Tour Guide
+        </button>
       )}
 
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
@@ -15286,6 +15657,12 @@ export default function App() {
                 />
               </div>
             </div>
+
+            {/* AI Attendance Forecaster & Bunk Simulator */}
+            <AiAttendanceForecaster
+              blueprintData={blueprintData}
+              playCyberSound={playCyberSound}
+            />
 
             {/* My Leave Requests History */}
             {studentLeaveRequests.length > 0 && (
