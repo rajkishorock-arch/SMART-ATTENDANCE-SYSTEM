@@ -8326,38 +8326,6 @@ export default function App() {
         />
       )}
 
-      {/* Floating Tour Guide Launcher */}
-      {token && (
-        <button
-          onClick={() => {
-            playCyberSound('click');
-            setShowOnboardingGuide(true);
-          }}
-          style={{
-            position: 'fixed', bottom: '84px', left: '24px', zIndex: 9999,
-            background: 'rgba(9, 12, 21, 0.85)', backdropFilter: 'blur(10px)',
-            border: '1.5px solid rgba(0, 242, 254, 0.4)',
-            boxShadow: '0 0 15px rgba(0, 242, 254, 0.15)',
-            borderRadius: '30px', padding: '10px 20px',
-            color: '#00f2fe', fontSize: '0.82rem', fontWeight: 800,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            e.currentTarget.style.borderColor = 'rgba(0, 242, 254, 0.8)';
-            e.currentTarget.style.boxShadow = '0 0 25px rgba(0, 242, 254, 0.3)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.borderColor = 'rgba(0, 242, 254, 0.4)';
-            e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 242, 254, 0.15)';
-          }}
-        >
-          🧭 Quick Tour Guide
-        </button>
-      )}
-
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       {crtOverlayEnabled && <div className="crt-vignette" />}
       <AppAmbientLayer activeTab={activeTab} isMobile={isMobileView} />
