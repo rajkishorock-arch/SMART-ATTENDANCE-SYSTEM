@@ -69,7 +69,6 @@ def read_subjects(
         db_subjects = db.query(models.Subject).join(
             models.User, models.Subject.teacher_id == models.User.id
         ).filter(
-            models.Subject.department == student.dep,
             models.Subject.institution_id == institution_id,
             models.User.role == "teacher"
         ).all()
