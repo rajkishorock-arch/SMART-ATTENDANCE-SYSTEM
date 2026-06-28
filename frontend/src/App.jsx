@@ -83,7 +83,19 @@ import VersionBadge from './components/VersionBadge';
 import PremiumUpgradeHub from './components/PremiumUpgradeHub';
 import ExplorationLab from './components/ExplorationLab';
 import CameraSettingsPanel from './components/CameraSettingsPanel';
-import OwnerPremiumPanel from './components/OwnerPremiumPanel';
+import FuturisticFeaturesHub from './components/FuturisticFeaturesHub';
+import LiveCommandCenter from './components/LiveCommandCenter';
+import QuickActionsDock from './components/QuickActionsDock';
+import SmartEmptyState from './components/SmartEmptyState';
+import OnboardingTour from './components/OnboardingTour';
+import ClassroomLiveGrid from './components/ClassroomLiveGrid';
+import OfflineBanner from './components/OfflineBanner';
+import PullToRefresh from './components/PullToRefresh';
+import SmartSuggestionsBar from './components/SmartSuggestionsBar';
+import ScanStreakCounter from './components/ScanStreakCounter';
+import TeacherMiniDashboard from './components/TeacherMiniDashboard';
+import StudentAttendanceWallet from './components/StudentAttendanceWallet';
+import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings } from './utils/futuristicFeatures';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -1462,6 +1474,9 @@ export default function App() {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [showVirtualId, setShowVirtualId] = useState(false);
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
+  const [showOnboardingTour, setShowOnboardingTour] = useState(false);
+  const [liveFaceGrid, setLiveFaceGrid] = useState([]);
+  const konamiRef = useRef([]);
   const [showQrScannerModal, setShowQrScannerModal] = useState(false);
   
   useEffect(() => {
@@ -1469,7 +1484,23 @@ export default function App() {
       setShowOnboardingGuide(true);
       sessionStorage.setItem('onboarding_seen', 'true');
     }
+    if (token && !localStorage.getItem('onboarding_tour_done')) {
+      setTimeout(() => setShowOnboardingTour(true), 1500);
+    }
+    const fx = loadFuturisticSettings();
+    applyTheme(fx.themeId || 'default', fx.customPrimary);
   }, [token]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      konamiRef.current = [...konamiRef.current, e.key].slice(-12);
+      if (checkKonamiCode(konamiRef.current)) {
+        playCyberSound('success');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const [geofenceStatus, setGeofenceStatus] = useState({ checked: false, inside: false, distance: null });
   // Subject-wise Blueprint Calendar States
   const [blueprintData, setBlueprintData] = useState([]); // [{subject_id, subject_name, subject_code, calendar: {date->status}}]
@@ -4443,9 +4474,8 @@ export default function App() {
             }
             playCyberSound('success');
             if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
-            if (cameraScanSettings.hapticFeedback && navigator.vibrate) {
-              navigator.vibrate(newlyMarkedList.length ? [40, 30, 40] : 20);
-            }
+            triggerHaptic(newlyMarkedList.length ? [40, 30, 40] : 20);
+            if (newlyMarkedList.length) recordScan(newlyMarkedList.length);
 
             const now = new Date();
             const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -4475,8 +4505,10 @@ export default function App() {
 
             if (newlyMarkedList.length > 1) {
               handleSpeak(`Attendance marked for ${newlyMarkedList.length} students.`);
+              speakScanner(`${newlyMarkedList.length} students marked!`);
             } else if (newlyMarkedList.length === 1) {
               handleSpeak(`Attendance marked for ${newlyMarkedList[0].name}.`);
+              speakScanner(`${newlyMarkedList[0].name} marked!`);
             } else if (count === 1) {
               handleSpeak(`${primary.name}, your attendance is already marked.`);
             } else {
@@ -5103,6 +5135,12 @@ export default function App() {
             lastFaceBoxRef.current = boxes[0] || null;
             lastFaceDetectedRef.current = true;
             setFaceDetected(true);
+            setLiveFaceGrid(boxes.map((b, idx) => ({
+              id: `face-${idx}`,
+              name: idx === 0 ? 'Primary Face' : `Face #${idx + 1}`,
+              confidence: b.score || 0.85,
+              status: livenessStatusRef.current === 'verified' ? 'Verified' : 'Detecting',
+            })));
             if (livenessStatusRef.current === 'verifying') {
               setLivenessMessage(livenessBypassRef.current ? 'Scanning...' : 'Face locked — blink to verify');
               setScanStatus(livenessBypassRef.current ? 'Scanning...' : 'Face detected — blink once');
@@ -5112,6 +5150,7 @@ export default function App() {
             lastFaceBoxRef.current = null;
             lastFaceDetectedRef.current = false;
             setFaceDetected(false);
+            setLiveFaceGrid([]);
             if (livenessStatusRef.current === 'verifying') {
               setLivenessMessage('Position your face in the frame');
               setScanStatus('Searching for face...');
@@ -8325,8 +8364,12 @@ export default function App() {
           playCyberSound={playCyberSound}
         />
       )}
+      {showOnboardingTour && (
+        <OnboardingTour isMobile={isMobileView} onComplete={() => setShowOnboardingTour(false)} />
+      )}
 
       {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
+      <OfflineBanner />
       {crtOverlayEnabled && <div className="crt-vignette" />}
       <AppAmbientLayer activeTab={activeTab} isMobile={isMobileView} />
       <ClickFxLayer activeTab={activeTab} enabled={explorationSettings.clickRipples !== false} />
@@ -8413,6 +8456,8 @@ export default function App() {
               mode="attendance"
               livenessStatus={livenessStatus}
             />
+
+            <ClassroomLiveGrid faces={liveFaceGrid} />
 
             {/* Video or Image element based on cameraSource */}
             {cameraScanSettings?.cameraSource === 'external' ? (
@@ -9007,6 +9052,7 @@ export default function App() {
 
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
+          <PullToRefresh onRefresh={async () => { await fetchStats(); await fetchLogs(); }}>
           <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
             {activeDashboardSubTab !== null && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -9041,6 +9087,25 @@ export default function App() {
                     />
                   </div>
                 </div>
+                <LiveCommandCenter stats={stats} scannerLive={attendanceActive || scannerBootActive} lateCount={stats.total_late_today} />
+                <SmartSuggestionsBar
+                  hasPremium={hasPremiumAccess}
+                  scannerUsed={recognizedStudents.length > 0}
+                  onAction={(action) => {
+                    playCyberSound('click');
+                    if (action === 'scanner') navigateToTab('attendance');
+                    else if (action === 'settings_geofence') { navigateToTab('settings'); setActiveSubSetting('geofencing'); }
+                    else if (action === 'exploration') { navigateToTab('settings'); setActiveSubSetting('exploration'); }
+                    else if (action === 'premium') { navigateToTab('settings'); setActiveSubSetting('premium'); }
+                    else if (action === 'productivity') { navigateToTab('settings'); setActiveSubSetting('productivity'); }
+                  }}
+                />
+                {userRole === 'teacher' && (
+                  <TeacherMiniDashboard stats={stats} subjects={subjects} teacherName={currentUser?.name} />
+                )}
+                {userRole !== 'student' && token && (
+                  <ScanStreakCounter apiBaseUrl={API_BASE_URL} token={token} />
+                )}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -9763,6 +9828,7 @@ export default function App() {
               </div>
             )}
           </div>
+          </PullToRefresh>
         )}
 
         {activeTab === 'students' && (
@@ -11594,10 +11660,12 @@ export default function App() {
               
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {recognizedStudents.length === 0 ? (
-                  <div className="flex-center" style={{ flex: 1, color: '#9ca3af', flexDirection: 'column', gap: '12px', padding: '40px 0' }}>
-                    <Users size={32} />
-                    <span>No students logged in this session yet.</span>
-                  </div>
+                  <SmartEmptyState
+                    title="Pehli class scan karo"
+                    message="Face scanner kholo ya QR fallback use karo — students yahan dikhenge."
+                    actionLabel="Open Face Scanner"
+                    onAction={() => { playCyberSound('click'); setShowScannerModal(true); }}
+                  />
                 ) : (
                   recognizedStudents.map((student, idx) => (
                     <div 
@@ -12932,6 +13000,20 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* Category Card: Futuristic Features Hub */}
+                  <div
+                    onClick={() => { setActiveSubSetting('futuristic'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🚀</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.12)', color: '#00f2fe' }}>NEW</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Futuristic Features Hub</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Theme Studio, Widget Home, Polls, Health Check, Campus Map, Premium Control, and more.</p>
+                  </div>
+
                   {/* Category Card: Premium Subscription */}
                   {userRole === 'admin' && (
                     <div
@@ -13647,26 +13729,38 @@ export default function App() {
               />
             )}
 
+            {activeSubSetting === 'futuristic' && (
+              <FuturisticFeaturesHub
+                apiBaseUrl={API_BASE_URL}
+                token={token}
+                userRole={userRole}
+                currentUser={currentUser}
+                isOwner={currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com'}
+                geofenceSettings={{
+                  center_latitude: parseFloat(localStorage.getItem('geo_lat') || '0'),
+                  center_longitude: parseFloat(localStorage.getItem('geo_lng') || '0'),
+                  allowed_radius_meters: parseFloat(localStorage.getItem('geo_radius') || '200'),
+                }}
+                releaseSettings={{
+                  betaActive: currentBetaActive,
+                  updateActive: updateActiveFlag,
+                  latestVersion: serverLatestVersion,
+                }}
+                onNavigateSettings={(sub) => setActiveSubSetting(sub)}
+              />
+            )}
+
             {activeSubSetting === 'premium' && userRole === 'admin' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {/* Owner Premium Grant Panel - visible to system owner only */}
-                {currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
-                  <div className="glass-panel" style={{ padding: '28px', borderLeft: '3px solid #fbbf24' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                      <span style={{ fontSize: '1.3rem' }}>👑</span>
-                      <h3 style={{ margin: 0, color: '#fbbf24', fontSize: '1.1rem', fontWeight: 700 }}>Owner Premium Access Control</h3>
-                      <span style={{ fontSize: '0.7rem', background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>OWNER ONLY</span>
-                    </div>
-                    <OwnerPremiumPanel apiBaseUrl={API_BASE_URL} token={token} />
-                  </div>
-                )}
-                {/* Premium Upgrade Hub for all admins */}
                 <PremiumUpgradeHub
                   apiBaseUrl={API_BASE_URL}
                   token={token}
                   currentUser={currentUser}
                   onPlanActivated={(plan) => setSubscriptionPlan(plan)}
                 />
+                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>
+                  Premium grant/revoke ke liye Futuristic Hub → Premium Control tab use karein.
+                </p>
               </div>
             )}
 
@@ -15393,6 +15487,7 @@ export default function App() {
 
         {activeTab === 'student-attendance' && (
           <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
+            <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} />
             <GamificationHub logs={studentLogs} />
 
             {/* ===== CAMPUS GEOFENCE LIVE INDICATOR ===== */}
@@ -18217,6 +18312,27 @@ export default function App() {
         onDecline={() => setShowConsentModal(false)}
       />
       {showPrivacyPolicy && <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />}
+
+      {token && userRole && (
+        <QuickActionsDock
+          userRole={userRole}
+          onScan={() => { navigateToTab('attendance'); setShowScannerModal(true); playCyberSound('click'); }}
+          onManual={() => { navigateToTab('attendance'); setIsManualAttendanceOpen(true); playCyberSound('click'); }}
+          onReport={() => { navigateToTab('reports'); playCyberSound('click'); }}
+          onNotify={async () => {
+            playCyberSound('click');
+            try {
+              const r = await fetch(`${API_BASE_URL}/interactive/notify-absent-batch`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notify_whatsapp: true }),
+              });
+              const d = await r.json();
+              alert(d.message || `Notified ${d.notified_count} parents`);
+            } catch { alert('Notify failed — check network'); }
+          }}
+        />
+      )}
 
       {token && userRole && (
         <BottomNav

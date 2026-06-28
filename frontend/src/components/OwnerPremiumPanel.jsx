@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Crown, Shield, UserCheck, XCircle, Search, Building2, Users, Plus, RefreshCw } from 'lucide-react';
 
-export default function OwnerPremiumPanel({ apiBaseUrl, token }) {
+export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }) {
   const [users, setUsers] = useState([]);
   const [allGrants, setAllGrants] = useState([]);
   const [masterPassword, setMasterPassword] = useState('');
@@ -152,16 +152,20 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token }) {
       )}
 
       {/* Tab Bar */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '2px' }}>
+      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '2px', flexWrap: 'wrap' }}>
         <button style={tabStyle('own')} onClick={() => setActiveTab('own')}>
           👥 My Institution Users ({users.length})
         </button>
-        <button style={tabStyle('manual')} onClick={() => setActiveTab('manual')}>
-          ✏️ Grant by Email (Any Institution)
-        </button>
-        <button style={tabStyle('all')} onClick={() => setActiveTab('all')}>
-          🌐 All Premium Grants ({allGrants.length})
-        </button>
+        {!isAdmin && (
+          <>
+            <button style={tabStyle('manual')} onClick={() => setActiveTab('manual')}>
+              ✏️ Grant by Email (Any Institution)
+            </button>
+            <button style={tabStyle('all')} onClick={() => setActiveTab('all')}>
+              🌐 All Premium Grants ({allGrants.length})
+            </button>
+          </>
+        )}
       </div>
 
       {/* Tab: Own Institution */}

@@ -261,3 +261,15 @@ class OfflineAttendanceQueue(Base):
         UniqueConstraint('institution_id', 'client_id', name='_offline_client_uc'),
     )
 
+
+class InteractivePoll(Base):
+    __tablename__ = "interactive_polls"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    question = Column(String(500), nullable=False)
+    options_json = Column(Text, nullable=False)  # JSON array of option strings
+    votes_json = Column(Text, default="{}")  # JSON map option_index -> count
+    created_by = Column(String(100), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

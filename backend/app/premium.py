@@ -70,14 +70,20 @@ class PremiumGrantByIdPayload(BaseModel):
     note: Optional[str] = None  # optional reason/note
 
 
+def _can_manage_institution_premium(user: models.User) -> bool:
+    if user.email.strip().lower() == config.SYSTEM_OWNER_EMAIL:
+        return True
+    return user.role == "admin"
+
+
 @router.post("/grant")
 def grant_or_revoke_premium(
     payload: PremiumGrantPayload,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
 ):
-    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
-        raise HTTPException(status_code=403, detail="Only the system owner can manage premium access.")
+    if not _can_manage_institution_premium(current_user):
+        raise HTTPException(status_code=403, detail="Only admins or the system owner can manage premium access.")
 
     if not verify_master_key_for_system_action(db, payload.master_password.strip(), current_user.institution_id):
         raise HTTPException(status_code=400, detail="Incorrect master password.")
@@ -191,8 +197,8 @@ def list_premium_grants(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
 ):
-    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
-        raise HTTPException(status_code=403, detail="Owner only.")
+    if not _can_manage_institution_premium(current_user):
+        raise HTTPException(status_code=403, detail="Admin or owner only.")
 
     users = db.query(models.User).filter(
         models.User.institution_id == current_user.institution_id,
