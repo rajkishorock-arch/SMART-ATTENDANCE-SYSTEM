@@ -77,6 +77,7 @@ import {
   acknowledgeUpdateVersion,
   markCurrentVersionInstalled,
   shouldShowUpdateBanner,
+  isUpdateNewer,
 } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
 import VersionBadge from './components/VersionBadge';
@@ -1651,35 +1652,62 @@ export default function App() {
   }, [activeTab, activeSubSetting, activeDashboardSubTab, showChatBot, showFeedbackModal, showPrivacyPolicy, userRole]);
 
   // In-App Update Checker — pings backend /health/update-check on load + every 4 hrs
-  const checkForUpdate = useCallback(async () => {
+  const checkForUpdate = useCallback(async (isManual = false) => {
     try {
       const ownerEmail = currentUser?.email ? encodeURIComponent(currentUser.email) : '';
       const resp = await fetch(
         `${API_BASE_URL}/health/update-check?client_version=${encodeURIComponent(APP_VERSION)}${ownerEmail ? `&user_email=${ownerEmail}` : ''}`,
         { cache: 'no-store' }
       );
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        if (isManual) {
+          alert("Unable to contact the update server. Please check your internet connection.");
+        }
+        return;
+      }
       const data = await resp.json();
       const latestVersion = (data.latest_version || '').replace(/^v/i, '');
       setServerLatestVersion(latestVersion);
       setUpdateActiveFlag(!!data.update_active || !!data.update_beta_active);
 
-      if (data.update_available && shouldShowUpdateBanner(latestVersion, true)) {
+      // Explicitly check if update is available on server
+      const hasNewUpdate = data.update_available || isUpdateNewer(latestVersion, APP_VERSION);
+
+      if (hasNewUpdate) {
+        const downloadUrl = data.update_download_url || `https://github.com/rajkishorock-arch/SMART-ATTENDANCE-SYSTEM/releases/download/v${latestVersion}/app-release.apk`;
         setUpdateAvailable({
           version: latestVersion,
-          downloadUrl: data.update_download_url || '',
+          downloadUrl: downloadUrl,
           isOwnerBeta: !!data.is_owner_beta,
         });
         setUpdateDismissed(false);
+        
+        if (isManual) {
+          const confirmDownload = window.confirm(
+            `🚀 New Update Available!\n\nVersion: v${latestVersion}\nDescription: A new system release is ready for installation.\n\nWould you like to download the latest update package (APK) now?`
+          );
+          if (confirmDownload) {
+            window.open(downloadUrl, '_blank');
+          }
+        }
       } else {
         setUpdateAvailable(null);
         setUpdateDismissed(true);
         markCurrentVersionInstalled();
+        if (isManual) {
+          alert(`✨ Up to Date!\n\nYou are already using the latest version of the app (v${APP_VERSION}). No updates required at this time.`);
+        }
       }
     } catch (e) {
-      // silently ignore — no network is fine
+      if (isManual) {
+        alert("Failed to connect to the update check endpoint. Please check your internet connection.");
+      }
     }
   }, [currentUser?.email]);
+
+  const handleManualCheck = useCallback(() => {
+    checkForUpdate(true);
+  }, [checkForUpdate]);
 
   useEffect(() => {
     checkForUpdate();
@@ -8666,7 +8694,7 @@ export default function App() {
             compact
             serverLatest={serverLatestVersion}
             updateActive={updateActiveFlag}
-            onCheckUpdate={checkForUpdate}
+            onCheckUpdate={handleManualCheck}
           />
         </div>
 
@@ -9083,7 +9111,7 @@ export default function App() {
                       compact
                       serverLatest={serverLatestVersion}
                       updateActive={updateActiveFlag}
-                      onCheckUpdate={checkForUpdate}
+                      onCheckUpdate={handleManualCheck}
                     />
                   </div>
                 </div>
@@ -13032,7 +13060,7 @@ export default function App() {
 
                   {/* Category Card: App Version */}
                   <div
-                    onClick={() => { setActiveSubSetting('app_version'); playCyberSound('click'); checkForUpdate(); }}
+                    onClick={() => { setActiveSubSetting('app_version'); playCyberSound('click'); handleManualCheck(); }}
                     className="glass-panel hover-card"
                     style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
                   >
@@ -13770,7 +13798,7 @@ export default function App() {
                 <VersionBadge
                   serverLatest={serverLatestVersion}
                   updateActive={updateActiveFlag}
-                  onCheckUpdate={checkForUpdate}
+                  onCheckUpdate={handleManualCheck}
                 />
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0 }}>
                   After installing a new APK, tap the button below to confirm and hide the update banner until the next release.
