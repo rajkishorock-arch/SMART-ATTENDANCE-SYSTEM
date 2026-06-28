@@ -372,6 +372,26 @@
   gap: 12px;
 }
 
+@media (max-width: 768px) {
+  .teacher-mini-dashboard {
+    display: flex !important;
+    overflow-x: auto !important;
+    padding-bottom: 8px !important;
+    gap: 12px !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    width: 100% !important;
+  }
+  .teacher-mini-dashboard::-webkit-scrollbar {
+    display: none !important;
+  }
+  .teacher-mini-dashboard > div {
+    flex: 0 0 140px !important;
+    scroll-snap-align: start !important;
+  }
+}
+
 .student-wallet-card {
   background: linear-gradient(135deg, rgba(0, 242, 254, 0.1), rgba(167, 139, 250, 0.08));
   border: 1px solid rgba(0, 242, 254, 0.2);
