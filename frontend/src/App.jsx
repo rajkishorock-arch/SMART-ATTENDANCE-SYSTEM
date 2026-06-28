@@ -10264,7 +10264,7 @@ export default function App() {
                     </div>
                   )}
 
-                  <div className="table-container" style={{ maxHeight: '550px', overflowY: 'auto' }}>
+                  <div className="table-container" style={{ maxHeight: '550px', overflowY: 'auto', overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
                     <table className="custom-table">
                       <thead>
                         <tr>
@@ -12689,7 +12689,7 @@ export default function App() {
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
                     <AlertCircle size={20} /> At-Risk Students Leaderboard (&lt;75% Attendance)
                   </h3>
-                  <div className="table-container" style={{ maxHeight: '380px' }}>
+                  <div className="table-container" style={{ maxHeight: '380px', overflowY: 'auto', overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
                     <table className="custom-table">
                       <thead>
                         <tr>
