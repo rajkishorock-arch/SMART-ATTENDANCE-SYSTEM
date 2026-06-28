@@ -10062,7 +10062,7 @@ export default function App() {
             </div>
 
             {timetableSubTab === 'directory' ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '32px', width: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1.2fr 1.8fr', gap: isMobileView ? '20px' : '32px', width: '100%' }}>
                 {/* Form for manual registration / edit */}
                 <div className="glass-panel" style={{ padding: '32px' }}>
                   <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', marginBottom: '24px' }}>
