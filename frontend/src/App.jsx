@@ -9108,7 +9108,7 @@ export default function App() {
                 )}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gridTemplateColumns: isMobileView ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))',
                   gap: '20px'
                 }}>
                   {/* Category Card 1: Attendance Summary Metrics */}
