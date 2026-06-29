@@ -380,3 +380,31 @@ class LeaveRequestResponse(BaseModel):
 
 class LeaveStatusUpdate(BaseModel):
     status: str # "Approved" or "Rejected"
+
+
+# --- Public Registration Schemas ---
+class StudentPublicRegister(BaseModel):
+    name: str
+    email: EmailStr
+    roll: str
+    password: str
+    institution_code: str
+    dep: str
+    course: str
+    year: str
+    semester: str
+    gender: Optional[str] = None
+    dob: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    parent_name: Optional[str] = None
+    parent_email: Optional[str] = None
+    parent_phone: Optional[str] = None
+
+class TeacherPublicRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    institution_code: str
+    department: str
+

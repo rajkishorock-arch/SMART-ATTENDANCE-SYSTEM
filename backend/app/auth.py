@@ -283,3 +283,144 @@ def get_active_users_count(
         "admins": admins_count
     }
 
+
+from sqlalchemy import func
+
+@router.post("/register/student", status_code=status.HTTP_201_CREATED)
+def register_student_self(
+    payload: schemas.StudentPublicRegister,
+    db: Session = Depends(get_db)
+):
+    # Resolve institution by slug or master_key
+    inst = db.query(models.Institution).filter(
+        (func.lower(models.Institution.slug) == payload.institution_code.strip().lower()) |
+        (models.Institution.master_key == payload.institution_code.strip())
+    ).first()
+    
+    if not inst:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Institution Code or Slug! Please check the code provided by your college."
+        )
+        
+    # Check if email already registered
+    email_clean = payload.email.strip().lower()
+    existing_student_email = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == inst.id,
+        func.lower(models.StudentModel.email) == email_clean
+    ).first()
+    
+    if existing_student_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A student with this Email is already registered under this institution."
+        )
+        
+    # Check if roll number already registered
+    roll_clean = payload.roll.strip().lower()
+    existing_student_roll = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == inst.id,
+        func.lower(models.StudentModel.roll) == roll_clean
+    ).first()
+    
+    if existing_student_roll:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A student with this Roll Number is already registered under this institution."
+        )
+        
+    hashed_pw = security.get_password_hash(payload.password)
+    db_student = models.StudentModel(
+        institution_id=inst.id,
+        name=payload.name.strip(),
+        email=email_clean,
+        roll=payload.roll.strip(),
+        password_hash=hashed_pw,
+        dep=payload.dep.strip(),
+        course=payload.course.strip(),
+        year=payload.year.strip(),
+        semester=payload.semester.strip(),
+        gender=payload.gender,
+        dob=payload.dob,
+        phone=payload.phone,
+        address=payload.address,
+        parent_name=payload.parent_name,
+        parent_email=payload.parent_email,
+        parent_phone=payload.parent_phone
+    )
+    
+    db.add(db_student)
+    db.commit()
+    db.refresh(db_student)
+    
+    # Audit log
+    crud.create_audit_log(
+        db,
+        log=schemas.AuditLogCreate(
+            user_email=email_clean,
+            action=f"Student registered themselves under institution '{inst.name}'"
+        ),
+        institution_id=inst.id
+    )
+    
+    return {"message": "Registration successful! You can now log in.", "student_id": db_student.id}
+
+
+@router.post("/register/teacher", status_code=status.HTTP_201_CREATED)
+def register_teacher_self(
+    payload: schemas.TeacherPublicRegister,
+    db: Session = Depends(get_db)
+):
+    # Resolve institution by slug or master_key
+    inst = db.query(models.Institution).filter(
+        (func.lower(models.Institution.slug) == payload.institution_code.strip().lower()) |
+        (models.Institution.master_key == payload.institution_code.strip())
+    ).first()
+    
+    if not inst:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Institution Code or Slug! Please check the code provided by your college."
+        )
+        
+    # Check if email already registered
+    email_clean = payload.email.strip().lower()
+    existing_user_email = db.query(models.User).filter(
+        models.User.institution_id == inst.id,
+        func.lower(models.User.email) == email_clean
+    ).first()
+    
+    if existing_user_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A user with this Email is already registered under this institution."
+        )
+        
+    hashed_pw = security.get_password_hash(payload.password)
+    db_user = models.User(
+        institution_id=inst.id,
+        name=payload.name.strip(),
+        email=email_clean,
+        password_hash=hashed_pw,
+        role="teacher",
+        department=payload.department.strip(),
+        is_active=True
+    )
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    # Audit log
+    crud.create_audit_log(
+        db,
+        log=schemas.AuditLogCreate(
+            user_email=email_clean,
+            action=f"Teacher registered themselves under institution '{inst.name}'"
+        ),
+        institution_id=inst.id
+    )
+    
+    return {"message": "Registration successful! You can now log in.", "user_id": db_user.id}
+
+
