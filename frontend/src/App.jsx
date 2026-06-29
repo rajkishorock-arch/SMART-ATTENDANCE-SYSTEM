@@ -1483,13 +1483,16 @@ export default function App() {
   const [showQrScannerModal, setShowQrScannerModal] = useState(false);
   
   useEffect(() => {
-    if (token && !sessionStorage.getItem('onboarding_seen')) {
-      setShowOnboardingGuide(true);
-      sessionStorage.setItem('onboarding_seen', 'true');
-    }
-    if (token && sessionStorage.getItem('just_logged_in_tour') === 'true' && !localStorage.getItem('onboarding_tour_done')) {
-      setTimeout(() => setShowOnboardingTour(true), 1500);
-      localStorage.setItem('onboarding_tour_done', 'true');
+    const justLoggedIn = sessionStorage.getItem('just_logged_in_tour') === 'true';
+    if (token && justLoggedIn) {
+      if (!localStorage.getItem('onboarding_guide_done')) {
+        setShowOnboardingGuide(true);
+        localStorage.setItem('onboarding_guide_done', 'true');
+      }
+      if (!localStorage.getItem('onboarding_tour_done')) {
+        setTimeout(() => setShowOnboardingTour(true), 1500);
+        localStorage.setItem('onboarding_tour_done', 'true');
+      }
       sessionStorage.removeItem('just_logged_in_tour');
     }
     const fx = loadFuturisticSettings();
@@ -6915,6 +6918,7 @@ export default function App() {
     localStorage.removeItem('isDemoMode');
     localStorage.removeItem('cached_user');
     localStorage.removeItem('onboarding_tour_done');
+    localStorage.removeItem('onboarding_guide_done');
     sessionInitializedRef.current = false;
     setToken('');
     setUserRole('');
@@ -9272,6 +9276,77 @@ export default function App() {
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Live Telemetry Monitor</h3>
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Live active connections registry showing student, teacher, and administrator active session metrics.</p>
                   </div>
+                </div>
+
+                {/* Sleek Bottom Feedback Section */}
+                <div 
+                  className="glass-panel" 
+                  style={{ 
+                    marginTop: '28px',
+                    padding: '24px', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    flexWrap: 'wrap', 
+                    gap: '16px',
+                    borderLeft: '4px solid #00f2fe',
+                    background: 'linear-gradient(135deg, rgba(9, 12, 21, 0.6) 0%, rgba(21, 24, 43, 0.6) 100%)',
+                    boxShadow: '0 8px 32px 0 rgba(0, 242, 254, 0.05)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ 
+                      background: 'rgba(0, 242, 254, 0.1)', 
+                      color: '#00f2fe', 
+                      borderRadius: '12px', 
+                      padding: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 15px rgba(0, 242, 254, 0.2)'
+                    }}>
+                      <MessageSquare size={24} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Help Us Improve the Platform</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0' }}>
+                        Share your suggestions, report a bug, or rate your overall experience with our smart attendance tracker.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playCyberSound('click');
+                      setShowFeedbackModal(true);
+                    }}
+                    className="btn-primary"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      fontWeight: 600,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: 'linear-gradient(90deg, #00f2fe 0%, #4facfe 100%)',
+                      color: '#090c15',
+                      boxShadow: '0 0 20px rgba(0, 242, 254, 0.3)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.boxShadow = '0 0 30px rgba(0, 242, 254, 0.5)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 242, 254, 0.3)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <MessageSquare size={16} /> Share Feedback
+                  </button>
                 </div>
               </div>
             ) : (
@@ -16266,6 +16341,76 @@ export default function App() {
                 </div>
               );
             })()}
+
+            {/* Sleek Bottom Feedback Section */}
+            <div 
+              className="glass-panel" 
+              style={{ 
+                padding: '24px', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                flexWrap: 'wrap', 
+                gap: '16px',
+                borderLeft: '4px solid #00f2fe',
+                background: 'linear-gradient(135deg, rgba(9, 12, 21, 0.6) 0%, rgba(21, 24, 43, 0.6) 100%)',
+                boxShadow: '0 8px 32px 0 rgba(0, 242, 254, 0.05)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ 
+                  background: 'rgba(0, 242, 254, 0.1)', 
+                  color: '#00f2fe', 
+                  borderRadius: '12px', 
+                  padding: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 15px rgba(0, 242, 254, 0.2)'
+                }}>
+                  <MessageSquare size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Help Us Improve the Platform</h3>
+                  <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0' }}>
+                    Share your suggestions, report a bug, or rate your overall experience with our smart attendance tracker.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  playCyberSound('click');
+                  setShowFeedbackModal(true);
+                }}
+                className="btn-primary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: 'linear-gradient(90deg, #00f2fe 0%, #4facfe 100%)',
+                  color: '#090c15',
+                  boxShadow: '0 0 20px rgba(0, 242, 254, 0.3)',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.boxShadow = '0 0 30px rgba(0, 242, 254, 0.5)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 242, 254, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <MessageSquare size={16} /> Share Feedback
+              </button>
+            </div>
           </div>
         )}
 
@@ -18166,20 +18311,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) for Feedback - only shown when logged in */}
-      {token && (
-        <button 
-          className="feedback-fab" 
-          onClick={() => {
-            playCyberSound('click');
-            setShowFeedbackModal(true);
-          }}
-          title="Submit Feedback"
-          aria-label="Submit Feedback"
-        >
-          <MessageSquare size={24} />
-        </button>
-      )}
+
 
       {/* Feedback Submission Modal */}
       {showFeedbackModal && (
