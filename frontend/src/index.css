@@ -40,18 +40,18 @@ body[data-theme='matrix'] {
 }
 
 body[data-theme='obsidian'] {
-  --bg-primary: #080808;
-  --bg-secondary: #101010;
-  --bg-card: rgba(20, 20, 20, 0.55);
-  --bg-card-hover: rgba(30, 30, 30, 0.7);
-  --border-color: rgba(255, 40, 40, 0.08);
-  --border-color-glow: rgba(255, 40, 40, 0.35);
+  --bg-primary: #050608;
+  --bg-secondary: #0b0d11;
+  --bg-card: rgba(15, 18, 25, 0.65);
+  --bg-card-hover: rgba(22, 27, 38, 0.85);
+  --border-color: rgba(212, 175, 55, 0.15);
+  --border-color-glow: rgba(212, 175, 55, 0.45);
   
-  --color-primary: #ff3e3e;
-  --color-secondary: #b31b1b;
-  --color-purple: #ff007f;
-  --glow-shadow: 0 0 25px rgba(255, 62, 62, 0.25);
-  --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 62, 62, 0.05);
+  --color-primary: #ffd700;
+  --color-secondary: #d4af37;
+  --color-purple: #f3e5ab;
+  --glow-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+  --glass-shadow: 0 10px 45px -10px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(212, 175, 55, 0.15);
 }
 
 body[data-theme='violet'] {
