@@ -20,10 +20,17 @@ export default function SmartSuggestionsBar({ onAction, hasPremium, scannerUsed 
   };
 
   return (
-    <div className="smart-suggestions-bar">
+    <div className="smart-suggestions-bar" style={{
+      display: 'flex',
+      gap: '10px',
+      overflowX: 'auto',
+      width: '100%',
+      padding: '8px 0 12px',
+      WebkitOverflowScrolling: 'touch',
+    }}>
       <Sparkles size={16} style={{ color: 'var(--color-primary)', flexShrink: 0, alignSelf: 'center' }} />
       {visible.map((s) => (
-        <div key={s.id} className="suggestion-chip" onClick={() => onAction?.(s.action)}>
+        <div key={s.id} className="suggestion-chip" onClick={() => onAction?.(s.action)} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
           {s.text}
           <button
             type="button"

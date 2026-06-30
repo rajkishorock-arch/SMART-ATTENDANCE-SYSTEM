@@ -8943,8 +8943,8 @@ export default function App() {
       >
         <div className="sidebar-logo">
           <div style={{
-            background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(170, 124, 17, 0.15) 100%)',
-            border: '1px solid rgba(212, 175, 55, 0.4)',
+            background: 'linear-gradient(135deg, rgba(226, 232, 240, 0.15) 0%, rgba(148, 163, 184, 0.15) 100%)',
+            border: '1px solid rgba(226, 232, 240, 0.4)',
             borderRadius: '10px',
             padding: '4px',
             display: 'flex',
@@ -8954,35 +8954,31 @@ export default function App() {
             height: '36px'
           }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 48 48">
-              <path fill="url(#side-gold-glow)" d="M24 2C13.5 5.5 8 13.5 8 23c0 10.5 7.5 17.5 16 21 8.5-3.5 16-10.5 16-21 0-9.5-5.5-17.5-16-21z" opacity="0.4" />
-              <path fill="url(#side-gold-metallic)" stroke="url(#side-gold-stroke)" stroke-width="2.5" d="M24 4C14.5 7.2 9.5 14.5 9.5 23c0 9.5 6.8 15.8 14.5 19 7.7-3.2 14.5-9.5 14.5-19 0-8.5-5-15.8-14.5-19z" />
-              <circle cx="24" cy="23" r="8.5" fill="rgba(0,0,0,0.4)" stroke="url(#side-cyan-glow)" stroke-width="2" />
-              <circle cx="24" cy="23" r="5" fill="none" stroke="#00f2fe" stroke-width="1.5" />
-              <path stroke="url(#side-cyan-glow)" stroke-width="1.2" stroke-linecap="round" d="M20 18l3.5 1.5M28 18l-3.5 1.5M18 25l2-3.5M30 25l-2-3.5M24 29.5V26" />
+              <path fill="url(#side-plat-glow)" d="M24 2C13.5 5.5 8 13.5 8 23c0 10.5 7.5 17.5 16 21 8.5-3.5 16-10.5 16-21 0-9.5-5.5-17.5-16-21z" opacity="0.25" />
+              <path fill="url(#side-plat-metallic)" stroke="url(#side-plat-stroke)" stroke-width="2.5" d="M38 18C34 10 27 6 24 6c-8 0-14 6-17 14 0 0 10-6 17-6 6 0 10.5 4.5 10.5 9.5S30 33 24 33c-4.5 0-8.5-2.5-10.5-6.5C15.5 32 20.5 35 25 35c7.5 0 13-5 13-12 0-2 0-3.5 0-5z" />
+              <circle cx="20" cy="22" r="2" fill="#00f2fe" />
+              <circle cx="28" cy="25" r="2" fill="#00f2fe" />
+              <circle cx="24" cy="16" r="1.5" fill="#00f2fe" />
+              <path stroke="#00f2fe" stroke-width="0.8" stroke-dasharray="1 1" d="M20 22l4-6M28 25l-4-9M20 22l8 3" />
               <defs>
-                <linearGradient id="side-gold-metallic" x1="8" y1="2" x2="40" y2="44" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#FFF0A5" />
-                  <stop offset="35%" stop-color="#D4AF37" />
-                  <stop offset="70%" stop-color="#AA7C11" />
-                  <stop offset="100%" stop-color="#F3E5AB" />
+                <linearGradient id="side-plat-metallic" x1="10" y1="6" x2="38" y2="35" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FFFFFF" />
+                  <stop offset="40%" stop-color="#E2E8F0" />
+                  <stop offset="75%" stop-color="#94A3B8" />
+                  <stop offset="100%" stop-color="#CBD5E1" />
                 </linearGradient>
-                <linearGradient id="side-gold-stroke" x1="8" y1="2" x2="40" y2="44" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#FFF" />
-                  <stop offset="50%" stop-color="#D4AF37" />
-                  <stop offset="100%" stop-color="#5A3E00" />
+                <linearGradient id="side-plat-stroke" x1="10" y1="6" x2="38" y2="35" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FFFFFF" />
+                  <stop offset="100%" stop-color="#475569" />
                 </linearGradient>
-                <radialGradient id="side-gold-glow" cx="24" cy="23" r="21" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#FFD700" stop-opacity="0.6" />
-                  <stop offset="100%" stop-color="#FFD700" stop-opacity="0" />
+                <radialGradient id="side-plat-glow" cx="24" cy="23" r="20" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.5" />
+                  <stop offset="100%" stop-color="#00f2fe" stop-opacity="0" />
                 </radialGradient>
-                <linearGradient id="side-cyan-glow" x1="15.5" y1="14.5" x2="32.5" y2="31.5" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#00f2fe" />
-                  <stop offset="100%" stop-color="#4f46e5" />
-                </linearGradient>
               </defs>
             </svg>
           </div>
-          <span className="text-gradient" style={{ fontWeight: 800, background: 'linear-gradient(135deg, #FFF0A5 0%, #D4AF37 50%, #AA7C11 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE"}</span>
+          <span className="text-gradient" style={{ fontWeight: 800, background: 'linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 50%, #94A3B8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE"}</span>
         </div>
         <div style={{ padding: '0 16px 12px', display: 'flex', justifyContent: 'center' }}>
           <VersionBadge
@@ -9416,17 +9412,28 @@ export default function App() {
                 {userRole !== 'student' && (
                   <div style={{
                     display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                    padding: '16px 20px',
+                    flexDirection: isMobileView ? 'column' : 'row',
+                    gap: '10px',
+                    padding: isMobileView ? '10px 14px' : '12px 18px',
                     background: 'rgba(0,0,0,0.35)',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '14px',
-                    alignItems: 'center',
+                    borderRadius: '12px',
+                    alignItems: isMobileView ? 'flex-start' : 'center',
                     justifyContent: 'space-between',
+                    minHeight: 'auto',
                   }}>
-                    <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'monospace' }}>🚀 ADVANCED FEATURES</span>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'monospace' }}>🚀 ADVANCED FEATURES</span>
+                    
+                    {/* Horizontal scroll container for features on mobile devices */}
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '8px', 
+                      alignItems: 'center',
+                      width: '100%',
+                      overflowX: 'auto',
+                      paddingBottom: isMobileView ? '6px' : '0',
+                      WebkitOverflowScrolling: 'touch',
+                    }}>
 
                       {/* Feature 2: WebSocket Live Status - Redirects directly to scanner */}
                       <div 
@@ -9436,11 +9443,13 @@ export default function App() {
                         }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '7px',
-                          padding: '6px 14px',
+                          padding: '6px 12px',
                           background: wsConnected ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
                           border: `1px solid ${wsConnected ? 'rgba(16,185,129,0.4)' : 'rgba(107,114,128,0.3)'}`,
                           borderRadius: '20px',
                           cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
                         }}
                       >
                         <span style={{
@@ -9450,7 +9459,7 @@ export default function App() {
                           animation: wsConnected ? 'pulse 1.5s infinite' : 'none',
                           display: 'inline-block',
                         }} />
-                        <span style={{ color: wsConnected ? '#10b981' : '#9ca3af', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'monospace' }}>
+                        <span style={{ color: wsConnected ? '#10b981' : '#9ca3af', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'monospace' }}>
                           {wsConnected ? 'LIVE SYNC ON' : 'LIVE SYNC OFF'}
                         </span>
                       </div>
@@ -9458,13 +9467,15 @@ export default function App() {
                       {/* Feature 3: Biometric Encryption */}
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '7px',
-                        padding: '6px 14px',
+                        padding: '6px 12px',
                         background: 'rgba(99,102,241,0.15)',
                         border: '1px solid rgba(99,102,241,0.4)',
                         borderRadius: '20px',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
                       }}>
-                        <span style={{ fontSize: '0.85rem' }}>🔐</span>
-                        <span style={{ color: '#818cf8', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'monospace' }}>BIOMETRIC ENCRYPTED</span>
+                        <span style={{ fontSize: '0.8rem' }}>🔐</span>
+                        <span style={{ color: '#818cf8', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'monospace' }}>BIOMETRIC ENCRYPTED</span>
                       </div>
 
                       {/* Feature 4: Risk Analytics shortcut - Sets direct tab hash parameter */}
@@ -9483,21 +9494,23 @@ export default function App() {
                         }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '7px',
-                          padding: '6px 14px',
+                          padding: '6px 12px',
                           background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.2))',
                           border: '1px solid rgba(245,158,11,0.5)',
                           borderRadius: '20px',
                           cursor: 'pointer',
                           color: '#f59e0b',
-                          fontSize: '0.78rem',
+                          fontSize: '0.75rem',
                           fontWeight: 700,
                           fontFamily: 'monospace',
                           transition: 'all 0.2s ease',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
                         }}
                         onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.35), rgba(217,119,6,0.35))'}
                         onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.2))'}
                       >
-                        <span style={{ fontSize: '0.85rem' }}>📊</span>
+                        <span style={{ fontSize: '0.8rem' }}>📊</span>
                         RISK ANALYTICS →
                       </button>
                     </div>
