@@ -9428,6 +9428,7 @@ export default function App() {
                           // Directly update settings tab query or localStorage to open Analytics tab in Hub
                           localStorage.setItem('active_productivity_tab', 'analytics');
                           window.dispatchEvent(new Event('storage'));
+                          window.dispatchEvent(new CustomEvent('switch_productivity_tab', { detail: { tab: 'analytics' } }));
                         }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '7px',

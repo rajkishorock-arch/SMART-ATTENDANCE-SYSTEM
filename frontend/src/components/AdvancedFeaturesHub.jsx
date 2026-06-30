@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 
 export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, currentUser }) {
-  const [tab, setTab] = useState('bulk');
+  const [tab, setTab] = useState(() => localStorage.getItem('active_productivity_tab') || 'bulk');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [atRisk, setAtRisk] = useState([]);
@@ -63,9 +63,20 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
         localStorage.removeItem('active_productivity_tab');
       }
     };
+    
+    const handleCustomEvent = (e) => {
+      if (e.detail && e.detail.tab) {
+        setTab(e.detail.tab);
+      }
+    };
+
     handleStorageChange(); // Run once on load
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('switch_productivity_tab', handleCustomEvent);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('switch_productivity_tab', handleCustomEvent);
+    };
   }, []);
 
   useEffect(() => {
