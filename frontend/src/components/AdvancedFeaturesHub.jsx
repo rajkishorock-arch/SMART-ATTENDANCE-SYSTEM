@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Upload, Users, AlertTriangle, BarChart3, Key, CreditCard,
-  FileText, Bell, RefreshCw, Shield, Download, Building2,
+  FileText, Bell, RefreshCw, Shield, Download, Building2, Send,
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
 
 export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, currentUser }) {
   const [tab, setTab] = useState('bulk');
@@ -27,6 +31,27 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
     const res = await fetch(url, { ...options, headers: { ...headers(), ...options.headers } });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Request failed');
     return res.json();
+  };
+
+  const handleAlertParent = async (studentId, studentName) => {
+    try {
+      setLoading(true);
+      setMessage('');
+      const res = await fetch(`${apiBaseUrl}/parents/notify-absent/${studentId}`, {
+        method: 'POST',
+        headers: headers(),
+      });
+      if (res.ok) {
+        setMessage(`Parent alert successfully triggered for ${studentName}!`);
+      } else {
+        const err = await res.json();
+        setMessage(`Failed to alert parent: ${err.detail || 'Server error'}`);
+      }
+    } catch (e) {
+      setMessage(`Error notifying parent: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -113,6 +138,32 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
     }
   };
 
+  const getRiskDistributionData = () => {
+    let high = 0, medium = 0, low = 0;
+    atRisk.forEach(s => {
+      const pct = parseFloat(s.percentage);
+      if (pct < 60) high++;
+      else if (pct < 75) medium++;
+      else low++;
+    });
+    predictions.forEach(p => {
+      if (p.risk_level === 'low') low++;
+    });
+    return [
+      { name: 'High Risk (<60%)', value: high, color: '#f87171' },
+      { name: 'Medium Risk (60-75%)', value: medium, color: '#fbbf24' },
+      { name: 'Low Risk (75%+)', value: low, color: '#34d399' },
+    ].filter(item => item.value > 0);
+  };
+
+  const getPredictionChartData = () => {
+    return predictions.slice(0, 8).map(p => ({
+      name: p.name.split(' ')[0],
+      attendance: parseFloat(p.current_percentage),
+      risk: parseFloat(p.risk_score),
+    }));
+  };
+
   const tabs = [
     { id: 'bulk', label: 'Bulk Import', icon: Upload },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -178,21 +229,118 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
       )}
 
       {tab === 'analytics' && (
-        <div>
-          <h4 style={{ color: '#f87171' }}><AlertTriangle size={16} /> At-Risk Students ({atRisk.length})</h4>
-          <div style={{ maxHeight: '200px', overflow: 'auto', marginBottom: '16px' }}>
-            {atRisk.map((s) => (
-              <div key={s.id} style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem', color: '#cbd5e1' }}>
-                {s.name} ({s.roll}) — {s.percentage}%
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Charts Grid */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', minHeight: '260px' }}>
+            
+            {/* Chart 1: Risk Levels */}
+            <div style={{ flex: '1 1 300px', minWidth: '280px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <h4 style={{ color: '#e2e8f0', fontSize: '0.9rem', marginBottom: '12px', fontWeight: '600' }}>Student Risk Classification</h4>
+              <div style={{ width: '100%', height: '200px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={getRiskDistributionData()}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {getRiskDistributionData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
+                    <Legend verticalAlign="bottom" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '10px', color: '#cbd5e1' }} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
-          <h4 style={{ color: '#a78bfa' }}>Predictions</h4>
-          {predictions.slice(0, 10).map((p) => (
-            <div key={p.id} style={{ padding: '6px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-              {p.name}: risk {p.risk_level} ({p.risk_score}%)
             </div>
-          ))}
+
+            {/* Chart 2: Predictions & Attendance rates */}
+            <div style={{ flex: '1 1 300px', minWidth: '280px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <h4 style={{ color: '#e2e8f0', fontSize: '0.9rem', marginBottom: '12px', fontWeight: '600' }}>Attendance vs Risk Score (Top At-Risk)</h4>
+              <div style={{ width: '100%', height: '200px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={getPredictionChartData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" />
+                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} />
+                    <YAxis stroke="#94a3b8" fontSize={9} />
+                    <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
+                    <Bar dataKey="attendance" fill="#3b82f6" name="Attendance %" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="risk" fill="#ef4444" name="Risk Score %" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            
+          </div>
+
+          {/* At-Risk List */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <h4 style={{ color: '#f87171', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.95rem' }}>
+              <AlertTriangle size={16} /> Action Required: At-Risk Students ({atRisk.length})
+            </h4>
+            <div style={{ maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {atRisk.length === 0 ? (
+                <div style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '12px', textAlign: 'center' }}>
+                  No students currently below the 75% threshold!
+                </div>
+              ) : (
+                atRisk.map((s) => (
+                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', borderLeft: parseFloat(s.percentage) < 60 ? '3px solid #ef4444' : '3px solid #fbbf24' }}>
+                    <div style={{ fontSize: '0.85rem', flex: '1 1 200px' }}>
+                      <span style={{ color: '#fff', fontWeight: '500' }}>{s.name}</span>
+                      <span style={{ color: '#64748b', marginLeft: '6px' }}>({s.roll})</span>
+                      <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '2px' }}>
+                        Attendance: <strong style={{ color: parseFloat(s.percentage) < 60 ? '#f87171' : '#fbbf24' }}>{s.percentage}%</strong>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAlertParent(s.id, s.name)}
+                      disabled={loading}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        borderRadius: '6px',
+                        color: '#f87171',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                    >
+                      <Send size={12} /> Alert Parent
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Predictions Detail */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <h4 style={{ color: '#a78bfa', marginBottom: '12px', fontSize: '0.95rem' }}>Attendance Predictions & Forecasts</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+              {predictions.slice(0, 6).map((p) => (
+                <div key={p.id} style={{ padding: '10px', background: 'rgba(0,0,0,0.15)', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid rgba(255,255,255,0.03)' }}>
+                  <div style={{ color: '#fff', fontWeight: '500', marginBottom: '4px' }}>{p.name}</div>
+                  <div style={{ color: '#94a3b8' }}>Risk Level: <span style={{ color: p.risk_level === 'high' ? '#f87171' : p.risk_level === 'medium' ? '#fbbf24' : '#34d399', textTransform: 'capitalize' }}>{p.risk_level}</span></div>
+                  <div style={{ color: '#94a3b8', marginTop: '2px' }}>Risk Score: <strong>{p.risk_score}%</strong></div>
+                  <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '4px' }}>Est. absences next week: {p.predicted_absences_next_week}d</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

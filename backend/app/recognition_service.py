@@ -53,7 +53,9 @@ class RecognitionService:
             records = {}
             for s in students:
                 try:
-                    emb = json.loads(s.face_embedding)
+                    from .encryption_service import decrypt_embedding
+                    decrypted = decrypt_embedding(s.face_embedding)
+                    emb = json.loads(decrypted)
                     emb_np = np.array(emb, dtype=np.float32).reshape(1, -1)
                     records[s.id] = {
                         "name": s.name,

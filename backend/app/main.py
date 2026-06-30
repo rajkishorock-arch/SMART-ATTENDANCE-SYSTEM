@@ -346,7 +346,8 @@ def migrate_existing_student_embeddings(db):
                         # Extract the embedding
                         emb = get_face_embedding(img)
                         if emb is not None:
-                            student.face_embedding = json.dumps(emb.tolist())
+                            from app.encryption_service import encrypt_embedding
+                            student.face_embedding = encrypt_embedding(json.dumps(emb.tolist()))
                             student.photo = "yes"
                             db.commit()
                             migrated_count += 1

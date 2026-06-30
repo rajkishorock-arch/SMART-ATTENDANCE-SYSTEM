@@ -217,6 +217,21 @@ async def recognize_and_mark_attendance(
         face_details["newly_marked"] = newly_marked
         marked_students.append(face_details)
 
+    if marked_students:
+        for m in marked_students:
+            event_data = {
+                "event": "attendance_marked",
+                "name": m["name"],
+                "roll": m["roll"],
+                "dep": m["dep"],
+                "confidence": m.get("confidence", 0.0),
+                "status": "Present" if m["newly_marked"] else "Already Marked",
+                "time": datetime.now(IST).strftime("%I:%M:%S %p"),
+                "date": datetime.now(IST).strftime("%d/%m/%Y"),
+                "institution_id": current_user.institution_id
+            }
+            background_tasks.add_task(broadcast_attendance_event, event_data)
+
     return {"results": marked_students}
 
 @router.get("/report")
@@ -1078,6 +1093,44 @@ def checkin_via_student_qr(
             "course": student.course
         }
     }
+
+
+from fastapi import WebSocket, WebSocketDisconnect
+from typing import List
+
+active_connections: List[WebSocket] = []
+
+@router.websocket("/ws")
+async def attendance_websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    active_connections.append(websocket)
+    print(f"WebSocket client connected: {websocket.client}")
+    try:
+        while True:
+            # Maintain active connection
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        if websocket in active_connections:
+            active_connections.remove(websocket)
+        print("WebSocket client disconnected")
+    except Exception as e:
+        print(f"WebSocket connection error: {e}")
+        if websocket in active_connections:
+            active_connections.remove(websocket)
+
+async def broadcast_attendance_event(event_data: dict):
+    if not active_connections:
+        return
+    disconnected = []
+    for connection in active_connections:
+        try:
+            await connection.send_json(event_data)
+        except Exception:
+            disconnected.append(connection)
+    
+    for conn in disconnected:
+        if conn in active_connections:
+            active_connections.remove(conn)
 
 
 

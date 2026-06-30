@@ -61,9 +61,11 @@ def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student
     students = query.all()
     new_feat = new_embedding.reshape(1, -1).astype(np.float32)
     
+    from .encryption_service import decrypt_embedding
     for s in students:
         try:
-            emb = json.loads(s.face_embedding)
+            decrypted = decrypt_embedding(s.face_embedding)
+            emb = json.loads(decrypted)
             emb_np = np.array(emb, dtype=np.float32).reshape(1, -1)
             score = recognizer.match(new_feat, emb_np, cv2.FaceRecognizerSF_FR_COSINE)
             # A cosine similarity score of >= 0.40 indicates it is the same person's face
@@ -520,7 +522,8 @@ async def upload_student_selfie(
     embedding_json = json.dumps(embedding.tolist())
 
     # 6. Save face embedding & update photo flag
-    current_student.face_embedding = embedding_json
+    from .encryption_service import encrypt_embedding
+    current_student.face_embedding = encrypt_embedding(embedding_json)
     current_student.photo = "yes"
     current_student.face_enrolled_at = datetime.now(timezone.utc)
     db.commit()
@@ -753,7 +756,8 @@ async def upload_student_face_sample(
     if not db_student:
         raise HTTPException(status_code=404, detail="Student not found.")
 
-    db_student.face_embedding = embedding_json
+    from .encryption_service import encrypt_embedding
+    db_student.face_embedding = encrypt_embedding(embedding_json)
     db_student.photo = "yes"
     db_student.face_enrolled_at = datetime.now(timezone.utc)
     db.commit()

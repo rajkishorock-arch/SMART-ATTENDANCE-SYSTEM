@@ -2744,6 +2744,12 @@ export default function App() {
   // Face Attendance Scanner States & Refs
   const [attendanceActive, setAttendanceActive] = useState(false);
   const [recognizedStudents, setRecognizedStudents] = useState([]);
+  const [serverRecognizedFaces, setServerRecognizedFaces] = useState(null);
+  const serverRecognizedFacesRef = useRef(null);
+  const updateServerRecognizedFaces = (val) => {
+    setServerRecognizedFaces(val);
+    serverRecognizedFacesRef.current = val;
+  };
   const [attendanceError, setAttendanceError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState('Camera Offline');
@@ -3654,6 +3660,75 @@ export default function App() {
     }
   };
 
+  // WebSocket Client for Real-time Attendance Alerts
+  useEffect(() => {
+    if (!token || userRole === 'student') return undefined;
+
+    let wsUrl = API_BASE_URL.replace('https://', 'wss://').replace('http://', 'ws://') + '/attendance/ws';
+    let socket;
+    let reconnectTimeout;
+    let active = true;
+
+    const connect = () => {
+      console.log('Connecting to WebSocket:', wsUrl);
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        console.log('WebSocket connection established.');
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === 'attendance_marked') {
+            // Only trigger if it is for the current institution
+            if (currentUser && data.institution_id === currentUser.institution_id) {
+              // 1. Play success notification sound
+              playCyberSound('success');
+              
+              // 2. Update scan status message
+              setScanStatus(`Live: ${data.name} checked in (${data.status})`);
+              addDiagnosticLog(`WS BROADCAST: ${data.name} marked ${data.status} at ${data.time}`);
+              
+              // 3. Trigger speech if voice enabled
+              if (voiceEnabled) {
+                handleSpeakText(`Welcome ${data.name}. Attendance registered.`);
+              }
+
+              // 4. Reload logs & stats dynamically
+              fetchStats();
+              fetchLogs();
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing WS message:', e);
+        }
+      };
+
+      socket.onclose = () => {
+        console.log('WebSocket disconnected.');
+        if (active) {
+          reconnectTimeout = setTimeout(connect, 5000);
+        }
+      };
+
+      socket.onerror = (err) => {
+        console.error('WebSocket error:', err);
+        socket.close();
+      };
+    };
+
+    connect();
+
+    return () => {
+      active = false;
+      clearTimeout(reconnectTimeout);
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, [token, userRole, currentUser, voiceEnabled]);
+
   const fetchInstitutionsList = async () => {
     if (isDemoMode) {
       setInstitutionsList([
@@ -4405,6 +4480,24 @@ export default function App() {
           
           setScannedStudent({ name: matched.name, roll: matched.roll, dep: matched.dep, time: timeStr });
           addDiagnosticLog(`MATCH FOUND: ${matched.name} (Accuracy: ${confidence}%)`);
+
+          const mockFaceBox = lastFaceBoxRef.current ? [
+            lastFaceBoxRef.current.x,
+            lastFaceBoxRef.current.y,
+            lastFaceBoxRef.current.w,
+            lastFaceBoxRef.current.h
+          ] : [100, 100, 150, 150];
+          updateServerRecognizedFaces({
+            faces: [{
+              name: matched.name,
+              confidence: confidenceVal,
+              newly_marked: newly_marked,
+              box: mockFaceBox
+            }],
+            timestamp: Date.now(),
+            captureWidth: video instanceof HTMLVideoElement ? video.videoWidth || 640 : video.naturalWidth || 640,
+            captureHeight: video instanceof HTMLVideoElement ? video.videoHeight || 480 : video.naturalHeight || 480,
+          });
           
           if (newly_marked) {
             const newLog = {
@@ -4436,6 +4529,7 @@ export default function App() {
           
           setTimeout(() => {
             setScannedStudent(null);
+            updateServerRecognizedFaces(null);
             eyeStateRef.current = 'open';
             livenessStatusRef.current = 'verifying';
             setLivenessStatus('verifying');
@@ -4518,6 +4612,13 @@ export default function App() {
 
             const primary = validMatches[0];
             setScannedStudent({ name: primary.name, roll: primary.roll, dep: primary.dep, time: timeStr });
+            
+            updateServerRecognizedFaces({
+              faces: validMatches,
+              timestamp: Date.now(),
+              captureWidth: preset.captureWidth,
+              captureHeight: preset.captureHeight,
+            });
 
             validMatches.forEach((matched) => {
               addDiagnosticLog(`MATCH FOUND: ${matched.name} (Accuracy: ${matched.confidence}%)`);
@@ -4580,6 +4681,7 @@ export default function App() {
         
         setTimeout(() => {
           setScannedStudent(null);
+          updateServerRecognizedFaces(null);
           eyeStateRef.current = 'open';
           livenessStatusRef.current = 'verifying';
           setLivenessStatus('verifying');
@@ -5213,12 +5315,30 @@ export default function App() {
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                   ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  lastFaceBoxesRef.current.forEach((box, index) => {
-                    drawFaceBox(ctx, box, {
-                      color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
-                      label: index === 0 ? 'PRIMARY FACE' : `FACE #${index + 1}`,
+                  const srvFaces = serverRecognizedFacesRef.current;
+                  if (srvFaces && srvFaces.faces && srvFaces.faces.length > 0) {
+                    srvFaces.faces.forEach((face) => {
+                      if (face.box) {
+                        const scaledBox = {
+                          x: face.box[0] * (canvas.width / srvFaces.captureWidth),
+                          y: face.box[1] * (canvas.height / srvFaces.captureHeight),
+                          w: face.box[2] * (canvas.width / srvFaces.captureWidth),
+                          h: face.box[3] * (canvas.height / srvFaces.captureHeight),
+                        };
+                        drawFaceBox(ctx, scaledBox, {
+                          color: face.newly_marked ? '#10b981' : '#f59e0b',
+                          label: `${face.name.toUpperCase()} (${face.confidence}%) - ${face.newly_marked ? 'PRESENT' : 'ALREADY MARKED'}`,
+                        });
+                      }
                     });
-                  });
+                  } else {
+                    lastFaceBoxesRef.current.forEach((box, index) => {
+                      drawFaceBox(ctx, box, {
+                        color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
+                        label: index === 0 ? 'PRIMARY FACE' : `FACE #${index + 1}`,
+                      });
+                    });
+                  }
                 }
               }
             }

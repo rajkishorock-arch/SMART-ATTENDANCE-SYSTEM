@@ -32,7 +32,9 @@ def find_duplicate_enrollments(
     parsed = []
     for s in students:
         try:
-            emb = np.array(json.loads(s.face_embedding), dtype=np.float32).reshape(1, -1)
+            from .encryption_service import decrypt_embedding
+            decrypted = decrypt_embedding(s.face_embedding)
+            emb = np.array(json.loads(decrypted), dtype=np.float32).reshape(1, -1)
             parsed.append((s, emb))
         except Exception:
             continue
