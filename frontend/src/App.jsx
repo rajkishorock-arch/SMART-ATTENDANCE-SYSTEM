@@ -4229,12 +4229,36 @@ export default function App() {
   const handleSpeak = (textEnglish) => {
     if (!textEnglish) return;
     const lower = textEnglish.toLowerCase();
+    
+    // Play electronic synth cue first
     if (lower.includes('failed') || lower.includes('error') || lower.includes('denied') || lower.includes('not recognized')) {
       playCyberSound('error');
     } else if (lower.includes('started') || lower.includes('liveness verified')) {
       playCyberSound('scan');
     } else {
       playCyberSound('success');
+    }
+
+    // AI Luxury Voice Announcement using Web Speech API
+    if (soundEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel(); // Cancel any ongoing speech
+        const cleanText = textEnglish.replace(/[*#_`~]/g, '');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        
+        // Choose premium sounding voice if possible
+        const voices = window.speechSynthesis.getVoices();
+        const premiumVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Natural') || v.lang.startsWith('en-'));
+        if (premiumVoice) utterance.voice = premiumVoice;
+
+        utterance.rate = voiceSpeed || 1.0;
+        utterance.pitch = 1.05; // Slightly higher pitch for futuristic luxury aura
+        utterance.volume = audioVolume || 0.6;
+        
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn('Speech synthesis failed:', err);
+      }
     }
   };
 
