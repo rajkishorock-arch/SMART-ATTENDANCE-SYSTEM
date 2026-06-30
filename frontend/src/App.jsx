@@ -8735,55 +8735,82 @@ export default function App() {
             />
 
             {/* ===== NAMED FACE RECOGNITION OVERLAY ===== */}
-            {serverRecognizedFaces && serverRecognizedFaces.faces && serverRecognizedFaces.faces.map((face, idx) => (
-              <div key={idx} style={{
-                position: 'absolute',
-                bottom: idx === 0 ? '60px' : `${60 + idx * 80}px`,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 20,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px',
-                animation: 'fadeInUp 0.3s ease',
-                pointerEvents: 'none',
-              }}>
-                {/* Name badge */}
-                <div style={{
-                  background: face.newly_marked
-                    ? 'linear-gradient(135deg, rgba(16,185,129,0.95), rgba(5,150,105,0.95))'
-                    : 'linear-gradient(135deg, rgba(245,158,11,0.95), rgba(217,119,6,0.95))',
-                  border: `2px solid ${face.newly_marked ? '#10b981' : '#f59e0b'}`,
-                  borderRadius: '12px',
-                  padding: '10px 20px',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: `0 8px 32px ${face.newly_marked ? 'rgba(16,185,129,0.5)' : 'rgba(245,158,11,0.5)'}`,
-                  minWidth: '220px',
-                  textAlign: 'center',
+            {serverRecognizedFaces && serverRecognizedFaces.faces && serverRecognizedFaces.faces.map((face, idx) => {
+              if (!face.box) return null;
+              
+              // Map normalized/captured coordinates to container coordinates
+              const containerWidth = 640; // Default aspect reference 
+              const containerHeight = 480;
+              
+              const boxLeft = `${(face.box[0] / (serverRecognizedFaces.captureWidth || containerWidth)) * 100}%`;
+              const boxTop = `${(face.box[1] / (serverRecognizedFaces.captureHeight || containerHeight)) * 100}%`;
+              const boxWidth = `${(face.box[2] / (serverRecognizedFaces.captureWidth || containerWidth)) * 100}%`;
+              const boxHeight = `${(face.box[3] / (serverRecognizedFaces.captureHeight || containerHeight)) * 100}%`;
+
+              const themeColor = face.newly_marked ? '#10b981' : '#f59e0b';
+
+              return (
+                <div key={idx} style={{
+                  position: 'absolute',
+                  left: boxLeft,
+                  top: boxTop,
+                  width: boxWidth,
+                  height: boxHeight,
+                  border: `2px solid ${themeColor}`,
+                  borderRadius: '8px',
+                  boxShadow: `0 0 16px ${themeColor}50, inset 0 0 12px ${themeColor}30`,
+                  zIndex: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  animation: 'scaleIn 0.25s ease-out',
+                  pointerEvents: 'none',
                 }}>
+                  {/* Subtle target corner ticks */}
+                  <div style={{ position: 'absolute', top: '-4px', left: '-4px', width: '10px', height: '10px', borderTop: `3px solid ${themeColor}`, borderLeft: `3px solid ${themeColor}` }} />
+                  <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '10px', height: '10px', borderTop: `3px solid ${themeColor}`, borderRight: `3px solid ${themeColor}` }} />
+                  <div style={{ position: 'absolute', bottom: '-4px', left: '-4px', width: '10px', height: '10px', borderBottom: `3px solid ${themeColor}`, borderLeft: `3px solid ${themeColor}` }} />
+                  <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '10px', height: '10px', borderBottom: `3px solid ${themeColor}`, borderRight: `3px solid ${themeColor}` }} />
+
+                  {/* Name badge positioned neatly below the box frame */}
                   <div style={{
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: '1.1rem',
-                    letterSpacing: '0.08em',
-                    fontFamily: 'monospace',
-                    textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                    position: 'absolute',
+                    top: '105%',
+                    whiteSpace: 'nowrap',
+                    background: face.newly_marked
+                      ? 'linear-gradient(135deg, rgba(16,185,129,0.95), rgba(5,150,105,0.95))'
+                      : 'linear-gradient(135deg, rgba(245,158,11,0.95), rgba(217,119,6,0.95))',
+                    border: `1px solid ${themeColor}`,
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
                   }}>
-                    {face.name ? face.name.toUpperCase() : 'IDENTIFIED'}
-                  </div>
-                  <div style={{
-                    color: 'rgba(255,255,255,0.9)',
-                    fontSize: '0.78rem',
-                    marginTop: '4px',
-                    fontFamily: 'monospace',
-                    letterSpacing: '0.05em',
-                  }}>
-                    {face.confidence ? `${face.confidence}% match` : ''} · {face.newly_marked ? '✅ PRESENT' : '⚠️ ALREADY MARKED'}
+                    <span style={{
+                      color: '#fff',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      letterSpacing: '0.05em',
+                      fontFamily: 'monospace',
+                    }}>
+                      {face.name ? face.name.toUpperCase() : 'IDENTIFIED'}
+                    </span>
+                    <span style={{
+                      color: 'rgba(255,255,255,0.85)',
+                      fontSize: '0.62rem',
+                      fontFamily: 'monospace',
+                      marginTop: '2px',
+                    }}>
+                      {face.confidence ? `${face.confidence}%` : ''} · {face.newly_marked ? 'PRESENT' : 'MARKED'}
+                    </span>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {/* ========================================== */}
 
             {/* Camera auto-initializing placeholder — shown while stream is starting */}
