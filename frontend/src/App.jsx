@@ -2753,6 +2753,7 @@ export default function App() {
   const [attendanceError, setAttendanceError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState('Camera Offline');
+  const [wsConnected, setWsConnected] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [scannerBootActive, setScannerBootActive] = useState(false);
   const [webcamBootActive, setWebcamBootActive] = useState(false);
@@ -3675,6 +3676,7 @@ export default function App() {
 
       socket.onopen = () => {
         console.log('WebSocket connection established.');
+        setWsConnected(true);
       };
 
       socket.onmessage = (event) => {
@@ -3707,6 +3709,7 @@ export default function App() {
 
       socket.onclose = () => {
         console.log('WebSocket disconnected.');
+        setWsConnected(false);
         if (active) {
           reconnectTimeout = setTimeout(connect, 5000);
         }
@@ -9360,6 +9363,85 @@ export default function App() {
                   </div>
                 </div>
                 <LiveCommandCenter stats={stats} scannerLive={attendanceActive || scannerBootActive} lateCount={stats.total_late_today} />
+
+                {/* ===== ADVANCED FEATURES STATUS BANNER ===== */}
+                {userRole !== 'student' && (
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    padding: '16px 20px',
+                    background: 'rgba(0,0,0,0.35)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '14px',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'monospace' }}>🚀 ADVANCED FEATURES</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+
+                      {/* Feature 2: WebSocket Live Status */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '7px',
+                        padding: '6px 14px',
+                        background: wsConnected ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
+                        border: `1px solid ${wsConnected ? 'rgba(16,185,129,0.4)' : 'rgba(107,114,128,0.3)'}`,
+                        borderRadius: '20px',
+                      }}>
+                        <span style={{
+                          width: '8px', height: '8px', borderRadius: '50%',
+                          background: wsConnected ? '#10b981' : '#6b7280',
+                          boxShadow: wsConnected ? '0 0 8px #10b981' : 'none',
+                          animation: wsConnected ? 'pulse 1.5s infinite' : 'none',
+                          display: 'inline-block',
+                        }} />
+                        <span style={{ color: wsConnected ? '#10b981' : '#9ca3af', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'monospace' }}>
+                          {wsConnected ? 'LIVE SYNC ON' : 'LIVE SYNC OFF'}
+                        </span>
+                      </div>
+
+                      {/* Feature 3: Biometric Encryption */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '7px',
+                        padding: '6px 14px',
+                        background: 'rgba(99,102,241,0.15)',
+                        border: '1px solid rgba(99,102,241,0.4)',
+                        borderRadius: '20px',
+                      }}>
+                        <span style={{ fontSize: '0.85rem' }}>🔐</span>
+                        <span style={{ color: '#818cf8', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'monospace' }}>BIOMETRIC ENCRYPTED</span>
+                      </div>
+
+                      {/* Feature 4: Risk Analytics shortcut */}
+                      <button
+                        onClick={() => {
+                          playCyberSound('click');
+                          navigateToTab('settings');
+                          setActiveSubSetting('productivity');
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '7px',
+                          padding: '6px 14px',
+                          background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.2))',
+                          border: '1px solid rgba(245,158,11,0.5)',
+                          borderRadius: '20px',
+                          cursor: 'pointer',
+                          color: '#f59e0b',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          fontFamily: 'monospace',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.35), rgba(217,119,6,0.35))'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.2))'}
+                      >
+                        <span style={{ fontSize: '0.85rem' }}>📊</span>
+                        RISK ANALYTICS →
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {/* ============================================ */}
                 <SmartSuggestionsBar
                   hasPremium={hasPremiumAccess}
                   scannerUsed={recognizedStudents.length > 0}
