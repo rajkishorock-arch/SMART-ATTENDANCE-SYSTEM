@@ -9462,7 +9462,13 @@ export default function App() {
                     else if (action === 'settings_geofence') { navigateToTab('settings'); setActiveSubSetting('geofencing'); }
                     else if (action === 'exploration') { navigateToTab('settings'); setActiveSubSetting('exploration'); }
                     else if (action === 'premium') { navigateToTab('settings'); setActiveSubSetting('premium'); }
-                    else if (action === 'productivity') { navigateToTab('settings'); setActiveSubSetting('productivity'); }
+                    else if (action === 'productivity') {
+                      navigateToTab('settings');
+                      setActiveSubSetting('productivity');
+                      localStorage.setItem('active_productivity_tab', 'bulk');
+                      window.dispatchEvent(new Event('storage'));
+                      window.dispatchEvent(new CustomEvent('switch_productivity_tab', { detail: { tab: 'bulk' } }));
+                    }
                   }}
                 />
                 {userRole === 'teacher' && (
