@@ -17839,8 +17839,8 @@ export default function App() {
 
       {/* Add Student Modal */}
       {showEditStudentModal && editingStudent && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050 }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Student Profile</h3>
             
             {editStudentError && (
@@ -18045,8 +18045,8 @@ export default function App() {
 
       {/* Edit Student Self Modal */}
       {showEditStudentSelfModal && editingStudentSelf && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050 }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Profile Information</h3>
             
             {editStudentSelfError && (
@@ -18138,8 +18138,8 @@ export default function App() {
 
       {/* Edit Teacher/Admin Self Modal */}
       {showEditTeacherSelfModal && editingTeacherSelf && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050 }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Profile Information</h3>
             
             {editTeacherSelfError && (
@@ -18229,8 +18229,8 @@ export default function App() {
       )}
 
       {showAddModal && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050 }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px' }}>Register New Student</h3>
             
             {formError && (
