@@ -86,7 +86,6 @@ import PremiumUpgradeHub from './components/PremiumUpgradeHub';
 import ExplorationLab from './components/ExplorationLab';
 import CameraSettingsPanel from './components/CameraSettingsPanel';
 import FuturisticFeaturesHub from './components/FuturisticFeaturesHub';
-import LiveCommandCenter from './components/LiveCommandCenter';
 import QuickActionsDock from './components/QuickActionsDock';
 import SmartEmptyState from './components/SmartEmptyState';
 import OnboardingTour from './components/OnboardingTour';
@@ -94,7 +93,6 @@ import ClassroomLiveGrid from './components/ClassroomLiveGrid';
 import OfflineBanner from './components/OfflineBanner';
 import PullToRefresh from './components/PullToRefresh';
 import SmartSuggestionsBar from './components/SmartSuggestionsBar';
-import ScanStreakCounter from './components/ScanStreakCounter';
 import TeacherMiniDashboard from './components/TeacherMiniDashboard';
 import StudentAttendanceWallet from './components/StudentAttendanceWallet';
 import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings } from './utils/futuristicFeatures';
@@ -9430,7 +9428,6 @@ export default function App() {
                     />
                   </div>
                 </div>
-                <LiveCommandCenter stats={stats} scannerLive={attendanceActive || scannerBootActive} lateCount={stats.total_late_today} />
 
                 {/* ===== ADVANCED FEATURES STATUS BANNER ===== */}
                 {userRole !== 'student' && (
@@ -9578,9 +9575,6 @@ export default function App() {
                 />
                 {userRole === 'teacher' && (
                   <TeacherMiniDashboard stats={stats} subjects={subjects} teacherName={currentUser?.name} />
-                )}
-                {userRole !== 'student' && token && (
-                  <ScanStreakCounter apiBaseUrl={API_BASE_URL} token={token} />
                 )}
                 <div style={{
                   display: 'grid',
@@ -17845,7 +17839,7 @@ export default function App() {
 
       {/* Add Student Modal */}
       {showEditStudentModal && editingStudent && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100 }}>
+        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050 }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Student Profile</h3>
             
@@ -18051,7 +18045,7 @@ export default function App() {
 
       {/* Edit Student Self Modal */}
       {showEditStudentSelfModal && editingStudentSelf && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100 }}>
+        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050 }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Profile Information</h3>
             
@@ -18144,7 +18138,7 @@ export default function App() {
 
       {/* Edit Teacher/Admin Self Modal */}
       {showEditTeacherSelfModal && editingTeacherSelf && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100 }}>
+        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050 }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Profile Information</h3>
             
@@ -18235,7 +18229,7 @@ export default function App() {
       )}
 
       {showAddModal && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100 }}>
+        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050 }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px' }}>Register New Student</h3>
             
@@ -18606,7 +18600,7 @@ export default function App() {
 
       {/* Training Status Overlay */}
       {isTraining && (
-        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 200, flexDirection: 'column', gap: '24px' }}>
+        <div className="flex-center modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, flexDirection: 'column', gap: '24px' }}>
           <div style={{ width: '64px', height: '64px', border: '4px solid rgba(16,185,129,0.1)', borderTopColor: '#10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           <h3 className="text-gradient" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', fontSize: '1.5rem', fontWeight: 600, animation: 'pulse 1.5s infinite' }}>
             {trainMessage}
