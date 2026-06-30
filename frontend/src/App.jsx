@@ -5413,7 +5413,23 @@ export default function App() {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxesRef.current?.length) {
+        const srvFaces = serverRecognizedFacesRef.current;
+        if (srvFaces && srvFaces.faces && srvFaces.faces.length > 0) {
+          srvFaces.faces.forEach((face) => {
+            if (face.box) {
+              const scaledBox = {
+                x: face.box[0] * (canvas.width / srvFaces.captureWidth),
+                y: face.box[1] * (canvas.height / srvFaces.captureHeight),
+                w: face.box[2] * (canvas.width / srvFaces.captureWidth),
+                h: face.box[3] * (canvas.height / srvFaces.captureHeight),
+              };
+              drawFaceBox(ctx, scaledBox, {
+                color: face.newly_marked ? '#10b981' : '#f59e0b',
+                label: `${face.name.toUpperCase()} (${face.confidence}%) - ${face.newly_marked ? 'PRESENT' : 'ALREADY MARKED'}`,
+              });
+            }
+          });
+        } else if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxesRef.current?.length) {
           lastFaceBoxesRef.current.forEach((box, index) => {
             drawFaceBox(ctx, box, {
               color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
