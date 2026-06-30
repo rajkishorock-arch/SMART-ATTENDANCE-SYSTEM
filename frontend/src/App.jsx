@@ -8756,9 +8756,6 @@ export default function App() {
                   top: boxTop,
                   width: boxWidth,
                   height: boxHeight,
-                  border: `2px solid ${themeColor}`,
-                  borderRadius: '8px',
-                  boxShadow: `0 0 16px ${themeColor}50, inset 0 0 12px ${themeColor}30`,
                   zIndex: 20,
                   display: 'flex',
                   flexDirection: 'column',
@@ -8766,11 +8763,6 @@ export default function App() {
                   animation: 'scaleIn 0.25s ease-out',
                   pointerEvents: 'none',
                 }}>
-                  {/* Subtle target corner ticks */}
-                  <div style={{ position: 'absolute', top: '-4px', left: '-4px', width: '10px', height: '10px', borderTop: `3px solid ${themeColor}`, borderLeft: `3px solid ${themeColor}` }} />
-                  <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '10px', height: '10px', borderTop: `3px solid ${themeColor}`, borderRight: `3px solid ${themeColor}` }} />
-                  <div style={{ position: 'absolute', bottom: '-4px', left: '-4px', width: '10px', height: '10px', borderBottom: `3px solid ${themeColor}`, borderLeft: `3px solid ${themeColor}` }} />
-                  <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '10px', height: '10px', borderBottom: `3px solid ${themeColor}`, borderRight: `3px solid ${themeColor}` }} />
 
                   {/* Name badge positioned neatly below the box frame */}
                   <div style={{
@@ -8951,17 +8943,46 @@ export default function App() {
       >
         <div className="sidebar-logo">
           <div style={{
-            background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(79, 172, 254, 0.15) 100%)',
-            border: '1px solid rgba(0, 242, 254, 0.3)',
+            background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(170, 124, 17, 0.15) 100%)',
+            border: '1px solid rgba(212, 175, 55, 0.4)',
             borderRadius: '10px',
-            padding: '6px',
+            padding: '4px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            width: '36px',
+            height: '36px'
           }}>
-            <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 48 48">
+              <path fill="url(#side-gold-glow)" d="M24 2C13.5 5.5 8 13.5 8 23c0 10.5 7.5 17.5 16 21 8.5-3.5 16-10.5 16-21 0-9.5-5.5-17.5-16-21z" opacity="0.4" />
+              <path fill="url(#side-gold-metallic)" stroke="url(#side-gold-stroke)" stroke-width="2.5" d="M24 4C14.5 7.2 9.5 14.5 9.5 23c0 9.5 6.8 15.8 14.5 19 7.7-3.2 14.5-9.5 14.5-19 0-8.5-5-15.8-14.5-19z" />
+              <circle cx="24" cy="23" r="8.5" fill="rgba(0,0,0,0.4)" stroke="url(#side-cyan-glow)" stroke-width="2" />
+              <circle cx="24" cy="23" r="5" fill="none" stroke="#00f2fe" stroke-width="1.5" />
+              <path stroke="url(#side-cyan-glow)" stroke-width="1.2" stroke-linecap="round" d="M20 18l3.5 1.5M28 18l-3.5 1.5M18 25l2-3.5M30 25l-2-3.5M24 29.5V26" />
+              <defs>
+                <linearGradient id="side-gold-metallic" x1="8" y1="2" x2="40" y2="44" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FFF0A5" />
+                  <stop offset="35%" stop-color="#D4AF37" />
+                  <stop offset="70%" stop-color="#AA7C11" />
+                  <stop offset="100%" stop-color="#F3E5AB" />
+                </linearGradient>
+                <linearGradient id="side-gold-stroke" x1="8" y1="2" x2="40" y2="44" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FFF" />
+                  <stop offset="50%" stop-color="#D4AF37" />
+                  <stop offset="100%" stop-color="#5A3E00" />
+                </linearGradient>
+                <radialGradient id="side-gold-glow" cx="24" cy="23" r="21" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FFD700" stop-opacity="0.6" />
+                  <stop offset="100%" stop-color="#FFD700" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="side-cyan-glow" x1="15.5" y1="14.5" x2="32.5" y2="31.5" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#00f2fe" />
+                  <stop offset="100%" stop-color="#4f46e5" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
-          <span className="text-gradient" style={{ fontWeight: 800 }}>{tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE"}</span>
+          <span className="text-gradient" style={{ fontWeight: 800, background: 'linear-gradient(135deg, #FFF0A5 0%, #D4AF37 50%, #AA7C11 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE"}</span>
         </div>
         <div style={{ padding: '0 16px 12px', display: 'flex', justifyContent: 'center' }}>
           <VersionBadge
