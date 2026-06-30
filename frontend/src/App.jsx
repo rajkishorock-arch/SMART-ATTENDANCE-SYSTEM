@@ -8731,6 +8731,58 @@ export default function App() {
               }}
             />
 
+            {/* ===== NAMED FACE RECOGNITION OVERLAY ===== */}
+            {serverRecognizedFaces && serverRecognizedFaces.faces && serverRecognizedFaces.faces.map((face, idx) => (
+              <div key={idx} style={{
+                position: 'absolute',
+                bottom: idx === 0 ? '60px' : `${60 + idx * 80}px`,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '6px',
+                animation: 'fadeInUp 0.3s ease',
+                pointerEvents: 'none',
+              }}>
+                {/* Name badge */}
+                <div style={{
+                  background: face.newly_marked
+                    ? 'linear-gradient(135deg, rgba(16,185,129,0.95), rgba(5,150,105,0.95))'
+                    : 'linear-gradient(135deg, rgba(245,158,11,0.95), rgba(217,119,6,0.95))',
+                  border: `2px solid ${face.newly_marked ? '#10b981' : '#f59e0b'}`,
+                  borderRadius: '12px',
+                  padding: '10px 20px',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: `0 8px 32px ${face.newly_marked ? 'rgba(16,185,129,0.5)' : 'rgba(245,158,11,0.5)'}`,
+                  minWidth: '220px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: '1.1rem',
+                    letterSpacing: '0.08em',
+                    fontFamily: 'monospace',
+                    textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                  }}>
+                    {face.name ? face.name.toUpperCase() : 'IDENTIFIED'}
+                  </div>
+                  <div style={{
+                    color: 'rgba(255,255,255,0.9)',
+                    fontSize: '0.78rem',
+                    marginTop: '4px',
+                    fontFamily: 'monospace',
+                    letterSpacing: '0.05em',
+                  }}>
+                    {face.confidence ? `${face.confidence}% match` : ''} · {face.newly_marked ? '✅ PRESENT' : '⚠️ ALREADY MARKED'}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* ========================================== */}
+
             {/* Camera auto-initializing placeholder — shown while stream is starting */}
             {!attendanceActive && !scannerBootActive && (
               <div style={{
