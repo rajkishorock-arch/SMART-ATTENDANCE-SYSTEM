@@ -9423,9 +9423,12 @@ export default function App() {
                       <button
                         onClick={() => {
                           playCyberSound('click');
-                          navigateToTab('settings');
+                          // Directly set states instead of calling navigateToTab which resets activeSubSetting
+                          setActiveTab('settings');
                           setActiveSubSetting('productivity');
-                          // Directly update settings tab query or localStorage to open Analytics tab in Hub
+                          setMobileSidebarOpen(false);
+                          setMobileControlOpen(false);
+                          
                           localStorage.setItem('active_productivity_tab', 'analytics');
                           window.dispatchEvent(new Event('storage'));
                           window.dispatchEvent(new CustomEvent('switch_productivity_tab', { detail: { tab: 'analytics' } }));
@@ -9459,12 +9462,29 @@ export default function App() {
                   onAction={(action) => {
                     playCyberSound('click');
                     if (action === 'scanner') navigateToTab('attendance');
-                    else if (action === 'settings_geofence') { navigateToTab('settings'); setActiveSubSetting('geofencing'); }
-                    else if (action === 'exploration') { navigateToTab('settings'); setActiveSubSetting('exploration'); }
-                    else if (action === 'premium') { navigateToTab('settings'); setActiveSubSetting('premium'); }
+                    else if (action === 'settings_geofence') {
+                      setActiveTab('settings');
+                      setActiveSubSetting('geofencing');
+                      setMobileSidebarOpen(false);
+                      setMobileControlOpen(false);
+                    }
+                    else if (action === 'exploration') {
+                      setActiveTab('settings');
+                      setActiveSubSetting('exploration');
+                      setMobileSidebarOpen(false);
+                      setMobileControlOpen(false);
+                    }
+                    else if (action === 'premium') {
+                      setActiveTab('settings');
+                      setActiveSubSetting('premium');
+                      setMobileSidebarOpen(false);
+                      setMobileControlOpen(false);
+                    }
                     else if (action === 'productivity') {
-                      navigateToTab('settings');
+                      setActiveTab('settings');
                       setActiveSubSetting('productivity');
+                      setMobileSidebarOpen(false);
+                      setMobileControlOpen(false);
                       localStorage.setItem('active_productivity_tab', 'bulk');
                       window.dispatchEvent(new Event('storage'));
                       window.dispatchEvent(new CustomEvent('switch_productivity_tab', { detail: { tab: 'bulk' } }));
