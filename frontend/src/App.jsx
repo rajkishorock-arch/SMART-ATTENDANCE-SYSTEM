@@ -9380,14 +9380,21 @@ export default function App() {
                     <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'monospace' }}>🚀 ADVANCED FEATURES</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
 
-                      {/* Feature 2: WebSocket Live Status */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '7px',
-                        padding: '6px 14px',
-                        background: wsConnected ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
-                        border: `1px solid ${wsConnected ? 'rgba(16,185,129,0.4)' : 'rgba(107,114,128,0.3)'}`,
-                        borderRadius: '20px',
-                      }}>
+                      {/* Feature 2: WebSocket Live Status - Redirects directly to scanner */}
+                      <div 
+                        onClick={() => {
+                          playCyberSound('click');
+                          navigateToTab('attendance');
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '7px',
+                          padding: '6px 14px',
+                          background: wsConnected ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
+                          border: `1px solid ${wsConnected ? 'rgba(16,185,129,0.4)' : 'rgba(107,114,128,0.3)'}`,
+                          borderRadius: '20px',
+                          cursor: 'pointer',
+                        }}
+                      >
                         <span style={{
                           width: '8px', height: '8px', borderRadius: '50%',
                           background: wsConnected ? '#10b981' : '#6b7280',
@@ -9412,12 +9419,15 @@ export default function App() {
                         <span style={{ color: '#818cf8', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'monospace' }}>BIOMETRIC ENCRYPTED</span>
                       </div>
 
-                      {/* Feature 4: Risk Analytics shortcut */}
+                      {/* Feature 4: Risk Analytics shortcut - Sets direct tab hash parameter */}
                       <button
                         onClick={() => {
                           playCyberSound('click');
                           navigateToTab('settings');
                           setActiveSubSetting('productivity');
+                          // Directly update settings tab query or localStorage to open Analytics tab in Hub
+                          localStorage.setItem('active_productivity_tab', 'analytics');
+                          window.dispatchEvent(new Event('storage'));
                         }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '7px',

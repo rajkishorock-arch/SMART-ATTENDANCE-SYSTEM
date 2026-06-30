@@ -54,6 +54,20 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
     }
   };
 
+  // Listen for dashboard shortcut to jump directly to this tab
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const activeTab = localStorage.getItem('active_productivity_tab');
+      if (activeTab) {
+        setTab(activeTab);
+        localStorage.removeItem('active_productivity_tab');
+      }
+    };
+    handleStorageChange(); // Run once on load
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   useEffect(() => {
     if (!token) return;
     if (tab === 'analytics') {
