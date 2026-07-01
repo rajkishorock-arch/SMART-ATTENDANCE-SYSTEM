@@ -78,6 +78,21 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
   const [customReportName, setCustomReportName] = useState('Custom Attendance Report');
   const [selectedColumns, setSelectedColumns] = useState(['name', 'roll', 'attendance', 'date', 'department']);
   const [filterDept, setFilterDept] = useState('');
+  const [wlAppName, setWlAppName] = useState('');
+  const [wlLogoUrl, setWlLogoUrl] = useState('');
+  const [wlPrimaryColor, setWlPrimaryColor] = useState('');
+  const [wlSecondaryColor, setWlSecondaryColor] = useState('');
+  const [wlCustomDomain, setWlCustomDomain] = useState('');
+
+  useEffect(() => {
+    if (data.wl) {
+      setWlAppName(data.wl.app_name || '');
+      setWlLogoUrl(data.wl.logo_url || '');
+      setWlPrimaryColor(data.wl.primary_color || '');
+      setWlSecondaryColor(data.wl.secondary_color || '');
+      setWlCustomDomain(data.wl.custom_domain || '');
+    }
+  }, [data.wl]);
 
   if (userRole === 'student') {
     return <p style={{ color: '#94a3b8' }}>Enterprise tools are for staff only.</p>;
@@ -492,9 +507,64 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
 
       {tab === 'whitelabel' && data.wl && (
         <div>
-          <h3 style={{ color: '#f8fafc' }}>White-label APK Branding</h3>
-          <p style={{ color: '#94a3b8' }}>App: {data.wl.app_name} · Color: {data.wl.primary_color}</p>
-          <p style={{ color: '#64748b' }}>Domain: {data.wl.custom_domain || 'Not set'} · APK branding: {data.wl.apk_branding_ready ? 'Ready' : 'Pending'}</p>
+          <h3 style={{ color: '#f8fafc', marginBottom: 12 }}>White-label Customization</h3>
+          <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: 16 }}>
+            Customize your institution's mobile app branding, theme colors, and custom web domain.
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8rem', marginBottom: 4 }}>App / College Name</label>
+              <input value={wlAppName} onChange={(e) => setWlAppName(e.target.value)} placeholder="e.g. ABC Institute" style={inputStyle} />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8rem', marginBottom: 4 }}>Logo Image URL</label>
+              <input value={wlLogoUrl} onChange={(e) => setWlLogoUrl(e.target.value)} placeholder="https://example.com/logo.png" style={inputStyle} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8rem', marginBottom: 4 }}>Primary Color</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="color" value={wlPrimaryColor.startsWith('#') && wlPrimaryColor.length === 7 ? wlPrimaryColor : '#00f2fe'} onChange={(e) => setWlPrimaryColor(e.target.value)} style={{ width: 40, height: 38, border: 'none', borderRadius: 4, background: 'none', cursor: 'pointer' }} />
+                  <input value={wlPrimaryColor} onChange={(e) => setWlPrimaryColor(e.target.value)} placeholder="#00f2fe" style={inputStyle} />
+                </div>
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8rem', marginBottom: 4 }}>Secondary Color</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="color" value={wlSecondaryColor.startsWith('#') && wlSecondaryColor.length === 7 ? wlSecondaryColor : '#4facfe'} onChange={(e) => setWlSecondaryColor(e.target.value)} style={{ width: 40, height: 38, border: 'none', borderRadius: 4, background: 'none', cursor: 'pointer' }} />
+                  <input value={wlSecondaryColor} onChange={(e) => setWlSecondaryColor(e.target.value)} placeholder="#4facfe" style={inputStyle} />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8rem', marginBottom: 4 }}>Custom Web Domain</label>
+              <input value={wlCustomDomain} onChange={(e) => setWlCustomDomain(e.target.value)} placeholder="e.g. attendance.mycollege.edu" style={inputStyle} />
+            </div>
+
+            <button type="button" className="bg-gradient-btn" style={{ ...btnStyle, marginTop: 8 }} onClick={async () => {
+              try {
+                await api('/white-label/config', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    app_name: wlAppName,
+                    logo_url: wlLogoUrl,
+                    primary_color: wlPrimaryColor,
+                    secondary_color: wlSecondaryColor,
+                    custom_domain: wlCustomDomain
+                  })
+                });
+                setMsg('Branding and customization settings updated successfully!');
+                load();
+              } catch (e) {
+                setMsg(`Error: ${e.message}`);
+              }
+            }}>Save Customization</button>
+          </div>
         </div>
       )}
 

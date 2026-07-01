@@ -55,6 +55,14 @@ class SubstituteAssign(BaseModel):
     date_str: Optional[str] = None
 
 
+class WhiteLabelUpdate(BaseModel):
+    app_name: Optional[str] = None
+    logo_url: Optional[str] = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
+    custom_domain: Optional[str] = None
+
+
 class VoiceMarkPayload(BaseModel):
     roll: str
     status: str = "Present"
@@ -572,6 +580,27 @@ def white_label_config(db: Session = Depends(get_db), current_user: models.User 
         "custom_domain": inst.custom_domain,
         "apk_branding_ready": True,
     }
+
+
+@router.post("/white-label/config")
+def update_white_label_config(payload: WhiteLabelUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    inst = db.query(models.Institution).filter(models.Institution.id == current_user.institution_id).first()
+    if not inst:
+        raise HTTPException(status_code=404, detail="Institution not found")
+    if payload.app_name is not None:
+        inst.app_name = payload.app_name.strip()
+    if payload.logo_url is not None:
+        inst.logo_url = payload.logo_url.strip()
+    if payload.primary_color is not None:
+        inst.primary_color = payload.primary_color.strip()
+    if payload.secondary_color is not None:
+        inst.secondary_color = payload.secondary_color.strip()
+    if payload.custom_domain is not None:
+        inst.custom_domain = payload.custom_domain.strip()
+    db.commit()
+    return {"status": "updated"}
 
 
 # ─── Compliance Export ─────────────────────────────────────────────────────────
