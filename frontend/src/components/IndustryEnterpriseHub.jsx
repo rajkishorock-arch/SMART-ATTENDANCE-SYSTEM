@@ -61,10 +61,19 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
       if (tab === 'sla') setData({ sla: await api('/sla/status') });
       if (tab === 'campus') setData({ campuses: await api('/campuses') });
       if (tab === 'billing') setData({ billing: await api('/billing/automation-status') });
-      if (tab === 'whitelabel') setData({ wl: await api('/white-label/config') });
+      if (tab === 'whitelabel') {
+        const insts = await api('/institutions');
+        setInstitutionsList(insts);
+        const url = selectedInstId ? `/white-label/config?institution_id=${selectedInstId}` : '/white-label/config';
+        const config = await api(url);
+        setData({ wl: config });
+        if (!selectedInstId) {
+          setSelectedInstId(config.institution_id || 1);
+        }
+      }
       if (tab === 'kiosk') setData({ kiosk: await api('/kiosk/config') });
     } catch (e) { setMsg(e.message); }
-  }, [tab, token, api]);
+  }, [tab, token, api, selectedInstId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -83,6 +92,8 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
   const [wlPrimaryColor, setWlPrimaryColor] = useState('');
   const [wlSecondaryColor, setWlSecondaryColor] = useState('');
   const [wlCustomDomain, setWlCustomDomain] = useState('');
+  const [institutionsList, setInstitutionsList] = useState([]);
+  const [selectedInstId, setSelectedInstId] = useState('');
 
   useEffect(() => {
     if (data.wl) {
@@ -514,6 +525,17 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
+              <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8rem', marginBottom: 4 }}>Select College to Customize</label>
+              <select value={selectedInstId} onChange={(e) => setSelectedInstId(Number(e.target.value))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                {institutionsList.map((inst) => (
+                  <option key={inst.id} value={inst.id} style={{ background: '#1e293b', color: '#fff' }}>
+                    {inst.name} ({inst.slug})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.8rem', marginBottom: 4 }}>App / College Name</label>
               <input value={wlAppName} onChange={(e) => setWlAppName(e.target.value)} placeholder="e.g. ABC Institute" style={inputStyle} />
             </div>
@@ -551,6 +573,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
                 await api('/white-label/config', {
                   method: 'POST',
                   body: JSON.stringify({
+                    institution_id: selectedInstId,
                     app_name: wlAppName,
                     logo_url: wlLogoUrl,
                     primary_color: wlPrimaryColor,

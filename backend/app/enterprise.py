@@ -56,6 +56,7 @@ class SubstituteAssign(BaseModel):
 
 
 class WhiteLabelUpdate(BaseModel):
+    institution_id: Optional[int] = None
     app_name: Optional[str] = None
     logo_url: Optional[str] = None
     primary_color: Optional[str] = None
@@ -569,9 +570,24 @@ def list_campuses(db: Session = Depends(get_db), current_user: models.User = Dep
 
 
 @router.get("/white-label/config")
-def white_label_config(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    inst = db.query(models.Institution).filter(models.Institution.id == current_user.institution_id).first()
+def white_label_config(
+    institution_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    target_inst_id = current_user.institution_id
+    if institution_id is not None:
+        if current_user.role == "admin":
+            if current_user.institution_id == 1 or current_user.institution_id == institution_id:
+                target_inst_id = institution_id
+            else:
+                raise HTTPException(status_code=403, detail="Unauthorized to view this institution's configuration")
+        else:
+            raise HTTPException(status_code=403, detail="Staff only")
+
+    inst = db.query(models.Institution).filter(models.Institution.id == target_inst_id).first()
     return {
+        "institution_id": inst.id if inst else target_inst_id,
         "institution_name": inst.name if inst else "Smart Attendance",
         "app_name": inst.app_name if inst else "Smart Attendance",
         "logo_url": inst.logo_url,
@@ -586,7 +602,15 @@ def white_label_config(db: Session = Depends(get_db), current_user: models.User 
 def update_white_label_config(payload: WhiteLabelUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
-    inst = db.query(models.Institution).filter(models.Institution.id == current_user.institution_id).first()
+    
+    target_inst_id = current_user.institution_id
+    if payload.institution_id is not None:
+        if current_user.institution_id == 1 or current_user.institution_id == payload.institution_id:
+            target_inst_id = payload.institution_id
+        else:
+            raise HTTPException(status_code=403, detail="Unauthorized to edit this institution's configuration")
+
+    inst = db.query(models.Institution).filter(models.Institution.id == target_inst_id).first()
     if not inst:
         raise HTTPException(status_code=404, detail="Institution not found")
     if payload.app_name is not None:
