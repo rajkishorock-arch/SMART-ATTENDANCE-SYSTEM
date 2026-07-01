@@ -358,7 +358,7 @@ function QrScannerModal({ token, API_BASE_URL, selectedSubjectId, subjects, onCl
             
             if (window.jsQR) {
               const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
-                inversionAttempts: "dontInvert",
+                inversionAttempts: "attemptBoth",
               });
               if (code && code.data && !isProcessingRef.current) {
                 isProcessingRef.current = true;
@@ -1042,7 +1042,7 @@ function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
 
   // Build QR code image URL using Google Charts API (no npm needed)
   const qrUrl = qrToken
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}&bgcolor=0d0d1a&color=00f2fe&margin=10`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}&bgcolor=ffffff&color=000000&margin=10`
     : null;
 
   const detail = currentUser?.details || {};
