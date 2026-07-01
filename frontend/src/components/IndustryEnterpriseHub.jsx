@@ -88,7 +88,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
 
       <div className="futuristic-hub-tabs" style={{ maxHeight: '120px', overflowY: 'auto' }}>
         {TABS.map((t) => (
-          <button key={t.id} type="button" className={`futuristic-hub-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
+          <button key={t.id} type="button" className={`futuristic-hub-tab ${tab === t.id ? 'active' : ''}`} onClick={() => { setTab(t.id); setMsg(''); }}>
             <t.icon size={12} style={{ marginRight: 4 }} />{t.label}
           </button>
         ))}
@@ -229,6 +229,11 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
       {tab === 'dropout' && (
         <div>
           <h3 style={{ color: '#f8fafc' }}>Predictive Dropout Risk</h3>
+          {data.scores && data.scores.length === 0 && (
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '8px' }}>
+              ✓ No students currently identified at high risk of dropout (attendance ≥ 60% and no long absent streaks).
+            </p>
+          )}
           {(data.scores || []).map((s) => (
             <div key={s.student_id} style={cardStyle}>
               <span style={{ color: '#f8fafc' }}>{s.name} ({s.roll})</span>
