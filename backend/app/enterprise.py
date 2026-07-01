@@ -279,24 +279,30 @@ def list_escalation_cases(db: Session = Depends(get_db), current_user: models.Us
 def run_parent_escalation(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     _staff_only(current_user)
     today = _today_str()
-    absent_logs = db.query(models.AttendanceModel).filter(
+    all_students = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == current_user.institution_id
+    ).all()
+    present_rolls_today = {l.roll for l in db.query(models.AttendanceModel).filter(
         models.AttendanceModel.institution_id == current_user.institution_id,
         models.AttendanceModel.date == today,
-        models.AttendanceModel.attendance == "Absent",
-    ).all()
+        models.AttendanceModel.attendance == "Present",
+    ).all()}
+    absent_students_today = [s for s in all_students if s.roll not in present_rolls_today]
+    
+    distinct_dates = [d[0] for d in db.query(models.AttendanceModel.date).filter(
+        models.AttendanceModel.institution_id == current_user.institution_id
+    ).distinct().all()]
+    
     created, escalated = 0, 0
-    for log in absent_logs:
-        student = db.query(models.StudentModel).filter(
-            models.StudentModel.institution_id == current_user.institution_id,
-            models.StudentModel.roll == log.roll,
-        ).first()
-        if not student:
-            continue
-        recent_absent = db.query(models.AttendanceModel).filter(
+    for student in absent_students_today:
+        present_dates = {l.date for l in db.query(models.AttendanceModel).filter(
             models.AttendanceModel.institution_id == current_user.institution_id,
-            models.AttendanceModel.roll == log.roll,
-            models.AttendanceModel.attendance == "Absent",
-        ).count()
+            models.AttendanceModel.roll == student.roll,
+            models.AttendanceModel.attendance == "Present",
+        ).all()}
+        total_days = set(distinct_dates) | {today}
+        recent_absent = sum(1 for d in total_days if d not in present_dates)
+        
         tier = 1 if recent_absent == 1 else (2 if recent_absent == 2 else 3)
         case = db.query(models.EscalationCase).filter(
             models.EscalationCase.institution_id == current_user.institution_id,
