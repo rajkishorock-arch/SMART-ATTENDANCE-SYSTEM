@@ -80,7 +80,8 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
       if (tab === 'campus') setData({ campuses: await api('/campuses') });
       if (tab === 'billing') setData({ billing: await api('/billing/automation-status') });
       if (tab === 'whitelabel') {
-        const insts = await api('/institutions');
+        const instsRes = await fetch(`${apiBaseUrl}/institutions`, { headers: headers() });
+        const insts = instsRes.ok ? await instsRes.json() : [];
         setInstitutionsList(insts);
         const url = selectedInstId ? `/white-label/config?institution_id=${selectedInstId}` : '/white-label/config';
         const config = await api(url);
