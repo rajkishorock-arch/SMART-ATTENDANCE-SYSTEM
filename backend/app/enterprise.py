@@ -375,20 +375,19 @@ def assign_substitute(payload: SubstituteAssign, db: Session = Depends(get_db), 
 def bulk_notify_absent(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     _staff_only(current_user)
     today = _today_str()
-    absent = db.query(models.AttendanceModel).filter(
+    all_students = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == current_user.institution_id
+    ).all()
+    present_rolls = {l.roll for l in db.query(models.AttendanceModel).filter(
         models.AttendanceModel.institution_id == current_user.institution_id,
         models.AttendanceModel.date == today,
-        models.AttendanceModel.attendance == "Absent",
-    ).all()
+        models.AttendanceModel.attendance == "Present",
+    ).all()}
+    absent_students = [s for s in all_students if s.roll not in present_rolls]
     count = 0
-    for log in absent:
-        student = db.query(models.StudentModel).filter(
-            models.StudentModel.institution_id == current_user.institution_id,
-            models.StudentModel.roll == log.roll,
-        ).first()
-        if student:
-            notify_parent_absent(student.parent_phone, student.parent_email, student.name, today, notify_whatsapp=True)
-            count += 1
+    for student in absent_students:
+        notify_parent_absent(student.parent_phone, student.parent_email, student.name, today, notify_whatsapp=True)
+        count += 1
     return {"notified": count}
 
 
