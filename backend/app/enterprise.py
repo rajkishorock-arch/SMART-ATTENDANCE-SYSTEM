@@ -221,6 +221,21 @@ def activate_exam_session(session_id: int, db: Session = Depends(get_db), curren
     return {"status": "active", "exam": session.name, "geofence_strict": session.geofence_strict}
 
 
+@router.post("/exam/sessions/{session_id}/deactivate")
+def deactivate_exam_session(session_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    session = db.query(models.ExamSession).filter(
+        models.ExamSession.id == session_id,
+        models.ExamSession.institution_id == current_user.institution_id,
+    ).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Exam session not found")
+    session.is_active = False
+    db.commit()
+    return {"status": "inactive", "exam": session.name}
+
+
 # ─── Report Builder ────────────────────────────────────────────────────────────
 
 @router.get("/reports/saved")

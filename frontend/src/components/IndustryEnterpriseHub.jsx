@@ -139,6 +139,16 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
                   setMsg('Exam mode activated — strict geofence ON'); load();
                 }}>Activate</button>
               )}
+              {e.is_active && userRole === 'admin' && (
+                <button type="button" className="btn-secondary" style={{ ...btnStyle, marginLeft: 8 }} onClick={async () => {
+                  try {
+                    await api(`/exam/sessions/${e.id}/deactivate`, { method: 'POST' });
+                    setMsg('Exam session deactivated'); load();
+                  } catch (e) {
+                    setMsg(`Error: ${e.message}`);
+                  }
+                }}>Deactivate</button>
+              )}
             </div>
           ))}
         </div>
