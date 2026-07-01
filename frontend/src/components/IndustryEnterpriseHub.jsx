@@ -244,8 +244,16 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
           <h3 style={{ color: '#f8fafc' }}>Voice Attendance in Classroom</h3>
           <input value={voiceRoll} onChange={(e) => setVoiceRoll(e.target.value)} placeholder="Roll number" style={inputStyle} />
           <button type="button" className="bg-gradient-btn" style={{ ...btnStyle, marginTop: 8 }} onClick={async () => {
-            const r = await api('/voice-mark', { method: 'POST', body: JSON.stringify({ roll: voiceRoll }) });
-            setMsg(`Marked: ${r.name}`);
+            try {
+              if (!voiceRoll.trim()) {
+                setMsg('Please enter a Roll number first');
+                return;
+              }
+              const r = await api('/voice-mark', { method: 'POST', body: JSON.stringify({ roll: voiceRoll.trim() }) });
+              setMsg(`Marked: ${r.name}`);
+            } catch (e) {
+              setMsg(`Error: ${e.message}`);
+            }
           }}>Mark by Roll (Voice/Quick)</button>
         </div>
       )}
@@ -255,8 +263,16 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
           <h3 style={{ color: '#f8fafc' }}>Face + RFID/NFC Hybrid Fallback</h3>
           <input value={rfidCard} onChange={(e) => setRfidCard(e.target.value)} placeholder="Card ID or Roll" style={inputStyle} />
           <button type="button" className="bg-gradient-btn" style={{ ...btnStyle, marginTop: 8 }} onClick={async () => {
-            const r = await api('/rfid/mark', { method: 'POST', body: JSON.stringify({ card_id: rfidCard, roll: rfidCard }) });
-            setMsg(`RFID marked: ${r.name}`);
+            try {
+              if (!rfidCard.trim()) {
+                setMsg('Please enter a Card ID or Roll number first');
+                return;
+              }
+              const r = await api('/rfid/mark', { method: 'POST', body: JSON.stringify({ card_id: rfidCard.trim(), roll: rfidCard.trim() }) });
+              setMsg(`RFID marked: ${r.name}`);
+            } catch (e) {
+              setMsg(`Error: ${e.message}`);
+            }
           }}>Mark via RFID/NFC</button>
         </div>
       )}
@@ -311,8 +327,12 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
           <h3 style={{ color: '#f8fafc' }}>ERP Inbound Sync</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.82rem' }}>Webhook: POST /enterprise/erp/webhook/sync</p>
           <button type="button" className="bg-gradient-btn" style={btnStyle} onClick={async () => {
-            const r = await api('/erp/webhook/sync', { method: 'POST', body: JSON.stringify({ event: 'student_sync', payload: { students: [] } }) });
-            setMsg(`ERP event processed: ${r.event}`);
+            try {
+              const r = await api('/erp/webhook/sync', { method: 'POST', body: JSON.stringify({ event: 'student_sync', payload: { students: [] } }) });
+              setMsg(`ERP event processed: ${r.event}`);
+            } catch (e) {
+              setMsg(`Error: ${e.message}`);
+            }
           }}>Test ERP Webhook</button>
           <p style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 8 }}>Export: Advanced Hub → ERP API Keys</p>
         </div>
