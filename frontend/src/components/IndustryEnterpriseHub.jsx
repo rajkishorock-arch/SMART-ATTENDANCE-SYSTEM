@@ -75,6 +75,9 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
   const [rfidCard, setRfidCard] = useState('');
   const [subOrig, setSubOrig] = useState('');
   const [subReplace, setSubReplace] = useState('');
+  const [customReportName, setCustomReportName] = useState('Custom Attendance Report');
+  const [selectedColumns, setSelectedColumns] = useState(['name', 'roll', 'attendance', 'date', 'department']);
+  const [filterDept, setFilterDept] = useState('');
 
   if (userRole === 'student') {
     return <p style={{ color: '#94a3b8' }}>Enterprise tools are for staff only.</p>;
@@ -144,18 +147,78 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
       {tab === 'reports' && (
         <div>
           <h3 style={{ color: '#f8fafc' }}>Custom Report Builder</h3>
-          <button type="button" className="bg-gradient-btn" style={btnStyle} onClick={async () => {
-            try {
-              const r = await api('/reports/build', { method: 'POST', body: JSON.stringify({
-                name: 'Custom Attendance Report', columns: ['name', 'roll', 'attendance', 'date', 'department'], save: true,
-              }) });
-              setMsg(`Report built — ${r.total} rows, saved #${r.saved_id || 'N/A'}`);
-              setSelectedReport(r);
-              load();
-            } catch (e) {
-              setMsg(`Error: ${e.message}`);
-            }
-          }}>Build & Save Report</button>
+          
+          <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '16px' }}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginBottom: '4px' }}>Report Name</label>
+              <input 
+                value={customReportName} 
+                onChange={(e) => setCustomReportName(e.target.value)} 
+                placeholder="Enter report name" 
+                style={inputStyle} 
+              />
+            </div>
+            
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginBottom: '4px' }}>Filter by Department (Optional)</label>
+              <input 
+                value={filterDept} 
+                onChange={(e) => setFilterDept(e.target.value)} 
+                placeholder="e.g. CSE(IOT) or leave empty for all" 
+                style={inputStyle} 
+              />
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginBottom: '6px' }}>Columns to Include</label>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                {['name', 'roll', 'attendance', 'date', 'department'].map((col) => {
+                  const isChecked = selectedColumns.includes(col);
+                  return (
+                    <label key={col} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '4px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isChecked} 
+                        onChange={() => {
+                          if (isChecked) {
+                            setSelectedColumns(selectedColumns.filter(c => c !== col));
+                          } else {
+                            setSelectedColumns([...selectedColumns, col]);
+                          }
+                        }}
+                      />
+                      <span style={{ textTransform: 'capitalize' }}>{col === 'name' ? 'Student Name' : col}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button type="button" className="bg-gradient-btn" style={{ ...btnStyle, width: '100%' }} onClick={async () => {
+              try {
+                if (!customReportName.trim()) {
+                  setMsg('Please enter a report name first');
+                  return;
+                }
+                if (selectedColumns.length === 0) {
+                  setMsg('Please select at least one column');
+                  return;
+                }
+                const config = {
+                  name: customReportName.trim(),
+                  columns: selectedColumns,
+                  department: filterDept.trim() || null,
+                  save: true,
+                };
+                const r = await api('/reports/build', { method: 'POST', body: JSON.stringify(config) });
+                setMsg(`Report built — ${r.total} rows, saved #${r.saved_id || 'N/A'}`);
+                setSelectedReport(r);
+                load();
+              } catch (e) {
+                setMsg(`Error: ${e.message}`);
+              }
+            }}>Build & Save Report</button>
+          </div>
           <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: 12, marginBottom: 4 }}>Saved Reports (Click to load):</p>
           <ul style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: 0, paddingLeft: 0, listStyle: 'none' }}>
             {(data.saved || []).map((r) => (
