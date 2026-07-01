@@ -36,6 +36,24 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
   const [data, setData] = useState({});
   const [selectedReport, setSelectedReport] = useState(null);
 
+  const [ruleName, setRuleName] = useState('75% Minimum Attendance');
+  const [examName, setExamName] = useState('Mid-Term Exam Hall A');
+  const [copilotQ, setCopilotQ] = useState('Aaj kaun absent hai?');
+  const [voiceRoll, setVoiceRoll] = useState('');
+  const [rfidCard, setRfidCard] = useState('');
+  const [subOrig, setSubOrig] = useState('');
+  const [subReplace, setSubReplace] = useState('');
+  const [customReportName, setCustomReportName] = useState('Custom Attendance Report');
+  const [selectedColumns, setSelectedColumns] = useState(['name', 'roll', 'attendance', 'date', 'department']);
+  const [filterDept, setFilterDept] = useState('');
+  const [wlAppName, setWlAppName] = useState('');
+  const [wlLogoUrl, setWlLogoUrl] = useState('');
+  const [wlPrimaryColor, setWlPrimaryColor] = useState('');
+  const [wlSecondaryColor, setWlSecondaryColor] = useState('');
+  const [wlCustomDomain, setWlCustomDomain] = useState('');
+  const [institutionsList, setInstitutionsList] = useState([]);
+  const [selectedInstId, setSelectedInstId] = useState('');
+
   const headers = useCallback(() => ({
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
@@ -77,23 +95,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
 
   useEffect(() => { load(); }, [load]);
 
-  const [ruleName, setRuleName] = useState('75% Minimum Attendance');
-  const [examName, setExamName] = useState('Mid-Term Exam Hall A');
-  const [copilotQ, setCopilotQ] = useState('Aaj kaun absent hai?');
-  const [voiceRoll, setVoiceRoll] = useState('');
-  const [rfidCard, setRfidCard] = useState('');
-  const [subOrig, setSubOrig] = useState('');
-  const [subReplace, setSubReplace] = useState('');
-  const [customReportName, setCustomReportName] = useState('Custom Attendance Report');
-  const [selectedColumns, setSelectedColumns] = useState(['name', 'roll', 'attendance', 'date', 'department']);
-  const [filterDept, setFilterDept] = useState('');
-  const [wlAppName, setWlAppName] = useState('');
-  const [wlLogoUrl, setWlLogoUrl] = useState('');
-  const [wlPrimaryColor, setWlPrimaryColor] = useState('');
-  const [wlSecondaryColor, setWlSecondaryColor] = useState('');
-  const [wlCustomDomain, setWlCustomDomain] = useState('');
-  const [institutionsList, setInstitutionsList] = useState([]);
-  const [selectedInstId, setSelectedInstId] = useState('');
+
 
   useEffect(() => {
     if (data.wl) {
