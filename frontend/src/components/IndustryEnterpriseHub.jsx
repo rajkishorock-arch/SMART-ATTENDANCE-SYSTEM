@@ -34,6 +34,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
   const [tab, setTab] = useState('rules');
   const [msg, setMsg] = useState('');
   const [data, setData] = useState({});
+  const [selectedReport, setSelectedReport] = useState(null);
 
   const headers = useCallback(() => ({
     Authorization: `Bearer ${token}`,
@@ -88,7 +89,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
 
       <div className="futuristic-hub-tabs" style={{ maxHeight: '120px', overflowY: 'auto' }}>
         {TABS.map((t) => (
-          <button key={t.id} type="button" className={`futuristic-hub-tab ${tab === t.id ? 'active' : ''}`} onClick={() => { setTab(t.id); setMsg(''); }}>
+          <button key={t.id} type="button" className={`futuristic-hub-tab ${tab === t.id ? 'active' : ''}`} onClick={() => { setTab(t.id); setMsg(''); setSelectedReport(null); }}>
             <t.icon size={12} style={{ marginRight: 4 }} />{t.label}
           </button>
         ))}
@@ -144,15 +145,80 @@ export default function IndustryEnterpriseHub({ apiBaseUrl, token, userRole, onO
         <div>
           <h3 style={{ color: '#f8fafc' }}>Custom Report Builder</h3>
           <button type="button" className="bg-gradient-btn" style={btnStyle} onClick={async () => {
-            const r = await api('/reports/build', { method: 'POST', body: JSON.stringify({
-              name: 'Custom Attendance Report', columns: ['name', 'roll', 'attendance', 'date', 'department'], save: true,
-            }) });
-            setMsg(`Report built — ${r.total} rows, saved #${r.saved_id || 'N/A'}`);
-            load();
+            try {
+              const r = await api('/reports/build', { method: 'POST', body: JSON.stringify({
+                name: 'Custom Attendance Report', columns: ['name', 'roll', 'attendance', 'date', 'department'], save: true,
+              }) });
+              setMsg(`Report built — ${r.total} rows, saved #${r.saved_id || 'N/A'}`);
+              setSelectedReport(r);
+              load();
+            } catch (e) {
+              setMsg(`Error: ${e.message}`);
+            }
           }}>Build & Save Report</button>
-          <ul style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: 12 }}>
-            {(data.saved || []).map((r) => <li key={r.id}>{r.name}</li>)}
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: 12, marginBottom: 4 }}>Saved Reports (Click to load):</p>
+          <ul style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: 0, paddingLeft: 0, listStyle: 'none' }}>
+            {(data.saved || []).map((r) => (
+              <li key={r.id} style={{ marginBottom: 6 }}>
+                <button type="button" style={{
+                  background: 'none', border: 'none', color: '#00f2fe', cursor: 'pointer', padding: 0, textAlign: 'left', textDecoration: 'underline', fontSize: '0.82rem'
+                }} onClick={async () => {
+                  try {
+                    const config = r.config || { name: r.name, columns: ['name', 'roll', 'attendance', 'date', 'department'], save: false };
+                    const res = await api('/reports/build', { method: 'POST', body: JSON.stringify({ ...config, save: false }) });
+                    setSelectedReport(res);
+                    setMsg(`Loaded report: ${r.name}`);
+                  } catch (e) {
+                    setMsg(`Error: ${e.message}`);
+                  }
+                }}>
+                  📄 {r.name} (ID: #{r.id})
+                </button>
+              </li>
+            ))}
           </ul>
+
+          {selectedReport && (
+            <div style={{ marginTop: 16, border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px', background: 'rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ color: '#f8fafc', margin: 0 }}>{selectedReport.name} ({selectedReport.total} rows)</h4>
+                <button type="button" className="bg-gradient-btn" style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }} onClick={() => {
+                  const rows = selectedReport.rows || [];
+                  const cols = Object.keys(rows[0] || {});
+                  const csvRows = [
+                    cols.join(','),
+                    ...rows.map(row => cols.map(c => `"${row[c] || ''}"`).join(','))
+                  ];
+                  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${selectedReport.name.toLowerCase().replace(/\s+/g, '_')}.csv`;
+                  a.click();
+                }}>Download CSV</button>
+              </div>
+              <div style={{ overflowX: 'auto', maxHeight: '200px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
+                      {Object.keys(selectedReport.rows[0] || {}).map((col) => (
+                        <th key={col} style={{ padding: '6px', textTransform: 'capitalize', color: '#00f2fe' }}>{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedReport.rows.map((row, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        {Object.values(row).map((val, i) => (
+                          <td key={i} style={{ padding: '6px' }}>{String(val)}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
