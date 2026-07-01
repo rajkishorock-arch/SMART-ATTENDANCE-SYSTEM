@@ -88,7 +88,6 @@ import CameraSettingsPanel from './components/CameraSettingsPanel';
 import FuturisticFeaturesHub from './components/FuturisticFeaturesHub';
 import IndustryEnterpriseHub from './components/IndustryEnterpriseHub';
 import RoleCommandCenter from './components/RoleCommandCenter';
-import ScanStreakCounter from './components/ScanStreakCounter';
 import QuickActionsDock from './components/QuickActionsDock';
 import SmartEmptyState from './components/SmartEmptyState';
 import OnboardingTour from './components/OnboardingTour';
@@ -9632,9 +9631,6 @@ export default function App() {
                   userRole={userRole}
                   teacherSubjects={subjects}
                 />
-                {userRole !== 'student' && token && (
-                  <ScanStreakCounter apiBaseUrl={API_BASE_URL} token={token} />
-                )}
                 <SmartSuggestionsBar
                   hasPremium={hasPremiumAccess}
                   scannerUsed={recognizedStudents.length > 0}
