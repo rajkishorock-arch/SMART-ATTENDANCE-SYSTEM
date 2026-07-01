@@ -273,3 +273,68 @@ class InteractivePoll(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
+class AttendanceRule(Base):
+    __tablename__ = "attendance_rules"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(120), nullable=False)
+    rule_type = Column(String(50), nullable=False)  # min_percent, consecutive_absent, late_limit
+    threshold = Column(Float, default=75.0)
+    action = Column(String(80), default="alert")  # alert, block, notify_parent, escalate
+    notify_roles = Column(String(200), default="admin,teacher")
+    is_active = Column(Boolean, default=True)
+    config_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ExamSession(Base):
+    __tablename__ = "exam_sessions"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+    hall_name = Column(String(120), nullable=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    start_time = Column(String(20), nullable=True)
+    end_time = Column(String(20), nullable=True)
+    geofence_strict = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)
+    created_by = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SavedReport(Base):
+    __tablename__ = "saved_reports"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+    config_json = Column(Text, nullable=False)
+    created_by = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class EscalationCase(Base):
+    __tablename__ = "escalation_cases"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, nullable=False)
+    student_name = Column(String(100), nullable=True)
+    student_roll = Column(String(50), nullable=True)
+    tier = Column(Integer, default=1)  # 1=teacher, 2=HOD, 3=principal
+    status = Column(String(30), default="open")  # open, acknowledged, resolved
+    reason = Column(Text, nullable=True)
+    last_action_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SubstituteAssignment(Base):
+    __tablename__ = "substitute_assignments"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    original_teacher_email = Column(String(100), nullable=False)
+    substitute_email = Column(String(100), nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    date_str = Column(String(20), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

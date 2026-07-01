@@ -1097,24 +1097,30 @@ def checkin_via_student_qr(
 
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import List
+from jose import jwt, JWTError
+from .core import config
 
 active_connections: List[WebSocket] = []
 
 @router.websocket("/ws")
-async def attendance_websocket_endpoint(websocket: WebSocket):
+async def attendance_websocket_endpoint(websocket: WebSocket, token: str = None):
+    institution_id = None
+    if token:
+        try:
+            payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
+            institution_id = payload.get("institution_id")
+        except JWTError:
+            await websocket.close(code=4001)
+            return
     await websocket.accept()
     active_connections.append(websocket)
-    print(f"WebSocket client connected: {websocket.client}")
     try:
         while True:
-            # Maintain active connection
             await websocket.receive_text()
     except WebSocketDisconnect:
         if websocket in active_connections:
             active_connections.remove(websocket)
-        print("WebSocket client disconnected")
-    except Exception as e:
-        print(f"WebSocket connection error: {e}")
+    except Exception:
         if websocket in active_connections:
             active_connections.remove(websocket)
 

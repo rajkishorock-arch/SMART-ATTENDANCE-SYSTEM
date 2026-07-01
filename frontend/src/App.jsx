@@ -10,7 +10,7 @@ import NotificationCenter from './components/NotificationCenter';
 import AdvancedFeaturesHub from './components/AdvancedFeaturesHub';
 import ConsentModal from './components/ConsentModal';
 import PrivacyPolicy from './components/PrivacyPolicy';
-import { setupOfflineSyncListener } from './utils/offlineQueue';
+import { setupOfflineSyncListener, addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import { completeLivenessFlow } from './utils/livenessClient';
 import LiveActivityTicker from './components/LiveActivityTicker';
 import AppAmbientLayer from './components/animations/AppAmbientLayer';
@@ -86,6 +86,9 @@ import PremiumUpgradeHub from './components/PremiumUpgradeHub';
 import ExplorationLab from './components/ExplorationLab';
 import CameraSettingsPanel from './components/CameraSettingsPanel';
 import FuturisticFeaturesHub from './components/FuturisticFeaturesHub';
+import IndustryEnterpriseHub from './components/IndustryEnterpriseHub';
+import RoleCommandCenter from './components/RoleCommandCenter';
+import ScanStreakCounter from './components/ScanStreakCounter';
 import QuickActionsDock from './components/QuickActionsDock';
 import SmartEmptyState from './components/SmartEmptyState';
 import OnboardingTour from './components/OnboardingTour';
@@ -2667,6 +2670,8 @@ export default function App() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const sessionInitializedRef = useRef(false);
+  const loginJustCompletedRef = useRef(false);
+  const loginBootstrapDoneRef = useRef(false);
 
   // Phase 5 States
   const [diagnosticWarnings, setDiagnosticWarnings] = useState({ lighting: '', distance: '' });
@@ -3457,8 +3462,17 @@ export default function App() {
       }
     } catch (err) {
       setIsSubmittingManual(false);
+      classStudents.forEach((student) => {
+        const stateData = manualAttendanceData[student.id] || { status: 'Present' };
+        addToOfflineQueue({
+          student_id: student.id,
+          subject_id: parseInt(manualSubjectId, 10),
+          custom_date: manualDate,
+          custom_time: manualPeriod,
+        });
+      });
       setIsManualAttendanceOpen(false);
-      alert('Failed to mark manual attendance. Please check network and security settings.');
+      alert('Network error — attendance queued offline. Will sync when back online.');
       playCyberSound('error');
     }
   };
@@ -3663,7 +3677,7 @@ export default function App() {
   useEffect(() => {
     if (!token || userRole === 'student') return undefined;
 
-    let wsUrl = API_BASE_URL.replace('https://', 'wss://').replace('http://', 'ws://') + '/attendance/ws';
+    let wsUrl = API_BASE_URL.replace('https://', 'wss://').replace('http://', 'ws://') + `/attendance/ws?token=${encodeURIComponent(token)}`;
     let socket;
     let reconnectTimeout;
     let active = true;
@@ -6446,6 +6460,10 @@ export default function App() {
   useEffect(() => {
     if (token) {
       if (isDemoMode) return;
+      if (loginJustCompletedRef.current) {
+        loginJustCompletedRef.current = false;
+        return;
+      }
       fetchSessionInfo(token);
     } else {
       sessionInitializedRef.current = false;
@@ -6575,6 +6593,11 @@ export default function App() {
   // Load core data once after login
   useEffect(() => {
     if (!token || !userRole) return;
+
+    if (loginBootstrapDoneRef.current) {
+      loginBootstrapDoneRef.current = false;
+      return;
+    }
 
     let isMounted = true;
     
@@ -6971,6 +6994,42 @@ export default function App() {
     setSettingsIpRanges('192.168.1.0/24');
   };
 
+  // SSO login (Google / Microsoft / demo)
+  const handleSsoLogin = async (provider, emailHint) => {
+    if (!emailHint?.includes('@')) {
+      setAuthError('Enter your email above first, then tap SSO.');
+      return;
+    }
+    setIsLoading(true);
+    setAuthError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/sso/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-Slug': getActiveTenantSlug() },
+        body: JSON.stringify({ provider: provider === 'microsoft' && !import.meta.env.VITE_MICROSOFT_CLIENT_ID ? 'demo' : (provider === 'google' && !import.meta.env.VITE_GOOGLE_CLIENT_ID ? 'demo' : provider), id_token: emailHint.trim().toLowerCase(), institution_slug: getActiveTenantSlug() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'SSO failed');
+      const meRes = await fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${data.access_token}` } });
+      const meData = meRes.ok ? await meRes.json() : { role: data.role, email: emailHint };
+      loginJustCompletedRef.current = true;
+      loginBootstrapDoneRef.current = true;
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('userRole', meData.role);
+      localStorage.setItem('cached_user', JSON.stringify(meData));
+      setToken(data.access_token);
+      setUserRole(meData.role);
+      setCurrentUser(meData);
+      setLoginRole(meData.role);
+      playCyberSound('success');
+    } catch (e) {
+      setAuthError(e.message || 'SSO login failed');
+      playCyberSound('error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle Login submission (with auto-retry for Render cold starts)
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -6980,25 +7039,25 @@ export default function App() {
     setServerWarmingUp(true);
 
     // Wake sleeping Render instance before auth attempt
-    await wakeBackend(API_BASE_URL);
+    await wakeBackend(API_BASE_URL, 2500);
 
     const formData = new URLSearchParams();
     formData.append('username', loginEmail.trim().toLowerCase());
     formData.append('password', loginPassword);
 
-    const MAX_RETRIES = 5;
+    const MAX_RETRIES = 2;
     let lastError = null;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         if (attempt > 0) {
           setAuthError(`Cloud server waking up... Retry ${attempt}/${MAX_RETRIES}`);
-          await new Promise((r) => setTimeout(r, 4000 + attempt * 2000));
-          await wakeBackend(API_BASE_URL);
+          await new Promise((r) => setTimeout(r, 2000 + attempt * 1000));
+          await wakeBackend(API_BASE_URL, 2500);
         }
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
 
         const res = await fetch(`${API_BASE_URL}/auth/token`, {
           method: 'POST',
@@ -7024,15 +7083,16 @@ export default function App() {
             headers: { Authorization: `Bearer ${data.access_token}` },
           });
 
-          if (meRes.ok) {
-            const meData = await meRes.json();
-            if (meData.role !== loginRole) {
-              playCyberSound('error');
-              setAuthError(getRoleMismatchMessage(loginRole, meData.role));
-              setIsLoading(false);
-              setServerWarmingUp(false);
-              return;
-            }
+          if (!meRes.ok) {
+            throw new Error('Session validation failed');
+          }
+          const meData = await meRes.json();
+          if (meData.role !== loginRole) {
+            playCyberSound('error');
+            setAuthError(getRoleMismatchMessage(loginRole, meData.role));
+            setIsLoading(false);
+            setServerWarmingUp(false);
+            return;
           }
 
           playCyberSound('success');
@@ -7040,12 +7100,39 @@ export default function App() {
           setServerWarmingUp(false);
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('loginRole', loginRole);
-          localStorage.setItem('userRole', loginRole);
+          localStorage.setItem('userRole', meData.role);
+          localStorage.setItem('cached_user', JSON.stringify(meData));
           sessionStorage.setItem('just_logged_in_tour', 'true');
+          loginJustCompletedRef.current = true;
+          loginBootstrapDoneRef.current = true;
           setToken(data.access_token);
-          setUserRole(loginRole);
+          setUserRole(meData.role);
+          setCurrentUser(meData);
           setIsLoading(false);
-          fetchSessionInfo(data.access_token);
+
+          if (!sessionInitializedRef.current) {
+            sessionInitializedRef.current = true;
+            if (meData.role === 'student') setActiveTab('student-attendance');
+            else setActiveTab('dashboard');
+          }
+
+          if (meData.role === 'student') {
+            fetchStudentLogs(data.access_token);
+            fetchStudentLeaves();
+          } else {
+            Promise.all([
+              fetchDepartments(data.access_token),
+              fetchStats(data.access_token),
+              fetchLogs(data.access_token),
+              fetchSchedules(),
+              fetchAdminLeaves(),
+            ]);
+            fetchSubjects().then(() => fetchStudents());
+            if (meData.role === 'admin') {
+              fetchTeachers();
+              fetchFeedbacks();
+            }
+          }
           return;
         }
 
@@ -8359,6 +8446,7 @@ export default function App() {
           if (ok) setServerWarmingUp(false);
         }}
         onSubmit={handleLogin}
+        onSsoLogin={handleSsoLogin}
         onExploreGuest={handleExploreGuest}
       />
     );
@@ -9538,6 +9626,15 @@ export default function App() {
                   </div>
                 )}
                 {/* ============================================ */}
+                <RoleCommandCenter
+                  stats={stats}
+                  scannerLive={attendanceActive || scannerBootActive}
+                  userRole={userRole}
+                  teacherSubjects={subjects}
+                />
+                {userRole !== 'student' && token && (
+                  <ScanStreakCounter apiBaseUrl={API_BASE_URL} token={token} />
+                )}
                 <SmartSuggestionsBar
                   hasPremium={hasPremiumAccess}
                   scannerUsed={recognizedStudents.length > 0}
@@ -13555,6 +13652,22 @@ export default function App() {
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Theme Studio, Widget Home, Polls, Health Check, Campus Map, Premium Control, and more.</p>
                   </div>
 
+                  {/* Category Card: Industry Enterprise Suite */}
+                  {userRole !== 'student' && (
+                    <div
+                      onClick={() => { setActiveSubSetting('enterprise'); playCyberSound('click'); }}
+                      className="glass-panel hover-card"
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.4rem' }}>🏭</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>PRO</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Industry Enterprise Suite</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Rules engine, exam mode, escalation, SLA, heatmap, RFID, multi-campus, compliance export.</p>
+                    </div>
+                  )}
+
                   {/* Category Card: Premium Subscription */}
                   {userRole === 'admin' && (
                     <div
@@ -14288,6 +14401,16 @@ export default function App() {
                   latestVersion: serverLatestVersion,
                 }}
                 onNavigateSettings={(sub) => setActiveSubSetting(sub)}
+              />
+            )}
+
+            {activeSubSetting === 'enterprise' && userRole !== 'student' && (
+              <IndustryEnterpriseHub
+                apiBaseUrl={API_BASE_URL}
+                token={token}
+                userRole={userRole}
+                offlineQueueCount={getOfflineQueue().length}
+                onOpenScanner={() => { setActiveTab('attendance'); setShowScannerModal(true); }}
               />
             )}
 

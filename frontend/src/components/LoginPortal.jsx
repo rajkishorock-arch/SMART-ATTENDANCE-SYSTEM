@@ -56,6 +56,7 @@ export default function LoginPortal({
   onTenantChange,
   onWakeServer,
   serverStatus,
+  onSsoLogin,
 }) {
   const [bootLine, setBootLine] = useState('');
   const [bootIndex, setBootIndex] = useState(0);
@@ -409,6 +410,31 @@ export default function LoginPortal({
               </div>
 
               <form onSubmit={onSubmit} className="login-portal-form">
+                {!isRegister && onSsoLogin && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => onSsoLogin('google', loginEmail)}
+                      style={{
+                        padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'rgba(255,255,255,0.04)', color: '#f8fafc', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem',
+                      }}
+                    >
+                      🔐 Sign in with Google SSO
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSsoLogin('microsoft', loginEmail)}
+                      style={{
+                        padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'rgba(255,255,255,0.04)', color: '#f8fafc', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem',
+                      }}
+                    >
+                      🔐 Sign in with Microsoft SSO
+                    </button>
+                    <p style={{ color: '#64748b', fontSize: '0.68rem', margin: 0, textAlign: 'center' }}>Or use email/password below</p>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">
                     <Mail size={14} /> Email or Institute Username
