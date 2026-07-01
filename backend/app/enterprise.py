@@ -615,13 +615,17 @@ def timetable_copilot(payload: CopilotQuery, db: Session = Depends(get_db), curr
     q = payload.question.lower()
     today = _today_str()
     if "absent" in q:
-        absent = db.query(models.AttendanceModel).filter(
+        all_students = db.query(models.StudentModel).filter(
+            models.StudentModel.institution_id == current_user.institution_id
+        ).all()
+        present_rolls = {l.roll for l in db.query(models.AttendanceModel).filter(
             models.AttendanceModel.institution_id == current_user.institution_id,
             models.AttendanceModel.date == today,
-            models.AttendanceModel.attendance == "Absent",
-        ).all()
-        names = [f"{l.name} ({l.roll})" for l in absent[:15]]
-        return {"answer": f"Aaj absent ({len(absent)}): " + (", ".join(names) if names else "koi nahi"), "source": "attendance_db"}
+            models.AttendanceModel.attendance == "Present",
+        ).all()}
+        absent_students = [s for s in all_students if s.roll not in present_rolls]
+        names = [f"{s.name} ({s.roll})" for s in absent_students[:15]]
+        return {"answer": f"Aaj absent ({len(absent_students)}): " + (", ".join(names) if names else "koi nahi"), "source": "attendance_db"}
     if "present" in q or "kitne" in q:
         present = db.query(models.AttendanceModel).filter(
             models.AttendanceModel.institution_id == current_user.institution_id,

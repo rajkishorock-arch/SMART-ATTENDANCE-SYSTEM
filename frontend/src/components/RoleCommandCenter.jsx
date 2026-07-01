@@ -1,7 +1,7 @@
 import LiveCommandCenter from './LiveCommandCenter';
 
 export default function RoleCommandCenter({ stats, scannerLive, userRole, department, teacherSubjects = [] }) {
-  const lateCount = stats?.total_late_today ?? stats?.total_absent_today ?? 0;
+  const lateCount = stats?.total_late_today ?? 0;
 
   if (userRole === 'teacher') {
     return (
