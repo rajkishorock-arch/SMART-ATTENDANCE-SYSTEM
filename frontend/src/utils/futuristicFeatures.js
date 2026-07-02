@@ -11,6 +11,7 @@ export const THEME_PRESETS = [
   { id: 'obsidian', label: 'Obsidian Red', primary: '#ff3e3e', secondary: '#b31b1b' },
   { id: 'violet', label: 'Violet Dream', primary: '#a855f7', secondary: '#6366f1' },
   { id: 'sunset', label: 'Sunset Gold', primary: '#fbbf24', secondary: '#f97316' },
+  { id: 'amoled', label: 'AMOLED Black', primary: '#ffffff', secondary: '#a1a1aa' },
 ];
 
 export const ACHIEVEMENTS = [

@@ -69,6 +69,21 @@ body[data-theme='violet'] {
   --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(168, 85, 247, 0.08);
 }
 
+body[data-theme='amoled'] {
+  --bg-primary: #000000;
+  --bg-secondary: #050505;
+  --bg-card: rgba(10, 10, 10, 0.75);
+  --bg-card-hover: rgba(20, 20, 20, 0.95);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color-glow: rgba(0, 242, 254, 0.45);
+  
+  --color-primary: #ffffff;
+  --color-secondary: #a1a1aa;
+  --color-purple: #8b5cf6;
+  --glow-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+  --glass-shadow: 0 10px 45px -10px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
 * {
   margin: 0;
   padding: 0;
