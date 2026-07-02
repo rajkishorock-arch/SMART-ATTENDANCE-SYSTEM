@@ -7595,7 +7595,13 @@ export default function App() {
         })
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        data = { detail: 'Server error occurred during student registration.' };
+      }
+
       if (res.ok) {
         fetchStudents();
         fetchStats();
@@ -7620,7 +7626,15 @@ export default function App() {
           teacher: ''
         });
       } else {
-        setFormError(data.detail || 'Failed to register student.');
+        let errorMsg = 'Failed to register student.';
+        if (typeof data.detail === 'string') {
+          errorMsg = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          errorMsg = data.detail.map(err => `${err.loc.slice(1).join('.') || 'field'}: ${err.msg}`).join(', ');
+        } else if (data.message) {
+          errorMsg = data.message;
+        }
+        setFormError(errorMsg);
       }
     } catch (err) {
       setFormError('Failed to connect to API.');

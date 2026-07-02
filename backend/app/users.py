@@ -631,7 +631,14 @@ def add_student(
     db_student = crud.get_student_by_id(db, student_id=student.id, institution_id=current_user.institution_id)
     if db_student:
         raise HTTPException(status_code=400, detail="Student with this ID already exists")
-    new_s = crud.create_student(db, student=student, institution_id=current_user.institution_id)
+    
+    from sqlalchemy.exc import IntegrityError
+    try:
+        new_s = crud.create_student(db, student=student, institution_id=current_user.institution_id)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Student with this Roll Number already exists in this institution")
+        
     crud.create_audit_log(
         db, 
         log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student '{new_s.name}' registered by {current_user.email}."),
