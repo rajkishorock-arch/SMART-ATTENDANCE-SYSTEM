@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
  * CameraAttractHud — advanced robotic biometric scanner overlay.
  * Appears over the live camera feed once the scanner is active.
  */
-export default function CameraAttractHud({ active, mode = 'attendance', livenessStatus = 'pending' }) {
+export default function CameraAttractHud({ active, mode = 'attendance', livenessStatus = 'pending', clean = false }) {
   const [dataLines, setDataLines] = useState([]);
   const [tick, setTick] = useState(0);
 
   // Simulate live biometric data readout
   useEffect(() => {
-    if (!active) return;
+    if (!active || clean) return;
     const lines = [
       `SYS: FACEMESH v2.7`,
       `RES: 1280x720`,
@@ -22,7 +22,7 @@ export default function CameraAttractHud({ active, mode = 'attendance', liveness
       setTick(t => t + 1);
     }, 900);
     return () => clearInterval(interval);
-  }, [active]);
+  }, [active, clean]);
 
   if (!active) return null;
 
@@ -37,6 +37,18 @@ export default function CameraAttractHud({ active, mode = 'attendance', liveness
 
   const fakeConfidence = isVerified ? `${(94 + (tick % 6)).toFixed(1)}%` : `${(38 + (tick * 7) % 43).toFixed(1)}%`;
   const fakeHz = (29.3 + (tick % 3) * 0.4).toFixed(1);
+
+  if (clean) {
+    return (
+      <div className={`camera-attract-hud camera-attract-${mode} clean-attract-hud`} style={{ '--hud-primary': primaryColor, '--hud-glow': glowColor }}>
+        {/* ── Corner brackets ── */}
+        <div className="camera-attract-bracket camera-attract-bracket-tl" style={{ borderColor: primaryColor, filter: `drop-shadow(0 0 6px ${primaryColor})` }} />
+        <div className="camera-attract-bracket camera-attract-bracket-tr" style={{ borderColor: primaryColor, filter: `drop-shadow(0 0 6px ${primaryColor})` }} />
+        <div className="camera-attract-bracket camera-attract-bracket-bl" style={{ borderColor: primaryColor, filter: `drop-shadow(0 0 6px ${primaryColor})` }} />
+        <div className="camera-attract-bracket camera-attract-bracket-br" style={{ borderColor: primaryColor, filter: `drop-shadow(0 0 6px ${primaryColor})` }} />
+      </div>
+    );
+  }
 
   return (
     <div className={`camera-attract-hud camera-attract-${mode}`} style={{ '--hud-primary': primaryColor, '--hud-glow': glowColor }}>
