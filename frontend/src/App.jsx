@@ -3163,14 +3163,16 @@ export default function App() {
   };
 
   // Fetch Feedbacks (Admins Only)
-  const fetchFeedbacks = async () => {
+  const fetchFeedbacks = async (authToken, role) => {
     if (isDemoMode) return;
-    if (!token || userRole !== 'admin') return;
+    const usedToken = authToken || token;
+    const usedRole = role || userRole;
+    if (!usedToken || usedRole !== 'admin') return;
     setIsLoadingFeedbacks(true);
     try {
       const res = await fetch(`${API_BASE_URL}/feedbacks/`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${usedToken}`
         }
       });
       if (res.status === 401) {
@@ -3268,12 +3270,13 @@ export default function App() {
   }, [departments]);
 
   // Fetch Registered Students
-  const fetchStudents = async () => {
+  const fetchStudents = async (authToken) => {
     if (isDemoMode) return;
+    const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/users/students`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${usedToken}`
         }
       });
       if (res.status === 401) {
@@ -3315,12 +3318,13 @@ export default function App() {
   };
 
   // Fetch subjects
-  const fetchSubjects = async () => {
+  const fetchSubjects = async (authToken) => {
     if (isDemoMode) return;
+    const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/subjects`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${usedToken}`
         }
       });
       if (res.status === 401) {
@@ -3546,12 +3550,13 @@ export default function App() {
   };
 
   // Fetch schedules
-  const fetchSchedules = async () => {
+  const fetchSchedules = async (authToken) => {
     if (isDemoMode) return;
+    const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/schedules`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${usedToken}`
         }
       });
       if (res.ok) {
@@ -3565,12 +3570,13 @@ export default function App() {
   };
 
   // Fetch teachers
-  const fetchTeachers = async () => {
+  const fetchTeachers = async (authToken) => {
     if (isDemoMode) return;
+    const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/users`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${usedToken}`
         }
       });
       if (res.ok) {
@@ -3590,11 +3596,12 @@ export default function App() {
   const [adminLeaveRequests, setAdminLeaveRequests] = useState([]);
   const [isFetchingLeaves, setIsFetchingLeaves] = useState(false);
 
-  const fetchStudentLeaves = async () => {
+  const fetchStudentLeaves = async (authToken) => {
     if (isDemoMode) return;
+    const usedToken = authToken || token;
     try {
       const res = await fetch(`${API_BASE_URL}/users/students/me/leave-requests`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${usedToken}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -3605,12 +3612,13 @@ export default function App() {
     }
   };
 
-  const fetchAdminLeaves = async () => {
+  const fetchAdminLeaves = async (authToken) => {
     if (isDemoMode) return;
+    const usedToken = authToken || token;
     setIsFetchingLeaves(true);
     try {
       const res = await fetch(`${API_BASE_URL}/users/leaves`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${usedToken}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -7054,6 +7062,24 @@ export default function App() {
       setCurrentUser(meData);
       setLoginRole(meData.role);
       playCyberSound('success');
+
+      if (meData.role === 'student') {
+        fetchStudentLogs(data.access_token);
+        fetchStudentLeaves(data.access_token);
+      } else {
+        Promise.all([
+          fetchDepartments(data.access_token),
+          fetchStats(data.access_token),
+          fetchLogs(data.access_token),
+          fetchSchedules(data.access_token),
+          fetchAdminLeaves(data.access_token),
+        ]);
+        fetchSubjects(data.access_token).then(() => fetchStudents(data.access_token));
+        if (meData.role === 'admin') {
+          fetchTeachers(data.access_token);
+          fetchFeedbacks(data.access_token, meData.role);
+        }
+      }
     } catch (e) {
       setAuthError(e.message || 'SSO login failed');
       playCyberSound('error');
@@ -7150,19 +7176,19 @@ export default function App() {
 
           if (meData.role === 'student') {
             fetchStudentLogs(data.access_token);
-            fetchStudentLeaves();
+            fetchStudentLeaves(data.access_token);
           } else {
             Promise.all([
               fetchDepartments(data.access_token),
               fetchStats(data.access_token),
               fetchLogs(data.access_token),
-              fetchSchedules(),
-              fetchAdminLeaves(),
+              fetchSchedules(data.access_token),
+              fetchAdminLeaves(data.access_token),
             ]);
-            fetchSubjects().then(() => fetchStudents());
+            fetchSubjects(data.access_token).then(() => fetchStudents(data.access_token));
             if (meData.role === 'admin') {
-              fetchTeachers();
-              fetchFeedbacks();
+              fetchTeachers(data.access_token);
+              fetchFeedbacks(data.access_token, meData.role);
             }
           }
           return;

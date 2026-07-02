@@ -10,11 +10,11 @@ export const DEFAULT_API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onre
 // If running on a native device/emulator, it uses the production URL (Render)
 // unless customized via a developer mode setting in localStorage.
 export function getApiBaseUrl() {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (envUrl) return envUrl;
-
   const devUrl = localStorage.getItem('dev_api_base_url');
   if (devUrl) return devUrl;
+
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl) return envUrl;
 
   // Default production server
   return DEFAULT_API_BASE_URL;

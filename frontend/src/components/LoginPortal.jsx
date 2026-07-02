@@ -9,7 +9,7 @@ import {
   Crown,
 } from 'lucide-react';
 import RoboticLoginCanvas from './animations/RoboticLoginCanvas';
-import { getApiBaseUrl } from '../utils/platform';
+import { getApiBaseUrl, DEFAULT_API_BASE_URL } from '../utils/platform';
 import { wakeBackend } from '../utils/cameraScanner';
 
 
@@ -88,6 +88,8 @@ export default function LoginPortal({
     { name: 'Default Institution', slug: 'default' }
   ]);
   const [selectedTenant, setSelectedTenant] = useState(localStorage.getItem('override_tenant') || 'default');
+  const [showDevServerSettings, setShowDevServerSettings] = useState(false);
+  const [customApiUrl, setCustomApiUrl] = useState(getApiBaseUrl());
 
   useEffect(() => {
     const fetchInstitutions = async () => {
@@ -800,7 +802,119 @@ export default function LoginPortal({
               </button>
             </div>
           )}
+
+          {/* Custom Server Configuration (Developer Settings) */}
+          <div style={{
+            marginTop: '22px',
+            borderTop: '1.5px dashed rgba(255, 255, 255, 0.08)',
+            paddingTop: '16px',
+            textAlign: 'center'
+          }}>
+            <button
+              type="button"
+              onClick={() => setShowDevServerSettings(!showDevServerSettings)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.4)',
+                cursor: 'pointer',
+                fontSize: '0.74rem',
+                letterSpacing: '0.04em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                outline: 'none',
+                fontWeight: 600
+              }}
+            >
+              <span>⚙️</span> Developer Server Settings
+            </button>
+            
+            {showDevServerSettings && (
+              <div style={{
+                marginTop: '12px',
+                padding: '12px',
+                background: 'rgba(5, 8, 16, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                textAlign: 'left',
+                animation: 'fadeInUp 0.25s ease'
+              }}>
+                <label className="form-label" style={{ fontSize: '0.72rem', color: '#9ca3af', marginBottom: '8px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Backend Server URL
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={customApiUrl}
+                  onChange={(e) => setCustomApiUrl(e.target.value)}
+                  placeholder="https://example.com/api/v1"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    fontSize: '0.78rem',
+                    padding: '8px 12px',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    marginBottom: '10px'
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const trimmed = customApiUrl.trim();
+                      if (trimmed) {
+                        localStorage.setItem('dev_api_base_url', trimmed);
+                        alert(`Server configured to: ${trimmed}\nReloading App...`);
+                        window.location.reload();
+                      } else {
+                        alert('Please enter a valid URL.');
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      borderRadius: '6px',
+                      color: '#10b981',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Save URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem('dev_api_base_url');
+                      setCustomApiUrl(DEFAULT_API_BASE_URL);
+                      alert('Server reset to default public Cloud Server.\nReloading App...');
+                      window.location.reload();
+                    }}
+                    style={{
+                      padding: '6px 10px',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      borderRadius: '6px',
+                      color: '#ef4444',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '8px', lineHeight: 1.3 }}>
+                  ℹ️ Set this to your local PC IP (e.g. <code>http://192.168.1.5:8000/api/v1</code>) to connect to your computer's local database.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+
 
         <style>{`
           @keyframes cyberPulseText {
