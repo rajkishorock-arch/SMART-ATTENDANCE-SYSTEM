@@ -8304,39 +8304,72 @@ export default function App() {
 
   useEffect(() => {
     const built = [];
-    logs.slice(0, 12).forEach((log, i) => {
-      const isPresent = (log.attendance || '').toLowerCase() === 'present';
-      built.push({
-        id: `n-log-${log.id || i}`,
-        type: isPresent ? 'success' : 'warning',
-        title: isPresent ? 'Attendance Marked' : 'Absent Recorded',
-        message: `${log.name} (${log.roll}) — ${log.date}`,
-        time: log.time || 'Recently',
-        read: false,
+
+    if (userRole === 'student') {
+      // Students only see their own personal logs
+      studentLogs.slice(0, 12).forEach((log, i) => {
+        const isPresent = (log.attendance || '').toLowerCase() === 'present';
+        built.push({
+          id: `n-stud-log-${log.id || i}`,
+          type: isPresent ? 'success' : 'warning',
+          title: isPresent ? 'Attendance Marked' : 'Absent Recorded',
+          message: `${log.subject_name || 'Class'} — ${log.date}`,
+          time: log.time || 'Recently',
+          read: false,
+        });
       });
-    });
-    if (stats.total_absent_today > 5) {
-      built.unshift({
-        id: 'n-alert-absent',
-        type: 'warning',
-        title: 'High Absentee Alert',
-        message: `${stats.total_absent_today} students absent today`,
-        time: 'Today',
-        read: false,
+    } else if (userRole === 'teacher') {
+      // Teachers only see logs related to their own classes (already filtered in `logs`)
+      logs.slice(0, 12).forEach((log, i) => {
+        const isPresent = (log.attendance || '').toLowerCase() === 'present';
+        built.push({
+          id: `n-log-${log.id || i}`,
+          type: isPresent ? 'success' : 'warning',
+          title: isPresent ? 'Attendance Marked' : 'Absent Recorded',
+          message: `${log.name} (${log.roll}) — ${log.date}`,
+          time: log.time || 'Recently',
+          read: false,
+        });
       });
+      // No campus-wide statistics alerts for teachers
+    } else if (userRole === 'admin') {
+      // Admin sees all logs + global statistics alerts
+      logs.slice(0, 12).forEach((log, i) => {
+        const isPresent = (log.attendance || '').toLowerCase() === 'present';
+        built.push({
+          id: `n-log-${log.id || i}`,
+          type: isPresent ? 'success' : 'warning',
+          title: isPresent ? 'Attendance Marked' : 'Absent Recorded',
+          message: `${log.name} (${log.roll}) — ${log.date}`,
+          time: log.time || 'Recently',
+          read: false,
+        });
+      });
+
+      if (stats.total_absent_today > 5) {
+        built.unshift({
+          id: 'n-alert-absent',
+          type: 'warning',
+          title: 'High Absentee Alert',
+          message: `${stats.total_absent_today} students absent today`,
+          time: 'Today',
+          read: false,
+        });
+      }
+      if (stats.average_attendance_rate >= 90) {
+        built.unshift({
+          id: 'n-rate-good',
+          type: 'success',
+          title: 'Excellent Attendance Rate',
+          message: `Campus average at ${stats.average_attendance_rate}%`,
+          time: 'Today',
+          read: false,
+        });
+      }
     }
-    if (stats.average_attendance_rate >= 90) {
-      built.unshift({
-        id: 'n-rate-good',
-        type: 'success',
-        title: 'Excellent Attendance Rate',
-        message: `Campus average at ${stats.average_attendance_rate}%`,
-        time: 'Today',
-        read: false,
-      });
-    }
+
     setNotifications(built);
-  }, [logs, stats.total_absent_today, stats.average_attendance_rate]);
+  }, [logs, studentLogs, userRole, stats.total_absent_today, stats.average_attendance_rate]);
 
   const unreadNotificationCount = notifications.filter((n) => !n.read).length;
 
