@@ -6551,7 +6551,10 @@ export default function App() {
     setMobileSidebarOpen(false);
     setMobileControlOpen(false);
     playCyberSound('click');
-  }, []);
+    if (tabId === 'attendance' && sessionActive) {
+      setShowScannerModal(true);
+    }
+  }, [sessionActive]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -9243,7 +9246,13 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('attendance'); playCyberSound('click'); }}
+                  onClick={() => {
+                    setActiveTab('attendance');
+                    playCyberSound('click');
+                    if (sessionActive) {
+                      setShowScannerModal(true);
+                    }
+                  }}
                 >
                   <Video size={18} />
                   Face Attendance
@@ -12132,6 +12141,7 @@ export default function App() {
                           setSelectedSubjectId(teacherSub.id.toString());
                         }
                       }
+                      setShowScannerModal(true);
                     }
                   }}
                   className="bg-gradient-btn"
