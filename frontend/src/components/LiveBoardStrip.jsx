@@ -28,7 +28,7 @@ export default function LiveBoardStrip({ apiBaseUrl, token, enabled = true }) {
     <div className="live-board-strip" role="status" aria-label="Live attendance board">
       <span className="live-dot" />
       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#00f2fe', flexShrink: 0 }}>LIVE BOARD</span>
-      <div className="live-board-events">
+      <div className="live-board-events no-scrollbar">
         {events.length === 0 ? (
           <span className="live-board-event" style={{ color: '#64748b' }}>Waiting for marks…</span>
         ) : (

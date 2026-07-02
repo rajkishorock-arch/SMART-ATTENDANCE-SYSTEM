@@ -5708,22 +5708,28 @@ html {
 
 .clean-back-btn {
   position: absolute;
-  left: 0;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  padding: 8px;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  z-index: 1000;
 }
 
 .clean-back-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.clean-back-btn:active {
+  transform: translateY(-50%) scale(0.95);
 }
 
 .clean-scanner-title {
@@ -5961,4 +5967,14 @@ html {
   animation: eye-blink-pulse 2.5s infinite ease-in-out;
   transform-origin: center;
 }
+
+/* Scrollbar hide utility */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari and Opera */
+}
+
 

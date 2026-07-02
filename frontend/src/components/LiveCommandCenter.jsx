@@ -24,7 +24,7 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
   }, [stats?.total_present_today, stats?.total_absent_today, stats?.average_attendance_rate]);
 
   return (
-    <div className="live-command-center">
+    <div className="live-command-center no-scrollbar">
       <div className={`command-card ${scannerLive ? 'live-pulse' : ''}`}>
         <div className="command-card-value">{animated.present}</div>
         <div className="command-card-label">Abhi Present</div>

@@ -9546,7 +9546,15 @@ export default function App() {
 
             {activeDashboardSubTab === null ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="glass-panel" style={{ 
+                  padding: isMobileView ? '16px 12px' : '32px', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden'
+                }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                     <div>
                       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>📊 Admin Analytics Dashboard</h2>
@@ -9580,7 +9588,7 @@ export default function App() {
                     <span style={{ color: '#9ca3af', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'monospace' }}>🚀 ADVANCED FEATURES</span>
                     
                     {/* Horizontal scroll container for features on mobile devices */}
-                    <div style={{ 
+                    <div className="no-scrollbar" style={{ 
                       display: 'flex', 
                       gap: '8px', 
                       alignItems: 'center',
