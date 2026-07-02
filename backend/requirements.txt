@@ -8,7 +8,7 @@ python-jose[cryptography]
 passlib
 bcrypt<4.0.0
 python-dotenv
-opencv-python-headless
+opencv-contrib-python-headless
 psutil
 python-multipart
 apscheduler
