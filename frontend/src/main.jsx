@@ -21,6 +21,7 @@ window.fetch = async function (url, options = {}) {
 };
 
 import './styles/futuristicFeatures.css';
+import './styles/extremeFeatures.css';
 import App from './App.jsx'
 
 class ErrorBoundary extends Component {

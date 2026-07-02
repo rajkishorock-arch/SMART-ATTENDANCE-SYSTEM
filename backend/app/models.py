@@ -338,3 +338,54 @@ class SubstituteAssignment(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
+class ExtremeFeatureRecord(Base):
+    __tablename__ = "extreme_feature_records"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    feature_key = Column(String(80), nullable=False, index=True)
+    data_json = Column(Text, nullable=True)
+    created_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AttendanceChainHash(Base):
+    __tablename__ = "attendance_chain_hashes"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    block_hash = Column(String(64), nullable=False)
+    prev_hash = Column(String(64), nullable=True)
+    payload_json = Column(Text, nullable=True)
+    created_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PeerStudyGroup(Base):
+    __tablename__ = "peer_study_groups"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(120), nullable=False)
+    members_json = Column(Text, default="[]")
+    created_by = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class MentalHealthCheckin(Base):
+    __tablename__ = "mental_health_checkins"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_email = Column(String(100), nullable=False)
+    mood = Column(String(30), nullable=False)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class MarketplacePlugin(Base):
+    __tablename__ = "marketplace_plugins"
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(80), unique=True, nullable=False)
+    name = Column(String(120), nullable=False)
+    price_inr = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

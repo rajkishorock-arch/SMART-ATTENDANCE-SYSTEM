@@ -87,6 +87,9 @@ import ExplorationLab from './components/ExplorationLab';
 import CameraSettingsPanel from './components/CameraSettingsPanel';
 import FuturisticFeaturesHub from './components/FuturisticFeaturesHub';
 import IndustryEnterpriseHub from './components/IndustryEnterpriseHub';
+import ExtremeLevelHub from './components/ExtremeLevelHub';
+import UniversalSearch from './components/UniversalSearch';
+import LiveBoardStrip from './components/LiveBoardStrip';
 import RoleCommandCenter from './components/RoleCommandCenter';
 import QuickActionsDock from './components/QuickActionsDock';
 import SmartEmptyState from './components/SmartEmptyState';
@@ -2667,6 +2670,7 @@ export default function App() {
   const [mobileControlOpen, setMobileControlOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [universalSearchOpen, setUniversalSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const sessionInitializedRef = useRef(false);
   const loginJustCompletedRef = useRef(false);
@@ -6541,6 +6545,35 @@ export default function App() {
     playCyberSound('click');
   }, []);
 
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (token) setUniversalSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [token]);
+
+  const handleUniversalSearchNavigate = useCallback((action) => {
+    playCyberSound('click');
+    setUniversalSearchOpen(false);
+    if (action === 'attendance') navigateToTab('attendance');
+    else if (action === 'students') navigateToTab('students');
+    else if (action === 'extreme') {
+      setActiveTab('settings');
+      setActiveSubSetting('extreme');
+      setMobileSidebarOpen(false);
+      setMobileControlOpen(false);
+    } else if (action === 'settings') {
+      setActiveTab('settings');
+      setActiveSubSetting(null);
+      setMobileSidebarOpen(false);
+      setMobileControlOpen(false);
+    }
+  }, [navigateToTab]);
+
   const handleBottomScan = useCallback(() => {
     playCyberSound('click');
     setActiveTab('attendance');
@@ -9645,6 +9678,9 @@ export default function App() {
                   userRole={userRole}
                   teacherSubjects={subjects}
                 />
+                {userRole !== 'student' && token && (
+                  <LiveBoardStrip apiBaseUrl={API_BASE_URL} token={token} enabled />
+                )}
                 <SmartSuggestionsBar
                   hasPremium={hasPremiumAccess}
                   scannerUsed={recognizedStudents.length > 0}
@@ -9677,6 +9713,12 @@ export default function App() {
                       localStorage.setItem('active_productivity_tab', 'bulk');
                       window.dispatchEvent(new Event('storage'));
                       window.dispatchEvent(new CustomEvent('switch_productivity_tab', { detail: { tab: 'bulk' } }));
+                    }
+                    else if (action === 'extreme') {
+                      setActiveTab('settings');
+                      setActiveSubSetting('extreme');
+                      setMobileSidebarOpen(false);
+                      setMobileControlOpen(false);
                     }
                   }}
                 />
@@ -13678,6 +13720,20 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* Category Card: Extreme Level Hub (8 levels, 56 features) */}
+                  <div
+                    onClick={() => { setActiveSubSetting('extreme'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🌌</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa' }}>56 FEAT</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Extreme Level Hub</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>8 levels — Live Board, AI Copilot, Blockchain, Parent Super-app, HOD War Room, AR, Marketplace & more.</p>
+                  </div>
+
                   {/* Category Card: Premium Subscription */}
                   {userRole === 'admin' && (
                     <div
@@ -14421,6 +14477,16 @@ export default function App() {
                 userRole={userRole}
                 offlineQueueCount={getOfflineQueue().length}
                 onOpenScanner={() => { setActiveTab('attendance'); setShowScannerModal(true); }}
+              />
+            )}
+
+            {activeSubSetting === 'extreme' && (
+              <ExtremeLevelHub
+                apiBaseUrl={API_BASE_URL}
+                token={token}
+                userRole={userRole}
+                students={students}
+                onOpenSearch={() => setUniversalSearchOpen(true)}
               />
             )}
 
@@ -19042,6 +19108,15 @@ export default function App() {
         onAccept={handleConsentAccept}
         onDecline={() => setShowConsentModal(false)}
       />
+      {token && (
+        <UniversalSearch
+          apiBaseUrl={API_BASE_URL}
+          token={token}
+          open={universalSearchOpen}
+          onClose={() => setUniversalSearchOpen(false)}
+          onNavigate={handleUniversalSearchNavigate}
+        />
+      )}
       {showPrivacyPolicy && <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />}
 
       {token && userRole && (
