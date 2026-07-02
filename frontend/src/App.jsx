@@ -8838,12 +8838,45 @@ export default function App() {
               >
                 <ArrowLeft size={24} color="#fff" />
               </button>
-              <h1 className="clean-scanner-title">Check your eligibility</h1>
-              <p className="clean-scanner-subtitle">Only one frame can be unlock per face</p>
+              <h1 className="clean-scanner-title">Face Scanner</h1>
+              <p className="clean-scanner-subtitle" style={{
+                color: !scanStatus 
+                  ? 'rgba(255, 255, 255, 0.6)' 
+                  : (scanStatus.toLowerCase().includes('recognized') || scanStatus.toLowerCase().includes('live') || scanStatus.toLowerCase().includes('success') || scanStatus.toLowerCase().includes('verified'))
+                    ? '#10b981'
+                    : (scanStatus.toLowerCase().includes('error') || scanStatus.toLowerCase().includes('failed') || scanStatus.toLowerCase().includes('low confidence'))
+                      ? '#ef4444'
+                      : '#00f2fe',
+                fontWeight: 600
+              }}>
+                {scanStatus || 'Camera Offline'}
+              </p>
             </div>
 
             {/* Camera Viewport Card */}
             <div className="clean-camera-viewport">
+              {/* Floating Camera ON/OFF Switch button (Top Left) */}
+              <button
+                onClick={() => {
+                  playCyberSound('click');
+                  if (attendanceActive || scannerBootActive) {
+                    stopAttendanceCam();
+                  } else {
+                    startAttendanceCam();
+                  }
+                }}
+                className="clean-camera-toggle"
+                style={{
+                  background: (attendanceActive || scannerBootActive) ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                  border: `1px solid ${(attendanceActive || scannerBootActive) ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+                  color: (attendanceActive || scannerBootActive) ? '#ef4444' : '#10b981',
+                }}
+              >
+                <span style={{ fontSize: '0.7rem' }}>
+                  {(attendanceActive || scannerBootActive) ? '🔴 Stop Cam' : '🟢 Start Cam'}
+                </span>
+              </button>
+
               {/* Floating Liveness Toggle pill button (Top Right) */}
               <button
                 onClick={() => {
