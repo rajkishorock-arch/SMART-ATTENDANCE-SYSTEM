@@ -5375,10 +5375,13 @@ export default function App() {
                           w: face.box[2] * (canvas.width / srvFaces.captureWidth),
                           h: face.box[3] * (canvas.height / srvFaces.captureHeight),
                         };
-                        drawFaceBox(ctx, scaledBox, {
-                          color: face.newly_marked ? '#10b981' : '#f59e0b',
-                          label: `${face.name.toUpperCase()} (${face.confidence}%) - ${face.newly_marked ? 'PRESENT' : 'ALREADY MARKED'}`,
-                        });
+                        // Only draw green box if newly marked, do not draw yellow box for already marked faces
+                        if (face.newly_marked) {
+                          drawFaceBox(ctx, scaledBox, {
+                            color: '#10b981',
+                            label: `${face.name.toUpperCase()} (${face.confidence}%) - PRESENT`,
+                          });
+                        }
                       }
                     });
                   } else {
@@ -5647,10 +5650,13 @@ export default function App() {
                 w: face.box[2] * (canvas.width / srvFaces.captureWidth),
                 h: face.box[3] * (canvas.height / srvFaces.captureHeight),
               };
-              drawFaceBox(ctx, scaledBox, {
-                color: face.newly_marked ? '#10b981' : '#f59e0b',
-                label: `${face.name.toUpperCase()} (${face.confidence}%) - ${face.newly_marked ? 'PRESENT' : 'ALREADY MARKED'}`,
-              });
+              // Only draw green box if newly marked, do not draw yellow box for already marked faces
+              if (face.newly_marked) {
+                drawFaceBox(ctx, scaledBox, {
+                  color: '#10b981',
+                  label: `${face.name.toUpperCase()} (${face.confidence}%) - PRESENT`,
+                });
+              }
             }
           });
         } else if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxesRef.current?.length) {
@@ -8865,7 +8871,8 @@ export default function App() {
               livenessStatus={livenessStatus}
             />
 
-            <ClassroomLiveGrid faces={liveFaceGrid} />
+            {/* Hide ClassroomLiveGrid to remove the 3 boxes from the top-right of the feed */}
+            {/* <ClassroomLiveGrid faces={liveFaceGrid} /> */}
 
             {/* Video or Image element based on cameraSource */}
             {cameraScanSettings?.cameraSource === 'external' ? (
@@ -8922,6 +8929,8 @@ export default function App() {
             {/* ===== NAMED FACE RECOGNITION OVERLAY ===== */}
             {serverRecognizedFaces && serverRecognizedFaces.faces && serverRecognizedFaces.faces.map((face, idx) => {
               if (!face.box) return null;
+              // If it's already marked (not newly marked), don't show the yellow box overlay around the face
+              if (!face.newly_marked) return null;
               
               // Map normalized/captured coordinates to container coordinates
               const containerWidth = 640; // Default aspect reference 
@@ -8932,7 +8941,7 @@ export default function App() {
               const boxWidth = `${(face.box[2] / (serverRecognizedFaces.captureWidth || containerWidth)) * 100}%`;
               const boxHeight = `${(face.box[3] / (serverRecognizedFaces.captureHeight || containerHeight)) * 100}%`;
 
-              const themeColor = face.newly_marked ? '#10b981' : '#f59e0b';
+              const themeColor = '#10b981';
 
               return (
                 <div key={idx} style={{
