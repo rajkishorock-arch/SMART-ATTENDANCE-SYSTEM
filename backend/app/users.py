@@ -16,8 +16,19 @@ app_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.dirname(app_dir)
 root_dir = os.path.dirname(backend_dir)
 cascade_path = os.path.join(root_dir, "haarcascade_frontalface_default.xml")
+
 if not os.path.exists(cascade_path):
-    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    import urllib.request
+    cascade_url = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml"
+    print(f"Haar cascade XML not found locally. Downloading from {cascade_url}...")
+    try:
+        urllib.request.urlretrieve(cascade_url, cascade_path)
+        print("Haar cascade XML downloaded successfully.")
+    except Exception as e:
+        print(f"Error downloading Haar cascade XML: {e}")
+        # Fallback
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+
 face_classifier = cv2.CascadeClassifier(cascade_path)
 
 router = APIRouter()
