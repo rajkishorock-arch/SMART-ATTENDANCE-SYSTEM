@@ -4435,35 +4435,49 @@ export default function App() {
   }, []);
 
   const stopAttendanceCam = () => {
-    playCyberSound('click');
-    if (attendanceStreamRef.current) {
-      attendanceStreamRef.current.getTracks().forEach(track => track.stop());
-      attendanceStreamRef.current = null;
+    try {
+      playCyberSound('click');
+      if (attendanceStreamRef.current) {
+        try {
+          attendanceStreamRef.current.getTracks().forEach(track => track.stop());
+        } catch (e) {
+          console.warn('Error stopping tracks:', e);
+        }
+        attendanceStreamRef.current = null;
+      }
+      if (attendanceVideoRef.current) {
+        attendanceVideoRef.current.srcObject = null;
+      }
+      if (attendanceCanvasRef.current) {
+        const canvas = attendanceCanvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      setScannerBootActive(false);
+      setAttendanceActive(false);
+      setUserCoords(null);
+      setGeoTrackingError('');
+      setScanStatus('Camera Offline');
+      setDiagnosticWarnings({ lighting: '', distance: '' });
+      lastFaceBoxRef.current = null;
+      lastFaceDetectedRef.current = false;
+      setFaceDetected(false);
+      recognitionBusyRef.current = false;
+      if (faceDetectorRef.current) {
+        try { faceDetectorRef.current.close(); } catch (_) { /* ignore */ }
+        faceDetectorRef.current = null;
+      }
+      addDiagnosticLog('Ocular feed terminated.');
+      try {
+        handleSpeak("Scanner stopped.");
+      } catch (e) {
+        console.warn('Speech feedback failed:', e);
+      }
+    } catch (err) {
+      console.error('Error in stopAttendanceCam:', err);
     }
-    if (attendanceVideoRef.current) {
-      attendanceVideoRef.current.srcObject = null;
-    }
-    if (attendanceCanvasRef.current) {
-      const canvas = attendanceCanvasRef.current;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-    setScannerBootActive(false);
-    setAttendanceActive(false);
-    setUserCoords(null);
-    setGeoTrackingError('');
-    setScanStatus('Camera Offline');
-    setDiagnosticWarnings({ lighting: '', distance: '' });
-    lastFaceBoxRef.current = null;
-    lastFaceDetectedRef.current = false;
-    setFaceDetected(false);
-    recognitionBusyRef.current = false;
-    if (faceDetectorRef.current) {
-      try { faceDetectorRef.current.close(); } catch (_) { /* ignore */ }
-      faceDetectorRef.current = null;
-    }
-    addDiagnosticLog('Ocular feed terminated.');
-    handleSpeak("Scanner stopped.");
   };
 
 
@@ -8829,8 +8843,21 @@ export default function App() {
             {/* Modal Header */}
             <div className="clean-camera-header">
               <button
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  try {
+                    stopAttendanceCam();
+                  } catch (err) {
+                    console.error(err);
+                  }
+                  setShowScannerModal(false);
+                }}
                 onClick={() => {
-                  stopAttendanceCam();
+                  try {
+                    stopAttendanceCam();
+                  } catch (err) {
+                    console.error(err);
+                  }
                   setShowScannerModal(false);
                 }}
                 className="clean-back-btn"
@@ -9545,7 +9572,7 @@ export default function App() {
             )}
 
             {activeDashboardSubTab === null ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '100%', overflowX: 'hidden' }}>
                 <div className="glass-panel" style={{ 
                   padding: isMobileView ? '16px 12px' : '32px', 
                   display: 'flex', 
@@ -9584,6 +9611,9 @@ export default function App() {
                     alignItems: isMobileView ? 'flex-start' : 'center',
                     justifyContent: 'space-between',
                     minHeight: 'auto',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
                   }}>
                     <span style={{ color: '#9ca3af', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'monospace' }}>🚀 ADVANCED FEATURES</span>
                     

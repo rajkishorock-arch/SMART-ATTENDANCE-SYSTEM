@@ -5,7 +5,7 @@ export default function RoleCommandCenter({ stats, scannerLive, userRole, depart
 
   if (userRole === 'teacher') {
     return (
-      <div>
+      <div style={{ maxWidth: '100%', overflow: 'hidden' }}>
         <div style={{ fontSize: '0.72rem', color: '#00f2fe', fontWeight: 700, marginBottom: 8, letterSpacing: '0.06em' }}>
           TEACHER COMMAND CENTER · {teacherSubjects.length} subjects
         </div>
@@ -16,7 +16,7 @@ export default function RoleCommandCenter({ stats, scannerLive, userRole, depart
 
   if (userRole === 'admin') {
     return (
-      <div>
+      <div style={{ maxWidth: '100%', overflow: 'hidden' }}>
         <div style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 700, marginBottom: 8, letterSpacing: '0.06em' }}>
           CAMPUS COMMAND CENTER · All departments
         </div>
