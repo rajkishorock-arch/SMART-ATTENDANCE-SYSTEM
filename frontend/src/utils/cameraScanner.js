@@ -67,11 +67,16 @@ export function saveCameraSettings(settings) {
   localStorage.setItem('camera_scan_settings', JSON.stringify(settings));
 }
 
-export async function openCameraStream(presetKey = 'turbo') {
+export async function openCameraStream(presetKey = 'turbo', facingMode = 'user') {
   const preset = getCameraPreset(presetKey);
+  const videoConstraints = {
+    ...preset.video,
+    facingMode: facingMode
+  };
   const attempts = [
-    preset.video,
-    { width: 640, height: 480, facingMode: 'user', frameRate: { ideal: 30 } },
+    videoConstraints,
+    { width: 640, height: 480, facingMode: facingMode, frameRate: { ideal: 30 } },
+    { video: { facingMode: facingMode } },
     { video: true },
   ];
   let lastErr;

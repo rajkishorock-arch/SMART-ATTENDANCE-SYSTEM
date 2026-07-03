@@ -5825,6 +5825,39 @@ html {
   transform: translateY(0);
 }
 
+/* Floating Camera Switch button on Top Center */
+.clean-camera-switch {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.clean-camera-switch:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateX(-50%) translateY(-1px);
+}
+
+.clean-camera-switch:active {
+  transform: translateX(-50%) translateY(0);
+}
+
 /* Floating Camera ON/OFF Switch button on Top Left */
 .clean-camera-toggle {
   position: absolute;
