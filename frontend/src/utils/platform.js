@@ -72,3 +72,57 @@ export async function takeNativePhoto() {
     return null;
   }
 }
+
+// Save file natively in phone app cache and open share menu, or run browser download on Web
+export async function saveAndShareFile(dataContent, filename, mimeType) {
+  if (!isNative) {
+    const blob = dataContent instanceof Blob ? dataContent : new Blob([dataContent], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    return true;
+  }
+
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+    const { Share } = await import('@capacitor/share');
+
+    let base64Data;
+    if (dataContent instanceof Blob) {
+      base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(dataContent);
+      });
+    } else {
+      base64Data = btoa(unescape(encodeURIComponent(dataContent)));
+    }
+
+    const fileResult = await Filesystem.writeFile({
+      path: filename,
+      data: base64Data,
+      directory: Directory.Cache,
+    });
+
+    await Share.share({
+      title: filename,
+      url: fileResult.uri,
+      dialogTitle: `Save ${filename}`,
+    });
+
+    return true;
+  } catch (e) {
+    console.error("Native file export failed:", e);
+    alert("Export failed: " + e.message);
+    return false;
+  }
+}

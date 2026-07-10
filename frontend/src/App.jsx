@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { isNative, getApiBaseUrl, requestNativePermissions } from './utils/platform';
+import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -6019,11 +6019,6 @@ export default function App() {
       csvRows.push(row.join(','));
     });
 
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    
     let downloadName = `Attendance_Report_${reportStartDate}_to_${reportEndDate}.csv`;
     if (selectedReportSubjectId) {
       const subCode = subjects.find(s => s.id === parseInt(selectedReportSubjectId))?.code || 'Subject';
@@ -6032,11 +6027,8 @@ export default function App() {
       const deptStr = reportDeptFilter.replace(/\s+/g, '_');
       downloadName = `Attendance_Report_${deptStr}_${reportStartDate}_to_${reportEndDate}.csv`;
     }
-    
-    link.setAttribute('download', downloadName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    saveAndShareFile(csvRows.join('\n'), downloadName, 'text/csv;charset=utf-8;');
   };
 
   const downloadReportPDF = async () => {
@@ -6074,10 +6066,6 @@ export default function App() {
       }
       
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      
       let downloadName = `Attendance_Report_${reportStartDate}_to_${reportEndDate}.pdf`;
       if (userRole === 'admin') {
         if (selectedReportSubjectId) {
@@ -6092,10 +6080,8 @@ export default function App() {
         const subCode = subjects.find(s => s.id === parseInt(subjectIdToUse))?.code || 'Subject';
         downloadName = `Attendance_Report_${subCode}_${reportStartDate}_to_${reportEndDate}.pdf`;
       }
-      link.setAttribute('download', downloadName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      
+      saveAndShareFile(blob, downloadName, 'application/pdf');
     } catch (err) {
       console.error("PDF download failed:", err);
       alert("Failed to connect to backend server.");
@@ -8292,14 +8278,7 @@ export default function App() {
       csvRows.push(row.join(','));
     });
 
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Attendance_Logs_${getLocalDateString()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    saveAndShareFile(csvRows.join('\n'), `Attendance_Logs_${getLocalDateString()}.csv`, 'text/csv;charset=utf-8;');
   };
 
   // Filtering lists
