@@ -182,3 +182,25 @@
     border-right-color: var(--border);
   }
 }
+
+/* Custom spring physics transitions when active */
+body.spring-physics button,
+body.spring-physics a,
+body.spring-physics select,
+body.spring-physics input,
+body.spring-physics .extreme-feature-card,
+body.spring-physics .glass-panel,
+body.spring-physics .card {
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.35) !important;
+}
+
+body.spring-physics button:hover,
+body.spring-physics a:hover,
+body.spring-physics .extreme-feature-card:hover {
+  transform: scale(1.025) translateY(-2px);
+}
+
+body.spring-physics button:active,
+body.spring-physics a:active {
+  transform: scale(0.96) translateY(1px);
+}

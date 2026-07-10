@@ -56,6 +56,7 @@ export function loadFuturisticSettings() {
     easterEggUnlocked: false,
     pushNotificationsEnabled: false,
     onboardingTooltipsDone: false,
+    customSpringEnabled: false,
   });
 }
 
@@ -184,4 +185,15 @@ export function triggerHaptic(pattern = [30]) {
   try {
     if (navigator.vibrate) navigator.vibrate(pattern);
   } catch { /* ignore */ }
+}
+
+export function applySpringPhysics(enabled) {
+  if (typeof window === 'undefined') return;
+  if (enabled) {
+    document.body.classList.add('spring-physics');
+  } else {
+    document.body.classList.remove('spring-physics');
+  }
+  const s = loadFuturisticSettings();
+  saveFuturisticSettings({ ...s, customSpringEnabled: enabled });
 }

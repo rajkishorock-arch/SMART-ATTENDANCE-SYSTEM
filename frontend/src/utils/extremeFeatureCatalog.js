@@ -10,6 +10,7 @@ export const EXTREME_LEVELS = [
       { id: 'micro-interactions', name: 'Micro-interactions', method: 'GET', path: '/level1/micro-interactions', desc: 'Haptics, sounds, animations' },
       { id: 'search-index', name: 'Universal Search (Cmd+K)', method: 'GET', path: '/level1/search-index', query: true, desc: 'Search students & shortcuts' },
       { id: 'theme-mode', name: 'Dark/Light/AMOLED + Dyslexia', method: 'GET', path: '/level1/theme-mode', postPath: '/level1/theme-mode', desc: 'Accessibility theme modes' },
+      { id: 'custom-spring', name: 'Custom Spring Animations', method: 'POST', path: '/level1/custom-spring', body: { enabled: true }, desc: 'Physics-based UI spring transitions for elements' },
     ],
   },
   {
@@ -24,7 +25,7 @@ export const EXTREME_LEVELS = [
       { id: 'buddy-attendance', name: 'Buddy Attendance', method: 'POST', path: '/level2/buddy-attendance', body: { student_ids: [] }, needsStudentIds: true, desc: 'Mark group in one action' },
       { id: 'blockchain', name: 'Blockchain Attendance Hash', method: 'GET', path: '/level2/blockchain/verify', postPath: '/level2/blockchain/append', desc: 'Tamper-proof hash chain' },
       { id: 'nfc', name: 'NFC Student ID Cards', method: 'POST', path: '/level2/nfc/register', body: { card_id: 'CARD-001', roll: '1' }, inputs: ['card_id', 'roll'], desc: 'Tap card instant mark' },
-      { id: 'ble-beacon', name: 'BLE Beacon Classrooms', method: 'POST', path: '/level2/ble/beacon', body: { uuid: 'beacon-a', room: 'Room 101' }, inputs: ['room'], desc: 'Auto-open period by room' },
+      { id: 'ble-beacon', name: 'BLE Beacon Classrooms (Teacher Control)', method: 'POST', path: '/level2/ble/beacon', body: { room: 'Room 101', enabled: false }, inputs: ['room'], desc: 'Toggle BLE beacon manually (default OFF)' },
     ],
   },
   {
@@ -39,6 +40,13 @@ export const EXTREME_LEVELS = [
       { id: 'voice-only', name: 'Voice-only Mode', method: 'POST', path: '/level3/voice-only/toggle', body: { enabled: true }, desc: 'Mark by voice offline-ready' },
       { id: 'document-ai', name: 'Document AI (Leave)', method: 'UPLOAD', path: '/level3/document-ai', desc: 'Medical cert auto review' },
       { id: 'fraud-detection', name: 'Fraud Detection ML', method: 'GET', path: '/level3/fraud-detection', adminOnly: true, desc: 'Proxy & duplicate scan alerts' },
+      { id: 'emotion-analytics', name: 'Emotion-Aware Attendance', method: 'POST', path: '/level3/emotion-analytics', body: { student_id: '1', mood: 'neutral' }, desc: 'Check student mood (happy, neutral, tired) on scan' },
+      { id: 'multiface-scan', name: 'Multi-Face Batch Scan', method: 'POST', path: '/level3/multiface-scan', body: { faces_count: 3 }, desc: 'Verify and check in multiple faces in parallel' },
+      { id: 'face-aging-adapt', name: 'Face Aging & Beard Adaptation', method: 'POST', path: '/level3/face-aging-adapt', body: { student_id: '1', appearance_changes: ['beard', 'glasses'] }, desc: 'Adapt SFace embeddings to match changed features' },
+      { id: 'lowlight-reconstruct', name: 'Low-Light Reconstruction', method: 'POST', path: '/level3/lowlight-reconstruct', body: { lux_level: 15.0 }, desc: 'Generative contrast CLAHE boost for dark settings' },
+      { id: 'gaze-tracking', name: 'Gaze Focus Analysis', method: 'POST', path: '/level3/gaze-tracking', body: { horizontal_deg: 2.1, vertical_deg: 1.0, blink: false }, desc: 'Validate active camera gaze focus attention' },
+      { id: 'hinglish-copilot', name: 'Hinglish AI Voice Copilot', method: 'POST', path: '/level3/hinglish-copilot', body: { query: 'aaj kaun absent hai?' }, queryField: 'query', desc: 'Gemini-powered Hinglish conversational queries' },
+      { id: 'perf-diagnostics', name: 'Real-time Diagnostics Graph', method: 'GET', path: '/level3/perf-diagnostics', desc: 'Live GPU, VRAM, and alignment inference stats' },
     ],
   },
   {

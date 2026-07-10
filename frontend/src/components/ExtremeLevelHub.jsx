@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { EXTREME_LEVELS, TOTAL_EXTREME_FEATURES } from '../utils/extremeFeatureCatalog';
-import { applyTheme, triggerHaptic } from '../utils/futuristicFeatures';
+import { applyTheme, triggerHaptic, applySpringPhysics } from '../utils/futuristicFeatures';
 
 function FeatureCard({ feature, api, userRole, students, onMsg }) {
   const [result, setResult] = useState(null);
@@ -19,6 +19,34 @@ function FeatureCard({ feature, api, userRole, students, onMsg }) {
   const [seatData, setSeatData] = useState(null);
   const [principalData, setPrincipalData] = useState(null);
   const [hodData, setHodData] = useState(null);
+
+  // New selected extreme features state variables
+  const [springPhysicsEnabled, setSpringPhysicsEnabled] = useState(false);
+  const [bleEnabled, setBleEnabled] = useState(false);
+  const [facesCount, setFacesCount] = useState('3');
+  const [appearanceTags, setAppearanceTags] = useState('beard, glasses');
+  const [luxLevel, setLuxLevel] = useState('15.0');
+  const [gazeHorizontal, setGazeHorizontal] = useState('2.0');
+  const [gazeVertical, setGazeVertical] = useState('1.0');
+  const [gazeBlink, setGazeBlink] = useState(false);
+  const [hinglishQuery, setHinglishQuery] = useState('aaj kaun absent hai?');
+
+  useEffect(() => {
+    if (feature.id === 'custom-spring') {
+      api('/level1/custom-spring').then(data => {
+        if (data && typeof data.enabled !== 'undefined') {
+          setSpringPhysicsEnabled(data.enabled);
+        }
+      }).catch(() => {});
+    }
+    if (feature.id === 'ble-beacon') {
+      api('/level2/ble/beacon').then(data => {
+        if (data && data.beacons && data.beacons[bleRoom]) {
+          setBleEnabled(data.beacons[bleRoom].enabled || false);
+        }
+      }).catch(() => {});
+    }
+  }, [feature.id, bleRoom, api]);
 
   if (feature.adminOnly && userRole !== 'admin') {
     return (
@@ -59,6 +87,9 @@ function FeatureCard({ feature, api, userRole, students, onMsg }) {
     try {
       const data = await api(path, { method: 'POST', body: JSON.stringify(body) });
       setResult(data);
+      if (feature.id === 'custom-spring') {
+        applySpringPhysics(body.enabled);
+      }
       triggerHaptic('success');
       onMsg(`${feature.name} OK`);
     } catch (e) {
@@ -99,10 +130,29 @@ function FeatureCard({ feature, api, userRole, students, onMsg }) {
     }
     if (feature.method === 'POST') {
       let body = { ...feature.body };
-      if (feature.queryField) body[feature.queryField] = feature.id === 'copilot-pro' ? copilotQ : nlRule;
-      if (feature.id === 'nfc') body = { card_id: nfcCard, roll: nfcRoll };
-      if (feature.id === 'ble-beacon') body = { uuid: `beacon-${Date.now()}`, room: bleRoom };
-      if (feature.moodPicker) body = { mood, note: inputVal };
+      if (feature.id === 'custom-spring') {
+        body = { enabled: springPhysicsEnabled };
+      } else if (feature.id === 'ble-beacon') {
+        body = { room: bleRoom, enabled: bleEnabled };
+      } else if (feature.id === 'emotion-analytics') {
+        body = { student_id: studentId, mood: mood };
+      } else if (feature.id === 'multiface-scan') {
+        body = { faces_count: parseInt(facesCount) };
+      } else if (feature.id === 'face-aging-adapt') {
+        body = { student_id: parseInt(studentId), appearance_changes: appearanceTags.split(',').map(s => s.trim()) };
+      } else if (feature.id === 'lowlight-reconstruct') {
+        body = { lux_level: parseFloat(luxLevel) };
+      } else if (feature.id === 'gaze-tracking') {
+        body = { horizontal_deg: parseFloat(gazeHorizontal), vertical_deg: parseFloat(gazeVertical), blink: gazeBlink };
+      } else if (feature.id === 'hinglish-copilot') {
+        body = { query: hinglishQuery };
+      } else if (feature.id === 'nfc') {
+        body = { card_id: nfcCard, roll: nfcRoll };
+      } else if (feature.queryField) {
+        body[feature.queryField] = feature.id === 'copilot-pro' ? copilotQ : nlRule;
+      } else if (feature.moodPicker) {
+        body = { mood, note: inputVal };
+      }
       if (feature.needsStudentIds && students?.length) {
         body.student_ids = students.slice(0, 3).map((s) => s.id);
       }
@@ -175,13 +225,77 @@ function FeatureCard({ feature, api, userRole, students, onMsg }) {
             <input value={nfcRoll} onChange={(e) => setNfcRoll(e.target.value)} placeholder="Roll" />
           </>
         )}
-        {feature.id === 'ble-beacon' && (
-          <input value={bleRoom} onChange={(e) => setBleRoom(e.target.value)} placeholder="Room name" />
+        {feature.id === 'custom-spring' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Spring Physics:</label>
+            <select value={springPhysicsEnabled ? 'on' : 'off'} onChange={(e) => setSpringPhysicsEnabled(e.target.value === 'on')} style={{ flex: 1 }}>
+              <option value="off">OFF (Default)</option>
+              <option value="on">ON (Active)</option>
+            </select>
+          </div>
         )}
-        {feature.needsStudentId && (
+        {feature.id === 'ble-beacon' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+            <input value={bleRoom} onChange={(e) => setBleRoom(e.target.value)} placeholder="Room name" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <label style={{ fontSize: '0.75rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>Manual Switch:</label>
+              <select value={bleEnabled ? 'on' : 'off'} onChange={(e) => setBleEnabled(e.target.value === 'on')} style={{ flex: 1 }}>
+                <option value="off">OFF (Disabled)</option>
+                <option value="on">ON (Broadcasting)</option>
+              </select>
+            </div>
+          </div>
+        )}
+        {feature.id === 'emotion-analytics' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Mood:</label>
+              <select value={mood} onChange={(e) => setMood(e.target.value)} style={{ flex: 1 }}>
+                <option value="happy">Happy</option>
+                <option value="neutral">Neutral</option>
+                <option value="sad">Sad</option>
+                <option value="stressed">Stressed</option>
+                <option value="tired">Tired</option>
+              </select>
+            </div>
+            <input value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="Student ID" />
+          </div>
+        )}
+        {feature.id === 'multiface-scan' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>Faces detected:</label>
+            <input type="number" min="1" max="15" value={facesCount} onChange={(e) => setFacesCount(e.target.value)} />
+          </div>
+        )}
+        {feature.id === 'face-aging-adapt' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+            <input value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="Student ID" />
+            <input value={appearanceTags} onChange={(e) => setAppearanceTags(e.target.value)} placeholder="Beard, glasses, age..." />
+          </div>
+        )}
+        {feature.id === 'lowlight-reconstruct' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lux Level: {luxLevel} lx</label>
+            <input type="range" min="1" max="150" value={luxLevel} onChange={(e) => setLuxLevel(e.target.value)} />
+          </div>
+        )}
+        {feature.id === 'gaze-tracking' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+            <input type="number" step="0.5" value={gazeHorizontal} onChange={(e) => setGazeHorizontal(e.target.value)} placeholder="Horiz deg" />
+            <input type="number" step="0.5" value={gazeVertical} onChange={(e) => setGazeVertical(e.target.value)} placeholder="Vert deg" />
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={gazeBlink} onChange={(e) => setGazeBlink(e.target.checked)} />
+              Blink challenge met
+            </label>
+          </div>
+        )}
+        {feature.id === 'hinglish-copilot' && (
+          <input style={{ width: '100%' }} value={hinglishQuery} onChange={(e) => setHinglishQuery(e.target.value)} placeholder="E.g., aaj kaun absent hai?" />
+        )}
+        {feature.needsStudentId && !feature.id === 'emotion-analytics' && !feature.id === 'face-aging-adapt' && (
           <input value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="Student ID" />
         )}
-        {feature.moodPicker && (
+        {feature.moodPicker && !feature.id === 'emotion-analytics' && (
           <select value={mood} onChange={(e) => setMood(e.target.value)}>
             <option value="great">Great</option>
             <option value="okay">Okay</option>

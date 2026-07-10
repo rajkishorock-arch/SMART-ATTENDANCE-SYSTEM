@@ -101,7 +101,7 @@ import PullToRefresh from './components/PullToRefresh';
 import SmartSuggestionsBar from './components/SmartSuggestionsBar';
 import TeacherMiniDashboard from './components/TeacherMiniDashboard';
 import StudentAttendanceWallet from './components/StudentAttendanceWallet';
-import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings } from './utils/futuristicFeatures';
+import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings, applySpringPhysics } from './utils/futuristicFeatures';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -1611,6 +1611,16 @@ export default function App() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, []);
+
+  // Initialize Spring Physics settings on launch
+  useEffect(() => {
+    try {
+      const settings = loadFuturisticSettings();
+      if (settings.customSpringEnabled) {
+        document.body.classList.add('spring-physics');
+      }
+    } catch (_) {}
   }, []);
 
   // Handle Android Native Back Button Navigation
