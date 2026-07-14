@@ -89,6 +89,7 @@ import CameraSettingsPanel from './components/CameraSettingsPanel';
 import FuturisticFeaturesHub from './components/FuturisticFeaturesHub';
 import IndustryEnterpriseHub from './components/IndustryEnterpriseHub';
 import ExtremeLevelHub from './components/ExtremeLevelHub';
+import Ideas150Hub from './components/Ideas150Hub';
 import UniversalSearch from './components/UniversalSearch';
 import LiveBoardStrip from './components/LiveBoardStrip';
 import RoleCommandCenter from './components/RoleCommandCenter';
@@ -13844,6 +13845,20 @@ export default function App() {
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>8 levels — Live Board, AI Copilot, Blockchain, Parent Super-app, HOD War Room, AR, Marketplace & more.</p>
                   </div>
 
+                  {/* Category Card: Ideas Hub 150 */}
+                  <div
+                    onClick={() => { setActiveSubSetting('ideas150'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🚀</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.15)', color: '#22d3ee' }}>150 FEAT</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Ideas Hub (All 150)</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>UI animations, camera extreme, attendance core, AI analytics, parent/teacher UX, enterprise & futuristic — all workable.</p>
+                  </div>
+
                   {/* Category Card: Premium Subscription */}
                   {userRole === 'admin' && (
                     <div
@@ -14597,6 +14612,14 @@ export default function App() {
                 userRole={userRole}
                 students={students}
                 onOpenSearch={() => setUniversalSearchOpen(true)}
+              />
+            )}
+
+            {activeSubSetting === 'ideas150' && (
+              <Ideas150Hub
+                apiBaseUrl={API_BASE_URL}
+                token={token}
+                userRole={userRole}
               />
             )}
 
