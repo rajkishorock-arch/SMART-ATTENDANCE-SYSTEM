@@ -6,7 +6,36 @@
   flex-direction: column;
   gap: 14px;
   position: relative;
-  overflow: hidden;
+  z-index: 5;
+  isolation: isolate;
+  overflow: auto;
+  min-height: 55vh;
+  max-height: none;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  /* Always readable even if ambient FX are on */
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #f1f5f9 !important;
+  filter: none !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.ideas150-hub * {
+  /* Prevent inherited body filters from washing out hub text */
+  color: inherit;
+}
+
+.ideas150-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #e0f2fe !important;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
 }
 
 .ideas150-hero {
@@ -19,14 +48,14 @@
 
 .ideas150-hero h2 {
   margin: 0 0 6px;
-  color: #f8fafc;
+  color: #f8fafc !important;
   font-size: 1.35rem;
   letter-spacing: -0.02em;
 }
 
 .ideas150-hero p {
   margin: 0;
-  color: #94a3b8;
+  color: #cbd5e1 !important;
   font-size: 0.85rem;
 }
 
@@ -378,16 +407,15 @@ body.i150-glass-command-deck .ideas150-card {
 }
 
 body.i150-amoled-burn-guard {
-  background: #000 !important;
-  animation: i150-drift 40s linear infinite;
+  /* Soft deep theme — NEVER hard-black wipe of the app */
+  background-color: #020617 !important;
 }
-@keyframes i150-drift {
-  0%, 100% { background-position: 0 0; }
-  50% { background-position: 2px 2px; }
+body.i150-amoled-burn-guard #root {
+  filter: none;
 }
 
 body.i150-sound-reactive-theme.i150-pulse-flash {
-  filter: saturate(1.4) brightness(1.08);
+  filter: saturate(1.15) brightness(1.04);
 }
 
 body.i150-custom-cursor-hud,
@@ -408,11 +436,15 @@ body.i150-stagger-lists .ideas150-card:nth-child(5) { animation-delay: 0.18s; }
   to { opacity: 1; transform: none; }
 }
 
-body.i150-reduced-motion *,
-body.i150-reduced-motion *::before,
-body.i150-reduced-motion *::after {
-  animation: none !important;
-  transition: none !important;
+body.i150-reduced-motion .ideas150-hub *,
+body.i150-reduced-motion .ideas150-hub *::before,
+body.i150-reduced-motion .ideas150-hub *::after {
+  /* Hub keeps basic transitions for usability */
+  animation-duration: 0.01ms !important;
+}
+body.i150-reduced-motion:not([data-ideas150-hub]) * {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
 }
 
 body.i150-kiosk-attract .ideas150-hero h2 {
@@ -477,12 +509,12 @@ body.i150-floating-quick-dock .ideas150-hero-actions {
   border: 1px solid rgba(255,255,255,0.1);
 }
 
-body.i150-blur-focus-gate .ideas150-grid {
-  filter: blur(6px);
-  animation: i150-unblur 1s ease forwards;
+body.i150-blur-focus-gate[data-ideas150-hub] .ideas150-grid {
+  filter: blur(0);
+  animation: none;
 }
-@keyframes i150-unblur {
-  to { filter: blur(0); }
+body.i150-blur-focus-gate:not([data-ideas150-hub]) .ideas150-grid {
+  filter: none;
 }
 
 body.i150-voice-visualizer .ideas150-tab.active::after {
@@ -516,16 +548,17 @@ body.i150-aurora-bg::before {
 
 body.i150-noise-grain::after {
   content: "";
-  pointer-events: none;
+  pointer-events: none !important;
   position: fixed;
   inset: 0;
-  z-index: 99990;
-  opacity: 0.05;
+  z-index: 1;
+  opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 body.i150-cursor-spotlight {
-  background: radial-gradient(600px circle at var(--mx, 50%) var(--my, 50%), rgba(0,242,254,0.08), transparent 40%) #020617;
+  /* Soft vignette only — do not paint solid black */
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.25);
 }
 
 body.i150-sliding-tab-pill .ideas150-tab.active {
@@ -564,9 +597,8 @@ body.i150-modal-scale-in .ideas150-verify {
   to { transform: none; opacity: 1; }
 }
 
-body.i150-avatar-lqip .ideas150-card-head h4 {
-  filter: blur(3px);
-  animation: i150-unblur 0.8s ease forwards;
+body.i150-avatar-lqip[data-ideas150-hub] .ideas150-card-head h4 {
+  filter: none;
 }
 
 body.i150-badge-glow-unread .ideas150-kind {
@@ -617,16 +649,16 @@ body.i150-loading-mascot .ideas150-card.is-busy::before {
 }
 
 body.i150-rainy-day-ui {
-  filter: saturate(0.85) brightness(0.95);
+  filter: saturate(0.92) brightness(0.98);
 }
 body.i150-rainy-day-ui::before {
   content: "";
   position: fixed;
   inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(180deg, transparent 0 12px, rgba(148,163,184,0.05) 12px 13px);
+  pointer-events: none !important;
+  background: repeating-linear-gradient(180deg, transparent 0 12px, rgba(148,163,184,0.04) 12px 13px);
   animation: i150-rain 0.8s linear infinite;
-  z-index: 99989;
+  z-index: 1;
 }
 @keyframes i150-rain {
   to { background-position: 0 20px; }
@@ -681,8 +713,11 @@ body.i150-exam-proctor-hud .ideas150-meta {
 }
 
 body.i150-voice-dark-room {
-  background: #000 !important;
-  filter: brightness(0.7);
+  /* Dim chrome only — keep UI readable */
+  background-color: #0b1220 !important;
+}
+body.i150-voice-dark-room #root {
+  filter: brightness(0.92);
 }
 
 body.i150-lowlight-helper .ideas150-hub {
@@ -776,4 +811,59 @@ body[data-ideas150-skin="exam-week"] {
 @media (max-width: 640px) {
   .ideas150-grid { grid-template-columns: 1fr; }
   .ideas150-hero h2 { font-size: 1.15rem; }
+}
+
+/* Force hub text/cards readable */
+.ideas150-hub .ideas150-card {
+  background: rgba(2, 6, 23, 0.85) !important;
+  color: #e2e8f0 !important;
+}
+.ideas150-hub .ideas150-card-head h4 { color: #f8fafc !important; }
+.ideas150-hub .ideas150-desc { color: #94a3b8 !important; }
+.ideas150-hub .ideas150-btn { color: #e2e8f0 !important; }
+.ideas150-hub .ideas150-tab { color: #cbd5e1 !important; }
+.ideas150-hub .ideas150-tab.active { color: #f8fafc !important; }
+
+/* App-wide Home polish when FX ON (visible outside Settings) */
+body.ideas150-fx-active.i150-btn-press-depth button:active,
+body.ideas150-fx-active.i150-btn-press-depth .glass-panel button:active {
+  transform: translateY(2px) scale(0.98);
+}
+body.ideas150-fx-active.i150-hover-tilt .hover-card:hover,
+body.ideas150-fx-active.i150-hover-tilt .glass-panel:hover {
+  transform: perspective(700px) rotateX(1.5deg) rotateY(-2deg);
+  transition: transform 0.2s ease;
+}
+body.ideas150-fx-active.i150-stagger-lists .hover-card {
+  animation: i150-stagger 0.45s ease both;
+}
+body.ideas150-fx-active.i150-aurora-bg::before {
+  z-index: 0;
+  pointer-events: none !important;
+}
+body.ideas150-fx-active.i150-glass-command-deck .glass-panel {
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+body.ideas150-fx-active.i150-kinetic-headlines h1,
+body.ideas150-fx-active.i150-kinetic-headlines h2 {
+  animation: i150-kinetic 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+body.ideas150-fx-active.i150-badge-glow-unread [class*="badge"],
+body.ideas150-fx-active.i150-badge-glow-unread .notif-dot {
+  box-shadow: 0 0 12px rgba(244, 114, 182, 0.55);
+}
+body.ideas150-fx-active.i150-one-thumb-mark button {
+  min-height: 44px;
+}
+body.ideas150-fx-active.i150-large-text-mode #root {
+  font-size: 1.06rem;
+}
+body.ideas150-fx-active.i150-pwa-icon-dance h1::before,
+body.ideas150-fx-active.i150-pwa-icon-dance .app-title::before {
+  content: "📱 ";
+}
+body[data-ideas150-hub] .ideas150-hub {
+  /* Ensure nothing covers the hub while open */
+  visibility: visible !important;
+  display: flex !important;
 }

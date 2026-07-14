@@ -6,12 +6,12 @@ import {
   getIdeasByCategory,
 } from '../utils/ideas150Catalog';
 import {
-  applyFxFromState,
   clearAllIdeaFx,
   restoreAllIdeaFx,
   runClientDemo,
+  setIdeas150HubOpen,
+  syncLiveFxFromStates,
 } from '../utils/ideas150Effects';
-import '../styles/ideas150.css';
 
 const CAT_ORDER = ['ui', 'camera', 'attendance', 'ai', 'ecosystem', 'enterprise', 'future', 'micro'];
 
@@ -92,9 +92,10 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
       const map = {};
       (data.states || []).forEach((s) => {
         map[s.slug] = s;
-        applyFxFromState(s);
       });
       setStates(map);
+      // Safe sync — no black-screen stack
+      syncLiveFxFromStates(map);
     } catch (e) {
       notify(e.message);
     } finally {
@@ -103,8 +104,14 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
   }, [api, token]);
 
   useEffect(() => {
+    setIdeas150HubOpen(true);
     restoreAllIdeaFx();
     refreshStates();
+    return () => {
+      setIdeas150HubOpen(false);
+      // Keep live FX on Home — do NOT clear on unmount
+      restoreAllIdeaFx();
+    };
   }, [refreshStates]);
 
   const features = useMemo(() => getIdeasByCategory(cat), [cat]);
@@ -116,10 +123,13 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
         method: 'POST',
         body: JSON.stringify({ enabled: true, payload: {} }),
       });
-      setStates((prev) => ({ ...prev, [feature.slug]: state }));
+      setStates((prev) => {
+        const next = { ...prev, [feature.slug]: state };
+        syncLiveFxFromStates(next);
+        return next;
+      });
       runClientDemo(feature, { ...state.result, enabled: state.enabled, fx_enabled: true });
-      applyFxFromState(state);
-      notify(`✅ #${feature.id} ${feature.name} OK`);
+      notify(`✅ #${feature.id} ${feature.name} ON — Home pe bhi dikhega`);
     } catch (e) {
       notify(`❌ ${feature.name}: ${e.message}`);
     } finally {
@@ -134,10 +144,15 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
         method: 'POST',
         body: JSON.stringify({ enabled }),
       });
-      setStates((prev) => ({ ...prev, [feature.slug]: state }));
+      setStates((prev) => {
+        const next = { ...prev, [feature.slug]: state };
+        syncLiveFxFromStates(next);
+        return next;
+      });
       runClientDemo(feature, { ...state.result, enabled: state.enabled, fx_enabled: enabled });
-      applyFxFromState(state);
-      notify(`${feature.name} → ${enabled ? 'ON' : 'OFF'}`);
+      notify(enabled
+        ? `${feature.name} ON — Settings band karke Home pe dekho`
+        : `${feature.name} OFF`);
     } catch (e) {
       notify(e.message);
     } finally {
@@ -146,13 +161,12 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
   };
 
   const runAllInCategory = async () => {
-    notify(`Running ${features.length} features in category…`);
+    notify(`Running ${features.length} features…`);
     for (const f of features) {
-      // sequential to avoid DB write races
       // eslint-disable-next-line no-await-in-loop
       await onRun(f);
     }
-    notify(`Category ${cat} complete`);
+    notify(`Category ${cat} complete — Home pe effects active`);
   };
 
   const verifyAll = async () => {
@@ -162,7 +176,7 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
       setVerifyReport(report);
       await refreshStates();
       notify(report.all_workable
-        ? `🎉 All ${report.passed}/150 workable`
+        ? `🎉 All ${report.passed}/150 APIs OK (FX stack safe — screen clear)`
         : `Passed ${report.passed}, failed ${report.failed}`);
     } catch (e) {
       notify(e.message);
@@ -174,14 +188,15 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
   const enabledCount = Object.values(states).filter((s) => s.enabled).length;
 
   return (
-    <div className="ideas150-hub glass-panel">
+    <div className="ideas150-hub" role="region" aria-label="Ideas Hub 150">
       <div className="ideas150-hero">
         <div>
           <h2>🚀 Ideas Hub — All {TOTAL_IDEAS150} Features</h2>
           <p>
-            Functional UI + attendance + AI + enterprise features. Enabled: <strong>{enabledCount}</strong>
+            Enable / Run yahan karo. Effects <strong>poori app</strong> (Home) pe dikhte hain.
             {loadingStates ? ' · syncing…' : ''}
             {userRole ? ` · role: ${userRole}` : ''}
+            {' · '}ON: <strong>{enabledCount}</strong>
           </p>
         </div>
         <div className="ideas150-hero-actions">
@@ -192,10 +207,22 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
             Run Category
           </button>
           <button type="button" className="ideas150-btn" onClick={refreshStates}>Refresh</button>
-          <button type="button" className="ideas150-btn danger" onClick={() => { clearAllIdeaFx(); notify('UI FX cleared'); }}>
+          <button
+            type="button"
+            className="ideas150-btn danger"
+            onClick={() => {
+              clearAllIdeaFx();
+              notify('Saare UI FX band — Home normal');
+            }}
+          >
             Clear FX
           </button>
         </div>
+      </div>
+
+      <div className="ideas150-hint">
+        Black screen fix active. Jo FX ON karoge woh Home pe rahega — Settings se bahar jaake dekho.
+        Dark themes me se ek time pe sirf ek lagega (clash nahi hoga).
       </div>
 
       {msg && <p className="ideas150-msg">{msg}</p>}
@@ -236,7 +263,7 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
       </div>
 
       <p className="ideas150-cat-note">
-        Showing {features.length} features — each Run hits live API and persists state.
+        Showing {features.length} — Run/Enable = API + live UI on whole app.
       </p>
 
       <div className="ideas150-grid">

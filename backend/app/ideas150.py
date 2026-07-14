@@ -128,30 +128,46 @@ def run_feature(db: Session, user: models.User, feat: dict, body: RunBody) -> di
     payload = body.payload or {}
     cat = feat["cat"]
     kind = feat["kind"]
+    verify_mode = bool(payload.get("verify") or payload.get("skip_enable"))
 
     # Default enable for toggles when explicitly passed
     enable_flag = body.enabled
     if enable_flag is None and kind in ("toggle", "toggle_fx") and "enabled" in payload:
         enable_flag = bool(payload["enabled"])
 
-    result: Dict[str, Any] = {"ok": True, "slug": slug}
+    result: Dict[str, Any] = {"ok": True, "slug": slug, "verify": verify_mode}
 
     if cat == "ui" or cat == "micro":
-        result.update(_run_ui(feat, saved, payload, enable_flag))
+        result.update(_run_ui(feat, saved, payload, enable_flag if not verify_mode else saved.get("enabled")))
     elif cat == "camera":
-        result.update(_run_camera(db, user, feat, saved, payload, enable_flag))
+        result.update(_run_camera(db, user, feat, saved, payload, enable_flag if not verify_mode else saved.get("enabled")))
     elif cat == "attendance":
-        result.update(_run_attendance(db, user, feat, saved, payload, enable_flag))
+        result.update(_run_attendance(db, user, feat, saved, payload, enable_flag if not verify_mode else saved.get("enabled")))
     elif cat == "ai":
-        result.update(_run_ai(db, user, feat, saved, payload, enable_flag))
+        result.update(_run_ai(db, user, feat, saved, payload, enable_flag if not verify_mode else saved.get("enabled")))
     elif cat == "ecosystem":
-        result.update(_run_ecosystem(db, user, feat, saved, payload, enable_flag))
+        result.update(_run_ecosystem(db, user, feat, saved, payload, enable_flag if not verify_mode else saved.get("enabled")))
     elif cat == "enterprise":
-        result.update(_run_enterprise(db, user, feat, saved, payload, enable_flag))
+        result.update(_run_enterprise(db, user, feat, saved, payload, enable_flag if not verify_mode else saved.get("enabled")))
     elif cat == "future":
-        result.update(_run_future(db, user, feat, saved, payload, enable_flag))
+        result.update(_run_future(db, user, feat, saved, payload, enable_flag if not verify_mode else saved.get("enabled")))
     else:
         result["message"] = "Feature executed"
+
+    if verify_mode:
+        # Exercise logic + bump run_count, but do NOT force-enable UI FX
+        out = dict(saved)
+        out["last_run"] = datetime.utcnow().isoformat() + "Z"
+        out["run_count"] = int(out.get("run_count", 0)) + 1
+        out["result"] = result
+        out["enabled"] = bool(out.get("enabled", False))
+        if "config" not in out:
+            out["config"] = {}
+        _store_set(db, user.institution_id, _key(slug), out, user.email)
+        state = _base_state(feat, out)
+        state["result"] = result
+        state["workable"] = True
+        return state
 
     if enable_flag is None and kind in ("toggle", "toggle_fx"):
         # action run without explicit toggle keeps previous enabled; first run turns on
@@ -167,7 +183,7 @@ def run_feature(db: Session, user: models.User, feat: dict, body: RunBody) -> di
     # Merge config updates from payload
     cfg = dict(saved.get("config") or {})
     for k, v in payload.items():
-        if k != "enabled":
+        if k not in ("enabled", "verify", "skip_enable"):
             cfg[k] = v
     if result.get("config_patch"):
         cfg.update(result.pop("config_patch"))
@@ -783,13 +799,19 @@ def post_toggle(
 
 @router.post("/verify-all")
 def verify_all(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    """Run every feature once and report workable status — for QA checklist."""
+    """Run every feature once for QA — does NOT force-enable UI FX (avoids black screen)."""
     results = []
     ok = 0
     for feat in FEATURES:
         try:
-            state = run_feature(db, current_user, feat, RunBody(enabled=True, payload={"verify": True}))
-            results.append({"id": feat["id"], "slug": feat["slug"], "ok": True, "name": feat["name"]})
+            # Preserve prior enabled; only exercise the handler
+            state = run_feature(
+                db,
+                current_user,
+                feat,
+                RunBody(enabled=None, payload={"verify": True, "skip_enable": True}),
+            )
+            results.append({"id": feat["id"], "slug": feat["slug"], "ok": True, "name": feat["name"], "enabled": state.get("enabled")})
             ok += 1
         except Exception as e:
             results.append({"id": feat["id"], "slug": feat["slug"], "ok": False, "error": str(e), "name": feat["name"]})
@@ -799,6 +821,7 @@ def verify_all(db: Session = Depends(get_db), current_user: models.User = Depend
         "failed": TOTAL - ok,
         "all_workable": ok == TOTAL,
         "results": results,
+        "note": "Verify does not turn on all UI FX at once",
     }
 
 

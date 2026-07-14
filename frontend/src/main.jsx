@@ -22,7 +22,13 @@ window.fetch = async function (url, options = {}) {
 
 import './styles/futuristicFeatures.css';
 import './styles/extremeFeatures.css';
+import './styles/ideas150.css';
 import App from './App.jsx'
+import { initIdeas150FxOnBoot } from './utils/ideas150Effects'
+
+try {
+  initIdeas150FxOnBoot();
+} catch (_) { /* ignore */ }
 
 class ErrorBoundary extends Component {
   constructor(props) {

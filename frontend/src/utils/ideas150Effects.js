@@ -1,6 +1,35 @@
-/** Apply / remove Ideas150 UI effect classes on document body */
+/** Ideas150 FX — safe app-wide effects (no black-screen stack) */
 const PREFIX = 'i150-';
 const STORAGE_KEY = 'ideas150_enabled_fx_v1';
+const SKIN_KEY = 'ideas150_skin_v1';
+const COLOR_KEY = 'ideas150_color_v1';
+
+/** Only one from each group may be active (prevents black / broken home) */
+const EXCLUSIVE_GROUPS = [
+  [
+    'amoled-burn-guard',
+    'voice-dark-room',
+    'rainy-day-ui',
+    'night-shift-blue',
+    'high-contrast-exam',
+    'cursor-spotlight',
+    'exam-week-redline',
+  ],
+  ['reduced-motion'], // if on, still ok alone but we won't combine with blur gates
+  ['blur-focus-gate'], // hub-onlyish — not restored app-wide
+];
+
+/** Never restore these globally — they break whole-app readability */
+const HUB_ONLY_FX = new Set([
+  'blur-focus-gate',
+  'split-war-room',
+  'kiosk-attract',
+  'floating-quick-dock',
+  'digital-id-flip',
+  'face-mesh-overlay',
+  'laser-sweep',
+  'avatar-lqip',
+]);
 
 function readEnabled() {
   try {
@@ -16,32 +45,157 @@ function writeEnabled(list) {
   } catch { /* ignore */ }
 }
 
+function toClass(fx) {
+  if (!fx) return null;
+  const raw = String(fx).replace(/^i150-/, '');
+  return `${PREFIX}${raw}`;
+}
+
+function slugFromClass(cls) {
+  return String(cls || '').replace(/^i150-/, '');
+}
+
+function enforceExclusivity(nextSlug) {
+  const hit = EXCLUSIVE_GROUPS.find((g) => g.includes(nextSlug));
+  if (!hit) return;
+  hit.forEach((slug) => {
+    if (slug === nextSlug) return;
+    const cls = toClass(slug);
+    document.body.classList.remove(cls);
+  });
+  const kept = readEnabled().filter((cls) => {
+    const s = slugFromClass(cls);
+    return s === nextSlug || !hit.includes(s);
+  });
+  writeEnabled(kept);
+}
+
 export function applyIdeaFx(fx, enabled = true) {
   if (!fx || typeof document === 'undefined') return;
-  const cls = fx.startsWith(PREFIX) ? fx : `${PREFIX}${fx}`;
-  document.body.classList.toggle(cls, !!enabled);
-  const list = new Set(readEnabled());
-  if (enabled) list.add(cls);
-  else list.delete(cls);
-  writeEnabled([...list]);
+  const slug = String(fx).replace(/^i150-/, '');
+  const cls = toClass(slug);
+
+  if (enabled) {
+    if (HUB_ONLY_FX.has(slug) && !document.body.hasAttribute('data-ideas150-hub')) {
+      // hub-only: skip while outside Ideas Hub
+      return;
+    }
+    enforceExclusivity(slug);
+    document.body.classList.add(cls);
+    const list = new Set(readEnabled());
+    list.add(cls);
+    // drop exclusive losers already removed from DOM
+    EXCLUSIVE_GROUPS.forEach((g) => {
+      if (!g.includes(slug)) return;
+      g.forEach((s) => {
+        if (s !== slug) list.delete(toClass(s));
+      });
+    });
+    writeEnabled([...list]);
+  } else {
+    document.body.classList.remove(cls);
+    writeEnabled(readEnabled().filter((c) => c !== cls));
+  }
 }
 
 export function applyFxFromState(state) {
-  if (!state) return;
-  const fx = state.fx || state.result?.fx_class?.replace(PREFIX, '');
-  if (!fx) return;
-  applyIdeaFx(fx, state.enabled !== false && state.result?.fx_enabled !== false);
+  if (!state?.fx && !state?.result?.fx_class) return;
+  const fx = state.fx || String(state.result.fx_class).replace(/^i150-/, '');
+  const on = !!(state.enabled && state.result?.fx_enabled !== false);
+  applyIdeaFx(fx, on);
+}
+
+/** Sync only toggle_fx / fx features that are ON — safe for home + hub */
+export function syncLiveFxFromStates(states = {}) {
+  if (typeof document === 'undefined') return;
+  // purge current i150 classes first
+  [...document.body.classList].forEach((c) => {
+    if (c.startsWith(PREFIX)) document.body.classList.remove(c);
+  });
+
+  const candidates = [];
+  Object.values(states).forEach((s) => {
+    if (!s?.enabled) return;
+    const fx = s.fx || (s.result?.fx_class ? String(s.result.fx_class).replace(/^i150-/, '') : null);
+    if (!fx) return;
+    if (HUB_ONLY_FX.has(fx) && !document.body.hasAttribute('data-ideas150-hub')) return;
+    candidates.push(fx);
+  });
+
+  // resolve exclusivity — last candidate in each group wins
+  const blocked = new Set();
+  const chosen = [];
+  [...candidates].reverse().forEach((fx) => {
+    if (blocked.has(fx)) return;
+    const group = EXCLUSIVE_GROUPS.find((g) => g.includes(fx));
+    if (group) {
+      group.forEach((s) => blocked.add(s));
+      blocked.delete(fx);
+    }
+    chosen.push(fx);
+  });
+  chosen.reverse();
+
+  chosen.forEach((fx) => {
+    document.body.classList.add(toClass(fx));
+  });
+  writeEnabled(chosen.map(toClass));
+  document.body.classList.toggle('ideas150-fx-active', chosen.length > 0);
+
+  const skin = localStorage.getItem(SKIN_KEY);
+  if (skin) document.body.setAttribute('data-ideas150-skin', skin);
+  const color = localStorage.getItem(COLOR_KEY);
+  if (color) {
+    document.documentElement.style.setProperty('--ideas150-accent', color);
+    document.documentElement.style.setProperty('--color-primary', color);
+  }
 }
 
 export function restoreAllIdeaFx() {
   if (typeof document === 'undefined') return;
-  readEnabled().forEach((cls) => document.body.classList.add(cls));
+  // sanitize legacy black-screen stacks from Verify All
+  const raw = readEnabled();
+  const safe = [];
+  const seenExclusive = new Set();
+  raw.forEach((cls) => {
+    const slug = slugFromClass(cls);
+    if (HUB_ONLY_FX.has(slug)) return;
+    const group = EXCLUSIVE_GROUPS.find((g) => g.includes(slug));
+    if (group) {
+      const key = group.join('|');
+      if (seenExclusive.has(key)) return;
+      seenExclusive.add(key);
+    }
+    safe.push(cls);
+  });
+  writeEnabled(safe);
+  [...document.body.classList].forEach((c) => {
+    if (c.startsWith(PREFIX)) document.body.classList.remove(c);
+  });
+  safe.forEach((cls) => document.body.classList.add(cls));
+  document.body.classList.add('ideas150-fx-active');
+  const skin = localStorage.getItem(SKIN_KEY);
+  if (skin) document.body.setAttribute('data-ideas150-skin', skin);
 }
 
 export function clearAllIdeaFx() {
   if (typeof document === 'undefined') return;
-  readEnabled().forEach((cls) => document.body.classList.remove(cls));
+  [...document.body.classList].forEach((c) => {
+    if (c.startsWith(PREFIX)) document.body.classList.remove(c);
+  });
+  document.body.classList.remove('ideas150-fx-active');
+  document.body.removeAttribute('data-ideas150-skin');
   writeEnabled([]);
+  try {
+    localStorage.removeItem(SKIN_KEY);
+    localStorage.removeItem(COLOR_KEY);
+  } catch { /* ignore */ }
+}
+
+export function setIdeas150HubOpen(open) {
+  if (typeof document === 'undefined') return;
+  if (open) document.body.setAttribute('data-ideas150-hub', '1');
+  else document.body.removeAttribute('data-ideas150-hub');
 }
 
 export function playToastTheater(message, durationMs = 3200) {
@@ -102,16 +256,20 @@ export function applyThemeStudioColor(color) {
   if (!color) return;
   document.documentElement.style.setProperty('--ideas150-accent', color);
   document.documentElement.style.setProperty('--color-primary', color);
+  try { localStorage.setItem(COLOR_KEY, color); } catch { /* ignore */ }
 }
 
 export function applySeasonalSkin(skin) {
   document.body.setAttribute('data-ideas150-skin', skin || '');
+  try { localStorage.setItem(SKIN_KEY, skin || ''); } catch { /* ignore */ }
 }
 
 export function runClientDemo(feature, result) {
   const fx = feature?.fx || feature?.slug;
   if (!fx) return;
-  applyIdeaFx(fx, result?.fx_enabled !== false && result?.enabled !== false);
+  const on = result?.fx_enabled !== false && result?.enabled !== false;
+  applyIdeaFx(fx, on);
+  document.body.classList.add('ideas150-fx-active');
 
   if (fx === 'toast-theater') playToastTheater(result?.ui?.sample || feature.name);
   if (fx === 'success-scan-morph' || fx === 'first-scan-fireworks' || fx === 'stadium-cheer' || fx === 'gesture-confetti') {
@@ -123,4 +281,9 @@ export function runClientDemo(feature, result) {
   if (fx === 'theme-studio') applyThemeStudioColor(result?.ui?.primary);
   if (fx === 'seasonal-skins') applySeasonalSkin(result?.ui?.skin || 'diwali');
   if (fx === 'achievement-cinema') playToastTheater(`🏆 ${result?.ui?.badge || 'Unlocked'}!`, 2800);
+}
+
+/** Call once on app boot so Home shows enabled FX without opening hub */
+export function initIdeas150FxOnBoot() {
+  restoreAllIdeaFx();
 }
