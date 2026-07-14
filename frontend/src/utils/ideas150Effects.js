@@ -31,18 +31,45 @@ const HUB_ONLY_FX = new Set([
   'avatar-lqip',
 ]);
 
+function getStorageItem(key) {
+  try {
+    return typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(key) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function setStorageItem(key, val) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, val);
+    }
+  } catch (_) {}
+}
+
+function removeStorageItem(key) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(key);
+    }
+  } catch (_) {}
+}
+
 function readEnabled() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch {
+    const val = getStorageItem(STORAGE_KEY);
+    if (!val) return [];
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
     return [];
   }
 }
 
 function writeEnabled(list) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch { /* ignore */ }
+  if (Array.isArray(list)) {
+    setStorageItem(STORAGE_KEY, JSON.stringify(list));
+  }
 }
 
 function toClass(fx) {
@@ -56,12 +83,13 @@ function slugFromClass(cls) {
 }
 
 function enforceExclusivity(nextSlug) {
+  if (typeof document === 'undefined' || !document.body) return;
   const hit = EXCLUSIVE_GROUPS.find((g) => g.includes(nextSlug));
   if (!hit) return;
   hit.forEach((slug) => {
     if (slug === nextSlug) return;
     const cls = toClass(slug);
-    document.body.classList.remove(cls);
+    if (cls) document.body.classList.remove(cls);
   });
   const kept = readEnabled().filter((cls) => {
     const s = slugFromClass(cls);
@@ -71,9 +99,10 @@ function enforceExclusivity(nextSlug) {
 }
 
 export function applyIdeaFx(fx, enabled = true) {
-  if (!fx || typeof document === 'undefined') return;
+  if (!fx || typeof document === 'undefined' || !document.body) return;
   const slug = String(fx).replace(/^i150-/, '');
   const cls = toClass(slug);
+  if (!cls) return;
 
   if (enabled) {
     if (HUB_ONLY_FX.has(slug) && !document.body.hasAttribute('data-ideas150-hub')) {
@@ -107,7 +136,7 @@ export function applyFxFromState(state) {
 
 /** Sync only toggle_fx / fx features that are ON — safe for home + hub */
 export function syncLiveFxFromStates(states = {}) {
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined' || !document.body) return;
   // purge current i150 classes first
   [...document.body.classList].forEach((c) => {
     if (c.startsWith(PREFIX)) document.body.classList.remove(c);
@@ -142,9 +171,9 @@ export function syncLiveFxFromStates(states = {}) {
   writeEnabled(chosen.map(toClass));
   document.body.classList.toggle('ideas150-fx-active', chosen.length > 0);
 
-  const skin = localStorage.getItem(SKIN_KEY);
-  if (skin) document.body.setAttribute('data-ideas150-skin', skin);
-  const color = localStorage.getItem(COLOR_KEY);
+  const skin = getStorageItem(SKIN_KEY);
+  if (skin && document.body) document.body.setAttribute('data-ideas150-skin', skin);
+  const color = getStorageItem(COLOR_KEY);
   if (color) {
     document.documentElement.style.setProperty('--ideas150-accent', color);
     document.documentElement.style.setProperty('--color-primary', color);
@@ -152,12 +181,13 @@ export function syncLiveFxFromStates(states = {}) {
 }
 
 export function restoreAllIdeaFx() {
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined' || !document.body) return;
   // sanitize legacy black-screen stacks from Verify All
-  const raw = readEnabled();
+  const raw = readEnabled() || [];
   const safe = [];
   const seenExclusive = new Set();
   raw.forEach((cls) => {
+    if (!cls) return;
     const slug = slugFromClass(cls);
     if (HUB_ONLY_FX.has(slug)) return;
     const group = EXCLUSIVE_GROUPS.find((g) => g.includes(slug));
@@ -169,36 +199,41 @@ export function restoreAllIdeaFx() {
     safe.push(cls);
   });
   writeEnabled(safe);
-  [...document.body.classList].forEach((c) => {
-    if (c.startsWith(PREFIX)) document.body.classList.remove(c);
-  });
-  safe.forEach((cls) => document.body.classList.add(cls));
-  document.body.classList.add('ideas150-fx-active');
-  const skin = localStorage.getItem(SKIN_KEY);
-  if (skin) document.body.setAttribute('data-ideas150-skin', skin);
+  if (document.body) {
+    [...document.body.classList].forEach((c) => {
+      if (c.startsWith(PREFIX)) document.body.classList.remove(c);
+    });
+    safe.forEach((cls) => document.body.classList.add(cls));
+    document.body.classList.toggle('ideas150-fx-active', safe.length > 0);
+    const skin = getStorageItem(SKIN_KEY);
+    if (skin) document.body.setAttribute('data-ideas150-skin', skin);
+  }
 }
 
 export function clearAllIdeaFx() {
-  if (typeof document === 'undefined') return;
-  [...document.body.classList].forEach((c) => {
-    if (c.startsWith(PREFIX)) document.body.classList.remove(c);
-  });
-  document.body.classList.remove('ideas150-fx-active');
-  document.body.removeAttribute('data-ideas150-skin');
+  if (typeof document === 'undefined' || !document.body) return;
+  if (document.body) {
+    [...document.body.classList].forEach((c) => {
+      if (c.startsWith(PREFIX)) document.body.classList.remove(c);
+    });
+    document.body.classList.remove('ideas150-fx-active');
+    document.body.removeAttribute('data-ideas150-skin');
+  }
   writeEnabled([]);
-  try {
-    localStorage.removeItem(SKIN_KEY);
-    localStorage.removeItem(COLOR_KEY);
-  } catch { /* ignore */ }
+  removeStorageItem(SKIN_KEY);
+  removeStorageItem(COLOR_KEY);
 }
 
 export function setIdeas150HubOpen(open) {
-  if (typeof document === 'undefined') return;
-  if (open) document.body.setAttribute('data-ideas150-hub', '1');
-  else document.body.removeAttribute('data-ideas150-hub');
+  if (typeof document === 'undefined' || !document.body) return;
+  if (document.body) {
+    if (open) document.body.setAttribute('data-ideas150-hub', '1');
+    else document.body.removeAttribute('data-ideas150-hub');
+  }
 }
 
 export function playToastTheater(message, durationMs = 3200) {
+  if (typeof document === 'undefined' || !document.body) return;
   const el = document.createElement('div');
   el.className = 'i150-toast-theater';
   el.textContent = message || 'Done';
@@ -211,6 +246,7 @@ export function playToastTheater(message, durationMs = 3200) {
 }
 
 export function playConfettiBurst(count = 40) {
+  if (typeof document === 'undefined' || !document.body) return;
   const layer = document.createElement('div');
   layer.className = 'i150-confetti-layer';
   for (let i = 0; i < count; i += 1) {
@@ -225,16 +261,20 @@ export function playConfettiBurst(count = 40) {
 }
 
 export function playShakeRecover(target) {
+  if (typeof document === 'undefined' || !document.body) return;
   const el = target || document.querySelector('.ideas150-hub') || document.body;
-  el.classList.add('i150-shaking');
-  setTimeout(() => {
-    el.classList.remove('i150-shaking');
-    el.classList.add('i150-recovered');
-    setTimeout(() => el.classList.remove('i150-recovered'), 600);
-  }, 450);
+  if (el) {
+    el.classList.add('i150-shaking');
+    setTimeout(() => {
+      el.classList.remove('i150-shaking');
+      el.classList.add('i150-recovered');
+      setTimeout(() => el.classList.remove('i150-recovered'), 600);
+    }, 450);
+  }
 }
 
 export function triggerHapticPattern(name = 'success') {
+  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
   const patterns = {
     success: [40, 30, 40],
     error: [80],
@@ -242,10 +282,11 @@ export function triggerHapticPattern(name = 'success') {
     streak: [30, 30, 30, 30],
   };
   const p = patterns[name] || patterns.success;
-  if (navigator.vibrate) navigator.vibrate(p);
+  navigator.vibrate(p);
 }
 
 export function animateConfidenceRing(percent = 94) {
+  if (typeof document === 'undefined') return;
   const ring = document.querySelector('.i150-confidence-ring-demo');
   if (!ring) return;
   ring.style.setProperty('--pct', String(percent));
@@ -254,22 +295,27 @@ export function animateConfidenceRing(percent = 94) {
 
 export function applyThemeStudioColor(color) {
   if (!color) return;
-  document.documentElement.style.setProperty('--ideas150-accent', color);
-  document.documentElement.style.setProperty('--color-primary', color);
-  try { localStorage.setItem(COLOR_KEY, color); } catch { /* ignore */ }
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.setProperty('--ideas150-accent', color);
+    document.documentElement.style.setProperty('--color-primary', color);
+  }
+  setStorageItem(COLOR_KEY, color);
 }
 
 export function applySeasonalSkin(skin) {
-  document.body.setAttribute('data-ideas150-skin', skin || '');
-  try { localStorage.setItem(SKIN_KEY, skin || ''); } catch { /* ignore */ }
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.setAttribute('data-ideas150-skin', skin || '');
+  }
+  setStorageItem(SKIN_KEY, skin || '');
 }
 
 export function runClientDemo(feature, result) {
+  if (typeof document === 'undefined' || !document.body) return;
   const fx = feature?.fx || feature?.slug;
   if (!fx) return;
   const on = result?.fx_enabled !== false && result?.enabled !== false;
   applyIdeaFx(fx, on);
-  document.body.classList.add('ideas150-fx-active');
+  if (on) document.body.classList.add('ideas150-fx-active');
 
   if (fx === 'toast-theater') playToastTheater(result?.ui?.sample || feature.name);
   if (fx === 'success-scan-morph' || fx === 'first-scan-fireworks' || fx === 'stadium-cheer' || fx === 'gesture-confetti') {
@@ -285,5 +331,12 @@ export function runClientDemo(feature, result) {
 
 /** Call once on app boot so Home shows enabled FX without opening hub */
 export function initIdeas150FxOnBoot() {
+  if (typeof window !== 'undefined') {
+    const url = window.location.href;
+    if (url.includes('clear_fx') || url.includes('clear-fx') || url.includes('reset_fx')) {
+      clearAllIdeaFx();
+      return;
+    }
+  }
   restoreAllIdeaFx();
 }
