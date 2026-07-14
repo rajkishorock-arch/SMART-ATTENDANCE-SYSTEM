@@ -825,6 +825,17 @@ def verify_all(db: Session = Depends(get_db), current_user: models.User = Depend
     }
 
 
+@router.post("/reset-all")
+def reset_all_features(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Reset all Ideas 150 feature states in the database."""
+    db.query(models.ExtremeFeatureRecord).filter(
+        models.ExtremeFeatureRecord.institution_id == current_user.institution_id,
+        models.ExtremeFeatureRecord.feature_key.like("ideas150:%")
+    ).delete(synchronize_session=False)
+    db.commit()
+    return {"ok": True, "message": "All Ideas 150 feature states reset in database."}
+
+
 @router.get("/summary")
 def feature_summary(current_user: models.User = Depends(security.get_current_user)):
     by_cat = {}

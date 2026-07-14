@@ -210,9 +210,15 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
           <button
             type="button"
             className="ideas150-btn danger"
-            onClick={() => {
+            onClick={async () => {
               clearAllIdeaFx();
-              notify('Saare UI FX band — Home normal');
+              try {
+                await api('/ideas150/reset-all', { method: 'POST' });
+                await refreshStates();
+                notify('Saare UI FX band aur DB reset — Home normal');
+              } catch (e) {
+                notify(`FX cleared locally. DB reset error: ${e.message}`);
+              }
             }}
           >
             Clear FX

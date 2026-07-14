@@ -335,6 +335,25 @@ export function initIdeas150FxOnBoot() {
     const url = window.location.href;
     if (url.includes('clear_fx') || url.includes('clear-fx') || url.includes('reset_fx')) {
       clearAllIdeaFx();
+
+      // Attempt backend database reset if authenticated
+      const token = getStorageItem('token');
+      if (token) {
+        const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'http://localhost:8000/api/v1'
+          : 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
+
+        fetch(`${apiBase}/ideas150/reset-all`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'X-Tenant-Slug': getStorageItem('active_tenant_slug') || 'default'
+          }
+        }).then(r => r.json())
+          .then(data => console.log('Live DB states reset on boot:', data))
+          .catch(err => console.error('Failed to reset DB on boot:', err));
+      }
       return;
     }
   }
