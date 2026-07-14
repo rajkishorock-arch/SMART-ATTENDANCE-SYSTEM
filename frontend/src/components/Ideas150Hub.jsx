@@ -125,7 +125,7 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
       });
       setStates((prev) => {
         const next = { ...prev, [feature.slug]: state };
-        syncLiveFxFromStates(next);
+        setTimeout(() => syncLiveFxFromStates(next), 0);
         return next;
       });
       runClientDemo(feature, { ...state.result, enabled: state.enabled, fx_enabled: true });
@@ -146,7 +146,7 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
       });
       setStates((prev) => {
         const next = { ...prev, [feature.slug]: state };
-        syncLiveFxFromStates(next);
+        setTimeout(() => syncLiveFxFromStates(next), 0);
         return next;
       });
       runClientDemo(feature, { ...state.result, enabled: state.enabled, fx_enabled: enabled });
