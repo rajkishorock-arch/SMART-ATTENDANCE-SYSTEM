@@ -94,8 +94,6 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
         map[s.slug] = s;
       });
       setStates(map);
-      // Safe sync — no black-screen stack
-      syncLiveFxFromStates(map);
     } catch (e) {
       notify(e.message);
     } finally {
@@ -114,6 +112,10 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
     };
   }, [refreshStates]);
 
+  useEffect(() => {
+    syncLiveFxFromStates(states);
+  }, [states]);
+
   const features = useMemo(() => getIdeasByCategory(cat), [cat]);
 
   const onRun = async (feature) => {
@@ -123,12 +125,10 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
         method: 'POST',
         body: JSON.stringify({ enabled: true, payload: {} }),
       });
-      setStates((prev) => {
-        const next = { ...prev, [feature.slug]: state };
-        setTimeout(() => syncLiveFxFromStates(next), 0);
-        return next;
-      });
-      runClientDemo(feature, { ...state.result, enabled: state.enabled, fx_enabled: true });
+      setStates((prev) => ({ ...prev, [feature.slug]: state }));
+      setTimeout(() => {
+        runClientDemo(feature, { ...state.result, enabled: state.enabled, fx_enabled: true });
+      }, 0);
       notify(`✅ #${feature.id} ${feature.name} ON — Home pe bhi dikhega`);
     } catch (e) {
       notify(`❌ ${feature.name}: ${e.message}`);
@@ -144,12 +144,10 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
         method: 'POST',
         body: JSON.stringify({ enabled }),
       });
-      setStates((prev) => {
-        const next = { ...prev, [feature.slug]: state };
-        setTimeout(() => syncLiveFxFromStates(next), 0);
-        return next;
-      });
-      runClientDemo(feature, { ...state.result, enabled: state.enabled, fx_enabled: enabled });
+      setStates((prev) => ({ ...prev, [feature.slug]: state }));
+      setTimeout(() => {
+        runClientDemo(feature, { ...state.result, enabled: state.enabled, fx_enabled: enabled });
+      }, 0);
       notify(enabled
         ? `${feature.name} ON — Settings band karke Home pe dekho`
         : `${feature.name} OFF`);
@@ -213,7 +211,7 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
             onClick={async () => {
               clearAllIdeaFx();
               try {
-                await api('/ideas150/reset-all', { method: 'POST' });
+                await api('/reset-all', { method: 'POST' });
                 await refreshStates();
                 notify('Saare UI FX band aur DB reset — Home normal');
               } catch (e) {
