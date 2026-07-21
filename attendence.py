@@ -18,7 +18,8 @@ class Attendence:
         self.root.title("Face Recognition System")
 
         #first image
-        img_top = Image.open(r"C:\Users\rajki\Desktop\New folder\image\atten.jpg")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img_top = Image.open(os.path.join(base_dir, "image", "atten.jpg"))
         img_top = img_top.resize((800, 200), Image.LANCZOS)
         self.photoimg_top = ImageTk.PhotoImage(img_top) 
 
@@ -26,7 +27,7 @@ class Attendence:
         f_lbl.place(x=0, y=0, width=800, height=200)
 
         #second image
-        img_bottom = Image.open(r"C:\Users\rajki\Desktop\New folder\image\at.jpg")
+        img_bottom = Image.open(os.path.join(base_dir, "image", "at.jpg"))
         img_bottom = img_bottom.resize((800, 200), Image.LANCZOS)
         self.photoimg_bottom = ImageTk.PhotoImage(img_bottom)
 
@@ -34,7 +35,7 @@ class Attendence:
         f_lbl.place(x=800, y=0, width=800, height=200)
 
         #bg image
-        img3 = Image.open(r"C:\Users\rajki\Desktop\New folder\image\at2.jpg")
+        img3 = Image.open(os.path.join(base_dir, "image", "at2.jpg"))
         img3 = img3.resize((1530, 790), Image.LANCZOS)
         self.photoimg3 = ImageTk.PhotoImage(img3)
 
@@ -52,7 +53,8 @@ class Attendence:
         Left_frame = LabelFrame(main_frame,bd=2,bg="white",relief=RIDGE,text="Attendence",font=("times new roman",12,"bold"))
         Left_frame.place(x=10,y=10,width=730,height=580)
 
-        image_left = Image.open(r"C:\Users\rajki\Desktop\New folder\image\atten.jpg")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        image_left = Image.open(os.path.join(base_dir, "image", "atten.jpg"))
         image_left = image_left.resize((720, 130), Image.LANCZOS)
         self.photoimage_left = ImageTk.PhotoImage(image_left)
 

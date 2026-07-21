@@ -42,6 +42,8 @@ haarcascade_frontalface_default.xml
 .DS_Store
 Thumbs.db
 .gemini/
+.claude/
+.agents/
 
 .vercel
 *.keystore

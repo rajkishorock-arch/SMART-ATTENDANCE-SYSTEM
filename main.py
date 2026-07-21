@@ -25,10 +25,11 @@ class FaceRecognition:
 
         # ── Top header images ────────────────────────────────────────────────
         img_w = self.screen_width // 3
+        base_dir = os.path.dirname(os.path.abspath(__file__))
         for path, x in [
-            (r"C:\Users\rajki\Desktop\New folder\image\download.jpg", 0),
-            (r"C:\Users\rajki\Desktop\New folder\image\images.jpg",  img_w),
-            (r"C:\Users\rajki\Desktop\New folder\image\raj.jpg",     img_w * 2),
+            (os.path.join(base_dir, "image", "download.jpg"), 0),
+            (os.path.join(base_dir, "image", "images.jpg"),  img_w),
+            (os.path.join(base_dir, "image", "raj.jpg"),     img_w * 2),
         ]:
             try:
                 _img = Image.open(path).resize((img_w, 130), Image.LANCZOS)
@@ -41,7 +42,7 @@ class FaceRecognition:
 
         # ── Background ───────────────────────────────────────────────────────
         try:
-            _bg = Image.open(r"C:\Users\rajki\Desktop\New folder\image\im.jpg").resize((self.screen_width, self.screen_height - 130), Image.LANCZOS)
+            _bg = Image.open(os.path.join(base_dir, "image", "im.jpg")).resize((self.screen_width, self.screen_height - 130), Image.LANCZOS)
             self.photoimg3 = ImageTk.PhotoImage(_bg)
             bg = Label(self.root, image=self.photoimg3, bg="#0a0a0a")
         except Exception:
@@ -85,17 +86,17 @@ class FaceRecognition:
 
         # ── Dashboard Buttons ─────────────────────────────────────────────────
         make_btn(bg,
-                 r"C:\Users\rajki\Desktop\New folder\image\s button.jpg",
+                 os.path.join(base_dir, "image", "s button.jpg"),
                  "STUDENT DETAILS", self.student_details,
                  200, 100, "#00ff00", "black", "#003300", "#00ff00")
 
         make_btn(bg,
-                 r"C:\Users\rajki\Desktop\New folder\image\detect.jpg",
+                 os.path.join(base_dir, "image", "detect.jpg"),
                  "DETECT FACE", self.face_data,
                  500, 100, "#00ffff", "black", "#003333", "#00ffff")
 
         make_btn(bg,
-                 r"C:\Users\rajki\Desktop\New folder\image\attendence.jpg",
+                 os.path.join(base_dir, "image", "attendence.jpg"),
                  "ATTENDANCE", self.attendence_data,
                  800, 100, "#ff00ff", "black", "#330033", "#ff00ff")
 
@@ -106,22 +107,22 @@ class FaceRecognition:
         bind_button_glow(self.voice_btn, "#00ff00", "black", "#001a00", "#00ff00")
 
         make_btn(bg,
-                 r"C:\Users\rajki\Desktop\New folder\image\train.jpg",
+                 os.path.join(base_dir, "image", "train.jpg"),
                  "TRAIN DATA", self.train_data,
                  200, 400, "#ffff00", "black", "#333300", "#ffff00")
 
         make_btn(bg,
-                 r"C:\Users\rajki\Desktop\New folder\image\photo.jpg",
+                 os.path.join(base_dir, "image", "photo.jpg"),
                  "PHOTOS", self.open_image,
                  500, 400, "#00ffff", "black", "#003333", "#00ffff")
 
         make_btn(bg,
-                 r"C:\Users\rajki\Desktop\New folder\image\developer.png",
+                 os.path.join(base_dir, "image", "developer.png"),
                  "DEVELOPER", lambda: None,
                  800, 400, "#ff00ff", "black", "#330033", "#ff00ff")
 
         make_btn(bg,
-                 r"C:\Users\rajki\Desktop\New folder\image\exit.jpg",
+                 os.path.join(base_dir, "image", "exit.jpg"),
                  "EXIT", self.root.destroy,
                  1100, 400, "#ff3300", "white", "#330000", "#ff3300")
 

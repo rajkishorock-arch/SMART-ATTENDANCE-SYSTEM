@@ -45,7 +45,8 @@ class Face_Recognition:
         title_lbl = Label(self.root, text="Face Recognition", font=( "times new roman", 35, "bold"), bg="white", fg="red")
         title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
 
-        img_top = Image.open(r"C:\Users\rajki\Desktop\New folder\image\face4.jpg")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img_top = Image.open(os.path.join(base_dir, "image", "face4.jpg"))
         img_top = img_top.resize((650, 750), Image.LANCZOS)
         self.photoimg_top = ImageTk.PhotoImage(img_top) 
 
@@ -53,7 +54,7 @@ class Face_Recognition:
         f_lbl.place(x=0, y=45, width=650, height=750)
 
         #second image
-        img_bottom = Image.open(r"C:\Users\rajki\Desktop\New folder\image\eace.jpg")
+        img_bottom = Image.open(os.path.join(base_dir, "image", "eace.jpg"))
         img_bottom = img_bottom.resize((950, 750), Image.LANCZOS)
         self.photoimg_bottom = ImageTk.PhotoImage(img_bottom)
 

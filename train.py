@@ -22,7 +22,8 @@ class Train:
             "times new roman", 35, "bold"), bg="white", fg="red")
         title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
 
-        img_top = Image.open(r"C:\Users\rajki\Desktop\New folder\train.jpg")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img_top = Image.open(os.path.join(base_dir, "image", "train.jpg"))
         img_top = img_top.resize((1530, 325), Image.LANCZOS)
         self.photoimg_top = ImageTk.PhotoImage(img_top) 
 
@@ -40,7 +41,8 @@ class Train:
 
         # Optional decorative image (avoid crashing if file missing)
         try:
-            img_bottom = Image.open(r"C:\Users\rajki\Desktop\New folder\people.jpg")
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            img_bottom = Image.open(os.path.join(base_dir, "image", "people.jpg"))
             img_bottom = img_bottom.resize((1530, 250), Image.LANCZOS)
             self.photoimg_bottom = ImageTk.PhotoImage(img_bottom)
             f_lbl = Label(self.root, image=self.photoimg_bottom)

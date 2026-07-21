@@ -37,7 +37,8 @@ class Student:
 
 
         # first image
-        img = Image.open(r"C:\Users\rajki\Desktop\New folder\image\download.jpg")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img = Image.open(os.path.join(base_dir, "image", "download.jpg"))
         img_w = self.screen_width // 3
         img = img.resize((img_w, 130), Image.LANCZOS)
         self.photoimg = ImageTk.PhotoImage(img)
@@ -46,7 +47,7 @@ class Student:
         f_lbl.place(x=0, y=0, width=img_w, height=130)
 
          # second image
-        img1 = Image.open(r"C:\Users\rajki\Desktop\New folder\image\images.jpg")
+        img1 = Image.open(os.path.join(base_dir, "image", "images.jpg"))
         img1 = img1.resize((img_w, 130), Image.LANCZOS)
         self.photoimg1 = ImageTk.PhotoImage(img1)
 
@@ -54,7 +55,7 @@ class Student:
         f_lbl1.place(x=img_w, y=0, width=img_w, height=130)
 
          # third image
-        img2 = Image.open(r"C:\Users\rajki\Desktop\New folder\image\raj.jpg")
+        img2 = Image.open(os.path.join(base_dir, "image", "raj.jpg"))
         img2 = img2.resize((img_w, 130), Image.LANCZOS)
         self.photoimg2 = ImageTk.PhotoImage(img2)
 
@@ -62,10 +63,9 @@ class Student:
         f_lbl2.place(x=img_w*2, y=0, width=img_w, height=130)
 
         # background image
-        img3 = Image.open(r"C:\Users\rajki\Desktop\New folder\image\im.jpg")
+        img3 = Image.open(os.path.join(base_dir, "image", "im.jpg"))
         img3 = img3.resize((self.screen_width, self.screen_height - 130), Image.LANCZOS)
         self.photoimg3 = ImageTk.PhotoImage(img3) 
-
         bg_img = Label(self.root, image=self.photoimg3)      
         bg_img.place(x=0, y=130, width=self.screen_width, height=self.screen_height - 130)
 
@@ -81,7 +81,8 @@ class Student:
             "times new roman", 12, "bold"))
         Left_frame.place(x=10, y=10, width=(self.screen_width // 2) - 20, height=self.screen_height - 210)
 
-        img_left = Image.open(r"C:\Users\rajki\Desktop\New folder\image\stu.jpg")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img_left = Image.open(os.path.join(base_dir, "image", "stu.jpg"))
         img_left = img_left.resize((720, 130), Image.LANCZOS)
         self.photoimg_left = ImageTk.PhotoImage(img_left)
 
@@ -281,7 +282,8 @@ class Student:
             "times new roman", 12, "bold")) 
         Right_frame.place(x=(self.screen_width // 2) + 10, y=10, width=(self.screen_width // 2) - 20, height=self.screen_height - 210)
 
-        img_right = Image.open(r"C:\Users\rajki\Desktop\New folder\image\stu.jpg")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img_right = Image.open(os.path.join(base_dir, "image", "stu.jpg"))
         img_right = img_right.resize((720, 130), Image.LANCZOS)
         self.photoimg_right = ImageTk.PhotoImage(img_right)
 
