@@ -203,14 +203,20 @@ class LeaveRequest(Base):
     __tablename__ = "leave_requests"
     id = Column(Integer, primary_key=True, index=True)
     institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
-    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=True, index=True)
     subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True)
+    user_email = Column(String(100), nullable=True)
+    applicant_name = Column(String(100), nullable=True)
+    role = Column(String(30), default="student")  # 'student' or 'teacher'
     start_date = Column(String(50), nullable=False)
     end_date = Column(String(50), nullable=False)
-    leave_type = Column(String(50), nullable=False) # 'Medical', 'Personal', 'Official'
+    leave_type = Column(String(50), nullable=True, default="Medical") # 'Medical', 'Personal', 'Official'
     reason = Column(Text, nullable=False)
     status = Column(String(30), default="Pending") # 'Pending', 'Approved', 'Rejected'
     reviewed_by = Column(Integer, nullable=True)
+    approved_by = Column(String(100), nullable=True)
+    substitute_assigned = Column(String(100), nullable=True)
+    document_url = Column(String(255), nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -388,4 +394,61 @@ class MarketplacePlugin(Base):
     price_inr = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PayrollRecord(Base):
+    __tablename__ = "payroll_records"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    staff_email = Column(String(100), nullable=False)
+    staff_name = Column(String(100), nullable=True)
+    month_year = Column(String(20), nullable=False)  # e.g., "2026-07"
+    base_salary_inr = Column(Float, default=30000.0)
+    working_days = Column(Integer, default=22)
+    present_days = Column(Integer, default=20)
+    absent_days = Column(Integer, default=2)
+    late_arrivals = Column(Integer, default=0)
+    late_penalty_inr = Column(Float, default=0.0)
+    overtime_hours = Column(Float, default=0.0)
+    overtime_pay_inr = Column(Float, default=0.0)
+    net_salary_inr = Column(Float, default=30000.0)
+    status = Column(String(30), default="processed")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class HardwareGateNode(Base):
+    __tablename__ = "hardware_gate_nodes"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    node_code = Column(String(50), unique=True, nullable=False)
+    name = Column(String(100), nullable=False)
+    location = Column(String(100), nullable=True)
+    secret_token = Column(String(100), nullable=False)
+    relay_duration_ms = Column(Integer, default=3000)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class HardwareGateLog(Base):
+    __tablename__ = "hardware_gate_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    gate_code = Column(String(50), nullable=False)
+    person_identifier = Column(String(100), nullable=True)
+    status = Column(String(30), default="granted")  # granted, denied
+    latency_ms = Column(Integer, default=45)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BotConversationLog(Base):
+    __tablename__ = "bot_conversation_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    platform = Column(String(30), default="whatsapp")  # whatsapp, telegram, web
+    sender_phone_or_id = Column(String(50), nullable=False)
+    user_query = Column(Text, nullable=False)
+    bot_response = Column(Text, nullable=False)
+    intent_detected = Column(String(50), default="general_query")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 

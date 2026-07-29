@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from . import auth, users, attendance, settings, subjects, health, feedback, chat, institutions, departments
-from . import liveness, bulk_import, analytics, parents, billing, sso, erp, audit_router, enrollment, offline_sync, schedules_auto, premium, interactive, enterprise, extreme, ideas150
+from . import liveness, bulk_import, analytics, parents, billing, sso, erp, audit_router, enrollment, offline_sync, schedules_auto, premium, interactive, enterprise, extreme, ideas150, features7_router
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
@@ -29,4 +29,7 @@ api_router.include_router(interactive.router, prefix="/interactive", tags=["Inte
 api_router.include_router(enterprise.router, prefix="/enterprise", tags=["Industry Enterprise"])
 api_router.include_router(extreme.router, prefix="/extreme", tags=["Extreme Level 1-8"])
 api_router.include_router(ideas150.router, prefix="/ideas150", tags=["Ideas Hub 150"])
+api_router.include_router(features7_router.router, prefix="", tags=["7 Enterprise Features Expansion"])
+
+
 

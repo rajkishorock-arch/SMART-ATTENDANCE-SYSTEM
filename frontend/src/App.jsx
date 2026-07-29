@@ -90,6 +90,7 @@ import FuturisticFeaturesHub from './components/FuturisticFeaturesHub';
 import IndustryEnterpriseHub from './components/IndustryEnterpriseHub';
 import ExtremeLevelHub from './components/ExtremeLevelHub';
 import Ideas150Hub from './components/Ideas150Hub';
+import Enterprise7FeaturesHub from './components/Enterprise7FeaturesHub';
 import UniversalSearch from './components/UniversalSearch';
 import LiveBoardStrip from './components/LiveBoardStrip';
 import RoleCommandCenter from './components/RoleCommandCenter';
@@ -13859,6 +13860,20 @@ export default function App() {
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>UI animations, camera extreme, attendance core, AI analytics, parent/teacher UX, enterprise & futuristic — all workable.</p>
                   </div>
 
+                  {/* Category Card: 7 Enterprise Features Expansion */}
+                  <div
+                    onClick={() => { setActiveSubSetting('features7'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>⚡</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' }}>7 NEW</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>7 Enterprise Features</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Multi-Face Group Scanner, WhatsApp Bot, IoT Smart Gate, Leave & Substitutes, HR Payroll, Edge Sync & 3D Liveness.</p>
+                  </div>
+
                   {/* Category Card: Premium Subscription */}
                   {userRole === 'admin' && (
                     <div
@@ -14620,6 +14635,15 @@ export default function App() {
                 apiBaseUrl={API_BASE_URL}
                 token={token}
                 userRole={userRole}
+              />
+            )}
+
+            {(activeSubSetting === 'features7' || activeSubSetting === 'enterprise7') && (
+              <Enterprise7FeaturesHub
+                apiBaseUrl={API_BASE_URL}
+                token={token}
+                userRole={userRole}
+                onMsg={(msg) => addNotification && addNotification(msg)}
               />
             )}
 
