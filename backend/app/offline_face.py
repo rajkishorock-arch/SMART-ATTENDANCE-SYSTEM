@@ -135,12 +135,7 @@ async def sync_offline_attendance(
                 timestamp=timestamp,
                 status="present",
                 location=record.location,
-                confidence=record.confidence,
-                metadata=json.dumps({
-                    "offline_mode": True,
-                    "device_id": record.device_id,
-                    "synced_at": datetime.utcnow().isoformat()
-                })
+                confidence=record.confidence
             )
             db.add(attendance)
             synced_count += 1
@@ -156,7 +151,7 @@ async def sync_offline_attendance(
         sync_type="upload",
         records_count=synced_count,
         timestamp=datetime.utcnow(),
-        metadata=json.dumps({
+        sync_metadata=json.dumps({
             "skipped": skipped_count,
             "errors": errors
         })
@@ -213,7 +208,7 @@ async def get_sync_status(
                 "sync_type": log.sync_type,
                 "records_count": log.records_count,
                 "timestamp": log.timestamp.isoformat(),
-                "metadata": json.loads(log.metadata) if log.metadata else None
+                "sync_metadata": json.loads(log.sync_metadata) if log.sync_metadata else None
             }
             for log in logs
         ]

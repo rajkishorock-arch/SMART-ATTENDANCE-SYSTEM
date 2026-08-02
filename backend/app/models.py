@@ -831,4 +831,4 @@ class OfflineSyncLog(Base):
     sync_type = Column(String(20), nullable=False)         # "download", "upload"
     records_count = Column(Integer, default=0)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
-    metadata = Column(Text, nullable=True)                 # JSON with errors, skipped records, etc.
+    sync_metadata = Column(Text, nullable=True)             # JSON with errors, skipped records, etc.
