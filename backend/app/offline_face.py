@@ -12,8 +12,13 @@ from datetime import datetime
 import json
 
 from .database import get_db
-from .models import Student, Attendance, OfflineSyncLog
-from .auth import get_current_user, check_admin
+from .models import StudentModel, AttendanceModel, OfflineSyncLog, User
+from .security import get_current_user
+
+
+def check_admin(user: User):
+    if getattr(user, 'role', '') not in ('admin', 'superadmin', 'owner'):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
 router = APIRouter(prefix="/offline-face", tags=["Offline Face Recognition"])
 
@@ -47,7 +52,7 @@ class OfflineSyncRequest(BaseModel):
 async def download_embeddings_for_offline(
     institution_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Download all student face embeddings for offline recognition
@@ -55,9 +60,9 @@ async def download_embeddings_for_offline(
     """
     check_admin(current_user)
     
-    students = db.query(Student).filter(
-        Student.institution_id == institution_id,
-        Student.face_embedding.isnot(None)
+    students = db.query(StudentModel).filter(
+        StudentModel.institution_id == institution_id,
+        StudentModel.face_embedding.isnot(None)
     ).all()
     
     if not students:
@@ -73,8 +78,8 @@ async def download_embeddings_for_offline(
             
             data = OfflineStudentData(
                 student_id=student.id,
-                name=student.name,
-                roll_number=student.roll_number,
+                name=student.name or "",
+                roll_number=student.roll or "",
                 face_embedding=embedding,
                 photo_base64=student.photo if student.photo else None
             )
@@ -86,7 +91,7 @@ async def download_embeddings_for_offline(
     # Log the download
     sync_log = OfflineSyncLog(
         institution_id=institution_id,
-        device_id=f"admin_{current_user['id']}",
+        device_id=f"admin_{current_user.id}",
         sync_type="download",
         records_count=len(offline_data),
         timestamp=datetime.utcnow()
@@ -102,7 +107,7 @@ async def sync_offline_attendance(
     institution_id: int,
     sync_request: OfflineSyncRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Upload offline attendance records collected by mobile app
@@ -119,23 +124,32 @@ async def sync_offline_attendance(
             # Check if already exists
             timestamp = datetime.fromisoformat(record.timestamp.replace('Z', '+00:00'))
             
-            existing = db.query(Attendance).filter(
-                Attendance.student_id == record.student_id,
-                Attendance.timestamp == timestamp
+            time_str = timestamp.strftime("%H:%M:%S")
+            date_str = timestamp.strftime("%d/%m/%Y")
+
+            existing = db.query(AttendanceModel).filter(
+                AttendanceModel.id == str(record.student_id),
+                AttendanceModel.date == date_str,
+                AttendanceModel.time == time_str
             ).first()
             
             if existing:
                 skipped_count += 1
                 continue
             
+            # Fetch student info if available
+            student_obj = db.query(StudentModel).filter(StudentModel.id == record.student_id).first()
+            
             # Create attendance record
-            attendance = Attendance(
-                student_id=record.student_id,
+            attendance = AttendanceModel(
+                id=str(record.student_id),
                 institution_id=institution_id,
-                timestamp=timestamp,
-                status="present",
-                location=record.location,
-                confidence=record.confidence
+                roll=student_obj.roll if student_obj else "",
+                name=student_obj.name if student_obj else "",
+                department=student_obj.dep if student_obj else "",
+                time=time_str,
+                date=date_str,
+                attendance="Present"
             )
             db.add(attendance)
             synced_count += 1
@@ -181,7 +195,7 @@ async def get_sync_status(
     institution_id: int,
     device_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Get sync history and status for a device
@@ -220,7 +234,7 @@ async def clear_device_data(
     institution_id: int,
     device_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Clear sync logs for a device (admin only)
@@ -245,7 +259,7 @@ async def clear_device_data(
 async def offline_mode_statistics(
     institution_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Statistics about offline mode usage
@@ -263,9 +277,8 @@ async def offline_mode_statistics(
     ).distinct().count()
     
     # Total offline attendance
-    offline_attendance = db.query(Attendance).filter(
-        Attendance.institution_id == institution_id,
-        Attendance.metadata.like('%offline_mode%')
+    offline_attendance = db.query(AttendanceModel).filter(
+        AttendanceModel.institution_id == institution_id
     ).count()
     
     # Recent syncs
