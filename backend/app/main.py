@@ -201,6 +201,12 @@ def update_schema():
         safe_add_column('institutions', 'parent_institution_id', "INT NULL")
         safe_add_column('institutions', 'campus_name', "VARCHAR(100) NULL")
         safe_add_column('institutions', 'campus_address', "VARCHAR(255) NULL")
+        
+        # Wellness checkin resolution tracking
+        safe_add_column('wellness_checkins', 'resolved', "BOOLEAN DEFAULT FALSE")
+        safe_add_column('wellness_checkins', 'counselor_notes', "TEXT NULL")
+        safe_add_column('wellness_checkins', 'resolved_at', "TIMESTAMP NULL")
+        safe_add_column('wellness_checkins', 'resolved_by', "VARCHAR(100) NULL")
 
         # Create new tables for advanced features
         from app.database import Base

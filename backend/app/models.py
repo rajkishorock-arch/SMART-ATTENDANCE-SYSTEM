@@ -820,3 +820,15 @@ class TaskQueue(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class OfflineSyncLog(Base):
+    """Logs for offline face recognition sync operations."""
+    __tablename__ = "offline_sync_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_id = Column(String(100), nullable=False, index=True)
+    sync_type = Column(String(20), nullable=False)         # "download", "upload"
+    records_count = Column(Integer, default=0)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    metadata = Column(Text, nullable=True)                 # JSON with errors, skipped records, etc.

@@ -1,366 +1,294 @@
 """
-Feature 38: Offline Face Recognition — Mobile Local Model
-Provides the backend API side of offline recognition:
-  1. Students/teachers can download a compact embedding package for local inference.
-  2. Edge devices submit batched offline recognition results for server sync.
-  3. Conflict resolution when offline records arrive after online records.
-
-The mobile app (Capacitor) uses the downloaded package + TensorFlow.js / ONNX Runtime Web
-to run face matching entirely on-device when internet is unavailable.
+Offline Face Recognition Module
+Allows mobile apps to download embeddings and perform local face recognition
+without internet connectivity
 """
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Body
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Optional, List
-from datetime import datetime, timezone, timedelta
-import json, hashlib
+from typing import List, Optional
+from pydantic import BaseModel
+import base64
+from datetime import datetime
+import json
 
-from . import models, security, crud, schemas
 from .database import get_db
+from .models import Student, Attendance, OfflineSyncLog
+from .auth import get_current_user, check_admin
 
-IST = timezone(timedelta(hours=5, minutes=30))
-router = APIRouter()
-
-
-# ── Embedding Package Download ────────────────────────────────────────────────
-
-@router.get("/embedding-package")
-def download_embedding_package(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user),
-):
-    """
-    Download a compact JSON package of all student face embeddings for offline use.
-    The mobile app caches this and uses it for local face matching.
-
-    Package format:
-    {
-      "version": "<sha256 of package>",
-      "institution_id": <int>,
-      "generated_at": "<iso>",
-      "students": [
-        {"id": <int>, "name": "<str>", "roll": "<str>", "dep": "<str>",
-         "embedding": [<128 floats>]}   ← decrypted, ready for cosine match
-      ]
-    }
-    """
-    if current_user.role not in ("admin", "teacher"):
-        raise HTTPException(status_code=403, detail="Staff access only.")
-
-    students = (
-        db.query(models.StudentModel)
-        .filter(
-            models.StudentModel.institution_id == current_user.institution_id,
-            models.StudentModel.face_embedding.isnot(None),
-        )
-        .all()
-    )
-
-    records = []
-    for s in students:
-        try:
-            from .encryption_service import decrypt_embedding
-            emb = json.loads(decrypt_embedding(s.face_embedding))
-            records.append({
-                "id": s.id,
-                "name": s.name,
-                "roll": s.roll or "",
-                "dep": s.dep or "",
-                "embedding": emb,          # plain float list
-            })
-        except Exception as e:
-            print(f"[OfflineFace] Skip student {s.id}: {e}")
-
-    # Compute a version hash so mobile can detect stale caches
-    payload_str = json.dumps(records, sort_keys=True)
-    version = hashlib.sha256(payload_str.encode()).hexdigest()[:16]
-
-    return {
-        "version": version,
-        "institution_id": current_user.institution_id,
-        "generated_at": datetime.now(IST).isoformat(),
-        "total": len(records),
-        "students": records,
-        # Threshold the mobile app should use for cosine similarity
-        "match_threshold": 0.43,
-        "instructions": (
-            "Cache this payload locally. On attendance scan, compute cosine similarity "
-            "between the live face embedding and each student embedding. Mark attendance "
-            "via POST /api/v1/offline-face/sync-batch when back online."
-        ),
-    }
+router = APIRouter(prefix="/offline-face", tags=["Offline Face Recognition"])
 
 
-@router.get("/embedding-version")
-def get_embedding_version(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user),
-):
-    """
-    Lightweight check — returns current embedding version hash.
-    Mobile app calls this on reconnect to decide if re-download is needed.
-    """
-    students = (
-        db.query(models.StudentModel)
-        .filter(
-            models.StudentModel.institution_id == current_user.institution_id,
-            models.StudentModel.face_embedding.isnot(None),
-        )
-        .with_entities(
-            models.StudentModel.id,
-            models.StudentModel.face_enrolled_at,
-        )
-        .all()
-    )
-    # Quick version: hash of sorted (id, enrolled_at) pairs
-    version_input = "".join(
-        f"{s.id}{s.face_enrolled_at}" for s in sorted(students, key=lambda x: x.id)
-    )
-    version = hashlib.sha256(version_input.encode()).hexdigest()[:16]
-    return {
-        "version": version,
-        "enrolled_count": len(students),
-        "institution_id": current_user.institution_id,
-    }
-
-
-# ── Offline Batch Sync ────────────────────────────────────────────────────────
-
-class OfflineRecord:
-    """Represents one attendance record collected offline."""
+class OfflineStudentData(BaseModel):
     student_id: int
-    subject_id: Optional[int]
-    match_score: float
-    local_date: str     # DD/MM/YYYY
-    local_time: str     # HH:MM:SS
+    name: str
+    roll_number: str
+    face_embedding: List[float]
+    photo_base64: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class OfflineAttendanceRecord(BaseModel):
+    student_id: int
+    timestamp: str
+    location: Optional[str] = None
+    confidence: float
     device_id: str
-    latitude: Optional[float]
-    longitude: Optional[float]
 
 
-@router.post("/sync-batch")
-def sync_offline_attendance_batch(
-    payload: dict = Body(...),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
+class OfflineSyncRequest(BaseModel):
+    device_id: str
+    last_sync_time: Optional[str] = None
+    attendance_records: List[OfflineAttendanceRecord] = []
+
+
+@router.get("/download-embeddings/{institution_id}", response_model=List[OfflineStudentData])
+async def download_embeddings_for_offline(
+    institution_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user),
+    current_user: dict = Depends(get_current_user)
 ):
     """
-    Mobile app submits batched offline attendance records when back online.
-
-    Expected payload:
-    {
-      "device_id": "<str>",
-      "records": [
-        {
-          "student_id": <int>,
-          "subject_id": <int|null>,
-          "match_score": <float>,
-          "local_date": "DD/MM/YYYY",
-          "local_time": "HH:MM:SS",
-          "latitude": <float|null>,
-          "longitude": <float|null>
-        },
-        ...
-      ]
-    }
+    Download all student face embeddings for offline recognition
+    Mobile app can store these locally and perform face matching without internet
     """
-    device_id = payload.get("device_id", "unknown")
-    records: list = payload.get("records", [])
-
-    if not records:
-        raise HTTPException(status_code=400, detail="No records provided.")
-
-    MIN_SCORE = 0.43
-    synced = 0
-    skipped_low_score = 0
-    skipped_conflict = 0
-    failed = 0
-    errors = []
-
-    for rec in records:
+    check_admin(current_user)
+    
+    students = db.query(Student).filter(
+        Student.institution_id == institution_id,
+        Student.face_embedding.isnot(None)
+    ).all()
+    
+    if not students:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No students with face embeddings found"
+        )
+    
+    offline_data = []
+    for student in students:
         try:
-            student_id = int(rec.get("student_id", 0))
-            subject_id = rec.get("subject_id")
-            match_score = float(rec.get("match_score", 0.0))
-            local_date = rec.get("local_date", "")
-            local_time = rec.get("local_time", "00:00:00")
-
-            # Reject low-confidence matches
-            if match_score < MIN_SCORE:
-                skipped_low_score += 1
-                continue
-
-            # Validate student belongs to institution
-            student = db.query(models.StudentModel).filter(
-                models.StudentModel.id == student_id,
-                models.StudentModel.institution_id == current_user.institution_id,
-            ).first()
-            if not student:
-                failed += 1
-                errors.append(f"Student {student_id} not found in institution.")
-                continue
-
-            # Conflict check: if already Present on this date+subject, skip
-            existing = db.query(models.AttendanceModel).filter(
-                models.AttendanceModel.id == str(student_id),
-                models.AttendanceModel.date == local_date,
-                models.AttendanceModel.institution_id == current_user.institution_id,
-                models.AttendanceModel.attendance == "Present",
-            )
-            if subject_id:
-                existing = existing.filter(models.AttendanceModel.subject_id == subject_id)
-            if existing.first():
-                skipped_conflict += 1
-                continue
-
-            # Write attendance
-            _, newly = crud.mark_student_attendance(
-                db,
-                student_id=student_id,
+            embedding = json.loads(student.face_embedding) if isinstance(student.face_embedding, str) else student.face_embedding
+            
+            data = OfflineStudentData(
+                student_id=student.id,
                 name=student.name,
-                roll=student.roll or "",
-                dep=student.dep or "",
-                subject_id=subject_id,
-                custom_date=local_date,
-                custom_time=local_time,
-                institution_id=current_user.institution_id,
+                roll_number=student.roll_number,
+                face_embedding=embedding,
+                photo_base64=student.photo if student.photo else None
             )
-            if newly:
-                synced += 1
-
+            offline_data.append(data)
         except Exception as e:
-            failed += 1
-            errors.append(str(e))
-            db.rollback()
-
-    # Audit log
-    crud.create_audit_log(
-        db,
-        log=schemas.AuditLogCreate(
-            user_email=current_user.email,
-            action=(
-                f"Offline sync from device '{device_id}': "
-                f"{synced} synced, {skipped_conflict} conflicts, "
-                f"{skipped_low_score} low-score, {failed} failed."
-            ),
-        ),
-        institution_id=current_user.institution_id,
+            print(f"Error processing student {student.id}: {e}")
+            continue
+    
+    # Log the download
+    sync_log = OfflineSyncLog(
+        institution_id=institution_id,
+        device_id=f"admin_{current_user['id']}",
+        sync_type="download",
+        records_count=len(offline_data),
+        timestamp=datetime.utcnow()
     )
-
-    # Broadcast newly synced records via WebSocket
-    if synced > 0:
-        background_tasks.add_task(
-            _broadcast_offline_sync,
-            current_user.institution_id,
-            synced,
-            device_id,
-        )
-
-    return {
-        "status": "done",
-        "synced": synced,
-        "skipped_conflict": skipped_conflict,
-        "skipped_low_score": skipped_low_score,
-        "failed": failed,
-        "errors": errors[:10],  # cap to first 10
-        "device_id": device_id,
-    }
+    db.add(sync_log)
+    db.commit()
+    
+    return offline_data
 
 
-async def _broadcast_offline_sync(institution_id: int, count: int, device_id: str):
-    try:
-        from .websocket_sync import push_alert
-        await push_alert(
-            institution_id,
-            alert_type="offline_sync",
-            message=f"Offline sync complete: {count} attendance record(s) synced from device '{device_id}'.",
-            severity="info",
-        )
-    except Exception as e:
-        print(f"[OfflineFace] WS broadcast failed: {e}")
-
-
-# ── Sync Status & Stats ───────────────────────────────────────────────────────
-
-@router.get("/sync-stats")
-def get_offline_sync_stats(
+@router.post("/sync-attendance/{institution_id}")
+async def sync_offline_attendance(
+    institution_id: int,
+    sync_request: OfflineSyncRequest,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user),
+    current_user: dict = Depends(get_current_user)
 ):
     """
-    Returns stats about offline-capable students and sync readiness.
+    Upload offline attendance records collected by mobile app
+    Mobile app performs local face recognition and syncs when internet is available
     """
-    total_students = db.query(models.StudentModel).filter(
-        models.StudentModel.institution_id == current_user.institution_id
-    ).count()
-
-    enrolled = db.query(models.StudentModel).filter(
-        models.StudentModel.institution_id == current_user.institution_id,
-        models.StudentModel.face_embedding.isnot(None),
-    ).count()
-
-    not_enrolled = total_students - enrolled
-
+    check_admin(current_user)
+    
+    synced_count = 0
+    skipped_count = 0
+    errors = []
+    
+    for record in sync_request.attendance_records:
+        try:
+            # Check if already exists
+            timestamp = datetime.fromisoformat(record.timestamp.replace('Z', '+00:00'))
+            
+            existing = db.query(Attendance).filter(
+                Attendance.student_id == record.student_id,
+                Attendance.timestamp == timestamp
+            ).first()
+            
+            if existing:
+                skipped_count += 1
+                continue
+            
+            # Create attendance record
+            attendance = Attendance(
+                student_id=record.student_id,
+                institution_id=institution_id,
+                timestamp=timestamp,
+                status="present",
+                location=record.location,
+                confidence=record.confidence,
+                metadata=json.dumps({
+                    "offline_mode": True,
+                    "device_id": record.device_id,
+                    "synced_at": datetime.utcnow().isoformat()
+                })
+            )
+            db.add(attendance)
+            synced_count += 1
+            
+        except Exception as e:
+            errors.append(f"Student {record.student_id}: {str(e)}")
+            continue
+    
+    # Log the sync
+    sync_log = OfflineSyncLog(
+        institution_id=institution_id,
+        device_id=sync_request.device_id,
+        sync_type="upload",
+        records_count=synced_count,
+        timestamp=datetime.utcnow(),
+        metadata=json.dumps({
+            "skipped": skipped_count,
+            "errors": errors
+        })
+    )
+    db.add(sync_log)
+    
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to sync attendance: {str(e)}"
+        )
+    
     return {
-        "total_students": total_students,
-        "offline_ready": enrolled,      # have face embeddings
-        "not_enrolled": not_enrolled,   # no face embedding yet
-        "offline_coverage_pct": round(enrolled / total_students * 100, 1) if total_students else 0,
-        "recommendation": (
-            "100% coverage achieved — all students can use offline recognition."
-            if not_enrolled == 0
-            else f"{not_enrolled} student(s) have no face enrolled. Ask them to enroll via the app."
-        ),
+        "success": True,
+        "synced": synced_count,
+        "skipped": skipped_count,
+        "errors": errors,
+        "last_sync_time": datetime.utcnow().isoformat()
     }
 
 
-@router.get("/instructions")
-def get_offline_setup_instructions():
+@router.get("/sync-status/{institution_id}/{device_id}")
+async def get_sync_status(
+    institution_id: int,
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Returns step-by-step instructions for setting up offline face recognition
-    on the mobile Capacitor app.
+    Get sync history and status for a device
     """
+    logs = db.query(OfflineSyncLog).filter(
+        OfflineSyncLog.institution_id == institution_id,
+        OfflineSyncLog.device_id == device_id
+    ).order_by(OfflineSyncLog.timestamp.desc()).limit(20).all()
+    
+    if not logs:
+        return {
+            "device_id": device_id,
+            "last_sync": None,
+            "total_syncs": 0,
+            "history": []
+        }
+    
     return {
-        "title": "Offline Face Recognition Setup",
-        "steps": [
+        "device_id": device_id,
+        "last_sync": logs[0].timestamp.isoformat() if logs else None,
+        "total_syncs": len(logs),
+        "history": [
             {
-                "step": 1,
-                "action": "Download embedding package",
-                "endpoint": "GET /api/v1/offline-face/embedding-package",
-                "note": "Cache the JSON package in the app's local storage (Capacitor Filesystem).",
-            },
+                "sync_type": log.sync_type,
+                "records_count": log.records_count,
+                "timestamp": log.timestamp.isoformat(),
+                "metadata": json.loads(log.metadata) if log.metadata else None
+            }
+            for log in logs
+        ]
+    }
+
+
+@router.delete("/clear-device-data/{institution_id}/{device_id}")
+async def clear_device_data(
+    institution_id: int,
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Clear sync logs for a device (admin only)
+    """
+    check_admin(current_user)
+    
+    deleted = db.query(OfflineSyncLog).filter(
+        OfflineSyncLog.institution_id == institution_id,
+        OfflineSyncLog.device_id == device_id
+    ).delete()
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "deleted_logs": deleted,
+        "message": f"Cleared data for device {device_id}"
+    }
+
+
+@router.get("/statistics/{institution_id}")
+async def offline_mode_statistics(
+    institution_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Statistics about offline mode usage
+    """
+    check_admin(current_user)
+    
+    # Total syncs
+    total_syncs = db.query(OfflineSyncLog).filter(
+        OfflineSyncLog.institution_id == institution_id
+    ).count()
+    
+    # Active devices
+    active_devices = db.query(OfflineSyncLog.device_id).filter(
+        OfflineSyncLog.institution_id == institution_id
+    ).distinct().count()
+    
+    # Total offline attendance
+    offline_attendance = db.query(Attendance).filter(
+        Attendance.institution_id == institution_id,
+        Attendance.metadata.like('%offline_mode%')
+    ).count()
+    
+    # Recent syncs
+    recent_syncs = db.query(OfflineSyncLog).filter(
+        OfflineSyncLog.institution_id == institution_id
+    ).order_by(OfflineSyncLog.timestamp.desc()).limit(10).all()
+    
+    return {
+        "total_syncs": total_syncs,
+        "active_devices": active_devices,
+        "offline_attendance_records": offline_attendance,
+        "recent_syncs": [
             {
-                "step": 2,
-                "action": "Check version on reconnect",
-                "endpoint": "GET /api/v1/offline-face/embedding-version",
-                "note": "Compare stored version. Re-download only if version hash changed.",
-            },
-            {
-                "step": 3,
-                "action": "Local matching",
-                "library": "TensorFlow.js / ONNX Runtime Web",
-                "note": (
-                    "Use the SFace ONNX model in the browser/WebView. "
-                    "Extract embedding from webcam frame, compute cosine similarity "
-                    "against cached embeddings. Mark attendance locally if score >= 0.43."
-                ),
-            },
-            {
-                "step": 4,
-                "action": "Queue offline records",
-                "note": "Store unsynced records in IndexedDB / Capacitor Filesystem.",
-            },
-            {
-                "step": 5,
-                "action": "Sync when online",
-                "endpoint": "POST /api/v1/offline-face/sync-batch",
-                "note": (
-                    "On network reconnect, POST all queued records. "
-                    "Server resolves conflicts (duplicate records are skipped)."
-                ),
-            },
-        ],
-        "model_url": "/mediapipe/face_mesh.js",
-        "onnx_model": "sface.onnx (included in /assets/)",
-        "min_score_threshold": 0.43,
+                "device_id": log.device_id,
+                "sync_type": log.sync_type,
+                "records": log.records_count,
+                "timestamp": log.timestamp.isoformat()
+            }
+            for log in recent_syncs
+        ]
     }
