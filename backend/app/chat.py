@@ -2,7 +2,6 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Optional
-import google.generativeai as genai
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
@@ -13,9 +12,34 @@ from . import security, models
 
 router = APIRouter()
 
-# Configure the Gemini API key
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# Lazy-init Gemini client — supports both new google-genai and legacy google-generativeai
+_genai_client = None
+_genai_model = None
+
+def _init_gemini():
+    global _genai_client, _genai_model
+    if not GEMINI_API_KEY:
+        return False
+    if _genai_model is not None:
+        return True
+    # Try new google-genai SDK first (recommended)
+    try:
+        import google.genai as genai_new
+        _genai_client = genai_new.Client(api_key=GEMINI_API_KEY)
+        _genai_model = "gemini-2.0-flash"
+        return True
+    except (ImportError, Exception):
+        pass
+    # Fallback: legacy google-generativeai
+    try:
+        import google.generativeai as genai_legacy
+        genai_legacy.configure(api_key=GEMINI_API_KEY)
+        _genai_client = genai_legacy
+        _genai_model = "gemini-1.5-flash"
+        return True
+    except (ImportError, Exception):
+        pass
+    return False
 
 # Schema for chat request
 class ChatMessage(BaseModel):

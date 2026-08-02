@@ -1,19 +1,31 @@
-from pydantic import BaseModel, EmailStr
+"""
+Pydantic v2 schemas — all Config classes use from_attributes=True only.
+"""
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-# --- Token ---
+
+# ── Shared base config ────────────────────────────────────────────────────────
+class _OrmBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ── Token ─────────────────────────────────────────────────────────────────────
 class Token(BaseModel):
     access_token: str
     token_type: str
 
+
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-# --- User (Admins/Teachers) ---
+
+# ── User (Admins / Teachers) ──────────────────────────────────────────────────
 class UserBase(BaseModel):
     email: EmailStr
     name: str
+
 
 class UserCreate(UserBase):
     password: str
@@ -22,7 +34,8 @@ class UserCreate(UserBase):
     subject_code: Optional[str] = None
     subject_department: Optional[str] = None
 
-class User(UserBase):
+
+class User(_OrmBase, UserBase):
     id: int
     role: str
     is_active: bool
@@ -31,11 +44,8 @@ class User(UserBase):
     subject_code: Optional[str] = None
     subject_department: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
-# --- Student ---
+# ── Student ───────────────────────────────────────────────────────────────────
 class StudentBase(BaseModel):
     id: int
     name: str
@@ -52,15 +62,16 @@ class StudentBase(BaseModel):
     teacher: Optional[str] = None
     photo: Optional[str] = None
 
+
 class StudentCreate(StudentBase):
     pass
 
-class Student(StudentBase):
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
-# --- Attendance ---
+class Student(_OrmBase, StudentBase):
+    pass
+
+
+# ── Attendance ────────────────────────────────────────────────────────────────
 class AttendanceBase(BaseModel):
     id: str
     roll: str
@@ -78,17 +89,18 @@ class AttendanceBase(BaseModel):
 class AttendanceCreate(AttendanceBase):
     pass
 
-class Attendance(AttendanceBase):
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
-# --- Audit Log ---
+class Attendance(_OrmBase, AttendanceBase):
+    pass
+
+
+# ── Audit Log ─────────────────────────────────────────────────────────────────
 class AuditLogCreate(BaseModel):
     user_email: str
     action: str
 
-# --- Stats Schema ---
+
+# ── Dashboard Stats ───────────────────────────────────────────────────────────
 class DashboardStats(BaseModel):
     total_students: int
     total_present_today: int
@@ -97,12 +109,14 @@ class DashboardStats(BaseModel):
     department_stats: Dict[str, int]
     weekly_trends: List[Dict[str, Any]]
 
-# --- Student Self Service ---
+
+# ── Student Self Service ──────────────────────────────────────────────────────
 class StudentChangePassword(BaseModel):
     old_password: str
     new_password: str
 
-# --- System Settings ---
+
+# ── System Settings ───────────────────────────────────────────────────────────
 class SystemSettingsBase(BaseModel):
     geofencing_enabled: bool
     center_latitude: float
@@ -117,6 +131,7 @@ class SystemSettingsBase(BaseModel):
     build_status: Optional[str] = "idle"
     build_version: Optional[str] = None
     build_error: Optional[str] = None
+
 
 class SystemSettingsUpdate(BaseModel):
     geofencing_enabled: Optional[bool] = None
@@ -133,12 +148,10 @@ class SystemSettingsUpdate(BaseModel):
     build_version: Optional[str] = None
     build_error: Optional[str] = None
 
-class SystemSettingsResponse(SystemSettingsBase):
+
+class SystemSettingsResponse(_OrmBase, SystemSettingsBase):
     id: int
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
 class ReleaseUpdatePayload(BaseModel):
     master_password: str
@@ -146,17 +159,21 @@ class ReleaseUpdatePayload(BaseModel):
     update_download_url: str
     release_notes: Optional[str] = ""
 
+
 class ToggleUpdatePayload(BaseModel):
     master_password: str
-    active: bool  # True = enable update for all users, False = disable
+    active: bool
+
 
 class ToggleBetaPayload(BaseModel):
     master_password: str
-    active: bool  # True = enable beta update for owner, False = disable
+    active: bool
+
 
 class TriggerBuildPayload(BaseModel):
     master_password: str
     version: str
+
 
 class BuildCallbackPayload(BaseModel):
     status: str
@@ -166,17 +183,17 @@ class BuildCallbackPayload(BaseModel):
     token: str
 
 
-# --- Manual Attendance ---
+# ── Manual Attendance ─────────────────────────────────────────────────────────
 class ManualAttendanceCreate(BaseModel):
     student_id: int
-    attendance_status: str  # 'Present', 'Absent', 'Late'
+    attendance_status: str          # 'Present', 'Absent', 'Late'
     subject_id: Optional[int] = None
     custom_date: Optional[str] = None
     custom_time: Optional[str] = None
     remarks: Optional[str] = None
 
 
-# --- Owner Premium Grant/Revoke ---
+# ── Premium Payloads ──────────────────────────────────────────────────────────
 class OwnerPremiumGrantPayload(BaseModel):
     master_password: str
     institution_id: int
@@ -189,44 +206,42 @@ class OwnerPremiumRevokePayload(BaseModel):
     institution_id: int
 
 
-# --- Subject ---
+# ── Subject ───────────────────────────────────────────────────────────────────
 class SubjectBase(BaseModel):
     name: str
     code: str
     department: str
     teacher_id: Optional[int] = None
 
+
 class SubjectCreate(SubjectBase):
     pass
 
-class SubjectResponse(SubjectBase):
+
+class SubjectResponse(_OrmBase, SubjectBase):
     id: int
     teacher_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
-# --- Schedule ---
+# ── Schedule ──────────────────────────────────────────────────────────────────
 class ScheduleBase(BaseModel):
     subject_id: int
     day_of_week: str
     start_time: str
     end_time: str
 
+
 class ScheduleCreate(ScheduleBase):
     pass
 
-class ScheduleResponse(ScheduleBase):
+
+class ScheduleResponse(_OrmBase, ScheduleBase):
     id: int
     subject_name: Optional[str] = None
     subject_code: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
-# --- User Update ---
+# ── User Update ───────────────────────────────────────────────────────────────
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -237,7 +252,8 @@ class UserUpdate(BaseModel):
     subject_code: Optional[str] = None
     subject_department: Optional[str] = None
 
-# --- Student Update ---
+
+# ── Student Update ────────────────────────────────────────────────────────────
 class StudentUpdate(BaseModel):
     name: Optional[str] = None
     roll: Optional[str] = None
@@ -253,13 +269,15 @@ class StudentUpdate(BaseModel):
     teacher: Optional[str] = None
     password: Optional[str] = None
 
-# --- Feedback ---
+
+# ── Feedback ──────────────────────────────────────────────────────────────────
 class FeedbackCreate(BaseModel):
     type: str
     message: str
     rating: int
 
-class FeedbackResponse(BaseModel):
+
+class FeedbackResponse(_OrmBase):
     id: int
     user_id: Optional[int] = None
     user_email: str
@@ -269,17 +287,15 @@ class FeedbackResponse(BaseModel):
     rating: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
-# --- User Password Change ---
+# ── User Password Change ──────────────────────────────────────────────────────
 class UserChangePassword(BaseModel):
     old_password: str
     new_password: str
 
-# --- Institution Branding ---
-class InstitutionBrandingResponse(BaseModel):
+
+# ── Institution ───────────────────────────────────────────────────────────────
+class InstitutionBrandingResponse(_OrmBase):
     id: int
     name: str
     slug: str
@@ -292,11 +308,7 @@ class InstitutionBrandingResponse(BaseModel):
     subscription_status: Optional[str] = None
     student_limit: Optional[int] = None
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
-# --- Institution Create ---
 class InstitutionCreate(BaseModel):
     name: str
     slug: str
@@ -311,12 +323,12 @@ class InstitutionCreate(BaseModel):
     admin_name: str
     admin_password: str
 
-# --- Institution Master Key Update ---
+
 class InstitutionMasterKeyUpdate(BaseModel):
     current_master_key: str
     new_master_key: str
 
-# --- Institution Update ---
+
 class InstitutionUpdate(BaseModel):
     name: Optional[str] = None
     slug: Optional[str] = None
@@ -329,23 +341,23 @@ class InstitutionUpdate(BaseModel):
     subscription_status: Optional[str] = None
     student_limit: Optional[int] = None
 
-# --- Department ---
+
+# ── Department ────────────────────────────────────────────────────────────────
 class DepartmentBase(BaseModel):
     name: str
     code: Optional[str] = None
 
+
 class DepartmentCreate(DepartmentBase):
     pass
 
-class Department(DepartmentBase):
+
+class Department(_OrmBase, DepartmentBase):
     id: int
     institution_id: int
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
-# --- Leave Management ---
+# ── Leave Management ──────────────────────────────────────────────────────────
 class LeaveRequestBase(BaseModel):
     start_date: str
     end_date: str
@@ -353,12 +365,14 @@ class LeaveRequestBase(BaseModel):
     reason: str
     subject_id: Optional[int] = None
 
+
 class LeaveRequestCreate(LeaveRequestBase):
     pass
 
-class LeaveRequestResponse(BaseModel):
+
+class LeaveRequestResponse(_OrmBase):
     id: int
-    student_id: int
+    student_id: Optional[int] = None
     student_name: Optional[str] = None
     student_roll: Optional[str] = None
     student_dep: Optional[str] = None
@@ -374,15 +388,12 @@ class LeaveRequestResponse(BaseModel):
     reviewed_at: Optional[datetime] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
 
 class LeaveStatusUpdate(BaseModel):
-    status: str # "Approved" or "Rejected"
+    status: str     # "Approved" or "Rejected"
 
 
-# --- Public Registration Schemas ---
+# ── Public Registration ───────────────────────────────────────────────────────
 class StudentPublicRegister(BaseModel):
     name: str
     email: EmailStr
@@ -401,10 +412,10 @@ class StudentPublicRegister(BaseModel):
     parent_email: Optional[str] = None
     parent_phone: Optional[str] = None
 
+
 class TeacherPublicRegister(BaseModel):
     name: str
     email: EmailStr
     password: str
     institution_code: str
     department: str
-

@@ -104,6 +104,9 @@ import SmartSuggestionsBar from './components/SmartSuggestionsBar';
 import TeacherMiniDashboard from './components/TeacherMiniDashboard';
 import StudentAttendanceWallet from './components/StudentAttendanceWallet';
 import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings, applySpringPhysics } from './utils/futuristicFeatures';
+import NewFeaturesHub from './components/NewFeaturesHub';
+import WellnessCounselorPanel from './components/WellnessCounselorPanel';
+import ARGamificationPortal from './components/ARGamificationPortal';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -13874,6 +13877,48 @@ export default function App() {
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Multi-Face Group Scanner, WhatsApp Bot, IoT Smart Gate, Leave & Substitutes, HR Payroll, Edge Sync & 3D Liveness.</p>
                   </div>
 
+                  {/* ── NEW: 40 Features Hub ──────────────────────────────── */}
+                  <div
+                    onClick={() => { setActiveSubSetting('new_features'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(34, 211, 238, 0.35)' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🚀</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(34,211,238,0.15)', color: '#22d3ee' }}>40 NEW</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>40 New Features Hub</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Emotion AI, Blockchain, MFA, Gamification, CCTV, Timetable, Wellness, Wearable, AR Scanner & 31 more — all live.</p>
+                  </div>
+
+                  {/* ── NEW: Wellness + Counselor Panel ──────────────────── */}
+                  <div
+                    onClick={() => { setActiveSubSetting('wellness'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(239,68,68,0.3)' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>❤️</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>WELLNESS</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Student Wellness Center</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Daily mood check-ins, wellness score, counselor alerts for at-risk students, mental health tracking.</p>
+                  </div>
+
+                  {/* ── NEW: AR + Gamification Portal ────────────────────── */}
+                  <div
+                    onClick={() => { setActiveSubSetting('ar_gamification'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(245,158,11,0.35)' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🏆</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>AR + GAME</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>AR + Gamification Portal</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>AR camera overlay shows floating name badges over faces. Live leaderboard, streaks, badges & real-time events.</p>
+                  </div>
+
                   {/* Category Card: Premium Subscription */}
                   {userRole === 'admin' && (
                     <div
@@ -14635,6 +14680,31 @@ export default function App() {
                 apiBaseUrl={API_BASE_URL}
                 token={token}
                 userRole={userRole}
+              />
+            )}
+
+            {/* ── New 40 Features Hub ───────────────────────────────────────── */}
+            {activeSubSetting === 'new_features' && (
+              <NewFeaturesHub
+                token={token}
+                userRole={userRole}
+              />
+            )}
+
+            {/* ── Wellness + Counselor Panel ────────────────────────────────── */}
+            {activeSubSetting === 'wellness' && (
+              <WellnessCounselorPanel
+                token={token}
+                userRole={userRole}
+              />
+            )}
+
+            {/* ── AR + Gamification Portal ──────────────────────────────────── */}
+            {activeSubSetting === 'ar_gamification' && (
+              <ARGamificationPortal
+                token={token}
+                userRole={userRole}
+                institutionId={currentUser?.institution_id}
               />
             )}
 

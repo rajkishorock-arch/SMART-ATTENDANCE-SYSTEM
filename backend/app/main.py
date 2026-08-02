@@ -11,7 +11,6 @@ if backend_dir not in sys.path:
 
 from app.database import engine, Base
 from app.api import api_router
-from app.leave import router as leave_router
 
 def create_db_and_tables():
     # This is for development only. For production, use Alembic migrations.
@@ -170,6 +169,38 @@ def update_schema():
         except Exception as e:
             print("Skipped start_date/end_date column type modification:", e)
 
+        # ── New 40 Features — schema migrations (idempotent) ─────────────────
+        # Emotion Detection
+        safe_add_column('attendence', 'emotion', "VARCHAR(30) NULL")
+        safe_add_column('attendence', 'emotion_confidence', "FLOAT NULL")
+
+        # Wellness Score
+        safe_add_column('student', 'wellness_score', "FLOAT DEFAULT 100.0")
+        safe_add_column('student', 'wellness_updated_at', "TIMESTAMP NULL")
+
+        # Gamification
+        safe_add_column('student', 'attendance_points', "INT DEFAULT 0")
+        safe_add_column('student', 'streak_days', "INT DEFAULT 0")
+        safe_add_column('student', 'longest_streak', "INT DEFAULT 0")
+        safe_add_column('student', 'last_present_date', "VARCHAR(20) NULL")
+        safe_add_column('student', 'badges_json', "TEXT NULL")
+
+        # Age estimation
+        safe_add_column('student', 'estimated_age', "INT NULL")
+
+        # MFA
+        safe_add_column('users', 'mfa_enabled', "BOOLEAN DEFAULT FALSE")
+        safe_add_column('users', 'mfa_secret', "VARCHAR(64) NULL")
+        safe_add_column('users', 'mfa_backup_codes', "TEXT NULL")
+
+        # Staff face attendance
+        safe_add_column('users', 'face_embedding', "TEXT NULL")
+        safe_add_column('users', 'face_enrolled_at', "TIMESTAMP NULL")
+
+        # Multi-campus
+        safe_add_column('institutions', 'parent_institution_id', "INT NULL")
+        safe_add_column('institutions', 'campus_name', "VARCHAR(100) NULL")
+        safe_add_column('institutions', 'campus_address', "VARCHAR(255) NULL")
 
         # Create new tables for advanced features
         from app.database import Base
@@ -621,7 +652,6 @@ def read_root():
 
 
 app.include_router(api_router, prefix="/api/v1")
-app.include_router(leave_router, tags=["Leave Management"])
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
