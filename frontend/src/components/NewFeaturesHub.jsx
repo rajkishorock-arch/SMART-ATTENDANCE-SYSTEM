@@ -12,7 +12,7 @@ import {
   LayoutGrid, Watch, Wifi, Smile, Target, Activity
 } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || '';
+const DEFAULT_BACKEND = (import.meta.env.VITE_API_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1').replace(/\/api\/v1\/?$/, '');
 
 const FEATURES = [
   // ── AI & ML ──────────────────────────────────────────────────────────────
@@ -63,10 +63,12 @@ const FEATURES = [
 
 const CATEGORIES = ['All', 'AI & ML', 'Security', 'Engagement', 'Administration', 'Analytics', 'Technology'];
 
-export default function NewFeaturesHub({ token, userRole }) {
+export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
   const [activeCategory, setActiveCategory] = useState('All');
   const [testResults, setTestResults] = useState({});
   const [loading, setLoading] = useState({});
+
+  const baseUrl = apiBaseUrl ? apiBaseUrl.replace(/\/api\/v1\/?$/, '') : DEFAULT_BACKEND;
 
   const filtered = activeCategory === 'All'
     ? FEATURES
@@ -76,13 +78,13 @@ export default function NewFeaturesHub({ token, userRole }) {
     if (!feature.endpoint || !token) return;
     setLoading(prev => ({ ...prev, [feature.id]: true }));
     try {
-      const res = await fetch(`${API}${feature.endpoint}`, {
+      const res = await fetch(`${baseUrl}${feature.endpoint}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       setTestResults(prev => ({
         ...prev,
-        [feature.id]: { ok: res.ok, data: res.ok ? '✓ API OK' : data.detail || 'Error' }
+        [feature.id]: { ok: res.ok, data: res.ok ? '✓ API OK' : (data.detail || 'Error') }
       }));
     } catch (e) {
       setTestResults(prev => ({ ...prev, [feature.id]: { ok: false, data: 'Connection failed' } }));

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const ARGamificationPortal = ({ user }) => {
+const DEFAULT_BACKEND = (import.meta.env.VITE_API_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1').replace(/\/api\/v1\/?$/, '');
+
+const ARGamificationPortal = ({ user, apiBaseUrl }) => {
   const [activeTab, setActiveTab] = useState('leaderboard'); // 'leaderboard', 'badges', 'ar-scanner'
   const [leaderboard, setLeaderboard] = useState([]);
   const [myStats, setMyStats] = useState(null);
@@ -14,7 +16,7 @@ const ARGamificationPortal = ({ user }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   
-  const API_BASE = 'http://localhost:8000';
+  const API_BASE = apiBaseUrl ? apiBaseUrl.replace(/\/api\/v1\/?$/, '') : DEFAULT_BACKEND;
 
   useEffect(() => {
     if (user?.institution_id) {

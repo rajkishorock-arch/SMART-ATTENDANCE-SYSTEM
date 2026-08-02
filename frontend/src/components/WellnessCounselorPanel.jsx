@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const WellnessCounselorPanel = ({ user }) => {
+const DEFAULT_BACKEND = (import.meta.env.VITE_API_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1').replace(/\/api\/v1\/?$/, '');
+
+const WellnessCounselorPanel = ({ user, apiBaseUrl }) => {
   const [viewMode, setViewMode] = useState('student'); // 'student' or 'counselor'
   const [wellnessData, setWellnessData] = useState(null);
   const [moodLog, setMoodLog] = useState([]);
@@ -12,7 +14,7 @@ const WellnessCounselorPanel = ({ user }) => {
   const [selectedMood, setSelectedMood] = useState('');
   const [moodNote, setMoodNote] = useState('');
   
-  const API_BASE = 'http://localhost:8000';
+  const API_BASE = apiBaseUrl ? apiBaseUrl.replace(/\/api\/v1\/?$/, '') : DEFAULT_BACKEND;
   
   const moodEmojis = {
     happy: '😊',

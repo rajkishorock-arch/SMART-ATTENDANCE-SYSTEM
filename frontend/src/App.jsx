@@ -14686,6 +14686,7 @@ export default function App() {
             {/* ── New 40 Features Hub ───────────────────────────────────────── */}
             {activeSubSetting === 'new_features' && (
               <NewFeaturesHub
+                apiBaseUrl={API_BASE_URL}
                 token={token}
                 userRole={userRole}
               />
@@ -14694,6 +14695,8 @@ export default function App() {
             {/* ── Wellness + Counselor Panel ────────────────────────────────── */}
             {activeSubSetting === 'wellness' && (
               <WellnessCounselorPanel
+                apiBaseUrl={API_BASE_URL}
+                user={currentUser}
                 token={token}
                 userRole={userRole}
               />
@@ -14702,6 +14705,8 @@ export default function App() {
             {/* ── AR + Gamification Portal ──────────────────────────────────── */}
             {activeSubSetting === 'ar_gamification' && (
               <ARGamificationPortal
+                apiBaseUrl={API_BASE_URL}
+                user={currentUser}
                 token={token}
                 userRole={userRole}
                 institutionId={currentUser?.institution_id}
