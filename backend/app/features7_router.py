@@ -79,33 +79,6 @@ def process_group_classroom_scan(
             "confidence": round(0.94 + (i % 5) * 0.01, 3),
             "bounding_box": [100 + i*40, 120 + i*20, 80, 80]
         })
-        
-        try:
-            existing = db.query(models.AttendanceModel).filter(
-                models.AttendanceModel.institution_id == inst_id,
-                models.AttendanceModel.id == str(student_id),
-                models.AttendanceModel.date == today_str
-            ).first()
-            
-            if not existing:
-                new_att = models.AttendanceModel(
-                    id=str(student_id),
-                    institution_id=inst_id,
-                    name=s_name,
-                    roll=s_roll,
-                    department=s_dep,
-                    time=now_str,
-                    date=today_str,
-                    attendance="Present"
-                )
-                db.add(new_att)
-        except Exception:
-            pass
-
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
 
     elapsed_ms = round((time.time() - start_time) * 1000, 2)
     

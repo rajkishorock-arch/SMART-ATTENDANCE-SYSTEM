@@ -57,6 +57,24 @@ def get_attendance_logs(
     return logs
 
 
+@router.post("/cleanup-test-logs")
+def cleanup_test_logs(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Clean up simulated/test attendance logs so only real scanned attendance remains."""
+    if current_user.role not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Staff only")
+    
+    # Delete test logs created at 03:21:52 or test records
+    deleted = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.time == "03:21:52"
+    ).delete(synchronize_session=False)
+    
+    db.commit()
+    return {"message": f"Cleaned up {deleted} test attendance records.", "deleted_count": deleted}
+
+
 @router.get("/stats", response_model=schemas.DashboardStats)
 def get_dashboard_stats(
     db: Session = Depends(get_db),
