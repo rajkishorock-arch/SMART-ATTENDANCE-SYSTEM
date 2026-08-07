@@ -116,11 +116,13 @@ def enroll_student_fingerprint(
     
     cred_id = ""
     device_hash = ""
+    finger_pattern = ""
     raw_id_str = ""
 
     if isinstance(credential_data, dict):
         cred_id = str(credential_data.get("id") or "").strip()
         device_hash = str(credential_data.get("device_authenticator_hash") or "").strip()
+        finger_pattern = str(credential_data.get("finger_pattern") or "").strip()
         if credential_data.get("rawId"):
             raw_id_str = str(credential_data.get("rawId")).strip()
     elif isinstance(credential_data, str):
@@ -138,8 +140,9 @@ def enroll_student_fingerprint(
             continue
         other_cred_str = str(other.fingerprint_credential)
         
-        # Check if cred_id, device_hash or raw_id_str exists in other student's stored credential
         match_found = False
+        if finger_pattern and len(finger_pattern) > 2 and finger_pattern in other_cred_str:
+            match_found = True
         if cred_id and len(cred_id) > 3 and cred_id in other_cred_str:
             match_found = True
         if device_hash and len(device_hash) > 3 and device_hash in other_cred_str:
@@ -150,7 +153,7 @@ def enroll_student_fingerprint(
         if match_found:
             raise HTTPException(
                 status_code=400,
-                detail=f"⚠️ THIS FINGERPRINT IS ALREADY ENROLLED TO STUDENT '{other.name}' (Roll: {other.roll})! 1 Fingerprint CANNOT be enrolled for 2 different students."
+                detail=f"⚠️ THIS FINGERPRINT / BIOMETRIC PATTERN IS ALREADY ENROLLED TO STUDENT '{other.name}' (Roll: {other.roll})! 1 Fingerprint CANNOT be enrolled for 2 different students."
             )
 
     student.fingerprint_enrolled = True

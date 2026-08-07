@@ -19,7 +19,7 @@ export default function FingerprintScannerModal({
   const [hardwareSupported, setHardwareSupported] = useState(false);
   const [registeredCredential, setRegisteredCredential] = useState(null);
   const [progress, setProgress] = useState(0);
-
+  const [fingerPattern, setFingerPattern] = useState('FP_RIGHT_INDEX');
   const [verificationResult, setVerificationResult] = useState(null);
 
   const getDeviceBiometricId = () => {
@@ -62,6 +62,9 @@ export default function FingerprintScannerModal({
           setVerificationResult(data);
           setStatus('success');
           setStatusMsg(data.message || `🟢 Marked ${data.student.name} PRESENT.`);
+          if (onAttendanceMarked) {
+            onAttendanceMarked(data);
+          }
           setTimeout(() => { alert(data.message); }, 150);
         }
       }
@@ -93,6 +96,9 @@ export default function FingerprintScannerModal({
       } else if (data.message) {
         setStatus('success');
         setStatusMsg(data.message);
+        if (onFingerprintEnrolled) {
+          onFingerprintEnrolled({ user: currentUser?.name, studentId: currentUser?.id });
+        }
         setTimeout(() => { alert(data.message); }, 150);
       }
     } catch (e) {
@@ -193,6 +199,7 @@ export default function FingerprintScannerModal({
         const credData = {
           id: credential.id || getDeviceBiometricId(),
           device_authenticator_hash: getDeviceBiometricHash(),
+          finger_pattern: fingerPattern,
           rawId: Array.from(new Uint8Array(credential.rawId)),
           registeredAt: new Date().toISOString()
         };
@@ -204,9 +211,6 @@ export default function FingerprintScannerModal({
         if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
         playCyberSound('success');
         syncEnrollmentToBackend(credData);
-        if (onFingerprintEnrolled) {
-          onFingerprintEnrolled({ user: currentUser?.name, studentId: currentUser?.id });
-        }
       }
     } catch (err) {
       console.warn('Native fingerprint enrollment fallback:', err);
@@ -264,13 +268,6 @@ export default function FingerprintScannerModal({
         if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
         playCyberSound('success');
         sendAttendanceToBackend('fingerprint_hardware');
-        if (onAttendanceMarked) {
-          onAttendanceMarked({
-            method: 'fingerprint_hardware',
-            user: currentUser?.name,
-            timestamp: new Date().toLocaleTimeString()
-          });
-        }
       }
     } catch (err) {
       console.warn('Native fingerprint verification fallback:', err);
@@ -300,6 +297,7 @@ export default function FingerprintScannerModal({
           const credData = {
             id: getDeviceBiometricId(),
             device_authenticator_hash: getDeviceBiometricHash(),
+            finger_pattern: fingerPattern,
             virtual: true,
             registeredAt: new Date().toISOString()
           };
@@ -307,19 +305,9 @@ export default function FingerprintScannerModal({
           setRegisteredCredential(credData);
           setStatusMsg(`✅ Student Fingerprint Registered Successfully for ${currentUser?.name || 'Student'}!`);
           syncEnrollmentToBackend(credData);
-          if (onFingerprintEnrolled) {
-            onFingerprintEnrolled({ user: currentUser?.name, studentId: currentUser?.id });
-          }
         } else {
           setStatusMsg(`🟢 ${successMessage || 'Fingerprint Verified! Attendance Marked PRESENT.'}`);
           sendAttendanceToBackend('fingerprint_virtual');
-          if (onAttendanceMarked) {
-            onAttendanceMarked({
-              method: 'fingerprint_virtual',
-              user: currentUser?.name,
-              timestamp: new Date().toLocaleTimeString()
-            });
-          }
         }
       }
     }, 250);
@@ -501,6 +489,36 @@ export default function FingerprintScannerModal({
           }}>
             {status === 'success' ? <CheckCircle2 size={20} /> : status === 'error' ? <AlertCircle size={20} /> : <Zap size={20} />}
             <span>{statusMsg}</span>
+          </div>
+        )}
+
+        {/* Finger Biometric Selection in Register Mode */}
+        {mode === 'register' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '0.78rem', color: '#a78bfa', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Select Unique Fingerprint Slot:
+            </label>
+            <select
+              value={fingerPattern}
+              onChange={(e) => setFingerPattern(e.target.value)}
+              style={{
+                padding: '12px 14px',
+                borderRadius: '12px',
+                background: 'rgba(15, 23, 42, 0.9)',
+                border: '1.5px solid rgba(167, 139, 250, 0.5)',
+                color: '#fff',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="FP_RIGHT_INDEX">☝️ Right Hand - Index Finger (Pattern FP-01)</option>
+              <option value="FP_RIGHT_THUMB">🖐️ Right Hand - Thumb Finger (Pattern FP-02)</option>
+              <option value="FP_RIGHT_MIDDLE">🖕 Right Hand - Middle Finger (Pattern FP-03)</option>
+              <option value="FP_LEFT_INDEX">☝️ Left Hand - Index Finger (Pattern FP-04)</option>
+              <option value="FP_LEFT_THUMB">🖐️ Left Hand - Thumb Finger (Pattern FP-05)</option>
+            </select>
           </div>
         )}
 
