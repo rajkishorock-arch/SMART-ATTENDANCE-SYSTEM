@@ -1,11 +1,14 @@
 {
-  "name": "smart-attendance-system-root",
+  "name": "smart-attendance-system",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "frontend"
-  ],
   "scripts": {
-    "build": "npm run build --workspace=frontend"
+    "build": "cd frontend && npm run build",
+    "install": "cd frontend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
+
