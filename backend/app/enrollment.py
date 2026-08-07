@@ -105,19 +105,25 @@ def enroll_student_fingerprint(
         
     credential_data = payload.get("credential", {})
     cred_str = json.dumps(credential_data) if isinstance(credential_data, dict) else str(credential_data)
-    cred_id = credential_data.get("id") if isinstance(credential_data, dict) else None
     
+    cred_id = None
+    if isinstance(credential_data, dict):
+        cred_id = credential_data.get("id") or credential_data.get("rawId")
+    elif isinstance(credential_data, str):
+        cred_id = credential_data
+        
     # 1-to-1 Unique Fingerprint Lock check across students
-    if cred_id:
+    if cred_id and str(cred_id).strip():
         existing_other = db.query(models.StudentModel).filter(
             models.StudentModel.id != student_id,
             models.StudentModel.institution_id == current_user.institution_id,
+            models.StudentModel.fingerprint_enrolled == True,
             models.StudentModel.fingerprint_credential.like(f"%{cred_id}%")
         ).first()
         if existing_other:
             raise HTTPException(
                 status_code=400,
-                detail=f"⚠️ This fingerprint is ALREADY enrolled to student '{existing_other.name}' (Roll: {existing_other.roll}). Each student must have a unique fingerprint!"
+                detail=f"⚠️ This fingerprint is ALREADY enrolled to student '{existing_other.name}' (Roll: {existing_other.roll}). 1 Fingerprint cannot be enrolled for 2 students!"
             )
 
     student.fingerprint_enrolled = True
@@ -127,7 +133,7 @@ def enroll_student_fingerprint(
     db.commit()
     return {
         "status": "success",
-        "message": f"Fingerprint biometric successfully enrolled for student '{student.name}' (Roll: {student.roll}).",
+        "message": f"✅ Fingerprint biometric successfully enrolled for student '{student.name}' (Roll: {student.roll}).",
         "fingerprint_enrolled": True,
         "student_id": student.id
     }

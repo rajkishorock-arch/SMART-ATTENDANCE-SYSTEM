@@ -20,6 +20,15 @@ export default function FingerprintScannerModal({
   const [registeredCredential, setRegisteredCredential] = useState(null);
   const [progress, setProgress] = useState(0);
 
+  const getDeviceBiometricId = () => {
+    let devId = localStorage.getItem('device_biometric_fingerprint_id');
+    if (!devId) {
+      devId = 'FINGER_HW_KEY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      localStorage.setItem('device_biometric_fingerprint_id', devId);
+    }
+    return devId;
+  };
+
   const sendAttendanceToBackend = async (methodName) => {
     try {
       const base = apiBaseUrl || (window.location.origin.includes('5173') ? 'http://localhost:8000/api' : '/api');
@@ -40,6 +49,7 @@ export default function FingerprintScannerModal({
         const data = await res.json();
         if (data.message) {
           setStatusMsg(data.message);
+          setTimeout(() => { alert(data.message); }, 150);
         }
       }
     } catch (err) {
@@ -64,9 +74,13 @@ export default function FingerprintScannerModal({
       const data = await res.json();
       if (!res.ok) {
         setStatus('error');
-        setStatusMsg(data.detail || '⚠️ Fingerprint enrollment failed.');
+        const errText = data.detail || '⚠️ Fingerprint enrollment failed.';
+        setStatusMsg(errText);
+        setTimeout(() => { alert(errText); }, 150);
       } else if (data.message) {
+        setStatus('success');
         setStatusMsg(data.message);
+        setTimeout(() => { alert(data.message); }, 150);
       }
     } catch (e) {
       console.warn("Backend fingerprint enrollment sync failed:", e);
@@ -153,7 +167,7 @@ export default function FingerprintScannerModal({
 
       if (credential) {
         const credData = {
-          id: credential.id,
+          id: credential.id || getDeviceBiometricId(),
           rawId: Array.from(new Uint8Array(credential.rawId)),
           registeredAt: new Date().toISOString()
         };
@@ -248,7 +262,11 @@ export default function FingerprintScannerModal({
         playCyberSound('success');
 
         if (mode === 'register') {
-          const credData = { virtual: true, registeredAt: new Date().toISOString() };
+          const credData = {
+            id: getDeviceBiometricId(),
+            virtual: true,
+            registeredAt: new Date().toISOString()
+          };
           localStorage.setItem(`fingerprint_cred_${currentUser?.id || 'default'}`, JSON.stringify(credData));
           setRegisteredCredential(credData);
           setStatusMsg(`✅ Student Fingerprint Registered Successfully for ${currentUser?.name || 'Student'}!`);
@@ -286,7 +304,9 @@ export default function FingerprintScannerModal({
       localStorage.removeItem(`fingerprint_cred_${currentUser.id}`);
       setRegisteredCredential(null);
       setStatus('idle');
-      setStatusMsg(`🗑️ Fingerprint deleted. You can now scan & enroll a new finger for ${currentUser?.name || 'Student'}.`);
+      const msg = `🗑️ Fingerprint deleted. You can now scan & enroll a new finger for ${currentUser?.name || 'Student'}.`;
+      setStatusMsg(msg);
+      alert(msg);
       if (onFingerprintEnrolled) onFingerprintEnrolled({ user: currentUser?.name, reset: true });
     } catch (e) {
       console.warn("Delete fingerprint error:", e);
@@ -369,6 +389,26 @@ export default function FingerprintScannerModal({
             <X size={18} />
           </button>
         </div>
+
+        {/* Prominent Feedback Banner Popup Card */}
+        {statusMsg && (
+          <div style={{
+            padding: '14px 16px',
+            borderRadius: '12px',
+            background: status === 'success' ? 'rgba(16, 185, 129, 0.18)' : status === 'error' ? 'rgba(239, 68, 68, 0.18)' : 'rgba(0, 242, 254, 0.12)',
+            border: `1px solid ${status === 'success' ? '#10b981' : status === 'error' ? '#ef4444' : '#00f2fe'}`,
+            color: status === 'success' ? '#34d399' : status === 'error' ? '#f87171' : '#38bdf8',
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: status === 'success' ? '0 0 20px rgba(16, 185, 129, 0.25)' : status === 'error' ? '0 0 20px rgba(239, 68, 68, 0.25)' : 'none'
+          }}>
+            {status === 'success' ? <CheckCircle2 size={20} /> : status === 'error' ? <AlertCircle size={20} /> : <Zap size={20} />}
+            <span>{statusMsg}</span>
+          </div>
+        )}
 
         {/* Action Trigger Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
