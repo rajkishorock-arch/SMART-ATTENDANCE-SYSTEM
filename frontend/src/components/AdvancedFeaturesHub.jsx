@@ -242,12 +242,74 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
       {tab === 'bulk' && userRole === 'admin' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {['students', 'subjects', 'schedules'].map((entity) => (
-            <div key={entity} style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '16px' }}>
-              <h4 style={{ color: '#f1f5f9', textTransform: 'capitalize' }}>Import {entity}</h4>
-              <input type="file" accept=".csv" onChange={(e) => handleBulkUpload(entity, e.target.files[0])} disabled={loading} />
-              <a href={`${apiBaseUrl}/bulk-import/templates/${entity}`} style={{ color: '#00f2fe', fontSize: '0.8rem', marginTop: '8px', display: 'inline-block' }}>
-                <Download size={12} style={{ display: 'inline' }} /> Download CSV template
-              </a>
+            <div
+              key={entity}
+              style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(0, 242, 254, 0.2)',
+                borderRadius: '18px',
+                padding: '20px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '16px'
+              }}
+            >
+              <div>
+                <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 800, margin: 0, textTransform: 'capitalize' }}>
+                  📥 Import {entity} via CSV
+                </h4>
+                <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0' }}>
+                  Bulk import {entity} records automatically into institution database.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <label style={{
+                  padding: '10px 18px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(168, 85, 247, 0.2))',
+                  border: '1px solid #00f2fe',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 15px rgba(0, 242, 254, 0.2)'
+                }}>
+                  <Upload size={16} color="#00f2fe" /> Select {entity}.csv File
+                  <input
+                    type="file"
+                    accept=".csv"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleBulkUpload(entity, e.target.files[0])}
+                    disabled={loading}
+                  />
+                </label>
+
+                <a
+                  href={`${apiBaseUrl}/bulk-import/templates/${entity}`}
+                  download
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#00f2fe',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Download size={14} /> Download {entity}.csv Template
+                </a>
+              </div>
             </div>
           ))}
         </div>
