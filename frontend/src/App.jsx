@@ -9,6 +9,7 @@ import GamificationHub from './components/GamificationHub';
 import NotificationCenter from './components/NotificationCenter';
 import AdvancedFeaturesHub from './components/AdvancedFeaturesHub';
 import ConsentModal from './components/ConsentModal';
+import FingerprintScannerModal from './components/FingerprintScannerModal';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { setupOfflineSyncListener, addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import { completeLivenessFlow } from './utils/livenessClient';
@@ -1186,6 +1187,7 @@ export default function App() {
     () => localStorage.getItem('biometric_consent') !== 'true'
   );
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showFingerprintModal, setShowFingerprintModal] = useState(false);
   const livenessTokenRef = useRef(null);
   const [autoSessionInfo, setAutoSessionInfo] = useState(null);
 
@@ -13726,6 +13728,27 @@ export default function App() {
                     </p>
                   </div>
 
+                  {/* Category Card 2: Native Phone Fingerprint Biometric Scanner */}
+                  <div 
+                    onClick={() => { setShowFingerprintModal(true); playCyberSound('click'); }}
+                    className="glass-panel hover-card" 
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(0, 242, 254, 0.5)', background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.12), rgba(16, 185, 129, 0.12))' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.4rem' }}>🖐️</span>
+                        <ShieldCheck size={24} style={{ color: '#10b981' }} />
+                      </div>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(0, 242, 254, 0.2)', color: '#00f2fe' }}>
+                        🟢 WEBAUTHN HARDWARE SENSOR
+                      </span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Native Phone Fingerprint Biometric Console</h3>
+                    <p style={{ color: '#cbd5e1', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+                      Scan & verify identity using your phone's native built-in fingerprint sensor (WebAuthn API) or interactive holographic touch pad.
+                    </p>
+                  </div>
+
                   {/* Category Card 4: Themes, Cyber Audio & Synth Equalizer (MERGED) */}
                   <div 
                     onClick={() => { setActiveSubSetting('themes'); playCyberSound('click'); }}
@@ -19495,6 +19518,7 @@ export default function App() {
       {token && userRole && (
         <QuickActionsDock
           userRole={userRole}
+          onFingerprint={() => { setShowFingerprintModal(true); playCyberSound('click'); }}
           onScan={() => { navigateToTab('attendance'); setShowScannerModal(true); playCyberSound('click'); }}
           onManual={() => { navigateToTab('attendance'); setIsManualAttendanceOpen(true); playCyberSound('click'); }}
           onReport={() => { navigateToTab('reports'); playCyberSound('click'); }}
@@ -20135,6 +20159,20 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Hardware Phone Fingerprint Scanner Biometric Modal */}
+      <FingerprintScannerModal 
+        isOpen={showFingerprintModal} 
+        onClose={() => setShowFingerprintModal(false)} 
+        token={token}
+        currentUser={currentUser}
+        apiBaseUrl={API_BASE_URL}
+        playCyberSound={playCyberSound}
+        onAttendanceMarked={(data) => {
+          fetchDashboardStats();
+          fetchAttendanceLogs();
+        }}
+      />
 
       {/* Edge border flash overlay */}
       {showVoicePulseFlash && <div className="voice-pulse-flash-overlay" />}

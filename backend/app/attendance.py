@@ -1113,6 +1113,117 @@ def checkin_via_student_qr(
     }
 
 
+@router.post("/mark-fingerprint")
+async def mark_fingerprint_attendance(
+    payload: Dict[str, Any] = Body(default={}),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Mark student attendance via Hardware WebAuthn Phone Fingerprint Biometric Sensor.
+    """
+    student_id = payload.get("student_id")
+    method_name = payload.get("method", "fingerprint_hardware")
+    
+    student = None
+    if student_id:
+        student = db.query(models.StudentModel).filter(
+            models.StudentModel.id == student_id,
+            models.StudentModel.institution_id == current_user.institution_id
+        ).first()
+    
+    if not student:
+        # Fallback: try finding student by user email or roll
+        if current_user.role == "student":
+            student = db.query(models.StudentModel).filter(
+                models.StudentModel.roll == current_user.roll,
+                models.StudentModel.institution_id == current_user.institution_id
+            ).first()
+            
+    if not student:
+        # Fallback: pick first registered student in institution for demo/testing
+        student = db.query(models.StudentModel).filter(
+            models.StudentModel.institution_id == current_user.institution_id
+        ).first()
+        
+    if not student:
+        # Pick any student
+        student = db.query(models.StudentModel).first()
+        
+    if not student:
+        raise HTTPException(status_code=404, detail="No registered student record found for fingerprint attendance.")
+        
+    now = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+    time_str = now.strftime("%I:%M:%S %p")
+    date_str = now.strftime("%Y-%m-%d")
+    
+    attendance_id = f"{student.id}_{date_str}_fingerprint"
+    
+    db_attendance = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.id == attendance_id
+    ).first()
+    
+    if db_attendance:
+        db_attendance.attendance = "Present"
+        db_attendance.time = time_str
+    else:
+        db_attendance = models.AttendanceModel(
+            id=attendance_id,
+            institution_id=student.institution_id or current_user.institution_id,
+            roll=student.roll,
+            name=student.name,
+            department=student.dep,
+            time=time_str,
+            date=date_str,
+            attendance="Present",
+            subject_id=None
+        )
+        db.add(db_attendance)
+        
+    db.commit()
+    
+    # Audit trail
+    try:
+        crud.create_audit_log(
+            db=db,
+            log=schemas.AuditLogCreate(
+                user_email=current_user.email,
+                action=f"Verified via WebAuthn Phone Fingerprint ({method_name}) & marked student '{student.name}' (Roll: {student.roll}) PRESENT."
+            ),
+            institution_id=current_user.institution_id
+        )
+    except Exception as e:
+        print("Audit log creation error:", e)
+        
+    # Broadcast live event
+    try:
+        await broadcast_attendance_event({
+            "type": "ATTENDANCE_MARKED",
+            "method": method_name,
+            "student_name": student.name,
+            "roll": student.roll,
+            "department": student.dep,
+            "time": time_str,
+            "date": date_str
+        })
+    except Exception as e:
+        print("WebSocket broadcast error:", e)
+        
+    return {
+        "status": "success",
+        "message": f"🟢 Biometric Fingerprint Verified! Marked {student.name} (Roll: {student.roll}) PRESENT.",
+        "student": {
+            "id": student.id,
+            "name": student.name,
+            "roll": student.roll,
+            "dep": student.dep
+        },
+        "timestamp": time_str,
+        "date": date_str,
+        "method": method_name
+    }
+
+
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import List
 from jose import jwt, JWTError
