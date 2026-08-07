@@ -1741,21 +1741,43 @@ button:active,
     box-sizing: border-box !important;
   }
 
-  /* Full screen 5px edge margin override for all glass panels, cards, & merged modules on mobile */
+  /* Full screen 5px edge margin override for all glass panels, cards, settings, & merged modules on mobile */
   .glass-panel,
   .dashboard-grid,
   .dashboard-charts-grid,
   .settings-section,
   .telemetry-widget-card,
-  div[class*="glass-panel"] {
-    padding-left: 10px !important;
-    padding-right: 10px !important;
+  div[class*="glass-panel"],
+  div[class*="settings-section"] {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     border-radius: 14px !important;
+  }
+
+  .category-pills-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-bottom: 8px !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+  }
+
+  .category-pill-btn {
+    width: auto !important;
+    min-width: max-content !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
   }
 
   .sidebar {

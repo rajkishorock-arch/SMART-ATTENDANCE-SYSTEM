@@ -13665,7 +13665,7 @@ export default function App() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="settings-section" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '24px', boxSizing: 'border-box' }}>
             {activeSubSetting !== null && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button 

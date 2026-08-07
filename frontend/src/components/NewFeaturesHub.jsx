@@ -498,15 +498,18 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
 
         {/* Category Pills (Horizontally Scrollable) */}
         <div 
-          className="cyber-scrollbar" 
+          className="cyber-scrollbar category-pills-row" 
           style={{ 
             display: 'flex', 
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
             gap: '8px', 
             overflowX: 'auto', 
             overflowY: 'hidden',
-            paddingBottom: '8px', 
+            paddingBottom: '10px', 
             WebkitOverflowScrolling: 'touch',
             touchAction: 'pan-x',
+            width: '100%',
             maxWidth: '100%',
             boxSizing: 'border-box'
           }}
@@ -517,18 +520,21 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
               <button
                 key={cat}
                 type="button"
+                className="category-pill-btn"
                 onClick={() => setActiveCategory(cat)}
                 style={{
-                  padding: '8px 16px',
+                  padding: '8px 18px',
                   borderRadius: '20px',
                   border: isActive ? '1px solid #00f2fe' : '1px solid rgba(255, 255, 255, 0.1)',
-                  background: isActive ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  background: isActive ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 255, 255, 0.04)',
                   color: isActive ? '#00f2fe' : '#9ca3af',
                   fontWeight: isActive ? 800 : 600,
                   fontSize: '0.82rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
+                  width: 'auto',
+                  minWidth: 'max-content',
                   transition: 'all 0.2s ease'
                 }}
               >
