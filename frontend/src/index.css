@@ -1730,7 +1730,7 @@ button:active,
 
   .main-content {
     margin-left: 0 !important;
-    padding: calc(16px + env(safe-area-inset-top, 24px)) 14px calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: calc(10px + env(safe-area-inset-top, 16px)) 5px calc(90px + env(safe-area-inset-bottom, 0px)) 5px !important;
     min-height: 100dvh;
     width: 100% !important;
     max-width: 100% !important;
@@ -1738,6 +1738,24 @@ button:active,
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Full screen 5px edge margin override for all glass panels, cards, & merged modules on mobile */
+  .glass-panel,
+  .dashboard-grid,
+  .dashboard-charts-grid,
+  .settings-section,
+  .telemetry-widget-card,
+  div[class*="glass-panel"] {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 14px !important;
   }
 
   .sidebar {
@@ -1753,10 +1771,14 @@ button:active,
   }
 
   .header-container {
-    margin-bottom: 20px !important;
+    margin-bottom: 14px !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 12px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .header-title-area h1 {

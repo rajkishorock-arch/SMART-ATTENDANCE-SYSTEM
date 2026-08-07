@@ -496,8 +496,21 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
           />
         </div>
 
-        {/* Category Pills */}
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', scrollbarWidth: 'none' }}>
+        {/* Category Pills (Horizontally Scrollable) */}
+        <div 
+          className="cyber-scrollbar" 
+          style={{ 
+            display: 'flex', 
+            gap: '8px', 
+            overflowX: 'auto', 
+            overflowY: 'hidden',
+            paddingBottom: '8px', 
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-x',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}
+        >
           {CATEGORIES.map(cat => {
             const isActive = activeCategory === cat;
             return (
@@ -515,6 +528,7 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
                   fontSize: '0.82rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
                   transition: 'all 0.2s ease'
                 }}
               >
