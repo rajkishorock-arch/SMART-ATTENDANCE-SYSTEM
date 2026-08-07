@@ -6,7 +6,8 @@ import {
   Calendar,
   UserCircle,
   Bot,
-  Mail,
+  Settings,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function BottomNav({
@@ -19,7 +20,7 @@ export default function BottomNav({
   if (userRole === 'student') {
     const studentTabs = [
       'student-attendance',
-      'leave-management',
+      'settings',
       'ai-assistant',
       'student-profile',
     ];
@@ -50,12 +51,12 @@ export default function BottomNav({
         
         <button
           type="button"
-          className={`bottom-nav-item active-haptic ${activeTab === 'leave-management' ? 'active' : ''}`}
-          onClick={() => onNavigate('leave-management')}
+          className={`bottom-nav-item active-haptic ${activeTab === 'settings' ? 'active' : ''}`}
+          onClick={() => onNavigate('settings')}
           style={{ position: 'relative', zIndex: 2 }}
         >
-          <Calendar size={20} style={{ transition: 'transform 0.2s' }} className={activeTab === 'leave-management' ? 'scale-110' : ''} />
-          <span>Leave</span>
+          <ShieldCheck size={20} style={{ transition: 'transform 0.2s' }} className={activeTab === 'settings' ? 'scale-110' : ''} />
+          <span>Settings</span>
         </button>
         
         <button
@@ -81,14 +82,14 @@ export default function BottomNav({
     );
   }
 
-  const isMoreActive = ['reports', 'session-history', 'teachers', 'settings'].includes(activeTab);
+  const isMoreActive = ['reports', 'session-history', 'teachers'].includes(activeTab);
   
-  // Calculate active index for teacher bottom nav (5 columns)
-  // Index 0: Home, 1: Students, 2: Scan (button), 3: Leave, 4: Control
+  // Calculate active index for admin/teacher bottom nav (5 columns)
+  // Index 0: Home, 1: Students, 2: Scan (button), 3: Settings, 4: Control
   let activeIndex = -1;
   if (activeTab === 'dashboard') activeIndex = 0;
   else if (activeTab === 'students') activeIndex = 1;
-  else if (activeTab === 'leave-admin') activeIndex = 3;
+  else if (activeTab === 'settings') activeIndex = 3;
   else if (isMoreActive) activeIndex = 4;
 
   return (
@@ -136,12 +137,12 @@ export default function BottomNav({
       
       <button
         type="button"
-        className={`bottom-nav-item active-haptic ${activeTab === 'leave-admin' ? 'active' : ''}`}
-        onClick={() => onNavigate('leave-admin')}
+        className={`bottom-nav-item active-haptic ${activeTab === 'settings' ? 'active' : ''}`}
+        onClick={() => onNavigate('settings')}
         style={{ position: 'relative', zIndex: 2 }}
       >
-        <Mail size={20} />
-        <span>Leave</span>
+        <ShieldCheck size={20} />
+        <span>Settings</span>
       </button>
       
       <button
@@ -156,4 +157,3 @@ export default function BottomNav({
     </nav>
   );
 }
-
