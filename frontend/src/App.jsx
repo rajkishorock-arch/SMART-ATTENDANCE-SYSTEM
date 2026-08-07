@@ -13650,213 +13650,200 @@ export default function App() {
 
             {activeSubSetting === null ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>⚙️ Settings Directory Hub</h2>
-                  <p style={{ color: '#9ca3af', fontSize: '0.9rem', margin: 0 }}>
-                    Select a settings category below to configure parameters, modify user access, or adjust preferences.
+                <div className="glass-panel" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9))', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0, background: 'linear-gradient(90deg, #00f2fe, #4facfe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    ⚙️ Institutional Settings Directory Hub
+                  </h2>
+                  <p style={{ color: '#cbd5e1', fontSize: '0.9rem', margin: 0 }}>
+                    Select a settings category below to configure security boundaries, user permissions, biometric thresholds, and visual theme customizations.
                   </p>
                 </div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
                   gap: '20px'
                 }}>
                   {/* Category Card 1: GPS Geofencing */}
                   <div 
                     onClick={() => { setActiveSubSetting('geofencing'); playCyberSound('click'); }}
                     className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(0, 242, 254, 0.2)' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: userRole === 'student' ? 'rgba(0, 242, 254, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: userRole === 'student' ? '#00f2fe' : '#10b981' }}>
+                      <ShieldCheck size={26} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: userRole === 'student' ? 'rgba(0, 242, 254, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: userRole === 'student' ? '#00f2fe' : '#34d399' }}>
                         {userRole === 'student' ? '🟢 View Status' : '🏢 All Admins'}
                       </span>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>GPS Geofencing</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Restricts student check-in to a specific geographical radius.</p>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>GPS Geofencing Boundary</h3>
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Restricts student check-in within designated campus geographical GPS radiuses.</p>
                   </div>
 
                   {/* Category Card 2: IP Subnet Restrictions */}
                   <div 
                     onClick={() => { setActiveSubSetting('ip'); playCyberSound('click'); }}
                     className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(0, 242, 254, 0.2)' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Lock size={24} style={{ color: '#00f2fe' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: userRole === 'student' ? 'rgba(0, 242, 254, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: userRole === 'student' ? '#00f2fe' : '#10b981' }}>
+                      <Lock size={26} style={{ color: '#00f2fe' }} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: userRole === 'student' ? 'rgba(0, 242, 254, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: userRole === 'student' ? '#00f2fe' : '#34d399' }}>
                         {userRole === 'student' ? '🟢 View Status' : '🏢 All Admins'}
                       </span>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>IP Subnet Restrictions</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Allows attendance logging only from specified Wi-Fi networks/subnets.</p>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>IP Subnet Network Gate</h3>
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Allows attendance logging strictly from authorized campus Wi-Fi networks/subnets.</p>
                   </div>
 
                   {/* Category Card 3: Emergency System Lockdown */}
                   <div 
                     onClick={() => { setActiveSubSetting('lockdown'); playCyberSound('click'); }}
                     className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: (userRole !== 'student' && currentUser?.institution_id !== 1) ? 0.7 : 1 }}
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.3)' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <AlertCircle size={24} style={{ color: '#ef4444' }} />
+                      <AlertCircle size={26} style={{ color: '#ef4444' }} />
                       {userRole === 'student' ? (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.12)', color: '#00f2fe' }}>🟢 View Status</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe' }}>🟢 View Status</span>
                       ) : currentUser?.institution_id !== 1 ? (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>🔒 Restricted</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>🔒 Restricted</span>
                       ) : (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa' }}>👑 Owner Only</span>
                       )}
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Emergency Lockdown</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Cut off all face recognition feeds instantly and trigger audio alerts.</p>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Emergency System Lockdown</h3>
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Instantly disconnects all camera recognition feeds and activates perimeter siren alerts.</p>
                   </div>
 
-                  {/* Category Card 4: Themes & Sound Effects */}
+                  {/* Category Card 4: Themes, Cyber Audio & Synth Equalizer (MERGED) */}
                   <div 
                     onClick={() => { setActiveSubSetting('themes'); playCyberSound('click'); }}
                     className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: currentUser?.institution_id !== 1 ? 0.7 : 1 }}
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(139, 92, 246, 0.4)', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(0, 242, 254, 0.1))' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Volume2 size={24} style={{ color: 'var(--color-primary)' }} />
-                      {currentUser?.institution_id !== 1 ? (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>🔒 Restricted</span>
-                      ) : (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Palette size={24} style={{ color: '#a78bfa' }} />
+                        <Volume2 size={22} style={{ color: '#00f2fe' }} />
+                      </div>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.2)', color: '#c084fc' }}>
+                        ✨ MERGED STUDIO
+                      </span>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Themes & Cyber Audio</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Choose interface themes, retro CRT scanline overlay, and acoustic feedback sounds.</p>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Themes, Cyber Audio & Synth Equalizer</h3>
+                    <p style={{ color: '#cbd5e1', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+                      Choose UI theme palettes, CRT scanlines, acoustic click feedback, base pitch registers, waveform modulators, and ambient hum drones in one place.
+                    </p>
                   </div>
 
-                  {/* Category Card 5: Synth Equalizer Customizer */}
-                  <div 
-                    onClick={() => { setActiveSubSetting('equalizer'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', opacity: currentUser?.institution_id !== 1 ? 0.7 : 1 }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Settings size={24} style={{ color: 'var(--color-primary)' }} />
-                      {currentUser?.institution_id !== 1 ? (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>🔒 Restricted</span>
-                      ) : (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
-                      )}
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Synth Equalizer</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Tune base frequency pitch register, sound modulators, and CPU hum drone volume.</p>
-                  </div>
-
-                  {/* Category Card 6: Advanced Security Console */}
+                  {/* Category Card 5: Advanced Security Console */}
                   {userRole !== 'student' && (
                     <div 
                       onClick={() => { setActiveSubSetting('advanced'); playCyberSound('click'); }}
                       className="glass-panel hover-card" 
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.3)' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <ShieldCheck size={24} style={{ color: 'var(--color-primary)' }} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 Admins & Teachers</span>
+                        <ShieldCheck size={26} style={{ color: '#10b981' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>🏢 Admins & Teachers</span>
                       </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Advanced Security</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Biometric match confidence filter, EAR spoof strictness, AI cognitive level, and telemetry diagnostics.</p>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Extreme Biometric Security</h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Biometric match confidence filter, EAR spoof strictness, AI cognitive level, and telemetry logs.</p>
                     </div>
                   )}
 
-                  {/* Category Card 7: Admin Profile Settings */}
+                  {/* Category Card 6: Admin Profile Settings */}
                   {userRole !== 'student' && (
                     <div 
                       onClick={() => { setActiveSubSetting('profile'); playCyberSound('click'); }}
                       className="glass-panel hover-card" 
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(167, 139, 250, 0.3)' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <UserCheck size={24} style={{ color: '#a78bfa' }} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                        <UserCheck size={26} style={{ color: '#a78bfa' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(167, 139, 250, 0.15)', color: '#c084fc' }}>🏢 All Admins</span>
                       </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>My Admin Profile</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Modify administrator profile name, login email address, or update system password credentials.</p>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>My Admin Profile</h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Modify administrator profile name, login email address, or update system password credentials.</p>
                     </div>
                   )}
 
-                  {/* Category Card 8: Admin Account Registry */}
+                  {/* Category Card 7: Admin Account Registry */}
                   {userRole !== 'student' && (
                     <div 
                       onClick={() => { setActiveSubSetting('admins'); playCyberSound('click'); }}
                       className="glass-panel hover-card" 
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(0, 242, 254, 0.2)' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <UserPlus size={24} style={{ color: '#00f2fe' }} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>🏢 All Admins</span>
+                        <UserPlus size={26} style={{ color: '#00f2fe' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe' }}>🏢 All Admins</span>
                       </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Register Administrators</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Seed and manage new auxiliary administrator credentials or activate/deactivate accounts.</p>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Register Administrators</h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Seed and manage new auxiliary administrator credentials or activate/deactivate accounts.</p>
                     </div>
                   )}
 
-                  {/* Category Card 10: Manage Departments */}
+                  {/* Category Card 8: Manage Departments */}
                   {userRole !== 'student' && (
                     <div 
                       onClick={() => { setActiveSubSetting('departments'); playCyberSound('click'); }}
                       className="glass-panel hover-card" 
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(236, 72, 153, 0.3)' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <BookOpen size={24} style={{ color: '#ec4899' }} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(236, 72, 153, 0.12)', color: '#ec4899' }}>🏫 Setup</span>
+                        <BookOpen size={26} style={{ color: '#ec4899' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6' }}>🏫 Setup</span>
                       </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Manage Departments</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Configure active college departments and branches. Custom departments will dynamically populate dropdowns.</p>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Manage Departments</h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Configure active college departments and branches for dynamic system dropdowns.</p>
                     </div>
                   )}
 
-                  {/* Category Card: Productivity Hub */}
+                  {/* Category Card 9: Productivity Hub */}
                   {userRole !== 'student' && (
                     <div 
                       onClick={() => { setActiveSubSetting('productivity'); playCyberSound('click'); }}
                       className="glass-panel hover-card" 
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.3)' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <BarChart3 size={24} style={{ color: '#10b981' }} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>NEW</span>
+                        <BarChart3 size={26} style={{ color: '#10b981' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>NEW</span>
                       </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Productivity Hub</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Bulk CSV import, analytics, audit trail, ERP API keys, billing, and institution FAQ.</p>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Productivity Hub</h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Bulk CSV import, analytics, audit trail, ERP API keys, billing, and institution FAQ.</p>
                     </div>
                   )}
 
-                  {/* Category Card: Exploration Lab */}
+                  {/* Category Card 10: Exploration Lab */}
                   {userRole !== 'student' && (
                     <div
                       onClick={() => { setActiveSubSetting('exploration'); playCyberSound('click'); }}
                       className="glass-panel hover-card"
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(167, 139, 250, 0.3)' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '1.4rem' }}>✨</span>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>FUN</span>
+                        <span style={{ fontSize: '1.5rem' }}>✨</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(167, 139, 250, 0.15)', color: '#c084fc' }}>FUN</span>
                       </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Exploration Lab</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Hidden FX, scanner sound packs, confetti mode, particle density, and secret discoveries.</p>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Exploration Lab</h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Hidden FX, scanner sound packs, confetti mode, particle density, and secret discoveries.</p>
                     </div>
                   )}
 
-                  {/* Category Card: Futuristic Features Hub */}
+                  {/* Category Card 11: Futuristic Features Hub */}
                   <div
                     onClick={() => { setActiveSubSetting('futuristic'); playCyberSound('click'); }}
                     className="glass-panel hover-card"
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(0, 242, 254, 0.3)' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>🚀</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.12)', color: '#00f2fe' }}>NEW</span>
+                      <span style={{ fontSize: '1.5rem' }}>🚀</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe' }}>NEW</span>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Futuristic Features Hub</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Theme Studio, Widget Home, Polls, Health Check, Campus Map, Premium Control, and more.</p>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Futuristic Features Hub</h3>
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Theme Studio, Widget Home, Polls, Health Check, Campus Map, Premium Control, and more.</p>
                   </div>
 
                   {/* Consolidated Master Folder Card: Advanced Features & AR Suite */}
@@ -14284,135 +14271,129 @@ export default function App() {
                   </div>
                 )}
 
-            {/* ===== SYSTEM THEME & SOUND CONTROLS ===== */}
-            {activeSubSetting === 'themes' && (
-              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Volume2 size={22} style={{ color: 'var(--color-primary)' }} /> System Themes & Cyber Audio
-                  </h3>
-                  <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
-                    Choose a sci-fi system interface theme and customize acoustic synth feedback volumes.
-                  </p>
+            {/* ===== MERGED SYSTEM THEME, CYBER AUDIO & SYNTH EQUALIZER STUDIO ===== */}
+            {(activeSubSetting === 'themes' || activeSubSetting === 'equalizer') && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                borderRadius: '20px',
+                padding: '30px',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+                color: '#f8fafc',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px'
+              }}>
+                {/* Header */}
+                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, background: 'linear-gradient(90deg, #a78bfa, #00f2fe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        🎨 Themes, Cyber Audio & Synth Equalizer Studio
+                      </h3>
+                      <span style={{ background: 'rgba(139, 92, 246, 0.2)', border: '1px solid #a78bfa', color: '#c084fc', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+                        MERGED AUDIO-VISUAL STUDIO
+                      </span>
+                    </div>
+                    <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '6px 0 0' }}>
+                      Customize system color palettes, CRT terminal scanlines, acoustic click feedback, oscillator waveforms, pitch registers, and ambient drones.
+                    </p>
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                  {/* Theme Selector */}
-                  <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                    <label className="form-label" style={{ fontWeight: 600 }}>Active Theme</label>
-                    <select 
-                      value={activeTheme} 
-                      onChange={(e) => {
-                        const newTheme = e.target.value;
-                        setActiveTheme(newTheme);
-                        playCyberSound('click');
-                      }}
-                      className="form-input"
-                      style={{ 
-                        width: '100%', 
-                        background: 'var(--bg-secondary)', 
-                        border: '1px solid var(--border-color)', 
-                        color: 'var(--color-text-main)',
-                        opacity: 1,
-                        cursor: 'default'
-                      }}
-                    >
-                      <option value="cyberpunk">Cyberpunk Neon (Default)</option>
-                      <option value="matrix">Matrix Green</option>
-                      <option value="obsidian">Obsidian Red</option>
-                      <option value="violet">Deep Space Violet</option>
-                    </select>
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                      Swaps color primary coordinates instantly across all views.
-                    </span>
-                    
-                    {/* CRT Screen Toggle */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: '6px' }}>
+                {/* Grid Section 1: Themes & Visual CRT Scanlines */}
+                <div>
+                  <h4 style={{ color: '#00f2fe', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    🎨 1. Visual System Themes & Terminal Overlays
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                    {/* Theme Selector Card */}
+                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <label style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem' }}>Active Interface Theme Palette</label>
+                      <select 
+                        value={activeTheme} 
+                        onChange={(e) => {
+                          const newTheme = e.target.value;
+                          setActiveTheme(newTheme);
+                          playCyberSound('click');
+                        }}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(0, 242, 254, 0.3)', color: '#fff', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                      >
+                        <option value="cyberpunk" style={{ background: '#0f172a' }}>Cyberpunk Neon (Default)</option>
+                        <option value="matrix" style={{ background: '#0f172a' }}>Matrix Green</option>
+                        <option value="obsidian" style={{ background: '#0f172a' }}>Obsidian Red</option>
+                        <option value="violet" style={{ background: '#0f172a' }}>Deep Space Violet</option>
+                      </select>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Instantly updates primary color coordinates across all student and teacher dashboards.</span>
+                    </div>
+
+                    {/* CRT Scanline Toggle Card */}
+                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span className="form-label" style={{ fontWeight: 600, display: 'block', fontSize: '0.85rem' }}>CRT Terminal Scanlines</span>
-                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Enable retro cathode-ray tube screen curvature & flicker.</span>
+                        <label style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem', display: 'block' }}>Retro CRT Terminal Scanlines</label>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Enable retro cathode-ray tube screen curvature & scanline flicker.</span>
                       </div>
-                      <div 
+                      <button
+                        type="button"
                         onClick={() => {
                           setCrtOverlayEnabled(!crtOverlayEnabled);
                           playCyberSound('click');
-                        }} 
+                        }}
                         style={{
-                          width: '48px',
-                          height: '26px',
-                          backgroundColor: crtOverlayEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
-                          border: `1px solid ${crtOverlayEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
-                          borderRadius: '50px',
-                          padding: '2px',
-                          cursor: 'pointer',
-                          opacity: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          transition: 'var(--transition)',
-                          boxShadow: crtOverlayEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
+                          padding: '6px 14px',
+                          background: crtOverlayEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${crtOverlayEnabled ? '#00f2fe' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: '8px',
+                          color: crtOverlayEnabled ? '#00f2fe' : '#94a3b8',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
                         }}
                       >
-                        <div style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          backgroundColor: crtOverlayEnabled ? 'var(--color-primary)' : '#94a3b8',
-                          transform: crtOverlayEnabled ? 'translateX(22px)' : 'translateX(0px)',
-                          transition: 'var(--transition)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }} />
-                      </div>
+                        {crtOverlayEnabled ? '🟢 ON' : '⚪ OFF'}
+                      </button>
                     </div>
                   </div>
+                </div>
 
-                  {/* Audio Settings */}
-                  <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
-                    <div className="flex-between">
+                {/* Grid Section 2: Cyber Acoustic Sound Feedback */}
+                <div>
+                  <h4 style={{ color: '#a78bfa', fontSize: '0.95rem', fontWeight: 700, margin: '8px 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    🔊 2. Cyber Acoustic Sound Feedback
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span className="form-label" style={{ fontWeight: 600, display: 'block' }}>Cyber Acoustic Feedback</span>
-                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Enable electronic synth sound cues on interaction.</span>
+                        <label style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem', display: 'block' }}>Acoustic Sound Effects</label>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Play electronic synth feedback audio cues on button clicks.</span>
                       </div>
-                      <div 
+                      <button
+                        type="button"
                         onClick={() => {
                           const newSound = !soundEnabled;
                           setSoundEnabled(newSound);
                           localStorage.setItem('soundEnabled', newSound);
-                          if (newSound) {
-                            setTimeout(() => playCyberSound('click'), 50);
-                          }
-                        }} 
+                          if (newSound) setTimeout(() => playCyberSound('click'), 50);
+                        }}
                         style={{
-                          width: '48px',
-                          height: '26px',
-                          backgroundColor: soundEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
-                          border: `1px solid ${soundEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
-                          borderRadius: '50px',
-                          padding: '2px',
-                          cursor: 'pointer',
-                          opacity: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          transition: 'var(--transition)',
-                          boxShadow: soundEnabled ? '0 0 15px rgba(0, 242, 254, 0.15)' : 'none'
+                          padding: '6px 14px',
+                          background: soundEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${soundEnabled ? '#10b981' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: '8px',
+                          color: soundEnabled ? '#34d399' : '#94a3b8',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
                         }}
                       >
-                        <div style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          backgroundColor: soundEnabled ? 'var(--color-primary)' : '#94a3b8',
-                          transform: soundEnabled ? 'translateX(22px)' : 'translateX(0px)',
-                          transition: 'var(--transition)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }} />
-                      </div>
+                        {soundEnabled ? '🔊 ENABLED' : '🔇 MUTED'}
+                      </button>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div className="flex-between">
-                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />} Synth Volume: {Math.round(audioVolume * 100)}%
-                        </span>
+                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem' }}>Master Synth Sound Volume</label>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#00f2fe' }}>{Math.round(audioVolume * 100)}%</span>
                       </div>
                       <input 
                         type="range"
@@ -14426,156 +14407,82 @@ export default function App() {
                           setAudioVolume(vol);
                           localStorage.setItem('audioVolume', vol);
                         }}
-                        onMouseUp={() => {
-                          if (soundEnabled) playCyberSound('click');
-                        }}
-                        onTouchEnd={() => {
-                          if (soundEnabled) playCyberSound('click');
-                        }}
-                        style={{ 
-                          width: '100%', 
-                          accentColor: 'var(--color-primary)', 
-                          height: '4px', 
-                          borderRadius: '2px', 
-                          cursor: soundEnabled ? 'pointer' : 'not-allowed',
-                          opacity: soundEnabled ? 1 : 0.5
-                        }}
+                        style={{ width: '100%', accentColor: '#00f2fe', cursor: soundEnabled ? 'pointer' : 'not-allowed' }}
                       />
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Synth Acoustic Equalizer Panel */}
-            {activeSubSetting === 'equalizer' && (
-              <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Volume2 size={22} style={{ color: 'var(--color-primary)' }} /> Synth Equalizer & Acoustic Customizer
-                  </h3>
-                  <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
-                    Tune base frequency pitch register, sound modulators, and CPU hum drone volume.
-                  </p>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                    <label className="form-label" style={{ fontWeight: 600 }}>Oscillator Modulator</label>
-                    <select 
-                      value={synthModulator} 
-                      onChange={(e) => {
-                        setSynthModulator(e.target.value);
-                        setTimeout(() => playCyberSound('click'), 50);
-                      }}
-                      className="form-input"
-                      style={{ 
-                        width: '100%', 
-                        background: 'var(--bg-secondary)', 
-                        border: '1px solid var(--border-color)', 
-                        color: 'var(--color-text-main)',
-                        opacity: 1,
-                        cursor: 'default'
-                      }}
-                    >
-                      <option value="classic">Classic (Default Mix)</option>
-                      <option value="sine">Sine (Soft Pure Tone)</option>
-                      <option value="sawtooth">Sawtooth (Aggressive Cyber)</option>
-                      <option value="triangle">Triangle (Retro Chiptune)</option>
-                      <option value="square">Square (8-bit Robotic)</option>
-                    </select>
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                      Modulates the waveform model of feedback sounds.
-                    </span>
-                  </div>
-                  
-                  <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                    <label className="form-label" style={{ fontWeight: 600 }}>Base Synthesizer Pitch Scale ({synthPitchScale.toFixed(2)}x)</label>
-                    <input 
-                      type="range"
-                      min="0.5"
-                      max="1.5"
-                      step="0.05"
-                      value={synthPitchScale}
-                      onChange={(e) => {
-                        setSynthPitchScale(parseFloat(e.target.value));
-                      }}
-                      onMouseUp={() => {
-                        playCyberSound('click');
-                      }}
-                      onTouchEnd={() => {
-                        playCyberSound('click');
-                      }}
-                      style={{ 
-                        width: '100%', 
-                        accentColor: 'var(--color-primary)',
-                        cursor: 'pointer',
-                        opacity: 1
-                      }}
-                    />
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                      Scales the frequency pitch register of system sounds.
-                    </span>
-                  </div>
-
-                  <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                    <div className="flex-between">
-                      <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Ambient Hum Drone</label>
-                      <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '38px', height: '22px' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={ambientHumActive} 
-                          onChange={e => {
-                            setAmbientHumActive(e.target.checked);
-                            playCyberSound('click');
-                          }} 
-                          style={{ opacity: 0, width: 0, height: 0 }}
-                        />
-                        <span style={{
-                          position: 'absolute',
-                          cursor: 'pointer',
-                          top: 0, left: 0, right: 0, bottom: 0,
-                          backgroundColor: ambientHumActive ? 'var(--color-primary)' : '#334155',
-                          opacity: 1,
-                          transition: '.3s',
-                          borderRadius: '22px'
-                        }}>
-                          <span style={{
-                            position: 'absolute',
-                            content: '""',
-                            height: '14px', width: '14px',
-                            left: ambientHumActive ? '20px' : '4px',
-                            bottom: '4px',
-                            backgroundColor: 'white',
-                            transition: '.3s',
-                            borderRadius: '50%'
-                          }} />
-                        </span>
-                      </label>
+                {/* Grid Section 3: Synth Equalizer Customizer */}
+                <div>
+                  <h4 style={{ color: '#f59e0b', fontSize: '0.95rem', fontWeight: 700, margin: '8px 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    🎛️ 3. Synth Equalizer Waveform & Pitch Registers
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    {/* Oscillator Modulator */}
+                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '14px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <label style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem' }}>Oscillator Waveform Modulator</label>
+                      <select 
+                        value={synthModulator} 
+                        onChange={(e) => {
+                          setSynthModulator(e.target.value);
+                          setTimeout(() => playCyberSound('click'), 50);
+                        }}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#fff', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                      >
+                        <option value="classic" style={{ background: '#0f172a' }}>Classic (Default Cyber Mix)</option>
+                        <option value="sine" style={{ background: '#0f172a' }}>Sine (Soft Pure Tone)</option>
+                        <option value="sawtooth" style={{ background: '#0f172a' }}>Sawtooth (Aggressive Cyber Pulse)</option>
+                        <option value="triangle" style={{ background: '#0f172a' }}>Triangle (Retro Chiptune Tone)</option>
+                        <option value="square" style={{ background: '#0f172a' }}>Square (8-bit Robotic Synthesizer)</option>
+                      </select>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Modulates the waveform model of click feedback sounds.</span>
                     </div>
-                    {ambientHumActive && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', animation: 'fadeInUp 0.3s ease both' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Hum Volume: {Math.round(ambientHumVolume * 100)}%</span>
-                        <input 
-                          type="range"
-                          min="0.02"
-                          max="0.4"
-                          step="0.02"
-                          value={ambientHumVolume}
-                          onChange={(e) => {
-                            setAmbientHumVolume(parseFloat(e.target.value));
-                          }}
-                          style={{ 
-                            width: '100%', 
-                            accentColor: 'var(--color-primary)',
-                            cursor: 'pointer',
-                            opacity: 1
-                          }}
-                        />
+
+                    {/* Pitch Scale */}
+                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '14px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem' }}>Pitch Frequency Scale</label>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fbbf24' }}>{synthPitchScale.toFixed(2)}x</span>
                       </div>
-                    )}
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                      Generates low-pitch background drone representing cpu frequency load.
-                    </span>
+                      <input 
+                        type="range"
+                        min="0.5"
+                        max="1.5"
+                        step="0.05"
+                        value={synthPitchScale}
+                        onChange={(e) => setSynthPitchScale(parseFloat(e.target.value))}
+                        style={{ width: '100%', accentColor: '#f59e0b', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Scales base frequency pitch register of system sounds.</span>
+                    </div>
+
+                    {/* Ambient Hum Drone */}
+                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '14px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem' }}>Ambient CPU Hum Drone</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAmbientHumActive(!ambientHumActive);
+                            playCyberSound('click');
+                          }}
+                          style={{
+                            padding: '6px 14px',
+                            background: ambientHumActive ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${ambientHumActive ? '#f59e0b' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: '8px',
+                            color: ambientHumActive ? '#fbbf24' : '#94a3b8',
+                            fontWeight: 700,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {ambientHumActive ? '⚡ DRONE ON' : '⚪ OFF'}
+                        </button>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Generates low-pitch background drone representing CPU load frequency.</span>
+                    </div>
                   </div>
                 </div>
               </div>
