@@ -33,7 +33,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
   const [arMode, setArMode] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [cameraError, setCameraError] = useState('');
-  const [facingMode, setFacingMode] = useState('environment');
+  const [facingMode, setFacingMode] = useState('user');
   const [availableDevices, setAvailableDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -54,7 +54,6 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
     loadBadges();
   }, [instId, userId]);
 
-  // Clean up camera stream on unmount
   useEffect(() => {
     return () => {
       stopARScanner();
@@ -75,7 +74,6 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
         setLeaderboard(MOCK_LEADERBOARD);
       }
     } catch (error) {
-      console.warn('Backend leaderboard unavailable, using interactive demo data:', error.message);
       setLeaderboard(MOCK_LEADERBOARD);
     } finally {
       setLoading(false);
@@ -120,12 +118,11 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
     }
   };
 
-  // Start AR Scanner with smart multi-device camera fallbacks (Laptop Webcam & Mobile Cameras)
+  // Start AR Scanner with smart fallbacks for both Mobile & Laptop
   const startARScanner = async (overrideFacing, overrideDeviceId) => {
     setCameraError('');
     setScanResult(null);
 
-    // Stop existing stream first
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
     }
@@ -134,7 +131,6 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
     const currentDeviceId = overrideDeviceId !== undefined ? overrideDeviceId : selectedDeviceId;
 
     try {
-      // First enumerate available devices
       let videoDevices = [];
       try {
         const initialStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -157,7 +153,6 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (firstErr) {
-        console.warn('Exact camera constraints failed, attempting fallback camera constraints:', firstErr);
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
 
@@ -169,7 +164,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
       setArMode(true);
     } catch (error) {
       console.error('AR Camera init error:', error);
-      setCameraError('Unable to access camera. Please check camera permissions in browser settings.');
+      setCameraError('Unable to access camera. Please allow camera permissions in browser.');
     }
   };
 
@@ -244,7 +239,6 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
       }));
 
     } catch (error) {
-      // Graceful fallback for UI demonstration when face recognition backend is offline
       setTimeout(() => {
         setScanResult({
           success: true,
@@ -277,7 +271,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
       maxWidth: '1100px',
       margin: '0 auto',
       padding: '24px',
-      background: 'rgba(10, 15, 30, 0.75)',
+      background: 'rgba(10, 15, 30, 0.85)',
       backdropFilter: 'blur(16px)',
       border: '1px solid rgba(0, 242, 254, 0.2)',
       borderRadius: '24px',
@@ -286,19 +280,15 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       <style dangerouslySetInnerHTML={{__html: `
-        @keyframes arPulse {
-          0% { transform: scale(1); opacity: 0.8; }
-          50% { transform: scale(1.05); opacity: 1; }
-          100% { transform: scale(1); opacity: 0.8; }
-        }
         @keyframes scanLaser {
-          0% { top: 10%; }
-          50% { top: 85%; }
-          100% { top: 10%; }
+          0% { top: 8%; }
+          50% { top: 88%; }
+          100% { top: 8%; }
         }
-        @keyframes spinSlow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        @keyframes pulseGlow {
+          0% { box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
+          50% { box-shadow: 0 0 30px rgba(0, 242, 254, 0.45); }
+          100% { box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
         }
       `}} />
 
@@ -377,52 +367,28 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
         gap: '14px',
         marginBottom: '28px'
       }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          borderRadius: '16px',
-          padding: '16px',
-          textAlign: 'center'
-        }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '16px', padding: '16px', textAlign: 'center' }}>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#00f2fe' }}>{myStats.points}</div>
           <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total XP Points</div>
         </div>
 
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          borderRadius: '16px',
-          padding: '16px',
-          textAlign: 'center'
-        }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '16px', padding: '16px', textAlign: 'center' }}>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f59e0b' }}>{myStats.streak} 🔥</div>
           <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Day Streak</div>
         </div>
 
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          borderRadius: '16px',
-          padding: '16px',
-          textAlign: 'center'
-        }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '16px', padding: '16px', textAlign: 'center' }}>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#a78bfa' }}>#{myStats.rank}</div>
           <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Leaderboard Rank</div>
         </div>
 
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          borderRadius: '16px',
-          padding: '16px',
-          textAlign: 'center'
-        }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '16px', padding: '16px', textAlign: 'center' }}>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#10b981' }}>{badges.length} 🎖️</div>
           <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Badges Unlocked</div>
         </div>
       </div>
 
-      {/* Custom Styled Navigation Tabs */}
+      {/* Navigation Tabs */}
       <div style={{
         display: 'flex',
         gap: '12px',
@@ -492,7 +458,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
       {/* Main Tab Content */}
       {loading ? (
         <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '12px', animation: 'spinSlow 2s linear infinite' }}>🌀</div>
+          <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🌀</div>
           <div>Loading Gamification Data...</div>
         </div>
       ) : activeTab === 'leaderboard' ? (
@@ -652,76 +618,87 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
           </div>
         </div>
       ) : (
-        /* Live AR Scanner Tab */
-        <div>
-          <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>
-                Augmented Reality (AR) Face Scanner
-              </h3>
-              <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#9ca3af' }}>
-                Position your face within the biometric AR frame to claim instant attendance XP points
-              </p>
-            </div>
+        /* LIVE AR FACE SCANNER - MATCHING EXACT FACE ATTENDANCE CAMERA LAYOUT */
+        <div style={{
+          width: '100%',
+          maxWidth: '440px',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '18px'
+        }}>
 
-            {/* Camera Control Buttons */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                onClick={toggleFacingMode}
+          {/* Centered Header Title & Subtitle */}
+          <div style={{ textAlign: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
+              Face Scanner
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#00f2fe', fontWeight: 600, fontFamily: 'monospace' }}>
+              {isScanning ? 'Verifying Biometrics...' : 'Scanning AR Reticle...'}
+            </p>
+          </div>
+
+          {/* Camera Controls Bar (Flip Cam & Device Selector) */}
+          <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
+            <button
+              onClick={toggleFacingMode}
+              style={{
+                flex: 1,
+                padding: '8px 14px',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#fff',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                textAlign: 'center'
+              }}
+            >
+              🔄 Flip Cam ({facingMode === 'user' ? 'Front' : 'Back'})
+            </button>
+
+            {availableDevices.length > 1 && (
+              <select
+                value={selectedDeviceId}
+                onChange={handleDeviceChange}
                 style={{
-                  padding: '8px 14px',
+                  flex: 1,
+                  padding: '8px 12px',
                   borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  background: '#0d111e',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
                   color: '#fff',
                   fontSize: '0.8rem',
-                  fontWeight: 600,
                   cursor: 'pointer'
                 }}
               >
-                🔄 Flip Cam ({facingMode === 'user' ? 'Front' : 'Back'})
-              </button>
-
-              {availableDevices.length > 1 && (
-                <select
-                  value={selectedDeviceId}
-                  onChange={handleDeviceChange}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    background: '#0d111e',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {availableDevices.map((d, i) => (
-                    <option key={d.deviceId} value={d.deviceId}>
-                      {d.label || `Camera ${i + 1}`}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+                {availableDevices.map((d, i) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Camera ${i + 1}`}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
-          {/* Camera Video Feed & Interactive AR Overlay Container */}
+          {/* PORTRAIT / SQUARE CAMERA VIEWPORT BOX (MATCHING SCREENSHOT 2) */}
           <div style={{
             position: 'relative',
             width: '100%',
-            maxHeight: '480px',
-            aspectRatio: '16/9',
-            background: '#050811',
-            borderRadius: '20px',
+            aspectRatio: '1/1',
+            background: '#070a13',
+            borderRadius: '28px',
             overflow: 'hidden',
-            border: '2px solid rgba(0, 242, 254, 0.3)',
-            boxShadow: '0 0 40px rgba(0, 242, 254, 0.15)',
+            border: '2px solid rgba(0, 242, 254, 0.4)',
+            boxShadow: '0 0 35px rgba(0, 242, 254, 0.25)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            animation: 'pulseGlow 3s infinite'
           }}>
-            {/* HTML Video Stream */}
+            {/* Live Camera Video Feed */}
             <video
               ref={videoRef}
               autoPlay
@@ -733,12 +710,12 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
             {/* Hidden canvas for image capture */}
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            {/* Camera Error Display */}
+            {/* Camera Permission / Access Error Display */}
             {cameraError && (
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'rgba(5, 8, 17, 0.95)',
+                background: 'rgba(5, 8, 17, 0.96)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -746,15 +723,15 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
                 padding: '24px',
                 textAlign: 'center',
                 color: '#ef4444',
-                gap: '12px'
+                gap: '12px',
+                zIndex: 10
               }}>
                 <span style={{ fontSize: '2.5rem' }}>📷</span>
-                <p style={{ fontSize: '0.95rem', margin: 0, maxWidth: '400px', lineHeight: 1.5 }}>{cameraError}</p>
+                <p style={{ fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>{cameraError}</p>
                 <button
                   onClick={() => startARScanner()}
                   style={{
-                    marginTop: '10px',
-                    padding: '10px 20px',
+                    padding: '8px 18px',
                     borderRadius: '10px',
                     background: '#ef4444',
                     color: '#fff',
@@ -763,16 +740,62 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
                     cursor: 'pointer'
                   }}
                 >
-                  Retry Camera Access
+                  Retry Camera
                 </button>
               </div>
             )}
 
-            {/* Futuristic AR HUD Overlay */}
+            {/* OVERLAY BADGES INSIDE CAMERA (MATCHING SCREENSHOT 2) */}
             {arMode && !cameraError && (
-              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
+                
+                {/* Top-Left Badge: Stop Cam */}
+                <button
+                  onClick={stopARScanner}
+                  style={{
+                    position: 'absolute',
+                    top: '14px',
+                    left: '14px',
+                    pointerEvents: 'auto',
+                    padding: '5px 12px',
+                    borderRadius: '20px',
+                    background: 'rgba(239, 68, 68, 0.25)',
+                    border: '1px solid rgba(239, 68, 68, 0.6)',
+                    color: '#ef4444',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(6px)'
+                  }}
+                >
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} />
+                  Stop Cam
+                </button>
 
-                {/* Laser scan line moving up and down */}
+                {/* Top-Right Badge: Liveness & XP */}
+                <div style={{
+                  position: 'absolute',
+                  top: '14px',
+                  right: '14px',
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  background: 'rgba(0, 242, 254, 0.2)',
+                  border: '1px solid rgba(0, 242, 254, 0.5)',
+                  color: '#00f2fe',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  backdropFilter: 'blur(6px)'
+                }}>
+                  🛡️ Liveness | +25 XP
+                </div>
+
+                {/* Animated Horizontal Scan Laser Line */}
                 <div style={{
                   position: 'absolute',
                   left: 0,
@@ -780,102 +803,63 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
                   height: '2px',
                   background: 'linear-gradient(90deg, transparent, #00f2fe, #10b981, transparent)',
                   boxShadow: '0 0 15px #00f2fe',
-                  animation: 'scanLaser 3s linear infinite',
-                  zIndex: 3
+                  animation: 'scanLaser 2.5s linear infinite'
                 }} />
 
-                {/* Top AR Status Banner */}
-                <div style={{
-                  position: 'absolute',
-                  top: '16px',
-                  left: '16px',
-                  right: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  zIndex: 5
-                }}>
-                  <div style={{
-                    padding: '8px 16px',
-                    background: 'rgba(5, 8, 20, 0.75)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(0, 242, 254, 0.4)',
-                    borderRadius: '10px',
-                    color: '#00f2fe',
-                    fontSize: '0.78rem',
-                    fontWeight: 800,
-                    letterSpacing: '1px',
-                    fontFamily: 'monospace'
-                  }}>
-                    🎯 AR FACIAL RETICLE ACTIVE
-                  </div>
-
-                  <div style={{
-                    padding: '8px 16px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid #10b981',
-                    borderRadius: '10px',
-                    color: '#10b981',
-                    fontSize: '0.78rem',
-                    fontWeight: 800,
-                    letterSpacing: '1px',
-                    fontFamily: 'monospace'
-                  }}>
-                    +25 XP BONUS READY
-                  </div>
-                </div>
-
-                {/* Center Biometric Face Reticle Target */}
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '240px',
-                  height: '280px',
-                  border: '2px dashed rgba(0, 242, 254, 0.6)',
-                  borderRadius: '50%',
-                  boxShadow: '0 0 30px rgba(0, 242, 254, 0.2)',
-                  animation: 'arPulse 2s infinite',
-                  zIndex: 4
-                }}>
-                  {/* Corner HUD Brackets */}
-                  <div style={{ position: 'absolute', top: -4, left: -4, width: 20, height: 20, borderTop: '4px solid #00f2fe', borderLeft: '4px solid #00f2fe' }} />
-                  <div style={{ position: 'absolute', top: -4, right: -4, width: 20, height: 20, borderTop: '4px solid #00f2fe', borderRight: '4px solid #00f2fe' }} />
-                  <div style={{ position: 'absolute', bottom: -4, left: -4, width: 20, height: 20, borderBottom: '4px solid #00f2fe', borderLeft: '4px solid #00f2fe' }} />
-                  <div style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderBottom: '4px solid #00f2fe', borderRight: '4px solid #00f2fe' }} />
-                </div>
-
+                {/* GLOWING CYAN CORNER RETICLE BRACKETS (ALL 4 CORNERS) */}
+                <div style={{ position: 'absolute', top: 16, left: 16, width: 28, height: 28, borderTop: '3.5px solid #00f2fe', borderLeft: '3.5px solid #00f2fe', borderRadius: '6px 0 0 0', boxShadow: '-2px -2px 10px rgba(0, 242, 254, 0.5)' }} />
+                <div style={{ position: 'absolute', top: 16, right: 16, width: 28, height: 28, borderTop: '3.5px solid #00f2fe', borderRight: '3.5px solid #00f2fe', borderRadius: '0 6px 0 0', boxShadow: '2px -2px 10px rgba(0, 242, 254, 0.5)' }} />
+                <div style={{ position: 'absolute', bottom: 16, left: 16, width: 28, height: 28, borderBottom: '3.5px solid #00f2fe', borderLeft: '3.5px solid #00f2fe', borderRadius: '0 0 0 6px', boxShadow: '-2px 2px 10px rgba(0, 242, 254, 0.5)' }} />
+                <div style={{ position: 'absolute', bottom: 16, right: 16, width: 28, height: 28, borderBottom: '3.5px solid #00f2fe', borderRight: '3.5px solid #00f2fe', borderRadius: '0 0 6px 0', boxShadow: '2px 2px 10px rgba(0, 242, 254, 0.5)' }} />
               </div>
             )}
           </div>
 
-          {/* Verification Scan Result Popup */}
+          {/* INSTRUCTION CARD BELOW VIDEO (MATCHING SCREENSHOT 2) */}
+          <div style={{
+            width: '100%',
+            padding: '16px 20px',
+            borderRadius: '20px',
+            background: 'rgba(245, 158, 11, 0.04)',
+            border: '1.5px solid #f59e0b',
+            boxShadow: '0 0 20px rgba(245, 158, 11, 0.1)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <div style={{ fontSize: '1.8rem', color: '#f59e0b' }}>👁️</div>
+            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '0.01em' }}>
+              Position your face inside frame & tap below to verify.
+            </div>
+          </div>
+
+          {/* Verification Scan Result Banner */}
           {scanResult && (
             <div style={{
-              marginTop: '16px',
-              padding: '16px 20px',
-              borderRadius: '14px',
+              width: '100%',
+              padding: '14px 18px',
+              borderRadius: '16px',
               background: scanResult.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
               border: scanResult.success ? '1px solid #10b981' : '1px solid #ef4444',
               color: scanResult.success ? '#10b981' : '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '14px'
+              gap: '12px'
             }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: '0.98rem' }}>{scanResult.message}</div>
-                <div style={{ fontSize: '0.82rem', color: '#fff', marginTop: '2px' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>{scanResult.message}</div>
+                <div style={{ fontSize: '0.8rem', color: '#fff', marginTop: '2px' }}>
                   Student: <strong>{scanResult.student}</strong> | Earned <strong>+{scanResult.points} XP</strong>
                 </div>
               </div>
-
               <div style={{
-                fontSize: '1.2rem',
+                fontSize: '1.1rem',
                 fontWeight: 800,
-                padding: '6px 14px',
-                borderRadius: '10px',
+                padding: '5px 12px',
+                borderRadius: '8px',
                 background: '#10b981',
                 color: '#000'
               }}>
@@ -884,48 +868,31 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId }) => {
             </div>
           )}
 
-          {/* Action Trigger Buttons */}
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-            <button
-              onClick={captureAndScan}
-              disabled={isScanning || cameraError}
-              style={{
-                flex: 1,
-                padding: '14px 24px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                border: 'none',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: '0.95rem',
-                cursor: isScanning || cameraError ? 'not-allowed' : 'pointer',
-                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                opacity: isScanning || cameraError ? 0.6 : 1
-              }}
-            >
-              📸 {isScanning ? 'Verifying AR Face...' : 'Capture & Mark AR Attendance (+25 XP)'}
-            </button>
-
-            <button
-              onClick={stopARScanner}
-              style={{
-                padding: '14px 20px',
-                borderRadius: '14px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                color: '#ef4444',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer'
-              }}
-            >
-              Stop AR Scanner
-            </button>
-          </div>
+          {/* MAIN CAPTURE & MARK ATTENDANCE BUTTON */}
+          <button
+            onClick={captureAndScan}
+            disabled={isScanning || cameraError}
+            style={{
+              width: '100%',
+              padding: '15px 24px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: '1rem',
+              cursor: isScanning || cameraError ? 'not-allowed' : 'pointer',
+              boxShadow: '0 6px 24px rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              opacity: isScanning || cameraError ? 0.6 : 1,
+              transition: 'all 0.2s ease'
+            }}
+          >
+            📸 {isScanning ? 'Verifying AR Face...' : 'Capture & Mark AR Attendance (+25 XP)'}
+          </button>
 
         </div>
       )}
