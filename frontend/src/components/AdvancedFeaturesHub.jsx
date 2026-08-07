@@ -86,12 +86,20 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
     if (!parentPhone) return;
     const cleanPhone = parentPhone.replace(/\D/g, '');
     const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const url = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(customAlertMsg)}`;
-    window.open(url, '_blank');
+    const waUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(customAlertMsg)}`;
+    
+    // Try opening popup
+    const newWin = window.open(waUrl, '_blank');
+    
     setDispatchStatus({
       success: true,
-      channelText: `Direct WhatsApp Web/App Chat opened for ${parentPhone}!`,
-      details: { channel: 'WhatsApp Direct API', phone: phoneWithCountry }
+      channelText: `WhatsApp Chat Prepared for +${phoneWithCountry}!`,
+      waUrl: waUrl,
+      details: { 
+        channel: 'WhatsApp Direct Chat', 
+        phone: `+${phoneWithCountry}`,
+        instruction: 'Click the green link below if popup was blocked by your browser to send message immediately!'
+      }
     });
   };
 
@@ -706,17 +714,46 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
             {/* Dispatch Response Result */}
             {dispatchStatus && (
               <div style={{
-                padding: '14px',
-                borderRadius: '14px',
+                padding: '16px',
+                borderRadius: '16px',
                 background: dispatchStatus.success ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
                 border: dispatchStatus.success ? '1px solid #10b981' : '1px solid #ef4444',
                 color: dispatchStatus.success ? '#10b981' : '#ef4444',
-                fontSize: '0.82rem',
-                fontWeight: 700
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
               }}>
                 <div>{dispatchStatus.channelText}</div>
+
+                {dispatchStatus.waUrl && (
+                  <a
+                    href={dispatchStatus.waUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '12px 18px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#fff',
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      textDecoration: 'none',
+                      boxShadow: '0 4px 15px rgba(16, 185, 129, 0.35)',
+                      marginTop: '4px'
+                    }}
+                  >
+                    💬 Tap Here to Open WhatsApp Chat (+{parentPhone.replace(/\D/g, '')}) ➔
+                  </a>
+                )}
+
                 {dispatchStatus.details && (
-                  <pre style={{ margin: '6px 0 0 0', fontSize: '0.75rem', opacity: 0.85, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                  <pre style={{ margin: '4px 0 0 0', fontSize: '0.75rem', opacity: 0.85, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
                     {JSON.stringify(dispatchStatus.details, null, 2)}
                   </pre>
                 )}
