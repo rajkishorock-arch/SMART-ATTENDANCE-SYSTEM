@@ -164,8 +164,8 @@ async def recognize_and_mark_attendance(
                 detail=f"Access denied: IP restriction is active. Your IP ({client_ip}) is not authorized."
             )
             
-    # 2. Geofencing Check
-    if settings.geofencing_enabled:
+    # 2. Geofencing Check (OFF by default — only active if manually enabled by admin)
+    if bool(settings.geofencing_enabled) is True:
         if latitude is None or longitude is None:
             raise HTTPException(
                 status_code=403,

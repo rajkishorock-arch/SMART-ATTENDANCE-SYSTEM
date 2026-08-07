@@ -143,6 +143,9 @@ def update_schema():
         safe_add_column('institutions', 'student_limit', 'INT DEFAULT 500')
         safe_add_column('users', 'department', 'VARCHAR(100) NULL')
         safe_add_column('users', 'is_department_head', 'BOOLEAN DEFAULT FALSE')
+
+        # Ensure geofencing_enabled is False by default for all institutions (only active when manually enabled)
+        safe_execute("UPDATE system_settings SET geofencing_enabled = FALSE WHERE geofencing_enabled IS NOT FALSE", "Ensured geofencing_enabled is OFF by default")
         safe_add_column('users', 'sso_provider', 'VARCHAR(50) NULL')
         safe_add_column('users', 'sso_subject', 'VARCHAR(200) NULL')
         safe_add_column('student', 'face_enrolled_at', 'TIMESTAMP NULL')
