@@ -8,6 +8,7 @@ export default function FingerprintScannerModal({
   token,
   apiBaseUrl = '',
   initialMode = 'scan',
+  subjectId = null,
   onAttendanceMarked,
   onFingerprintEnrolled,
   playCyberSound = () => {}
@@ -31,7 +32,8 @@ export default function FingerprintScannerModal({
         },
         body: JSON.stringify({
           method: methodName,
-          student_id: currentUser?.id
+          student_id: currentUser?.id,
+          subject_id: subjectId ? parseInt(subjectId) : null
         })
       });
       if (res.ok) {
@@ -59,11 +61,12 @@ export default function FingerprintScannerModal({
         },
         body: JSON.stringify({ credential: credData })
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.message) {
-          setStatusMsg(data.message);
-        }
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus('error');
+        setStatusMsg(data.detail || '⚠️ Fingerprint enrollment failed.');
+      } else if (data.message) {
+        setStatusMsg(data.message);
       }
     } catch (e) {
       console.warn("Backend fingerprint enrollment sync failed:", e);
@@ -268,6 +271,28 @@ export default function FingerprintScannerModal({
     }, 250);
   };
 
+  const handleDeleteFingerprint = async () => {
+    if (!currentUser?.id) return;
+    if (!window.confirm(`Are you sure you want to delete/reset the enrolled fingerprint for ${currentUser?.name || 'this student'}?`)) return;
+    try {
+      const base = apiBaseUrl || (window.location.origin.includes('5173') ? 'http://localhost:8000/api' : '/api');
+      const authToken = token || localStorage.getItem('token');
+      await fetch(`${base}/enrollment/student/${currentUser.id}/fingerprint`, {
+        method: 'DELETE',
+        headers: {
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+        }
+      });
+      localStorage.removeItem(`fingerprint_cred_${currentUser.id}`);
+      setRegisteredCredential(null);
+      setStatus('idle');
+      setStatusMsg(`🗑️ Fingerprint deleted. You can now scan & enroll a new finger for ${currentUser?.name || 'Student'}.`);
+      if (onFingerprintEnrolled) onFingerprintEnrolled({ user: currentUser?.name, reset: true });
+    } catch (e) {
+      console.warn("Delete fingerprint error:", e);
+    }
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -307,20 +332,20 @@ export default function FingerprintScannerModal({
               width: '42px',
               height: '42px',
               borderRadius: '14px',
-              background: 'rgba(0, 242, 254, 0.15)',
-              border: '1px solid #00f2fe',
+              background: mode === 'register' ? 'rgba(167, 139, 250, 0.15)' : 'rgba(0, 242, 254, 0.15)',
+              border: mode === 'register' ? '1px solid #a78bfa' : '1px solid #00f2fe',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#00f2fe'
+              color: mode === 'register' ? '#a78bfa' : '#00f2fe'
             }}>
               <Fingerprint size={24} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc' }}>
-                Hardware Fingerprint Biometric
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
+                {mode === 'register' ? 'Enroll Student Fingerprint' : 'Fingerprint Attendance Scanner'}
               </h3>
-              <span style={{ fontSize: '0.75rem', color: '#00f2fe', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', color: mode === 'register' ? '#a78bfa' : '#00f2fe', fontWeight: 700 }}>
                 {hardwareSupported ? '🟢 PHONE HARDWARE SENSOR DETECTED' : '⚡ WEBAUTHN FINGERPRINT SYSTEM'}
               </span>
             </div>
@@ -343,103 +368,6 @@ export default function FingerprintScannerModal({
           >
             <X size={18} />
           </button>
-        </div>
-
-        {/* Mode Selector Tabs */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: 'rgba(0,0,0,0.3)', padding: '4px', borderRadius: '12px' }}>
-          <button
-            type="button"
-            onClick={() => { setMode('scan'); setStatus('idle'); setStatusMsg('Touch scanner to mark attendance'); }}
-            style={{
-              padding: '10px',
-              borderRadius: '10px',
-              border: mode === 'scan' ? '1px solid #00f2fe' : 'none',
-              background: mode === 'scan' ? 'rgba(0, 242, 254, 0.15)' : 'transparent',
-              color: mode === 'scan' ? '#00f2fe' : '#9ca3af',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer'
-            }}
-          >
-            🖐️ Mark Attendance
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMode('register'); setStatus('idle'); setStatusMsg('Enroll phone fingerprint sensor credential'); }}
-            style={{
-              padding: '10px',
-              borderRadius: '10px',
-              border: mode === 'register' ? '1px solid #a78bfa' : 'none',
-              background: mode === 'register' ? 'rgba(167, 139, 250, 0.15)' : 'transparent',
-              color: mode === 'register' ? '#a78bfa' : '#9ca3af',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer'
-            }}
-          >
-            ➕ Enroll Fingerprint
-          </button>
-        </div>
-
-        {/* Holographic Interactive Fingerprint Pad */}
-        <div 
-          onClick={mode === 'register' ? handleNativeRegister : handleNativeVerify}
-          style={{
-            background: 'radial-gradient(circle at center, rgba(0, 242, 254, 0.1) 0%, rgba(8, 12, 24, 0.6) 80%)',
-            border: `2px dashed ${status === 'success' ? '#10b981' : status === 'scanning' ? '#00f2fe' : 'rgba(0, 242, 254, 0.3)'}`,
-            borderRadius: '20px',
-            padding: '30px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '16px',
-            cursor: 'pointer',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: status === 'scanning' ? '0 0 30px rgba(0, 242, 254, 0.3)' : 'none',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Fingerprint 
-              size={80} 
-              style={{
-                color: status === 'success' ? '#10b981' : status === 'scanning' ? '#00f2fe' : '#38bdf8',
-                filter: `drop-shadow(0 0 15px ${status === 'success' ? '#10b981' : '#00f2fe'})`,
-                animation: status === 'scanning' ? 'pulse 1.2s infinite alternate' : 'none'
-              }} 
-            />
-
-            {status === 'scanning' && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '4px',
-                background: '#00f2fe',
-                boxShadow: '0 0 15px #00f2fe',
-                animation: 'scannerPulse 1.2s linear infinite alternate'
-              }} />
-            )}
-          </div>
-
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: status === 'success' ? '#34d399' : '#f8fafc' }}>
-              {statusMsg}
-            </span>
-            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 0' }}>
-              Tap scanner pad to trigger Phone Fingerprint Sensor prompt
-            </p>
-          </div>
-
-          {/* Progress Bar */}
-          {status === 'scanning' && (
-            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, #00f2fe, #10b981)', transition: 'width 0.3s ease' }} />
-            </div>
-          )}
         </div>
 
         {/* Action Trigger Buttons */}
@@ -474,7 +402,7 @@ export default function FingerprintScannerModal({
             ) : mode === 'register' ? (
               <>
                 <Zap size={18} />
-                <span>🖐️ Trigger Native Phone Fingerprint Enroll</span>
+                <span>🖐️ Scan & Enroll Student Fingerprint</span>
               </>
             ) : (
               <>
@@ -484,9 +412,33 @@ export default function FingerprintScannerModal({
             )}
           </button>
 
+          {/* Delete / Reset Fingerprint Button (Available in register mode) */}
+          {mode === 'register' && (registeredCredential || status === 'success') && (
+            <button
+              type="button"
+              onClick={handleDeleteFingerprint}
+              style={{
+                padding: '12px',
+                borderRadius: '12px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid #ef4444',
+                color: '#f87171',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              🗑️ Delete / Reset Enrolled Fingerprint
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={() => simulateVirtualScanning('Virtual Biometric Fingerprint Verified (PRESENT)')}
+            onClick={() => simulateVirtualScanning(mode === 'register' ? 'Virtual Fingerprint Credential Enrolled!' : 'Virtual Biometric Fingerprint Verified (PRESENT)')}
             style={{
               padding: '10px',
               borderRadius: '10px',

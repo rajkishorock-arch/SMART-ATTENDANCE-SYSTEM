@@ -12277,7 +12277,41 @@ export default function App() {
                     letterSpacing: '0.02em'
                   }}
                 >
-                  Start Check-in Session
+                  📸 Start AI Face Check-in Session
+                </button>
+
+                {/* Hardware Phone Fingerprint Attendance Button */}
+                <button
+                  onClick={() => {
+                    if (userRole === 'admin' && !selectedSubjectId) {
+                      alert('Please select a subject first to use Fingerprint Attendance.');
+                      return;
+                    }
+                    const subId = userRole === 'teacher'
+                      ? subjects.find(s => s.teacher_id === currentUser?.details?.id)?.id?.toString() || ''
+                      : selectedSubjectId;
+                    setSelectedSubjectId(subId);
+                    setFingerprintModalMode('scan');
+                    setShowFingerprintModal(true);
+                    playCyberSound('click');
+                  }}
+                  type="button"
+                  className="btn-secondary active-haptic"
+                  style={{
+                    padding: '13px',
+                    borderRadius: '12px',
+                    fontWeight: 700,
+                    fontSize: '0.92rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    border: '1px solid #00f2fe',
+                    color: '#00f2fe',
+                    background: 'rgba(0, 242, 254, 0.08)'
+                  }}
+                >
+                  🖐️ Scan Phone Fingerprint for Attendance
                 </button>
 
                 {/* Manual Attendance Button */}
@@ -20224,6 +20258,7 @@ export default function App() {
         token={token}
         currentUser={editingStudent || editingStudentSelf || currentUser}
         initialMode={fingerprintModalMode}
+        subjectId={selectedSubjectId}
         apiBaseUrl={API_BASE_URL}
         playCyberSound={playCyberSound}
         onAttendanceMarked={(data) => {

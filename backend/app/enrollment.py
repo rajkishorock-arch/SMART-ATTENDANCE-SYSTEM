@@ -104,8 +104,24 @@ def enroll_student_fingerprint(
         raise HTTPException(status_code=404, detail="Student not found")
         
     credential_data = payload.get("credential", {})
+    cred_str = json.dumps(credential_data) if isinstance(credential_data, dict) else str(credential_data)
+    cred_id = credential_data.get("id") if isinstance(credential_data, dict) else None
+    
+    # 1-to-1 Unique Fingerprint Lock check across students
+    if cred_id:
+        existing_other = db.query(models.StudentModel).filter(
+            models.StudentModel.id != student_id,
+            models.StudentModel.institution_id == current_user.institution_id,
+            models.StudentModel.fingerprint_credential.like(f"%{cred_id}%")
+        ).first()
+        if existing_other:
+            raise HTTPException(
+                status_code=400,
+                detail=f"⚠️ This fingerprint is ALREADY enrolled to student '{existing_other.name}' (Roll: {existing_other.roll}). Each student must have a unique fingerprint!"
+            )
+
     student.fingerprint_enrolled = True
-    student.fingerprint_credential = json.dumps(credential_data) if isinstance(credential_data, dict) else str(credential_data)
+    student.fingerprint_credential = cred_str
     student.fingerprint_enrolled_at = datetime.now(IST)
     
     db.commit()
@@ -113,6 +129,34 @@ def enroll_student_fingerprint(
         "status": "success",
         "message": f"Fingerprint biometric successfully enrolled for student '{student.name}' (Roll: {student.roll}).",
         "fingerprint_enrolled": True,
+        "student_id": student.id
+    }
+
+
+@router.delete("/student/{student_id}/fingerprint")
+def delete_student_fingerprint(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Delete or reset fingerprint biometric credential for a student."""
+    student = db.query(models.StudentModel).filter(
+        models.StudentModel.id == student_id,
+        models.StudentModel.institution_id == current_user.institution_id
+    ).first()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    student.fingerprint_enrolled = False
+    student.fingerprint_credential = None
+    student.fingerprint_enrolled_at = None
+    
+    db.commit()
+    return {
+        "status": "success",
+        "message": f"🗑️ Fingerprint biometric deleted for student '{student.name}' (Roll: {student.roll}). You can now re-enroll.",
+        "fingerprint_enrolled": False,
         "student_id": student.id
     }
 

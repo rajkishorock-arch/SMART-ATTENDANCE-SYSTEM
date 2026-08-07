@@ -1124,6 +1124,7 @@ async def mark_fingerprint_attendance(
     """
     student_id = payload.get("student_id")
     method_name = payload.get("method", "fingerprint_hardware")
+    subject_id = payload.get("subject_id")
     
     student = None
     if student_id:
@@ -1157,15 +1158,19 @@ async def mark_fingerprint_attendance(
     time_str = now.strftime("%I:%M:%S %p")
     date_str = now.strftime("%Y-%m-%d")
     
-    attendance_id = f"{student.id}_{date_str}_fingerprint"
+    attendance_id = f"{student.id}_{date_str}_{subject_id or 'none'}"
     
     db_attendance = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.id == attendance_id
     ).first()
     
+    already_marked = False
     if db_attendance:
-        db_attendance.attendance = "Present"
-        db_attendance.time = time_str
+        if db_attendance.attendance == "Present":
+            already_marked = True
+        else:
+            db_attendance.attendance = "Present"
+            db_attendance.time = time_str
     else:
         db_attendance = models.AttendanceModel(
             id=attendance_id,
@@ -1176,11 +1181,26 @@ async def mark_fingerprint_attendance(
             time=time_str,
             date=date_str,
             attendance="Present",
-            subject_id=None
+            subject_id=subject_id
         )
         db.add(db_attendance)
         
     db.commit()
+    
+    if already_marked:
+        return {
+            "status": "info",
+            "message": f"ℹ️ Student '{student.name}' (Roll: {student.roll}) is ALREADY marked PRESENT for today!",
+            "already_marked": True,
+            "student": {
+                "id": student.id,
+                "name": student.name,
+                "roll": student.roll,
+                "dep": student.dep
+            },
+            "timestamp": db_attendance.time,
+            "date": date_str
+        }
     
     # Audit trail
     try:
