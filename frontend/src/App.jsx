@@ -18638,7 +18638,7 @@ export default function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <button
                     type="button"
-                    onClick={() => { setShowScannerModal(true); playCyberSound('click'); }}
+                    onClick={() => { setShowEditStudentModal(false); navigateToTab('attendance'); playCyberSound('click'); }}
                     style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
                     📸 Scan & Update Face ID
@@ -18759,7 +18759,7 @@ export default function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <button
                     type="button"
-                    onClick={() => { setShowScannerModal(true); playCyberSound('click'); }}
+                    onClick={() => { setShowEditStudentSelfModal(false); navigateToTab('attendance'); playCyberSound('click'); }}
                     style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
                     📸 Scan & Register Face
@@ -20221,7 +20221,7 @@ export default function App() {
         isOpen={showFingerprintModal} 
         onClose={() => setShowFingerprintModal(false)} 
         token={token}
-        currentUser={currentUser}
+        currentUser={editingStudent || editingStudentSelf || currentUser}
         apiBaseUrl={API_BASE_URL}
         playCyberSound={playCyberSound}
         onAttendanceMarked={(data) => {
