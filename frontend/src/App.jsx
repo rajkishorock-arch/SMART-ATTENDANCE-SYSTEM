@@ -58,6 +58,7 @@ import {
   BarChart3,
   ArrowUpCircle,
   Sliders,
+  Palette,
 } from 'lucide-react';
 import { 
   AreaChart, 
