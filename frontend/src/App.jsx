@@ -14731,6 +14731,7 @@ export default function App() {
                 user={currentUser}
                 token={token}
                 userRole={userRole}
+                students={students}
               />
             )}
 
@@ -14742,6 +14743,7 @@ export default function App() {
                 token={token}
                 userRole={userRole}
                 institutionId={currentUser?.institution_id}
+                students={students}
               />
             )}
 
