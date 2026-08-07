@@ -112,9 +112,16 @@ def get_child_attendance(
     return [{"date": l.date, "time": l.time, "status": l.attendance} for l in logs]
 
 
+class ParentNotifyPayload(BaseModel):
+    parent_email: Optional[str] = None
+    parent_phone: Optional[str] = None
+    custom_message: Optional[str] = None
+
+
 @router.post("/notify-absent/{student_id}")
 def notify_parent_of_absence(
     student_id: int,
+    payload: Optional[ParentNotifyPayload] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
 ):
@@ -128,13 +135,35 @@ def notify_parent_of_absence(
         models.ParentAccount.student_id == student_id,
         models.ParentAccount.institution_id == current_user.institution_id,
     ).first()
-    phone = student.parent_phone or (parent.phone if parent else None)
+
+    phone = (payload.parent_phone if payload and payload.parent_phone else None) or student.parent_phone or (parent.phone if parent else None)
+    email = (payload.parent_email if payload and payload.parent_email else None) or student.parent_email or (parent.email if parent else None) or current_user.email
+
+    # Trigger Real Email Service Dispatch
+    email_status = "skipped"
+    if email:
+        try:
+            from .email_service import send_absent_email
+            send_absent_email(email, student.name or "Student", today)
+            email_status = f"Dispatched email to {email}"
+        except Exception as ex:
+            email_status = f"SMTP log: {str(ex)}"
+
     result = notify_parent_absent(
         phone,
-        student.parent_email,
+        email,
         student.name or "Student",
         today,
-        notify_sms=parent.notify_sms if parent else False,
-        notify_whatsapp=parent.notify_whatsapp if parent else False,
+        notify_sms=True,
+        notify_whatsapp=True,
     )
-    return {"message": "Notification sent", "channels": result}
+    result["email"] = email_status
+    result["target_email"] = email
+    result["target_phone"] = phone
+
+    return {
+        "message": f"Notification processed for {student.name}",
+        "target_email": email,
+        "email_status": email_status,
+        "channels": result
+    }

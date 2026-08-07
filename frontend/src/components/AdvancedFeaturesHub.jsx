@@ -54,7 +54,15 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
       setDispatchStatus(null);
       const res = await fetch(`${apiBaseUrl}/parents/notify-absent/${selectedStudentForAlert.id}`, {
         method: 'POST',
-        headers: headers(),
+        headers: {
+          ...headers(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          parent_email: parentEmail,
+          parent_phone: parentPhone,
+          custom_message: customAlertMsg
+        })
       });
       const data = await res.json().catch(() => ({ message: 'Notification sent' }));
       if (res.ok) {
