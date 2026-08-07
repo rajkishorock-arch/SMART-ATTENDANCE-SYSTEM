@@ -18625,6 +18625,34 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Biometric Multi-Modal Enrollment Control */}
+              <div style={{ marginTop: '24px', padding: '18px', background: 'rgba(0, 242, 254, 0.05)', border: '1px solid rgba(0, 242, 254, 0.2)', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#00f2fe' }}>
+                    🛡️ Biometric Security Credentials (Face & Fingerprint)
+                  </span>
+                  <span style={{ fontSize: '0.72rem', background: 'rgba(0, 242, 254, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '8px' }}>
+                    DUAL BIOMETRIC ACTIVE
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setShowScannerModal(true); playCyberSound('click'); }}
+                    style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    📸 Scan & Update Face ID
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowFingerprintModal(true); playCyberSound('click'); }}
+                    style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    🖐️ Scan & Enroll Fingerprint
+                  </button>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '32px' }}>
                 <button type="button" onClick={() => { setShowEditStudentModal(false); setEditingStudent(null); }} className="btn-secondary" style={{ padding: '12px 24px', borderRadius: '8px' }}>
                   Cancel
@@ -18716,6 +18744,34 @@ export default function App() {
                   value={editingStudentSelf.address}
                   onChange={e => setEditingStudentSelf({...editingStudentSelf, address: e.target.value})}
                 />
+              </div>
+
+              {/* Biometric Self-Enrollment Buttons for Student */}
+              <div style={{ marginTop: '24px', padding: '18px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a78bfa' }}>
+                    🧬 My Biometric Profile Setup (Face & Fingerprint)
+                  </span>
+                  <span style={{ fontSize: '0.72rem', background: 'rgba(167, 139, 250, 0.2)', color: '#c4b5fd', padding: '2px 8px', borderRadius: '8px' }}>
+                    SELF-SERVICE BIOMETRICS
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setShowScannerModal(true); playCyberSound('click'); }}
+                    style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    📸 Scan & Register Face
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowFingerprintModal(true); playCyberSound('click'); }}
+                    style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    🖐️ Scan & Enroll Fingerprint
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '32px' }}>

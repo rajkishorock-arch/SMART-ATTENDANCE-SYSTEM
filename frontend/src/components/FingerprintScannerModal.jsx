@@ -43,6 +43,25 @@ export default function FingerprintScannerModal({
     }
   };
 
+  const syncEnrollmentToBackend = async (credData) => {
+    try {
+      const base = apiBaseUrl || (window.location.origin.includes('5173') ? 'http://localhost:8000/api' : '/api');
+      const authToken = token || localStorage.getItem('token');
+      const studentId = currentUser?.id;
+      if (!studentId) return;
+      await fetch(`${base}/enrollment/student/${studentId}/fingerprint`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify({ credential: credData })
+      });
+    } catch (e) {
+      console.warn("Backend fingerprint enrollment sync failed:", e);
+    }
+  };
+
   // Check if WebAuthn native hardware fingerprint is supported
   useEffect(() => {
     if (window.PublicKeyCredential) {
@@ -122,6 +141,7 @@ export default function FingerprintScannerModal({
         setStatusMsg('✅ Native Phone Fingerprint Successfully Enrolled!');
         if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
         playCyberSound('success');
+        syncEnrollmentToBackend(credData);
       }
     } catch (err) {
       console.warn('Native fingerprint enrollment fallback:', err);

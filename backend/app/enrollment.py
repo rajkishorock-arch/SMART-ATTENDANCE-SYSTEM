@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 
 from . import models, security, crud
@@ -85,3 +85,59 @@ def get_reenrollment_reminders(
                 "face_enrolled_at": s.face_enrolled_at.isoformat() if s.face_enrolled_at else None,
             })
     return {"count": len(reminders), "students": reminders}
+
+
+@router.post("/student/{student_id}/fingerprint")
+def enroll_student_fingerprint(
+    student_id: int,
+    payload: dict = Body(default={}),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Enroll or update fingerprint biometric credential for a student."""
+    student = db.query(models.StudentModel).filter(
+        models.StudentModel.id == student_id,
+        models.StudentModel.institution_id == current_user.institution_id
+    ).first()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    credential_data = payload.get("credential", {})
+    student.fingerprint_enrolled = True
+    student.fingerprint_credential = json.dumps(credential_data) if isinstance(credential_data, dict) else str(credential_data)
+    student.fingerprint_enrolled_at = datetime.now(IST)
+    
+    db.commit()
+    return {
+        "status": "success",
+        "message": f"Fingerprint biometric successfully enrolled for student '{student.name}' (Roll: {student.roll}).",
+        "fingerprint_enrolled": True,
+        "student_id": student.id
+    }
+
+
+@router.get("/student/{student_id}/status")
+def get_student_biometric_status(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    """Retrieve biometric enrollment status for face and fingerprint."""
+    student = db.query(models.StudentModel).filter(
+        models.StudentModel.id == student_id,
+        models.StudentModel.institution_id == current_user.institution_id
+    ).first()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    return {
+        "student_id": student.id,
+        "name": student.name,
+        "roll": student.roll,
+        "face_enrolled": bool(student.face_embedding),
+        "face_enrolled_at": student.face_enrolled_at.isoformat() if student.face_enrolled_at else None,
+        "fingerprint_enrolled": bool(student.fingerprint_enrolled),
+        "fingerprint_enrolled_at": student.fingerprint_enrolled_at.isoformat() if student.fingerprint_enrolled_at else None,
+    }
