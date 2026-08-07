@@ -9866,32 +9866,25 @@ export default function App() {
                     </p>
                   </div>
 
-                  {/* Category Card 2: Attendance Trends & Analytics */}
+                  {/* Category Card 2: Trends, Analytics & Biometric Radar (MERGED) */}
                   <div 
                     onClick={() => { setActiveDashboardSubTab('trends'); playCyberSound('click'); }}
                     className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(167, 139, 250, 0.3)' }}
+                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(167, 139, 250, 0.4)', background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(0, 242, 254, 0.1))' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Layers size={26} style={{ color: '#a78bfa' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(167, 139, 250, 0.15)', color: '#c084fc' }}>📊 Analytics</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Layers size={26} style={{ color: '#a78bfa' }} />
+                        <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
+                      </div>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(167, 139, 250, 0.2)', color: '#c084fc' }}>
+                        ✨ MERGED TRENDS & RADAR
+                      </span>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Trends & Analytics Charts</h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Weekly attendance trends line area graphs and department presence distribution chart.</p>
-                  </div>
-
-                  {/* Category Card 3: Biometric Security Radar */}
-                  <div 
-                    onClick={() => { setActiveDashboardSubTab('radar'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(0, 242, 254, 0.3)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <ShieldCheck size={26} style={{ color: '#00f2fe' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe' }}>🛡️ Security</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Biometric Security Radar</h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Realtime perimeter scanning sweeps and biometric core neural mesh visualization map.</p>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Trends, Analytics & Biometric Radar Hub</h3>
+                    <p style={{ color: '#cbd5e1', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+                      Weekly attendance trends line area graphs, department presence distribution, perimeter biometric sonar sweeps, and neural mesh visualization.
+                    </p>
                   </div>
 
                   {/* Category Card 4: System Health & Core Diagnostics */}
@@ -10136,150 +10129,163 @@ export default function App() {
                   </div>
                 )}
 
-          {/* Module 2: Attendance Trends & Analytics */}
-          {activeDashboardSubTab === 'trends' && (
-            <div className="dashboard-charts-grid">
-              {/* Weekly Trend Line Area Chart */}
-              <div className="glass-panel" style={{ padding: '20px', animationDelay: '500ms' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Calendar size={18} style={{ color: '#00f2fe' }} /> Weekly Attendance Trends
-                </h3>
-                <div ref={chartRef1} style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
-                  <AreaChart width={chartWidth1} height={220} data={stats.weekly_trends}>
-                    <defs>
-                      <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#00f2fe" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                    <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
-                    <Tooltip contentStyle={{ 
-                      background: '#0d1323', 
-                      border: '1px solid rgba(0, 242, 254, 0.25)', 
-                      borderRadius: '12px', 
-                      color: '#f1f5f9',
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-                    }} />
-                    <Area type="monotone" dataKey="present" stroke="#00f2fe" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" />
-                  </AreaChart>
+          {/* ===== MERGED TRENDS, ANALYTICS & BIOMETRIC RADAR STUDIO ===== */}
+          {(activeDashboardSubTab === 'trends' || activeDashboardSubTab === 'radar') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Header */}
+              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))', border: '1px solid rgba(167, 139, 250, 0.3)', borderRadius: '20px', padding: '24px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, background: 'linear-gradient(90deg, #a78bfa, #00f2fe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                      📊 Trends, Analytics & Biometric Radar Studio
+                    </h3>
+                    <span style={{ background: 'rgba(167, 139, 250, 0.2)', border: '1px solid #a78bfa', color: '#c084fc', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+                      MERGED ANALYTICS & RADAR
+                    </span>
+                  </div>
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                    Weekly attendance trends line area graphs, department presence distribution, perimeter biometric sonar sweeps, and neural mesh visualization map.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ padding: '4px 10px', borderRadius: '8px', background: 'rgba(167, 139, 250, 0.15)', color: '#c084fc', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(167, 139, 250, 0.3)' }}>
+                    📊 Analytics: ONLINE
+                  </span>
+                  <span style={{ padding: '4px 10px', borderRadius: '8px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(0, 242, 254, 0.3)' }}>
+                    🛡️ Biometric Radar: ACTIVE
+                  </span>
                 </div>
               </div>
 
-              {/* Department distribution Bar Chart */}
-              <div className="glass-panel" style={{ padding: '20px', animationDelay: '600ms' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Layers size={18} style={{ color: '#a78bfa' }} /> Present Today by Dept
-                </h3>
-                <div ref={chartRef2} style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
-                  {Object.keys(stats.department_stats).length === 0 ? (
-                    <div className="flex-center" style={{ height: '100%', color: '#94a3b8', flexDirection: 'column', gap: '12px' }}>
-                      <AlertCircle size={32} style={{ color: '#ef4444' }} />
-                      <span>No attendance data marked for today.</span>
-                    </div>
-                  ) : (
-                    <BarChart width={chartWidth2} height={220} data={Object.keys(stats.department_stats).map(dept => {
-                      const val = stats.department_stats[dept];
-                      const countVal = (val && typeof val === 'object') ? (val.present !== undefined ? val.present : (val.count !== undefined ? val.count : 0)) : val;
-                      return { name: dept, count: countVal };
-                    })}>
+              {/* Row 1: Charts Grid */}
+              <div className="dashboard-charts-grid">
+                {/* Weekly Trend Line Area Chart */}
+                <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Calendar size={20} style={{ color: '#00f2fe' }} /> 1. Weekly Attendance Trends (7 Days)
+                  </h4>
+                  <div ref={chartRef1} style={{ width: '100%', height: '230px', minWidth: 0, position: 'relative' }}>
+                    <AreaChart width={chartWidth1} height={230} data={stats.weekly_trends}>
                       <defs>
-                        <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.9}/>
-                          <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.6}/>
+                        <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.35}/>
+                          <stop offset="95%" stopColor="#00f2fe" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} tickLine={false} />
                       <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
                       <Tooltip contentStyle={{ 
                         background: '#0d1323', 
-                        border: '1px solid rgba(167, 139, 250, 0.25)', 
+                        border: '1px solid rgba(0, 242, 254, 0.3)', 
                         borderRadius: '12px', 
                         color: '#f1f5f9',
                         boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
                       }} />
-                      <Bar dataKey="count" fill="url(#colorBar)" radius={[6, 6, 0, 0]} barSize={35} />
-                    </BarChart>
-                  )}
+                      <Area type="monotone" dataKey="present" stroke="#00f2fe" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" />
+                    </AreaChart>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* Module 3: Biometric Security Radar */}
-          {activeDashboardSubTab === 'radar' && (
-            <div className="dashboard-charts-grid">
-              {/* Sonar Radar Stats Card */}
-              <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <TrendingUp size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} /> Perimeter Biometric Radar
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '20px' }}>
-                  <svg width="200" height="200" viewBox="0 0 200 200" style={{ filter: `drop-shadow(0 0 8px ${activeTheme === 'matrix' ? 'rgba(0, 255, 70, 0.2)' : activeTheme === 'obsidian' ? 'rgba(255, 62, 62, 0.2)' : activeTheme === 'violet' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(0, 242, 254, 0.2)'})` }}>
-                    <defs>
-                      <radialGradient id="radarSweepGrad" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor={activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'} stopOpacity="0" />
-                        <stop offset="85%" stopColor={activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'} stopOpacity="0.05" />
-                        <stop offset="100%" stopColor={activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'} stopOpacity="0.25" />
-                      </radialGradient>
-                    </defs>
-                    <circle cx="100" cy="100" r="90" stroke="var(--border-color)" strokeWidth="1" fill="none" opacity="0.3" />
-                    <circle cx="100" cy="100" r="70" stroke="var(--border-color)" strokeWidth="1" fill="none" opacity="0.3" strokeDasharray="3 3" />
-                    <circle cx="100" cy="100" r="50" stroke="var(--border-color)" strokeWidth="1" fill="none" opacity="0.4" />
-                    <circle cx="100" cy="100" r="30" stroke="var(--border-color)" strokeWidth="1" fill="none" opacity="0.4" strokeDasharray="2 2" />
-                    <circle cx="100" cy="100" r="10" stroke="var(--border-color)" strokeWidth="1.5" fill="none" opacity="0.6" />
-                    
-                    <line x1="100" y1="5" x2="100" y2="195" stroke="var(--border-color)" strokeWidth="1" opacity="0.25" />
-                    <line x1="5" y1="100" x2="195" y2="100" stroke="var(--border-color)" strokeWidth="1" opacity="0.25" />
-                    <line x1="36" y1="36" x2="164" y2="164" stroke="var(--border-color)" strokeWidth="0.5" opacity="0.15" strokeDasharray="3 3" />
-                    <line x1="164" y1="36" x2="36" y2="164" stroke="var(--border-color)" strokeWidth="0.5" opacity="0.15" strokeDasharray="3 3" />
-                    
-                    <g style={{ transformOrigin: '100px 100px', animation: 'radarSweep 4s linear infinite' }}>
-                      <line x1="100" y1="100" x2="100" y2="10" stroke={activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'} strokeWidth="1.5" opacity="0.8" />
-                      <polygon points="100,100 100,10 70,18" fill="url(#radarSweepGrad)" opacity="0.5" />
-                    </g>
-
-                    <g style={{ animation: 'radarPulse 3s infinite ease-in-out' }}>
-                      <circle cx="65" cy="75" r="4.5" fill="#10b981" filter="drop-shadow(0 0 4px #10b981)" />
-                    </g>
-                    <g style={{ animation: 'radarPulse 2.5s infinite ease-in-out', animationDelay: '0.8s' }}>
-                      <circle cx="145" cy="65" r="4" fill={activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'} filter={`drop-shadow(0 0 4px ${activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'})`} />
-                    </g>
-                    <g style={{ animation: 'radarPulse 3.5s infinite ease-in-out', animationDelay: '1.5s' }}>
-                      <circle cx="120" cy="135" r="3.5" fill="#f59e0b" filter="drop-shadow(0 0 4px #f59e0b)" />
-                    </g>
-                  </svg>
-                  
-                  <div style={{ width: '100%', background: 'rgba(8, 12, 20, 0.25)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.75rem', fontFamily: 'monospace' }}>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)' }}>STATUS:</span>{' '}
-                      <span style={{ color: '#10b981', fontWeight: 'bold', animation: 'pulse 1.5s infinite' }}>SCANNING</span>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)' }}>BEACONS:</span>{' '}
-                      <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>4 ACTIVE</span>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)' }}>LIVENESS:</span>{' '}
-                      <span style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe', fontWeight: 'bold' }}>SECURE</span>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)' }}>FPS RATE:</span>{' '}
-                      <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{hudMetrics.fps} Hz</span>
-                    </div>
+                {/* Department distribution Bar Chart */}
+                <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Layers size={20} style={{ color: '#a78bfa' }} /> 2. Present Today by Department
+                  </h4>
+                  <div ref={chartRef2} style={{ width: '100%', height: '230px', minWidth: 0, position: 'relative' }}>
+                    {Object.keys(stats.department_stats).length === 0 ? (
+                      <div className="flex-center" style={{ height: '100%', color: '#94a3b8', flexDirection: 'column', gap: '12px' }}>
+                        <AlertCircle size={32} style={{ color: '#ef4444' }} />
+                        <span>No department attendance marked yet today.</span>
+                      </div>
+                    ) : (
+                      <BarChart width={chartWidth2} height={230} data={Object.keys(stats.department_stats).map(dept => {
+                        const val = stats.department_stats[dept];
+                        const countVal = (val && typeof val === 'object') ? (val.present !== undefined ? val.present : (val.count !== undefined ? val.count : 0)) : val;
+                        return { name: dept, count: countVal };
+                      })}>
+                        <defs>
+                          <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.6}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
+                        <Tooltip contentStyle={{ 
+                          background: '#0d1323', 
+                          border: '1px solid rgba(167, 139, 250, 0.3)', 
+                          borderRadius: '12px', 
+                          color: '#f1f5f9',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                        }} />
+                        <Bar dataKey="count" fill="url(#colorBar)" radius={[6, 6, 0, 0]} barSize={35} />
+                      </BarChart>
+                    )}
                   </div>
                 </div>
               </div>
-              
-              {/* Neural Mesh Connectivity Map */}
-              <div className="glass-panel" style={{ padding: '28px', animationDelay: '800ms', display: 'flex', flexDirection: 'column', minHeight: '350px' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <ShieldCheck size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} /> Biometric Core Neural Mesh
-                </h3>
-                <div style={{ position: 'relative', flex: 1, minHeight: '260px', width: '100%', overflow: 'hidden', borderRadius: '12px', background: 'rgba(8, 12, 20, 0.2)', border: '1px solid var(--border-color)' }}>
-                  <canvas ref={neuralMeshCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+
+              {/* Row 2: Radar & Mesh Grid */}
+              <div className="dashboard-charts-grid">
+                {/* Sonar Radar Stats Card */}
+                <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <TrendingUp size={20} style={{ color: '#00f2fe' }} /> 3. Perimeter Biometric Radar
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '20px' }}>
+                    <svg width="200" height="200" viewBox="0 0 200 200" style={{ filter: 'drop-shadow(0 0 10px rgba(0, 242, 254, 0.25))' }}>
+                      <defs>
+                        <radialGradient id="radarSweepGrad" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#00f2fe" stopOpacity="0" />
+                          <stop offset="85%" stopColor="#00f2fe" stopOpacity="0.05" />
+                          <stop offset="100%" stopColor="#00f2fe" stopOpacity="0.3" />
+                        </radialGradient>
+                      </defs>
+                      <circle cx="100" cy="100" r="90" stroke="rgba(255,255,255,0.1)" strokeWidth="1" fill="none" opacity="0.4" />
+                      <circle cx="100" cy="100" r="70" stroke="rgba(255,255,255,0.1)" strokeWidth="1" fill="none" opacity="0.4" strokeDasharray="3 3" />
+                      <circle cx="100" cy="100" r="50" stroke="rgba(255,255,255,0.1)" strokeWidth="1" fill="none" opacity="0.5" />
+                      <circle cx="100" cy="100" r="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" fill="none" opacity="0.5" strokeDasharray="2 2" />
+                      <circle cx="100" cy="100" r="10" stroke="rgba(0, 242, 254, 0.5)" strokeWidth="1.5" fill="none" opacity="0.8" />
+                      
+                      <line x1="100" y1="5" x2="100" y2="195" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                      <line x1="5" y1="100" x2="195" y2="100" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                      
+                      <g style={{ transformOrigin: '100px 100px', animation: 'radarSweep 4s linear infinite' }}>
+                        <line x1="100" y1="100" x2="100" y2="10" stroke="#00f2fe" strokeWidth="1.5" opacity="0.8" />
+                        <polygon points="100,100 100,10 70,18" fill="url(#radarSweepGrad)" opacity="0.6" />
+                      </g>
+
+                      <g style={{ animation: 'radarPulse 3s infinite ease-in-out' }}>
+                        <circle cx="65" cy="75" r="4.5" fill="#10b981" filter="drop-shadow(0 0 4px #10b981)" />
+                      </g>
+                      <g style={{ animation: 'radarPulse 2.5s infinite ease-in-out', animationDelay: '0.8s' }}>
+                        <circle cx="145" cy="65" r="4" fill="#00f2fe" filter="drop-shadow(0 0 4px #00f2fe)" />
+                      </g>
+                      <g style={{ animation: 'radarPulse 3.5s infinite ease-in-out', animationDelay: '1.5s' }}>
+                        <circle cx="120" cy="135" r="3.5" fill="#f59e0b" filter="drop-shadow(0 0 4px #f59e0b)" />
+                      </g>
+                    </svg>
+                    
+                    <div style={{ width: '100%', background: 'rgba(8, 12, 20, 0.4)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                      <div>STATUS: <span style={{ color: '#10b981', fontWeight: 'bold' }}>SCANNING</span></div>
+                      <div>BEACONS: <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>4 ACTIVE</span></div>
+                      <div>LIVENESS: <span style={{ color: '#00f2fe', fontWeight: 'bold' }}>SECURE</span></div>
+                      <div>FPS RATE: <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{hudMetrics.fps} Hz</span></div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Neural Mesh Connectivity Map */}
+                <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', minHeight: '340px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <ShieldCheck size={20} style={{ color: '#a78bfa' }} /> 4. Biometric Neural Mesh Map
+                  </h4>
+                  <div style={{ position: 'relative', flex: 1, minHeight: '240px', width: '100%', overflow: 'hidden', borderRadius: '14px', background: 'rgba(8, 12, 20, 0.5)', border: '1px solid rgba(167, 139, 250, 0.2)' }}>
+                    <canvas ref={neuralMeshCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                  </div>
                 </div>
               </div>
             </div>
