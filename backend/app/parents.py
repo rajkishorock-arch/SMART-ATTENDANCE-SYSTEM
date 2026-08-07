@@ -167,3 +167,22 @@ def notify_parent_of_absence(
         "email_status": email_status,
         "channels": result
     }
+
+
+@router.post("/dispatch-daily-summary")
+def trigger_daily_summary_manually(
+    payload: Optional[ParentNotifyPayload] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    if current_user.role not in ("admin", "teacher"):
+        raise HTTPException(status_code=403, detail="Staff only")
+    
+    from .scheduler import daily_student_summary_job
+    target_id = None
+    dispatched = daily_student_summary_job(target_student_id=target_id)
+    return {
+        "message": f"Daily 5:01 PM attendance summary dispatched to {len(dispatched)} students!",
+        "count": len(dispatched),
+        "dispatched_recipients": dispatched
+    }

@@ -39,6 +39,27 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
   const [customAlertMsg, setCustomAlertMsg] = useState('');
   const [dispatchStatus, setDispatchStatus] = useState(null);
 
+  const handleDispatchAllDailySummary = async () => {
+    try {
+      setLoading(true);
+      setMessage('');
+      const res = await fetch(`${apiBaseUrl}/parents/dispatch-daily-summary`, {
+        method: 'POST',
+        headers: headers(),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage(`✅ Daily Attendance Summary Email successfully dispatched to ${data.count || 0} registered students! Each student received their today's class Present/Absent breakdown.`);
+      } else {
+        setMessage(`Failed: ${data.detail || 'Dispatch failed'}`);
+      }
+    } catch (e) {
+      setMessage(`Error triggering daily summary: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openAlertModal = (student) => {
     setSelectedStudentForAlert(student);
     setParentPhone(student.parent_phone || student.phone || '+919876543210');
@@ -421,6 +442,50 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
               </div>
             </div>
             
+          </div>
+
+          {/* Automated 5:01 PM Daily Summary Banner Card */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.08) 0%, rgba(167, 139, 250, 0.08) 100%)',
+            border: '1px solid rgba(0, 242, 254, 0.3)',
+            borderRadius: '18px',
+            padding: '20px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            <div>
+              <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ⏰ Daily 5:01 PM Automated Student Attendance Summary Email
+              </h4>
+              <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '6px 0 0', lineHeight: 1.45 }}>
+                Every day at <strong>5:01 PM IST (17:01)</strong>, the background engine automatically sends a class-by-class Present/Absent summary email to every registered student's email address for all subjects conducted today before 5:00 PM.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDispatchAllDailySummary}
+              disabled={loading}
+              style={{
+                padding: '12px 20px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #00f2fe, #a855f7)',
+                border: 'none',
+                color: '#000',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                cursor: loading ? 'wait' : 'pointer',
+                boxShadow: '0 4px 15px rgba(0, 242, 254, 0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Send size={16} /> 📧 Trigger 5:01 PM Daily Summary Email Now
+            </button>
           </div>
 
           {/* At-Risk List */}
