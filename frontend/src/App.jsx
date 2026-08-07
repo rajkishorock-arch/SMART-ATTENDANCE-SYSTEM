@@ -12272,6 +12272,38 @@ export default function App() {
                 >
                   ✋ Manual Register (No Face Auth)
                 </button>
+
+                {/* Scan Virtual ID Card Button (Phone & Laptop) */}
+                <button
+                  onClick={() => {
+                    if (userRole === 'admin' && !selectedSubjectId) {
+                      alert('Please select a subject first to scan Virtual ID Card.');
+                      return;
+                    }
+                    setShowQrScannerModal(true);
+                    playCyberSound('click');
+                  }}
+                  type="button"
+                  className="btn-secondary active-haptic"
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    border: '1px solid rgba(0, 242, 254, 0.35)',
+                    color: '#00f2fe',
+                    background: 'rgba(0, 242, 254, 0.08)',
+                    boxShadow: '0 4px 15px rgba(0, 242, 254, 0.08)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span style={{ fontSize: '1.1rem' }}>🪪</span> Scan Virtual ID Card (Mobile & Laptop)
+                </button>
               </div>
             </div>
           </div>
@@ -19818,18 +19850,42 @@ export default function App() {
               </button>
             </div>
 
-            {/* Search input */}
-            <div style={{ padding: '16px 28px 8px', flexShrink: 0 }}>
-              <div style={{ position: 'relative' }}>
+            {/* Search input & Scan Virtual ID Button */}
+            <div style={{ padding: '16px 28px 8px', flexShrink: 0, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
                 <input
                   type="text"
                   className="form-input"
                   placeholder="🔍 Search student name or roll number..."
                   value={manualSearchQuery}
                   onChange={e => setManualSearchQuery(e.target.value)}
-                  style={{ background: 'rgba(8, 12, 20, 0.4)', paddingLeft: '16px' }}
+                  style={{ background: 'rgba(8, 12, 20, 0.4)', paddingLeft: '16px', width: '100%' }}
                 />
               </div>
+              <button
+                onClick={() => {
+                  setIsManualAttendanceOpen(false);
+                  setShowQrScannerModal(true);
+                  playCyberSound('click');
+                }}
+                type="button"
+                className="btn-secondary active-haptic"
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  border: '1px solid rgba(0, 242, 254, 0.35)',
+                  color: '#00f2fe',
+                  background: 'rgba(0, 242, 254, 0.08)',
+                  cursor: 'pointer'
+                }}
+              >
+                🪪 Scan Virtual ID
+              </button>
             </div>
 
             {/* Students Register List */}
