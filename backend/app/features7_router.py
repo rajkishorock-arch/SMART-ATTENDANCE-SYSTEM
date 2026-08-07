@@ -51,11 +51,13 @@ def process_group_classroom_scan(
     students = []
     try:
         students = db.query(models.StudentModel).filter(models.StudentModel.institution_id == inst_id).all()
+        if not students:
+            students = db.query(models.StudentModel).all()
     except Exception:
         pass
     
     faces_detected = payload.simulated_faces_count if payload.simulated_faces_count else (len(students) + 2 if students else 8)
-    matched_count = min(len(students), max(1, faces_detected - 1)) if students else min(faces_detected, 6)
+    matched_count = min(len(students), faces_detected) if students else 0
     unknown_count = max(0, faces_detected - matched_count)
     
     recognized_list = []
@@ -63,17 +65,11 @@ def process_group_classroom_scan(
     now_str = datetime.now().strftime("%H:%M:%S")
 
     for i in range(matched_count):
-        if students and i < len(students):
-            s = students[i]
-            student_id = s.id
-            s_name = s.name or f"Student #{s.id}"
-            s_roll = s.roll or f"R-{100+i}"
-            s_dep = s.dep or "Computer Science"
-        else:
-            student_id = i + 1
-            s_name = f"Student #{1001 + i}"
-            s_roll = f"20260{i+1}"
-            s_dep = "Computer Science"
+        s = students[i]
+        student_id = s.id
+        s_name = s.name or f"Student #{s.id}"
+        s_roll = s.roll or f"R-{100+i}"
+        s_dep = s.dep or "Computer Science"
 
         recognized_list.append({
             "student_id": student_id,
