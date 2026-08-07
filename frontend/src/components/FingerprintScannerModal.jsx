@@ -20,6 +20,8 @@ export default function FingerprintScannerModal({
   const [registeredCredential, setRegisteredCredential] = useState(null);
   const [progress, setProgress] = useState(0);
 
+  const [verificationResult, setVerificationResult] = useState(null);
+
   const getDeviceBiometricId = () => {
     let devId = localStorage.getItem('device_biometric_fingerprint_id');
     if (!devId) {
@@ -27,6 +29,15 @@ export default function FingerprintScannerModal({
       localStorage.setItem('device_biometric_fingerprint_id', devId);
     }
     return devId;
+  };
+
+  const getDeviceBiometricHash = () => {
+    let hash = localStorage.getItem('device_biometric_hardware_hash');
+    if (!hash) {
+      hash = 'BIO_HW_' + Math.random().toString(36).substring(2, 12).toUpperCase();
+      localStorage.setItem('device_biometric_hardware_hash', hash);
+    }
+    return hash;
   };
 
   const sendAttendanceToBackend = async (methodName) => {
@@ -47,8 +58,10 @@ export default function FingerprintScannerModal({
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.message) {
-          setStatusMsg(data.message);
+        if (data.student) {
+          setVerificationResult(data);
+          setStatus('success');
+          setStatusMsg(data.message || `🟢 Marked ${data.student.name} PRESENT.`);
           setTimeout(() => { alert(data.message); }, 150);
         }
       }
@@ -110,6 +123,7 @@ export default function FingerprintScannerModal({
       const activeMode = initialMode || 'scan';
       setMode(activeMode);
       setStatus('idle');
+      setVerificationResult(null);
       setProgress(0);
       if (activeMode === 'register') {
         setStatusMsg(`Touch sensor or tap pad to enroll fingerprint for ${currentUser?.name || 'Student'}`);
@@ -178,6 +192,7 @@ export default function FingerprintScannerModal({
       if (credential) {
         const credData = {
           id: credential.id || getDeviceBiometricId(),
+          device_authenticator_hash: getDeviceBiometricHash(),
           rawId: Array.from(new Uint8Array(credential.rawId)),
           registeredAt: new Date().toISOString()
         };
@@ -284,6 +299,7 @@ export default function FingerprintScannerModal({
         if (mode === 'register') {
           const credData = {
             id: getDeviceBiometricId(),
+            device_authenticator_hash: getDeviceBiometricHash(),
             virtual: true,
             registeredAt: new Date().toISOString()
           };
@@ -410,8 +426,66 @@ export default function FingerprintScannerModal({
           </button>
         </div>
 
+        {/* Verified Student Attendance Details Receipt Card */}
+        {verificationResult && verificationResult.student && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(0, 242, 254, 0.18))',
+            border: '1.5px solid #10b981',
+            borderRadius: '16px',
+            padding: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            boxShadow: '0 0 25px rgba(16, 185, 129, 0.25)',
+            animation: 'fadeInUp 0.3s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                {verificationResult.already_marked ? 'ℹ️ ALREADY MARKED TODAY' : '✅ ATTENDANCE MARKED PRESENT'}
+              </span>
+              <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '3px 10px', borderRadius: '10px', fontWeight: 700 }}>
+                FINGERPRINT BIOMETRIC
+              </span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.25)',
+                border: '1.5px solid #10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#10b981',
+                fontWeight: 800,
+                fontSize: '1.2rem',
+                flexShrink: 0
+              }}>
+                {verificationResult.student.name?.substring(0, 1).toUpperCase()}
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>
+                  {verificationResult.student.name}
+                </h4>
+                <div style={{ display: 'flex', gap: '10px', fontSize: '0.8rem', color: '#cbd5e1', marginTop: '3px' }}>
+                  <span>Roll: <strong>{verificationResult.student.roll}</strong></span>
+                  <span>•</span>
+                  <span>Dept: <strong style={{ color: '#00f2fe' }}>{verificationResult.student.dep}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingTop: '8px', borderTop: '1px dashed rgba(255,255,255,0.15)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
+              <div>TIME: <span style={{ color: '#fff', fontWeight: 'bold' }}>{verificationResult.timestamp}</span></div>
+              <div>DATE: <span style={{ color: '#fff', fontWeight: 'bold' }}>{verificationResult.date}</span></div>
+            </div>
+          </div>
+        )}
+
         {/* Prominent Feedback Banner Popup Card */}
-        {statusMsg && (
+        {statusMsg && !verificationResult && (
           <div style={{
             padding: '14px 16px',
             borderRadius: '12px',

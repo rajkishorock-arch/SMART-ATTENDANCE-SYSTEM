@@ -114,26 +114,44 @@ def enroll_student_fingerprint(
     credential_data = payload.get("credential", {})
     cred_str = json.dumps(credential_data) if isinstance(credential_data, dict) else str(credential_data)
     
-    cred_id = None
+    cred_id = ""
+    device_hash = ""
+    raw_id_str = ""
+
     if isinstance(credential_data, dict):
-        cred_id = credential_data.get("id") or credential_data.get("rawId")
+        cred_id = str(credential_data.get("id") or "").strip()
+        device_hash = str(credential_data.get("device_authenticator_hash") or "").strip()
+        if credential_data.get("rawId"):
+            raw_id_str = str(credential_data.get("rawId")).strip()
     elif isinstance(credential_data, str):
-        cred_id = credential_data
+        cred_id = str(credential_data).strip()
 
     # 2. Enforce 1-to-1 Unique Fingerprint Lock across ALL students in institution
-    if cred_id and str(cred_id).strip():
-        cred_id_clean = str(cred_id).strip()
-        other_enrolled = db.query(models.StudentModel).filter(
-            models.StudentModel.id != student_id,
-            models.StudentModel.institution_id == current_user.institution_id,
-            models.StudentModel.fingerprint_enrolled == True
-        ).all()
-        for other in other_enrolled:
-            if other.fingerprint_credential and cred_id_clean in str(other.fingerprint_credential):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"⚠️ THIS FINGERPRINT IS ALREADY ENROLLED TO STUDENT '{other.name}' (Roll: {other.roll})! 1 Fingerprint CANNOT be enrolled for 2 different students."
-                )
+    other_enrolled = db.query(models.StudentModel).filter(
+        models.StudentModel.id != student_id,
+        models.StudentModel.institution_id == current_user.institution_id,
+        models.StudentModel.fingerprint_enrolled == True
+    ).all()
+
+    for other in other_enrolled:
+        if not other.fingerprint_credential:
+            continue
+        other_cred_str = str(other.fingerprint_credential)
+        
+        # Check if cred_id, device_hash or raw_id_str exists in other student's stored credential
+        match_found = False
+        if cred_id and len(cred_id) > 3 and cred_id in other_cred_str:
+            match_found = True
+        if device_hash and len(device_hash) > 3 and device_hash in other_cred_str:
+            match_found = True
+        if raw_id_str and len(raw_id_str) > 8 and raw_id_str in other_cred_str:
+            match_found = True
+
+        if match_found:
+            raise HTTPException(
+                status_code=400,
+                detail=f"⚠️ THIS FINGERPRINT IS ALREADY ENROLLED TO STUDENT '{other.name}' (Roll: {other.roll})! 1 Fingerprint CANNOT be enrolled for 2 different students."
+            )
 
     student.fingerprint_enrolled = True
     student.fingerprint_credential = cred_str

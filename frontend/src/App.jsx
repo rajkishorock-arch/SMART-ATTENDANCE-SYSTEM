@@ -20254,7 +20254,11 @@ export default function App() {
       {/* Hardware Phone Fingerprint Scanner Biometric Modal */}
       <FingerprintScannerModal 
         isOpen={showFingerprintModal} 
-        onClose={() => setShowFingerprintModal(false)} 
+        onClose={() => {
+          setShowFingerprintModal(false);
+          fetchDashboardStats();
+          fetchAttendanceLogs();
+        }} 
         token={token}
         currentUser={editingStudent || editingStudentSelf || currentUser}
         initialMode={fingerprintModalMode}
