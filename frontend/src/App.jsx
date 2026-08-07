@@ -13628,11 +13628,19 @@ export default function App() {
             {activeSubSetting !== null && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button 
-                  onClick={() => { setActiveSubSetting(null); playCyberSound('click'); }}
-                  className="btn-secondary"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}
+                  onClick={() => { 
+                    const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
+                    if (folderItems.includes(activeSubSetting)) {
+                      setActiveSubSetting('features_folder');
+                    } else {
+                      setActiveSubSetting(null);
+                    }
+                    playCyberSound('click'); 
+                  }}
+                  className="btn-secondary active-haptic"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }}
                 >
-                  <ArrowLeft size={16} /> Back to Settings Hub
+                  <ArrowLeft size={16} /> {['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'].includes(activeSubSetting) ? 'Back to Features Hub Folder' : 'Back to Settings Hub'}
                 </button>
                 <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Settings Hub &gt; {activeSubSetting}
@@ -13851,104 +13859,33 @@ export default function App() {
                     <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Theme Studio, Widget Home, Polls, Health Check, Campus Map, Premium Control, and more.</p>
                   </div>
 
-                  {/* Category Card: Industry Enterprise Suite */}
-                  {userRole !== 'student' && (
-                    <div
-                      onClick={() => { setActiveSubSetting('enterprise'); playCyberSound('click'); }}
-                      className="glass-panel hover-card"
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '1.4rem' }}>🏭</span>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>PRO</span>
-                      </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Industry Enterprise Suite</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Rules engine, exam mode, escalation, SLA, heatmap, RFID, multi-campus, compliance export.</p>
-                    </div>
-                  )}
-
-                  {/* Category Card: Extreme Level Hub (8 levels, 56 features) */}
+                  {/* Consolidated Master Folder Card: Advanced Features & AR Suite */}
                   <div
-                    onClick={() => { setActiveSubSetting('extreme'); playCyberSound('click'); }}
+                    onClick={() => { setActiveSubSetting('features_folder'); playCyberSound('click'); }}
                     className="glass-panel hover-card"
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                    style={{
+                      padding: '24px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      transition: 'all 0.3s ease',
+                      minHeight: '160px',
+                      border: '1.5px solid rgba(0, 242, 254, 0.4)',
+                      background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.08) 0%, rgba(167, 139, 250, 0.08) 100%)',
+                      boxShadow: '0 8px 30px rgba(0, 242, 254, 0.12)'
+                    }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>🌌</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa' }}>56 FEAT</span>
+                      <span style={{ fontSize: '1.6rem' }}>📦</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 10px', borderRadius: '20px', background: 'linear-gradient(135deg, #00f2fe, #a78bfa)', color: '#000' }}>7 HUBS IN 1</span>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Extreme Level Hub</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>8 levels — Live Board, AI Copilot, Blockchain, Parent Super-app, HOD War Room, AR, Marketplace & more.</p>
-                  </div>
-
-                  {/* Category Card: Ideas Hub 150 */}
-                  <div
-                    onClick={() => { setActiveSubSetting('ideas150'); playCyberSound('click'); }}
-                    className="glass-panel hover-card"
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>🚀</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.15)', color: '#22d3ee' }}>150 FEAT</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Ideas Hub (All 150)</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>UI animations, camera extreme, attendance core, AI analytics, parent/teacher UX, enterprise & futuristic — all workable.</p>
-                  </div>
-
-                  {/* Category Card: 7 Enterprise Features Expansion */}
-                  <div
-                    onClick={() => { setActiveSubSetting('features7'); playCyberSound('click'); }}
-                    className="glass-panel hover-card"
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(99, 102, 241, 0.3)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>⚡</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' }}>7 NEW</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>7 Enterprise Features</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Multi-Face Group Scanner, WhatsApp Bot, IoT Smart Gate, Leave & Substitutes, HR Payroll, Edge Sync & 3D Liveness.</p>
-                  </div>
-
-                  {/* ── NEW: 40 Features Hub ──────────────────────────────── */}
-                  <div
-                    onClick={() => { setActiveSubSetting('new_features'); playCyberSound('click'); }}
-                    className="glass-panel hover-card"
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(34, 211, 238, 0.35)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>🚀</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(34,211,238,0.15)', color: '#22d3ee' }}>40 NEW</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>40 New Features Hub</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Emotion AI, Blockchain, MFA, Gamification, CCTV, Timetable, Wellness, Wearable, AR Scanner & 31 more — all live.</p>
-                  </div>
-
-                  {/* ── NEW: Wellness + Counselor Panel ──────────────────── */}
-                  <div
-                    onClick={() => { setActiveSubSetting('wellness'); playCyberSound('click'); }}
-                    className="glass-panel hover-card"
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(239,68,68,0.3)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>❤️</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>WELLNESS</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Student Wellness Center</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Daily mood check-ins, wellness score, counselor alerts for at-risk students, mental health tracking.</p>
-                  </div>
-
-                  {/* ── NEW: AR + Gamification Portal ────────────────────── */}
-                  <div
-                    onClick={() => { setActiveSubSetting('ar_gamification'); playCyberSound('click'); }}
-                    className="glass-panel hover-card"
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(245,158,11,0.35)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.4rem' }}>🏆</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>AR + GAME</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>AR + Gamification Portal</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>AR camera overlay shows floating name badges over faces. Live leaderboard, streaks, badges & real-time events.</p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '0.01em' }}>
+                      Advanced Features & AR Innovation Hub
+                    </h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1, lineHeight: '1.4' }}>
+                      Single folder containing Industry Suite, Extreme 56, Ideas 150, 7 Enterprise, 40 New Features, Wellness Center & AR Gamification Portal.
+                    </p>
                   </div>
 
                   {/* Category Card: Premium Subscription */}
@@ -14685,6 +14622,127 @@ export default function App() {
                 }}
                 onNavigateSettings={(sub) => setActiveSubSetting(sub)}
               />
+            )}
+
+            {/* ── CONSOLIDATED FEATURES FOLDER VIEW ─────────────────────────── */}
+            {activeSubSetting === 'features_folder' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeInUp 0.3s ease' }}>
+                <div className="glass-panel" style={{ padding: '28px', border: '1px solid rgba(0, 242, 254, 0.35)', background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.06), rgba(167, 139, 250, 0.06))', borderRadius: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '2rem' }}>📦</span>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                      Advanced Features & AR Innovation Hub
+                    </h2>
+                  </div>
+                  <p style={{ color: '#9ca3af', fontSize: '0.9rem', margin: 0, lineHeight: '1.5' }}>
+                    All 7 specialized feature suites consolidated into one folder. Select any hub below to launch.
+                  </p>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+
+                  {/* 1. Industry Enterprise Suite */}
+                  {userRole !== 'student' && (
+                    <div
+                      onClick={() => { setActiveSubSetting('enterprise'); playCyberSound('click'); }}
+                      className="glass-panel hover-card"
+                      style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '16px' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.4rem' }}>🏭</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>PRO SUITE</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>Industry Enterprise Suite</h3>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>Rules engine, exam mode, escalation, SLA, heatmap, RFID & multi-campus.</p>
+                    </div>
+                  )}
+
+                  {/* 2. Extreme Level Hub */}
+                  <div
+                    onClick={() => { setActiveSubSetting('extreme'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid rgba(167, 139, 250, 0.3)', borderRadius: '16px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🌌</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa' }}>56 FEAT</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>Extreme Level Hub</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>8 levels — Live Board, AI Copilot, Blockchain, HOD War Room & Marketplace.</p>
+                  </div>
+
+                  {/* 3. Ideas Hub (All 150) */}
+                  <div
+                    onClick={() => { setActiveSubSetting('ideas150'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid rgba(0, 242, 254, 0.3)', borderRadius: '16px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🚀</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe' }}>150 FEAT</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>Ideas Hub (All 150)</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>UI animations, camera extreme, attendance core & AI analytics.</p>
+                  </div>
+
+                  {/* 4. 7 Enterprise Features */}
+                  <div
+                    onClick={() => { setActiveSubSetting('features7'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '16px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>⚡</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' }}>7 NEW</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>7 Enterprise Features</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>Multi-Face Group Scanner, WhatsApp Bot, IoT Smart Gate & HR Payroll.</p>
+                  </div>
+
+                  {/* 5. 40 New Features Hub */}
+                  <div
+                    onClick={() => { setActiveSubSetting('new_features'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid rgba(34, 211, 238, 0.35)', borderRadius: '16px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🚀</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(34, 211, 238, 0.15)', color: '#22d3ee' }}>40 NEW</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>40 New Features Hub</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>Emotion AI, Blockchain, MFA, CCTV, Timetable & Wearable tracking.</p>
+                  </div>
+
+                  {/* 6. Student Wellness Center */}
+                  <div
+                    onClick={() => { setActiveSubSetting('wellness'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '16px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>💖</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>WELLNESS</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>Student Wellness Center</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>Daily mood check-ins, wellness score & counselor alert system.</p>
+                  </div>
+
+                  {/* 7. AR + Gamification Portal */}
+                  <div
+                    onClick={() => { setActiveSubSetting('ar_gamification'); playCyberSound('click'); }}
+                    className="glass-panel hover-card"
+                    style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '16px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🏆</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>AR + GAME</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>AR + Gamification Portal</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>AR camera face check-in, real student leaderboard & XP badges.</p>
+                  </div>
+
+                </div>
+              </div>
             )}
 
             {activeSubSetting === 'enterprise' && userRole !== 'student' && (
