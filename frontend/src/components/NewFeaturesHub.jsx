@@ -627,20 +627,24 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '20px'
+          padding: '10px 5px',
+          boxSizing: 'border-box'
         }}>
           <div style={{
             width: '100%',
             maxWidth: '560px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             background: '#0c1020',
             border: `1.5px solid ${selectedFeature.color}`,
-            borderRadius: '24px',
-            padding: '28px',
+            borderRadius: '20px',
+            padding: '18px 14px',
             boxShadow: `0 20px 60px rgba(0, 0, 0, 0.8), 0 0 35px ${selectedFeature.color}33`,
             color: '#fff',
             display: 'flex',
             flexDirection: 'column',
-            gap: '18px'
+            gap: '14px',
+            boxSizing: 'border-box'
           }}>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -697,9 +701,9 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
             </div>
 
             {/* API Endpoint & Status */}
-            <div style={{ background: 'rgba(8, 12, 24, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '14px', padding: '14px' }}>
+            <div style={{ background: 'rgba(8, 12, 24, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '14px', padding: '14px', overflowX: 'auto' }}>
               <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '4px' }}>Backend API Route:</div>
-              <code style={{ fontSize: '0.85rem', color: '#a78bfa', fontFamily: 'monospace' }}>
+              <code style={{ fontSize: '0.85rem', color: '#a78bfa', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 GET {selectedFeature.endpoint || 'Client-side Local Processing'}
               </code>
             </div>
@@ -710,7 +714,8 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
                 background: testResults[selectedFeature.id].ok ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                 border: testResults[selectedFeature.id].ok ? '1px solid #10b981' : '1px solid #ef4444',
                 borderRadius: '14px',
-                padding: '14px'
+                padding: '14px',
+                overflowX: 'auto'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: testResults[selectedFeature.id].ok ? '#10b981' : '#ef4444', fontWeight: 800, fontSize: '0.85rem' }}>
                   <CheckCircle size={16} /> API Execution Response (HTTP {testResults[selectedFeature.id].status})
@@ -722,7 +727,8 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
                   fontFamily: 'monospace',
                   maxHeight: '140px',
                   overflowY: 'auto',
-                  whiteSpace: 'pre-wrap'
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all'
                 }}>
                   {JSON.stringify(testResults[selectedFeature.id].data, null, 2)}
                 </pre>
