@@ -102,7 +102,15 @@ def enroll_student_fingerprint(
     
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-        
+
+    # 1. Enforce 1 Fingerprint per student limit! (Must delete first before enrolling another finger)
+    force_overwrite = payload.get("force_overwrite", False)
+    if student.fingerprint_enrolled and student.fingerprint_credential and not force_overwrite:
+        raise HTTPException(
+            status_code=400,
+            detail=f"⚠️ Student '{student.name}' (Roll: {student.roll}) ALREADY has an enrolled fingerprint! Please click '🗑️ Delete / Reset Fingerprint' first before enrolling a new finger."
+        )
+
     credential_data = payload.get("credential", {})
     cred_str = json.dumps(credential_data) if isinstance(credential_data, dict) else str(credential_data)
     
@@ -111,20 +119,21 @@ def enroll_student_fingerprint(
         cred_id = credential_data.get("id") or credential_data.get("rawId")
     elif isinstance(credential_data, str):
         cred_id = credential_data
-        
-    # 1-to-1 Unique Fingerprint Lock check across students
+
+    # 2. Enforce 1-to-1 Unique Fingerprint Lock across ALL students in institution
     if cred_id and str(cred_id).strip():
-        existing_other = db.query(models.StudentModel).filter(
+        cred_id_clean = str(cred_id).strip()
+        other_enrolled = db.query(models.StudentModel).filter(
             models.StudentModel.id != student_id,
             models.StudentModel.institution_id == current_user.institution_id,
-            models.StudentModel.fingerprint_enrolled == True,
-            models.StudentModel.fingerprint_credential.like(f"%{cred_id}%")
-        ).first()
-        if existing_other:
-            raise HTTPException(
-                status_code=400,
-                detail=f"⚠️ This fingerprint is ALREADY enrolled to student '{existing_other.name}' (Roll: {existing_other.roll}). 1 Fingerprint cannot be enrolled for 2 students!"
-            )
+            models.StudentModel.fingerprint_enrolled == True
+        ).all()
+        for other in other_enrolled:
+            if other.fingerprint_credential and cred_id_clean in str(other.fingerprint_credential):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"⚠️ THIS FINGERPRINT IS ALREADY ENROLLED TO STUDENT '{other.name}' (Roll: {other.roll})! 1 Fingerprint CANNOT be enrolled for 2 different students."
+                )
 
     student.fingerprint_enrolled = True
     student.fingerprint_credential = cred_str

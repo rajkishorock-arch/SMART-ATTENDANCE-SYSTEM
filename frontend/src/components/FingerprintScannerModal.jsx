@@ -124,6 +124,16 @@ export default function FingerprintScannerModal({
   // Native WebAuthn Phone Fingerprint Sensor Registration
   const handleNativeRegister = async () => {
     playCyberSound('click');
+
+    // Prevent 1 student from enrolling multiple fingers without deleting first!
+    if (registeredCredential || currentUser?.fingerprint_enrolled) {
+      setStatus('error');
+      const alreadyMsg = `⚠️ Student '${currentUser?.name || 'Student'}' ALREADY has a fingerprint registered! Click '🗑️ Delete / Reset Fingerprint' first to register a new finger.`;
+      setStatusMsg(alreadyMsg);
+      alert(alreadyMsg);
+      return;
+    }
+
     setStatus('scanning');
     setStatusMsg(`Prompting Phone Fingerprint Sensor for ${currentUser?.name || 'Student'}...`);
     setProgress(30);
@@ -192,6 +202,16 @@ export default function FingerprintScannerModal({
   // Native WebAuthn Phone Fingerprint Sensor Verification
   const handleNativeVerify = async () => {
     playCyberSound('click');
+
+    // Prevent verification if student has not enrolled a fingerprint yet!
+    if (!registeredCredential && !currentUser?.fingerprint_enrolled) {
+      setStatus('error');
+      const noEnrollMsg = `⚠️ Student '${currentUser?.name || 'Student'}' has NOT registered a fingerprint yet! Please click Edit Profile to register a fingerprint first.`;
+      setStatusMsg(noEnrollMsg);
+      alert(noEnrollMsg);
+      return;
+    }
+
     setStatus('scanning');
     setStatusMsg('Touch your phone fingerprint sensor to verify identity...');
     setProgress(40);

@@ -1133,26 +1133,21 @@ async def mark_fingerprint_attendance(
             models.StudentModel.institution_id == current_user.institution_id
         ).first()
     
-    if not student:
-        # Fallback: try finding student by user email or roll
-        if current_user.role == "student":
-            student = db.query(models.StudentModel).filter(
-                models.StudentModel.roll == current_user.roll,
-                models.StudentModel.institution_id == current_user.institution_id
-            ).first()
-            
-    if not student:
-        # Fallback: pick first registered student in institution for demo/testing
+    if not student and current_user.role == "student":
         student = db.query(models.StudentModel).filter(
+            models.StudentModel.roll == current_user.roll,
             models.StudentModel.institution_id == current_user.institution_id
         ).first()
         
     if not student:
-        # Pick any student
-        student = db.query(models.StudentModel).first()
+        raise HTTPException(status_code=404, detail="No student profile selected or found for fingerprint attendance.")
         
-    if not student:
-        raise HTTPException(status_code=404, detail="No registered student record found for fingerprint attendance.")
+    # Strictly require that this student has an enrolled fingerprint!
+    if not student.fingerprint_enrolled or not student.fingerprint_credential:
+        raise HTTPException(
+            status_code=400,
+            detail=f"⚠️ Student '{student.name}' (Roll: {student.roll}) has NOT registered a fingerprint yet! Please register fingerprint first in Edit Profile."
+        )
         
     now = datetime.now(timezone(timedelta(hours=5, minutes=30)))
     time_str = now.strftime("%I:%M:%S %p")
