@@ -1188,6 +1188,7 @@ export default function App() {
   );
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showFingerprintModal, setShowFingerprintModal] = useState(false);
+  const [fingerprintModalMode, setFingerprintModalMode] = useState('scan');
   const livenessTokenRef = useRef(null);
   const [autoSessionInfo, setAutoSessionInfo] = useState(null);
 
@@ -18645,7 +18646,7 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setShowFingerprintModal(true); playCyberSound('click'); }}
+                    onClick={() => { setFingerprintModalMode('register'); setShowFingerprintModal(true); playCyberSound('click'); }}
                     style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
                     🖐️ Scan & Enroll Fingerprint
@@ -18766,7 +18767,7 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setShowFingerprintModal(true); playCyberSound('click'); }}
+                    onClick={() => { setFingerprintModalMode('register'); setShowFingerprintModal(true); playCyberSound('click'); }}
                     style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
                     🖐️ Scan & Enroll Fingerprint
@@ -20222,11 +20223,15 @@ export default function App() {
         onClose={() => setShowFingerprintModal(false)} 
         token={token}
         currentUser={editingStudent || editingStudentSelf || currentUser}
+        initialMode={fingerprintModalMode}
         apiBaseUrl={API_BASE_URL}
         playCyberSound={playCyberSound}
         onAttendanceMarked={(data) => {
           fetchDashboardStats();
           fetchAttendanceLogs();
+        }}
+        onFingerprintEnrolled={() => {
+          fetchStudents();
         }}
       />
 
