@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Camera, FileSpreadsheet, Bell, Plus, Zap, Fingerprint } from 'lucide-react';
+import { Camera, FileSpreadsheet, Bell, Plus, Zap } from 'lucide-react';
 
-export default function QuickActionsDock({ onScan, onManual, onReport, onNotify, onFingerprint, userRole }) {
+export default function QuickActionsDock({ onScan, onManual, onReport, onNotify, userRole }) {
   const [open, setOpen] = useState(false);
 
   const actions = [
-    { id: 'fingerprint', label: 'Fingerprint Scan', icon: Fingerprint, onClick: onFingerprint, color: '#00f2fe' },
     { id: 'scan', label: 'Face Scan', icon: Camera, onClick: onScan, color: '#38bdf8' },
     { id: 'manual', label: 'Manual', icon: Plus, onClick: onManual, color: '#10b981' },
     { id: 'report', label: 'Report', icon: FileSpreadsheet, onClick: onReport, color: '#a78bfa' },

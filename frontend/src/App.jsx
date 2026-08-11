@@ -9,7 +9,6 @@ import GamificationHub from './components/GamificationHub';
 import NotificationCenter from './components/NotificationCenter';
 import AdvancedFeaturesHub from './components/AdvancedFeaturesHub';
 import ConsentModal from './components/ConsentModal';
-import FingerprintScannerModal from './components/FingerprintScannerModal';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { setupOfflineSyncListener, addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import { completeLivenessFlow } from './utils/livenessClient';
@@ -1187,8 +1186,6 @@ export default function App() {
     () => localStorage.getItem('biometric_consent') !== 'true'
   );
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
-  const [showFingerprintModal, setShowFingerprintModal] = useState(false);
-  const [fingerprintModalMode, setFingerprintModalMode] = useState('scan');
   const livenessTokenRef = useRef(null);
   const [autoSessionInfo, setAutoSessionInfo] = useState(null);
 
@@ -12280,39 +12277,7 @@ export default function App() {
                   📸 Start AI Face Check-in Session
                 </button>
 
-                {/* Hardware Phone Fingerprint Attendance Button */}
-                <button
-                  onClick={() => {
-                    if (userRole === 'admin' && !selectedSubjectId) {
-                      alert('Please select a subject first to use Fingerprint Attendance.');
-                      return;
-                    }
-                    const subId = userRole === 'teacher'
-                      ? subjects.find(s => s.teacher_id === currentUser?.details?.id)?.id?.toString() || ''
-                      : selectedSubjectId;
-                    setSelectedSubjectId(subId);
-                    setFingerprintModalMode('scan');
-                    setShowFingerprintModal(true);
-                    playCyberSound('click');
-                  }}
-                  type="button"
-                  className="btn-secondary active-haptic"
-                  style={{
-                    padding: '13px',
-                    borderRadius: '12px',
-                    fontWeight: 700,
-                    fontSize: '0.92rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    border: '1px solid #00f2fe',
-                    color: '#00f2fe',
-                    background: 'rgba(0, 242, 254, 0.08)'
-                  }}
-                >
-                  🖐️ Scan Phone Fingerprint for Attendance
-                </button>
+
 
                 {/* Manual Attendance Button */}
                 <button
@@ -13763,26 +13728,7 @@ export default function App() {
                     </p>
                   </div>
 
-                  {/* Category Card 2: Native Phone Fingerprint Biometric Scanner */}
-                  <div 
-                    onClick={() => { setShowFingerprintModal(true); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(0, 242, 254, 0.5)', background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.12), rgba(16, 185, 129, 0.12))' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '1.4rem' }}>🖐️</span>
-                        <ShieldCheck size={24} style={{ color: '#10b981' }} />
-                      </div>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(0, 242, 254, 0.2)', color: '#00f2fe' }}>
-                        🟢 WEBAUTHN HARDWARE SENSOR
-                      </span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Native Phone Fingerprint Biometric Console</h3>
-                    <p style={{ color: '#cbd5e1', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-                      Scan & verify identity using your phone's native built-in fingerprint sensor (WebAuthn API) or interactive holographic touch pad.
-                    </p>
-                  </div>
+
 
                   {/* Category Card 4: Themes, Cyber Audio & Synth Equalizer (MERGED) */}
                   <div 
@@ -18664,26 +18610,19 @@ export default function App() {
               <div style={{ marginTop: '24px', padding: '18px', background: 'rgba(0, 242, 254, 0.05)', border: '1px solid rgba(0, 242, 254, 0.2)', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#00f2fe' }}>
-                    🛡️ Biometric Security Credentials (Face & Fingerprint)
+                    🛡️ Biometric Security Credentials (Face ID)
                   </span>
                   <span style={{ fontSize: '0.72rem', background: 'rgba(0, 242, 254, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '8px' }}>
-                    DUAL BIOMETRIC ACTIVE
+                    FACE BIOMETRIC ACTIVE
                   </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
                   <button
                     type="button"
                     onClick={() => { setShowEditStudentModal(false); navigateToTab('attendance'); playCyberSound('click'); }}
                     style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
                     📸 Scan & Update Face ID
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setFingerprintModalMode('register'); setShowFingerprintModal(true); playCyberSound('click'); }}
-                    style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  >
-                    🖐️ Scan & Enroll Fingerprint
                   </button>
                 </div>
               </div>
@@ -18785,26 +18724,19 @@ export default function App() {
               <div style={{ marginTop: '24px', padding: '18px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a78bfa' }}>
-                    🧬 My Biometric Profile Setup (Face & Fingerprint)
+                    🧬 My Biometric Profile Setup (Face ID)
                   </span>
                   <span style={{ fontSize: '0.72rem', background: 'rgba(167, 139, 250, 0.2)', color: '#c4b5fd', padding: '2px 8px', borderRadius: '8px' }}>
                     SELF-SERVICE BIOMETRICS
                   </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
                   <button
                     type="button"
                     onClick={() => { setShowEditStudentSelfModal(false); navigateToTab('attendance'); playCyberSound('click'); }}
                     style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
                     📸 Scan & Register Face
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setFingerprintModalMode('register'); setShowFingerprintModal(true); playCyberSound('click'); }}
-                    style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  >
-                    🖐️ Scan & Enroll Fingerprint
                   </button>
                 </div>
               </div>
@@ -19609,7 +19541,6 @@ export default function App() {
       {token && userRole && (
         <QuickActionsDock
           userRole={userRole}
-          onFingerprint={() => { setShowFingerprintModal(true); playCyberSound('click'); }}
           onScan={() => { navigateToTab('attendance'); setShowScannerModal(true); playCyberSound('click'); }}
           onManual={() => { navigateToTab('attendance'); setIsManualAttendanceOpen(true); playCyberSound('click'); }}
           onReport={() => { navigateToTab('reports'); playCyberSound('click'); }}
@@ -20251,28 +20182,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Hardware Phone Fingerprint Scanner Biometric Modal */}
-      <FingerprintScannerModal 
-        isOpen={showFingerprintModal} 
-        onClose={() => {
-          setShowFingerprintModal(false);
-          fetchDashboardStats();
-          fetchAttendanceLogs();
-        }} 
-        token={token}
-        currentUser={editingStudent || editingStudentSelf || currentUser}
-        initialMode={fingerprintModalMode}
-        subjectId={selectedSubjectId}
-        apiBaseUrl={API_BASE_URL}
-        playCyberSound={playCyberSound}
-        onAttendanceMarked={(data) => {
-          fetchDashboardStats();
-          fetchAttendanceLogs();
-        }}
-        onFingerprintEnrolled={() => {
-          fetchStudents();
-        }}
-      />
+
 
       {/* Edge border flash overlay */}
       {showVoicePulseFlash && <div className="voice-pulse-flash-overlay" />}

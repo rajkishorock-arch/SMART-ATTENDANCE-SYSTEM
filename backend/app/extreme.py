@@ -147,7 +147,7 @@ def get_custom_spring(db: Session = Depends(get_db), current_user: models.User =
 
 @router.get("/level2/biometric-modes")
 def biometric_modes():
-    return {"modes": ["face", "nfc", "rfid", "voice", "fingerprint_stub"], "active": ["face", "nfc", "voice"]}
+    return {"modes": ["face", "nfc", "rfid", "voice"], "active": ["face", "nfc", "voice"]}
 
 
 @router.post("/level2/passive-attendance/toggle")

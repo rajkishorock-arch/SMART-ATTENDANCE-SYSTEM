@@ -87,123 +87,13 @@ def get_reenrollment_reminders(
     return {"count": len(reminders), "students": reminders}
 
 
-@router.post("/student/{student_id}/fingerprint")
-def enroll_student_fingerprint(
-    student_id: int,
-    payload: dict = Body(default={}),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user),
-):
-    """Enroll or update fingerprint biometric credential for a student."""
-    student = db.query(models.StudentModel).filter(
-        models.StudentModel.id == student_id,
-        models.StudentModel.institution_id == current_user.institution_id
-    ).first()
-    
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-
-    # 1. Enforce 1 Fingerprint per student limit! (Must delete first before enrolling another finger)
-    force_overwrite = payload.get("force_overwrite", False)
-    if student.fingerprint_enrolled and student.fingerprint_credential and not force_overwrite:
-        raise HTTPException(
-            status_code=400,
-            detail=f"⚠️ Student '{student.name}' (Roll: {student.roll}) ALREADY has an enrolled fingerprint! Please click '🗑️ Delete / Reset Fingerprint' first before enrolling a new finger."
-        )
-
-    credential_data = payload.get("credential", {})
-    cred_str = json.dumps(credential_data) if isinstance(credential_data, dict) else str(credential_data)
-    
-    cred_id = ""
-    device_hash = ""
-    finger_pattern = ""
-    raw_id_str = ""
-
-    if isinstance(credential_data, dict):
-        cred_id = str(credential_data.get("id") or "").strip()
-        device_hash = str(credential_data.get("device_authenticator_hash") or "").strip()
-        finger_pattern = str(credential_data.get("finger_pattern") or "").strip()
-        if credential_data.get("rawId"):
-            raw_id_str = str(credential_data.get("rawId")).strip()
-    elif isinstance(credential_data, str):
-        cred_id = str(credential_data).strip()
-
-    # 2. Enforce 1-to-1 Unique Fingerprint Lock across ALL students in institution
-    other_enrolled = db.query(models.StudentModel).filter(
-        models.StudentModel.id != student_id,
-        models.StudentModel.institution_id == current_user.institution_id,
-        models.StudentModel.fingerprint_enrolled == True
-    ).all()
-
-    for other in other_enrolled:
-        if not other.fingerprint_credential:
-            continue
-        other_cred_str = str(other.fingerprint_credential)
-        
-        match_found = False
-        if finger_pattern and len(finger_pattern) > 2 and finger_pattern in other_cred_str:
-            match_found = True
-        if cred_id and len(cred_id) > 3 and cred_id in other_cred_str:
-            match_found = True
-        if device_hash and len(device_hash) > 3 and device_hash in other_cred_str:
-            match_found = True
-        if raw_id_str and len(raw_id_str) > 8 and raw_id_str in other_cred_str:
-            match_found = True
-
-        if match_found:
-            raise HTTPException(
-                status_code=400,
-                detail=f"⚠️ THIS FINGERPRINT / BIOMETRIC PATTERN IS ALREADY ENROLLED TO STUDENT '{other.name}' (Roll: {other.roll})! 1 Fingerprint CANNOT be enrolled for 2 different students."
-            )
-
-    student.fingerprint_enrolled = True
-    student.fingerprint_credential = cred_str
-    student.fingerprint_enrolled_at = datetime.now(IST)
-    
-    db.commit()
-    return {
-        "status": "success",
-        "message": f"✅ Fingerprint biometric successfully enrolled for student '{student.name}' (Roll: {student.roll}).",
-        "fingerprint_enrolled": True,
-        "student_id": student.id
-    }
-
-
-@router.delete("/student/{student_id}/fingerprint")
-def delete_student_fingerprint(
-    student_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user),
-):
-    """Delete or reset fingerprint biometric credential for a student."""
-    student = db.query(models.StudentModel).filter(
-        models.StudentModel.id == student_id,
-        models.StudentModel.institution_id == current_user.institution_id
-    ).first()
-    
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-        
-    student.fingerprint_enrolled = False
-    student.fingerprint_credential = None
-    student.fingerprint_enrolled_at = None
-    
-    db.commit()
-    return {
-        "status": "success",
-        "message": f"🗑️ Fingerprint biometric deleted for student '{student.name}' (Roll: {student.roll}). You can now re-enroll.",
-        "fingerprint_enrolled": False,
-        "student_id": student.id
-    }
-
-
 @router.get("/student/{student_id}/status")
 def get_student_biometric_status(
     student_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
 ):
-    """Retrieve biometric enrollment status for face and fingerprint."""
+    """Retrieve biometric enrollment status for face."""
     student = db.query(models.StudentModel).filter(
         models.StudentModel.id == student_id,
         models.StudentModel.institution_id == current_user.institution_id
@@ -218,6 +108,4 @@ def get_student_biometric_status(
         "roll": student.roll,
         "face_enrolled": bool(student.face_embedding),
         "face_enrolled_at": student.face_enrolled_at.isoformat() if student.face_enrolled_at else None,
-        "fingerprint_enrolled": bool(student.fingerprint_enrolled),
-        "fingerprint_enrolled_at": student.fingerprint_enrolled_at.isoformat() if student.fingerprint_enrolled_at else None,
     }
