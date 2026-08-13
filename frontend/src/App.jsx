@@ -108,6 +108,8 @@ import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, l
 import NewFeaturesHub from './components/NewFeaturesHub';
 import WellnessCounselorPanel from './components/WellnessCounselorPanel';
 import ARGamificationPortal from './components/ARGamificationPortal';
+import AttendanceChartsWidget from './components/AttendanceChartsWidget';
+
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -9840,6 +9842,8 @@ export default function App() {
                 {userRole === 'teacher' && (
                   <TeacherMiniDashboard stats={stats} subjects={subjects} teacherName={currentUser?.name} />
                 )}
+                <AttendanceChartsWidget stats={stats} />
+
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: isMobileView ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))',
