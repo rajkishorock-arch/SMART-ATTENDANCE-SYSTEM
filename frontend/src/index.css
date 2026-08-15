@@ -6268,33 +6268,115 @@ html {
   transform: scale(1.1) rotate(6deg);
 }
 
-/* Glass Live Ticker Container */
+/* Glass Live Ticker Container - Ultra Premium */
 .glass-ticker-container {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 242, 254, 0.2);
-  border-radius: 30px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  margin-bottom: 20px;
+  gap: 14px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.5) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: 40px;
+  box-shadow: 
+    0 10px 30px -5px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12),
+    0 0 20px rgba(0, 242, 254, 0.1);
+  margin-bottom: 22px;
   overflow: hidden;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.glass-ticker-container:hover {
+  border-color: rgba(0, 242, 254, 0.45);
+  box-shadow: 
+    0 12px 35px -5px rgba(0, 0, 0, 0.7),
+    inset 0 1px 2px rgba(255, 255, 255, 0.18),
+    0 0 25px rgba(0, 242, 254, 0.2);
+}
+
+.glass-ticker-container:hover .live-activity-track {
+  animation-play-state: paused;
+}
+
+/* Live Stream Badge */
+.ticker-live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.18), rgba(79, 172, 254, 0.12));
+  border: 1px solid rgba(0, 242, 254, 0.4);
+  padding: 5px 12px;
+  border-radius: 30px;
+  color: #00f2fe;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  box-shadow: 0 0 14px rgba(0, 242, 254, 0.25);
+  position: relative;
+}
+
+.ticker-live-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00f2fe;
+  box-shadow: 0 0 8px #00f2fe;
+  animation: pulse 1.5s infinite;
+}
+
+.ticker-live-icon {
+  animation: pulse 2s infinite;
+}
+
+/* Holographic Avatar Bubble */
 .ticker-avatar-bubble {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00f2fe, #4facfe);
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #a855f7 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #080c14;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.live-activity-item:hover .ticker-avatar-bubble {
+  transform: scale(1.15) rotate(5deg);
+}
+
+.ticker-item-text {
+  font-weight: 600;
+  color: #f1f5f9;
+  letter-spacing: 0.01em;
+}
+
+.ticker-status-pill {
+  font-size: 0.68rem;
   font-weight: 700;
-  color: #0f172a;
-  box-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
+  padding: 2px 7px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: 2px;
+}
+
+.ticker-sparkle-indicator {
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  flex-shrink: 0;
+  opacity: 0.8;
 }
 
 /* ==========================================================================

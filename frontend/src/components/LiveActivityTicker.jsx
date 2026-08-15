@@ -1,45 +1,63 @@
-import { Activity, Radio } from 'lucide-react';
+import { Radio, Sparkles } from 'lucide-react';
 
 export default function LiveActivityTicker({ activities = [] }) {
   if (!activities.length) return null;
 
   const doubled = [...activities, ...activities];
 
+  const getInitials = (text = '') => {
+    const clean = text.replace(/[^a-zA-Z\s]/g, '').trim();
+    if (!clean) return '✦';
+    const parts = clean.split(' ').filter(Boolean);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return clean.slice(0, 2).toUpperCase();
+  };
+
   return (
-    <div className="glass-ticker-container">
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        background: 'rgba(0, 242, 254, 0.15)',
-        border: '1px solid rgba(0, 242, 254, 0.4)',
-        padding: '4px 10px',
-        borderRadius: '20px',
-        color: '#00f2fe',
-        fontSize: '0.72rem',
-        fontWeight: 800,
-        letterSpacing: '0.05em',
-        flexShrink: 0,
-        boxShadow: '0 0 10px rgba(0, 242, 254, 0.2)'
-      }}>
-        <Radio size={13} style={{ animation: 'pulse 1.5s infinite' }} />
-        <span>LIVE FEED</span>
+    <div className="glass-ticker-container" role="region" aria-label="Real-time attendance stream">
+      {/* Live Badge with Pulse Dot */}
+      <div className="ticker-live-badge">
+        <span className="ticker-live-pulse-dot" />
+        <Radio size={12} className="ticker-live-icon" />
+        <span>LIVE STREAM</span>
       </div>
       
-      <div className="live-activity-track-wrap" style={{ flexGrow: 1, overflow: 'hidden' }}>
-        <div className="live-activity-track" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          {doubled.map((item, idx) => (
-            <span key={`${item.id}-${idx}`} className="live-activity-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#e2e8f0', whiteSpace: 'nowrap' }}>
-              <span className="ticker-avatar-bubble">
-                {(item.text || 'S').charAt(0).toUpperCase()}
+      {/* Marquee Track Wrap with Gradient Mask */}
+      <div className="live-activity-track-wrap">
+        <div className="live-activity-track">
+          {doubled.map((item, idx) => {
+            const isLate = item.type === 'late' || (item.text && item.text.toLowerCase().includes('late'));
+            const isAbsent = item.type === 'absent';
+            const dotColor = isLate ? '#fbbf24' : isAbsent ? '#f87171' : '#34d399';
+            
+            return (
+              <span key={`${item.id || idx}-${idx}`} className="live-activity-item">
+                <span className="ticker-avatar-bubble">
+                  {getInitials(item.text)}
+                </span>
+                <span 
+                  className="live-activity-dot" 
+                  style={{ background: dotColor, boxShadow: `0 0 8px ${dotColor}` }} 
+                />
+                <span className="ticker-item-text">{item.text}</span>
+                <span className="ticker-status-pill" style={{
+                  color: dotColor,
+                  background: isLate ? 'rgba(245, 158, 11, 0.12)' : isAbsent ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                  borderColor: isLate ? 'rgba(245, 158, 11, 0.25)' : isAbsent ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)'
+                }}>
+                  {isLate ? 'Late' : isAbsent ? 'Absent' : 'Verified'}
+                </span>
+                <span className="live-activity-sep">•</span>
               </span>
-              <span className={`live-activity-dot ${item.type}`} style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
-              {item.text}
-              <span className="live-activity-sep" style={{ color: '#475569', marginLeft: 12 }}>•</span>
-            </span>
-          ))}
+            );
+          })}
         </div>
+      </div>
+
+      <div className="ticker-sparkle-indicator">
+        <Sparkles size={14} color="#00f2fe" />
       </div>
     </div>
   );
 }
+
