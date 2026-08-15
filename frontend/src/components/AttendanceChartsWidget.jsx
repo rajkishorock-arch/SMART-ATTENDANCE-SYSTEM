@@ -11,17 +11,17 @@ import {
   Cell,
   Legend
 } from 'recharts';
-import { TrendingUp, PieChart as PieIcon } from 'lucide-react';
+import { TrendingUp, PieChart as PieIcon, Activity } from 'lucide-react';
 
 export default function AttendanceChartsWidget({ stats = {} }) {
   const [timeRange, setTimeRange] = useState('weekly');
 
-  // Extract actual present, absent, and late counts using nullish coalescing (0 remains 0!)
+  // Extract actual present, absent, and late counts using nullish coalescing
   const presentCount = Number(stats?.total_present_today ?? 0);
   const absentCount = Number(stats?.total_absent_today ?? 0);
   const lateCount = Number(stats?.total_late_today ?? 0);
 
-  // Determine current day of week (e.g., 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat')
+  // Determine current day of week
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const todayShortName = new Date().toLocaleDateString('en-US', { weekday: 'short' });
 
@@ -39,12 +39,10 @@ export default function AttendanceChartsWidget({ stats = {} }) {
           };
         }
 
-        // For other days, if presentCount is 0, don't show 40+ dummy numbers!
         if (presentCount === 0 && absentCount === 0) {
           return { day, present: 0, absent: 0, rate: 0 };
         }
 
-        // Scale modestly around actual current numbers
         const dayPresent = Math.max(0, Math.min(presentCount, presentCount + Math.floor(Math.random() * 3) - 1));
         const dayAbsent = Math.max(0, Math.min(absentCount, absentCount + Math.floor(Math.random() * 2) - 1));
         const total = dayPresent + dayAbsent;
@@ -63,28 +61,22 @@ export default function AttendanceChartsWidget({ stats = {} }) {
     { name: 'Late Arrivals', value: lateCount, color: '#f59e0b' },
   ];
 
-  // Check if all metrics are zero
   const isDataEmpty = presentCount === 0 && absentCount === 0 && lateCount === 0;
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.95)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(0, 242, 254, 0.3)',
-          padding: '10px 14px',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-          color: '#f8fafc',
-          fontSize: '0.82rem'
-        }}>
-          <p style={{ fontWeight: 700, margin: '0 0 6px', color: '#00f2fe' }}>{label}</p>
+        <div className="glass-chart-tooltip">
+          <div className="glass-chart-tooltip-header">
+            {label ? `${label} Breakdown` : 'Metrics'}
+          </div>
           {payload.map((entry, index) => (
-            <div key={`item-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '3px 0' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: entry.color }} />
-              <span style={{ color: '#94a3b8' }}>{entry.name}:</span>
-              <span style={{ fontWeight: 700, color: '#fff' }}>{entry.value}</span>
+            <div key={`item-${index}`} className="glass-chart-tooltip-row">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: entry.color, boxShadow: `0 0 6px ${entry.color}` }} />
+                {entry.name}:
+              </span>
+              <span style={{ fontWeight: 800, color: '#fff' }}>{entry.value}</span>
             </div>
           ))}
         </div>
@@ -103,38 +95,39 @@ export default function AttendanceChartsWidget({ stats = {} }) {
         width: '100%'
       }}>
         {/* CHART 1: Attendance Trend Area Chart */}
-        <div className="glass-morphism" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="glass-morphism" style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="stat-icon-wrapper" style={{ background: 'rgba(0, 242, 254, 0.1)', color: '#00f2fe' }}>
-                <TrendingUp size={22} />
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(0, 242, 254, 0.12)', color: '#00f2fe', border: '1px solid rgba(0, 242, 254, 0.25)' }}>
+                <TrendingUp size={20} />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Attendance Trends</h3>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Weekly present & absent trajectory</span>
+                <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.01em' }}>Attendance Trends</h3>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Real-time verification velocity</span>
               </div>
             </div>
 
             <div style={{
               display: 'flex',
-              background: 'rgba(255, 255, 255, 0.05)',
-              padding: '4px',
-              borderRadius: '12px',
+              background: 'rgba(15, 23, 42, 0.6)',
+              padding: '3px',
+              borderRadius: '10px',
               border: '1px solid rgba(255, 255, 255, 0.08)'
             }}>
               <button
                 type="button"
                 onClick={() => setTimeRange('weekly')}
                 style={{
-                  padding: '4px 12px',
-                  borderRadius: '8px',
+                  padding: '4px 10px',
+                  borderRadius: '7px',
                   border: 'none',
-                  background: timeRange === 'weekly' ? '#00f2fe' : 'transparent',
-                  color: timeRange === 'weekly' ? '#0f172a' : '#94a3b8',
-                  fontSize: '0.75rem',
+                  background: timeRange === 'weekly' ? 'linear-gradient(135deg, #00f2fe, #4facfe)' : 'transparent',
+                  color: timeRange === 'weekly' ? '#080c14' : '#94a3b8',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  boxShadow: timeRange === 'weekly' ? '0 2px 8px rgba(0, 242, 254, 0.3)' : 'none'
                 }}
               >
                 Weekly
@@ -143,15 +136,16 @@ export default function AttendanceChartsWidget({ stats = {} }) {
                 type="button"
                 onClick={() => setTimeRange('monthly')}
                 style={{
-                  padding: '4px 12px',
-                  borderRadius: '8px',
+                  padding: '4px 10px',
+                  borderRadius: '7px',
                   border: 'none',
-                  background: timeRange === 'monthly' ? '#00f2fe' : 'transparent',
-                  color: timeRange === 'monthly' ? '#0f172a' : '#94a3b8',
-                  fontSize: '0.75rem',
+                  background: timeRange === 'monthly' ? 'linear-gradient(135deg, #00f2fe, #4facfe)' : 'transparent',
+                  color: timeRange === 'monthly' ? '#080c14' : '#94a3b8',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  boxShadow: timeRange === 'monthly' ? '0 2px 8px rgba(0, 242, 254, 0.3)' : 'none'
                 }}
               >
                 Monthly
@@ -159,23 +153,23 @@ export default function AttendanceChartsWidget({ stats = {} }) {
             </div>
           </div>
 
-          <div style={{ width: '100%', height: 240, marginTop: '8px' }}>
+          <div style={{ width: '100%', height: 230, marginTop: '4px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={weeklyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.4} />
+                    <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.45} />
                     <stop offset="95%" stopColor="#00f2fe" stopOpacity={0.0} />
                   </linearGradient>
                   <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.35} />
                     <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="day" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} domain={[0, 'auto']} />
+                <XAxis dataKey="day" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} domain={[0, 'auto']} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="present" name="Present" stroke="#00f2fe" strokeWidth={3} fillOpacity={1} fill="url(#presentGrad)" />
+                <Area type="monotone" dataKey="present" name="Present" stroke="#00f2fe" strokeWidth={2.5} fillOpacity={1} fill="url(#presentGrad)" />
                 <Area type="monotone" dataKey="absent" name="Absent" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#absentGrad)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -183,18 +177,18 @@ export default function AttendanceChartsWidget({ stats = {} }) {
         </div>
 
         {/* CHART 2: Attendance Distribution Donut Chart */}
-        <div className="glass-morphism" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="glass-morphism" style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="stat-icon-wrapper" style={{ background: 'rgba(167, 139, 250, 0.1)', color: '#c084fc' }}>
-              <PieIcon size={22} />
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(167, 139, 250, 0.12)', color: '#c084fc', border: '1px solid rgba(167, 139, 250, 0.25)' }}>
+              <PieIcon size={20} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Attendance Ratio</h3>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Live student status breakdown</span>
+              <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.01em' }}>Daily Ratio</h3>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Real-time status breakdown</span>
             </div>
           </div>
 
-          <div style={{ width: '100%', height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '100%', height: 230, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -214,7 +208,7 @@ export default function AttendanceChartsWidget({ stats = {} }) {
                 <Legend
                   verticalAlign="bottom"
                   height={36}
-                  formatter={(value) => <span style={{ color: '#cbd5e1', fontSize: '0.8rem', fontWeight: 600 }}>{value}</span>}
+                  formatter={(value) => <span style={{ color: '#cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}>{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -224,3 +218,4 @@ export default function AttendanceChartsWidget({ stats = {} }) {
     </div>
   );
 }
+
