@@ -41,7 +41,27 @@ api_router.include_router(ideas150.router, prefix="/ideas150", tags=["Ideas Hub 
 api_router.include_router(features7_router.router, prefix="", tags=["7 Enterprise Features Expansion"])
 
 # Fixed leave router (now properly auth-protected & multi-tenant)
+from . import disputes
+from . import calendar_engine
+from . import planner_engine
+from . import review_queue
+from . import device_monitor
+from . import enrollment_qa
+from . import interventions
+from . import biometric_fallback
+from . import lms_sync
+from . import staff_payroll
 api_router.include_router(leave.router, prefix="", tags=["Leave Management"])
+api_router.include_router(disputes.router, prefix="/disputes", tags=["Attendance Disputes"])
+api_router.include_router(calendar_engine.router, prefix="/calendar", tags=["Academic Calendar Engine"])
+api_router.include_router(planner_engine.router, prefix="/planner", tags=["Smart Attendance Planner"])
+api_router.include_router(review_queue.router, prefix="/review-queue", tags=["Low-Confidence Match Review Queue"])
+api_router.include_router(device_monitor.router, prefix="/devices", tags=["Device & Kiosk Health Monitoring"])
+api_router.include_router(enrollment_qa.router, prefix="/enrollment", tags=["Face Enrollment QA & Re-Enrollment"])
+api_router.include_router(interventions.router, prefix="/interventions", tags=["Counselor & Parent Intervention System"])
+api_router.include_router(biometric_fallback.router, prefix="/fallback", tags=["Biometric Fallback System"])
+api_router.include_router(lms_sync.router, prefix="/lms", tags=["SIS & LMS Integration Engine"])
+api_router.include_router(staff_payroll.router, prefix="/staff", tags=["Staff Attendance & Payroll Engine"])
 
 # ── New 40 Features ──────────────────────────────────────────────────────────
 api_router.include_router(emotion_detection.router,      prefix="/emotion",       tags=["Emotion Detection"])

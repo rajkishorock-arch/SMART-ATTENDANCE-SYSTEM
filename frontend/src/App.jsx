@@ -30,8 +30,14 @@ import {
   BookOpen, 
   Info,
   ShieldCheck,
+  ShieldAlert,
+  AlertOctagon,
+  ScanFace,
+  Monitor,
   Calendar,
   Layers,
+  Globe,
+  DollarSign,
   Trash2,
   Mail,
   Lock,
@@ -95,6 +101,17 @@ import Enterprise7FeaturesHub from './components/Enterprise7FeaturesHub';
 import UniversalSearch from './components/UniversalSearch';
 import LiveBoardStrip from './components/LiveBoardStrip';
 import RoleCommandCenter from './components/RoleCommandCenter';
+import AttendanceDisputeModal from './components/AttendanceDisputeModal';
+import AttendanceDisputesQueue from './components/AttendanceDisputesQueue';
+import AcademicCalendarView from './components/AcademicCalendarView';
+import AttendancePlannerWidget from './components/AttendancePlannerWidget';
+import LowConfidenceReviewQueue from './components/LowConfidenceReviewQueue';
+import DeviceHealthDashboard from './components/DeviceHealthDashboard';
+import FaceEnrollmentModal from './components/FaceEnrollmentModal';
+import InterventionsManagementView from './components/InterventionsManagementView';
+import BiometricFallbackModal from './components/BiometricFallbackModal';
+import LmsSyncIntegrationView from './components/LmsSyncIntegrationView';
+import StaffPayrollView from './components/StaffPayrollView';
 import QuickActionsDock from './components/QuickActionsDock';
 import SmartEmptyState from './components/SmartEmptyState';
 import OnboardingTour from './components/OnboardingTour';
@@ -1546,6 +1563,17 @@ export default function App() {
     setActiveDashboardSubTab(null);
   }, [activeTab]);
 
+
+  // Attendance Dispute & Correction Modal States (Phase 2)
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputePrefillSession, setDisputePrefillSession] = useState(null);
+
+  // Multi-Sample Face Enrollment Modal States (Phase 7)
+  const [showFaceEnrollModal, setShowFaceEnrollModal] = useState(false);
+  const [faceEnrollStudent, setFaceEnrollStudent] = useState(null);
+
+  // Biometric Fallback System Modal States (Phase 9)
+  const [showFallbackModal, setShowFallbackModal] = useState(false);
 
   // Feedback Form States
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -6607,9 +6635,9 @@ export default function App() {
       if (role === 'student') {
         return ['student-attendance', 'student-profile', 'ai-assistant', 'settings'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile', 'disputes'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile', 'disputes'].includes(tabId);
       }
       return false;
     };
@@ -9359,6 +9387,88 @@ export default function App() {
                   Reports & Alerts
                 </button>
               </li>
+              {(userRole === 'admin' || userRole === 'teacher') && (
+                <li>
+                  <button 
+                    className={`nav-item ${activeTab === 'disputes' ? 'active' : ''}`}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                    onClick={() => { setActiveTab('disputes'); playCyberSound('click'); }}
+                  >
+                    <ShieldAlert size={18} />
+                    Disputes & Corrections
+                  </button>
+                </li>
+              )}
+              {(userRole === 'admin' || userRole === 'teacher') && (
+                <li>
+                  <button 
+                    className={`nav-item ${activeTab === 'face-review' ? 'active' : ''}`}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                    onClick={() => { setActiveTab('face-review'); playCyberSound('click'); }}
+                  >
+                    <ScanFace size={18} />
+                    Face Match QA Queue
+                  </button>
+                </li>
+              )}
+              <li>
+                <button 
+                  className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  onClick={() => { setActiveTab('calendar'); playCyberSound('click'); }}
+                >
+                  <Calendar size={18} />
+                  Academic Calendar
+                </button>
+              </li>
+              {userRole === 'admin' && (
+                <li>
+                  <button 
+                    className={`nav-item ${activeTab === 'devices' ? 'active' : ''}`}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                    onClick={() => { setActiveTab('devices'); playCyberSound('click'); }}
+                  >
+                    <Monitor size={18} />
+                    Kiosk & Device Fleet
+                  </button>
+                </li>
+              )}
+              {(userRole === 'admin' || userRole === 'teacher') && (
+                <li>
+                  <button 
+                    className={`nav-item ${activeTab === 'interventions' ? 'active' : ''}`}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                    onClick={() => { setActiveTab('interventions'); playCyberSound('click'); }}
+                  >
+                    <AlertOctagon size={18} />
+                    Attendance Interventions
+                  </button>
+                </li>
+              )}
+              {userRole === 'admin' && (
+                <li>
+                  <button 
+                    className={`nav-item ${activeTab === 'lms' ? 'active' : ''}`}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                    onClick={() => { setActiveTab('lms'); playCyberSound('click'); }}
+                  >
+                    <Globe size={18} />
+                    SIS & LMS Sync
+                  </button>
+                </li>
+              )}
+              {(userRole === 'admin' || userRole === 'teacher') && (
+                <li>
+                  <button 
+                    className={`nav-item ${activeTab === 'payroll' ? 'active' : ''}`}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                    onClick={() => { setActiveTab('payroll'); playCyberSound('click'); }}
+                  >
+                    <DollarSign size={18} />
+                    Staff & Payroll
+                  </button>
+                </li>
+              )}
               {(userRole === 'admin' || userRole === 'teacher' || userRole === 'student') && (
                 <li>
                   <button 
@@ -9464,6 +9574,13 @@ export default function App() {
                 {activeTab === 'attendance' && 'Live Scanner'}
                 {activeTab === 'reports' && 'Attendance Reports & Alerts'}
                 {activeTab === 'session-history' && 'Session-wise History'}
+                {activeTab === 'disputes' && 'Attendance Disputes & Correction Queue'}
+                {activeTab === 'face-review' && 'Low-Confidence Face Match Review Queue'}
+                {activeTab === 'calendar' && 'Academic Calendar & Schedule Engine'}
+                {activeTab === 'devices' && 'Kiosk & Scanner Device Fleet Telemetry'}
+                {activeTab === 'interventions' && 'Counselor & Parent Intervention Center'}
+                {activeTab === 'lms' && 'SIS & Enterprise LMS Sync Engine'}
+                {activeTab === 'payroll' && 'Staff Attendance & Institutional Payroll'}
                 {activeTab === 'student-attendance' && `Welcome, ${currentUser?.name || 'Student'}`}
                 {activeTab === 'student-profile' && 'My Profile'}
                 {activeTab === 'settings' && 'Security & System Settings'}
@@ -9477,6 +9594,13 @@ export default function App() {
                 {activeTab === 'attendance' && 'Log attendance using live facial recognition scanner'}
                 {activeTab === 'reports' && 'Generate academic reports, analytics, and attendance alerts'}
                 {activeTab === 'session-history' && 'Track day-by-day session registers and student present/absent statuses'}
+                {activeTab === 'disputes' && 'Review student disputes, view proof, and issue auditable corrections'}
+                {activeTab === 'face-review' && 'Review borderline facial detections, verify candidate images, and confirm or reassign attendance'}
+                {activeTab === 'calendar' && 'Institutional schedule, holiday management, substitute faculty, and attendance safety protection'}
+                {activeTab === 'devices' && 'Monitor deployed scanning kiosks, camera sensors, battery levels, and live heartbeats'}
+                {activeTab === 'interventions' && 'Proactive attendance shortfall alerts, parent notifications, and counseling workflows'}
+                {activeTab === 'lms' && 'Bidirectional attendance transmission and student roster synchronization with Canvas, Moodle, and ERPs'}
+                {activeTab === 'payroll' && 'Daily punch telemetry, overtime tracking, and monthly salary disbursement calculations'}
                 {activeTab === 'student-attendance' && 'Track your attendance history and metrics'}
                 {activeTab === 'student-profile' && 'View and manage your personal profile and credentials'}
                 {activeTab === 'settings' && 'Manage campus geofencing and IP subnet restriction boundaries'}
@@ -13670,6 +13794,62 @@ export default function App() {
           </div>
         )}
 
+        {activeTab === 'disputes' && (
+          <AttendanceDisputesQueue 
+            token={token} 
+            currentUser={currentUser} 
+            playCyberSound={playCyberSound} 
+          />
+        )}
+
+        {activeTab === 'face-review' && (
+          <LowConfidenceReviewQueue 
+            token={token} 
+            currentUser={currentUser} 
+            playCyberSound={playCyberSound} 
+          />
+        )}
+
+        {activeTab === 'calendar' && (
+          <AcademicCalendarView 
+            token={token} 
+            currentUser={currentUser} 
+            playCyberSound={playCyberSound} 
+          />
+        )}
+
+        {activeTab === 'devices' && (
+          <DeviceHealthDashboard 
+            token={token} 
+            currentUser={currentUser} 
+            playCyberSound={playCyberSound} 
+          />
+        )}
+
+        {activeTab === 'interventions' && (
+          <InterventionsManagementView 
+            token={token} 
+            currentUser={currentUser} 
+            playCyberSound={playCyberSound} 
+          />
+        )}
+
+        {activeTab === 'lms' && (
+          <LmsSyncIntegrationView 
+            token={token} 
+            currentUser={currentUser} 
+            playCyberSound={playCyberSound} 
+          />
+        )}
+
+        {activeTab === 'payroll' && (
+          <StaffPayrollView 
+            token={token} 
+            currentUser={currentUser} 
+            playCyberSound={playCyberSound} 
+          />
+        )}
+
         {activeTab === 'settings' && (
           <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '24px', boxSizing: 'border-box' }}>
             {activeSubSetting !== null && (
@@ -16609,6 +16789,7 @@ export default function App() {
         {activeTab === 'student-attendance' && (
           <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
             <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} />
+            <AttendancePlannerWidget token={token} currentUser={currentUser} playCyberSound={playCyberSound} />
             <GamificationHub logs={studentLogs} />
 
             {/* ===== CAMPUS GEOFENCE LIVE INDICATOR ===== */}
@@ -16839,6 +17020,58 @@ export default function App() {
                   playCyberSound={playCyberSound}
                   subjects={subjects}
                 />
+              </div>
+
+              {/* Attendance Disputes & Correction Trigger (Phase 2) */}
+              <div 
+                className="glass-panel" 
+                style={{ 
+                  padding: '24px', 
+                  borderRadius: '16px', 
+                  border: '1px solid rgba(239, 68, 68, 0.25)', 
+                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(0, 242, 254, 0.04))', 
+                  cursor: 'pointer' 
+                }}
+                onClick={() => {
+                  playCyberSound('click');
+                  setDisputePrefillSession(null);
+                  setShowDisputeModal(true);
+                }}
+              >
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>⚖️</span> Attendance Disputes
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
+                  <div style={{ 
+                    width: '70px', 
+                    height: '70px', 
+                    borderRadius: '12px', 
+                    background: 'rgba(239, 68, 68, 0.1)', 
+                    border: '1px solid rgba(239, 68, 68, 0.3)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontSize: '2rem', 
+                    boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)' 
+                  }}>
+                    🛡️
+                  </div>
+                  <p style={{ color: '#9ca3af', fontSize: '0.82rem', textAlign: 'center' }}>
+                    Marked absent unfairly or face scan failed? Submit an official correction request with evidence.
+                  </p>
+                  <button className="btn" style={{ 
+                    width: '100%', 
+                    padding: '10px', 
+                    borderRadius: '10px', 
+                    fontWeight: 600, 
+                    fontSize: '0.85rem', 
+                    background: 'rgba(239, 68, 68, 0.15)', 
+                    border: '1px solid rgba(239, 68, 68, 0.3)', 
+                    color: '#ef4444' 
+                  }}>
+                    Dispute Attendance / Check Status
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -19322,6 +19555,45 @@ export default function App() {
       )}
 
 
+
+      {/* Attendance Dispute Modal (Phase 2) */}
+      <AttendanceDisputeModal
+        isOpen={showDisputeModal}
+        onClose={() => {
+          setShowDisputeModal(false);
+          setDisputePrefillSession(null);
+        }}
+        token={token}
+        currentUser={currentUser}
+        subjects={subjects}
+        prefillSession={disputePrefillSession}
+        playCyberSound={playCyberSound}
+      />
+
+      {/* Multi-Sample Face Enrollment Modal (Phase 7) */}
+      <FaceEnrollmentModal
+        isOpen={showFaceEnrollModal}
+        onClose={() => {
+          setShowFaceEnrollModal(false);
+          setFaceEnrollStudent(null);
+        }}
+        student={faceEnrollStudent}
+        token={token}
+        playCyberSound={playCyberSound}
+        onEnrollmentSuccess={() => {
+          if (typeof fetchStudents === 'function') fetchStudents();
+        }}
+      />
+
+      {/* Biometric Fallback System Modal (Phase 9) */}
+      <BiometricFallbackModal
+        isOpen={showFallbackModal}
+        onClose={() => setShowFallbackModal(false)}
+        token={token}
+        currentUser={currentUser}
+        subjects={subjects}
+        playCyberSound={playCyberSound}
+      />
 
       {/* Feedback Submission Modal */}
       {showFeedbackModal && (

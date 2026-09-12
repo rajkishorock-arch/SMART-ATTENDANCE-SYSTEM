@@ -26,6 +26,8 @@ env/
 *.sqlite3
 backend/data/
 data/
+backend/uploads/
+.pytest_cache/
 attendance.csv
 backend/attendance.csv
 

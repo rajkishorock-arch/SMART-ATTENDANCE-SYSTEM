@@ -118,6 +118,8 @@ class AttendanceModel(Base):
     date = Column(String(20), primary_key=True)
     attendance = Column(String(20)) # 'Present', 'Absent', 'Late'
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    verification_method = Column(String(30), default="FACE_SCAN")  # FACE_SCAN, DYNAMIC_QR, SESSION_PIN, MANUAL_STAFF
+    fallback_reason = Column(String(255), nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
@@ -132,7 +134,14 @@ class AuditLog(Base):
     institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     user_email = Column(String(100), index=True)
+    role = Column(String(50), nullable=True)
     action = Column(Text, nullable=False)
+    entity_type = Column(String(50), nullable=True)
+    entity_id = Column(String(100), nullable=True)
+    previous_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=True)
+    reason = Column(Text, nullable=True)
+    ip_address = Column(String(45), nullable=True)
 
 class SystemSettings(Base):
     __tablename__ = "system_settings"
@@ -154,6 +163,16 @@ class SystemSettings(Base):
     update_rollout = Column(String(30), nullable=True, default="public")
     owner_preview_version = Column(String(50), nullable=True)
     owner_preview_download_url = Column(Text, nullable=True)
+    # Production security & policy additions
+    liveness_strict_mode = Column(Boolean, default=False)
+    dispute_window_hours = Column(Integer, default=72)
+    dispute_require_hod_approval = Column(Boolean, default=False)
+    exam_attendance_policy = Column(String(30), default="count")  # 'count', 'exclude', 'separate'
+    min_attendance_threshold = Column(Float, default=75.0)
+    warning_threshold = Column(Float, default=75.0)
+    critical_threshold = Column(Float, default=70.0)
+    intervention_threshold = Column(Float, default=60.0)
+    device_offline_timeout_minutes = Column(Integer, default=5)
 
 
 class Feedback(Base):
@@ -832,3 +851,317 @@ class OfflineSyncLog(Base):
     records_count = Column(Integer, default=0)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     sync_metadata = Column(Text, nullable=True)             # JSON with errors, skipped records, etc.
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ATTENDANCE DISPUTE & CORRECTION SYSTEM (PHASE 2)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class AttendanceDispute(Base):
+    """
+    Student-submitted attendance dispute / correction record.
+    Preserves original recorded attendance and maintains complete audit trail.
+    """
+    __tablename__ = "attendance_disputes"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    attendance_id = Column(String(50), nullable=True, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True)
+    date = Column(String(20), nullable=False, index=True)
+    session_time = Column(String(20), nullable=True)
+    original_status = Column(String(20), nullable=False)
+    requested_status = Column(String(20), nullable=False, default="Present")
+    reason = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    proof_filename = Column(String(255), nullable=True)
+    proof_content_type = Column(String(100), nullable=True)
+    status = Column(String(30), default="SUBMITTED", index=True)
+    reviewed_by = Column(String(100), nullable=True)
+    reviewer_role = Column(String(50), nullable=True)
+    reviewer_comments = Column(Text, nullable=True)
+    escalated_to_hod = Column(Boolean, default=False)
+    hod_reviewed_by = Column(String(100), nullable=True)
+    hod_comments = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class DisputeComment(Base):
+    """Communication thread and reviewer updates on a dispute."""
+    __tablename__ = "dispute_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    dispute_id = Column(Integer, ForeignKey("attendance_disputes.id", ondelete="CASCADE"), nullable=False, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_email = Column(String(100), nullable=False)
+    author_role = Column(String(50), nullable=False)
+    author_name = Column(String(100), nullable=True)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ACADEMIC CALENDAR ENGINE (PHASE 3)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class CalendarEvent(Base):
+    """
+    Academic Calendar Engine event record.
+    Differentiates Working Days, Holidays, Class Cancellations, Exams, Events, and Teacher Substitutions.
+    """
+    __tablename__ = "academic_calendar_events"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(150), nullable=False)
+    description = Column(Text, nullable=True)
+    event_type = Column(String(50), nullable=False, index=True)
+    # HOLIDAY, EXAM, CLASS_CANCELLED, SUBSTITUTE_CLASS, INSTITUTION_CLOSED, SPECIAL_CLASS, EVENT, WORKING_DAY, TEACHER_SUBSTITUTION
+    start_date = Column(String(20), nullable=False, index=True)
+    end_date = Column(String(20), nullable=True)
+    start_time = Column(String(20), nullable=True)
+    end_time = Column(String(20), nullable=True)
+    department = Column(String(100), nullable=True, index=True)
+    course = Column(String(100), nullable=True)
+    semester = Column(String(45), nullable=True)
+    section = Column(String(45), nullable=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True)
+    teacher_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    substitute_teacher_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    substitute_reason = Column(String(200), nullable=True)
+    status = Column(String(30), default="ACTIVE") # ACTIVE, CANCELLED, COMPLETED
+    created_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LOW-CONFIDENCE FACE MATCH REVIEW QUEUE (PHASE 5)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class LowConfidenceReview(Base):
+    """
+    Staging entity for borderline/medium-confidence face recognitions (0.35 <= score < 0.50).
+    Requires staff/teacher review before converting into verified attendance records.
+    """
+    __tablename__ = "low_confidence_reviews"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    candidate_student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    candidate_roll = Column(String(45), nullable=False)
+    candidate_name = Column(String(100), nullable=False)
+    similarity_score = Column(Float, nullable=False)
+    snapshot_path = Column(String(255), nullable=True)
+    date = Column(String(20), nullable=False, index=True)
+    session_time = Column(String(20), nullable=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True)
+    device_id = Column(String(100), nullable=True)
+    status = Column(String(30), default="PENDING", index=True)  # PENDING, CONFIRMED, REJECTED, REASSIGNED
+    reviewed_by = Column(String(100), nullable=True)
+    reassigned_student_id = Column(Integer, nullable=True)
+    reviewer_comment = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DEVICE & KIOSK HEALTH MONITORING (PHASE 6)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class AttendanceDevice(Base):
+    """
+    Physical scanning kiosk, mobile checkpoint, or CCTV edge device record.
+    Tracks health, camera status, sync backlogs, and heartbeat liveness.
+    """
+    __tablename__ = "attendance_devices"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_identifier = Column(String(100), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+    location = Column(String(150), nullable=True)
+    device_type = Column(String(50), default="KIOSK")  # KIOSK, MOBILE, CCTV, TABLET
+    ip_address = Column(String(45), nullable=True)
+    app_version = Column(String(50), nullable=True)
+    status = Column(String(30), default="ONLINE", index=True)  # ONLINE, DEGRADED, OFFLINE, MAINTENANCE
+    camera_status = Column(String(30), default="OK")  # OK, BLURRED, DISCONNECTED, ERROR
+    battery_level = Column(Float, nullable=True)
+    network_latency_ms = Column(Float, nullable=True)
+    pending_sync_count = Column(Integer, default=0)
+    last_heartbeat = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('institution_id', 'device_identifier', name='uq_device_institution_identifier'),
+    )
+
+
+class DeviceHeartbeatLog(Base):
+    """Historical telemetry log for device uptime, battery, and camera health."""
+    __tablename__ = "device_heartbeat_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_id = Column(Integer, ForeignKey("attendance_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(String(30), nullable=False)
+    battery_level = Column(Float, nullable=True)
+    camera_status = Column(String(30), nullable=True)
+    network_latency_ms = Column(Float, nullable=True)
+    recorded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FACE ENROLLMENT QA & MULTI-SAMPLE RE-ENROLLMENT (PHASE 7)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class FaceEnrollmentSample(Base):
+    """
+    Multi-angle facial enrollment sample with biometric quality telemetry
+    (blur variance, illumination range, face size, and pose angle).
+    """
+    __tablename__ = "face_enrollment_samples"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    pose = Column(String(20), default="FRONT")  # FRONT, LEFT, RIGHT
+    sample_quality_score = Column(Float, default=1.0)
+    blur_score = Column(Float, nullable=True)
+    brightness_score = Column(Float, nullable=True)
+    image_path = Column(String(255), nullable=True)
+    enrolled_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ReEnrollmentRequest(Base):
+    """Workflow record requesting or authorizing a student biometric re-scan."""
+    __tablename__ = "re_enrollment_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    reason = Column(String(50), nullable=False)  # FACIAL_CHANGE, LOW_QUALITY, SURGERY_GLASSES, ROUTINE_EXPIRY
+    description = Column(Text, nullable=True)
+    status = Column(String(30), default="PENDING", index=True)  # PENDING, APPROVED, REJECTED, COMPLETED
+    requested_by = Column(String(100), nullable=False)
+    approved_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# COUNSELOR & PARENT INTERVENTION SYSTEM (PHASE 8)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class AttendanceIntervention(Base):
+    """
+    Tiered academic attendance intervention record:
+    - Tier 1 (70% - 74.9%): Academic Warning
+    - Tier 2 (60% - 69.9%): Parent Notification & Counselor Alert
+    - Tier 3 (< 60%): Critical / Exam Debarment Risk
+    """
+    __tablename__ = "attendance_interventions"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    tier = Column(String(30), nullable=False, index=True)  # WARNING, PARENT_ALERT, DEBARMENT_RISK
+    attendance_percentage = Column(Float, nullable=False)
+    status = Column(String(40), default="TRIGGERED", index=True)
+    # TRIGGERED, PARENT_NOTIFIED, COUNSELOR_MEETING_SCHEDULED, RESOLVED
+    counselor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    notes = Column(Text, nullable=True)
+    parent_contacted_at = Column(DateTime(timezone=True), nullable=True)
+    meeting_date = Column(String(50), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# BIOMETRIC FALLBACK SYSTEM (PHASE 9)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class AttendanceFallbackSession(Base):
+    """
+    Time-bound biometric fallback authorization session.
+    Generates rotating TOTP/HMAC QR codes (every 30s) and emergency PINs.
+    """
+    __tablename__ = "attendance_fallback_sessions"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False, index=True)
+    teacher_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_date = Column(String(20), nullable=False)
+    session_secret = Column(String(64), nullable=False)  # Cryptographic seed for HMAC-SHA256
+    session_pin = Column(String(10), nullable=False)     # 6-digit emergency PIN
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SIS & LMS INTEGRATION & SYNC ENGINE (PHASE 10)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class LmsIntegrationConfig(Base):
+    """Configuration for external LMS/SIS provider (Canvas, Moodle, Blackboard, ERP)."""
+    __tablename__ = "lms_integration_configs"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    provider = Column(String(50), default="CUSTOM_REST")  # CANVAS, MOODLE, BLACKBOARD, CUSTOM_REST
+    api_endpoint = Column(String(255), nullable=False)
+    api_token = Column(String(255), nullable=True)
+    sync_schedule_cron = Column(String(50), default="0 23 * * *")
+    auto_sync_enabled = Column(Boolean, default=False)
+    last_sync_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class LmsSyncJobLog(Base):
+    """Historical telemetry log for inbound/outbound LMS synchronization cycles."""
+    __tablename__ = "lms_sync_job_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    job_type = Column(String(50), nullable=False)  # OUTBOUND_ATTENDANCE, INBOUND_ROSTER
+    status = Column(String(30), default="SUCCESS")  # SUCCESS, FAILED, PARTIAL
+    records_processed = Column(Integer, default=0)
+    records_failed = Column(Integer, default=0)
+    error_message = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAFF ATTENDANCE & PAYROLL ENGINE (PHASE 11)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class StaffAttendance(Base):
+    """Daily biometric check-in / check-out register for institutional staff & faculty."""
+    __tablename__ = "staff_attendance"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(String(20), nullable=False)
+    check_in = Column(String(20), nullable=True)
+    check_out = Column(String(20), nullable=True)
+    hours_worked = Column(Float, default=0.0)
+    overtime_hours = Column(Float, default=0.0)
+    status = Column(String(30), default="PRESENT")  # PRESENT, HALF_DAY, ABSENT, ON_LEAVE, OVERTIME
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class StaffPayrollRecord(Base):
+    """Monthly computed salary payout register based on working days and attendance."""
+    __tablename__ = "staff_payroll_records"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    month_year = Column(String(20), nullable=False)  # MM/YYYY
+    base_salary = Column(Float, default=0.0)
+    working_days = Column(Integer, default=30)
+    days_present = Column(Integer, default=0)
+    days_half = Column(Integer, default=0)
+    days_absent = Column(Integer, default=0)
+    gross_salary = Column(Float, default=0.0)
+    deductions = Column(Float, default=0.0)
+    net_salary = Column(Float, default=0.0)
+    status = Column(String(30), default="DRAFT")  # DRAFT, APPROVED, PAID
+    generated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+

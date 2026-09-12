@@ -114,11 +114,17 @@ async def recognize_and_mark_attendance(
             detail="Only teachers or administrators can run the attendance scanner."
         )
 
-    # Server-side liveness validation (optional but recommended)
-    if liveness_token:
-        from .liveness_service import verify_liveness_token
-        if not verify_liveness_token(liveness_token, current_user.email):
-            raise HTTPException(status_code=403, detail="Invalid or expired liveness token. Complete blink challenge first.")
+    # Server-side liveness enforcement
+    settings = crud.get_system_settings(db, institution_id=current_user.institution_id)
+    strict_liveness = bool(getattr(settings, "liveness_strict_mode", False))
+    from .liveness_service import validate_attendance_liveness
+    is_valid, liveness_err = validate_attendance_liveness(
+        liveness_token=liveness_token,
+        user_email=current_user.email,
+        strict_mode=strict_liveness
+    )
+    if not is_valid:
+        raise HTTPException(status_code=403, detail=liveness_err)
         
     if current_user.role == "teacher":
         if subject_id is None:
@@ -204,7 +210,37 @@ async def recognize_and_mark_attendance(
         roll = face["roll"]
         dep = face["dep"]
         
-        # Mark attendance in database + CSV
+        # Phase 5: Stage borderline / low-confidence face matches (0.35 <= score < 0.50) into review queue
+        if face.get("match_quality") == "BORDERLINE":
+            today_str = custom_date or datetime.now().strftime("%d/%m/%Y")
+            existing_review = db.query(models.LowConfidenceReview).filter(
+                models.LowConfidenceReview.institution_id == current_user.institution_id,
+                models.LowConfidenceReview.candidate_student_id == user_id,
+                models.LowConfidenceReview.date == today_str,
+                models.LowConfidenceReview.status == "PENDING"
+            ).first()
+            if not existing_review:
+                review_item = models.LowConfidenceReview(
+                    institution_id=current_user.institution_id,
+                    candidate_student_id=user_id,
+                    candidate_roll=roll,
+                    candidate_name=name,
+                    similarity_score=face.get("raw_score", 0.40),
+                    date=today_str,
+                    session_time=custom_time or datetime.now().strftime("%I:%M:%S %p"),
+                    subject_id=subject_id,
+                    device_id="scanner-live",
+                    status="PENDING"
+                )
+                db.add(review_item)
+                db.commit()
+            face_details = face.copy()
+            face_details["staged_for_review"] = True
+            face_details["newly_marked"] = False
+            marked_students.append(face_details)
+            continue
+
+        # Mark attendance in database + CSV for high-confidence verified faces
         db_attendance, newly_marked = crud.mark_student_attendance(
             db, 
             student_id=user_id, 

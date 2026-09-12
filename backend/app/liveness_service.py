@@ -71,11 +71,44 @@ def report_liveness_step(challenge_id: str, step: str, ear_value: float) -> Dict
     }
 
 
-def verify_liveness_token(token: str, user_email: str) -> bool:
+def verify_liveness_token(token: str, user_email: str, max_age_seconds: int = 60) -> bool:
+    if not token or not user_email:
+        return False
+    # Anti-replay protection: check if token has already been consumed
+    if cache_get(f"liveness:used:{token}"):
+        return False
+
     data = cache_get(f"liveness:token:{token}")
     if not data:
         return False
     if data.get("user_email") != user_email:
         return False
+
+    # Freshness check: token must be used within max_age_seconds
+    verified_at = data.get("verified_at", 0)
+    if (time.time() - verified_at) > max_age_seconds:
+        cache_delete(f"liveness:token:{token}")
+        return False
+
+    # Mark token as used to permanently prevent replay attacks
+    cache_set(f"liveness:used:{token}", True, ttl=300)
     cache_delete(f"liveness:token:{token}")
     return True
+
+
+def validate_attendance_liveness(
+    liveness_token: Optional[str],
+    user_email: str,
+    strict_mode: bool = False
+) -> tuple[bool, Optional[str]]:
+    """
+    Server-side attendance verification:
+    Validates freshness, user identity binding, and anti-replay defense.
+    """
+    if not strict_mode and not liveness_token:
+        return True, None
+    if not liveness_token:
+        return False, "Server-side liveness verification is required. Complete blink challenge."
+    if not verify_liveness_token(liveness_token, user_email):
+        return False, "Invalid, expired, or already used liveness token. Please refresh."
+    return True, None

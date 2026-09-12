@@ -146,16 +146,21 @@ class RecognitionService:
                     best_score = score
                     best_id = student_id
 
-            # Threshold 0.43 — stricter than default (0.363) to minimise false matches
-            if best_id is not None and best_score >= 0.43:
+            # Two-tier confidence threshold (Phase 5):
+            # >= 0.50: High confidence auto-attendance
+            # 0.35 <= score < 0.50: Borderline staged for human review
+            if best_id is not None and best_score >= 0.35:
                 student = self.student_records[best_id]
+                match_quality = "HIGH" if best_score >= 0.50 else "BORDERLINE"
                 recognized_faces.append({
                     "user_id": best_id,
                     "name": student["name"],
                     "roll": student["roll"],
                     "dep": student["dep"],
                     "box": [int(x), int(y), int(box_w), int(box_h)],
-                    "confidence": round(min(100.0, max(0.0, best_score * 100)), 2)
+                    "confidence": round(min(100.0, max(0.0, best_score * 100)), 2),
+                    "raw_score": round(float(best_score), 4),
+                    "match_quality": match_quality
                 })
 
         return recognized_faces

@@ -8,7 +8,18 @@ from . import models, schemas, security
 
 # --- Audit Log ---
 def create_audit_log(db: Session, log: schemas.AuditLogCreate, institution_id: Optional[int] = None):
-    db_log = models.AuditLog(user_email=log.user_email, action=log.action, institution_id=institution_id)
+    db_log = models.AuditLog(
+        user_email=log.user_email,
+        action=log.action,
+        role=log.role,
+        entity_type=log.entity_type,
+        entity_id=str(log.entity_id) if log.entity_id is not None else None,
+        previous_value=log.previous_value,
+        new_value=log.new_value,
+        reason=log.reason,
+        ip_address=log.ip_address,
+        institution_id=institution_id
+    )
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
