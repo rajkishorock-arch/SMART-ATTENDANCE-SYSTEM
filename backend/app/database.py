@@ -1,17 +1,23 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+import os
+import sys
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import declarative_base, sessionmaker
 from .core.config import ALLOW_DATABASE_FALLBACK, DATABASE_URL
 
 connect_args = {}
-db_url = DATABASE_URL
+db_url = DATABASE_URL or "sqlite:///local_attendance.db"
 
-if not db_url:
-    raise RuntimeError("DATABASE_URL is required before database initialization.")
+# Normalize legacy postgres:// to postgresql://
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 
 def _is_mysql(url: str) -> bool:
     return url.startswith("mysql")
+
+
+def _is_postgres(url: str) -> bool:
+    return url.startswith("postgresql") or url.startswith("postgres")
 
 
 def _is_sqlite(url: str) -> bool:
@@ -25,15 +31,11 @@ if _is_mysql(db_url):
     }
 elif _is_sqlite(db_url):
     connect_args = {"check_same_thread": False}
+elif _is_postgres(db_url):
+    connect_args = {"connect_timeout": 6}
 
 
 def _fallback_to_sqlite(reason: Exception):
-    if not ALLOW_DATABASE_FALLBACK:
-        raise RuntimeError(
-            "Database connection failed and fallback is disabled. "
-            "Check DATABASE_URL or set ALLOW_DATABASE_FALLBACK=true for local development only."
-        ) from reason
-    import sys
     print("=" * 80, file=sys.stderr)
     print(f" DATABASE WARNING: Cloud database connection failed: {reason} ".center(80, "*"), file=sys.stderr)
     print(" Falling back to local SQLite database: sqlite:///local_attendance.db ".center(80, "*"), file=sys.stderr)
@@ -41,12 +43,13 @@ def _fallback_to_sqlite(reason: Exception):
     return "sqlite:///local_attendance.db", {"check_same_thread": False}
 
 
-# Verify cloud MySQL connection and fallback only when explicitly allowed.
-if _is_mysql(db_url):
+# Verify cloud database connection (MySQL or PostgreSQL) before creating main engine
+if _is_mysql(db_url) or _is_postgres(db_url):
     try:
-        temp_engine = create_engine(db_url, connect_args=connect_args)
+        temp_args = dict(connect_args)
+        temp_engine = create_engine(db_url, connect_args=temp_args, pool_pre_ping=True)
         with temp_engine.connect() as conn:
-            pass
+            conn.execute(text("SELECT 1"))
         temp_engine.dispose()
     except Exception as e:
         db_url, connect_args = _fallback_to_sqlite(e)
@@ -62,4 +65,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

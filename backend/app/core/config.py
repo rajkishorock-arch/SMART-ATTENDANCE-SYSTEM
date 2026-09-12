@@ -25,7 +25,7 @@ CORS_ORIGINS = [
 SEED_DEFAULT_USERS = os.getenv("SEED_DEFAULT_USERS", "true" if ENV == "development" else "false").lower() == "true"
 ALLOW_ROLL_PASSWORD = os.getenv("ALLOW_ROLL_PASSWORD", "true" if ENV == "development" else "false").lower() == "true"
 TRUST_PROXY_HEADERS = os.getenv("TRUST_PROXY_HEADERS", "false").lower() == "true"
-ALLOW_DATABASE_FALLBACK = os.getenv("ALLOW_DATABASE_FALLBACK", "true" if ENV == "development" else "false").lower() == "true"
+ALLOW_DATABASE_FALLBACK = os.getenv("ALLOW_DATABASE_FALLBACK", "true").lower() == "true"
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))

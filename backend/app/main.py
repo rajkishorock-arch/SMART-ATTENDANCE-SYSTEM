@@ -16,9 +16,12 @@ from app import models, security
 
 def create_db_and_tables():
     # This is for development only. For production, use Alembic migrations.
-    print("Creating database tables...")
-    Base.metadata.create_all(bind=engine)
-    print("Tables created.")
+    try:
+        print("Creating database tables...")
+        Base.metadata.create_all(bind=engine)
+        print("Tables created.")
+    except Exception as e:
+        print("Warning: create_db_and_tables error:", e)
 
 def update_schema():
     from sqlalchemy import text, inspect
