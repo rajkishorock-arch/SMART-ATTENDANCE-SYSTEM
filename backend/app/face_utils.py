@@ -28,23 +28,30 @@ def download_onnx_models():
     yunet_url = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
     sface_url = "https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx"
     
+    def _download_file(url: str, target_path: str, timeout: int = 60):
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp, open(target_path, "wb") as out:
+            while True:
+                chunk = resp.read(512 * 1024)
+                if not chunk:
+                    break
+                out.write(chunk)
+
     if not os.path.exists(yunet_path):
         print(f"Downloading YuNet model to {yunet_path}...")
         try:
-            urllib.request.urlretrieve(yunet_url, yunet_path)
+            _download_file(yunet_url, yunet_path, timeout=45)
             print("YuNet model downloaded successfully.")
         except Exception as e:
-            print(f"Error downloading YuNet model: {e}")
-            raise e
+            print(f"Warning downloading YuNet model: {e}")
         
     if not os.path.exists(sface_path):
         print(f"Downloading SFace model to {sface_path}...")
         try:
-            urllib.request.urlretrieve(sface_url, sface_path)
+            _download_file(sface_url, sface_path, timeout=90)
             print("SFace model downloaded successfully.")
         except Exception as e:
-            print(f"Error downloading SFace model: {e}")
-            raise e
+            print(f"Warning downloading SFace model: {e}")
         
     return yunet_path, sface_path
 

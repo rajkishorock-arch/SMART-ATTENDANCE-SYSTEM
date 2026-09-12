@@ -556,6 +556,8 @@ def ensure_primary_admin(db):
 @app.on_event("startup")
 def on_startup():
     from app.core.config import ENV, DATABASE_URL
+    import threading
+
     if DATABASE_URL and DATABASE_URL.startswith("sqlite") and ENV != "development":
         print("=" * 80)
         print(" WARNING: SQLite is being used in a non-development environment! ".center(80, "*"))
@@ -563,90 +565,97 @@ def on_startup():
         print(" Please configure a persistent cloud database via DATABASE_URL. ".center(80, "*"))
         print("=" * 80)
 
-    create_db_and_tables()
-    update_schema()
-    
-    # Auto-download YuNet & SFace models
-    try:
-        from app.face_utils import download_onnx_models
-        download_onnx_models()
-    except Exception as e:
-        print("Error downloading ONNX weights at startup:", e)
-        
-    from app.database import SessionLocal
-    from app.crud import get_user_by_email, create_user, get_system_settings
-    from app.schemas import UserCreate
-    from app import models
-    db = SessionLocal()
-    try:
-        migrate_multi_tenant_seed(db)
-        if SEED_DEFAULT_USERS:
-            admin_email = "admin@face.com"
-            db_user = get_user_by_email(db, email=admin_email, institution_id=1)
-            if not db_user:
-                print("Seeding default admin user...")
-                create_user(
-                    db,
-                    user=UserCreate(
-                        email=admin_email,
-                        name="System Admin",
-                        password="admin123",
-                        role="admin"
-                    ),
-                    institution_id=1
-                )
-                print("Default admin user created.")
+    def _background_startup_init():
+        try:
+            create_db_and_tables()
+            update_schema()
+        except Exception as db_err:
+            print("Warning: background db/schema init error:", db_err)
 
-            teacher_email = "teacher@face.com"
-            db_teacher = get_user_by_email(db, email=teacher_email, institution_id=1)
-            if not db_teacher:
-                print("Seeding default teacher user...")
-                create_user(
-                    db,
-                    user=UserCreate(
-                        email=teacher_email,
-                        name="Default Teacher",
-                        password="teacher123",
-                        role="teacher"
-                    ),
-                    institution_id=1
-                )
-                print("Default teacher user created.")
+        try:
+            from app.face_utils import download_onnx_models
+            download_onnx_models()
+        except Exception as e:
+            print("Error downloading ONNX weights at startup:", e)
 
-            student_email = "student@face.com"
-            db_student = db.query(models.StudentModel).filter(models.StudentModel.email == student_email, models.StudentModel.institution_id == 1).first()
-            if not db_student:
-                print("Seeding default student...")
-                from app.security import get_password_hash
-                new_s = models.StudentModel(
-                    id=10001,
-                    name="Default Student",
-                    roll="student123",
-                    dep="CSE(IOT)",
-                    course="B.Tech",
-                    year="2026",
-                    semester="1st",
-                    email=student_email,
-                    password_hash=get_password_hash("student123"),
-                    photo="no",
-                    institution_id=1
-                )
-                db.add(new_s)
-                db.commit()
-                print("Default student created.")
-        else:
-            print("Default user seeding skipped (SEED_DEFAULT_USERS=false).")
+        from app.database import SessionLocal
+        from app.crud import get_user_by_email, create_user, get_system_settings
+        from app.schemas import UserCreate
+        from app import models
+        db = SessionLocal()
+        try:
+            migrate_multi_tenant_seed(db)
+            if SEED_DEFAULT_USERS:
+                admin_email = "admin@face.com"
+                db_user = get_user_by_email(db, email=admin_email, institution_id=1)
+                if not db_user:
+                    print("Seeding default admin user...")
+                    create_user(
+                        db,
+                        user=UserCreate(
+                            email=admin_email,
+                            name="System Admin",
+                            password="admin123",
+                            role="admin"
+                        ),
+                        institution_id=1
+                    )
+                    print("Default admin user created.")
 
-        ensure_primary_admin(db)
-        get_system_settings(db)
-        migrate_existing_student_embeddings(db)
+                teacher_email = "teacher@face.com"
+                db_teacher = get_user_by_email(db, email=teacher_email, institution_id=1)
+                if not db_teacher:
+                    print("Seeding default teacher user...")
+                    create_user(
+                        db,
+                        user=UserCreate(
+                            email=teacher_email,
+                            name="Default Teacher",
+                            password="teacher123",
+                            role="teacher"
+                        ),
+                        institution_id=1
+                    )
+                    print("Default teacher user created.")
 
-        from app import scheduler
-        scheduler.start()
-    except Exception as e:
-        print("Error seeding admin user/settings, migrating embeddings or starting scheduler:", e)
-    finally:
-        db.close()
+                student_email = "student@face.com"
+                db_student = db.query(models.StudentModel).filter(models.StudentModel.email == student_email, models.StudentModel.institution_id == 1).first()
+                if not db_student:
+                    print("Seeding default student...")
+                    from app.security import get_password_hash
+                    new_s = models.StudentModel(
+                        id=10001,
+                        name="Default Student",
+                        roll="student123",
+                        dep="CSE(IOT)",
+                        course="B.Tech",
+                        year="2026",
+                        semester="1st",
+                        email=student_email,
+                        password_hash=get_password_hash("student123"),
+                        photo="no",
+                        institution_id=1
+                    )
+                    db.add(new_s)
+                    db.commit()
+                    print("Default student created.")
+            else:
+                print("Default user seeding skipped (SEED_DEFAULT_USERS=false).")
+
+            ensure_primary_admin(db)
+            get_system_settings(db)
+            migrate_existing_student_embeddings(db)
+
+            from app import scheduler
+            scheduler.start()
+        except Exception as e:
+            print("Error during background initialization:", e)
+        finally:
+            db.close()
+
+    # Run heavy startup in background thread to bind port instantly (<0.1s)
+    threading.Thread(target=_background_startup_init, daemon=True).start()
+    print("Application startup initiated in background thread. Listening for HTTP traffic immediately.")
 
 
 @app.on_event("shutdown")
@@ -785,4 +794,5 @@ def create_system_backup(
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)
