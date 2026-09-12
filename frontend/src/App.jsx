@@ -9219,6 +9219,13 @@ export default function App() {
       {/* Sidebar navigation */}
       <aside 
         className={`sidebar ${mobileSidebarOpen ? 'open' : ''}`}
+        style={{
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          maxHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
         onClick={(e) => {
           if (e.target.closest('.nav-item')) {
             setMobileSidebarOpen(false);

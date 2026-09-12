@@ -246,7 +246,7 @@ body::after {
 
 .sidebar {
   width: 220px;
-  background: rgba(13, 18, 31, 0.8);
+  background: rgba(13, 18, 31, 0.85);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   border-right: 1px solid var(--border-color);
@@ -254,8 +254,34 @@ body::after {
   flex-direction: column;
   padding: 20px 14px;
   position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
   height: 100vh;
+  max-height: 100vh;
+  box-sizing: border-box;
   z-index: 100;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 242, 254, 0.25) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(0, 242, 254, 0.25);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 242, 254, 0.5);
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .main-content {
@@ -297,7 +323,9 @@ body::after {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  margin: 0;
+  padding: 0 2px 8px 0;
 }
 
 .nav-item {
