@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { generateLeavePdf } from './utils/leavePdfGenerator';
+import { initKeepAliveEngine } from './utils/keepAlive';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -2185,7 +2186,14 @@ export default function App() {
   const [selectedLogIds, setSelectedLogIds] = useState(new Set());
 
   // Student Portal States
-  const [studentLogs, setStudentLogs] = useState([]);
+  const [studentLogs, setStudentLogs] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_student_logs');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) {
+      return [];
+    }
+  });
   const [isLoadingStudentLogs, setIsLoadingStudentLogs] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [showVirtualId, setShowVirtualId] = useState(false);
@@ -2196,6 +2204,7 @@ export default function App() {
   const [showQrScannerModal, setShowQrScannerModal] = useState(false);
   
   useEffect(() => {
+    initKeepAliveEngine();
     const justLoggedIn = sessionStorage.getItem('just_logged_in_tour') === 'true';
     if (token && justLoggedIn) {
       if (!localStorage.getItem('onboarding_guide_done')) {

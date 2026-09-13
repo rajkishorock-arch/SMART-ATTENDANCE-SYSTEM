@@ -2,27 +2,39 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Send, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
-const API_BASE_URL = getApiBaseUrl();
-
 export default function LeaveManagement({ token, currentUser }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
-  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [leaveRequests, setLeaveRequests] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_leave_requests');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) {
+      return [];
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const fetchLeaveRequests = useCallback(async () => {
-    if (!currentUser?.details?.id) return;
-    setIsLoading(true);
+    if (!token) return;
+    if (leaveRequests.length === 0) setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/leaves/student/${currentUser.details.id}`, {
+      const url = currentUser?.details?.id 
+        ? `${API_BASE_URL}/leaves/student/${currentUser.details.id}`
+        : `${API_BASE_URL}/leaves/my-requests`;
+      const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setLeaveRequests(data);
+        const list = Array.isArray(data) ? data : [];
+        setLeaveRequests(list);
+        try {
+          localStorage.setItem('cached_leave_requests', JSON.stringify(list));
+        } catch (_) {}
       } else {
         setError('Failed to fetch leave requests.');
       }
@@ -31,14 +43,13 @@ export default function LeaveManagement({ token, currentUser }) {
     } finally {
       setIsLoading(false);
     }
-  }, [token, currentUser]);
+  }, [token, currentUser, leaveRequests.length]);
 
   useEffect(() => {
     fetchLeaveRequests();
   }, [fetchLeaveRequests]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
     setError('');
     setSuccess('');
     if (!startDate || !endDate || !reason) {
