@@ -3256,6 +3256,7 @@ export default function App() {
         const data = await res.json();
         setStats(data);
         localStorage.setItem('cached_stats', JSON.stringify(data));
+        setServerWarmingUp(false);
       }
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -6830,6 +6831,10 @@ export default function App() {
     } catch (e) {
       console.log("Server health check failed, warming up...", e);
     }
+    if (stats) {
+      setServerWarmingUp(false);
+      return true;
+    }
     return false;
   };
 
@@ -9919,7 +9924,7 @@ export default function App() {
           </div>
         </header>
 
-        {serverWarmingUp && (
+        {serverWarmingUp && !stats && (
           <div className="glass-panel" style={{
             background: 'rgba(245, 158, 11, 0.08)',
             border: '1px solid rgba(245, 158, 11, 0.3)',
