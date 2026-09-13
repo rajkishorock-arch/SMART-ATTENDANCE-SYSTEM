@@ -105,6 +105,17 @@ def update_schema():
         safe_add_column('institutions', 'secondary_color', 'VARCHAR(50) NULL')
         safe_add_column('institutions', 'master_key', 'VARCHAR(100) NULL')
 
+        # Leave requests table columns
+        safe_add_column('leave_requests', 'user_email', 'VARCHAR(100) NULL')
+        safe_add_column('leave_requests', 'applicant_name', 'VARCHAR(100) NULL')
+        safe_add_column('leave_requests', 'role', "VARCHAR(30) DEFAULT 'student'")
+        safe_add_column('leave_requests', 'subject_id', 'INT NULL')
+        safe_add_column('leave_requests', 'reviewed_by', 'INT NULL')
+        safe_add_column('leave_requests', 'approved_by', 'VARCHAR(100) NULL')
+        safe_add_column('leave_requests', 'substitute_assigned', 'VARCHAR(100) NULL')
+        safe_add_column('leave_requests', 'document_url', 'VARCHAR(255) NULL')
+        safe_add_column('leave_requests', 'reviewed_at', 'DATETIME NULL')
+
         # Detect database dialect to run correct SQL syntax
         db_dialect = engine.dialect.name  # 'postgresql', 'mysql', 'sqlite'
         print(f"Database dialect: {db_dialect}")

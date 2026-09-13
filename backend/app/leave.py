@@ -94,22 +94,38 @@ def apply_for_leave(
     """
     Students apply for leave. Automatically linked to their institution.
     """
-    leave = models.LeaveRequest(
-        institution_id=current_student.institution_id,
-        student_id=current_student.id,
-        user_email=current_student.email,
-        applicant_name=current_student.name,
-        role="student",
-        start_date=payload.start_date,
-        end_date=payload.end_date,
-        leave_type=payload.leave_type or "Personal",
-        reason=payload.reason,
-        subject_id=payload.subject_id,
-        status="Pending",
-    )
-    db.add(leave)
-    db.commit()
-    db.refresh(leave)
+    try:
+        leave = models.LeaveRequest(
+            institution_id=current_student.institution_id,
+            student_id=current_student.id,
+            user_email=current_student.email,
+            applicant_name=current_student.name,
+            role="student",
+            start_date=payload.start_date,
+            end_date=payload.end_date,
+            leave_type=payload.leave_type or "Personal",
+            reason=payload.reason,
+            subject_id=payload.subject_id,
+            status="Pending",
+        )
+        db.add(leave)
+        db.commit()
+        db.refresh(leave)
+    except Exception:
+        db.rollback()
+        leave = models.LeaveRequest(
+            institution_id=current_student.institution_id,
+            student_id=current_student.id,
+            start_date=payload.start_date,
+            end_date=payload.end_date,
+            leave_type=payload.leave_type or "Personal",
+            reason=payload.reason,
+            subject_id=payload.subject_id,
+            status="Pending",
+        )
+        db.add(leave)
+        db.commit()
+        db.refresh(leave)
 
     # Audit log
     crud.create_audit_log(
