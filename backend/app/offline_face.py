@@ -16,9 +16,11 @@ from .models import StudentModel, AttendanceModel, OfflineSyncLog, User
 from .security import get_current_user
 
 
-def check_admin(user: User):
-    if getattr(user, 'role', '') not in ('admin', 'superadmin', 'owner'):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+def check_staff_or_admin(user: User, institution_id: int):
+    if getattr(user, 'role', '') not in ('admin', 'superadmin', 'owner', 'teacher', 'hod', 'staff'):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Staff or Admin access required")
+    if getattr(user, 'role', '') not in ('superadmin', 'owner') and getattr(user, 'institution_id', None) != institution_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access to this institution is restricted.")
 
 router = APIRouter(prefix="/offline-face", tags=["Offline Face Recognition"])
 
@@ -56,9 +58,9 @@ async def download_embeddings_for_offline(
 ):
     """
     Download all student face embeddings for offline recognition
-    Mobile app can store these locally and perform face matching without internet
+    Mobile app / browser can store these locally and perform face matching without internet
     """
-    check_admin(current_user)
+    check_staff_or_admin(current_user, institution_id)
     
     students = db.query(StudentModel).filter(
         StudentModel.institution_id == institution_id,
@@ -71,10 +73,12 @@ async def download_embeddings_for_offline(
             detail="No students with face embeddings found"
         )
     
+    from .encryption_service import decrypt_embedding
     offline_data = []
     for student in students:
         try:
-            embedding = json.loads(student.face_embedding) if isinstance(student.face_embedding, str) else student.face_embedding
+            raw_emb = decrypt_embedding(student.face_embedding)
+            embedding = json.loads(raw_emb) if isinstance(raw_emb, str) else raw_emb
             
             data = OfflineStudentData(
                 student_id=student.id,
@@ -113,7 +117,7 @@ async def sync_offline_attendance(
     Upload offline attendance records collected by mobile app
     Mobile app performs local face recognition and syncs when internet is available
     """
-    check_admin(current_user)
+    check_staff_or_admin(current_user, institution_id)
     
     synced_count = 0
     skipped_count = 0

@@ -123,6 +123,9 @@ import TeacherMiniDashboard from './components/TeacherMiniDashboard';
 import StudentAttendanceWallet from './components/StudentAttendanceWallet';
 import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings, applySpringPhysics } from './utils/futuristicFeatures';
 import NewFeaturesHub from './components/NewFeaturesHub';
+import { fastFaceEngine } from './services/fastFaceEngine';
+import { offlineAttendanceQueue } from './services/offlineAttendanceQueue';
+import { nativeScannerBridge } from './services/nativeScannerBridge';
 import WellnessCounselorPanel from './components/WellnessCounselorPanel';
 import ARGamificationPortal from './components/ARGamificationPortal';
 import AttendanceChartsWidget from './components/AttendanceChartsWidget';
@@ -4483,6 +4486,9 @@ export default function App() {
     addDiagnosticLog('Secure optical feed active: SEC_CAM_01');
     addDiagnosticLog('Initializing FaceMesh coordinate mapping...');
     handleSpeak("Scanner started. Ready for scanning.");
+    const activeInstId = currentUser?.institution_id || 1;
+    fastFaceEngine.syncEmbeddings(API_BASE_URL, token, activeInstId);
+    offlineAttendanceQueue.flushQueue(API_BASE_URL, token, activeInstId);
     const video = attendanceVideoRef.current;
     if (video?.srcObject) {
       video.play().catch((err) => console.warn('Post-boot video play failed:', err));
@@ -4791,8 +4797,23 @@ export default function App() {
               captureHeight: preset.captureHeight,
             });
 
+            if (data.metrics) {
+              addDiagnosticLog(`FAST INFERENCE: Detect ${data.metrics.detect_ms || 0}ms | Match ${data.metrics.match_ms || 0}ms | Total ${data.metrics.server_total_ms || 0}ms`);
+            }
+
             validMatches.forEach((matched) => {
               addDiagnosticLog(`MATCH FOUND: ${matched.name} (Accuracy: ${matched.confidence}%)`);
+              offlineAttendanceQueue.enqueue({
+                student_id: matched.user_id,
+                name: matched.name,
+                roll: matched.roll,
+                dep: matched.dep,
+                confidence: matched.confidence,
+                date: dateStr,
+                time: timeStr,
+                subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : null,
+                institution_id: currentUser?.institution_id || 1
+              });
               setRecognizedStudents((prev) => {
                 if (prev.some((s) => s.id === matched.user_id)) return prev;
                 return [{

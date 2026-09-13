@@ -575,8 +575,10 @@ def on_startup():
         try:
             from app.face_utils import download_onnx_models
             download_onnx_models()
+            from app.recognition_service import recognition_service
+            recognition_service.warmup()
         except Exception as e:
-            print("Error downloading ONNX weights at startup:", e)
+            print("Error initializing/warming up ONNX models at startup:", e)
 
         from app.database import SessionLocal
         from app.crud import get_user_by_email, create_user, get_system_settings

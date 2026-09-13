@@ -5,6 +5,7 @@ from typing import List, Optional, Any, Dict
 import cv2
 import numpy as np
 import logging
+import time
 from datetime import datetime, timezone, timedelta, date
 
 logger = logging.getLogger(__name__)
@@ -201,9 +202,14 @@ async def recognize_and_mark_attendance(
     # Refresh student records from DB to ensure memory cache is current
     recognition_service.load_student_records(db, institution_id=current_user.institution_id)
 
-    # Perform face recognition
+    # Perform face recognition with latency metrics
+    t_api_start = time.perf_counter()
     try:
-        results = recognition_service.recognize_faces_in_frame(img, institution_id=current_user.institution_id)
+        results, metrics = recognition_service.recognize_faces_in_frame(
+            img, 
+            institution_id=current_user.institution_id,
+            return_metrics=True
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Recognition engine error: {str(e)}")
 
@@ -289,8 +295,9 @@ async def recognize_and_mark_attendance(
                 "institution_id": current_user.institution_id
             }
             background_tasks.add_task(broadcast_attendance_event, event_data)
-
-    return {"results": marked_students}
+    
+    metrics["server_total_ms"] = round((time.perf_counter() - t_api_start) * 1000, 2)
+    return {"results": marked_students, "metrics": metrics}
 
 @router.get("/report")
 def get_attendance_report(
