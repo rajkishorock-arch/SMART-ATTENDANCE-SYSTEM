@@ -60,10 +60,10 @@ def publish_system_update(
     """
     Publish a new system-wide release update. (System Owner only, master password verified).
     """
-    if current_user.role != "admin" and current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
+    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Only Administrators or System Owner ({config.SYSTEM_OWNER_EMAIL}) can publish release updates."
+            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can publish release updates."
         )
         
     input_key = payload.master_password.strip()

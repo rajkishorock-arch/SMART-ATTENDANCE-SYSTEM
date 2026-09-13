@@ -294,9 +294,13 @@ async def submit_dispute(
     Validates institutional deadline window and prevents duplicate disputes.
     """
     inst_id = current_identity.institution_id
+    student = None
     if current_identity.role == "student":
         student_id = current_identity.id
         user_email = current_identity.email
+        student = crud.get_student_by_id(db, student_id=current_identity.id, institution_id=inst_id)
+        if not student:
+            student = crud.get_student_by_email(db, email=current_identity.email, institution_id=inst_id)
     else:
         user_email = current_identity.email
         student = crud.get_student_by_email(db, email=current_identity.email, institution_id=inst_id)
@@ -487,8 +491,8 @@ def cancel_dispute(
     crud.create_audit_log(
         db,
         log=schemas.AuditLogCreate(
-            user_email=current_student.email,
-            role="student",
+            user_email=current_identity.email,
+            role=current_identity.role,
             action=f"Cancelled attendance dispute #{dispute.id}",
             entity_type="attendance_dispute",
             entity_id=str(dispute.id),
@@ -496,7 +500,7 @@ def cancel_dispute(
             new_value="CANCELLED",
             reason="Student requested dispute cancellation"
         ),
-        institution_id=current_student.institution_id
+        institution_id=current_identity.institution_id
     )
     return _format_dispute(dispute, db)
 
@@ -652,7 +656,11 @@ def review_dispute(
             models.AttendanceModel.date.in_(alt_dates)
         )
         if dispute.attendance_id:
-            existing_candidates = existing_candidates.filter(models.AttendanceModel.id == dispute.attendance_id)
+            try:
+                att_id_val = int(dispute.attendance_id)
+                existing_candidates = existing_candidates.filter(models.AttendanceModel.id == att_id_val)
+            except ValueError:
+                existing_candidates = existing_candidates.filter(models.AttendanceModel.id == dispute.attendance_id)
         elif student:
             possible_rolls = list(set([r for r in [student.roll, str(student.id), student.email] if r]))
             from sqlalchemy import or_
@@ -671,9 +679,11 @@ def review_dispute(
         for cand in cand_list:
             if dispute.subject_id and cand.subject_id and cand.subject_id != dispute.subject_id:
                 continue
-            if resolve_period_name(cand.time) == disp_period:
+            if not dispute.session_time or resolve_period_name(cand.time) == disp_period:
                 att_record = cand
                 break
+        if not att_record and cand_list:
+            att_record = cand_list[0]
 
         prev_status = dispute.original_status
 

@@ -24,16 +24,24 @@ export function initKeepAliveEngine() {
     }
   };
 
+  let lastPingTime = Date.now();
+
   // 1. Immediate pre-warm ping on app load
   pingServer();
 
   // 2. Heartbeat interval every 4 minutes while app tab is active
-  setInterval(pingServer, PING_INTERVAL_MS);
-
-  // 3. Ping on tab visibility change (when user returns to tab)
-  document.addEventListener('visibilitychange', () => {
+  setInterval(() => {
     if (document.visibilityState === 'visible') {
       pingServer();
+      lastPingTime = Date.now();
+    }
+  }, PING_INTERVAL_MS);
+
+  // 3. Throttle ping on tab visibility change (only if > 3 minutes since last ping)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && (Date.now() - lastPingTime > 3 * 60 * 1000)) {
+      pingServer();
+      lastPingTime = Date.now();
     }
   });
 }

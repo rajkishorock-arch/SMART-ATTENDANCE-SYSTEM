@@ -3,6 +3,8 @@ import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } f
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { generateLeavePdf } from './utils/leavePdfGenerator';
 import { initKeepAliveEngine } from './utils/keepAlive';
+import { fetchWithDedupe } from './utils/apiClient';
+import { fetchWithStaleCache } from './utils/cacheUtils';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -4043,7 +4045,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetch(`${API_BASE_URL}/attendance/stats`, {
+      const res = await fetchWithDedupe(`${API_BASE_URL}/attendance/stats`, {
         headers: {
           'Authorization': `Bearer ${usedToken}`
         }
@@ -4056,6 +4058,7 @@ export default function App() {
         const data = await res.json();
         setStats(data);
         localStorage.setItem('cached_stats', JSON.stringify(data));
+        localStorage.setItem('cached_stats_timestamp', Date.now().toString());
         setServerWarmingUp(false);
       }
     } catch (err) {
@@ -4071,7 +4074,7 @@ export default function App() {
     if (!usedToken || usedRole !== 'admin') return;
     setIsLoadingFeedbacks(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/feedbacks/`, {
+      const res = await fetchWithDedupe(`${API_BASE_URL}/feedbacks/`, {
         headers: {
           'Authorization': `Bearer ${usedToken}`
         }
@@ -4097,9 +4100,9 @@ export default function App() {
     try {
       const startTime = performance.now();
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      let res = await fetch(`${API_BASE_URL}/health/detailed`, { headers });
+      let res = await fetchWithDedupe(`${API_BASE_URL}/health/detailed`, { headers });
       if (!res.ok) {
-        res = await fetch(`${API_BASE_URL}/health/`);
+        res = await fetchWithDedupe(`${API_BASE_URL}/health/`);
       }
       const endTime = performance.now();
       setApiLatency(Math.round(endTime - startTime));
@@ -4134,7 +4137,7 @@ export default function App() {
     const usedToken = authToken || token;
     if (!usedToken) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/departments/`, {
+      const res = await fetchWithDedupe(`${API_BASE_URL}/departments/`, {
         headers: {
           'Authorization': `Bearer ${usedToken}`
         }
@@ -4175,7 +4178,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students`, {
+      const res = await fetchWithDedupe(`${API_BASE_URL}/users/students`, {
         headers: {
           'Authorization': `Bearer ${usedToken}`
         }
@@ -4188,21 +4191,23 @@ export default function App() {
         const data = await res.json();
         setStudents(data);
         localStorage.setItem('cached_students', JSON.stringify(data));
+        localStorage.setItem('cached_students_timestamp', Date.now().toString());
       }
     } catch (err) {
       console.error('Error fetching students:', err);
     }
   };
 
-  // Fetch Attendance Logs
-  const fetchLogs = async (authToken) => {
+  // Fetch Attendance Logs (Supports options.limit for Dashboard 10-log limit)
+  const fetchLogs = async (authToken, options = {}) => {
     if (isDemoMode) return;
-    const usedToken = authToken || token;
+    const usedToken = typeof authToken === 'string' ? authToken : token;
     if (userRole === 'student') {
       fetchStudentLogs(usedToken);
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/attendance/logs`, {
+      const limitQuery = options && options.limit ? `?limit=${options.limit}` : '';
+      const res = await fetchWithDedupe(`${API_BASE_URL}/attendance/logs${limitQuery}`, {
         headers: {
           'Authorization': `Bearer ${usedToken}`
         }
@@ -4215,6 +4220,7 @@ export default function App() {
         const data = await res.json();
         setLogs(data);
         localStorage.setItem('cached_logs', JSON.stringify(data));
+        localStorage.setItem('cached_logs_timestamp', Date.now().toString());
       }
     } catch (err) {
       console.error('Error fetching logs:', err);
@@ -4226,7 +4232,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetch(`${API_BASE_URL}/subjects`, {
+      const res = await fetchWithDedupe(`${API_BASE_URL}/subjects`, {
         headers: {
           'Authorization': `Bearer ${usedToken}`
         }
@@ -4239,6 +4245,7 @@ export default function App() {
         const data = await res.json();
         setSubjects(data);
         localStorage.setItem('cached_subjects', JSON.stringify(data));
+        localStorage.setItem('cached_subjects_timestamp', Date.now().toString());
       }
     } catch (err) {
       console.error('Error fetching subjects:', err);
@@ -7755,7 +7762,7 @@ export default function App() {
     };
   }, []);
 
-  // Load core data once after login
+  // Load core data once after login (P1 Target: Only stats + 10 recent logs on login)
   useEffect(() => {
     if (!token || !userRole) return;
 
@@ -7777,21 +7784,13 @@ export default function App() {
             fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
           }
         } else {
-          fetchDepartments(token);
-          fetchSubjects().then(() => fetchStudents());
-          fetchStats();
-          fetchLogs();
-          fetchSchedules();
-          fetchAdminLeaves();
-          if (userRole === 'admin') {
-            fetchTeachers();
-            fetchFeedbacks();
-          }
+          // P1 Target: Fetch ONLY stats and recent 10 logs on initial login
+          fetchStats(token);
+          fetchLogs(token, { limit: 10 });
         }
       } else {
         if (!isMounted) return;
         setServerWarmingUp(true);
-        // Start a polling retry check
         const intervalId = setInterval(async () => {
           const success = await checkServerConnection();
           if (success) {
@@ -7805,16 +7804,8 @@ export default function App() {
                 fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
               }
             } else {
-              fetchDepartments(token);
-              fetchSubjects().then(() => fetchStudents());
-              fetchStats();
-              fetchLogs();
-              fetchSchedules();
-              fetchAdminLeaves();
-              if (userRole === 'admin') {
-                fetchTeachers();
-                fetchFeedbacks();
-              }
+              fetchStats(token);
+              fetchLogs(token, { limit: 10 });
             }
           }
         }, 5000);
@@ -7837,8 +7828,9 @@ export default function App() {
     sendHeartbeat();
     
     const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       sendHeartbeat();
-    }, 30000); // every 30 seconds
+    }, 60000); // every 60 seconds
     
     return () => clearInterval(interval);
   }, [token]);
@@ -7847,17 +7839,17 @@ export default function App() {
   useEffect(() => {
     if (!token || userRole !== 'admin' || activeTab !== 'dashboard') return undefined;
     
-    // Fetch immediately
     fetchActiveUsers();
     
     const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       fetchActiveUsers();
-    }, 15000); // every 15 seconds
+    }, 30000); // every 30 seconds
     
     return () => clearInterval(interval);
   }, [token, userRole, activeTab]);
 
-  // Refresh data when switching tabs
+  // Refresh data when switching tabs (On-demand fetching per tab)
   useEffect(() => {
     if (!token || !userRole) return;
     if (userRole === 'student' && !['student-attendance', 'student-profile', 'ai-assistant'].includes(activeTab)) return;
@@ -7865,11 +7857,7 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':
         fetchStats();
-        fetchLogs();
-        if (userRole === 'admin') {
-          fetchFeedbacks();
-          fetchTeachers();
-        }
+        fetchLogs(token, { limit: 10 });
         break;
       case 'students':
         fetchSubjects().then(() => fetchStudents());
@@ -7882,7 +7870,7 @@ export default function App() {
         fetchStats();
         break;
       case 'reports':
-        fetchReport();
+        // Reports are generated on-demand when user clicks "Generate Report"
         break;
       case 'session-history':
         fetchSessionHistory();
@@ -7903,6 +7891,16 @@ export default function App() {
           fetchSubjects();
         }
         break;
+      case 'leaves':
+        if (userRole === 'admin' || userRole === 'teacher') {
+          fetchAdminLeaves();
+        }
+        break;
+      case 'feedback':
+        if (userRole === 'admin') {
+          fetchFeedbacks();
+        }
+        break;
       case 'student-attendance':
         fetchStudentLogs(token);
         fetchSubjects();
@@ -7914,20 +7912,24 @@ export default function App() {
       default:
         break;
     }
-  }, [activeTab, token, userRole, selectedSubjectId, selectedTeacherSubjectId, selectedReportSubjectId]);
+  }, [activeTab, token, userRole]);
 
-  // Poll only on active dashboard/logs tabs (slower on mobile)
+  // Throttled background polling (paused when browser tab is hidden)
   useEffect(() => {
     if (!token || !userRole || userRole === 'student') return;
     if (activeTab !== 'dashboard' && activeTab !== 'logs') return;
 
-    const pollMs = isMobileView ? 12000 : 8000;
     const interval = setInterval(() => {
-      if (activeTab === 'dashboard') fetchStats();
-      fetchLogs();
-    }, pollMs);
+      if (document.visibilityState !== 'visible') return;
+      if (activeTab === 'dashboard') {
+        fetchStats();
+        fetchLogs(token, { limit: 10 });
+      } else if (activeTab === 'logs') {
+        fetchLogs();
+      }
+    }, 30000); // 30s background poll
     return () => clearInterval(interval);
-  }, [token, userRole, activeTab, isMobileView]);
+  }, [token, userRole, activeTab]);
 
   // System Health telemetry loop
   useEffect(() => {

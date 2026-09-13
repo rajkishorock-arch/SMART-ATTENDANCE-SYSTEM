@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 import uvicorn
 from fastapi import FastAPI, Request, Depends, HTTPException
 
@@ -386,13 +387,19 @@ app.add_middleware(
 )
 
 @app.middleware("http")
-async def add_security_headers(request: Request, call_next):
+async def add_security_and_timing_headers(request: Request, call_next):
+    start_time = time.time()
     response = await call_next(request)
+    duration_ms = (time.time() - start_time) * 1000
+    response.headers["X-Response-Time"] = f"{duration_ms:.2f}ms"
+    response.headers["Server-Timing"] = f"app;dur={duration_ms:.2f}"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if duration_ms > 1000:
+        print(f"[SLOW ENDPOINT WARNING] {request.method} {request.url.path} took {duration_ms:.2f}ms")
     return response
 
 def migrate_existing_student_embeddings(db):
