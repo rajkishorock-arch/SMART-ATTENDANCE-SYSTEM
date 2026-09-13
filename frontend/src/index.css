@@ -1370,15 +1370,81 @@ button:active,
   }
 
   /* Override inline fixed widths on select dropdowns, dates, and text inputs */
-  .main-content input[style*="width:"],
-  .main-content select[style*="width:"],
-  .main-content div[style*="min-width:"],
-  .main-content input,
-  .main-content select {
+  .main-content .form-group > input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+  .main-content .form-group > select,
+  .main-content form > input,
+  .main-content form > select {
     width: 100% !important;
-    min-width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+  }
+
+  /* Date picker rows: fixed 38px arrows and shrinking date input so right arrow NEVER goes out of screen */
+  .date-picker-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    gap: 6px !important;
+  }
+
+  .date-picker-row button,
+  .date-picker-row > button {
+    flex: 0 0 38px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .date-picker-row input,
+  .date-picker-row > input {
+    flex: 1 1 0% !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 42px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 8px !important;
+  }
+
+  /* Flex rows containing inputs (e.g. date picker or color picker) MUST NOT blow out */
+  .main-content div[style*="display: flex"] > input:not([type="color"]),
+  .main-content div[style*="display:flex"] > input:not([type="color"]),
+  .main-content input.flex-input,
+  .main-content input.date-input-field {
+    width: auto !important;
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .main-content input[type="color"] {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 36px !important;
+    flex: 0 0 40px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Responsive table vs card view helpers */
+  .desktop-table-view {
+    display: block;
+  }
+  .mobile-cards-view {
+    display: none;
   }
 
   /* Custom styling for relative container items like absolute icon inputs */
@@ -3921,8 +3987,22 @@ html {
 
   /* Hide elements marked as redundant on mobile */
   .hide-on-mobile,
-  .desktop-only-panel {
+  .desktop-only-panel,
+  .mobile-scroll-hint {
     display: none !important;
+  }
+
+  /* Switch full wide tables to compact cards on mobile for guaranteed zero-overflow readability */
+  .desktop-table-view {
+    display: none !important;
+  }
+
+  .mobile-cards-view {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   /* Form submit buttons full-width for comfortable touch on mobile */

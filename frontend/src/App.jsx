@@ -4136,6 +4136,80 @@ export default function App() {
     }
   };
 
+  const handleToggleAdminStatus = async (adminUser) => {
+    playCyberSound('click');
+    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`);
+    if (!masterPass) return;
+    if (isDemoMode) {
+      setTeachers(prev => prev.map(t => t.id === adminUser.id ? { ...t, is_active: !t.is_active } : t));
+      alert('SIMULATOR ACTION: Status updated successfully.');
+      playCyberSound('success');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-Master-Password': masterPass
+        },
+        body: JSON.stringify({
+          name: adminUser.name,
+          email: adminUser.email,
+          role: adminUser.role,
+          is_active: !adminUser.is_active
+        })
+      });
+      if (res.ok) {
+        alert('Status updated successfully.');
+        playCyberSound('success');
+        fetchTeachers();
+      } else {
+        const errData = await res.json();
+        alert(errData.detail || 'Failed to update admin.');
+      }
+    } catch (e) {
+      alert('Connection failed.');
+    }
+  };
+
+  const handleDeleteAdminUser = async (adminUser) => {
+    playCyberSound('click');
+    if (adminUser.email === 'rajkishorock@gmail.com' || adminUser.email === 'admin@face.com') {
+      alert('Cannot delete primary system admin!');
+      playCyberSound('error');
+      return;
+    }
+    const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to completely DELETE admin "${adminUser.email}":`);
+    if (!masterPass) return;
+    if (isDemoMode) {
+      setTeachers(prev => prev.filter(t => t.id !== adminUser.id));
+      alert('SIMULATOR ACTION: Admin deleted successfully.');
+      playCyberSound('success');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Master-Password': masterPass
+        }
+      });
+      if (res.ok) {
+        alert('Admin deleted successfully.');
+        playCyberSound('success');
+        fetchTeachers();
+      } else {
+        const errData = await res.json();
+        alert(errData.detail || 'Failed to delete admin.');
+      }
+    } catch (e) {
+      alert('Connection failed.');
+    }
+  };
+
   const handlePublishReleaseUpdate = async (e) => {
     e.preventDefault();
     if (isDemoMode) {
@@ -12116,7 +12190,7 @@ export default function App() {
                     </div>
                   ) : null}
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <button
                       type="button"
                       onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, -1, setLogDateFilter); }}
@@ -12125,7 +12199,12 @@ export default function App() {
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '8px',
                         color: '#94a3b8',
-                        padding: '10px 12px',
+                        padding: '0',
+                        width: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flex: '0 0 38px',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -12143,8 +12222,8 @@ export default function App() {
                     </button>
                     <input 
                       type="date" 
-                      className="form-input"
-                      style={{ width: '150px', background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0 }}
+                      className="form-input flex-input"
+                      style={{ width: '150px', minWidth: 0, background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0, boxSizing: 'border-box' }}
                       value={logDateFilter}
                       onChange={e => setLogDateFilter(e.target.value)}
                     />
@@ -12156,7 +12235,12 @@ export default function App() {
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '8px',
                         color: '#94a3b8',
-                        padding: '10px 12px',
+                        padding: '0',
+                        width: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flex: '0 0 38px',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -12721,7 +12805,7 @@ export default function App() {
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Calendar size={14} style={{ color: '#00f2fe' }} /> Select Class Date
                   </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                     <button
                       type="button"
                       onClick={() => { playCyberSound('click'); shiftDate(sessionDate, -1, setSessionDate); }}
@@ -12730,7 +12814,12 @@ export default function App() {
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '8px',
                         color: '#94a3b8',
-                        padding: '10px 12px',
+                        padding: '0',
+                        width: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flex: '0 0 38px',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -12748,11 +12837,11 @@ export default function App() {
                     </button>
                     <input 
                       type="date"
-                      className="form-input"
+                      className="form-input date-input-field flex-input"
                       value={sessionDate}
                       onChange={e => setSessionDate(e.target.value)}
                       required
-                      style={{ background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0, flex: 1 }}
+                      style={{ background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box' }}
                     />
                     <button
                       type="button"
@@ -12762,7 +12851,12 @@ export default function App() {
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '8px',
                         color: '#94a3b8',
-                        padding: '10px 12px',
+                        padding: '0',
+                        width: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flex: '0 0 38px',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -13211,7 +13305,7 @@ export default function App() {
                     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
                       <Calendar size={12} style={{ color: '#00f2fe' }} /> Date
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                       <button
                         type="button"
                         onClick={() => { playCyberSound('click'); shiftDate(historyFilterDate, -1, setHistoryFilterDate); }}
@@ -13220,7 +13314,12 @@ export default function App() {
                           border: '1px solid rgba(255,255,255,0.08)',
                           borderRadius: '8px',
                           color: '#94a3b8',
-                          padding: '10px 12px',
+                          padding: '0',
+                          width: '38px',
+                          minWidth: '38px',
+                          maxWidth: '38px',
+                          flex: '0 0 38px',
+                          flexShrink: 0,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -13238,10 +13337,10 @@ export default function App() {
                       </button>
                       <input
                         type="date"
-                        className="form-input"
+                        className="form-input flex-input"
                         value={historyFilterDate}
                         onChange={e => setHistoryFilterDate(e.target.value)}
-                        style={{ padding: '9px 14px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0 }}
+                        style={{ padding: '0 10px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box' }}
                       />
                       <button
                         type="button"
@@ -13251,7 +13350,12 @@ export default function App() {
                           border: '1px solid rgba(255,255,255,0.08)',
                           borderRadius: '8px',
                           color: '#94a3b8',
-                          padding: '10px 12px',
+                          padding: '0',
+                          width: '38px',
+                          minWidth: '38px',
+                          maxWidth: '38px',
+                          flex: '0 0 38px',
+                          flexShrink: 0,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -13818,7 +13922,7 @@ export default function App() {
               <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px', textAlign: 'left' }}>
                   <label className="form-label">Start Date</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                     <button
                       type="button"
                       onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, -1, setReportStartDate); }}
@@ -13827,7 +13931,12 @@ export default function App() {
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '8px',
                         color: '#94a3b8',
-                        padding: '10px 12px',
+                        padding: '0',
+                        width: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flex: '0 0 38px',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -13845,10 +13954,10 @@ export default function App() {
                     </button>
                     <input 
                       type="date" 
-                      className="form-input" 
+                      className="form-input flex-input" 
                       value={reportStartDate} 
                       onChange={e => setReportStartDate(e.target.value)} 
-                      style={{ height: '42px', margin: 0, flex: 1 }}
+                      style={{ height: '42px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box' }}
                     />
                     <button
                       type="button"
@@ -13858,7 +13967,12 @@ export default function App() {
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '8px',
                         color: '#94a3b8',
-                        padding: '10px 12px',
+                        padding: '0',
+                        width: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flex: '0 0 38px',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -13878,7 +13992,7 @@ export default function App() {
                 </div>
                 <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px', textAlign: 'left' }}>
                   <label className="form-label">End Date</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                     <button
                       type="button"
                       onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, -1, setReportEndDate); }}
@@ -13887,7 +14001,12 @@ export default function App() {
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '8px',
                         color: '#94a3b8',
-                        padding: '10px 12px',
+                        padding: '0',
+                        width: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flex: '0 0 38px',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -13905,10 +14024,10 @@ export default function App() {
                     </button>
                     <input 
                       type="date" 
-                      className="form-input" 
+                      className="form-input flex-input" 
                       value={reportEndDate} 
                       onChange={e => setReportEndDate(e.target.value)} 
-                      style={{ height: '42px', margin: 0, flex: 1 }}
+                      style={{ height: '42px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box' }}
                     />
                     <button
                       type="button"
@@ -13918,7 +14037,12 @@ export default function App() {
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '8px',
                         color: '#94a3b8',
-                        padding: '10px 12px',
+                        padding: '0',
+                        width: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flex: '0 0 38px',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -16234,7 +16358,8 @@ export default function App() {
                 </span>
               </div>
 
-              <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              {/* Desktop Table View */}
+              <div className="desktop-table-view table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
@@ -16283,43 +16408,7 @@ export default function App() {
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
                             <button 
-                              onClick={async () => {
-                                playCyberSound('click');
-                                const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`);
-                                if (!masterPass) return;
-                                if (isDemoMode) {
-                                  setTeachers(prev => prev.map(t => t.id === adminUser.id ? { ...t, is_active: !t.is_active } : t));
-                                  alert(`SIMULATOR ACTION: Status updated successfully.`);
-                                  playCyberSound('success');
-                                  return;
-                                }
-                                try {
-                                  const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
-                                    method: 'PUT',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`,
-                                      'X-Master-Password': masterPass
-                                    },
-                                    body: JSON.stringify({
-                                      name: adminUser.name,
-                                      email: adminUser.email,
-                                      role: adminUser.role,
-                                      is_active: !adminUser.is_active
-                                    })
-                                  });
-                                  if (res.ok) {
-                                    alert(`Status updated successfully.`);
-                                    playCyberSound('success');
-                                    fetchTeachers();
-                                  } else {
-                                    const errData = await res.json();
-                                    alert(errData.detail || 'Failed to update admin.');
-                                  }
-                                } catch (e) {
-                                  alert('Connection failed.');
-                                }
-                              }}
+                              onClick={() => handleToggleAdminStatus(adminUser)}
                               className="action-btn"
                               style={{ 
                                 padding: '5px 10px', 
@@ -16331,43 +16420,8 @@ export default function App() {
                             >
                               {adminUser.is_active ? 'Deactivate' : 'Activate'}
                             </button>
-                            
                             <button 
-                              onClick={async () => {
-                                playCyberSound('click');
-                                if (adminUser.email === 'rajkishorock@gmail.com' || adminUser.email === 'admin@face.com') {
-                                  alert("Cannot delete primary system admin!");
-                                  playCyberSound('error');
-                                  return;
-                                }
-                                const masterPass = await requestMasterPassword('🔐 Master Key Verification Required', `Enter Master Password to completely DELETE admin "${adminUser.email}":`);
-                                if (!masterPass) return;
-                                if (isDemoMode) {
-                                  setTeachers(prev => prev.filter(t => t.id !== adminUser.id));
-                                  alert(`SIMULATOR ACTION: Admin deleted successfully.`);
-                                  playCyberSound('success');
-                                  return;
-                                }
-                                try {
-                                  const res = await fetch(`${API_BASE_URL}/users/${adminUser.id}`, {
-                                    method: 'DELETE',
-                                    headers: {
-                                      'Authorization': `Bearer ${token}`,
-                                      'X-Master-Password': masterPass
-                                    }
-                                  });
-                                  if (res.ok) {
-                                    alert(`Admin deleted successfully.`);
-                                    playCyberSound('success');
-                                    fetchTeachers();
-                                  } else {
-                                    const errData = await res.json();
-                                    alert(errData.detail || 'Failed to delete admin.');
-                                  }
-                                } catch (e) {
-                                  alert('Connection failed.');
-                                }
-                              }}
+                              onClick={() => handleDeleteAdminUser(adminUser)}
                               className="action-btn"
                               style={{ 
                                 padding: '5px 10px', 
@@ -16385,6 +16439,107 @@ export default function App() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Cards View */}
+              <div className="mobile-cards-view" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+                {(teachers || []).filter(u => u.role === 'admin').map((adminUser) => (
+                  <div 
+                    key={adminUser.id}
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '14px',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    {/* Header: Name + ID */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.96rem' }}>{adminUser.name}</span>
+                      <span style={{ color: '#94a3b8', fontFamily: 'monospace', fontSize: '0.78rem', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+                        #{adminUser.id}
+                      </span>
+                    </div>
+
+                    {/* Email */}
+                    <div style={{ color: '#94a3b8', fontSize: '0.82rem', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                      {adminUser.email}
+                    </div>
+
+                    {/* Badges: Role, Status, and Date */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ 
+                        padding: '3px 8px', 
+                        borderRadius: '6px', 
+                        fontSize: '0.72rem', 
+                        fontWeight: 'bold',
+                        background: 'rgba(0, 242, 254, 0.12)',
+                        color: '#00f2fe',
+                        border: '1px solid rgba(0, 242, 254, 0.25)'
+                      }}>
+                        SYSTEM ADMIN
+                      </span>
+
+                      <span style={{ 
+                        padding: '3px 8px', 
+                        borderRadius: '6px', 
+                        fontSize: '0.72rem', 
+                        fontWeight: 'bold',
+                        background: adminUser.is_active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                        color: adminUser.is_active ? '#10b981' : '#ef4444',
+                        border: `1px solid ${adminUser.is_active ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`
+                      }}>
+                        {adminUser.is_active ? 'ACTIVE' : 'DEACTIVATED'}
+                      </span>
+
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginLeft: 'auto' }}>
+                        {new Date(adminUser.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                      <button 
+                        onClick={() => handleToggleAdminStatus(adminUser)}
+                        className="action-btn"
+                        style={{ 
+                          flex: 1,
+                          padding: '8px 12px', 
+                          fontSize: '0.82rem', 
+                          borderRadius: '8px',
+                          background: adminUser.is_active ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                          border: `1px solid ${adminUser.is_active ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                          color: adminUser.is_active ? '#ef4444' : '#10b981',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {adminUser.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteAdminUser(adminUser)}
+                        className="action-btn"
+                        style={{ 
+                          flex: 1,
+                          padding: '8px 12px', 
+                          fontSize: '0.82rem', 
+                          borderRadius: '8px',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          color: '#ef4444',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             </>
@@ -16770,16 +16925,8 @@ export default function App() {
                   </button>
                 </form>
 
-                {/* Table of Institutions */}
-                <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
-                      🏫 Registered Institution Directory
-                    </h4>
-                    <span className="mobile-scroll-hint" style={{ fontSize: '0.72rem', color: '#00f2fe', background: 'rgba(0, 242, 254, 0.1)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(0, 242, 254, 0.25)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      👉 Swipe horizontally for full table
-                    </span>
-                  </div>
+                {/* Desktop Table View */}
+                <div className="desktop-table-view table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
@@ -16855,6 +17002,101 @@ export default function App() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Cards View */}
+                <div className="mobile-cards-view" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                  {institutionsList.map((inst) => (
+                    <div
+                      key={inst.id}
+                      style={{
+                        background: 'rgba(15, 23, 42, 0.75)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '14px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
+                        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      {/* Name & ID */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '1rem' }}>{inst.name}</span>
+                        <span style={{ color: '#94a3b8', fontFamily: 'monospace', fontSize: '0.78rem', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+                          #{inst.id}
+                        </span>
+                      </div>
+
+                      {/* Slug */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>Subdomain:</span>
+                        <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', fontSize: '0.8rem', color: '#00f2fe', border: '1px solid rgba(0, 242, 254, 0.2)', fontFamily: 'monospace' }}>
+                          {inst.slug}
+                        </span>
+                      </div>
+
+                      {/* Colors */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>Primary:</span>
+                          <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#4F46E5', border: '1px solid rgba(255,255,255,0.2)' }} />
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#cbd5e1' }}>{inst.primary_color || '#4F46E5'}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>Secondary:</span>
+                          <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid rgba(255,255,255,0.2)' }} />
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#cbd5e1' }}>{inst.secondary_color || '#06B6D4'}</span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '2px' }}>
+                        {inst.id === 1 ? (
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem', fontStyle: 'italic', display: 'block', textAlign: 'center' }}>
+                            🔒 System Default Institution
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                              onClick={() => { playCyberSound('click'); setEditingInst(inst); }}
+                              className="action-btn"
+                              style={{
+                                flex: 1,
+                                padding: '8px 12px',
+                                fontSize: '0.82rem',
+                                background: 'rgba(0, 242, 254, 0.15)',
+                                border: '1px solid rgba(0, 242, 254, 0.3)',
+                                color: '#00f2fe',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteInstitution(inst.id, inst.name)}
+                              className="action-btn"
+                              style={{
+                                flex: 1,
+                                padding: '8px 12px',
+                                fontSize: '0.82rem',
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#ef4444',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
