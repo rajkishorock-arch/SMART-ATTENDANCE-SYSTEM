@@ -9977,15 +9977,31 @@ export default function App() {
                     students={students}
                     sessionActive={attendanceActive}
                     onStartSession={(subId, period) => {
-                      setSelectedSubjectId(subId);
-                      setSelectedPeriod(period);
-                      startAttendanceCam();
+                      if (subId) setSelectedSubjectId(String(subId));
+                      if (period) setSessionPeriod(period);
+                      setActiveTab('attendance');
+                      setShowScannerModal(true);
+                      try {
+                        startAttendanceCam();
+                      } catch (err) {
+                        console.error('Failed to start camera:', err);
+                      }
                     }}
                     onEndSession={() => {
-                      stopAttendanceCam();
+                      try {
+                        stopAttendanceCam();
+                      } catch (err) {
+                        console.error('Failed to stop camera:', err);
+                      }
                     }}
                     onOpenScanner={() => {
+                      setActiveTab('attendance');
                       setShowScannerModal(true);
+                      try {
+                        startAttendanceCam();
+                      } catch (err) {
+                        console.error('Failed to start camera:', err);
+                      }
                     }}
                     onOpenManualAttendance={() => {
                       setIsManualAttendanceOpen(true);

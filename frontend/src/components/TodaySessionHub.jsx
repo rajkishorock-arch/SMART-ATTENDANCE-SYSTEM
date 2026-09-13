@@ -28,9 +28,7 @@ export default function TodaySessionHub({
   onExportCsv,
   lang = 'en'
 }) {
-  const [selectedSubjectId, setSelectedSubjectId] = useState(() => {
-    return subjects.length > 0 ? String(subjects[0].id) : '';
-  });
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('Period 1');
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [lastEndedSummary, setLastEndedSummary] = useState(null);
@@ -59,33 +57,82 @@ export default function TodaySessionHub({
     });
   }, [schedules, todayDayName, subjects]);
 
-  // Selected subject details
-  const activeSubject = useMemo(() => {
-    return subjects.find(s => String(s.id) === String(selectedSubjectId)) || subjects[0] || null;
-  }, [subjects, selectedSubjectId]);
+  // Derived active subject and effective subject ID
+  const effectiveSubjectId = useMemo(() => {
+    if (selectedSubjectId && subjects.some(s => String(s.id) === String(selectedSubjectId))) {
+      return selectedSubjectId;
+    }
+    return subjects.length > 0 ? String(subjects[0].id) : '';
+  }, [selectedSubjectId, subjects]);
 
-  // Today's logs filtered for this class/subject
+  const activeSubject = useMemo(() => {
+    return subjects.find(s => String(s.id) === String(effectiveSubjectId)) || subjects[0] || null;
+  }, [subjects, effectiveSubjectId]);
+
+  // Handle Period switch with auto-schedule sync
+  const handlePeriodClick = (p) => {
+    setSelectedPeriod(p);
+    const pNum = parseInt(p.replace(/\D/g, ''), 10);
+    const periodStartTimes = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00'];
+    const targetHour = periodStartTimes[pNum - 1] ? parseInt(periodStartTimes[pNum - 1].split(':')[0], 10) : null;
+    
+    if (targetHour !== null && todaySchedule.length > 0) {
+      const match = todaySchedule.find(sch => {
+        const hour = parseInt((sch.start_time || '').split(':')[0], 10);
+        return hour === targetHour;
+      });
+      if (match && match.subject_id) {
+        setSelectedSubjectId(String(match.subject_id));
+      }
+    }
+  };
+
+  // Students in this department/subject with robust fallback
+  const enrolledStudents = useMemo(() => {
+    if (!students || students.length === 0) return [];
+    if (!activeSubject || !activeSubject.department) return students;
+
+    const subDept = String(activeSubject.department).trim().toLowerCase();
+    const matches = students.filter(s => {
+      const sDept = String(s.dep || s.department || '').trim().toLowerCase();
+      return sDept && (sDept === subDept || subDept.includes(sDept) || sDept.includes(subDept));
+    });
+
+    return matches.length > 0 ? matches : students;
+  }, [students, activeSubject]);
+
+  // Today's logs filtered for this class/subject/period
   const todayLogs = useMemo(() => {
     const todayStr = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY
     const todayStrIso = new Date().toISOString().split('T')[0];
     return logs.filter(l => {
       const logDate = l.date || '';
-      return logDate === todayStr || logDate === todayStrIso;
-    });
-  }, [logs]);
+      const dateMatch = logDate === todayStr || logDate === todayStrIso;
+      if (!dateMatch) return false;
 
-  // Students in this department/subject
-  const enrolledStudents = useMemo(() => {
-    if (!activeSubject) return students;
-    return students.filter(s => s.dep === activeSubject.department);
-  }, [students, activeSubject]);
+      // Period match if log has period metadata
+      if (l.period && selectedPeriod) {
+        return String(l.period).toLowerCase() === String(selectedPeriod).toLowerCase();
+      }
+      return true;
+    });
+  }, [logs, selectedPeriod]);
 
   const presentRolls = useMemo(() => {
-    return new Set(todayLogs.map(l => String(l.roll).toLowerCase()));
+    const set = new Set();
+    todayLogs.forEach(l => {
+      if (l.roll) set.add(String(l.roll).toLowerCase());
+      if (l.student_id) set.add(String(l.student_id).toLowerCase());
+    });
+    return set;
   }, [todayLogs]);
 
+  // Keep present count bounded by enrolled count for consistent UI
+  const displayPresentCount = Math.min(presentRolls.size, enrolledStudents.length || presentRolls.size);
+  const displayAbsentCount = Math.max(0, (enrolledStudents.length || presentRolls.size) - displayPresentCount);
+
   const absentStudents = useMemo(() => {
-    return enrolledStudents.filter(s => !presentRolls.has(String(s.roll).toLowerCase()));
+    return enrolledStudents.filter(s => !presentRolls.has(String(s.roll || '').toLowerCase()));
   }, [enrolledStudents, presentRolls]);
 
   // Handle End Session with summary popup
@@ -94,7 +141,7 @@ export default function TodaySessionHub({
       subjectName: activeSubject?.name || 'Class Session',
       period: selectedPeriod,
       totalEnrolled: enrolledStudents.length,
-      presentCount: presentRolls.size,
+      presentCount: displayPresentCount,
       absentList: absentStudents.slice(0, 15),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -221,35 +268,46 @@ export default function TodaySessionHub({
             </div>
 
             {/* Quick Period Switcher */}
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {['Period 1', 'Period 2', 'Period 3', 'Period 4'].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setSelectedPeriod(p)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-full)',
-                    border: `1px solid ${selectedPeriod === p ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                    background: selectedPeriod === p ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
-                    color: selectedPeriod === p ? '#38bdf8' : 'var(--color-text-secondary)',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {p}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6'].map((p) => {
+                const isSelected = selectedPeriod === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => handlePeriodClick(p)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      border: `1.5px solid ${isSelected ? '#0ea5e9' : 'rgba(255, 255, 255, 0.1)'}`,
+                      background: isSelected ? 'rgba(14, 165, 233, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                      color: isSelected ? '#38bdf8' : 'var(--color-text-secondary)',
+                      fontSize: '0.74rem',
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 0 10px rgba(14, 165, 233, 0.35)' : 'none'
+                    }}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Subject Selector & Meta */}
           <div style={{ marginBottom: '18px' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>
-              {lang === 'hi' ? 'विषय चुनें' : 'Select Subject / Course'}
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
+                {lang === 'hi' ? 'विषय चुनें' : 'Select Subject / Course'}
+              </label>
+              <span style={{ fontSize: '0.72rem', color: '#0ea5e9', fontWeight: 700 }}>
+                • {selectedPeriod}
+              </span>
+            </div>
             <select
-              value={selectedSubjectId}
+              value={effectiveSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
               className="form-input"
               style={{ fontSize: '0.92rem', fontWeight: 600 }}
@@ -270,35 +328,39 @@ export default function TodaySessionHub({
             </div>
             <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
               <div style={{ fontSize: '0.7rem', color: '#34d399' }}>{t('marked_present', lang)}</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>{presentRolls.size}</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>{displayPresentCount}</div>
             </div>
             <div style={{ background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
               <div style={{ fontSize: '0.7rem', color: '#f87171' }}>{t('absent_today', lang)}</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>{absentStudents.length}</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>{displayAbsentCount}</div>
             </div>
           </div>
 
           {/* Large Prominent Start Session Action */}
           <button
+            type="button"
             onClick={() => {
-              if (onStartSession) onStartSession(selectedSubjectId, selectedPeriod);
+              if (onStartSession) onStartSession(effectiveSubjectId, selectedPeriod);
               if (onOpenScanner) onOpenScanner();
             }}
             className="btn-primary"
             style={{
               width: '100%',
-              minHeight: '50px',
+              minHeight: '52px',
               fontSize: '1rem',
               fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              borderRadius: 'var(--radius-md)'
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+              boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)'
             }}
           >
             <Play size={18} fill="currentColor" />
-            <span>{t('start_session', lang)}</span>
+            <span>{t('start_session', lang)} • {selectedPeriod}</span>
           </button>
         </div>
       )}
