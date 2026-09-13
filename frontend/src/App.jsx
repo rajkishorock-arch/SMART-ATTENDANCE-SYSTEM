@@ -16929,12 +16929,33 @@ export default function App() {
                       Publish and control system-wide APK updates for all users instantly.
                     </p>
                   </div>
-                  <span className="telemetry-stat-pill" style={{
-                    padding: '4px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700,
-                    background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)', letterSpacing: '0.5px'
-                  }}>
-                    APP VERSION: v{APP_VERSION}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <a
+                      href="https://github.com/rajkishorock-arch/SMART-ATTENDANCE-SYSTEM/actions/workflows/build-apk.yml"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-ghost"
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.78rem',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      GitHub Actions ↗
+                    </a>
+                    <span className="telemetry-stat-pill" style={{
+                      padding: '4px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700,
+                      background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)', letterSpacing: '0.5px'
+                    }}>
+                      APP VERSION: v{APP_VERSION}
+                    </span>
+                  </div>
                 </div>
 
                 {/* ═══ OWNER BETA CHANNEL — test on your phone first ═══ */}
@@ -17177,10 +17198,18 @@ export default function App() {
                           setReleaseErrorMessage('');
                           setShowManualReleaseForm(true);
                         }}
-                        style={{ background: 'transparent', border: 'none', color: '#9ca3af', textDecoration: 'underline', fontSize: '0.8rem', cursor: 'pointer', padding: '8px 0' }}
+                        style={{ background: 'transparent', border: 'none', color: '#00f2fe', textDecoration: 'underline', fontSize: '0.82rem', cursor: 'pointer', padding: '8px 0', fontWeight: 600 }}
                       >
-                        Configure Version & Download URL Manually
+                        💾 Configure Version & Download URL Manually
                       </button>
+                      <a
+                        href="https://github.com/rajkishorock-arch/SMART-ATTENDANCE-SYSTEM/actions/workflows/build-apk.yml"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#94a3b8', textDecoration: 'underline', fontSize: '0.82rem', padding: '8px 0', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        Open GitHub Actions (Manual Run) ↗
+                      </a>
                     </div>
                   </form>
                 ) : (
