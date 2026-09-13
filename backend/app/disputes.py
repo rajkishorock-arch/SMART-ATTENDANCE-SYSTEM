@@ -137,21 +137,26 @@ async def submit_dispute(
     except Exception:
         pass  # Skip if date format validation fails
 
-    # 2. Prevent Duplicate Active Disputes for the same record
+    # 2. Prevent Duplicate Active Disputes for the exact same session/period/subject
+    clean_session_time = session_time.strip()[:99] if session_time else None
+
     query = db.query(models.AttendanceDispute).filter(
         models.AttendanceDispute.institution_id == inst_id,
         models.AttendanceDispute.student_id == student_id,
         models.AttendanceDispute.date == date.strip(),
-        models.AttendanceDispute.status.in_(["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFORMATION", "APPROVED"])
+        models.AttendanceDispute.status.in_(["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFORMATION"])
     )
+    if clean_session_time:
+        query = query.filter(models.AttendanceDispute.session_time == clean_session_time)
     if subject_id is not None:
         query = query.filter(models.AttendanceDispute.subject_id == subject_id)
+        
     existing_dispute = query.first()
 
     if existing_dispute:
         raise HTTPException(
             status_code=400,
-            detail=f"A dispute (ID #{existing_dispute.id}, status: {existing_dispute.status}) already exists for this attendance session."
+            detail=f"A dispute (ID #{existing_dispute.id}, status: {existing_dispute.status}) already exists for this specific attendance session/period."
         )
 
     # 3. Handle Secure Proof Upload
@@ -175,8 +180,6 @@ async def submit_dispute(
         content_type = proof.content_type
 
     # 4. Create Dispute Record
-    clean_session_time = session_time.strip()[:99] if session_time else None
-
     try:
         new_dispute = models.AttendanceDispute(
             institution_id=inst_id,
