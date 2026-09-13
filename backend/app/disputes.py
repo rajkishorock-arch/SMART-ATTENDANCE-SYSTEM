@@ -190,6 +190,80 @@ def _format_dispute(d: models.AttendanceDispute, db: Session) -> schemas.Dispute
     )
 
 
+def _format_disputes_batch(disputes: List[models.AttendanceDispute], db: Session) -> List[schemas.DisputeResponse]:
+    if not disputes:
+        return []
+
+    student_ids = list(set([d.student_id for d in disputes if d.student_id]))
+    subject_ids = list(set([d.subject_id for d in disputes if d.subject_id]))
+    dispute_ids = [d.id for d in disputes]
+
+    students_map = {
+        s.id: s for s in db.query(models.StudentModel).filter(models.StudentModel.id.in_(student_ids)).all()
+    } if student_ids else {}
+
+    subjects_map = {
+        sub.id: sub for sub in db.query(models.Subject).filter(models.Subject.id.in_(subject_ids)).all()
+    } if subject_ids else {}
+
+    comments_raw = db.query(models.DisputeComment).filter(
+        models.DisputeComment.dispute_id.in_(dispute_ids)
+    ).order_by(models.DisputeComment.created_at.asc()).all() if dispute_ids else []
+
+    comments_map = {}
+    for c in comments_raw:
+        comments_map.setdefault(c.dispute_id, []).append(c)
+
+    formatted = []
+    for d in disputes:
+        student = students_map.get(d.student_id)
+        subject = subjects_map.get(d.subject_id)
+        comments = comments_map.get(d.id, [])
+
+        formatted.append(schemas.DisputeResponse(
+            id=d.id,
+            institution_id=d.institution_id,
+            attendance_id=d.attendance_id,
+            student_id=d.student_id,
+            student_name=student.name if student else None,
+            student_roll=student.roll if student else None,
+            student_email=student.email if student else None,
+            subject_id=d.subject_id,
+            subject_name=subject.name if subject else None,
+            subject_code=subject.code if subject else None,
+            date=d.date,
+            session_time=d.session_time,
+            original_status=d.original_status,
+            requested_status=d.requested_status,
+            reason=d.reason,
+            description=d.description,
+            proof_filename=d.proof_filename,
+            has_proof=bool(d.proof_filename),
+            status=d.status,
+            reviewed_by=d.reviewed_by,
+            reviewer_role=d.reviewer_role,
+            reviewer_comments=d.reviewer_comments,
+            escalated_to_hod=bool(d.escalated_to_hod),
+            hod_reviewed_by=d.hod_reviewed_by,
+            hod_comments=d.hod_comments,
+            created_at=d.created_at,
+            updated_at=d.updated_at,
+            resolved_at=d.resolved_at,
+            comments=[
+                schemas.DisputeCommentResponse(
+                    id=c.id,
+                    dispute_id=c.dispute_id,
+                    author_email=c.author_email,
+                    author_role=c.author_role,
+                    author_name=c.author_name,
+                    message=c.message,
+                    created_at=c.created_at
+                ) for c in comments
+            ]
+        ))
+    return formatted
+
+
 # ── Student Endpoints ──────────────────────────────────────────────────────────
 
 @router.post("", response_model=schemas.DisputeResponse)
@@ -359,7 +433,7 @@ def get_my_disputes(
         query = query.filter(models.AttendanceDispute.status == status.upper())
     
     disputes = query.order_by(models.AttendanceDispute.created_at.desc()).all()
-    return [_format_dispute(d, db) for d in disputes]
+    return _format_disputes_batch(disputes, db)
 
 
 @router.post("/{dispute_id}/cancel", response_model=schemas.DisputeResponse)
@@ -443,7 +517,7 @@ def get_disputes_queue(
         query = query.filter(models.AttendanceDispute.date == date.strip())
 
     disputes = query.order_by(models.AttendanceDispute.created_at.desc()).all()
-    return [_format_dispute(d, db) for d in disputes]
+    return _format_disputes_batch(disputes, db)
 
 
 @router.get("/{dispute_id}", response_model=schemas.DisputeResponse)
