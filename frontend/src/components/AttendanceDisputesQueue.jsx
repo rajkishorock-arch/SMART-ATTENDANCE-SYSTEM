@@ -16,10 +16,10 @@ export default function AttendanceDisputesQueue({
 }) {
   const [disputes, setDisputes] = useState([]);
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
-  
+
   // Review Action State
   const [activeReviewId, setActiveReviewId] = useState(null);
   const [reviewAction, setReviewAction] = useState('APPROVE');
@@ -43,7 +43,7 @@ export default function AttendanceDisputesQueue({
       });
       if (res.ok) {
         const data = await res.json();
-        setDisputes(data);
+        setDisputes(Array.isArray(data) ? data : []);
       } else {
         setErrorMsg('Failed to load dispute queue.');
       }
@@ -228,7 +228,13 @@ export default function AttendanceDisputesQueue({
         ].map(tab => (
           <button
             key={tab.key}
-            onClick={() => { setStatusFilter(tab.key); playCyberSound('click'); }}
+            onClick={() => {
+              if (statusFilter !== tab.key) {
+                setIsLoading(true);
+                setStatusFilter(tab.key);
+                playCyberSound('click');
+              }
+            }}
             style={{
               padding: '6px 14px',
               borderRadius: '20px',
@@ -248,8 +254,29 @@ export default function AttendanceDisputesQueue({
 
       {/* Queue List */}
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '50px', color: '#9ca3af' }}>
-          Loading dispute queue...
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '10px 0' }}>
+          {[1, 2, 3].map(i => (
+            <div 
+              key={i}
+              style={{
+                padding: '24px',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                animation: 'pulse 1.5s infinite ease-in-out'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ width: '40%', height: '18px', background: 'rgba(255, 255, 255, 0.06)', borderRadius: '4px' }}></div>
+                <div style={{ width: '80px', height: '18px', background: 'rgba(0, 242, 254, 0.1)', borderRadius: '12px' }}></div>
+              </div>
+              <div style={{ width: '70%', height: '14px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '4px' }}></div>
+              <div style={{ width: '30%', height: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '4px' }}></div>
+            </div>
+          ))}
         </div>
       ) : disputes.length === 0 ? (
         <div style={{

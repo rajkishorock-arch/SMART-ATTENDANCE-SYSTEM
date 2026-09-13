@@ -52,7 +52,7 @@ export default function AttendanceDisputeModal({
   const [proofFile, setProofFile] = useState(null);
   
   const [myDisputes, setMyDisputes] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
