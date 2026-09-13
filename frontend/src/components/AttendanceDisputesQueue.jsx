@@ -10,7 +10,8 @@ const API_BASE_URL = getApiBaseUrl();
 export default function AttendanceDisputesQueue({ 
   token, 
   currentUser, 
-  playCyberSound = () => {} 
+  playCyberSound = () => {},
+  onDisputeUpdated
 }) {
   const [disputes, setDisputes] = useState([]);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -81,6 +82,7 @@ export default function AttendanceDisputesQueue({
       setActiveReviewId(null);
       setReviewComment('');
       fetchQueue();
+      if (onDisputeUpdated) onDisputeUpdated();
       playCyberSound('success');
     } catch (err) {
       alert(err.message);

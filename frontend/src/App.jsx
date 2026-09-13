@@ -14572,6 +14572,10 @@ export default function App() {
             token={token} 
             currentUser={currentUser} 
             playCyberSound={playCyberSound} 
+            onDisputeUpdated={async () => {
+              await fetchLogs();
+              await fetchStats();
+            }}
           />
         )}
 

@@ -407,23 +407,32 @@ export default function AttendanceDisputeModal({
 
                 <div>
                   <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>
-                    Session Time / Period
+                    Session Time / Period *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={sessionTime}
                     onChange={(e) => setSessionTime(e.target.value)}
-                    placeholder="e.g. 10:00:00 AM"
+                    required
                     style={{
                       width: '100%',
                       padding: '10px 14px',
                       borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: '#0d1322',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       color: '#f8fafc',
                       fontSize: '0.85rem'
                     }}
-                  />
+                  >
+                    <option value="">Select Period / Class Slot *</option>
+                    <option value="Period 1 (09:00 - 10:00 AM)">Period 1 (09:00 - 10:00 AM)</option>
+                    <option value="Period 2 (10:00 - 11:00 AM)">Period 2 (10:00 - 11:00 AM)</option>
+                    <option value="Period 3 (11:00 - 12:00 PM)">Period 3 (11:00 - 12:00 PM)</option>
+                    <option value="Period 4 (12:00 - 01:00 PM)">Period 4 (12:00 - 01:00 PM)</option>
+                    <option value="Period 5 (01:00 - 02:00 PM)">Period 5 (01:00 - 02:00 PM)</option>
+                    <option value="Period 6 (02:00 - 03:00 PM)">Period 6 (02:00 - 03:00 PM)</option>
+                    <option value="Period 7 (03:00 - 04:00 PM)">Period 7 (03:00 - 04:00 PM)</option>
+                    <option value="Period 8 (04:00 - 05:00 PM)">Period 8 (04:00 - 05:00 PM)</option>
+                  </select>
                 </div>
 
                 <div>

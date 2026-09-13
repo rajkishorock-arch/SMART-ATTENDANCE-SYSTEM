@@ -358,6 +358,28 @@ def review_dispute(
         dispute.resolved_at = now_utc
 
         # ── Apply Attendance Correction to Official Records ─────────────────
+        def _get_time_for_session(session_str: Optional[str]) -> str:
+            if not session_str:
+                return datetime.now(IST).strftime("%H:%M:%S")
+            s_upper = session_str.upper()
+            if "PERIOD 1" in s_upper or "09:00" in s_upper:
+                return "09:05:00"
+            elif "PERIOD 2" in s_upper or "10:00" in s_upper:
+                return "10:05:00"
+            elif "PERIOD 3" in s_upper or "11:00" in s_upper:
+                return "11:05:00"
+            elif "PERIOD 4" in s_upper or "12:00" in s_upper:
+                return "12:05:00"
+            elif "PERIOD 5" in s_upper or "01:00" in s_upper or "13:00" in s_upper:
+                return "13:05:00"
+            elif "PERIOD 6" in s_upper or "02:00" in s_upper or "14:00" in s_upper:
+                return "14:05:00"
+            elif "PERIOD 7" in s_upper or "03:00" in s_upper or "15:00" in s_upper:
+                return "15:05:00"
+            elif "PERIOD 8" in s_upper or "04:00" in s_upper or "16:00" in s_upper:
+                return "16:05:00"
+            return datetime.now(IST).strftime("%H:%M:%S")
+
         # Find existing attendance record
         att_query = db.query(models.AttendanceModel).filter(
             models.AttendanceModel.institution_id == current_user.institution_id,
@@ -375,24 +397,35 @@ def review_dispute(
 
         if att_record:
             prev_status = att_record.attendance
-            att_record.attendance = dispute.requested_status
+            att_record.attendance = dispute.requested_status or "Present"
+            att_record.verification_method = "DISPUTE_CORRECTION"
+            att_record.fallback_reason = f"Approved Dispute Request #{dispute.id}"
         else:
             # Create new corrected attendance entry
-            new_time = dispute.session_time or datetime.now(IST).strftime("%I:%M:%S %p")
+            new_time = _get_time_for_session(dispute.session_time)
+            unique_id = str(uuid.uuid4())[:8]
             att_record = models.AttendanceModel(
-                id=str(dispute.student_id),
+                id=unique_id,
                 institution_id=current_user.institution_id,
                 roll=student.roll if student else "",
                 name=student.name if student else "Student",
                 department=student.dep if student else "",
                 time=new_time,
                 date=dispute.date,
-                attendance=dispute.requested_status,
-                subject_id=dispute.subject_id
+                attendance=dispute.requested_status or "Present",
+                subject_id=dispute.subject_id,
+                verification_method="DISPUTE_CORRECTION",
+                fallback_reason=f"Approved Dispute Request #{dispute.id}"
             )
             db.add(att_record)
 
         db.commit()
+
+        try:
+            from .recognition_service import recognition_service
+            recognition_service.invalidate_cache(current_user.institution_id)
+        except Exception:
+            pass
 
         # ── Mandatory Immutable Audit Event ────────────────────────────────
         crud.create_audit_log(
