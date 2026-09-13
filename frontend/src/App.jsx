@@ -1746,12 +1746,10 @@ export default function App() {
     // 1. Mobile Web Browser Back Button / Gesture (popstate)
     const handlePopState = () => {
       const currentSub = activeSubSettingRef.current;
-      const currentTab = activeTabRef.current;
-
-      isPopStateNavRef.current = true;
 
       // If a settings sub-panel is open, step back to parent folder or Settings Hub
       if (currentSub !== null) {
+        isPopStateNavRef.current = true;
         if (folderItems.includes(currentSub)) {
           setActiveSubSetting('features_folder');
         } else {
@@ -1784,17 +1782,7 @@ export default function App() {
         setActiveDashboardSubTab(null);
         return;
       }
-
-      // If on settings or other tab, step back to dashboard / student-attendance
-      if (currentTab !== 'dashboard' && currentTab !== 'student-attendance') {
-        if (userRoleRef.current === 'student') {
-          setActiveTab('student-attendance');
-        } else {
-          setActiveTab('dashboard');
-        }
-        playCyberSound('click');
-        return;
-      }
+      // Note: tab transitions via browser back/forward are handled by window.onhashchange
     };
 
     window.addEventListener('popstate', handlePopState);
