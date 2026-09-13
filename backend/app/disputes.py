@@ -66,6 +66,7 @@ def _get_time_for_session(session_str: Optional[str]) -> str:
 def sync_all_approved_disputes(db: Session):
     """Auto-sync all APPROVED disputes into official AttendanceModel records so real-time DB logs reflect approved corrections."""
     try:
+        from .period_utils import resolve_period_name
         approved_disputes = db.query(models.AttendanceDispute).filter(
             models.AttendanceDispute.status == "APPROVED"
         ).all()
@@ -93,18 +94,25 @@ def sync_all_approved_disputes(db: Session):
                 from sqlalchemy import or_
                 possible_rolls = list(set([r for r in [student.roll, str(student.id), student.email] if r]))
 
-                att_query = db.query(models.AttendanceModel).filter(
+                candidates = db.query(models.AttendanceModel).filter(
                     models.AttendanceModel.institution_id == disp.institution_id,
                     models.AttendanceModel.date.in_(alt_dates),
                     or_(
                         models.AttendanceModel.roll.in_(possible_rolls),
                         models.AttendanceModel.name == student.name
                     )
-                )
-                if disp.subject_id:
-                    att_query = att_query.filter(models.AttendanceModel.subject_id == disp.subject_id)
+                ).all()
 
-                att_record = att_query.first()
+                disp_period = resolve_period_name(disp.session_time)
+
+                att_record = None
+                for cand in candidates:
+                    if disp.subject_id and cand.subject_id and cand.subject_id != disp.subject_id:
+                        continue
+                    if resolve_period_name(cand.time) == disp_period:
+                        att_record = cand
+                        break
+
                 target_status = disp.requested_status or "Present"
 
                 if att_record:
@@ -116,7 +124,7 @@ def sync_all_approved_disputes(db: Session):
                     att_record.fallback_reason = f"Approved Dispute Request #{disp.id}"
                 else:
                     new_time = _get_time_for_session(disp.session_time)
-                    unique_id = str(uuid.uuid4())[:8]
+                    unique_id = f"disp_{disp.id}_{uuid.uuid4().hex[:6]}"
                     new_att = models.AttendanceModel(
                         id=unique_id,
                         institution_id=disp.institution_id,
@@ -623,31 +631,49 @@ def review_dispute(
             pass
         alt_dates = list(set([d for d in alt_dates if d]))
 
-        # Find existing attendance record
-        att_query = db.query(models.AttendanceModel).filter(
+        # Find existing attendance record matching date, student, subject AND period!
+        existing_candidates = db.query(models.AttendanceModel).filter(
             models.AttendanceModel.institution_id == current_user.institution_id,
             models.AttendanceModel.date.in_(alt_dates)
         )
         if dispute.attendance_id:
-            att_query = att_query.filter(models.AttendanceModel.id == dispute.attendance_id)
+            existing_candidates = existing_candidates.filter(models.AttendanceModel.id == dispute.attendance_id)
         elif student:
-            att_query = att_query.filter(models.AttendanceModel.roll == student.roll)
-            if dispute.subject_id:
-                att_query = att_query.filter(models.AttendanceModel.subject_id == dispute.subject_id)
+            possible_rolls = list(set([r for r in [student.roll, str(student.id), student.email] if r]))
+            from sqlalchemy import or_
+            existing_candidates = existing_candidates.filter(
+                or_(
+                    models.AttendanceModel.roll.in_(possible_rolls),
+                    models.AttendanceModel.name == student.name
+                )
+            )
 
-        att_record = att_query.first()
+        cand_list = existing_candidates.all()
+        from .period_utils import resolve_period_name
+        disp_period = resolve_period_name(dispute.session_time)
+
+        att_record = None
+        for cand in cand_list:
+            if dispute.subject_id and cand.subject_id and cand.subject_id != dispute.subject_id:
+                continue
+            if resolve_period_name(cand.time) == disp_period:
+                att_record = cand
+                break
+
         prev_status = dispute.original_status
 
         if att_record:
             prev_status = att_record.attendance
             att_record.attendance = dispute.requested_status or "Present"
             att_record.date = canonical_date
+            if student and student.roll:
+                att_record.roll = student.roll
             att_record.verification_method = "DISPUTE_CORRECTION"
             att_record.fallback_reason = f"Approved Dispute Request #{dispute.id}"
         else:
-            # Create new corrected attendance entry
+            # Create new corrected attendance entry for this period slot
             new_time = _get_time_for_session(dispute.session_time)
-            unique_id = str(uuid.uuid4())[:8]
+            unique_id = f"disp_{dispute.id}_{uuid.uuid4().hex[:6]}"
             att_record = models.AttendanceModel(
                 id=unique_id,
                 institution_id=current_user.institution_id,
