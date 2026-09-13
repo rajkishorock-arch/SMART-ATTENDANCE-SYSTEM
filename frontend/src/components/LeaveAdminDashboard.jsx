@@ -6,14 +6,21 @@ import { generateLeavePdf } from '../utils/leavePdfGenerator';
 const API_BASE_URL = getApiBaseUrl();
 
 export default function LeaveAdminDashboard({ token, currentUser }) {
-  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [leaveRequests, setLeaveRequests] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_leave_admin_requests');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) {
+      return [];
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
 
   const fetchLeaveRequests = useCallback(async () => {
     if (!token) return;
-    setIsLoading(true);
+    if (leaveRequests.length === 0) setIsLoading(true);
     setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/users/leaves`, {
@@ -21,7 +28,11 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setLeaveRequests(data);
+        const list = Array.isArray(data) ? data : [];
+        setLeaveRequests(list);
+        try {
+          localStorage.setItem('cached_leave_admin_requests', JSON.stringify(list));
+        } catch (_) {}
       } else {
         setError('Failed to fetch leave requests.');
       }
@@ -30,7 +41,7 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, leaveRequests.length]);
 
   useEffect(() => {
     fetchLeaveRequests();

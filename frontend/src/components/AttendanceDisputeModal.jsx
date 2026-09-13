@@ -51,8 +51,15 @@ export default function AttendanceDisputeModal({
   const [description, setDescription] = useState('');
   const [proofFile, setProofFile] = useState(null);
   
-  const [myDisputes, setMyDisputes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [myDisputes, setMyDisputes] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_my_disputes');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -89,21 +96,25 @@ export default function AttendanceDisputeModal({
   // Fetch student's past disputes
   const fetchMyDisputes = useCallback(async () => {
     if (!token) return;
-    setIsLoading(true);
+    if (myDisputes.length === 0) setIsLoading(true);
     try {
       const res = await fetch(`${activeApiUrl}/disputes/my-disputes`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setMyDisputes(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setMyDisputes(list);
+        try {
+          localStorage.setItem('cached_my_disputes', JSON.stringify(list));
+        } catch (_) {}
       }
     } catch (err) {
       console.error("Error fetching disputes:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [token, activeApiUrl]);
+  }, [token, activeApiUrl, myDisputes.length]);
 
   useEffect(() => {
     if (isOpen) {

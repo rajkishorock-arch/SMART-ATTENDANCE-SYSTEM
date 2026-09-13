@@ -14,9 +14,16 @@ export default function AttendanceDisputesQueue({
   playCyberSound = () => {},
   onDisputeUpdated
 }) {
-  const [disputes, setDisputes] = useState([]);
+  const [disputes, setDisputes] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_disputes_queue');
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) {
+      return [];
+    }
+  });
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
 
@@ -33,7 +40,7 @@ export default function AttendanceDisputesQueue({
 
   const fetchQueue = useCallback(async () => {
     if (!token) return;
-    setIsLoading(true);
+    if (disputes.length === 0) setIsLoading(true);
     try {
       const url = statusFilter === 'ALL'
         ? `${API_BASE_URL}/disputes/queue`
@@ -43,7 +50,11 @@ export default function AttendanceDisputesQueue({
       });
       if (res.ok) {
         const data = await res.json();
-        setDisputes(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setDisputes(list);
+        try {
+          localStorage.setItem('cached_disputes_queue', JSON.stringify(list));
+        } catch (_) {}
       } else {
         setErrorMsg('Failed to load dispute queue.');
       }
@@ -53,7 +64,7 @@ export default function AttendanceDisputesQueue({
     } finally {
       setIsLoading(false);
     }
-  }, [token, statusFilter]);
+  }, [token, statusFilter, disputes.length]);
 
   useEffect(() => {
     fetchQueue();

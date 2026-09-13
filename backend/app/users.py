@@ -1204,10 +1204,24 @@ def list_institution_leaves(
             models.LeaveRequest.institution_id == current_user.institution_id
         ).order_by(models.LeaveRequest.status.desc(), models.LeaveRequest.created_at.desc()).all()
     
+    if not leaves:
+        return []
+
+    student_ids = list(set([l.student_id for l in leaves if l.student_id]))
+    subject_ids = list(set([l.subject_id for l in leaves if l.subject_id]))
+
+    students_map = {
+        s.id: s for s in db.query(models.StudentModel).filter(models.StudentModel.id.in_(student_ids)).all()
+    } if student_ids else {}
+
+    subjects_map = {
+        sub.id: sub for sub in db.query(models.Subject).filter(models.Subject.id.in_(subject_ids)).all()
+    } if subject_ids else {}
+
     res = []
     for l in leaves:
-        student = db.query(models.StudentModel).filter(models.StudentModel.id == l.student_id).first()
-        subject = db.query(models.Subject).filter(models.Subject.id == l.subject_id).first() if l.subject_id else None
+        student = students_map.get(l.student_id)
+        subject = subjects_map.get(l.subject_id)
         res.append(schemas.LeaveRequestResponse(
             id=l.id,
             student_id=l.student_id,

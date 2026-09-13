@@ -174,6 +174,21 @@ def get_my_leave_requests(
     return _enrich_leaves_batch(db, leaves)
 
 
+@router.get("/student/{student_id}")
+def get_student_leave_requests(
+    student_id: int,
+    db: Session = Depends(get_db),
+    identity: security.AuthIdentity = Depends(security.get_current_identity),
+):
+    """View leave requests for a specific student ID."""
+    leaves = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.student_id == student_id,
+        models.LeaveRequest.institution_id == identity.institution_id,
+    ).order_by(models.LeaveRequest.created_at.desc()).all()
+
+    return _enrich_leaves_batch(db, leaves)
+
+
 # ---------------------------------------------------------------------------
 # ADMIN/TEACHER: View all pending leave requests
 # ---------------------------------------------------------------------------
