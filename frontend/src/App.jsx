@@ -2238,7 +2238,13 @@ export default function App() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // App Navigation & Modal State
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const savedRole = localStorage.getItem('userRole');
+      if (savedRole === 'student') return 'student-attendance';
+    } catch (_) {}
+    return 'dashboard';
+  });
   const [activeSubSetting, setActiveSubSetting] = useState(null);
   const [activeDashboardSubTab, setActiveDashboardSubTab] = useState(null);
 
