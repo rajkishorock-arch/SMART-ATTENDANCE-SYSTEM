@@ -3988,6 +3988,8 @@ html {
 
   /* Hide elements marked as redundant on mobile */
   .hide-on-mobile,
+  header.hide-on-mobile,
+  .settings-sub-nav.hide-on-mobile,
   .desktop-only-panel,
   .mobile-scroll-hint {
     display: none !important;
@@ -4289,6 +4291,12 @@ html {
 
 /* Switch wide tables to compact cards on tablet, mobile, or split desktop windows (<= 960px) */
 @media (max-width: 960px) {
+  .hide-on-mobile,
+  header.hide-on-mobile,
+  .settings-sub-nav.hide-on-mobile {
+    display: none !important;
+  }
+
   .desktop-table-view,
   div.desktop-table-view,
   div[class*="desktop-table-view"],

@@ -1710,8 +1710,96 @@ export default function App() {
     } catch (_) {}
   }, []);
 
-  // Handle Android Native Back Button Navigation
+  // Navigation State Refs for event handlers without stale closures
+  const activeTabRef = useRef(activeTab);
+  const activeSubSettingRef = useRef(activeSubSetting);
+  const activeDashboardSubTabRef = useRef(activeDashboardSubTab);
+  const showChatBotRef = useRef(showChatBot);
+  const showFeedbackModalRef = useRef(showFeedbackModal);
+  const showPrivacyPolicyRef = useRef(showPrivacyPolicy);
+  const userRoleRef = useRef(userRole);
+  const isPopStateNavRef = useRef(false);
+
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+  useEffect(() => { activeSubSettingRef.current = activeSubSetting; }, [activeSubSetting]);
+  useEffect(() => { activeDashboardSubTabRef.current = activeDashboardSubTab; }, [activeDashboardSubTab]);
+  useEffect(() => { showChatBotRef.current = showChatBot; }, [showChatBot]);
+  useEffect(() => { showFeedbackModalRef.current = showFeedbackModal; }, [showFeedbackModal]);
+  useEffect(() => { showPrivacyPolicyRef.current = showPrivacyPolicy; }, [showPrivacyPolicy]);
+  useEffect(() => { userRoleRef.current = userRole; }, [userRole]);
+
+  // Synchronize activeSubSetting with HTML5 History API for phone back button & gesture navigation
   useEffect(() => {
+    if (isPopStateNavRef.current) {
+      isPopStateNavRef.current = false;
+      return;
+    }
+    if (activeSubSetting !== null) {
+      window.history.pushState({ appNav: 'settings-sub', sub: activeSubSetting }, '');
+    }
+  }, [activeSubSetting]);
+
+  // Handle Mobile Browser Back Button (popstate) & Android Native Hardware Back Button
+  useEffect(() => {
+    const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
+
+    // 1. Mobile Web Browser Back Button / Gesture (popstate)
+    const handlePopState = () => {
+      const currentSub = activeSubSettingRef.current;
+      const currentTab = activeTabRef.current;
+
+      isPopStateNavRef.current = true;
+
+      // If a settings sub-panel is open, step back to parent folder or Settings Hub
+      if (currentSub !== null) {
+        if (folderItems.includes(currentSub)) {
+          setActiveSubSetting('features_folder');
+        } else {
+          setActiveSubSetting(null);
+        }
+        playCyberSound('click');
+        return;
+      }
+
+      // If chatbot is open, close it
+      if (showChatBotRef.current) {
+        setShowChatBot(false);
+        return;
+      }
+
+      // If feedback modal is open, close it
+      if (showFeedbackModalRef.current) {
+        setShowFeedbackModal(false);
+        return;
+      }
+
+      // If privacy policy is open, close it
+      if (showPrivacyPolicyRef.current) {
+        setShowPrivacyPolicy(false);
+        return;
+      }
+
+      // If dashboard sub-tab is open, close it
+      if (activeDashboardSubTabRef.current) {
+        setActiveDashboardSubTab(null);
+        return;
+      }
+
+      // If on settings or other tab, step back to dashboard / student-attendance
+      if (currentTab !== 'dashboard' && currentTab !== 'student-attendance') {
+        if (userRoleRef.current === 'student') {
+          setActiveTab('student-attendance');
+        } else {
+          setActiveTab('dashboard');
+        }
+        playCyberSound('click');
+        return;
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // 2. Android Native Back Button (Capacitor App)
     let active = true;
     let handle = null;
 
@@ -1720,34 +1808,44 @@ export default function App() {
         const { App: CapApp } = await import('@capacitor/app');
         if (!active) return;
         handle = await CapApp.addListener('backButton', () => {
-          if (activeSubSetting) {
-            setActiveSubSetting(null);
-          } else if (activeDashboardSubTab) {
+          const currentSub = activeSubSettingRef.current;
+          const currentTab = activeTabRef.current;
+
+          if (currentSub !== null) {
+            if (folderItems.includes(currentSub)) {
+              setActiveSubSetting('features_folder');
+            } else {
+              setActiveSubSetting(null);
+            }
+            playCyberSound('click');
+          } else if (activeDashboardSubTabRef.current) {
             setActiveDashboardSubTab(null);
-          } else if (showChatBot) {
+          } else if (showChatBotRef.current) {
             setShowChatBot(false);
-          } else if (showFeedbackModal) {
+          } else if (showFeedbackModalRef.current) {
             setShowFeedbackModal(false);
-          } else if (showPrivacyPolicy) {
+          } else if (showPrivacyPolicyRef.current) {
             setShowPrivacyPolicy(false);
-          } else if (activeTab !== 'dashboard' && activeTab !== 'student-attendance') {
-            if (userRole === 'student') {
+          } else if (currentTab !== 'dashboard' && currentTab !== 'student-attendance') {
+            if (userRoleRef.current === 'student') {
               setActiveTab('student-attendance');
             } else {
               setActiveTab('dashboard');
             }
+            playCyberSound('click');
           } else {
             CapApp.exitApp();
           }
         });
       } catch (e) {
-        console.warn("Native back button handler not active:", e);
+        // Not running in Capacitor or native plugin unavailable
       }
     };
 
     initBackButton();
 
     return () => {
+      window.removeEventListener('popstate', handlePopState);
       active = false;
       if (handle) {
         if (typeof handle.then === 'function') {
@@ -1757,7 +1855,7 @@ export default function App() {
         }
       }
     };
-  }, [activeTab, activeSubSetting, activeDashboardSubTab, showChatBot, showFeedbackModal, showPrivacyPolicy, userRole]);
+  }, []);
 
   // In-App Update Checker — pings backend /health/update-check on load + every 4 hrs
   const checkForUpdate = useCallback(async (isManual = false) => {
@@ -9856,7 +9954,7 @@ export default function App() {
       {/* Main Panel */}
       <main className="main-content">
         {/* Header */}
-        <header className="flex-between header-container" style={{ marginBottom: '16px' }}>
+        <header className={`flex-between header-container ${activeTab === 'settings' && activeSubSetting !== null ? 'hide-on-mobile' : ''}`} style={{ marginBottom: '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button 
               className="hamburger-btn" 
@@ -14419,14 +14517,15 @@ export default function App() {
         {activeTab === 'settings' && (
           <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '24px', boxSizing: 'border-box' }}>
             {activeSubSetting !== null && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="settings-sub-nav hide-on-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button 
                   onClick={() => { 
                     const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
-                    if (folderItems.includes(activeSubSetting)) {
-                      setActiveSubSetting('features_folder');
+                    const targetSub = folderItems.includes(activeSubSetting) ? 'features_folder' : null;
+                    if (window.history.state && window.history.state.appNav === 'settings-sub') {
+                      window.history.back();
                     } else {
-                      setActiveSubSetting(null);
+                      setActiveSubSetting(targetSub);
                     }
                     playCyberSound('click'); 
                   }}
