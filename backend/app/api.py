@@ -51,8 +51,10 @@ from . import interventions
 from . import biometric_fallback
 from . import lms_sync
 from . import staff_payroll
+from . import notifications
 api_router.include_router(leave.router, prefix="", tags=["Leave Management"])
 api_router.include_router(disputes.router, prefix="/disputes", tags=["Attendance Disputes"])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(calendar_engine.router, prefix="/calendar", tags=["Academic Calendar Engine"])
 api_router.include_router(planner_engine.router, prefix="/planner", tags=["Smart Attendance Planner"])
 api_router.include_router(review_queue.router, prefix="/review-queue", tags=["Low-Confidence Match Review Queue"])

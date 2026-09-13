@@ -22,6 +22,7 @@ import CameraAttractHud from './components/animations/CameraAttractHud';
 import { 
   Activity,
   Users, 
+  Bell,
   CheckCircle2, 
   AlertCircle, 
   TrendingUp, 
@@ -141,6 +142,7 @@ import AdminPulseDashboard from './components/AdminPulseDashboard';
 import StudentTodayView from './components/StudentTodayView';
 import AccessibilitySettingsModal from './components/AccessibilitySettingsModal';
 import PrivacyTrustCenter from './components/PrivacyTrustCenter';
+import NotificationDrawerModal from './components/NotificationDrawerModal';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -2253,6 +2255,31 @@ export default function App() {
     setActiveDashboardSubTab(null);
   }, [activeTab]);
 
+
+  // Real-Time Role Notification System States
+  const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
+  const [realtimeUnreadCount, setRealtimeUnreadCount] = useState(0);
+
+  const fetchUnreadNotificationCount = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRealtimeUnreadCount(data.unread_count || 0);
+      }
+    } catch (e) {}
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchUnreadNotificationCount();
+      const interval = setInterval(fetchUnreadNotificationCount, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [token, fetchUnreadNotificationCount]);
 
   // Attendance Dispute & Correction Modal States (Phase 2)
   const [showDisputeModal, setShowDisputeModal] = useState(false);
@@ -10670,6 +10697,53 @@ export default function App() {
                 {activeTab === 'ai-assistant' && 'Interact using voice or upload files. Customise bot settings and suggestion filters.'}
               </p>
             </div>
+
+            {/* Notification Bell Button (Placed directly to the Left of 3-line Hamburger Menu) */}
+            <button
+              type="button"
+              onClick={() => { setShowNotificationDrawer(true); playCyberSound('click'); }}
+              aria-label="Notifications"
+              title="Notifications"
+              style={{
+                background: 'rgba(0, 242, 254, 0.08)',
+                border: '1px solid rgba(0, 242, 254, 0.25)',
+                borderRadius: '10px',
+                color: '#00f2fe',
+                width: '38px',
+                height: '38px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                position: 'relative',
+                marginRight: '8px',
+                transition: 'all 0.2s ease',
+                flexShrink: 0
+              }}
+            >
+              <Bell size={18} />
+              {realtimeUnreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  minWidth: '18px',
+                  height: '18px',
+                  borderRadius: '10px',
+                  padding: '0 4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 8px #ef4444'
+                }}>
+                  {realtimeUnreadCount > 99 ? '99+' : realtimeUnreadCount}
+                </span>
+              )}
+            </button>
 
             <button 
               type="button"
@@ -21924,6 +21998,24 @@ export default function App() {
       )}
 
 
+
+      {/* Real-time Role Notification Drawer Modal */}
+      <NotificationDrawerModal
+        isOpen={showNotificationDrawer}
+        onClose={() => setShowNotificationDrawer(false)}
+        token={token}
+        currentUser={currentUser}
+        userRole={userRole}
+        playCyberSound={playCyberSound}
+        onNotificationClick={(notif) => {
+          fetchUnreadNotificationCount();
+          if (notif.action_url) {
+            if (notif.action_url.includes('disputes')) setActiveTab('disputes');
+            else if (notif.action_url.includes('leave')) setActiveTab('interventions');
+            else if (notif.action_url.includes('student-attendance')) setActiveTab('student-attendance');
+          }
+        }}
+      />
 
       {/* Accessibility & Display Controls Modal */}
       <AccessibilitySettingsModal

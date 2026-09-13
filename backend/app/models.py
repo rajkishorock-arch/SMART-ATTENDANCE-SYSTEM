@@ -1165,3 +1165,32 @@ class StaffPayrollRecord(Base):
     generated_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class NotificationModel(Base):
+    """Real-time in-app and push notification system repository."""
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    recipient_id = Column(Integer, nullable=True, index=True)  # Student/User ID or None for broadcast
+    recipient_email = Column(String(120), nullable=True, index=True)
+    recipient_role = Column(String(30), nullable=False, index=True)  # student, teacher, admin, hod
+    category = Column(String(30), default="SYSTEM", index=True)  # DISPUTE, LEAVE, ATTENDANCE, SYSTEM
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    action_url = Column(String(255), nullable=True)
+    is_read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class DeviceTokenModel(Base):
+    """FCM / Mobile Push Notification token register."""
+    __tablename__ = "device_push_tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_email = Column(String(120), nullable=False, index=True)
+    role = Column(String(30), nullable=False, index=True)
+    push_token = Column(String(255), nullable=False, index=True)
+    device_platform = Column(String(30), default="android")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+

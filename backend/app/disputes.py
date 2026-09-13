@@ -416,6 +416,21 @@ async def submit_dispute(
         institution_id=inst_id
     )
 
+    try:
+        from .notifications import create_notification
+        s_name = student.name if student else "Student"
+        create_notification(
+            db=db,
+            institution_id=inst_id,
+            recipient_role="teacher",
+            category="DISPUTE",
+            title="New Attendance Dispute Request",
+            message=f"{s_name} submitted a dispute for {date} ({session_time or 'Regular Session'})",
+            action_url="/#/disputes"
+        )
+    except Exception as n_err:
+        print("Notification trigger error on dispute submit:", n_err)
+
     return _format_dispute(new_dispute, db)
 
 

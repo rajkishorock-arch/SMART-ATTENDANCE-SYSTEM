@@ -61,6 +61,23 @@ export async function initializePushNotifications(onToken) {
   }
 }
 
+export async function registerBackendPushToken(apiBaseUrl, authToken, pushToken) {
+  if (!apiBaseUrl || !authToken || !pushToken) return;
+  try {
+    await fetch(`${apiBaseUrl}/notifications/register-device-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ push_token: pushToken, platform: isNative ? 'android' : 'web' })
+    });
+  } catch (e) {
+    console.warn("Failed to register backend push token:", e);
+  }
+}
+
+
 export async function setupNativeResumeSync(syncCallback) {
   if (!isNative || !syncCallback) return () => {};
   try {

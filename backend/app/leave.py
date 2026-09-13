@@ -137,6 +137,20 @@ def apply_for_leave(
         institution_id=current_student.institution_id,
     )
 
+    try:
+        from .notifications import create_notification
+        create_notification(
+            db=db,
+            institution_id=current_student.institution_id,
+            recipient_role="teacher",
+            category="LEAVE",
+            title="New Student Leave Application",
+            message=f"{current_student.name} applied for leave from {payload.start_date} to {payload.end_date}",
+            action_url="/#/leave-management"
+        )
+    except Exception as n_err:
+        print("Leave notification trigger error:", n_err)
+
     return {"message": "Leave request submitted successfully.", "leave_id": leave.id}
 
 
@@ -273,6 +287,22 @@ def review_leave_request(
         ),
         institution_id=current_user.institution_id,
     )
+
+    try:
+        from .notifications import create_notification
+        create_notification(
+            db=db,
+            institution_id=current_user.institution_id,
+            recipient_role="student",
+            recipient_id=leave.student_id,
+            recipient_email=leave.user_email,
+            category="LEAVE",
+            title=f"Leave Request {payload.status}",
+            message=f"Your leave application ({leave.start_date} to {leave.end_date}) was marked as {payload.status}",
+            action_url="/#/student-attendance"
+        )
+    except Exception as n_err:
+        print("Leave review notification error:", n_err)
 
     return {
         "message": f"Leave request {payload.status.lower()} successfully.",
