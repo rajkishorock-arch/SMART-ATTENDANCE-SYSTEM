@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 IST = timezone(timedelta(hours=5, minutes=30))
 
 from . import crud, schemas, models, security, security_utils
+from .period_utils import resolve_period_name, get_period_slot_label, PERIOD_SLOT_LABELS
 from .database import get_db
 from .recognition_service import recognition_service
 from .email_service import send_presence_email, send_absent_email
@@ -59,7 +60,33 @@ def get_attendance_logs(
         subject_ids=subject_ids,
         institution_id=current_user.institution_id
     )
-    return logs
+
+    # Pre-fetch subjects map for the institution
+    inst_subjects = db.query(models.Subject).filter(models.Subject.institution_id == current_user.institution_id).all()
+    sub_map = {s.id: f"{s.name} ({s.code})" if s.code else s.name for s in inst_subjects}
+
+    output_logs = []
+    for log in logs:
+        p_name = resolve_period_name(log.time)
+        p_label = get_period_slot_label(p_name)
+        s_name = sub_map.get(log.subject_id, "General Attendance" if not log.subject_id else f"Subject #{log.subject_id}")
+        
+        output_logs.append(schemas.Attendance(
+            id=str(log.id),
+            roll=log.roll or "",
+            name=log.name or "",
+            department=log.department or "",
+            time=log.time or "",
+            date=log.date or "",
+            attendance=log.attendance or "Present",
+            subject_id=log.subject_id,
+            subject_name=s_name,
+            period=p_name,
+            period_label=p_label,
+            remarks=getattr(log, "fallback_reason", None) or getattr(log, "remarks", None),
+            marked_by=getattr(log, "verification_method", None)
+        ))
+    return output_logs
 
 
 @router.post("/cleanup-test-logs")
@@ -154,6 +181,15 @@ async def recognize_and_mark_attendance(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Unauthorized: You can only take attendance for your assigned subject."
                 )
+    elif current_user.role == "admin" and subject_id is None:
+        first_sub = db.query(models.Subject).filter(models.Subject.institution_id == current_user.institution_id).first()
+        if first_sub:
+            subject_id = first_sub.id
+
+    if not custom_time:
+        custom_time = resolve_period_name(datetime.now(IST).strftime("%H:%M:%S"))
+    if not custom_date:
+        custom_date = datetime.now(IST).strftime("%d/%m/%Y")
 
     """
     Receives a webcam frame from the browser, runs face recognition,
@@ -910,15 +946,24 @@ def get_attendance_sessions_history(
 
     # Collect all unique student IDs from attendance logs for this subject
     query = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.subject_id == subject_id,
         models.AttendanceModel.institution_id == current_user.institution_id
     )
+    if subject_id:
+        query = query.filter(
+            or_(
+                models.AttendanceModel.subject_id == subject_id,
+                models.AttendanceModel.subject_id == None
+            )
+        )
     if date_str:
         query = query.filter(models.AttendanceModel.date == date_str)
-    if period:
-        query = query.filter(models.AttendanceModel.time == period)
         
     logs = query.all()
+    
+    # Target period normalization
+    target_period = None
+    if period and str(period).strip().lower() not in ["", "all", "all periods", "none"]:
+        target_period = resolve_period_name(period)
     
     # Get all student IDs that appear in logs
     logged_student_ids = set(log.id for log in logs)
@@ -926,10 +971,12 @@ def get_attendance_sessions_history(
     # Fetch students from DB: 
     # 1. All students from the subject's department (exact match)
     # 2. PLUS any students who actually have attendance logs (regardless of department)
-    dept_students = db.query(models.StudentModel).filter(
-        models.StudentModel.dep == subject.department,
-        models.StudentModel.institution_id == current_user.institution_id
-    ).all()
+    dept_students = []
+    if subject and subject.department:
+        dept_students = db.query(models.StudentModel).filter(
+            models.StudentModel.dep == subject.department,
+            models.StudentModel.institution_id == current_user.institution_id
+        ).all()
     dept_student_ids = set(str(s.id) for s in dept_students)
     
     # Students in logs but not in dept list (department mismatch case)
@@ -949,10 +996,13 @@ def get_attendance_sessions_history(
     if not students:
         students = db.query(models.StudentModel).filter(models.StudentModel.institution_id == current_user.institution_id).all()
     
-    # Group logs by (date, time) where time is the Period
+    # Group logs by (date, resolved_period)
     sessions_map = {}
     for log in logs:
-        key = (log.date, log.time)
+        p_name = resolve_period_name(log.time)
+        if target_period and p_name != target_period:
+            continue
+        key = (log.date, p_name)
         if key not in sessions_map:
             sessions_map[key] = set()
         sessions_map[key].add(log.id) # Set of present student IDs
@@ -994,9 +1044,14 @@ def get_attendance_sessions_history(
                 "status": "Present" if is_present else "Absent"
             })
             
+        p_label = get_period_slot_label(p)
         history.append({
             "date": d,
             "period": p,
+            "period_label": p_label,
+            "subject_id": subject.id if subject else None,
+            "subject_name": subject.name if subject else "General Session",
+            "subject_code": subject.code if subject else "",
             "present_count": present_count,
             "absent_count": absent_count,
             "students": session_students

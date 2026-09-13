@@ -82,6 +82,8 @@ class AttendanceBase(BaseModel):
     attendance: str
     subject_id: Optional[int] = None
     subject_name: Optional[str] = None
+    period: Optional[str] = None
+    period_label: Optional[str] = None
     remarks: Optional[str] = None
     marked_by: Optional[str] = None
 

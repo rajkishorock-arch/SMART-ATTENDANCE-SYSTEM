@@ -237,25 +237,30 @@ def mark_student_attendance(
     else:
         today_str = datetime.now(IST).strftime("%d/%m/%Y")
         
-    time_str = custom_time if custom_time else datetime.now(IST).strftime("%H:%M:%S")
+    from .period_utils import resolve_period_name
+    period_name = resolve_period_name(custom_time) if custom_time else resolve_period_name(datetime.now(IST).strftime("%H:%M:%S"))
+    time_str = period_name
+    scan_timestamp = datetime.now(IST).strftime("%H:%M:%S")
     
-    # 1. Check if already marked in DB for this subject, date, and period (time)
+    # 1. Check if already marked in DB for this subject, date, and period
     query = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.id == str(student_id),
         models.AttendanceModel.date == today_str
     )
     if institution_id is not None:
         query = query.filter(models.AttendanceModel.institution_id == institution_id)
-        
-    if custom_time:
-        query = query.filter(models.AttendanceModel.time == time_str)
 
     if subject_id is not None:
         query = query.filter(models.AttendanceModel.subject_id == subject_id)
     else:
         query = query.filter(models.AttendanceModel.subject_id == None)
         
-    existing = query.first()
+    existing_candidates = query.all()
+    existing = None
+    for cand in existing_candidates:
+        if cand.time == time_str or resolve_period_name(cand.time) == period_name:
+            existing = cand
+            break
     
     if existing:
         return existing, False
@@ -270,7 +275,8 @@ def mark_student_attendance(
         date=today_str,
         attendance="Present",
         subject_id=subject_id,
-        institution_id=institution_id
+        institution_id=institution_id,
+        fallback_reason=f"Scan at {scan_timestamp}"
     )
     db.add(db_attendance)
     try:

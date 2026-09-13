@@ -162,6 +162,45 @@ const shiftDate = (currentDateStr, days, setter) => {
   setter(`${yyyy}-${mm}-${dd}`);
 };
 
+const resolvePeriodName = (timeStr) => {
+  if (!timeStr) {
+    const h = new Date().getHours();
+    if (h < 10) return 'Period 1';
+    if (h <= 16) return `Period ${h - 8}`;
+    return 'Period 8';
+  }
+  const clean = String(timeStr).trim();
+  const m = clean.match(/Period\s*(\d+)/i);
+  if (m) return `Period ${m[1]}`;
+  const parts = clean.split(':');
+  if (parts.length >= 2) {
+    let h = parseInt(parts[0], 10);
+    if (/pm/i.test(clean) && h < 12) h += 12;
+    if (/am/i.test(clean) && h === 12) h = 0;
+    if (!isNaN(h)) {
+      if (h < 10) return 'Period 1';
+      if (h <= 16) return `Period ${h - 8}`;
+      return 'Period 8';
+    }
+  }
+  return clean;
+};
+
+const getPeriodSlotLabel = (periodOrTime) => {
+  const p = resolvePeriodName(periodOrTime);
+  const labels = {
+    'Period 1': 'Period 1 (09:00 - 10:00 AM)',
+    'Period 2': 'Period 2 (10:00 - 11:00 AM)',
+    'Period 3': 'Period 3 (11:00 - 12:00 PM)',
+    'Period 4': 'Period 4 (12:00 - 01:00 PM)',
+    'Period 5': 'Period 5 (01:00 - 02:00 PM)',
+    'Period 6': 'Period 6 (02:00 - 03:00 PM)',
+    'Period 7': 'Period 7 (03:00 - 04:00 PM)',
+    'Period 8': 'Period 8 (04:00 - 05:00 PM)',
+  };
+  return labels[p] || p;
+};
+
 const LEFT_EYE_INDICES = [362, 385, 387, 263, 373, 380];
 const RIGHT_EYE_INDICES = [33, 160, 158, 133, 153, 144];
 
@@ -3193,7 +3232,7 @@ export default function App() {
   // Session History Filter States
   const [selectedHistoryDept, setSelectedHistoryDept] = useState('');
   const [historyFilterDate, setHistoryFilterDate] = useState(getLocalDateString());
-  const [historyFilterPeriod, setHistoryFilterPeriod] = useState('Period 1');
+  const [historyFilterPeriod, setHistoryFilterPeriod] = useState('');
   const [selectedHistorySubjectId, setSelectedHistorySubjectId] = useState('');
   
   // Forms to create subjects/schedules
@@ -3491,7 +3530,7 @@ export default function App() {
         queryParams.append('date_filter', dVal);
       }
       const pVal = periodVal !== null ? periodVal : historyFilterPeriod;
-      if (pVal) {
+      if (pVal && pVal.trim() !== '') {
         queryParams.append('period', pVal);
       }
       const res = await fetch(`${API_BASE_URL}/attendance/sessions-history?${queryParams.toString()}`, {
@@ -4788,13 +4827,15 @@ export default function App() {
           queryParams.append('latitude', userCoords.latitude);
           queryParams.append('longitude', userCoords.longitude);
         }
-        if (selectedSubjectId) {
-          queryParams.append('subject_id', selectedSubjectId);
+        const effectiveSubId = selectedSubjectId || (currentUser?.details?.subject_id) || (subjects && subjects.length > 0 ? subjects[0].id : null);
+        if (effectiveSubId) {
+          queryParams.append('subject_id', effectiveSubId);
         }
-        if (sessionActive) {
-          queryParams.append('custom_date', sessionDate);
-          queryParams.append('custom_time', sessionPeriod);
-        }
+        const effectiveDate = (sessionActive && sessionDate) ? sessionDate : getLocalDateString();
+        const effectivePeriod = sessionPeriod || resolvePeriodName();
+        queryParams.append('custom_date', effectiveDate);
+        queryParams.append('custom_time', effectivePeriod);
+
         if (livenessTokenRef.current) {
           queryParams.append('liveness_token', livenessTokenRef.current);
           livenessTokenRef.current = null;
@@ -4839,15 +4880,20 @@ export default function App() {
             if (newlyMarkedList.length) recordScan(newlyMarkedList.length);
 
             const now = new Date();
-            const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+            const timeStr = effectivePeriod;
+            const dateStr = (sessionActive && sessionDate) ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
 
             const primary = validMatches[0];
+            const matchedSubject = subjects.find(s => String(s.id) === String(effectiveSubId));
             setScannedStudent({
               name: primary.name,
               roll: primary.roll,
               dep: primary.dep,
               time: timeStr,
+              clockTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              period: effectivePeriod,
+              period_label: getPeriodSlotLabel(effectivePeriod),
+              subject_name: matchedSubject ? `${matchedSubject.name} (${matchedSubject.code})` : 'Class Session',
               confidence: primary.confidence,
               status: primary.newly_marked ? 'Present' : 'Already Marked',
               isOffline: false,
@@ -9984,6 +10030,7 @@ export default function App() {
                     onStartSession={(subId, period) => {
                       if (subId) setSelectedSubjectId(String(subId));
                       if (period) setSessionPeriod(period);
+                      setSessionActive(true);
                       setActiveTab('attendance');
                       setShowScannerModal(true);
                       try {
@@ -12340,9 +12387,17 @@ export default function App() {
                               <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>({log.roll})</span>
                               <span style={{ fontSize: '0.75rem', background: 'rgba(167, 139, 250, 0.1)', color: '#a78bfa', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{log.department}</span>
                             </div>
-                            <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                            <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                               <span>📅 {log.date}</span>
                               <span>⏰ {log.time}</span>
+                              <span style={{ background: 'rgba(0, 242, 254, 0.1)', color: '#00f2fe', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem', border: '1px solid rgba(0, 242, 254, 0.25)' }}>
+                                ⏱️ {getPeriodSlotLabel(log.period || log.time)}
+                              </span>
+                              {(log.subject_name || subjects.find(s => s.id === log.subject_id)?.name) && (
+                                <span style={{ background: 'rgba(167, 139, 250, 0.1)', color: '#c4b5fd', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem', border: '1px solid rgba(167, 139, 250, 0.25)' }}>
+                                  📚 {log.subject_name || subjects.find(s => s.id === log.subject_id)?.name}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -12458,6 +12513,18 @@ export default function App() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
                           <span style={{ color: 'var(--color-text-muted)' }}>LOG TIME:</span>
                           <span style={{ color: '#fff', fontWeight: 600 }}>{selectedAuditLog.time}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>CLASS PERIOD:</span>
+                          <span style={{ color: '#00f2fe', fontWeight: 'bold' }}>
+                            {getPeriodSlotLabel(selectedAuditLog.period || selectedAuditLog.time)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>ENROLLED SUBJECT:</span>
+                          <span style={{ color: '#c4b5fd', fontWeight: 'bold' }}>
+                            {selectedAuditLog.subject_name || subjects.find(s => s.id === selectedAuditLog.subject_id)?.name || (currentUser?.details?.subject_name) || 'General Attendance'}
+                          </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
                           <span style={{ color: 'var(--color-text-muted)' }}>STATUS STATE:</span>
@@ -13165,6 +13232,7 @@ export default function App() {
                       onChange={e => setHistoryFilterPeriod(e.target.value)}
                       style={{ padding: '10px 14px', fontSize: '0.85rem', background: 'rgba(8, 12, 20, 0.4)' }}
                     >
+                      <option value="">All Periods (Full Day)</option>
                       <option value="Period 1">Period 1 (09:00 - 10:00 AM)</option>
                       <option value="Period 2">Period 2 (10:00 - 11:00 AM)</option>
                       <option value="Period 3">Period 3 (11:00 - 12:00 PM)</option>
@@ -13183,8 +13251,21 @@ export default function App() {
             {sessionHistory.length === 0 ? (
               <div className="glass-panel" style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
                 <Calendar size={44} style={{ color: 'rgba(255,255,255,0.1)', marginBottom: '16px' }} />
-                <p style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f1f5f9' }}>No class sessions recorded yet for this subject.</p>
-                <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>Mark attendance using the Live Scanner to create a class session.</p>
+                <p style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f1f5f9' }}>
+                  {historyFilterPeriod ? `No class sessions recorded yet for ${getPeriodSlotLabel(historyFilterPeriod)}.` : 'No class sessions recorded yet for this subject on this date.'}
+                </p>
+                <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>
+                  {historyFilterPeriod ? 'Try selecting "All Periods" to view all sessions recorded on this day, or run the Live Scanner.' : 'Mark attendance using the Live Scanner to create a class session.'}
+                </p>
+                {historyFilterPeriod && (
+                  <button
+                    onClick={() => { playCyberSound('click'); setHistoryFilterPeriod(''); }}
+                    className="action-btn"
+                    style={{ marginTop: '16px', padding: '10px 20px', fontSize: '0.85rem', color: '#00f2fe', borderColor: 'rgba(0, 242, 254, 0.4)', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    🔍 View All Periods for {historyFilterDate}
+                  </button>
+                )}
               </div>
             ) : (() => {
               // Aggregate calculations
@@ -13304,7 +13385,7 @@ export default function App() {
                                   Session: {session.date.split('/').join(' / ')}
                                 </h4>
                                 <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '2px', fontFamily: 'monospace' }}>
-                                  TIME SLOT: <span style={{ color: '#00f2fe' }}>{session.period}</span> | SIGNATURES: {totalStudentsCount}
+                                  TIME SLOT: <span style={{ color: '#00f2fe', fontWeight: 600 }}>{session.period_label || getPeriodSlotLabel(session.period)}</span> | SUBJECT: <span style={{ color: '#c4b5fd', fontWeight: 600 }}>{session.subject_name || 'Class Subject'}</span> | ENROLLED: {totalStudentsCount}
                                 </p>
                               </div>
                             </div>
