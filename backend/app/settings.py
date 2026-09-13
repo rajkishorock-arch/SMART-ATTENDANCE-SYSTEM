@@ -60,10 +60,10 @@ def publish_system_update(
     """
     Publish a new system-wide release update. (System Owner only, master password verified).
     """
-    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
+    if current_user.role != "admin" and current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can publish release updates."
+            detail=f"Only Administrators or System Owner ({config.SYSTEM_OWNER_EMAIL}) can publish release updates."
         )
         
     input_key = payload.master_password.strip()
@@ -105,10 +105,10 @@ def toggle_update_active(
     - When active=False: Update banner is hidden for all users.
     Requires Master Password verification. (System Owner only)
     """
-    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
+    if current_user.role != "admin" and current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can toggle release updates."
+            detail=f"Only Administrators or System Owner ({config.SYSTEM_OWNER_EMAIL}) can toggle release updates."
         )
 
     input_key = payload.master_password.strip()
@@ -154,10 +154,10 @@ def trigger_build(
     """
     Trigger the automated APK build on GitHub Actions (System Owner only).
     """
-    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
+    if current_user.role != "admin" and current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can trigger builds."
+            detail=f"Only Administrators or System Owner ({config.SYSTEM_OWNER_EMAIL}) can trigger builds."
         )
 
     input_key = payload.master_password.strip()
@@ -356,10 +356,10 @@ def toggle_beta_update_active(
     - Use toggle-update-active to release to ALL users after owner approves.
     Requires Master Password. (System Owner only)
     """
-    if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
+    if current_user.role != "admin" and current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Only the System Owner ({config.SYSTEM_OWNER_EMAIL}) can toggle the beta release channel."
+            detail=f"Only Administrators or System Owner ({config.SYSTEM_OWNER_EMAIL}) can toggle the beta release channel."
         )
 
     input_key = payload.master_password.strip()

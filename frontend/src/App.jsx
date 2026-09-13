@@ -14557,18 +14557,18 @@ export default function App() {
                   )}
 
                   {/* Category Card 11: System Release Updates */}
-                  {userRole !== 'student' && currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+                  {userRole === 'admin' && (
                     <div 
                       onClick={() => { setActiveSubSetting('release_updates'); playCyberSound('click'); }}
                       className="glass-panel hover-card" 
-                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px' }}
+                      style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', border: '1px solid rgba(16, 185, 129, 0.25)' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <ArrowUpCircle size={24} style={{ color: '#10b981' }} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(167, 139, 250, 0.12)', color: '#a78bfa' }}>👑 Owner Only</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>🚀 Release Manager</span>
                       </div>
                       <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>System Release Updates</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Publish new system-wide APK versions and manage update downloads for all users.</p>
+                      <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0, flexGrow: 1 }}>Publish new system-wide APK versions, trigger GitHub Actions build, and control update prompts for all users.</p>
                     </div>
                   )}
 
@@ -15397,6 +15397,54 @@ export default function App() {
                   updateActive={updateActiveFlag}
                   onCheckUpdate={handleManualCheck}
                 />
+
+                {(userRole === 'admin' || currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com') && (
+                  <div style={{
+                    padding: '20px 24px',
+                    borderRadius: '18px',
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(8, 145, 178, 0.08) 100%)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>🚀</span>
+                        <h4 style={{ margin: 0, color: '#10b981', fontSize: '1.05rem', fontWeight: 700 }}>
+                          Admin Release Management Console
+                        </h4>
+                      </div>
+                      <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.82rem', lineHeight: 1.4 }}>
+                        Publish a new system version, trigger GitHub Actions automated APK builds, and control the live update download banner for all users.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="bg-gradient-btn"
+                      onClick={() => {
+                        playCyberSound('click');
+                        setActiveSubSetting('release_updates');
+                      }}
+                      style={{
+                        padding: '10px 22px',
+                        borderRadius: '10px',
+                        fontSize: '0.85rem',
+                        background: 'linear-gradient(135deg, #10b981, #0891b2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        whiteSpace: 'nowrap',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <ArrowUpCircle size={16} /> Open Release Console →
+                    </button>
+                  </div>
+                )}
 
                 <div style={{
                   padding: '20px',
@@ -16868,8 +16916,8 @@ export default function App() {
               </div>
             )}
 
-            {/* SYSTEM RELEASE UPDATES (Only visible to the System Owner rajkishorock@gmail.com) */}
-            {activeSubSetting === 'release_updates' && currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com' && (
+            {/* SYSTEM RELEASE UPDATES (Visible to Admins and System Owner) */}
+            {activeSubSetting === 'release_updates' && (userRole === 'admin' || currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com') && (
               <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
                 {/* Header */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
