@@ -26,6 +26,14 @@ export default function StudentTodayView({
     }) || null;
   }, [studentLogs, todayStr, todayStrIso]);
 
+  // Today's student logs list
+  const todayStudentLogs = useMemo(() => {
+    return studentLogs.filter(l => {
+      const d = l.date || '';
+      return d === todayStr || d === todayStrIso;
+    });
+  }, [studentLogs, todayStr, todayStrIso]);
+
   // Overall attendance calculation
   const totalClasses = studentLogs.length;
   const attendedClasses = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
