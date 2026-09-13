@@ -10842,16 +10842,6 @@ export default function App() {
                 Sign Out
               </button>
             )}
-            <div className="header-action-desktop-only">
-              <NotificationCenter
-                open={notificationsOpen}
-                onToggle={() => setNotificationsOpen((v) => !v)}
-                onClose={() => setNotificationsOpen(false)}
-                notifications={notifications}
-                onMarkAllRead={markAllNotificationsRead}
-                unreadCount={unreadNotificationCount}
-              />
-            </div>
             {activeTab === 'students' && (
               <>
                 <button 

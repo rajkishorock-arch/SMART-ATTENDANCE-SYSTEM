@@ -16,27 +16,38 @@ export default function NotificationDrawerModal({
   onNotificationClick = () => {},
   playCyberSound = () => {}
 }) {
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_realtime_notifications');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
-    setIsLoading(true);
+    if (notifications.length === 0) setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/notifications/my-notifications?limit=50`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setNotifications(list);
+        try {
+          localStorage.setItem('cached_realtime_notifications', JSON.stringify(list));
+        } catch (e) {}
       }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, notifications.length]);
 
   useEffect(() => {
     if (isOpen) {
@@ -265,9 +276,28 @@ export default function NotificationDrawerModal({
 
         {/* Notifications List */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af', fontSize: '0.85rem' }}>
-              Loading notifications...
+          {isLoading && filteredNotifications.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[1, 2, 3, 4].map(i => (
+                <div
+                  key={i}
+                  style={{
+                    padding: '14px',
+                    borderRadius: '12px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    display: 'flex',
+                    gap: '12px',
+                    animation: 'pulse 1.5s infinite ease-in-out'
+                  }}
+                >
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(0, 242, 254, 0.1)' }}></div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ width: '50%', height: '14px', background: 'rgba(255, 255, 255, 0.06)', borderRadius: '4px' }}></div>
+                    <div style={{ width: '80%', height: '12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '4px' }}></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
