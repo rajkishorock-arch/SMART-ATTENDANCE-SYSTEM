@@ -393,12 +393,6 @@ def read_student_attendance(
     """
     from sqlalchemy import or_
     from .period_utils import resolve_period_name, get_period_slot_label
-    from .disputes import sync_all_approved_disputes
-
-    try:
-        sync_all_approved_disputes(db)
-    except Exception:
-        pass
 
     possible_rolls = list(set([r for r in [current_student.roll, str(current_student.id), current_student.email] if r]))
 
