@@ -128,7 +128,7 @@ export function estimateFaceBox(landmarks, canvasW, canvasH) {
   };
 }
 
-export async function wakeBackend(apiBaseUrl, timeoutMs = 12000) {
+export async function wakeBackend(apiBaseUrl, timeoutMs = 3000) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -140,21 +140,6 @@ export async function wakeBackend(apiBaseUrl, timeoutMs = 12000) {
     return res.ok;
   } catch {
     clearTimeout(t);
-    try {
-      const res2 = await fetch(`${apiBaseUrl}/health/`, { 
-        headers: { 'Cache-Control': 'no-cache' } 
-      });
-      return res2.ok;
-    } catch {
-      try {
-        const rootUrl = apiBaseUrl.replace(/\/api\/v1\/?$/, '') + '/';
-        const res3 = await fetch(rootUrl, { 
-          headers: { 'Cache-Control': 'no-cache' } 
-        });
-        return res3.ok;
-      } catch {
-        return false;
-      }
-    }
+    return false;
   }
 }
