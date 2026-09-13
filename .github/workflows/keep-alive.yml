@@ -1,0 +1,25 @@
+name: Keep Render Backend Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes to prevent Render free-tier inactivity sleep (15-min limit)
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions dashboard
+
+jobs:
+  keep-alive:
+    name: Ping Render Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Root Endpoint
+        run: |
+          echo "Pinging Render backend root at $(date -u)..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 45 "https://smart-attendance-system-1-mvwa.onrender.com/" || echo "FAILED")
+          echo "Root HTTP Status: $STATUS"
+
+      - name: Ping Health Endpoint
+        run: |
+          echo "Pinging Render health endpoint at $(date -u)..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 45 "https://smart-attendance-system-1-mvwa.onrender.com/api/v1/health" || echo "FAILED")
+          echo "Health HTTP Status: $STATUS"
+          echo "Keep-alive ping completed. Render server is warm!"
