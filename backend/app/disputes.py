@@ -90,10 +90,16 @@ def sync_all_approved_disputes(db: Session):
                     pass
                 alt_dates = list(set([d for d in alt_dates if d]))
 
+                from sqlalchemy import or_
+                possible_rolls = list(set([r for r in [student.roll, str(student.id), student.email] if r]))
+
                 att_query = db.query(models.AttendanceModel).filter(
                     models.AttendanceModel.institution_id == disp.institution_id,
-                    models.AttendanceModel.roll == student.roll,
-                    models.AttendanceModel.date.in_(alt_dates)
+                    models.AttendanceModel.date.in_(alt_dates),
+                    or_(
+                        models.AttendanceModel.roll.in_(possible_rolls),
+                        models.AttendanceModel.name == student.name
+                    )
                 )
                 if disp.subject_id:
                     att_query = att_query.filter(models.AttendanceModel.subject_id == disp.subject_id)
@@ -104,6 +110,8 @@ def sync_all_approved_disputes(db: Session):
                 if att_record:
                     att_record.attendance = target_status
                     att_record.date = canonical_date
+                    if student.roll:
+                        att_record.roll = student.roll
                     att_record.verification_method = "DISPUTE_CORRECTION"
                     att_record.fallback_reason = f"Approved Dispute Request #{disp.id}"
                 else:
@@ -112,9 +120,9 @@ def sync_all_approved_disputes(db: Session):
                     new_att = models.AttendanceModel(
                         id=unique_id,
                         institution_id=disp.institution_id,
-                        roll=student.roll,
-                        name=student.name,
-                        department=student.dep,
+                        roll=student.roll or str(student.id),
+                        name=student.name or "Student",
+                        department=student.dep or "",
                         time=new_time,
                         date=canonical_date,
                         attendance=target_status,
@@ -336,9 +344,6 @@ def get_my_disputes(
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """List all attendance disputes submitted by or associated with the logged-in user/student."""
-    # Ensure any approved disputes are synced into official AttendanceModel records
-    sync_all_approved_disputes(db)
-
     inst_id = current_identity.institution_id
     query = db.query(models.AttendanceDispute).filter(
         models.AttendanceDispute.institution_id == inst_id

@@ -394,13 +394,16 @@ def read_student_attendance(
     from sqlalchemy import or_
     from .period_utils import resolve_period_name, get_period_slot_label
 
+    possible_rolls = list(set([r for r in [current_student.roll, str(current_student.id), current_student.email] if r]))
+
     logs = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.institution_id == current_student.institution_id,
         or_(
+            models.AttendanceModel.roll.in_(possible_rolls),
             models.AttendanceModel.id == str(current_student.id),
-            models.AttendanceModel.roll == current_student.roll
+            models.AttendanceModel.name == current_student.name
         )
-    ).all()
+    ).order_by(models.AttendanceModel.id.desc()).all()
 
     inst_subjects = db.query(models.Subject).filter(models.Subject.institution_id == current_student.institution_id).all()
     sub_map = {s.id: f"{s.name} ({s.code})" if s.code else s.name for s in inst_subjects}
