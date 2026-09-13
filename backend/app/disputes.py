@@ -27,6 +27,110 @@ ALLOWED_PROOF_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
 MAX_PROOF_BYTES = 5 * 1024 * 1024  # 5MB
 
 
+def normalize_date_to_slash(date_str: Optional[str]) -> str:
+    if not date_str:
+        return datetime.now(IST).strftime("%d/%m/%Y")
+    clean = date_str.strip()
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y"):
+        try:
+            dt = datetime.strptime(clean, fmt)
+            return dt.strftime("%d/%m/%Y")
+        except ValueError:
+            pass
+    return clean
+
+
+def _get_time_for_session(session_str: Optional[str]) -> str:
+    if not session_str:
+        return datetime.now(IST).strftime("%H:%M:%S")
+    s_upper = session_str.upper()
+    if "PERIOD 1" in s_upper or "09:00" in s_upper:
+        return "09:05:00"
+    elif "PERIOD 2" in s_upper or "10:00" in s_upper:
+        return "10:05:00"
+    elif "PERIOD 3" in s_upper or "11:00" in s_upper:
+        return "11:05:00"
+    elif "PERIOD 4" in s_upper or "12:00" in s_upper:
+        return "12:05:00"
+    elif "PERIOD 5" in s_upper or "01:00" in s_upper or "13:00" in s_upper:
+        return "13:05:00"
+    elif "PERIOD 6" in s_upper or "02:00" in s_upper or "14:00" in s_upper:
+        return "14:05:00"
+    elif "PERIOD 7" in s_upper or "03:00" in s_upper or "15:00" in s_upper:
+        return "15:05:00"
+    elif "PERIOD 8" in s_upper or "04:00" in s_upper or "16:00" in s_upper:
+        return "16:05:00"
+    return datetime.now(IST).strftime("%H:%M:%S")
+
+
+def sync_all_approved_disputes(db: Session):
+    """Auto-sync all APPROVED disputes into official AttendanceModel records so real-time DB logs reflect approved corrections."""
+    try:
+        approved_disputes = db.query(models.AttendanceDispute).filter(
+            models.AttendanceDispute.status == "APPROVED"
+        ).all()
+
+        for disp in approved_disputes:
+            try:
+                student = db.query(models.StudentModel).filter(models.StudentModel.id == disp.student_id).first()
+                if not student:
+                    continue
+
+                canonical_date = normalize_date_to_slash(disp.date)
+                alt_dates = [disp.date, canonical_date]
+                try:
+                    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+                        try:
+                            d_obj = datetime.strptime(disp.date.strip(), fmt)
+                            alt_dates.extend([d_obj.strftime("%d/%m/%Y"), d_obj.strftime("%d-%m-%Y"), d_obj.strftime("%Y-%m-%d")])
+                            break
+                        except ValueError:
+                            pass
+                except Exception:
+                    pass
+                alt_dates = list(set([d for d in alt_dates if d]))
+
+                att_query = db.query(models.AttendanceModel).filter(
+                    models.AttendanceModel.institution_id == disp.institution_id,
+                    models.AttendanceModel.roll == student.roll,
+                    models.AttendanceModel.date.in_(alt_dates)
+                )
+                if disp.subject_id:
+                    att_query = att_query.filter(models.AttendanceModel.subject_id == disp.subject_id)
+
+                att_record = att_query.first()
+                target_status = disp.requested_status or "Present"
+
+                if att_record:
+                    att_record.attendance = target_status
+                    att_record.date = canonical_date
+                    att_record.verification_method = "DISPUTE_CORRECTION"
+                    att_record.fallback_reason = f"Approved Dispute Request #{disp.id}"
+                else:
+                    new_time = _get_time_for_session(disp.session_time)
+                    unique_id = str(uuid.uuid4())[:8]
+                    new_att = models.AttendanceModel(
+                        id=unique_id,
+                        institution_id=disp.institution_id,
+                        roll=student.roll,
+                        name=student.name,
+                        department=student.dep,
+                        time=new_time,
+                        date=canonical_date,
+                        attendance=target_status,
+                        subject_id=disp.subject_id,
+                        verification_method="DISPUTE_CORRECTION",
+                        fallback_reason=f"Approved Dispute Request #{disp.id}"
+                    )
+                    db.add(new_att)
+                db.commit()
+            except Exception as err:
+                db.rollback()
+                print(f"Error syncing approved dispute #{disp.id}:", err)
+    except Exception as ex:
+        print("Global dispute sync check error:", ex)
+
+
 def _format_dispute(d: models.AttendanceDispute, db: Session) -> schemas.DisputeResponse:
     student = db.query(models.StudentModel).filter(models.StudentModel.id == d.student_id).first()
     subject = db.query(models.Subject).filter(models.Subject.id == d.subject_id).first() if d.subject_id else None
@@ -232,6 +336,9 @@ def get_my_disputes(
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """List all attendance disputes submitted by or associated with the logged-in user/student."""
+    # Ensure any approved disputes are synced into official AttendanceModel records
+    sync_all_approved_disputes(db)
+
     inst_id = current_identity.institution_id
     query = db.query(models.AttendanceDispute).filter(
         models.AttendanceDispute.institution_id == inst_id
@@ -423,10 +530,24 @@ def review_dispute(
                 return "16:05:00"
             return datetime.now(IST).strftime("%H:%M:%S")
 
+        canonical_date = normalize_date_to_slash(dispute.date)
+        alt_dates = [dispute.date, canonical_date]
+        try:
+            for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+                try:
+                    d_obj = datetime.strptime(dispute.date.strip(), fmt)
+                    alt_dates.extend([d_obj.strftime("%d/%m/%Y"), d_obj.strftime("%d-%m-%Y"), d_obj.strftime("%Y-%m-%d")])
+                    break
+                except ValueError:
+                    pass
+        except Exception:
+            pass
+        alt_dates = list(set([d for d in alt_dates if d]))
+
         # Find existing attendance record
         att_query = db.query(models.AttendanceModel).filter(
             models.AttendanceModel.institution_id == current_user.institution_id,
-            models.AttendanceModel.date == dispute.date
+            models.AttendanceModel.date.in_(alt_dates)
         )
         if dispute.attendance_id:
             att_query = att_query.filter(models.AttendanceModel.id == dispute.attendance_id)
@@ -441,6 +562,7 @@ def review_dispute(
         if att_record:
             prev_status = att_record.attendance
             att_record.attendance = dispute.requested_status or "Present"
+            att_record.date = canonical_date
             att_record.verification_method = "DISPUTE_CORRECTION"
             att_record.fallback_reason = f"Approved Dispute Request #{dispute.id}"
         else:
@@ -454,7 +576,7 @@ def review_dispute(
                 name=student.name if student else "Student",
                 department=student.dep if student else "",
                 time=new_time,
-                date=dispute.date,
+                date=canonical_date,
                 attendance=dispute.requested_status or "Present",
                 subject_id=dispute.subject_id,
                 verification_method="DISPUTE_CORRECTION",

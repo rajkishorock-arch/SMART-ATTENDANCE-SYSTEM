@@ -605,6 +605,12 @@ def on_startup():
         from app import models
         db = SessionLocal()
         try:
+            from app.disputes import sync_all_approved_disputes
+            sync_all_approved_disputes(db)
+        except Exception as disp_err:
+            print("Dispute startup sync notice:", disp_err)
+
+        try:
             migrate_multi_tenant_seed(db)
             if SEED_DEFAULT_USERS:
                 admin_email = "admin@face.com"
