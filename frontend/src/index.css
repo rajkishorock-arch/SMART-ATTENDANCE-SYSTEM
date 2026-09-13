@@ -135,7 +135,7 @@ body {
   overflow-y: auto;
   line-height: 1.5;
   position: relative;
-  touch-action: pan-y;
+  touch-action: manipulation;
   -webkit-overflow-scrolling: touch;
   -webkit-font-smoothing: antialiased;
 }
@@ -1956,7 +1956,7 @@ button:active,
     overflow-y: visible !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-y !important;
+    touch-action: auto !important;
     box-sizing: border-box !important;
   }
 
@@ -2057,12 +2057,12 @@ button:active,
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     background: rgba(13, 20, 35, 0.92) !important;
-    touch-action: pan-y !important;
+    touch-action: auto !important;
   }
 
   .main-content > div {
     animation: none !important;
-    touch-action: pan-y !important;
+    touch-action: auto !important;
   }
 
   body::before,
@@ -3903,6 +3903,26 @@ html {
 
   .mobile-scroll-hint {
     display: inline-flex !important;
+  }
+
+  /* Compact legible padding on mobile tables so content fits better and scrolls smoothly */
+  .table-container th,
+  .table-container td,
+  .table-responsive th,
+  .table-responsive td,
+  div[style*="overflow-x: auto"] th,
+  div[style*="overflow-x: auto"] td,
+  div[style*="overflowX: auto"] th,
+  div[style*="overflowX: auto"] td {
+    padding: 10px 10px !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* Hide elements marked as redundant on mobile */
+  .hide-on-mobile,
+  .desktop-only-panel {
+    display: none !important;
   }
 
   /* Form submit buttons full-width for comfortable touch on mobile */

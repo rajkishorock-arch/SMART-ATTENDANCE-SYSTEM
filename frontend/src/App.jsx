@@ -14319,7 +14319,7 @@ export default function App() {
 
             {activeSubSetting === null ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div className="glass-panel" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9))', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div className="glass-panel hide-on-mobile" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9))', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
                   <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0, background: 'linear-gradient(90deg, #00f2fe, #4facfe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                     ⚙️ Institutional Settings Directory Hub
                   </h2>
@@ -16041,7 +16041,7 @@ export default function App() {
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
+                <div className="responsive-form-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label">Admin Name</label>
                     <input
@@ -16166,7 +16166,7 @@ export default function App() {
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label">Current Master Password</label>
                     <input
@@ -16222,6 +16222,15 @@ export default function App() {
                   letterSpacing: '0.5px'
                 }}>
                   TOTAL ADMINS: {(teachers || []).filter(u => u.role === 'admin').length}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
+                  📋 Admin User Directory
+                </h4>
+                <span className="mobile-scroll-hint" style={{ fontSize: '0.72rem', color: '#00f2fe', background: 'rgba(0, 242, 254, 0.1)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(0, 242, 254, 0.25)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  👉 Swipe horizontally for full table
                 </span>
               </div>
 
