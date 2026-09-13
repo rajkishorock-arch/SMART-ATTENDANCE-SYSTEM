@@ -6975,3 +6975,74 @@ html {
   pointer-events: none;
   z-index: 1;
 }
+
+/* ============================================================
+   Daily-Driver Mobile Accessibility Suite
+   ============================================================ */
+
+/* 1. Large Text Mode */
+body.app-text-lg {
+  font-size: 110%;
+}
+body.app-text-lg h1 { font-size: 2rem !important; }
+body.app-text-lg h2 { font-size: 1.75rem !important; }
+body.app-text-lg h3 { font-size: 1.45rem !important; }
+body.app-text-lg p, 
+body.app-text-lg span, 
+body.app-text-lg div { 
+  letter-spacing: 0.01em; 
+}
+body.app-text-lg .btn-primary,
+body.app-text-lg .btn-secondary,
+body.app-text-lg .surface-card,
+body.app-text-lg .form-input {
+  font-size: 1rem !important;
+}
+
+/* 2. High Contrast Mode */
+body.app-high-contrast {
+  --color-bg-base: #000000 !important;
+  --color-surface: #0a0a0c !important;
+  --color-border: #ffffff !important;
+  --color-text-main: #ffffff !important;
+  --color-text-muted: #e2e8f0 !important;
+  filter: contrast(1.15);
+}
+body.app-high-contrast .surface-card,
+body.app-high-contrast .glass-panel,
+body.app-high-contrast .modal-box {
+  background: #000000 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: none !important;
+}
+body.app-high-contrast button,
+body.app-high-contrast input,
+body.app-high-contrast select {
+  border: 2px solid #ffffff !important;
+}
+body.app-high-contrast .status-pill-success {
+  background: #000000 !important;
+  color: #00ff66 !important;
+  border: 2px solid #00ff66 !important;
+}
+body.app-high-contrast .status-pill-warning {
+  background: #000000 !important;
+  color: #ffcc00 !important;
+  border: 2px solid #ffcc00 !important;
+}
+body.app-high-contrast .status-pill-error {
+  background: #000000 !important;
+  color: #ff3333 !important;
+  border: 2px solid #ff3333 !important;
+}
+
+/* 3. Reduced Motion Override */
+body.app-reduced-motion *,
+body.app-reduced-motion *::before,
+body.app-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+

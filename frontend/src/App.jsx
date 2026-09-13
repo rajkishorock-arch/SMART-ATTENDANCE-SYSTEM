@@ -131,7 +131,14 @@ import { nativeScannerBridge } from './services/nativeScannerBridge';
 import WellnessCounselorPanel from './components/WellnessCounselorPanel';
 import ARGamificationPortal from './components/ARGamificationPortal';
 import AttendanceChartsWidget from './components/AttendanceChartsWidget';
-
+import { getStoredLanguage } from './utils/i18n';
+import SyncStatusPill from './components/SyncStatusPill';
+import { ScannerSuccessReceipt, ScannerFallbackOptions } from './components/ScannerSuccessReceipt';
+import TodaySessionHub from './components/TodaySessionHub';
+import AdminPulseDashboard from './components/AdminPulseDashboard';
+import StudentTodayView from './components/StudentTodayView';
+import AccessibilitySettingsModal from './components/AccessibilitySettingsModal';
+import PrivacyTrustCenter from './components/PrivacyTrustCenter';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -2816,6 +2823,11 @@ export default function App() {
   const [scannerBootActive, setScannerBootActive] = useState(false);
   const [webcamBootActive, setWebcamBootActive] = useState(false);
   const [studentWebcamBootActive, setStudentWebcamBootActive] = useState(false);
+
+  // Mobile-First Daily Driver UX States
+  const [appLang, setAppLang] = useState(getStoredLanguage);
+  const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
+  const [showPrivacyCenterModal, setShowPrivacyCenterModal] = useState(false);
 
   // Voice Assistant States
   const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -9066,8 +9078,9 @@ export default function App() {
                 <ArrowLeft size={22} color="#fff" />
               </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                 <h1 className="clean-scanner-title">Face Scanner</h1>
+                <SyncStatusPill compact={true} />
               </div>
 
               {/* Floating Camera Controls (Right) */}
@@ -9282,49 +9295,45 @@ export default function App() {
               )}
             </div>
 
-            {/* Bottom Floating Card: Compact Identity Card when verified, or Instruction Pill */}
+            {/* Bottom Floating Card: Structured Scanner Receipt when verified, or Instruction Pill / Fallbacks */}
             {scannedStudent ? (
-              <div className="scanner-student-card" role="status" aria-live="polite">
-                <div className="scanner-student-avatar">
-                  <CheckCircle2 size={24} color="#10b981" />
-                </div>
-                <div className="scanner-student-info">
-                  <div className="scanner-student-name">{scannedStudent.name}</div>
-                  <div className="scanner-student-meta">
-                    <span>{scannedStudent.roll || 'ID: VERIFIED'}</span>
-                    {scannedStudent.dep && <span>• {scannedStudent.dep}</span>}
-                    {scannedStudent.time && <span>• {scannedStudent.time}</span>}
-                  </div>
-                </div>
-                <div className="scanner-student-badge">
-                  <span className="status-pill status-pill-success">
-                    {scannedStudent.status || 'Verified'}
-                  </span>
-                  {scannedStudent.confidence && (
-                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                      {scannedStudent.confidence}% match
-                    </span>
-                  )}
-                </div>
-              </div>
+              <ScannerSuccessReceipt
+                student={scannedStudent}
+                lang={appLang}
+                onDismiss={() => setScannedStudent(null)}
+              />
             ) : (
-              <div className="scanner-instruction-pill">
-                <div
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: attendanceError ? '#ef4444' : livenessStatus === 'verified' ? '#10b981' : '#0ea5e9',
-                    flexShrink: 0
-                  }}
-                />
-                <p className="scanner-instruction-text">
-                  {attendanceError 
-                    ? attendanceError
-                    : livenessMessage && attendanceActive 
-                      ? livenessMessage 
-                      : "Position your face in the center"}
-                </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', alignItems: 'center' }}>
+                <div className="scanner-instruction-pill">
+                  <div
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: attendanceError ? '#ef4444' : livenessStatus === 'verified' ? '#10b981' : '#0ea5e9',
+                      flexShrink: 0
+                    }}
+                  />
+                  <p className="scanner-instruction-text">
+                    {attendanceError 
+                      ? attendanceError
+                      : livenessMessage && attendanceActive 
+                        ? livenessMessage 
+                        : "Position your face in the center"}
+                  </p>
+                </div>
+                {attendanceError && (
+                  <ScannerFallbackOptions
+                    onManualMark={() => {
+                      setShowScannerModal(false);
+                      setIsManualAttendanceOpen(true);
+                    }}
+                    onQrScan={() => {
+                      alert('QR Mode: Please present student QR identity badge.');
+                    }}
+                    lang={appLang}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -9740,6 +9749,55 @@ export default function App() {
           </div>
           
           <div className="header-actions">
+            {/* Real-time Cloud / Offline Sync Status Pill */}
+            <SyncStatusPill compact={false} />
+
+            {/* Accessibility & Language Modal Trigger */}
+            <button 
+              onClick={() => { playCyberSound('click'); setShowAccessibilityModal(true); }}
+              title="Language & Accessibility Settings"
+              aria-label="Language & Accessibility Settings"
+              style={{
+                padding: '8px 12px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.8rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: 'var(--color-text-main)',
+                cursor: 'pointer',
+                minHeight: '38px',
+                minWidth: '38px'
+              }}
+            >
+              <Globe size={15} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{appLang === 'hi' ? 'हिन्दी' : 'EN'}</span>
+            </button>
+
+            {/* Privacy & Trust Center Transparency Trigger */}
+            <button 
+              onClick={() => { playCyberSound('click'); setShowPrivacyCenterModal(true); }}
+              title="Privacy & Biometric Data Trust Center"
+              aria-label="Privacy & Biometric Data Trust Center"
+              style={{
+                padding: '8px 10px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '0.8rem',
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                color: '#10b981',
+                cursor: 'pointer',
+                minHeight: '38px'
+              }}
+            >
+              <ShieldCheck size={15} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Trust</span>
+            </button>
             {userRole === 'student' && (
               <button 
                 onClick={() => { playCyberSound('click'); handleLogout(); }}
@@ -9906,6 +9964,55 @@ export default function App() {
 
             {activeDashboardSubTab === null ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '100%', overflowX: 'hidden' }}>
+                {/* Daily Driver Hub: TodaySessionHub for Teachers / AdminPulseDashboard for Admin */}
+                {userRole === 'teacher' ? (
+                  <TodaySessionHub
+                    teacherName={currentUser?.name || 'Teacher'}
+                    subjects={subjects}
+                    schedules={schedules}
+                    logs={logs}
+                    students={students}
+                    sessionActive={attendanceActive}
+                    onStartSession={(subId, period) => {
+                      setSelectedSubjectId(subId);
+                      setSelectedPeriod(period);
+                      startAttendanceCam();
+                    }}
+                    onEndSession={() => {
+                      stopAttendanceCam();
+                    }}
+                    onOpenScanner={() => {
+                      setShowScannerModal(true);
+                    }}
+                    onOpenManualAttendance={() => {
+                      setIsManualAttendanceOpen(true);
+                    }}
+                    onSendAbsenteeAlerts={(absentList) => {
+                      alert(`Sent attendance notifications for ${absentList.length} absent students.`);
+                    }}
+                    onExportCsv={exportToCSV}
+                    lang={appLang}
+                  />
+                ) : userRole === 'admin' ? (
+                  <AdminPulseDashboard
+                    stats={stats}
+                    systemHealth={{
+                      face_match_latency: stats?.face_match_latency || 85,
+                      camera_active: attendanceActive || scannerBootActive,
+                      ws_connected: wsConnected
+                    }}
+                    onOpenScanner={() => {
+                      setActiveTab('attendance');
+                      setShowScannerModal(true);
+                    }}
+                    onNavigateTab={(tab, subTab) => {
+                      setActiveTab(tab);
+                      if (subTab) setActiveDashboardSubTab(subTab);
+                    }}
+                    lang={appLang}
+                  />
+                ) : null}
+
                 {/* Header Command Bar */}
                 <div className="surface-card" style={{ padding: isMobileView ? '16px 14px' : '20px 24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
@@ -16938,6 +17045,17 @@ export default function App() {
 
         {activeTab === 'student-attendance' && (
           <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
+            {/* Student Daily Driver Today Status & 75% Rule Card */}
+            <StudentTodayView
+              studentLogs={studentLogs}
+              onRequestDispute={(log) => {
+                setDisputePrefillSession(log);
+                setShowDisputeModal(true);
+              }}
+              onExportSummary={exportToCSV}
+              lang={appLang}
+            />
+
             <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} />
             <AttendancePlannerWidget token={token} currentUser={currentUser} playCyberSound={playCyberSound} />
             <GamificationHub logs={studentLogs} />
@@ -20611,6 +20729,22 @@ export default function App() {
       )}
 
 
+
+      {/* Accessibility & Display Controls Modal */}
+      <AccessibilitySettingsModal
+        isOpen={showAccessibilityModal}
+        onClose={() => setShowAccessibilityModal(false)}
+        lang={appLang}
+        onLanguageChange={(newLang) => setAppLang(newLang)}
+      />
+
+      {/* Privacy & Trust Center Transparency Sheet */}
+      <PrivacyTrustCenter
+        isOpen={showPrivacyCenterModal}
+        onClose={() => setShowPrivacyCenterModal(false)}
+        currentUser={currentUser}
+        lang={appLang}
+      />
 
       {/* Edge border flash overlay */}
       {showVoicePulseFlash && <div className="voice-pulse-flash-overlay" />}

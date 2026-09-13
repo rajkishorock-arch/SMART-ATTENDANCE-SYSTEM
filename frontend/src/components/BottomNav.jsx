@@ -6,7 +6,6 @@ import {
   Calendar,
   UserCircle,
   Bot,
-  Settings,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -109,17 +108,19 @@ export default function BottomNav({
         type="button"
         className={`bottom-nav-item active-haptic ${activeTab === 'dashboard' ? 'active' : ''}`}
         onClick={() => onNavigate('dashboard')}
-        style={{ position: 'relative', zIndex: 2 }}
+        style={{ position: 'relative', zIndex: 2, minHeight: '44px', minWidth: '44px' }}
+        aria-label={userRole === 'teacher' ? 'Today Classes' : 'Home'}
       >
-        <TrendingUp size={20} />
-        <span>Home</span>
+        {userRole === 'teacher' ? <Calendar size={20} /> : <TrendingUp size={20} />}
+        <span>{userRole === 'teacher' ? 'Today' : 'Home'}</span>
       </button>
       
       <button
         type="button"
         className={`bottom-nav-item active-haptic ${activeTab === 'students' ? 'active' : ''}`}
         onClick={() => onNavigate('students')}
-        style={{ position: 'relative', zIndex: 2 }}
+        style={{ position: 'relative', zIndex: 2, minHeight: '44px', minWidth: '44px' }}
+        aria-label="Students"
       >
         <Users size={20} />
         <span>Students</span>
@@ -130,7 +131,7 @@ export default function BottomNav({
         className="bottom-nav-scan active-haptic"
         onClick={onScanPress}
         aria-label="Open face scanner"
-        style={{ zIndex: 2 }}
+        style={{ zIndex: 2, minHeight: '48px', minWidth: '48px' }}
       >
         <Camera size={26} />
       </button>
@@ -139,7 +140,8 @@ export default function BottomNav({
         type="button"
         className={`bottom-nav-item active-haptic ${activeTab === 'settings' ? 'active' : ''}`}
         onClick={() => onNavigate('settings')}
-        style={{ position: 'relative', zIndex: 2 }}
+        style={{ position: 'relative', zIndex: 2, minHeight: '44px', minWidth: '44px' }}
+        aria-label="Settings"
       >
         <ShieldCheck size={20} />
         <span>Settings</span>
@@ -149,7 +151,8 @@ export default function BottomNav({
         type="button"
         className={`bottom-nav-item active-haptic ${isMoreActive ? 'active' : ''}`}
         onClick={onMorePress}
-        style={{ position: 'relative', zIndex: 2 }}
+        style={{ position: 'relative', zIndex: 2, minHeight: '44px', minWidth: '44px' }}
+        aria-label="Control Panel"
       >
         <LayoutGrid size={20} />
         <span>Control</span>
