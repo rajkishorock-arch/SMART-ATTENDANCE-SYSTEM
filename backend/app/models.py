@@ -1190,7 +1190,26 @@ class DeviceTokenModel(Base):
     role = Column(String(30), nullable=False, index=True)
     push_token = Column(String(255), nullable=False, index=True)
     device_platform = Column(String(30), default="android")
+    is_active = Column(Boolean, default=True, index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class NotificationPreferenceModel(Base):
+    """User-specific category toggles & quiet hours for notifications."""
+    __tablename__ = "notification_preferences"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_email = Column(String(120), nullable=False, index=True)
+    attendance_enabled = Column(Boolean, default=True)
+    leave_dispute_enabled = Column(Boolean, default=True)
+    class_reminders_enabled = Column(Boolean, default=True)
+    security_enabled = Column(Boolean, default=True)
+    promotional_enabled = Column(Boolean, default=False)
+    quiet_hours_enabled = Column(Boolean, default=False)
+    quiet_start_time = Column(String(5), default="22:00")
+    quiet_end_time = Column(String(5), default="07:00")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
 
 
 

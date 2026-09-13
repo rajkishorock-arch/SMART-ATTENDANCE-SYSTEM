@@ -146,6 +146,7 @@ import StudentTodayView from './components/StudentTodayView';
 import AccessibilitySettingsModal from './components/AccessibilitySettingsModal';
 import PrivacyTrustCenter from './components/PrivacyTrustCenter';
 import NotificationDrawerModal from './components/NotificationDrawerModal';
+import { initializePushNotifications } from './services/pushNotificationService';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -2286,12 +2287,25 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (token) {
+    if (token && currentUser) {
+      initializePushNotifications(token, currentUser, (data) => {
+        const cat = (data?.category || '').toUpperCase();
+        if (cat === 'LEAVE' || cat === 'DISPUTE') {
+          setActiveTab('settings');
+        } else if (cat === 'ATTENDANCE') {
+          setActiveTab('dashboard');
+        } else if (cat === 'CLASS_REMINDER' || cat === 'CLASSES') {
+          setShowScannerModal(true);
+        } else if (cat === 'SECURITY' || cat === 'SYSTEM') {
+          setActiveTab('settings');
+        }
+      });
       fetchUnreadNotificationCount();
       const interval = setInterval(fetchUnreadNotificationCount, 15000);
       return () => clearInterval(interval);
     }
-  }, [token, fetchUnreadNotificationCount]);
+  }, [token, currentUser, fetchUnreadNotificationCount]);
+
 
   // Attendance Dispute & Correction Modal States (Phase 2)
   const [showDisputeModal, setShowDisputeModal] = useState(false);
@@ -22190,12 +22204,22 @@ export default function App() {
         playCyberSound={playCyberSound}
         onNotificationClick={(notif) => {
           fetchUnreadNotificationCount();
+          const cat = (notif.category || '').toUpperCase();
           if (notif.action_url) {
             if (notif.action_url.includes('disputes')) setActiveTab('disputes');
             else if (notif.action_url.includes('leave')) setActiveTab('interventions');
             else if (notif.action_url.includes('student-attendance')) setActiveTab('student-attendance');
+          } else if (cat === 'LEAVE' || cat === 'DISPUTE') {
+            setActiveTab('settings');
+          } else if (cat === 'ATTENDANCE') {
+            setActiveTab('dashboard');
+          } else if (cat === 'CLASS_REMINDER' || cat === 'CLASSES') {
+            setShowScannerModal(true);
+          } else if (cat === 'SECURITY' || cat === 'SYSTEM') {
+            setActiveTab('security');
           }
         }}
+
       />
 
       {/* Accessibility & Display Controls Modal */}

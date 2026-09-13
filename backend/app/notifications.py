@@ -1,7 +1,7 @@
 """
-Real-Time & Push Notification Dispatcher Module (Phase 10)
+Real-Time & Push Notification Dispatcher Module
 Handles role-filtered in-app notifications, device token registration,
-and background FCM / mobile push notification payloads.
+notification category preferences, quiet hours, and FCM push notifications.
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
@@ -12,6 +12,7 @@ import logging
 
 from . import models, security
 from .database import get_db
+from .fcm_service import send_fcm_push_notification
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ def create_notification(
     recipient_email: Optional[str] = None
 ) -> models.NotificationModel:
     """
-    Creates an in-app notification record and dispatches background push alert.
+    Creates an in-app notification record and dispatches background FCM push alert.
     """
     try:
         notif = models.NotificationModel(
@@ -48,14 +49,76 @@ def create_notification(
         db.commit()
         db.refresh(notif)
 
-        # Dispatch FCM Push Notification (if token registered)
+        # Check notification category preferences & quiet hours if recipient_email provided
+        send_push = True
         if recipient_email:
-            tokens = db.query(models.DeviceTokenModel).filter(
+            pref = db.query(models.NotificationPreferenceModel).filter(
+                models.NotificationPreferenceModel.institution_id == institution_id,
+                models.NotificationPreferenceModel.user_email == recipient_email
+            ).first()
+
+            if pref:
+                cat_upper = category.upper()
+                if cat_upper == "ATTENDANCE" and not pref.attendance_enabled:
+                    send_push = False
+                elif cat_upper in ["LEAVE", "DISPUTE"] and not pref.leave_dispute_enabled:
+                    send_push = False
+                elif cat_upper == "CLASS_REMINDER" and not pref.class_reminders_enabled:
+                    send_push = False
+                elif cat_upper in ["SECURITY", "SYSTEM"] and not pref.security_enabled:
+                    send_push = False
+                elif cat_upper == "PROMOTIONAL" and not pref.promotional_enabled:
+                    send_push = False
+
+                # Quiet Hours Check
+                if send_push and pref.quiet_hours_enabled and pref.quiet_start_time and pref.quiet_end_time:
+                    try:
+                        now_hm = datetime.now().strftime("%H:%M")
+                        start = pref.quiet_start_time
+                        end = pref.quiet_end_time
+                        if start <= end:
+                            if start <= now_hm <= end:
+                                send_push = False
+                        else: # Spans midnight
+                            if now_hm >= start or now_hm <= end:
+                                send_push = False
+                    except Exception as quiet_err:
+                        logger.warn(f"Error checking quiet hours: {quiet_err}")
+
+        # Dispatch FCM Push Notification
+        if send_push:
+            query = db.query(models.DeviceTokenModel).filter(
                 models.DeviceTokenModel.institution_id == institution_id,
-                models.DeviceTokenModel.user_email == recipient_email
-            ).all()
-            for t in tokens:
-                logger.info(f"[Push Dispatch] Sending FCM alert to token {t.push_token[:12]}...: {title}")
+                models.DeviceTokenModel.is_active == True
+            )
+            if recipient_email:
+                query = query.filter(models.DeviceTokenModel.user_email == recipient_email)
+            else:
+                query = query.filter(models.DeviceTokenModel.role == recipient_role)
+
+            active_tokens = query.all()
+            if active_tokens:
+                token_strings = [t.push_token for t in active_tokens]
+                res = send_fcm_push_notification(
+                    tokens=token_strings,
+                    title=title,
+                    body=message,
+                    category=category,
+                    action_url=action_url,
+                    data_payload={
+                        "notification_id": str(notif.id),
+                        "institution_id": str(institution_id),
+                        "action_url": action_url or ""
+                    }
+                )
+
+                # Inactivate expired/invalid tokens
+                if res and res.get("invalid_tokens"):
+                    for inv_token in res["invalid_tokens"]:
+                        db.query(models.DeviceTokenModel).filter(
+                            models.DeviceTokenModel.push_token == inv_token
+                        ).update({"is_active": False}, synchronize_session=False)
+                    db.commit()
 
         return notif
     except Exception as err:
@@ -66,7 +129,7 @@ def create_notification(
 
 @router.get("/my-notifications")
 def get_my_notifications(
-    limit: int = 30,
+    limit: int = 40,
     db: Session = Depends(get_db),
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
@@ -214,6 +277,40 @@ def mark_all_notifications_read(
     return {"status": "ok", "message": "All notifications marked as read."}
 
 
+@router.post("/delete/{notification_id}")
+def delete_notification(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
+):
+    """Delete a specific notification."""
+    notif = db.query(models.NotificationModel).filter(
+        models.NotificationModel.id == notification_id,
+        models.NotificationModel.institution_id == current_identity.institution_id
+    ).first()
+    if notif:
+        db.delete(notif)
+        db.commit()
+    return {"status": "ok", "id": notification_id}
+
+
+@router.post("/clear-all")
+def clear_all_notifications(
+    db: Session = Depends(get_db),
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
+):
+    """Clear/delete all notifications for the current user."""
+    inst_id = current_identity.institution_id
+    email = current_identity.email
+
+    db.query(models.NotificationModel).filter(
+        models.NotificationModel.institution_id == inst_id,
+        models.NotificationModel.recipient_email == email
+    ).delete(synchronize_session=False)
+    db.commit()
+    return {"status": "ok", "message": "All notifications cleared."}
+
+
 @router.post("/register-device-token")
 def register_device_push_token(
     payload: Dict[str, Any] = Body(...),
@@ -235,15 +332,92 @@ def register_device_push_token(
         existing.user_email = current_identity.email
         existing.role = current_identity.role
         existing.device_platform = platform
+        existing.is_active = True
     else:
         new_token = models.DeviceTokenModel(
             institution_id=current_identity.institution_id,
             user_email=current_identity.email,
             role=current_identity.role,
             push_token=token_str,
-            device_platform=platform
+            device_platform=platform,
+            is_active=True
         )
         db.add(new_token)
 
     db.commit()
     return {"status": "ok", "message": "Device token registered successfully."}
+
+
+@router.get("/preferences")
+def get_notification_preferences(
+    db: Session = Depends(get_db),
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
+):
+    """Get category notification settings & quiet hours for logged in user."""
+    pref = db.query(models.NotificationPreferenceModel).filter(
+        models.NotificationPreferenceModel.institution_id == current_identity.institution_id,
+        models.NotificationPreferenceModel.user_email == current_identity.email
+    ).first()
+
+    if not pref:
+        return {
+            "attendance_enabled": True,
+            "leave_dispute_enabled": True,
+            "class_reminders_enabled": True,
+            "security_enabled": True,
+            "promotional_enabled": False,
+            "quiet_hours_enabled": False,
+            "quiet_start_time": "22:00",
+            "quiet_end_time": "07:00"
+        }
+
+    return {
+        "attendance_enabled": bool(pref.attendance_enabled),
+        "leave_dispute_enabled": bool(pref.leave_dispute_enabled),
+        "class_reminders_enabled": bool(pref.class_reminders_enabled),
+        "security_enabled": bool(pref.security_enabled),
+        "promotional_enabled": bool(pref.promotional_enabled),
+        "quiet_hours_enabled": bool(pref.quiet_hours_enabled),
+        "quiet_start_time": pref.quiet_start_time or "22:00",
+        "quiet_end_time": pref.quiet_end_time or "07:00"
+    }
+
+
+@router.post("/preferences")
+def update_notification_preferences(
+    payload: Dict[str, Any] = Body(...),
+    db: Session = Depends(get_db),
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
+):
+    """Update notification category settings & quiet hours."""
+    pref = db.query(models.NotificationPreferenceModel).filter(
+        models.NotificationPreferenceModel.institution_id == current_identity.institution_id,
+        models.NotificationPreferenceModel.user_email == current_identity.email
+    ).first()
+
+    if not pref:
+        pref = models.NotificationPreferenceModel(
+            institution_id=current_identity.institution_id,
+            user_email=current_identity.email
+        )
+        db.add(pref)
+
+    if "attendance_enabled" in payload:
+        pref.attendance_enabled = bool(payload["attendance_enabled"])
+    if "leave_dispute_enabled" in payload:
+        pref.leave_dispute_enabled = bool(payload["leave_dispute_enabled"])
+    if "class_reminders_enabled" in payload:
+        pref.class_reminders_enabled = bool(payload["class_reminders_enabled"])
+    if "security_enabled" in payload:
+        pref.security_enabled = bool(payload["security_enabled"])
+    if "promotional_enabled" in payload:
+        pref.promotional_enabled = bool(payload["promotional_enabled"])
+    if "quiet_hours_enabled" in payload:
+        pref.quiet_hours_enabled = bool(payload["quiet_hours_enabled"])
+    if "quiet_start_time" in payload:
+        pref.quiet_start_time = str(payload["quiet_start_time"])
+    if "quiet_end_time" in payload:
+        pref.quiet_end_time = str(payload["quiet_end_time"])
+
+    db.commit()
+    return {"status": "ok", "message": "Notification preferences updated successfully."}
