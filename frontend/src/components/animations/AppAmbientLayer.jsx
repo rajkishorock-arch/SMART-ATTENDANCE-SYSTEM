@@ -17,7 +17,9 @@ export default function AppAmbientLayer({ activeTab, isMobile }) {
   const canvasRef = useRef(null);
   const tabRef = useRef(activeTab);
 
-  tabRef.current = activeTab;
+  useEffect(() => {
+    tabRef.current = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -29,9 +31,12 @@ export default function AppAmbientLayer({ activeTab, isMobile }) {
     let isScrolling = false;
     let scrollTimeout;
 
-    // Check if reduce motion is enabled
+    // Check if reduce motion is enabled (system-wide or user preference)
     let reduceMotion = false;
     try {
+      if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        reduceMotion = true;
+      }
       const raw = localStorage.getItem('exploration_lab_settings');
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -39,7 +44,9 @@ export default function AppAmbientLayer({ activeTab, isMobile }) {
           reduceMotion = true;
         }
       }
-    } catch (_) {}
+    } catch {
+      // Ignore preference read errors
+    }
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -57,7 +64,7 @@ export default function AppAmbientLayer({ activeTab, isMobile }) {
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    const count = isMobile ? 24 : 55;
+    const count = isMobile ? 12 : 36;
     const particles = Array.from({ length: count }, () => ({
       x: Math.random(),
       y: Math.random(),
@@ -69,8 +76,10 @@ export default function AppAmbientLayer({ activeTab, isMobile }) {
     const draw = () => {
       animId = requestAnimationFrame(draw);
 
-      // Stop canvas processing and redraws completely while user is scrolling, or if reduceMotion is on
-      if (isScrolling || reduceMotion) {
+      // Stop canvas processing and redraws completely while user is scrolling, if reduceMotion is on, or when scanner is active
+      const isScannerActive = tabRef.current === 'attendance';
+      if (isScrolling || reduceMotion || isScannerActive) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         return;
       }
 
@@ -172,14 +181,16 @@ export default function AppAmbientLayer({ activeTab, isMobile }) {
         ctx.globalAlpha = 1;
       });
 
-      // Sweeping scan beam
-      const scanY = ((tick * 1.2) % (h + 100)) - 50;
-      const grad = ctx.createLinearGradient(0, scanY - 30, 0, scanY + 30);
-      grad.addColorStop(0, 'transparent');
-      grad.addColorStop(0.5, `${theme.primary}12`);
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, scanY - 30, w, 60);
+      // Sweeping scan beam (desktop only to conserve mobile battery)
+      if (!isMobile) {
+        const scanY = ((tick * 1.2) % (h + 100)) - 50;
+        const grad = ctx.createLinearGradient(0, scanY - 30, 0, scanY + 30);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(0.5, `${theme.primary}12`);
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, scanY - 30, w, 60);
+      }
     };
 
     draw();

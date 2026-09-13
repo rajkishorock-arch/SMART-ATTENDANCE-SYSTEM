@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
+import { triggerNativeHaptic } from './utils/nativeMobile';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -114,6 +115,7 @@ import LmsSyncIntegrationView from './components/LmsSyncIntegrationView';
 import StaffPayrollView from './components/StaffPayrollView';
 import QuickActionsDock from './components/QuickActionsDock';
 import SmartEmptyState from './components/SmartEmptyState';
+import SkeletonLoader from './components/SkeletonLoader';
 import OnboardingTour from './components/OnboardingTour';
 import ClassroomLiveGrid from './components/ClassroomLiveGrid';
 import OfflineBanner from './components/OfflineBanner';
@@ -2943,6 +2945,37 @@ export default function App() {
   const [faceDetected, setFaceDetected] = useState(false);
   const [isDemoMode, setIsDemoMode] = React.useState(localStorage.getItem('isDemoMode') === 'true');
 
+  const scannerStateInfo = useMemo(() => {
+    if (!attendanceActive && !scannerBootActive) {
+      return { type: 'offline', text: 'Camera Offline', icon: <Camera size={14} /> };
+    }
+    if (scannerBootActive) {
+      return { type: 'booting', text: 'Initializing Camera...', icon: <RefreshCw size={14} className="spin-fast" /> };
+    }
+    if (attendanceError) {
+      return { type: 'failed', text: 'Camera Error', icon: <AlertCircle size={14} /> };
+    }
+    if (scannedStudent) {
+      return { type: 'verified', text: 'Attendance Recorded', icon: <CheckCircle2 size={14} /> };
+    }
+    if (isScanning) {
+      return { type: 'recognizing', text: 'Matching Face Signature...', icon: <RefreshCw size={14} className="spin-fast" /> };
+    }
+    if (scanStatus && (scanStatus.toLowerCase().includes('failed') || scanStatus.toLowerCase().includes('low confidence') || scanStatus.toLowerCase().includes('unrecognized'))) {
+      return { type: 'failed', text: 'Face Not Recognized', icon: <AlertCircle size={14} /> };
+    }
+    if (scanStatus && scanStatus.toLowerCase().includes('offline')) {
+      return { type: 'offline_queued', text: 'Offline Mode • Queued', icon: <Clock size={14} /> };
+    }
+    if (livenessStatus === 'verifying' && !livenessBypass) {
+      return { type: 'liveness', text: 'Liveness Check • Blink Eyes', icon: <ShieldCheck size={14} /> };
+    }
+    if (faceDetected) {
+      return { type: 'detected', text: 'Face Locked • Hold Steady', icon: <ScanFace size={14} /> };
+    }
+    return { type: 'searching', text: 'Position Face In Frame', icon: <ScanFace size={14} /> };
+  }, [attendanceActive, scannerBootActive, attendanceError, scannedStudent, isScanning, scanStatus, livenessStatus, livenessBypass, faceDetected]);
+
   // Refs for video, canvas & stream
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
@@ -4649,13 +4682,21 @@ export default function App() {
           
           setScanStatus(newly_marked ? `Recognized: ${matched.name} (${confidence}%)` : `Recognized: ${matched.name} (Already Marked)`);
           playCyberSound('success');
+          triggerNativeHaptic('light');
           if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
           
           const now = new Date();
           const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
           const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
           
-          setScannedStudent({ name: matched.name, roll: matched.roll, dep: matched.dep, time: timeStr });
+          setScannedStudent({
+            name: matched.name,
+            roll: matched.roll,
+            dep: matched.dep,
+            time: timeStr,
+            confidence: confidence,
+            status: newly_marked ? 'Present' : 'Already Marked'
+          });
           addDiagnosticLog(`MATCH FOUND: ${matched.name} (Accuracy: ${confidence}%)`);
 
           const mockFaceBox = lastFaceBoxRef.current ? [
@@ -4781,6 +4822,7 @@ export default function App() {
             playCyberSound('success');
             if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
             triggerHaptic(newlyMarkedList.length ? [40, 30, 40] : 20);
+            triggerNativeHaptic(newlyMarkedList.length ? 'medium' : 'light');
             if (newlyMarkedList.length) recordScan(newlyMarkedList.length);
 
             const now = new Date();
@@ -4788,7 +4830,14 @@ export default function App() {
             const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
 
             const primary = validMatches[0];
-            setScannedStudent({ name: primary.name, roll: primary.roll, dep: primary.dep, time: timeStr });
+            setScannedStudent({
+              name: primary.name,
+              roll: primary.roll,
+              dep: primary.dep,
+              time: timeStr,
+              confidence: primary.confidence,
+              status: primary.newly_marked ? 'Present' : 'Already Marked'
+            });
             
             updateServerRecognizedFaces({
               faces: validMatches,
@@ -8991,7 +9040,7 @@ export default function App() {
       {showScannerModal && (
         <div id="scanner-modal-overlay" className="clean-camera-overlay">
           <div className="clean-camera-inner">
-            {/* Modal Header */}
+            {/* Modal Floating Header */}
             <div className="clean-camera-header">
               <button
                 onTouchStart={(e) => {
@@ -9014,77 +9063,68 @@ export default function App() {
                 className="clean-back-btn"
                 aria-label="Go back"
               >
-                <ArrowLeft size={24} color="#fff" />
+                <ArrowLeft size={22} color="#fff" />
               </button>
-              <h1 className="clean-scanner-title">Face Scanner</h1>
-              <p className="clean-scanner-subtitle" style={{
-                color: !scanStatus 
-                  ? 'rgba(255, 255, 255, 0.6)' 
-                  : (scanStatus.toLowerCase().includes('recognized') || scanStatus.toLowerCase().includes('live') || scanStatus.toLowerCase().includes('success') || scanStatus.toLowerCase().includes('verified'))
-                    ? '#10b981'
-                    : (scanStatus.toLowerCase().includes('error') || scanStatus.toLowerCase().includes('failed') || scanStatus.toLowerCase().includes('low confidence'))
-                      ? '#ef4444'
-                      : '#00f2fe',
-                fontWeight: 600
-              }}>
-                {scanStatus || 'Camera Offline'}
-              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <h1 className="clean-scanner-title">Face Scanner</h1>
+              </div>
+
+              {/* Floating Camera Controls (Right) */}
+              <div className="clean-scanner-top-controls">
+                {isMobileView && (attendanceActive || scannerBootActive) && (
+                  <button
+                    onClick={toggleAttendanceCameraFacing}
+                    className="clean-camera-switch"
+                    title="Switch Camera"
+                  >
+                    <RefreshCw size={13} />
+                    <span>Switch</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setLivenessBypass(prev => !prev);
+                    playCyberSound('click');
+                  }}
+                  className="clean-liveness-toggle"
+                  title="Toggle Liveness Check"
+                >
+                  <ShieldCheck size={13} />
+                  <span>{livenessBypass ? 'Bypass' : 'Liveness'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    playCyberSound('click');
+                    if (attendanceActive || scannerBootActive) {
+                      stopAttendanceCam();
+                    } else {
+                      startAttendanceCam();
+                    }
+                  }}
+                  className="clean-camera-toggle"
+                  style={{
+                    color: (attendanceActive || scannerBootActive) ? '#ef4444' : '#10b981',
+                  }}
+                  title="Toggle Camera Power"
+                >
+                  <Camera size={13} />
+                  <span>{(attendanceActive || scannerBootActive) ? 'Stop' : 'Start'}</span>
+                </button>
+              </div>
             </div>
 
-            {/* Camera Viewport Card */}
-            <div className="clean-camera-viewport">
-              {/* Floating Camera ON/OFF Switch button (Top Left) */}
-              <button
-                onClick={() => {
-                  playCyberSound('click');
-                  if (attendanceActive || scannerBootActive) {
-                    stopAttendanceCam();
-                  } else {
-                    startAttendanceCam();
-                  }
-                }}
-                className="clean-camera-toggle"
-                style={{
-                  background: (attendanceActive || scannerBootActive) ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                  border: `1px solid ${(attendanceActive || scannerBootActive) ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
-                  color: (attendanceActive || scannerBootActive) ? '#ef4444' : '#10b981',
-                }}
-              >
-                <span style={{ fontSize: '0.7rem' }}>
-                  {(attendanceActive || scannerBootActive) ? '🔴 Stop Cam' : '🟢 Start Cam'}
-                </span>
-              </button>
+            {/* Floating State Status Bar (Directly below header) */}
+            <div className={`clean-scanner-state-bar state-${scannerStateInfo.type}`}>
+              {scannerStateInfo.icon}
+              <span>{scannerStateInfo.text}</span>
+            </div>
 
-              {/* Floating Camera Switch button (Top Center) - Only on phone layout */}
-              {isMobileView && (attendanceActive || scannerBootActive) && (
-                <button
-                  onClick={toggleAttendanceCameraFacing}
-                  className="clean-camera-switch"
-                >
-                  <RefreshCw size={12} />
-                  <span style={{ fontSize: '0.7rem' }}>Switch</span>
-                </button>
-              )}
-
-              {/* Floating Liveness Toggle pill button (Top Right) */}
-              <button
-                onClick={() => {
-                  setLivenessBypass(prev => !prev);
-                  playCyberSound('click');
-                }}
-                className="clean-liveness-toggle"
-                style={{
-                  background: livenessBypass ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                  border: `1px solid ${livenessBypass ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
-                  color: livenessBypass ? '#ef4444' : '#10b981',
-                }}
-              >
-                <span style={{ fontSize: '0.7rem' }}>
-                  {livenessBypass ? '⚡ Bypass' : '🛡️ Liveness'}
-                </span>
-              </button>
-
-              {/* Robotic boot sequence - kept inside viewport */}
+            {/* Camera Viewport */}
+            <div className={`clean-camera-viewport ${scannedStudent ? 'scanner-verified-border' : (attendanceError ? 'scanner-failed-border' : '')}`}>
+              {/* Robotic boot sequence */}
               <ScannerBootOverlay
                 active={scannerBootActive}
                 onComplete={handleScannerBootComplete}
@@ -9182,7 +9222,7 @@ export default function App() {
                       position: 'absolute',
                       top: '105%',
                       whiteSpace: 'nowrap',
-                      background: 'linear-gradient(135deg, rgba(16,185,129,0.95), rgba(5,150,105,0.95))',
+                      background: 'rgba(16, 185, 129, 0.92)',
                       border: `1px solid ${themeColor}`,
                       borderRadius: '6px',
                       padding: '4px 10px',
@@ -9198,14 +9238,12 @@ export default function App() {
                         fontWeight: 800,
                         fontSize: '0.8rem',
                         letterSpacing: '0.05em',
-                        fontFamily: 'monospace',
                       }}>
                         {face.name ? face.name.toUpperCase() : 'IDENTIFIED'}
                       </span>
                       <span style={{
-                        color: 'rgba(255,255,255,0.85)',
-                        fontSize: '0.62rem',
-                        fontFamily: 'monospace',
+                        color: 'rgba(255,255,255,0.9)',
+                        fontSize: '0.65rem',
                         marginTop: '2px',
                       }}>
                         {face.confidence ? `${face.confidence}%` : ''} · PRESENT
@@ -9220,13 +9258,14 @@ export default function App() {
                 <div className="clean-offline-placeholder">
                   {scanStatus === 'Camera Error' || attendanceError ? (
                     <>
-                      <div style={{ color: '#ef4444', fontSize: '2rem' }}>⚠️</div>
-                      <p style={{ color: '#ef4444', fontSize: '0.82rem', fontWeight: 600, margin: 0 }}>
+                      <AlertCircle size={36} color="#ef4444" />
+                      <p style={{ color: '#ef4444', fontSize: '0.82rem', fontWeight: 600, margin: '8px 0 0' }}>
                         {attendanceError || 'CAMERA CONNECTION ERROR'}
                       </p>
                       <button
                         onClick={startAttendanceCam}
-                        className="clean-offline-btn"
+                        className="btn-primary"
+                        style={{ marginTop: '12px' }}
                       >
                         Retry Camera
                       </button>
@@ -9234,7 +9273,7 @@ export default function App() {
                   ) : (
                     <>
                       <div className="clean-spinner" />
-                      <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.82rem', fontWeight: 500, margin: 0 }}>
+                      <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.82rem', fontWeight: 500, margin: '8px 0 0' }}>
                         INITIALIZING CAMERA...
                       </p>
                     </>
@@ -9243,22 +9282,51 @@ export default function App() {
               )}
             </div>
 
-            {/* Instruction Card at the bottom */}
-            <div className={`clean-blink-eye-card ${attendanceError ? 'card-error' : livenessStatus === 'verified' ? 'card-verified' : ''}`}>
-              <div className="clean-blink-eye-container">
-                <svg className="clean-blink-eye-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={attendanceError ? '#ef4444' : livenessStatus === 'verified' ? '#10b981' : '#FCD34D'} strokeWidth="2.5">
-                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="12" cy="12" r="3.5" fill={attendanceError ? '#ef4444' : livenessStatus === 'verified' ? '#10b981' : '#FCD34D'} />
-                </svg>
+            {/* Bottom Floating Card: Compact Identity Card when verified, or Instruction Pill */}
+            {scannedStudent ? (
+              <div className="scanner-student-card" role="status" aria-live="polite">
+                <div className="scanner-student-avatar">
+                  <CheckCircle2 size={24} color="#10b981" />
+                </div>
+                <div className="scanner-student-info">
+                  <div className="scanner-student-name">{scannedStudent.name}</div>
+                  <div className="scanner-student-meta">
+                    <span>{scannedStudent.roll || 'ID: VERIFIED'}</span>
+                    {scannedStudent.dep && <span>• {scannedStudent.dep}</span>}
+                    {scannedStudent.time && <span>• {scannedStudent.time}</span>}
+                  </div>
+                </div>
+                <div className="scanner-student-badge">
+                  <span className="status-pill status-pill-success">
+                    {scannedStudent.status || 'Verified'}
+                  </span>
+                  {scannedStudent.confidence && (
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                      {scannedStudent.confidence}% match
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="clean-blink-eye-text">
-                {attendanceError 
-                  ? attendanceError
-                  : livenessMessage && attendanceActive 
-                    ? livenessMessage 
-                    : "Please look at the camera and blink"}
-              </p>
-            </div>
+            ) : (
+              <div className="scanner-instruction-pill">
+                <div
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: attendanceError ? '#ef4444' : livenessStatus === 'verified' ? '#10b981' : '#0ea5e9',
+                    flexShrink: 0
+                  }}
+                />
+                <p className="scanner-instruction-text">
+                  {attendanceError 
+                    ? attendanceError
+                    : livenessMessage && attendanceActive 
+                      ? livenessMessage 
+                      : "Position your face in the center"}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -9837,308 +9905,350 @@ export default function App() {
             )}
 
             {activeDashboardSubTab === null ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '100%', overflowX: 'hidden' }}>
-                <div className="glass-panel" style={{ 
-                  padding: isMobileView ? '16px 12px' : '32px', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '12px',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '100%', overflowX: 'hidden' }}>
+                {/* Header Command Bar */}
+                <div className="surface-card" style={{ padding: isMobileView ? '16px 14px' : '20px 24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                     <div>
-                      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>📊 Admin Analytics Dashboard</h2>
-                      <p style={{ color: '#9ca3af', fontSize: '0.9rem', margin: '8px 0 0' }}>
-                        Select a monitoring directory below to visualize system logs, check biometric statuses, view user sessions, or run core diagnostics.
-                      </p>
-                    </div>
-                    <VersionBadge
-                      compact
-                      serverLatest={serverLatestVersion}
-                      updateActive={updateActiveFlag}
-                      onCheckUpdate={handleManualCheck}
-                    />
-                  </div>
-                </div>
-
-                {/* ===== ADVANCED FEATURES STATUS BANNER ===== */}
-                {userRole !== 'student' && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: isMobileView ? 'column' : 'row',
-                    gap: '10px',
-                    padding: isMobileView ? '10px 14px' : '12px 18px',
-                    background: 'rgba(0,0,0,0.35)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '12px',
-                    alignItems: isMobileView ? 'flex-start' : 'center',
-                    justifyContent: 'space-between',
-                    minHeight: 'auto',
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                    overflow: 'hidden',
-                  }}>
-                    <span style={{ color: '#9ca3af', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'monospace' }}>🚀 ADVANCED FEATURES</span>
-                    
-                    {/* Horizontal scroll container for features on mobile devices */}
-                    <div className="no-scrollbar" style={{ 
-                      display: 'flex', 
-                      gap: '8px', 
-                      alignItems: 'center',
-                      width: '100%',
-                      overflowX: 'auto',
-                      paddingBottom: isMobileView ? '6px' : '0',
-                      WebkitOverflowScrolling: 'touch',
-                    }}>
-
-                      {/* Feature 2: WebSocket Live Status - Redirects directly to scanner */}
-                      <div 
-                        onClick={() => {
-                          playCyberSound('click');
-                          navigateToTab('attendance');
-                        }}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '7px',
-                          padding: '6px 12px',
-                          background: wsConnected ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)',
-                          border: `1px solid ${wsConnected ? 'rgba(16,185,129,0.4)' : 'rgba(107,114,128,0.3)'}`,
-                          borderRadius: '20px',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <span style={{
-                          width: '8px', height: '8px', borderRadius: '50%',
-                          background: wsConnected ? '#10b981' : '#6b7280',
-                          boxShadow: wsConnected ? '0 0 8px #10b981' : 'none',
-                          animation: wsConnected ? 'pulse 1.5s infinite' : 'none',
-                          display: 'inline-block',
-                        }} />
-                        <span style={{ color: wsConnected ? '#10b981' : '#9ca3af', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'monospace' }}>
-                          {wsConnected ? 'LIVE SYNC ON' : 'LIVE SYNC OFF'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h2 style={{ fontSize: isMobileView ? '1.25rem' : '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0, letterSpacing: '-0.02em' }}>
+                          {userRole === 'teacher' ? 'Teacher Command Center' : 'Institutional Command Center'}
+                        </h2>
+                        <span className={`status-pill ${wsConnected ? 'status-pill-success' : 'status-pill-warning'}`} style={{ fontSize: '0.7rem' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: wsConnected ? '#10b981' : '#f59e0b', display: 'inline-block' }} />
+                          {wsConnected ? 'Live Real-time' : 'Local Queue Sync'}
                         </span>
                       </div>
-
-                      {/* Feature 3: Biometric Encryption */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '7px',
-                        padding: '6px 12px',
-                        background: 'rgba(99,102,241,0.15)',
-                        border: '1px solid rgba(99,102,241,0.4)',
-                        borderRadius: '20px',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                      }}>
-                        <span style={{ fontSize: '0.8rem' }}>🔐</span>
-                        <span style={{ color: '#818cf8', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'monospace' }}>BIOMETRIC ENCRYPTED</span>
-                      </div>
-
-                      {/* Feature 4: Risk Analytics shortcut - Sets direct tab hash parameter */}
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                        {tenantBranding ? tenantBranding.name : 'Smart Attendance System'} · Real-time biometric attendance monitoring and operational telemetry.
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <VersionBadge
+                        compact
+                        serverLatest={serverLatestVersion}
+                        updateActive={updateActiveFlag}
+                        onCheckUpdate={handleManualCheck}
+                      />
                       <button
                         onClick={() => {
                           playCyberSound('click');
-                          // Directly set states instead of calling navigateToTab which resets activeSubSetting
-                          setActiveTab('settings');
-                          setActiveSubSetting('productivity');
-                          setMobileSidebarOpen(false);
-                          setMobileControlOpen(false);
-                          
-                          localStorage.setItem('active_productivity_tab', 'analytics');
-                          window.dispatchEvent(new Event('storage'));
-                          window.dispatchEvent(new CustomEvent('switch_productivity_tab', { detail: { tab: 'analytics' } }));
+                          setActiveTab('attendance');
+                          setShowScannerModal(true);
                         }}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '7px',
-                          padding: '6px 12px',
-                          background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.2))',
-                          border: '1px solid rgba(245,158,11,0.5)',
-                          borderRadius: '20px',
-                          cursor: 'pointer',
-                          color: '#f59e0b',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          fontFamily: 'monospace',
-                          transition: 'all 0.2s ease',
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.35), rgba(217,119,6,0.35))'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.2))'}
+                        className="btn-primary"
+                        style={{ padding: '8px 16px', minHeight: '40px', fontSize: '0.85rem' }}
                       >
-                        <span style={{ fontSize: '0.8rem' }}>📊</span>
-                        RISK ANALYTICS →
+                        <Camera size={16} /> Open Scanner
                       </button>
                     </div>
                   </div>
+                </div>
+
+                {/* KPI Cards: Today's Attendance, Scanner State, Attention, Rate */}
+                {!stats ? (
+                  <SkeletonLoader type="stat" count={4} />
+                ) : (
+                  <RoleCommandCenter
+                    stats={stats}
+                    scannerLive={attendanceActive || scannerBootActive}
+                    userRole={userRole}
+                    teacherSubjects={subjects}
+                  />
                 )}
-                {/* ============================================ */}
-                <RoleCommandCenter
-                  stats={stats}
-                  scannerLive={attendanceActive || scannerBootActive}
-                  userRole={userRole}
-                  teacherSubjects={subjects}
-                />
-                {userRole !== 'student' && token && (
-                  <LiveBoardStrip apiBaseUrl={API_BASE_URL} token={token} enabled />
-                )}
-                <SmartSuggestionsBar
-                  hasPremium={hasPremiumAccess}
-                  scannerUsed={recognizedStudents.length > 0}
-                  onAction={(action) => {
-                    playCyberSound('click');
-                    if (action === 'scanner') navigateToTab('attendance');
-                    else if (action === 'settings_geofence') {
-                      setActiveTab('settings');
-                      setActiveSubSetting('geofencing');
-                      setMobileSidebarOpen(false);
-                      setMobileControlOpen(false);
-                    }
-                    else if (action === 'exploration') {
-                      setActiveTab('settings');
-                      setActiveSubSetting('exploration');
-                      setMobileSidebarOpen(false);
-                      setMobileControlOpen(false);
-                    }
-                    else if (action === 'premium') {
-                      setActiveTab('settings');
-                      setActiveSubSetting('premium');
-                      setMobileSidebarOpen(false);
-                      setMobileControlOpen(false);
-                    }
-                    else if (action === 'productivity') {
-                      setActiveTab('settings');
-                      setActiveSubSetting('productivity');
-                      setMobileSidebarOpen(false);
-                      setMobileControlOpen(false);
-                      localStorage.setItem('active_productivity_tab', 'bulk');
-                      window.dispatchEvent(new Event('storage'));
-                      window.dispatchEvent(new CustomEvent('switch_productivity_tab', { detail: { tab: 'bulk' } }));
-                    }
-                    else if (action === 'extreme') {
-                      setActiveTab('settings');
-                      setActiveSubSetting('extreme');
-                      setMobileSidebarOpen(false);
-                      setMobileControlOpen(false);
-                    }
-                  }}
-                />
+
                 {userRole === 'teacher' && (
                   <TeacherMiniDashboard stats={stats} subjects={subjects} teacherName={currentUser?.name} />
                 )}
-                <AttendanceChartsWidget stats={stats} />
 
+                {/* Primary 2-Column Command Grid */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobileView ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))',
-                  gap: '20px'
+                  gridTemplateColumns: isMobileView ? '1fr' : 'minmax(0, 1.6fr) minmax(0, 1fr)',
+                  gap: '20px',
+                  alignItems: 'start'
                 }}>
-                  {/* Category Card 1: Attendance Metrics Summary & Live Telemetry (MERGED) */}
-                  <div 
-                    onClick={() => { setActiveDashboardSubTab('metrics'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(0, 242, 254, 0.4)', background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.1), rgba(167, 139, 250, 0.1))' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Activity size={26} style={{ color: '#00f2fe' }} />
-                        <TrendingUp size={22} style={{ color: '#a78bfa' }} />
+                  {/* Left Column: Recent Live Activity + Charts */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Live Activity Stream */}
+                    <div className="surface-card" style={{ padding: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
+                            Recent Live Activity
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() => { playCyberSound('click'); setActiveTab('logs'); }}
+                          style={{ fontSize: '0.8rem', padding: '4px 8px', minHeight: '32px', color: 'var(--color-primary)' }}
+                        >
+                          View Full Logs →
+                        </button>
                       </div>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(0, 242, 254, 0.2)', color: '#00f2fe' }}>
-                        ✨ MERGED METRICS & TELEMETRY
-                      </span>
+
+                      {logs && logs.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {logs.slice(0, 6).map((log, idx) => {
+                            const isPresent = log.attendance?.toLowerCase() === 'present';
+                            return (
+                              <div
+                                key={log.id || idx}
+                                className="surface-card surface-card-hover"
+                                onClick={() => {
+                                  playCyberSound('click');
+                                  setSelectedAuditLog(log);
+                                }}
+                                style={{
+                                  padding: '12px 14px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  cursor: 'pointer',
+                                  background: 'rgba(255, 255, 255, 0.02)'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                                  <div style={{
+                                    width: '36px', height: '36px', borderRadius: '50%',
+                                    background: isPresent ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                                    color: isPresent ? '#34d399' : '#f87171',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontWeight: 700, fontSize: '0.85rem', flexShrink: 0
+                                  }}>
+                                    {log.name ? log.name.charAt(0).toUpperCase() : 'S'}
+                                  </div>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ color: 'var(--color-text-main)', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {log.name}
+                                    </div>
+                                    <div style={{ color: 'var(--color-text-dim)', fontSize: '0.76rem', display: 'flex', gap: '8px' }}>
+                                      <span>{log.roll}</span>
+                                      {log.dep && <span>· {log.dep}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                                  <span style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
+                                    {log.time}
+                                  </span>
+                                  <span className={`status-pill ${isPresent ? 'status-pill-success' : 'status-pill-danger'}`} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                                    {log.attendance || 'Present'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <SmartEmptyState
+                          title="No Scans Logged Today"
+                          message="Open the live face scanner to begin recording attendance sessions."
+                          actionLabel="Open Face Scanner"
+                          onAction={() => {
+                            playCyberSound('click');
+                            setActiveTab('attendance');
+                            setShowScannerModal(true);
+                          }}
+                        />
+                      )}
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Attendance Metrics & Live Telemetry Studio</h3>
-                    <p style={{ color: '#cbd5e1', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-                      Realtime student presence metrics, total active session connections, live attendance ticker feed, and live role telemetry registry in one place.
-                    </p>
+
+                    {/* Attendance Charts */}
+                    <AttendanceChartsWidget stats={stats} />
                   </div>
 
-                  {/* Category Card 2: Trends, Analytics & Biometric Radar (MERGED) */}
-                  <div 
-                    onClick={() => { setActiveDashboardSubTab('trends'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(167, 139, 250, 0.4)', background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(0, 242, 254, 0.1))' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Layers size={26} style={{ color: '#a78bfa' }} />
-                        <ShieldCheck size={24} style={{ color: '#00f2fe' }} />
+                  {/* Right Column: Quick Actions & Pending Attention Center */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Quick Scanner Action Card */}
+                    <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        Biometric Actions
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playCyberSound('click');
+                          setActiveTab('attendance');
+                          setShowScannerModal(true);
+                        }}
+                        className="btn-primary"
+                        style={{ width: '100%', padding: '14px', fontSize: '0.95rem' }}
+                      >
+                        <Camera size={18} /> Open Live Scanner
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playCyberSound('click');
+                          setActiveTab('attendance');
+                          setIsManualAttendanceOpen(true);
+                        }}
+                        className="btn-secondary"
+                        style={{ width: '100%', padding: '12px' }}
+                      >
+                        <Edit size={16} /> Mark Manual Attendance
+                      </button>
+
+                      <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>Biometric Engine:</span>
+                          <span style={{ color: '#38bdf8', fontWeight: 600 }}>YuNet + SFace 128-D</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>Vector Matching:</span>
+                          <span style={{ color: '#10b981', fontWeight: 600 }}>BLAS Accelerated (&lt; 2ms)</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>Offline Pending Queue:</span>
+                          <span style={{ color: getOfflineQueue().length > 0 ? '#f59e0b' : 'var(--color-text-dim)', fontWeight: 600 }}>
+                            {getOfflineQueue().length} records
+                          </span>
+                        </div>
                       </div>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(167, 139, 250, 0.2)', color: '#c084fc' }}>
-                        ✨ MERGED TRENDS & RADAR
+                    </div>
+
+                    {/* Pending Review & Attention Center */}
+                    <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        Operations & Review Center
                       </span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Trends, Analytics & Biometric Radar Hub</h3>
-                    <p style={{ color: '#cbd5e1', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-                      Weekly attendance trends line area graphs, department presence distribution, perimeter biometric sonar sweeps, and neural mesh visualization.
-                    </p>
-                  </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {userRole !== 'student' && (
+                          <button
+                            type="button"
+                            onClick={() => { playCyberSound('click'); setActiveTab('face-review'); }}
+                            className="btn-secondary"
+                            style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
+                          >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <ScanFace size={16} style={{ color: '#0ea5e9' }} /> Borderline Face Matches
+                            </span>
+                            <span className="status-pill status-pill-cyan" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>Review</span>
+                          </button>
+                        )}
 
-                  {/* Category Card 4: System Health & Core Diagnostics */}
-                  <div 
-                    onClick={() => { setActiveDashboardSubTab('diagnostics'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(167, 139, 250, 0.3)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Settings size={26} style={{ color: '#a78bfa' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(167, 139, 250, 0.15)', color: '#c084fc' }}>💻 Core Systems</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>System Health & Diagnostics</h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>CPU/RAM specs, SQLite/MySQL DB connectivity, API response latency, and AI detection models integrity.</p>
-                  </div>
+                        <button
+                          type="button"
+                          onClick={() => { playCyberSound('click'); setActiveTab('disputes'); }}
+                          className="btn-secondary"
+                          style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ShieldAlert size={16} style={{ color: '#f59e0b' }} /> Student Disputes
+                          </span>
+                          <span className="status-pill status-pill-warning" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>Queue</span>
+                        </button>
 
-                  {/* Category Card 5: User Feedback Submissions */}
-                  <div 
-                    onClick={() => { setActiveDashboardSubTab('feedback'); playCyberSound('click'); }}
-                    className="glass-panel hover-card" 
-                    style={{ padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease', minHeight: '160px', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.3)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <MessageSquare size={26} style={{ color: '#10b981' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>💬 Feedback</span>
+                        <button
+                          type="button"
+                          onClick={() => { playCyberSound('click'); setActiveTab('calendar'); }}
+                          className="btn-secondary"
+                          style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Calendar size={16} style={{ color: '#8b5cf6' }} /> Academic Calendar
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>Schedule</span>
+                        </button>
+
+                        {userRole === 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => { playCyberSound('click'); setActiveTab('devices'); }}
+                            className="btn-secondary"
+                            style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
+                          >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Monitor size={16} style={{ color: '#10b981' }} /> Scanner Device Fleet
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>Telemetry</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>User Feedback Directory</h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>Review rating scores, bugs reported, suggestions, and general reviews submitted by students & teachers.</p>
+
+                    {/* Secondary Analytics Directory Hub */}
+                    <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        Analytics & Diagnostics Hub
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveDashboardSubTab('metrics'); playCyberSound('click'); }}
+                          className="btn-secondary"
+                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
+                        >
+                          <Activity size={18} style={{ color: '#0ea5e9' }} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Live Telemetry</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveDashboardSubTab('trends'); playCyberSound('click'); }}
+                          className="btn-secondary"
+                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
+                        >
+                          <Layers size={18} style={{ color: '#8b5cf6' }} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Trends & Radar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveDashboardSubTab('diagnostics'); playCyberSound('click'); }}
+                          className="btn-secondary"
+                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
+                        >
+                          <Settings size={18} style={{ color: '#10b981' }} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Diagnostics</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveDashboardSubTab('feedback'); playCyberSound('click'); }}
+                          className="btn-secondary"
+                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
+                        >
+                          <MessageSquare size={18} style={{ color: '#f59e0b' }} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>User Feedback</span>
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
-                {/* Sleek Bottom Feedback Section */}
+                {/* Streamlined Bottom Feedback Strip */}
                 <div 
-                  className="glass-panel" 
+                  className="surface-card" 
                   style={{ 
-                    marginTop: '28px',
-                    padding: '24px', 
+                    marginTop: '8px',
+                    padding: '20px 24px', 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
                     flexWrap: 'wrap', 
                     gap: '16px',
-                    borderLeft: '4px solid #00f2fe',
-                    background: 'linear-gradient(135deg, rgba(9, 12, 21, 0.6) 0%, rgba(21, 24, 43, 0.6) 100%)',
-                    boxShadow: '0 8px 32px 0 rgba(0, 242, 254, 0.05)'
+                    borderLeft: '3px solid var(--color-primary)'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ 
-                      background: 'rgba(0, 242, 254, 0.1)', 
-                      color: '#00f2fe', 
-                      borderRadius: '12px', 
-                      padding: '12px',
+                      background: 'var(--color-primary-light)', 
+                      color: 'var(--color-primary)', 
+                      borderRadius: '10px', 
+                      padding: '10px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 0 15px rgba(0, 242, 254, 0.2)'
+                      justifyContent: 'center'
                     }}>
-                      <MessageSquare size={24} />
+                      <MessageSquare size={20} />
                     </div>
                     <div>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Help Us Improve the Platform</h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0' }}>
-                        Share your suggestions, report a bug, or rate your overall experience with our smart attendance tracker.
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-text-main)', margin: 0 }}>System Feedback & Support</h4>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
+                        Report issues, request facial enrollment audits, or send feedback to administrator.
                       </p>
                     </div>
                   </div>
@@ -10148,32 +10258,10 @@ export default function App() {
                       playCyberSound('click');
                       setShowFeedbackModal(true);
                     }}
-                    className="btn-primary"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '12px 24px',
-                      borderRadius: '10px',
-                      fontWeight: 600,
-                      fontSize: '0.88rem',
-                      cursor: 'pointer',
-                      border: 'none',
-                      background: 'linear-gradient(90deg, #00f2fe 0%, #4facfe 100%)',
-                      color: '#090c15',
-                      boxShadow: '0 0 20px rgba(0, 242, 254, 0.3)',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.boxShadow = '0 0 30px rgba(0, 242, 254, 0.5)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 242, 254, 0.3)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
+                    className="btn-secondary"
+                    style={{ padding: '8px 18px', minHeight: '38px', fontSize: '0.84rem' }}
                   >
-                    <MessageSquare size={16} /> Share Feedback
+                    <MessageSquare size={15} /> Share Feedback
                   </button>
                 </div>
               </div>

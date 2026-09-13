@@ -25,169 +25,166 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
   }, [stats?.total_present_today, stats?.total_absent_today, stats?.average_attendance_rate]);
 
   return (
-    <div className="glass-stats-grid no-scrollbar">
+    <div className="glass-stats-grid no-scrollbar" style={{ gap: '16px' }}>
       
       {/* CARD 1: PRESENT TODAY */}
-      <div className="glass-stat-card hover-elevate" style={{ '--accent-glow': 'rgba(16, 185, 129, 0.25)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ flex: 1, zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              PRESENT TODAY
+      <div className="surface-card surface-card-hover" style={{ padding: '20px', position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Present Today
             </span>
-            <span className="kpi-trend-badge kpi-trend-up">
-              <TrendingUp size={11} /> +4.2%
+            <span className="status-pill status-pill-success" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+              <TrendingUp size={11} /> Active
             </span>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '4px 0 2px' }}>
-            <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#34d399', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-main)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {animated.present}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>students</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', fontWeight: 600 }}>students</span>
           </div>
 
-          {/* Mini Sparkline SVG */}
-          <div style={{ margin: '6px 0 8px', height: '22px' }}>
-            <svg className="kpi-sparkline-svg" width="100%" height="22" viewBox="0 0 100 22" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="grad-present" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#34d399" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#34d399" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              <path d="M0,18 Q20,16 40,10 T80,4 L100,2 L100,22 L0,22 Z" fill="url(#grad-present)" />
-              <path d="M0,18 Q20,16 40,10 T80,4 L100,2" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" />
+          <div style={{ margin: '8px 0 10px', height: '18px' }}>
+            <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none">
+              <path d="M0,14 Q25,12 50,8 T100,2 L100,18 L0,18 Z" fill="rgba(16, 185, 129, 0.08)" />
+              <path d="M0,14 Q25,12 50,8 T100,2" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
 
-          <span className="neon-badge-emerald" style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', display: 'inline-block' }}>
-            ● Verified Active
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+              Verified In Session
+            </span>
+          </div>
         </div>
         
-        <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-          <UserCheck size={22} />
+        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <UserCheck size={20} />
         </div>
       </div>
 
       {/* CARD 2: LATE / ABSENT */}
-      <div className="glass-stat-card hover-elevate" style={{ '--accent-glow': 'rgba(245, 158, 11, 0.25)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ flex: 1, zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              {lateCount ? 'LATE TODAY' : 'ABSENT TODAY'}
+      <div className="surface-card surface-card-hover" style={{ padding: '20px', position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              {lateCount ? 'Late Today' : 'Absent Today'}
             </span>
-            <span className="kpi-trend-badge" style={{ background: lateCount ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: lateCount ? '#fbbf24' : '#f87171', border: `1px solid ${lateCount ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)'}` }}>
-              {lateCount ? '⏱ Check-in' : '❗ Attention'}
+            <span className={`status-pill ${lateCount ? 'status-pill-warning' : 'status-pill-danger'}`} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+              {lateCount ? 'Check-in' : 'Attention'}
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '4px 0 2px' }}>
-            <div style={{ fontSize: '2.1rem', fontWeight: 800, color: lateCount ? '#fbbf24' : '#f87171', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: lateCount ? '#f59e0b' : '#ef4444', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {lateCount || animated.absent}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>records</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', fontWeight: 600 }}>records</span>
           </div>
 
-          {/* Mini Sparkline SVG */}
-          <div style={{ margin: '6px 0 8px', height: '22px' }}>
-            <svg className="kpi-sparkline-svg" width="100%" height="22" viewBox="0 0 100 22" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="grad-absent" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor={lateCount ? '#fbbf24' : '#f87171'} stopOpacity="0.4" />
-                  <stop offset="100%" stopColor={lateCount ? '#fbbf24' : '#f87171'} stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              <path d="M0,6 Q25,12 50,15 T85,18 L100,19 L100,22 L0,22 Z" fill="url(#grad-absent)" />
-              <path d="M0,6 Q25,12 50,15 T85,18 L100,19" fill="none" stroke={lateCount ? '#fbbf24' : '#f87171'} strokeWidth="2" strokeLinecap="round" />
+          <div style={{ margin: '8px 0 10px', height: '18px' }}>
+            <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none">
+              <path d="M0,4 Q25,8 50,12 T100,16 L100,18 L0,18 Z" fill={lateCount ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)'} />
+              <path d="M0,4 Q25,8 50,12 T100,16" fill="none" stroke={lateCount ? '#f59e0b' : '#ef4444'} strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
 
-          <span className="neon-badge-amber" style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', display: 'inline-block' }}>
-            {lateCount ? '⏱ Grace Period Active' : '● Threshold Monitor'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: lateCount ? '#f59e0b' : '#ef4444', display: 'inline-block' }} />
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+              {lateCount ? 'Grace Period Monitoring' : 'Requires Follow-up'}
+            </span>
+          </div>
         </div>
 
-        <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-          <Clock size={22} />
+        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: lateCount ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: lateCount ? '#f59e0b' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Clock size={20} />
         </div>
       </div>
 
       {/* CARD 3: SCANNER ENGINE */}
-      <div className={`glass-stat-card hover-elevate ${scannerLive ? 'glass-card-neon' : ''}`} style={{ '--accent-glow': scannerLive ? 'rgba(0, 242, 254, 0.35)' : 'rgba(100, 116, 139, 0.15)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ flex: 1, zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              SCANNER ENGINE
+      <div className="surface-card surface-card-hover" style={{ padding: '20px', position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderColor: scannerLive ? 'rgba(14, 165, 233, 0.35)' : 'var(--border-subtle)' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Scanner Engine
             </span>
-            <span className="kpi-trend-badge" style={{ background: scannerLive ? 'rgba(0, 242, 254, 0.15)' : 'rgba(100, 116, 139, 0.15)', color: scannerLive ? '#00f2fe' : '#94a3b8', border: `1px solid ${scannerLive ? 'rgba(0, 242, 254, 0.3)' : 'rgba(100, 116, 139, 0.2)'}` }}>
+            <span className={`status-pill ${scannerLive ? 'status-pill-cyan' : ''}`} style={{ fontSize: '0.68rem', padding: '2px 8px', background: scannerLive ? 'var(--color-primary-light)' : 'rgba(255,255,255,0.05)', color: scannerLive ? '#38bdf8' : 'var(--color-text-muted)' }}>
               <Zap size={11} /> {scannerLive ? 'ONLINE' : 'STANDBY'}
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '4px 0 2px' }}>
-            <div style={{ fontSize: '1.9rem', fontWeight: 800, color: scannerLive ? '#00f2fe' : '#94a3b8', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: scannerLive ? '#38bdf8' : 'var(--color-text-main)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {scannerLive ? 'ACTIVE' : 'READY'}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>FPS: {scannerLive ? '30' : '0'}</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', fontWeight: 600 }}>{scannerLive ? '60 FPS' : 'Idle'}</span>
           </div>
 
-          {/* Pulse Signal line */}
-          <div style={{ margin: '6px 0 8px', height: '22px' }}>
-            <svg className="kpi-sparkline-svg" width="100%" height="22" viewBox="0 0 100 22" preserveAspectRatio="none">
-              <path d="M0,11 L35,11 L40,3 L48,20 L55,5 L60,11 L100,11" fill="none" stroke={scannerLive ? '#00f2fe' : '#475569'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <div style={{ margin: '8px 0 10px', height: '18px' }}>
+            <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none">
+              <path d="M0,9 L35,9 L40,3 L48,15 L55,4 L60,9 L100,9" fill="none" stroke={scannerLive ? '#0ea5e9' : 'var(--border-strong)'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
 
-          <span className={scannerLive ? 'neon-badge-cyan' : ''} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', display: 'inline-block', color: scannerLive ? '#00f2fe' : '#64748b', background: scannerLive ? 'rgba(0,242,254,0.15)' : 'rgba(255,255,255,0.05)' }}>
-            {scannerLive ? '● Live WebSocket Sync' : '○ Standby Mode'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: scannerLive ? '#0ea5e9' : 'var(--color-text-dim)', display: 'inline-block' }} />
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+              {scannerLive ? 'Live Biometric Sync' : 'Ready to Launch'}
+            </span>
+          </div>
         </div>
 
-        <div className="stat-icon-wrapper" style={{ background: scannerLive ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 255, 255, 0.05)', color: scannerLive ? '#00f2fe' : '#64748b', border: scannerLive ? '1px solid rgba(0, 242, 254, 0.4)' : '1px solid rgba(255,255,255,0.08)' }}>
-          <Radio size={22} style={{ animation: scannerLive ? 'pulse 1.5s infinite' : 'none' }} />
+        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: scannerLive ? 'var(--color-primary-light)' : 'rgba(255, 255, 255, 0.05)', color: scannerLive ? '#38bdf8' : 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Radio size={20} />
         </div>
       </div>
 
-      {/* CARD 4: CAMPUS ATTENDANCE */}
-      <div className="glass-stat-card hover-elevate" style={{ '--accent-glow': 'rgba(167, 139, 250, 0.25)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ flex: 1, zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              CAMPUS EFFICIENCY
+      {/* CARD 4: OVERALL ATTENDANCE RATE */}
+      <div className="surface-card surface-card-hover" style={{ padding: '20px', position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Attendance Rate
             </span>
-            <span className="kpi-trend-badge" style={{ background: 'rgba(167, 139, 250, 0.15)', color: '#c084fc', border: '1px solid rgba(167, 139, 250, 0.3)' }}>
-              ✦ Optimal
+            <span className="status-pill" style={{ fontSize: '0.68rem', padding: '2px 8px', background: 'rgba(139, 92, 246, 0.1)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+              Rate
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '4px 0 2px' }}>
-            <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#c084fc', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-main)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {animated.rate}%
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>benchmark</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', fontWeight: 600 }}>average</span>
           </div>
 
-          {/* Progress Bar with glowing gradient */}
-          <div className="kpi-progress-bar-bg">
+          {/* Progress Track */}
+          <div style={{ margin: '10px 0 10px', height: '6px', width: '100%', background: 'rgba(255, 255, 255, 0.06)', borderRadius: '9999px', overflow: 'hidden' }}>
             <div 
-              className="kpi-progress-bar-fill"
               style={{
                 width: `${Math.min(100, Math.max(0, animated.rate))}%`,
-                background: 'linear-gradient(90deg, #a855f7, #00f2fe)'
+                height: '100%',
+                background: 'linear-gradient(90deg, #0ea5e9, #10b981)',
+                borderRadius: '9999px',
+                transition: 'width 0.5s ease'
               }}
             />
           </div>
 
-          <div style={{ marginTop: '10px' }}>
-            <span className="neon-badge-purple" style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', display: 'inline-block' }}>
-              ✦ High Attendance Band
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b5cf6', display: 'inline-block' }} />
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+              Campus Benchmark
             </span>
           </div>
         </div>
 
-        <div className="stat-icon-wrapper" style={{ background: 'rgba(167, 139, 250, 0.15)', color: '#c084fc', border: '1px solid rgba(167, 139, 250, 0.3)' }}>
-          <Award size={22} />
+        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.1)', color: '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Award size={20} />
         </div>
       </div>
 
