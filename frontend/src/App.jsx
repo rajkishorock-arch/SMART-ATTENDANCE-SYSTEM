@@ -6161,6 +6161,7 @@ export default function App() {
           fetchLogs(authToken);
         } else {
           fetchStudentLogs(authToken);
+          fetchBlueprint(authToken);
         }
         
         if (!sessionInitializedRef.current) {
@@ -6228,6 +6229,36 @@ export default function App() {
       console.error("Error fetching student attendance logs:", err);
     } finally {
       setIsLoadingStudentLogs(false);
+    }
+  };
+
+  // Fetch blueprint data for student attendance calendar
+  const fetchBlueprint = async (authToken) => {
+    const activeToken = authToken || token;
+    if (!activeToken) return;
+    setBlueprintLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(`${API_BASE_URL}/attendance/my-calendar`, {
+        headers: { Authorization: `Bearer ${activeToken}` },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        const safeData = Array.isArray(data) ? data : [];
+        setBlueprintData(safeData);
+        if (safeData.length > 0) {
+          setSelectedBlueprintSubject(prev => prev ?? safeData[0].subject_id);
+        }
+      } else {
+        console.warn('Blueprint fetch returned status:', res.status);
+      }
+    } catch (e) {
+      console.error('Blueprint fetch error:', e);
+    } finally {
+      setBlueprintLoading(false);
     }
   };
 
@@ -6907,6 +6938,7 @@ export default function App() {
       case 'student-attendance':
         fetchStudentLogs(token);
         fetchSubjects();
+        fetchBlueprint(token);
         if (currentUser?.details) {
           fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
         }
@@ -7192,6 +7224,7 @@ export default function App() {
       if (meData.role === 'student') {
         fetchStudentLogs(data.access_token);
         fetchStudentLeaves(data.access_token);
+        fetchBlueprint(data.access_token);
       } else {
         Promise.all([
           fetchDepartments(data.access_token),
@@ -7303,6 +7336,7 @@ export default function App() {
           if (meData.role === 'student') {
             fetchStudentLogs(data.access_token);
             fetchStudentLeaves(data.access_token);
+            fetchBlueprint(data.access_token);
           } else {
             Promise.all([
               fetchDepartments(data.access_token),
@@ -17325,26 +17359,6 @@ export default function App() {
             </div>
             {/* ===== SUBJECT-WISE ATTENDANCE BLUEPRINT CALENDAR ===== */}
             {(() => {
-              // Fetch blueprint data if not loaded
-              const loadBlueprint = async () => {
-                if (blueprintLoading || blueprintData.length > 0) return;
-                setBlueprintLoading(true);
-                try {
-                  const res = await fetch(`${API_BASE_URL}/attendance/my-calendar`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                  });
-                  if (res.ok) {
-                    const data = await res.json();
-                    setBlueprintData(data);
-                    if (data.length > 0 && !selectedBlueprintSubject) {
-                      setSelectedBlueprintSubject(data[0].subject_id);
-                    }
-                  }
-                } catch (e) { console.error('Blueprint fetch error:', e); }
-                finally { setBlueprintLoading(false); }
-              };
-              if (blueprintData.length === 0 && !blueprintLoading && token) { loadBlueprint(); }
-
               const activeSubject = blueprintData.find(s => s.subject_id === selectedBlueprintSubject) || blueprintData[0];
               const calYear = blueprintCalendarDate.getFullYear();
               const calMonth = blueprintCalendarDate.getMonth();
@@ -17368,12 +17382,24 @@ export default function App() {
 
               return (
                 <div className="glass-panel" style={{ padding: '28px', marginTop: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>My Attendance Blueprint</h3>
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>Subject-wise calendar — green = present, red = absent</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>My Attendance Blueprint</h3>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>Subject-wise calendar — green = present, red = absent</p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => fetchBlueprint(token)}
+                      disabled={blueprintLoading}
+                      className="btn-secondary"
+                      style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: blueprintLoading ? 'not-allowed' : 'pointer', border: '1px solid rgba(0,242,254,0.25)', background: 'rgba(0,242,254,0.06)', color: '#00f2fe' }}
+                    >
+                      <span style={{ display: 'inline-block', animation: blueprintLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                      {blueprintLoading ? 'Updating...' : 'Refresh'}
+                    </button>
                   </div>
 
                   {blueprintLoading ? (
@@ -17382,8 +17408,18 @@ export default function App() {
                       Loading blueprint...
                     </div>
                   ) : blueprintData.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
-                      No attendance records found yet. Your blueprint will appear once attendance is marked.
+                    <div style={{ textAlign: 'center', padding: '36px 20px', color: '#9ca3af' }}>
+                      <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#cbd5e1' }}>
+                        No attendance records found yet. Your blueprint will appear once attendance is marked.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => fetchBlueprint(token)}
+                        className="btn-secondary"
+                        style={{ padding: '7px 18px', fontSize: '0.82rem', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.1)', color: '#c4b5fd', cursor: 'pointer' }}
+                      >
+                        🔄 Check Again
+                      </button>
                     </div>
                   ) : (
                     <>

@@ -1,9 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Request, Body
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List, Optional, Any, Dict
 import cv2
 import numpy as np
+import logging
 from datetime import datetime, timezone, timedelta, date
+
+logger = logging.getLogger(__name__)
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -614,44 +618,84 @@ def get_student_attendance_calendar(
     Returns student's own attendance records grouped by subject and date.
     Used for the Subject-wise Attendance Blueprint Calendar.
     """
-    # Fetch all subjects for this institution
-    subjects = db.query(models.Subject).filter(
-        models.Subject.institution_id == current_student.institution_id
-    ).all()
+    try:
+        # Fetch all subjects for this institution
+        subjects = db.query(models.Subject).filter(
+            models.Subject.institution_id == current_student.institution_id
+        ).all()
 
-    # Fetch all attendance records for this student
-    logs = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.id == str(current_student.id),
-        models.AttendanceModel.institution_id == current_student.institution_id
-    ).all()
+        # Flexible matching for student records:
+        # 1. direct id match (as string)
+        # 2. composite id prefix match (e.g. "{student.id}_{date}_{subject}")
+        student_matches = [
+            models.AttendanceModel.id == str(current_student.id),
+            models.AttendanceModel.id.like(f"{current_student.id}_%"),
+        ]
+        if current_student.roll:
+            roll_str = str(current_student.roll).strip()
+            student_matches.extend([
+                models.AttendanceModel.roll == roll_str,
+                models.AttendanceModel.id == roll_str,
+                models.AttendanceModel.id.like(f"{roll_str}_%"),
+            ])
 
-    # Group logs by subject_id -> { date -> status }
-    subject_calendar = {}
-    for log in logs:
-        sub_id = log.subject_id
-        if sub_id is None:
-            continue
-        if sub_id not in subject_calendar:
-            subject_calendar[sub_id] = {}
-        subject_calendar[sub_id][log.date] = log.attendance  # Present / Absent / Late
+        logs = db.query(models.AttendanceModel).filter(
+            models.AttendanceModel.institution_id == current_student.institution_id,
+            or_(*student_matches)
+        ).all()
 
-    # Build response
-    result = []
-    for subject in subjects:
-        # Only include subjects for student's department or subjects that have logs
-        if subject.department and subject.department != current_student.dep:
-            if subject.id not in subject_calendar:
-                continue
-        cal = subject_calendar.get(subject.id, {})
-        result.append({
-            "subject_id": subject.id,
-            "subject_name": subject.name,
-            "subject_code": subject.code,
-            "department": subject.department or "",
-            "calendar": cal  # { "25/06/2026": "Present", "24/06/2026": "Absent", ... }
-        })
+        # Group logs by subject_id -> { date -> status }
+        subject_calendar = {}
+        for log in logs:
+            sub_id = log.subject_id if log.subject_id is not None else 0
+            if sub_id not in subject_calendar:
+                subject_calendar[sub_id] = {}
 
-    return result
+            # Support both DD/MM/YYYY and YYYY-MM-DD formats for frontend calendar lookup
+            raw_date = str(log.date or "").strip()
+            if "-" in raw_date and len(raw_date) == 10:
+                try:
+                    parts = raw_date.split("-")
+                    formatted_date = f"{parts[2]}/{parts[1]}/{parts[0]}"
+                except Exception:
+                    formatted_date = raw_date
+            else:
+                formatted_date = raw_date
+
+            status_val = log.attendance or "Present"
+            subject_calendar[sub_id][formatted_date] = status_val
+            subject_calendar[sub_id][raw_date] = status_val
+
+        # Build response
+        result = []
+        for subject in subjects:
+            # Only include subjects for student's department or subjects that have logs
+            if subject.department and current_student.dep and subject.department.strip().lower() != current_student.dep.strip().lower():
+                if subject.id not in subject_calendar:
+                    continue
+            cal = subject_calendar.get(subject.id, {})
+            result.append({
+                "subject_id": subject.id,
+                "subject_name": subject.name,
+                "subject_code": subject.code,
+                "department": subject.department or "",
+                "calendar": cal  # { "25/06/2026": "Present", "24/06/2026": "Absent", ... }
+            })
+
+        # If general logs exist (subject_id == 0) and not already covered
+        if 0 in subject_calendar and subject_calendar[0]:
+            result.insert(0, {
+                "subject_id": 0,
+                "subject_name": "General Attendance",
+                "subject_code": "GEN",
+                "department": current_student.dep or "",
+                "calendar": subject_calendar[0]
+            })
+
+        return result
+    except Exception as e:
+        logger.error(f"Error compiling student blueprint calendar: {e}", exc_info=True)
+        return []
 
 
 @router.post("/manual")
