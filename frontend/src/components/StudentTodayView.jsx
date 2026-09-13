@@ -37,7 +37,8 @@ export default function StudentTodayView({
   // Overall attendance calculation
   const totalClasses = studentLogs.length;
   const attendedClasses = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-  const attendanceRate = totalClasses > 0 ? parseFloat(((attendedClasses / totalClasses) * 100).toFixed(1)) : 0;
+  const rawRate = totalClasses > 0 ? (attendedClasses / totalClasses) * 100 : 0;
+  const attendanceRate = Math.min(100.0, Math.max(0.0, parseFloat(rawRate.toFixed(1))));
   const isSafe = attendanceRate >= 75;
 
   // Deficit or Safe Skips

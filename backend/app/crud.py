@@ -456,8 +456,10 @@ def get_attendance_report(
     student_reports = []
     for s in students:
         present_days = presents_count[str(s.id)]
-        percentage = round((present_days / total_working_days * 100.0), 2) if total_working_days > 0 else 0.0
-        low_attendance = percentage < 75.0 and total_working_days > 0
+        effective_total = max(total_working_days, present_days)
+        raw_percentage = (present_days / effective_total * 100.0) if effective_total > 0 else 0.0
+        percentage = min(100.0, max(0.0, round(raw_percentage, 2)))
+        low_attendance = percentage < 75.0 and effective_total > 0
 
         student_reports.append({
             "id": s.id,
@@ -465,7 +467,7 @@ def get_attendance_report(
             "name": s.name,
             "dep": s.dep,
             "present_days": present_days,
-            "total_days": total_working_days,
+            "total_days": effective_total,
             "percentage": percentage,
             "low_attendance": low_attendance
         })

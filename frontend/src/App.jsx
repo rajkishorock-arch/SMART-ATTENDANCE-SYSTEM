@@ -415,7 +415,7 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
   const absentLogs = studentLogs.filter(l => l.attendance === 'Absent');
   const lateLogs = studentLogs.filter(l => l.attendance === 'Late');
   const presentCount = presentLogs.length;
-  const attendanceRate = totalLogs > 0 ? (presentCount / totalLogs) * 100 : 0;
+  const attendanceRate = totalLogs > 0 ? Math.min(100.0, Math.max(0.0, (presentCount / totalLogs) * 100)) : 0;
 
   // Latest log calculation strictly from real studentLogs in DB
   const latestLog = React.useMemo(() => {
@@ -4517,13 +4517,16 @@ export default function App() {
             const data = await res.json();
             const myRecord = data.students.find(s => s.id === studentId);
             if (myRecord) {
+              const pDays = myRecord.present_days || 0;
+              const tDays = Math.max(myRecord.total_days || 0, pDays);
+              const pct = Math.min(100.0, Math.max(0.0, Number(myRecord.percentage) || 0));
               statsMap[sub.id] = {
                 subjectName: sub.name,
                 subjectCode: sub.code,
-                presentDays: myRecord.present_days,
-                totalDays: myRecord.total_days,
-                percentage: myRecord.percentage,
-                lowAttendance: myRecord.low_attendance
+                presentDays: pDays,
+                totalDays: tDays,
+                percentage: pct,
+                lowAttendance: pct < 75.0 && tDays > 0
               };
             } else {
               statsMap[sub.id] = {
@@ -18672,13 +18675,17 @@ export default function App() {
               ) : (
                 <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                   {Object.values(studentSubjectStats).map((subStat, idx) => {
-                    const isWarning = subStat.percentage < 75.0 && subStat.totalDays > 0;
+                    const pDays = subStat.presentDays || subStat.present_count || 0;
+                    const tDays = Math.max(subStat.totalDays || subStat.total_classes || 0, pDays);
+                    const rawPct = (subStat.percentage !== undefined ? subStat.percentage : (tDays > 0 ? (pDays / tDays) * 100 : 0));
+                    const safePct = Math.min(100.0, Math.max(0.0, Number(rawPct) || 0));
+                    const isWarning = safePct < 75.0 && tDays > 0;
                     return (
                       <div key={idx} className="glass-panel metric-card" style={{ padding: '20px', flexDirection: 'column', alignItems: 'stretch', gap: '12px', height: 'auto', animationDelay: `${(idx + 1) * 100}ms` }}>
                         <div className="flex-between">
                           <div>
-                            <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>{subStat.subjectCode}</span>
-                            <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f3f4f6', margin: '2px 0 0 0' }}>{subStat.subjectName}</h4>
+                            <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>{subStat.subjectCode || subStat.subject_code}</span>
+                            <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f3f4f6', margin: '2px 0 0 0' }}>{subStat.subjectName || subStat.subject_name}</h4>
                           </div>
                           <span style={{
                             padding: '4px 8px',
@@ -18689,21 +18696,21 @@ export default function App() {
                             color: isWarning ? '#ef4444' : '#10b981',
                             border: `1px solid ${isWarning ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
                           }}>
-                            {subStat.totalDays === 0 ? 'No Classes' : isWarning ? 'Shortage' : 'Good'}
+                            {tDays === 0 ? 'No Classes' : isWarning ? 'Shortage' : 'Good'}
                           </span>
                         </div>
                         
                         <div className="flex-between" style={{ marginTop: '8px' }}>
-                          <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>Classes: {subStat.presentDays} / {subStat.totalDays}</span>
+                          <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>Classes: {pDays} / {tDays}</span>
                           <span style={{ fontSize: '1.25rem', fontWeight: 700, color: isWarning ? '#ef4444' : '#10b981' }}>
-                            {subStat.percentage.toFixed(1)}%
+                            {safePct.toFixed(1)}%
                           </span>
                         </div>
                         
                         {/* Progress Bar */}
                         <div style={{ width: '100%', height: '6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '3px', overflow: 'hidden' }}>
                           <div style={{
-                            width: `${Math.min(100, subStat.percentage)}%`,
+                            width: `${Math.min(100, safePct)}%`,
                             height: '100%',
                             background: isWarning ? 'linear-gradient(90deg, #f87171, #ef4444)' : 'linear-gradient(90deg, #34d399, #10b981)',
                             borderRadius: '3px',
@@ -18721,7 +18728,7 @@ export default function App() {
             {(() => {
               const total = studentLogs.length;
               const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-              const rate = total > 0 ? (present / total) * 100 : 0;
+              const rate = total > 0 ? Math.min(100.0, (present / total) * 100) : 0;
               if (total > 0 && rate < 75) {
                 return (
                   <div className="glass-panel" style={{
@@ -18745,124 +18752,6 @@ export default function App() {
               }
               return null;
             })()}
-
-            {/* Calendar Widget Container */}
-            <div className="glass-panel" style={{ padding: '32px' }}>
-              <div className="flex-between" style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Attendance Tracker Calendar</h3>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <button onClick={handlePrevMonth} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Prev</button>
-                  <span style={{ fontWeight: 600, fontSize: '0.95rem', minWidth: '120px', textAlign: 'center' }}>
-                    {calendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                  </span>
-                  <button onClick={handleNextMonth} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Next</button>
-                </div>
-              </div>
-
-              {isLoadingStudentLogs ? (
-                <div className="flex-center" style={{ padding: '60px 0', flexDirection: 'column', gap: '16px', color: '#9ca3af' }}>
-                  <div style={{ width: '40px', height: '40px', border: '3px solid rgba(0,242,254,0.1)', borderTopColor: '#00f2fe', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                  <span>Loading attendance records...</span>
-                </div>
-              ) : (
-                <div className="calendar-grid-wrapper">
-                  {/* Calendar Header */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(7, 1fr)',
-                    textAlign: 'center',
-                    fontWeight: 600,
-                    color: '#9ca3af',
-                    fontSize: '0.85rem',
-                    marginBottom: '12px'
-                  }}>
-                    <div>SUN</div>
-                    <div>MON</div>
-                    <div>TUE</div>
-                    <div>WED</div>
-                    <div>THU</div>
-                    <div>FRI</div>
-                    <div>SAT</div>
-                  </div>
-
-                  {/* Calendar Body */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(7, 1fr)',
-                    gap: '10px'
-                  }}>
-                    {(() => {
-                      // Calculate helper
-                      const year = calendarDate.getFullYear();
-                      const month = calendarDate.getMonth();
-                      const startDay = new Date(year, month, 1).getDay();
-                      const numDays = new Date(year, month + 1, 0).getDate();
-                      
-                      const cells = [];
-                      
-                      // Empty cells for alignment padding
-                      for (let i = 0; i < startDay; i++) {
-                        cells.push(<div key={`empty-${i}`} style={{ height: '70px' }} />);
-                      }
-                      
-                      // Days cells
-                      for (let d = 1; d <= numDays; d++) {
-                        const dateStr = `${String(d).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${year}`;
-                        const dayLog = studentLogs.find(l => l.date === dateStr);
-                        
-                        let cellBg = 'rgba(255, 255, 255, 0.02)';
-                        let cellBorder = '1px solid rgba(255, 255, 255, 0.05)';
-                        let cellColor = '#9ca3af';
-                        let statusIcon = null;
-
-                        if (dayLog) {
-                          if (dayLog.attendance === 'Present' || dayLog.attendance === 'Late') {
-                            cellBg = 'rgba(16, 185, 129, 0.08)';
-                            cellBorder = '1px solid rgba(16, 185, 129, 0.2)';
-                            cellColor = '#10b981';
-                            statusIcon = <CheckCircle2 size={12} style={{ color: '#10b981', marginTop: '4px' }} />;
-                          } else if (dayLog.attendance === 'Absent') {
-                            cellBg = 'rgba(239, 68, 68, 0.08)';
-                            cellBorder = '1px solid rgba(239, 68, 68, 0.2)';
-                            cellColor = '#ef4444';
-                            statusIcon = <AlertCircle size={12} style={{ color: '#ef4444', marginTop: '4px' }} />;
-                          }
-                        }
-
-                        cells.push(
-                          <div 
-                            key={`day-${d}`} 
-                            className="calendar-day-tile"
-                            style={{
-                              height: '70px',
-                              background: cellBg,
-                              border: cellBorder,
-                              borderRadius: '8px',
-                              padding: '8px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                              position: 'relative'
-                            }}
-                          >
-                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: cellColor }}>{d}</span>
-                            {statusIcon && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.65rem', fontWeight: 600 }}>
-                                {statusIcon}
-                                <span style={{ textTransform: 'uppercase' }}>{dayLog.attendance}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                      
-                      return cells;
-                    })()}
-                  </div>
-                </div>
-              )}
-            </div>
             {/* ===== SUBJECT-WISE ATTENDANCE BLUEPRINT CALENDAR ===== */}
             {(() => {
               const activeSubject = blueprintData.find(s => s.subject_id === selectedBlueprintSubject) || blueprintData[0];
