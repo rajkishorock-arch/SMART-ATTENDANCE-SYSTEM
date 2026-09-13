@@ -8570,6 +8570,49 @@ export default function App() {
     return items;
   }, [logs, recognizedStudents, stats.total_present_today]);
 
+  // Role-scoped dashboard stats: Teachers see only their branch/subject students, Admin sees whole campus
+  const scopedDashboardStats = useMemo(() => {
+    if (userRole !== 'teacher' || !stats) return stats;
+    
+    // For teacher: use filteredStudents (which already scopes to teacher's branch/subjects)
+    const teacherStudents = filteredStudents && filteredStudents.length > 0 ? filteredStudents : students;
+    if (teacherStudents && teacherStudents.length > 0) {
+      const studentIds = new Set(teacherStudents.map(s => String(s.id)));
+      const todayDash = getLocalDateString();
+      const todaySlash = todayDash.split('-').reverse().join('/');
+      
+      // If server stats already match teacher's student count exactly
+      if (stats.total_students <= teacherStudents.length && stats.total_students > 0) {
+        return stats;
+      }
+      
+      // Compute accurate stats for teacher's registered branch students
+      const teacherTodayLogs = (logs || []).filter(l => (l.date === todaySlash || l.date === todayDash) && studentIds.has(String(l.id)));
+      const presentSet = new Set(teacherTodayLogs.filter(l => (l.attendance || '').toLowerCase() === 'present').map(l => String(l.id)));
+      const presentToday = presentSet.size;
+      const absentToday = Math.max(0, teacherStudents.length - presentToday);
+      const avgRate = teacherStudents.length > 0 ? Math.round((presentToday / teacherStudents.length) * 100) : 0;
+      
+      return {
+        ...stats,
+        total_students: teacherStudents.length,
+        total_present_today: presentToday,
+        total_absent_today: absentToday,
+        average_attendance_rate: avgRate
+      };
+    }
+    return stats;
+  }, [userRole, stats, filteredStudents, students, logs]);
+
+  // Role-scoped live activity: Teachers only see logs for their branch/subjects
+  const dashboardRecentLogs = useMemo(() => {
+    if (!logs) return [];
+    if (userRole === 'teacher') {
+      return filteredLogs;
+    }
+    return logs;
+  }, [logs, userRole, filteredLogs]);
+
   useEffect(() => {
     const built = [];
 
@@ -10024,8 +10067,8 @@ export default function App() {
                     teacherName={currentUser?.name || 'Teacher'}
                     subjects={subjects}
                     schedules={schedules}
-                    logs={logs}
-                    students={students}
+                    logs={dashboardRecentLogs}
+                    students={filteredStudents}
                     sessionActive={attendanceActive}
                     onStartSession={(subId, period) => {
                       if (subId) setSelectedSubjectId(String(subId));
@@ -10128,7 +10171,7 @@ export default function App() {
                   <SkeletonLoader type="stat" count={4} />
                 ) : (
                   <RoleCommandCenter
-                    stats={stats}
+                    stats={scopedDashboardStats}
                     scannerLive={attendanceActive || scannerBootActive}
                     userRole={userRole}
                     teacherSubjects={subjects}
@@ -10136,7 +10179,7 @@ export default function App() {
                 )}
 
                 {userRole === 'teacher' && (
-                  <TeacherMiniDashboard stats={stats} subjects={subjects} teacherName={currentUser?.name} />
+                  <TeacherMiniDashboard stats={scopedDashboardStats} subjects={subjects} teacherName={currentUser?.name} />
                 )}
 
                 {/* Primary 2-Column Command Grid */}
@@ -10167,9 +10210,9 @@ export default function App() {
                         </button>
                       </div>
 
-                      {logs && logs.length > 0 ? (
+                      {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {logs.slice(0, 6).map((log, idx) => {
+                          {dashboardRecentLogs.slice(0, 6).map((log, idx) => {
                             const isPresent = log.attendance?.toLowerCase() === 'present';
                             return (
                               <div
@@ -10235,7 +10278,7 @@ export default function App() {
                     </div>
 
                     {/* Attendance Charts */}
-                    <AttendanceChartsWidget stats={stats} />
+                    <AttendanceChartsWidget stats={scopedDashboardStats} />
                   </div>
 
                   {/* Right Column: Quick Actions & Pending Attention Center */}

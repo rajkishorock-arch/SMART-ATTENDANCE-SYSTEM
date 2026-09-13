@@ -40,22 +40,24 @@ def get_attendance_logs(
         )
     
     subject_ids = None
+    teacher_depts = None
     if current_user.role == "teacher":
         teacher_subjects = db.query(models.Subject).filter(
             models.Subject.teacher_id == current_user.id,
             models.Subject.institution_id == current_user.institution_id
         ).all()
-        subject_ids = [s.id for s in teacher_subjects]
-        # Don't return empty - teacher might have old logs without subject_id
-        # We'll filter by subject_ids in crud, which will include null-subject records from teacher's dept
-        if not subject_ids:
-            # No subjects assigned, return all logs (admin-fallback for teacher)
-            subject_ids = None
+        subject_ids = [s.id for s in teacher_subjects] if teacher_subjects else None
+        teacher_depts = [s.department for s in teacher_subjects if s.department]
+        if current_user.subject_department and current_user.subject_department not in teacher_depts:
+            teacher_depts.append(current_user.subject_department)
+        if not teacher_depts:
+            teacher_depts = None
             
     logs = crud.get_attendance_logs(
         db, 
         date_str=date, 
         department=department, 
+        departments=teacher_depts,
         attendance_status=status,
         subject_ids=subject_ids,
         institution_id=current_user.institution_id
@@ -120,6 +122,24 @@ def get_dashboard_stats(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can view dashboard statistics."
         )
+        
+    if current_user.role == "teacher":
+        teacher_subjects = db.query(models.Subject).filter(
+            models.Subject.teacher_id == current_user.id,
+            models.Subject.institution_id == current_user.institution_id
+        ).all()
+        teacher_depts = [s.department for s in teacher_subjects if s.department]
+        if current_user.subject_department and current_user.subject_department not in teacher_depts:
+            teacher_depts.append(current_user.subject_department)
+        teacher_sub_ids = [s.id for s in teacher_subjects] if teacher_subjects else None
+        
+        return crud.get_dashboard_stats(
+            db, 
+            institution_id=current_user.institution_id,
+            departments=teacher_depts if teacher_depts else None,
+            subject_ids=teacher_sub_ids
+        )
+
     return crud.get_dashboard_stats(db, institution_id=current_user.institution_id)
 
 @router.post("/recognize-frame")

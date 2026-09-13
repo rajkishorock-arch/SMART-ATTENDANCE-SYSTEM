@@ -125,13 +125,14 @@ def get_attendance_logs(
     db: Session, 
     date_str: Optional[str] = None, 
     department: Optional[str] = None, 
+    departments: Optional[list] = None,
     attendance_status: Optional[str] = None, 
     skip: int = 0, 
     limit: int = 200,
     subject_ids: Optional[list] = None,
     institution_id: Optional[int] = None
 ):
-    from sqlalchemy import or_
+    from sqlalchemy import or_, and_
     query = db.query(models.AttendanceModel)
     if institution_id is not None:
         query = query.filter(models.AttendanceModel.institution_id == institution_id)
@@ -139,19 +140,39 @@ def get_attendance_logs(
         query = query.filter(models.AttendanceModel.date == date_str)
     if department:
         query = query.filter(models.AttendanceModel.department == department)
+    elif departments:
+        query = query.filter(models.AttendanceModel.department.in_(departments))
     if attendance_status:
         query = query.filter(models.AttendanceModel.attendance == attendance_status)
     if subject_ids is not None:
-        # Include records matching subject_ids OR records with null subject_id (legacy attendance)
-        query = query.filter(
-            or_(
-                models.AttendanceModel.subject_id.in_(subject_ids),
-                models.AttendanceModel.subject_id == None
+        if departments:
+            # Teacher view: match teacher's subjects OR null-subject records within teacher's department
+            query = query.filter(
+                or_(
+                    models.AttendanceModel.subject_id.in_(subject_ids),
+                    and_(
+                        models.AttendanceModel.subject_id == None,
+                        models.AttendanceModel.department.in_(departments)
+                    )
+                )
             )
-        )
+        else:
+            query = query.filter(
+                or_(
+                    models.AttendanceModel.subject_id.in_(subject_ids),
+                    models.AttendanceModel.subject_id == None
+                )
+            )
     return query.order_by(models.AttendanceModel.date.desc(), models.AttendanceModel.time.desc()).offset(skip).limit(limit).all()
 
-def get_dashboard_stats(db: Session, institution_id: Optional[int] = None):
+def get_dashboard_stats(
+    db: Session, 
+    institution_id: Optional[int] = None,
+    department: Optional[str] = None,
+    departments: Optional[list] = None,
+    subject_ids: Optional[list] = None
+):
+    from sqlalchemy import or_
     today_str = datetime.now(IST).strftime("%d/%m/%Y")
     
     student_query = db.query(models.StudentModel)
@@ -160,6 +181,28 @@ def get_dashboard_stats(db: Session, institution_id: Optional[int] = None):
     if institution_id is not None:
         student_query = student_query.filter(models.StudentModel.institution_id == institution_id)
         attn_query = attn_query.filter(models.AttendanceModel.institution_id == institution_id)
+        
+    active_depts = []
+    if department:
+        active_depts.append(department)
+    if departments:
+        for d in departments:
+            if d and d not in active_depts:
+                active_depts.append(d)
+                
+    if active_depts:
+        student_query = student_query.filter(models.StudentModel.dep.in_(active_depts))
+        if subject_ids:
+            attn_query = attn_query.filter(
+                or_(
+                    models.AttendanceModel.department.in_(active_depts),
+                    models.AttendanceModel.subject_id.in_(subject_ids)
+                )
+            )
+        else:
+            attn_query = attn_query.filter(models.AttendanceModel.department.in_(active_depts))
+    elif subject_ids:
+        attn_query = attn_query.filter(models.AttendanceModel.subject_id.in_(subject_ids))
         
     total_students = student_query.count()
     
@@ -182,8 +225,12 @@ def get_dashboard_stats(db: Session, institution_id: Optional[int] = None):
     )
     if institution_id is not None:
         q = q.filter(models.AttendanceModel.institution_id == institution_id)
+    if active_depts:
+        q = q.filter(models.AttendanceModel.department.in_(active_depts))
+    elif subject_ids:
+        q = q.filter(models.AttendanceModel.subject_id.in_(subject_ids))
+        
     dept_counts = q.group_by(models.AttendanceModel.department).all()
-    
     department_stats = {dept or "Unknown": count for dept, count in dept_counts}
     
     # Weekly trends
