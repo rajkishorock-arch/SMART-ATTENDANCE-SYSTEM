@@ -11099,7 +11099,7 @@ export default function App() {
                     <span>No feedbacks submitted yet.</span>
                   </div>
                 ) : (
-                  <div style={{ width: '100%', overflowX: 'auto' }}>
+                  <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
@@ -16225,7 +16225,7 @@ export default function App() {
                 </span>
               </div>
 
-              <div style={{ width: '100%', overflowX: 'auto' }}>
+              <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
@@ -16526,7 +16526,7 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: 'rgba(15, 23, 42, 0.3)' }}>
                         <thead>
                           <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -16642,7 +16642,7 @@ export default function App() {
                     ➕ Register New Institution
                   </h4>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                     <div className="form-group" style={{ margin: 0 }}>
                       <label className="form-label">Institution Name</label>
                       <input
@@ -16667,7 +16667,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                     <div className="form-group" style={{ margin: 0 }}>
                       <label className="form-label">Primary Color (Hex)</label>
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -16714,7 +16714,7 @@ export default function App() {
                       Every institution needs a default administrator to access the settings panel. Set their initial details here.
                     </p>
                     
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '4px' }}>
+                    <div className="responsive-form-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginTop: '4px' }}>
                       <div className="form-group" style={{ margin: 0 }}>
                         <label className="form-label">Admin Name</label>
                         <input
@@ -16762,10 +16762,15 @@ export default function App() {
                 </form>
 
                 {/* Table of Institutions */}
-                <div style={{ width: '100%', overflowX: 'auto', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '16px' }}>
-                    🏫 Registered Institution Directory
-                  </h4>
+                <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
+                      🏫 Registered Institution Directory
+                    </h4>
+                    <span className="mobile-scroll-hint" style={{ fontSize: '0.72rem', color: '#00f2fe', background: 'rgba(0, 242, 254, 0.1)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(0, 242, 254, 0.25)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      👉 Swipe horizontally for full table
+                    </span>
+                  </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
