@@ -8,6 +8,8 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,9 +78,9 @@ public class FastFaceScannerPlugin extends Plugin {
         if (arr != null) {
             try {
                 for (int i = 0; i < arr.length(); i++) {
-                    JSObject item = JSObject.fromJSONObject(arr.getJSONObject(i));
-                    int studentId = item.getInt("student_id", -1);
-                    JSArray vecArr = item.getJSONArray("face_embedding");
+                    JSONObject item = arr.getJSONObject(i);
+                    int studentId = item.optInt("student_id", -1);
+                    JSONArray vecArr = item.optJSONArray("face_embedding");
                     if (studentId > 0 && vecArr != null && vecArr.length() == 128) {
                         float[] vec = new float[128];
                         double normSq = 0;

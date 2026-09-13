@@ -9841,16 +9841,19 @@ export default function App() {
           
           <div className="header-actions">
             {/* Real-time Cloud / Offline Sync Status Pill */}
-            <SyncStatusPill 
-              compact={false}
-              apiBaseUrl={API_BASE_URL}
-              token={token}
-              institutionId={currentUser?.institution_id || 1}
-              lang={appLang}
-            />
+            <div className="header-action-desktop-only">
+              <SyncStatusPill 
+                compact={false}
+                apiBaseUrl={API_BASE_URL}
+                token={token}
+                institutionId={currentUser?.institution_id || 1}
+                lang={appLang}
+              />
+            </div>
 
             {/* Accessibility & Language Modal Trigger */}
             <button 
+              className="header-action-desktop-only"
               onClick={() => { playCyberSound('click'); setShowAccessibilityModal(true); }}
               title="Language & Accessibility Settings"
               aria-label="Language & Accessibility Settings"
@@ -9875,6 +9878,7 @@ export default function App() {
 
             {/* Privacy & Trust Center Transparency Trigger */}
             <button 
+              className="header-action-desktop-only"
               onClick={() => { playCyberSound('click'); setShowPrivacyCenterModal(true); }}
               title="Privacy & Biometric Data Trust Center"
               aria-label="Privacy & Biometric Data Trust Center"
@@ -9917,14 +9921,16 @@ export default function App() {
                 Sign Out
               </button>
             )}
-            <NotificationCenter
-              open={notificationsOpen}
-              onToggle={() => setNotificationsOpen((v) => !v)}
-              onClose={() => setNotificationsOpen(false)}
-              notifications={notifications}
-              onMarkAllRead={markAllNotificationsRead}
-              unreadCount={unreadNotificationCount}
-            />
+            <div className="header-action-desktop-only">
+              <NotificationCenter
+                open={notificationsOpen}
+                onToggle={() => setNotificationsOpen((v) => !v)}
+                onClose={() => setNotificationsOpen(false)}
+                notifications={notifications}
+                onMarkAllRead={markAllNotificationsRead}
+                unreadCount={unreadNotificationCount}
+              />
+            </div>
             {activeTab === 'students' && (
               <>
                 <button 

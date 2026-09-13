@@ -3183,6 +3183,12 @@ html {
   flex-shrink: 0;
 }
 
+.header-action-desktop-only {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .dashboard-charts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3706,6 +3712,12 @@ html {
   .header-actions {
     width: 100%;
     justify-content: stretch !important;
+  }
+
+  .header-action-desktop-only,
+  .sync-status-pill-container,
+  .header-actions .notification-bell-btn {
+    display: none !important;
   }
 
   .header-actions button {
