@@ -66,6 +66,7 @@ import {
   ArrowUpCircle,
   Sliders,
   Palette,
+  X,
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -6451,9 +6452,9 @@ export default function App() {
             if (role === 'student') {
               return ['student-attendance', 'student-profile', 'ai-assistant', 'settings'].includes(tabId);
             } else if (role === 'teacher') {
-              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
+              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
             } else if (role === 'admin') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
             }
             return false;
           };
@@ -6946,9 +6947,9 @@ export default function App() {
       if (role === 'student') {
         return ['student-attendance', 'student-profile', 'ai-assistant', 'settings'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile', 'disputes'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'settings', 'student-profile', 'disputes'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
       }
       return false;
     };
@@ -9653,6 +9654,15 @@ export default function App() {
             </svg>
           </div>
           <span className="text-gradient" style={{ fontWeight: 800, background: 'linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 50%, #94A3B8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE"}</span>
+          <button 
+            type="button"
+            className="mobile-sidebar-close hide-on-desktop" 
+            onClick={(e) => { e.stopPropagation(); setMobileSidebarOpen(false); playCyberSound('click'); }}
+            aria-label="Close Sidebar"
+            style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.06)', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={18} />
+          </button>
         </div>
         <div style={{ padding: '0 16px 12px', display: 'flex', justifyContent: 'center' }}>
           <VersionBadge
