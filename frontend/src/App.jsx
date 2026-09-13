@@ -263,6 +263,145 @@ function calculateEAR(landmarks, eyeIndices) {
 }
 
 // =====================================================================
+// BLUEPRINT DAY BREAKDOWN MODAL - Inspects all real DB logs for a specific date
+// =====================================================================
+function BlueprintDayBreakdownModal({ 
+  isOpen, 
+  onClose, 
+  dateStr, 
+  studentLogs = [], 
+  activeSubject = null,
+  playCyberSound = () => {},
+  onRequestDispute 
+}) {
+  if (!isOpen || !dateStr) return null;
+
+  // Normalize date string for matching (both DD/MM/YYYY and YYYY-MM-DD)
+  const matchingLogs = studentLogs.filter(log => {
+    if (!log.date) return false;
+    const lDate = log.date.trim();
+    if (lDate === dateStr) return true;
+
+    // Convert DD/MM/YYYY to YYYY-MM-DD or vice-versa
+    if (dateStr.includes('/') && lDate.includes('-')) {
+      const [d, m, y] = dateStr.split('/');
+      const iso = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      return lDate === iso;
+    }
+    if (dateStr.includes('-') && lDate.includes('/')) {
+      const [y, m, d] = dateStr.split('-');
+      const slash = `${parseInt(d)}/${parseInt(m)}/${y}`;
+      const slashPad = `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
+      return lDate === slash || lDate === slashPad;
+    }
+    return false;
+  });
+
+  // Filter by active subject if a specific subject tab is selected
+  const filteredLogs = activeSubject && activeSubject.subject_id !== 'GEN' && activeSubject.subject_id !== 'ALL'
+    ? matchingLogs.filter(log => String(log.subject_id) === String(activeSubject.subject_id) || log.subject_code === activeSubject.subject_code)
+    : matchingLogs;
+
+  const presentCount = filteredLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+  const absentCount = filteredLogs.filter(l => l.attendance === 'Absent').length;
+
+  return (
+    <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '20px', border: '1px solid rgba(139,92,246,0.3)', padding: '28px', background: '#0b0f19' }}>
+        
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Calendar color="#8b5cf6" size={24} />
+            <div>
+              <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.15rem', fontWeight: 800 }}>Attendance Details — {dateStr}</h3>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+                {activeSubject ? `Filter: ${activeSubject.subject_code || activeSubject.subject_name || 'General'}` : 'All Subjects'}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
+        </div>
+
+        {/* Stats Pill Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Presents / Late</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981' }}>{presentCount}</div>
+          </div>
+          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Absents</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ef4444' }}>{absentCount}</div>
+          </div>
+          <div style={{ background: 'rgba(0,242,254,0.08)', border: '1px solid rgba(0,242,254,0.2)', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Total Classes</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#00f2fe' }}>{filteredLogs.length}</div>
+          </div>
+        </div>
+
+        {/* Detailed Class Cards */}
+        {filteredLogs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '36px 16px', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px border-dashed rgba(255,255,255,0.08)' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 12px' }}>
+              No attendance records found in real database for {dateStr}.
+            </p>
+            {onRequestDispute && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onRequestDispute({ date: dateStr, attendance: 'Absent' });
+                }}
+                style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(0, 242, 254, 0.1)', border: '1px solid rgba(0, 242, 254, 0.25)', color: '#00f2fe', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                ➕ Submit Correction Request for {dateStr}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {filteredLogs.map((log, idx) => {
+              const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
+              return (
+                <div key={log.id || idx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>📚 {log.subject_name ? `${log.subject_name} (${log.subject_code || ''})` : (log.department || 'General Class')}</span>
+                    </div>
+                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700, background: isPresent ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', color: isPresent ? '#10b981' : '#ef4444' }}>
+                      {log.attendance || 'Present'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                    <span>⏰ Period: <strong style={{ color: '#00f2fe' }}>{log.period_label || log.session_time || 'Regular Session'}</strong></span>
+                    <span>🕒 Time: <strong style={{ color: '#e2e8f0' }}>{log.time || 'N/A'}</strong></span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.04)', fontSize: '0.75rem', color: '#64748b' }}>
+                    <span>Method: {log.verification_method || 'AI Face Scan'}</span>
+                    {!isPresent && onRequestDispute && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onRequestDispute(log);
+                        }}
+                        style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer' }}
+                      >
+                        🚨 Submit Correction Request
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
 // STUDENT STATS ROW WITH INTERACTIVE MODALS - Real DB Data Sync & Click Details
 // =====================================================================
 function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}, onRequestDispute }) {
@@ -2087,6 +2226,8 @@ export default function App() {
   const [blueprintLoading, setBlueprintLoading] = useState(false);
   const [selectedBlueprintSubject, setSelectedBlueprintSubject] = useState(null); // subject_id
   const [blueprintCalendarDate, setBlueprintCalendarDate] = useState(new Date());
+  const [showBlueprintDayModal, setShowBlueprintDayModal] = useState(false);
+  const [blueprintDayModalDate, setBlueprintDayModalDate] = useState(null);
   
   // Student Portal Change Password states
   const [oldPassword, setOldPassword] = useState('');
@@ -18752,7 +18893,7 @@ export default function App() {
                       <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
                       <div>
                         <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>My Attendance Blueprint</h3>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>Subject-wise calendar — green = present, red = absent</p>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>Subject-wise calendar — click any date cell to view real-time log details & submit disputes</p>
                       </div>
                     </div>
                     <button
@@ -18914,7 +19055,12 @@ export default function App() {
                           return (
                             <div
                               key={day}
-                              title={status ? `${dateStr}: ${status}` : dateStr}
+                              title={status ? `${dateStr}: ${status} (Click for Details)` : `${dateStr} (Click for Details)`}
+                              onClick={() => {
+                                setBlueprintDayModalDate(dateStr);
+                                setShowBlueprintDayModal(true);
+                                if (typeof playCyberSound === 'function') playCyberSound('click');
+                              }}
                               style={{
                                 background: bg,
                                 border,
@@ -18925,7 +19071,7 @@ export default function App() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 minHeight: '52px',
-                                cursor: 'default',
+                                cursor: 'pointer',
                                 transition: 'all 0.15s'
                               }}
                             >
@@ -18939,12 +19085,27 @@ export default function App() {
                       </div>
 
                       {/* Legend */}
-                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '16px', fontSize: '0.73rem', color: '#9ca3af' }}>
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '16px', fontSize: '0.73rem', color: '#9ca3af', alignItems: 'center' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.4)', display: 'inline-block' }}/>P = Present</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', display: 'inline-block' }}/>A = Absent</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', display: 'inline-block' }}/>L = Late</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', border: '2px solid rgba(0,242,254,0.5)', display: 'inline-block' }}/>Today</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto', color: '#00f2fe', fontWeight: 600 }}>💡 Click any date cell to view day breakdown & submit disputes</span>
                       </div>
+
+                      {/* Daily Attendance Breakdown Modal */}
+                      <BlueprintDayBreakdownModal
+                        isOpen={showBlueprintDayModal}
+                        onClose={() => setShowBlueprintDayModal(false)}
+                        dateStr={blueprintDayModalDate}
+                        studentLogs={studentLogs}
+                        activeSubject={activeSubject}
+                        playCyberSound={playCyberSound}
+                        onRequestDispute={(log) => {
+                          setDisputePrefillSession(log);
+                          setShowDisputeModal(true);
+                        }}
+                      />
                     </>
                   )}
                 </div>
