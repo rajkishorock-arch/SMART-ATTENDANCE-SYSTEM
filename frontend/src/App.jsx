@@ -9953,20 +9953,9 @@ export default function App() {
       <main className="main-content">
         {/* Header */}
         <header className={`flex-between header-container ${activeTab === 'settings' && activeSubSetting !== null ? 'hide-on-mobile' : ''}`} style={{ marginBottom: '16px' }}>
-          <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button 
-              className="hamburger-btn" 
-              onClick={() => { setMobileSidebarOpen(true); playCyberSound('click'); }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
-            </button>
-
-            <div>
-              <h1 style={{ fontSize: '1.45rem', fontWeight: 700 }}>
+          <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
                 {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
                 {activeTab === 'students' && 'Student Directory'}
                 {activeTab === 'teachers' && 'Teacher Directory'}
@@ -9986,7 +9975,7 @@ export default function App() {
                 {activeTab === 'settings' && 'Security & System Settings'}
                 {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
               </h1>
-              <p style={{ color: '#9ca3af', fontSize: '0.8rem' }}>
+              <p style={{ color: '#9ca3af', fontSize: '0.78rem', margin: '3px 0 0', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {activeTab === 'dashboard' && 'Visualizing attendance logs and statistics'}
                 {activeTab === 'students' && 'Manage registered students and profiles'}
                 {activeTab === 'teachers' && 'Manage registered teaching staff and weekly timetables'}
@@ -10007,6 +9996,20 @@ export default function App() {
                 {activeTab === 'ai-assistant' && 'Interact using voice or upload files. Customise bot settings and suggestion filters.'}
               </p>
             </div>
+
+            <button 
+              type="button"
+              className="hamburger-btn" 
+              onClick={() => { setMobileSidebarOpen(true); playCyberSound('click'); }}
+              aria-label="Open Navigation Menu"
+              title="Open Navigation Menu"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
           </div>
           
           <div className="header-actions">
