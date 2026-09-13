@@ -218,11 +218,19 @@ export default function StudentTodayView({
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#fff' }}>
-                      {log.date || 'Class Session'}
+                    <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>{log.date || 'Class Session'}</span>
+                      {log.period_label && (
+                        <span style={{ fontSize: '0.7rem', color: '#00f2fe', background: 'rgba(0, 242, 254, 0.12)', border: '1px solid rgba(0, 242, 254, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                          {log.period_label}
+                        </span>
+                      )}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
-                      {log.time || 'Recorded'} {log.department ? `· ${log.department}` : ''}
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+                        {log.subject_name ? log.subject_name : (log.subject_code ? `${log.subject_code}` : (log.department || 'General Attendance'))}
+                      </span>
+                      {log.time && <span style={{ color: '#94a3b8' }}>· 🕒 {log.time}</span>}
                     </div>
                   </div>
 

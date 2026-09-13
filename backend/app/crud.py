@@ -285,13 +285,17 @@ def mark_student_attendance(
         today_str = datetime.now(IST).strftime("%d/%m/%Y")
         
     from .period_utils import resolve_period_name
-    period_name = resolve_period_name(custom_time) if custom_time else resolve_period_name(datetime.now(IST).strftime("%H:%M:%S"))
-    time_str = period_name
-    scan_timestamp = datetime.now(IST).strftime("%H:%M:%S")
+    from sqlalchemy import or_
+
+    actual_clock_time = custom_time if custom_time else datetime.now(IST).strftime("%H:%M:%S")
+    period_name = resolve_period_name(actual_clock_time)
     
-    # 1. Check if already marked in DB for this subject, date, and period
+    # 1. Check if already marked in DB for this student, subject, date, and period slot
     query = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.id == str(student_id),
+        or_(
+            models.AttendanceModel.id == str(student_id),
+            models.AttendanceModel.roll == roll
+        ),
         models.AttendanceModel.date == today_str
     )
     if institution_id is not None:
@@ -305,25 +309,25 @@ def mark_student_attendance(
     existing_candidates = query.all()
     existing = None
     for cand in existing_candidates:
-        if cand.time == time_str or resolve_period_name(cand.time) == period_name:
+        if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
             existing = cand
             break
     
     if existing:
         return existing, False
         
-    # 2. Insert into MySQL DB
+    # 2. Insert into MySQL DB with actual clock time
     db_attendance = models.AttendanceModel(
         id=str(student_id),
         roll=roll,
         name=name,
         department=dep,
-        time=time_str,
+        time=actual_clock_time,
         date=today_str,
         attendance="Present",
         subject_id=subject_id,
         institution_id=institution_id,
-        fallback_reason=f"Scan at {scan_timestamp}"
+        fallback_reason=f"Scan at {actual_clock_time}"
     )
     db.add(db_attendance)
     try:

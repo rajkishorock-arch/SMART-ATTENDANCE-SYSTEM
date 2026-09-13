@@ -389,14 +389,45 @@ def read_student_attendance(
     db: Session = Depends(get_db)
 ):
     """
-    Get current logged in student's attendance history logs.
+    Get current logged in student's attendance history logs with enriched subject & period details.
     """
-    # Find all records matching student's id (as string)
+    from sqlalchemy import or_
+    from .period_utils import resolve_period_name, get_period_slot_label
+
     logs = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.id == str(current_student.id),
-        models.AttendanceModel.institution_id == current_student.institution_id
+        models.AttendanceModel.institution_id == current_student.institution_id,
+        or_(
+            models.AttendanceModel.id == str(current_student.id),
+            models.AttendanceModel.roll == current_student.roll
+        )
     ).all()
-    return logs
+
+    inst_subjects = db.query(models.Subject).filter(models.Subject.institution_id == current_student.institution_id).all()
+    sub_map = {s.id: f"{s.name} ({s.code})" if s.code else s.name for s in inst_subjects}
+
+    output_logs = []
+    for log in logs:
+        p_name = resolve_period_name(log.time)
+        p_label = get_period_slot_label(p_name)
+        s_name = sub_map.get(log.subject_id, "General Attendance" if not log.subject_id else f"Subject #{log.subject_id}")
+
+        output_logs.append(schemas.Attendance(
+            id=str(log.id),
+            roll=log.roll or current_student.roll or "",
+            name=log.name or current_student.name or "",
+            department=log.department or current_student.dep or "",
+            time=log.time or "",
+            date=log.date or "",
+            attendance=log.attendance or "Present",
+            subject_id=log.subject_id,
+            subject_name=s_name,
+            period=p_name,
+            period_label=p_label,
+            remarks=getattr(log, "fallback_reason", None) or getattr(log, "remarks", None),
+            marked_by=getattr(log, "verification_method", None)
+        ))
+
+    return output_logs
 
 @router.post("/students/me/change-password", response_model=schemas.Student)
 def change_student_password(

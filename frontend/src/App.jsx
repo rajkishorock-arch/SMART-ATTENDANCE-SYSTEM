@@ -3524,6 +3524,9 @@ export default function App() {
   const fetchLogs = async (authToken) => {
     if (isDemoMode) return;
     const usedToken = authToken || token;
+    if (userRole === 'student') {
+      fetchStudentLogs(usedToken);
+    }
     try {
       const res = await fetch(`${API_BASE_URL}/attendance/logs`, {
         headers: {
@@ -6503,6 +6506,9 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setStudentLogs(data);
+        try {
+          localStorage.setItem('cached_student_logs', JSON.stringify(data));
+        } catch (e) {}
       } else {
         console.error("Failed to fetch student attendance logs");
       }
