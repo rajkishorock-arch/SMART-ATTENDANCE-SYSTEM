@@ -226,135 +226,126 @@ export default function AttendanceDisputeModal({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(5, 7, 15, 0.85)',
-      backdropFilter: 'blur(10px)',
-      zIndex: 9999,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px'
-    }}>
-      <div className="glass-panel" style={{
-        width: '100%',
-        maxWidth: '750px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        borderRadius: '20px',
-        border: '1px solid rgba(0, 242, 254, 0.25)',
-        background: 'linear-gradient(135deg, rgba(10, 14, 28, 0.95), rgba(15, 23, 42, 0.95))',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 242, 254, 0.15)',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(139, 92, 246, 0.2))',
-              border: '1px solid rgba(0, 242, 254, 0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#00f2fe'
-            }}>
-              <ShieldAlert size={22} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                Attendance Correction & Disputes
-              </h2>
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '2px 0 0 0' }}>
-                Audited dispute workflow — submit corrections with supporting proof
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => { playCyberSound('click'); onClose(); }}
-            style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px',
-              color: '#9ca3af',
-              cursor: 'pointer',
-              padding: '6px'
-            }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '12px 24px 0 24px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
-        }}>
-          <button
-            onClick={() => { setActiveView('new'); playCyberSound('click'); }}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px 8px 0 0',
-              border: 'none',
-              background: activeView === 'new' ? 'rgba(0, 242, 254, 0.15)' : 'transparent',
-              color: activeView === 'new' ? '#00f2fe' : '#9ca3af',
-              borderBottom: activeView === 'new' ? '2px solid #00f2fe' : 'none',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer'
-            }}
-          >
-            Submit New Dispute
-          </button>
-          <button
-            onClick={() => { setActiveView('history'); playCyberSound('click'); }}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px 8px 0 0',
-              border: 'none',
-              background: activeView === 'history' ? 'rgba(0, 242, 254, 0.15)' : 'transparent',
-              color: activeView === 'history' ? '#00f2fe' : '#9ca3af',
-              borderBottom: activeView === 'history' ? '2px solid #00f2fe' : 'none',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            My Disputes
-            {myDisputes.length > 0 && (
-              <span style={{
-                background: 'rgba(0, 242, 254, 0.2)',
+    <div 
+      className="dispute-modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          playCyberSound('click');
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="dispute-modal-card"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="dispute-modal-header-wrap">
+          {/* Header */}
+          <div style={{
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(139, 92, 246, 0.2))',
+                border: '1px solid rgba(0, 242, 254, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 color: '#00f2fe',
-                fontSize: '0.7rem',
-                padding: '1px 6px',
-                borderRadius: '10px'
+                flexShrink: 0
               }}>
-                {myDisputes.length}
-              </span>
-            )}
-          </button>
+                <ShieldAlert size={20} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                  Attendance Correction & Disputes
+                </h2>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '2px 0 0 0' }}>
+                  Audited dispute workflow — submit corrections with supporting proof
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => { playCyberSound('click'); onClose(); }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                padding: '6px',
+                flexShrink: 0
+              }}
+              aria-label="Close dialog"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            padding: '8px 20px 0 20px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.05)'
+          }}>
+            <button
+              onClick={() => { setActiveView('new'); playCyberSound('click'); }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px 8px 0 0',
+                border: 'none',
+                background: activeView === 'new' ? 'rgba(0, 242, 254, 0.15)' : 'transparent',
+                color: activeView === 'new' ? '#00f2fe' : '#9ca3af',
+                borderBottom: activeView === 'new' ? '2px solid #00f2fe' : 'none',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+            >
+              Submit New Dispute
+            </button>
+            <button
+              onClick={() => { setActiveView('history'); playCyberSound('click'); }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px 8px 0 0',
+                border: 'none',
+                background: activeView === 'history' ? 'rgba(0, 242, 254, 0.15)' : 'transparent',
+                color: activeView === 'history' ? '#00f2fe' : '#9ca3af',
+                borderBottom: activeView === 'history' ? '2px solid #00f2fe' : 'none',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              My Disputes
+              {myDisputes.length > 0 && (
+                <span style={{
+                  background: 'rgba(0, 242, 254, 0.2)',
+                  color: '#00f2fe',
+                  fontSize: '0.7rem',
+                  padding: '1px 6px',
+                  borderRadius: '10px'
+                }}>
+                  {myDisputes.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
-        <div style={{ padding: '24px', flex: 1 }}>
+        <div className="dispute-modal-body">
           {errorMsg && (
             <div style={{
               padding: '12px 16px',
@@ -585,7 +576,7 @@ export default function AttendanceDisputeModal({
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+              <div className="dispute-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingBottom: '12px' }}>
                 <button
                   type="button"
                   onClick={() => { playCyberSound('click'); onClose(); }}
