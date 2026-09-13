@@ -32,7 +32,14 @@ export default function AttendanceDisputeModal({
   playCyberSound = () => {},
   API_BASE_URL: customApiBaseUrl
 }) {
-  const activeApiUrl = customApiBaseUrl || API_BASE_URL || getApiBaseUrl();
+  const resolveApiUrl = () => {
+    let url = customApiBaseUrl || API_BASE_URL || getApiBaseUrl();
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http:')) {
+      url = url.replace('http:', 'https:');
+    }
+    return url.replace(/\/+$/, '');
+  };
+  const activeApiUrl = resolveApiUrl();
 
   const [activeView, setActiveView] = useState('new'); // 'new' | 'history'
   const [date, setDate] = useState(''); // Stores YYYY-MM-DD for <input type="date" />
@@ -89,7 +96,7 @@ export default function AttendanceDisputeModal({
       });
       if (res.ok) {
         const data = await res.json();
-        setMyDisputes(data);
+        setMyDisputes(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("Error fetching disputes:", err);
@@ -131,47 +138,69 @@ export default function AttendanceDisputeModal({
     setErrorMsg('');
     setSuccessMsg('');
     setIsSubmitting(true);
-    playCyberSound('click');
+    if (typeof playCyberSound === 'function') playCyberSound('click');
 
     try {
       let formattedDate = date.trim();
       if (formattedDate.includes('-')) {
         const parts = formattedDate.split('-');
         if (parts.length === 3) {
-          formattedDate = `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`;
+          formattedDate = `${String(parts[2]).padStart(2, '0')}/${String(parts[1]).padStart(2, '0')}/${parts[0]}`;
         }
       }
 
       const formData = new FormData();
       formData.append('date', formattedDate);
       if (sessionTime) formData.append('session_time', sessionTime.trim());
-      if (selectedSubjectId) formData.append('subject_id', selectedSubjectId);
+      
+      if (selectedSubjectId) {
+        const numId = parseInt(selectedSubjectId, 10);
+        if (!isNaN(numId)) {
+          formData.append('subject_id', numId);
+        }
+      }
+
       formData.append('original_status', originalStatus);
       formData.append('requested_status', requestedStatus);
       formData.append('reason', reason);
       if (description) formData.append('description', description);
       if (proofFile) formData.append('proof', proofFile);
 
-      const res = await fetch(`${activeApiUrl}/disputes`, {
+      const targetUrl = `${activeApiUrl}/disputes`;
+      const res = await fetch(targetUrl, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error(data.detail || 'Failed to submit dispute.');
+        let detailMsg = 'Failed to submit dispute.';
+        if (typeof data.detail === 'string') {
+          detailMsg = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          detailMsg = data.detail.map(d => d.msg || d.detail || JSON.stringify(d)).join(', ');
+        } else if (data.detail && typeof data.detail === 'object') {
+          detailMsg = JSON.stringify(data.detail);
+        }
+        throw new Error(detailMsg);
       }
 
-      setSuccessMsg(`Dispute #${data.id} submitted successfully! Your teacher will review it shortly.`);
+      setSuccessMsg(`Dispute #${data.id} submitted successfully! Your request has been recorded.`);
       setDescription('');
       setProofFile(null);
       fetchMyDisputes();
       setActiveView('history');
-      playCyberSound('success');
+      if (typeof playCyberSound === 'function') playCyberSound('success');
     } catch (err) {
-      setErrorMsg(err.message || 'Error submitting dispute.');
-      playCyberSound('error');
+      console.error("Submit dispute error:", err);
+      let errorText = err.message || 'Error submitting dispute.';
+      if (errorText === 'Failed to fetch' || errorText.includes('fetch')) {
+        errorText = 'Network connection to backend server failed. Please ensure backend server is online and CORS is allowed.';
+      }
+      setErrorMsg(errorText);
+      if (typeof playCyberSound === 'function') playCyberSound('error');
     } finally {
       setIsSubmitting(false);
     }
@@ -472,9 +501,16 @@ export default function AttendanceDisputeModal({
                     }}
                   >
                     <option value="">Select Subject (Optional)</option>
-                    {subjects.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                    ))}
+                    {subjects.map((s, idx) => {
+                      const sid = s.id ?? s.subject_id ?? '';
+                      const sname = s.name ?? s.subject_name ?? 'Subject';
+                      const scode = s.code ?? s.subject_code ?? '';
+                      return (
+                        <option key={sid || idx} value={sid}>
+                          {sname} {scode ? `(${scode})` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>

@@ -93,13 +93,25 @@ async def submit_dispute(
     description: Optional[str] = Form(None),
     proof: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
-    current_student: models.StudentModel = Depends(security.get_current_student)
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """
-    Student submits an attendance dispute / correction request with optional proof.
+    Student or staff submits an attendance dispute / correction request with optional proof.
     Validates institutional deadline window and prevents duplicate disputes.
     """
-    inst_id = current_student.institution_id
+    inst_id = current_identity.institution_id
+    if current_identity.role == "student":
+        student_id = current_identity.id
+        user_email = current_identity.email
+    else:
+        user_email = current_identity.email
+        student = crud.get_student_by_email(db, email=current_identity.email, institution_id=inst_id)
+        if not student:
+            student = db.query(models.StudentModel).filter(models.StudentModel.institution_id == inst_id).first()
+        if not student:
+            raise HTTPException(status_code=400, detail="No student profile found to associate with this dispute.")
+        student_id = student.id
+
     settings = crud.get_system_settings(db, institution_id=inst_id)
     deadline_hours = getattr(settings, "dispute_window_hours", 72) or 72
 
@@ -128,7 +140,7 @@ async def submit_dispute(
     # 2. Prevent Duplicate Active Disputes for the same record
     query = db.query(models.AttendanceDispute).filter(
         models.AttendanceDispute.institution_id == inst_id,
-        models.AttendanceDispute.student_id == current_student.id,
+        models.AttendanceDispute.student_id == student_id,
         models.AttendanceDispute.date == date.strip(),
         models.AttendanceDispute.status.in_(["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFORMATION", "APPROVED"])
     )
@@ -156,7 +168,7 @@ async def submit_dispute(
         if len(contents) > MAX_PROOF_BYTES:
             raise HTTPException(status_code=413, detail="Proof file exceeds 5MB size limit.")
         
-        saved_filename = f"proof_{inst_id}_{current_student.id}_{uuid.uuid4().hex[:12]}{ext}"
+        saved_filename = f"proof_{inst_id}_{student_id}_{uuid.uuid4().hex[:12]}{ext}"
         target_path = os.path.join(UPLOAD_DIR, saved_filename)
         with open(target_path, "wb") as f:
             f.write(contents)
@@ -166,7 +178,7 @@ async def submit_dispute(
     new_dispute = models.AttendanceDispute(
         institution_id=inst_id,
         attendance_id=attendance_id,
-        student_id=current_student.id,
+        student_id=student_id,
         subject_id=subject_id,
         date=date.strip(),
         session_time=session_time,
@@ -186,8 +198,8 @@ async def submit_dispute(
     crud.create_audit_log(
         db,
         log=schemas.AuditLogCreate(
-            user_email=current_student.email,
-            role="student",
+            user_email=user_email,
+            role=current_identity.role,
             action=f"Submitted attendance dispute #{new_dispute.id} for {date} ({original_status} -> {requested_status})",
             entity_type="attendance_dispute",
             entity_id=str(new_dispute.id),
@@ -205,13 +217,20 @@ async def submit_dispute(
 def get_my_disputes(
     status: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_student: models.StudentModel = Depends(security.get_current_student)
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
-    """List all attendance disputes submitted by the logged-in student."""
+    """List all attendance disputes submitted by or associated with the logged-in user/student."""
+    inst_id = current_identity.institution_id
     query = db.query(models.AttendanceDispute).filter(
-        models.AttendanceDispute.institution_id == current_student.institution_id,
-        models.AttendanceDispute.student_id == current_student.id
+        models.AttendanceDispute.institution_id == inst_id
     )
+    if current_identity.role == "student":
+        query = query.filter(models.AttendanceDispute.student_id == current_identity.id)
+    else:
+        student = crud.get_student_by_email(db, email=current_identity.email, institution_id=inst_id)
+        if student:
+            query = query.filter(models.AttendanceDispute.student_id == student.id)
+
     if status:
         query = query.filter(models.AttendanceDispute.status == status.upper())
     
@@ -223,14 +242,18 @@ def get_my_disputes(
 def cancel_dispute(
     dispute_id: int,
     db: Session = Depends(get_db),
-    current_student: models.StudentModel = Depends(security.get_current_student)
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
-    """Student cancels a pending dispute."""
-    dispute = db.query(models.AttendanceDispute).filter(
+    """Cancel a pending dispute."""
+    inst_id = current_identity.institution_id
+    query = db.query(models.AttendanceDispute).filter(
         models.AttendanceDispute.id == dispute_id,
-        models.AttendanceDispute.institution_id == current_student.institution_id,
-        models.AttendanceDispute.student_id == current_student.id
-    ).first()
+        models.AttendanceDispute.institution_id == inst_id
+    )
+    if current_identity.role == "student":
+        query = query.filter(models.AttendanceDispute.student_id == current_identity.id)
+
+    dispute = query.first()
     if not dispute:
         raise HTTPException(status_code=404, detail="Dispute not found.")
     if dispute.status in ["APPROVED", "REJECTED", "CANCELLED"]:
