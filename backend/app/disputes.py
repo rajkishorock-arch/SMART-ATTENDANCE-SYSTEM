@@ -175,24 +175,33 @@ async def submit_dispute(
         content_type = proof.content_type
 
     # 4. Create Dispute Record
-    new_dispute = models.AttendanceDispute(
-        institution_id=inst_id,
-        attendance_id=attendance_id,
-        student_id=student_id,
-        subject_id=subject_id,
-        date=date.strip(),
-        session_time=session_time,
-        original_status=original_status,
-        requested_status=requested_status,
-        reason=reason,
-        description=description,
-        proof_filename=saved_filename,
-        proof_content_type=content_type,
-        status="SUBMITTED"
-    )
-    db.add(new_dispute)
-    db.commit()
-    db.refresh(new_dispute)
+    clean_session_time = session_time.strip()[:99] if session_time else None
+
+    try:
+        new_dispute = models.AttendanceDispute(
+            institution_id=inst_id,
+            attendance_id=attendance_id,
+            student_id=student_id,
+            subject_id=subject_id,
+            date=date.strip(),
+            session_time=clean_session_time,
+            original_status=original_status,
+            requested_status=requested_status,
+            reason=reason,
+            description=description,
+            proof_filename=saved_filename,
+            proof_content_type=content_type,
+            status="SUBMITTED"
+        )
+        db.add(new_dispute)
+        db.commit()
+        db.refresh(new_dispute)
+    except Exception as err:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to record dispute in database: {str(err)}"
+        )
 
     # 5. Immutable Audit Log
     crud.create_audit_log(

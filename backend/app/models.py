@@ -869,7 +869,7 @@ class AttendanceDispute(Base):
     student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
     subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True)
     date = Column(String(20), nullable=False, index=True)
-    session_time = Column(String(20), nullable=True)
+    session_time = Column(String(100), nullable=True)
     original_status = Column(String(20), nullable=False)
     requested_status = Column(String(20), nullable=False, default="Present")
     reason = Column(String(100), nullable=False)

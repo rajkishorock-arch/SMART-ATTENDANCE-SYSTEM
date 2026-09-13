@@ -120,6 +120,14 @@ def update_schema():
         db_dialect = engine.dialect.name  # 'postgresql', 'mysql', 'sqlite'
         print(f"Database dialect: {db_dialect}")
 
+        # Attendance disputes session_time column expansion
+        if db_dialect == 'postgresql':
+            safe_execute("ALTER TABLE attendance_disputes ALTER COLUMN session_time TYPE VARCHAR(100)", "Expanded session_time to VARCHAR(100)")
+            safe_execute("ALTER TABLE attendance_disputes ALTER COLUMN date TYPE VARCHAR(50)", "Expanded date to VARCHAR(50)")
+        elif db_dialect == 'mysql':
+            safe_execute("ALTER TABLE attendance_disputes MODIFY session_time VARCHAR(100)", "Expanded session_time to VARCHAR(100)")
+            safe_execute("ALTER TABLE attendance_disputes MODIFY date VARCHAR(50)", "Expanded date to VARCHAR(50)")
+
         # Update unique index constraints on users table for multi-tenancy
         if db_dialect == 'mysql':
             safe_execute("ALTER TABLE users DROP INDEX ix_users_email", "Dropped ix_users_email index")
