@@ -174,13 +174,13 @@ export default function StudentTodayView({
         )}
       </div>
 
-      {/* ── Recent Attendance History (Last 5 days) ── */}
+      {/* ── Today's Attendance History (Last 5 scans today) ── */}
       <div className="surface-card" style={{ padding: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Calendar size={18} color="var(--color-primary)" />
             <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#fff' }}>
-              {lang === 'hi' ? 'हाल की उपस्थिति रिकॉर्ड' : 'Recent Check-in History'}
+              {lang === 'hi' ? 'आज की उपस्थिति रिकॉर्ड' : "Today's Recent Check-in History"}
             </h3>
           </div>
 
@@ -196,13 +196,13 @@ export default function StudentTodayView({
           )}
         </div>
 
-        {studentLogs.length === 0 ? (
+        {todayStudentLogs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px 10px', color: 'var(--color-text-muted)', fontSize: '0.84rem' }}>
-            {lang === 'hi' ? 'कोई पिछला रिकॉर्ड उपलब्ध नहीं है।' : 'No past attendance history available yet.'}
+            {lang === 'hi' ? 'आज का कोई उपस्थिति रिकॉर्ड उपलब्ध नहीं है।' : 'No attendance recorded for today yet.'}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {studentLogs.slice(0, 6).map((log, idx) => {
+            {todayStudentLogs.slice(0, 5).map((log, idx) => {
               const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
               return (
                 <div
@@ -219,16 +219,16 @@ export default function StudentTodayView({
                 >
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span>{log.date || 'Class Session'}</span>
+                      <span>📅 {log.date || 'Today'}</span>
                       {log.period_label && (
                         <span style={{ fontSize: '0.7rem', color: '#00f2fe', background: 'rgba(0, 242, 254, 0.12)', border: '1px solid rgba(0, 242, 254, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                          {log.period_label}
+                          ⏰ {log.period_label}
                         </span>
                       )}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
-                        {log.subject_name ? log.subject_name : (log.subject_code ? `${log.subject_code}` : (log.department || 'General Attendance'))}
+                        📚 {log.subject_name ? log.subject_name : (log.subject_code ? `${log.subject_code}` : (log.department || 'General Attendance'))}
                       </span>
                       {log.time && <span style={{ color: '#94a3b8' }}>· 🕒 {log.time}</span>}
                     </div>

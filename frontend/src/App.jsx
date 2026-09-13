@@ -163,6 +163,42 @@ const shiftDate = (currentDateStr, days, setter) => {
   setter(`${yyyy}-${mm}-${dd}`);
 };
 
+const isTodayDate = (dateStr) => {
+  if (!dateStr) return true;
+  const clean = String(dateStr).trim();
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+
+  const isoToday = `${yyyy}-${mm}-${dd}`;
+  const dmyDashToday = `${dd}-${mm}-${yyyy}`;
+  const dmySlashToday = `${dd}/${mm}/${yyyy}`;
+  const ymdSlashToday = `${yyyy}/${mm}/${dd}`;
+
+  if (clean === isoToday || clean === dmyDashToday || clean === dmySlashToday || clean === ymdSlashToday) {
+    return true;
+  }
+
+  const parts = clean.split(/[-/]/);
+  if (parts.length === 3) {
+    let d, m, y;
+    if (parts[0].length === 4) {
+      y = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+      d = parseInt(parts[2], 10);
+    } else {
+      d = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+      y = parseInt(parts[2], 10);
+    }
+    if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+      return y === now.getFullYear() && (m - 1) === now.getMonth() && d === now.getDate();
+    }
+  }
+  return false;
+};
+
 const resolvePeriodName = (timeStr) => {
   if (!timeStr) {
     const h = new Date().getHours();
@@ -8777,7 +8813,7 @@ export default function App() {
     return stats;
   }, [userRole, stats, filteredStudents, students, logs]);
 
-  // Role-scoped live activity: Teachers only see logs for their branch/subjects
+  // Role-scoped live activity: Teachers only see logs for their branch/subjects (Today's scans only)
   const dashboardRecentLogs = useMemo(() => {
     if (!logs) return [];
     let list = userRole === 'teacher' ? filteredLogs : logs;
@@ -8790,7 +8826,10 @@ export default function App() {
       });
     }
 
-    return [...list].map(l => {
+    // Filter to ONLY today's scans!
+    const todayList = list.filter(l => isTodayDate(l.date));
+
+    return todayList.map(l => {
       const sName = l.subject_name || (l.subject_id ? (subMap[l.subject_id] || `Subject #${l.subject_id}`) : 'General Attendance');
       const pName = l.period || resolvePeriodName(l.time || '');
       const pLabel = l.period_label || getPeriodSlotLabel(pName);
@@ -10427,7 +10466,7 @@ export default function App() {
 
                       {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          {dashboardRecentLogs.slice(0, 8).map((log, idx) => {
+                          {dashboardRecentLogs.slice(0, 5).map((log, idx) => {
                             const isPresent = log.attendance?.toLowerCase() === 'present';
                             return (
                               <div
