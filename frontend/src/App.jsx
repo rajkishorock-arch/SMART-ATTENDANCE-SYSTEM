@@ -11314,13 +11314,29 @@ export default function App() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1.2fr 1.8fr', gap: isMobileView ? '20px' : '32px', width: '100%', minWidth: 0, maxWidth: '100%' }}>
                 {/* Form for manual registration / edit */}
                 <div className="glass-panel" style={{ padding: '32px' }}>
-                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', fontFamily: 'Outfit, sans-serif' }}>
-                      {editingTeacher ? 'Edit Teacher Details' : 'Register New Teacher'}
-                    </h3>
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
-                      {editingTeacher ? 'Update credentials and info' : 'Manually register a teaching staff account'}
-                    </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', marginBottom: '24px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', fontFamily: 'Outfit, sans-serif', margin: 0 }}>
+                        {editingTeacher ? 'Edit Teacher Details' : 'Register New Teacher'}
+                      </h3>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
+                        {editingTeacher ? 'Update credentials and info' : 'Manually register a teaching staff account'}
+                      </p>
+                    </div>
+                    {editingTeacher && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingTeacher(null);
+                          setTeacherError('');
+                          setTeacherSuccess('');
+                        }}
+                        className="btn-secondary"
+                        style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', color: '#38bdf8', borderColor: 'rgba(14, 165, 233, 0.3)' }}
+                      >
+                        + New Registration
+                      </button>
+                    )}
                   </div>
 
                   {teacherError && (
@@ -11476,9 +11492,24 @@ export default function App() {
 
                 {/* Teacher Directory Table */}
                 <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0, width: '100%', maxWidth: '100%' }}>
-                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', fontFamily: 'Outfit, sans-serif' }}>Teaching Staff Directory</h3>
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>Listing all registered teachers, mapped subjects, and timetable schedules</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', fontFamily: 'Outfit, sans-serif', margin: 0 }}>Teaching Staff Directory</h3>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: '4px 0 0' }}>Listing all registered teachers, mapped subjects, and timetable schedules</p>
+                    </div>
+                    {editingTeacher && (
+                      <button
+                        onClick={() => {
+                          setEditingTeacher(null);
+                          setTeacherError('');
+                          setTeacherSuccess('');
+                        }}
+                        className="btn-primary"
+                        style={{ padding: '6px 14px', fontSize: '0.78rem', minHeight: '34px' }}
+                      >
+                        + Add New Teacher
+                      </button>
+                    )}
                   </div>
 
                   {/* Bulk Action Bar */}
