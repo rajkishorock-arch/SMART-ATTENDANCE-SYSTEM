@@ -421,14 +421,14 @@ class LeaveRequestResponse(_OrmBase):
     subject_id: Optional[int] = None
     subject_name: Optional[str] = None
     subject_code: Optional[str] = None
-    start_date: str
-    end_date: str
-    leave_type: str
-    reason: str
-    status: str
+    start_date: Optional[str] = ""
+    end_date: Optional[str] = ""
+    leave_type: Optional[str] = "Medical"
+    reason: Optional[str] = ""
+    status: Optional[str] = "Pending"
     reviewed_by: Optional[int] = None
     reviewed_at: Optional[datetime] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 
 class LeaveStatusUpdate(BaseModel):

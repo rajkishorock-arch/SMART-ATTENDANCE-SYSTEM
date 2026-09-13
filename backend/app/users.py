@@ -1082,38 +1082,47 @@ def apply_leave_request(
     current_student: models.StudentModel = Depends(security.get_current_student)
 ):
     """Student applies for a new leave request."""
-    new_leave = models.LeaveRequest(
-        institution_id=current_student.institution_id,
-        student_id=current_student.id,
-        subject_id=payload.subject_id,
-        start_date=payload.start_date,
-        end_date=payload.end_date,
-        leave_type=payload.leave_type,
-        reason=payload.reason,
-        status="Pending"
-    )
-    db.add(new_leave)
-    db.commit()
-    db.refresh(new_leave)
-    
-    subject = db.query(models.Subject).filter(models.Subject.id == new_leave.subject_id).first() if new_leave.subject_id else None
-    
-    return schemas.LeaveRequestResponse(
-        id=new_leave.id,
-        student_id=new_leave.student_id,
-        student_name=current_student.name,
-        student_roll=current_student.roll,
-        student_dep=current_student.dep,
-        subject_id=new_leave.subject_id,
-        subject_name=subject.name if subject else None,
-        subject_code=subject.code if subject else None,
-        start_date=new_leave.start_date,
-        end_date=new_leave.end_date,
-        leave_type=new_leave.leave_type,
-        reason=new_leave.reason,
-        status=new_leave.status,
-        created_at=new_leave.created_at
-    )
+    try:
+        now_utc = datetime.now(timezone.utc)
+        new_leave = models.LeaveRequest(
+            institution_id=current_student.institution_id,
+            student_id=current_student.id,
+            user_email=current_student.email,
+            applicant_name=current_student.name,
+            role="student",
+            subject_id=payload.subject_id,
+            start_date=payload.start_date,
+            end_date=payload.end_date,
+            leave_type=payload.leave_type or "Medical",
+            reason=payload.reason,
+            status="Pending",
+            created_at=now_utc
+        )
+        db.add(new_leave)
+        db.commit()
+        db.refresh(new_leave)
+        
+        subject = db.query(models.Subject).filter(models.Subject.id == new_leave.subject_id).first() if new_leave.subject_id else None
+        
+        return schemas.LeaveRequestResponse(
+            id=new_leave.id,
+            student_id=new_leave.student_id,
+            student_name=current_student.name,
+            student_roll=current_student.roll,
+            student_dep=current_student.dep,
+            subject_id=new_leave.subject_id,
+            subject_name=subject.name if subject else None,
+            subject_code=subject.code if subject else None,
+            start_date=new_leave.start_date,
+            end_date=new_leave.end_date,
+            leave_type=new_leave.leave_type or "Medical",
+            reason=new_leave.reason,
+            status=new_leave.status or "Pending",
+            created_at=new_leave.created_at or now_utc
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to submit leave request: {str(e)}")
 
 @router.get("/students/me/leave-requests", response_model=List[schemas.LeaveRequestResponse])
 def list_student_my_leaves(

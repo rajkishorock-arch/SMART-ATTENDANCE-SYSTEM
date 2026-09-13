@@ -253,14 +253,20 @@ function LeaveApplicationForm({ token, API_BASE_URL, onLeaveApplied, playCyberSo
       if (res.ok) {
         setMsg({ type: 'success', text: '✅ Leave request submitted successfully!' });
         setForm({ start_date: '', end_date: '', leave_type: 'Medical', reason: '', subject_id: '' });
-        playCyberSound('success');
+        if (playCyberSound) playCyberSound('success');
         if (onLeaveApplied) onLeaveApplied();
       } else {
-        const err = await res.json();
-        setMsg({ type: 'error', text: err.detail || 'Failed to submit leave request.' });
+        let errText = 'Failed to submit leave request.';
+        try {
+          const err = await res.json();
+          if (err.detail) {
+            errText = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+          }
+        } catch (_) {}
+        setMsg({ type: 'error', text: errText });
       }
     } catch (e) {
-      setMsg({ type: 'error', text: 'Network error. Please try again.' });
+      setMsg({ type: 'error', text: 'Network connection or server error. Please try again.' });
     } finally {
       setSubmitting(false);
     }
