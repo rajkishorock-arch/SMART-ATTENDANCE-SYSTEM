@@ -163,7 +163,7 @@ def get_attendance_logs(
                     models.AttendanceModel.subject_id == None
                 )
             )
-    return query.order_by(models.AttendanceModel.date.desc(), models.AttendanceModel.time.desc()).offset(skip).limit(limit).all()
+    return query.order_by(models.AttendanceModel.id.desc()).offset(skip).limit(limit).all()
 
 def get_dashboard_stats(
     db: Session, 

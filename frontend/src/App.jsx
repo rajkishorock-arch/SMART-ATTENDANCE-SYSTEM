@@ -8780,11 +8780,35 @@ export default function App() {
   // Role-scoped live activity: Teachers only see logs for their branch/subjects
   const dashboardRecentLogs = useMemo(() => {
     if (!logs) return [];
-    if (userRole === 'teacher') {
-      return filteredLogs;
+    let list = userRole === 'teacher' ? filteredLogs : logs;
+    const subMap = {};
+    if (subjects && subjects.length > 0) {
+      subjects.forEach(s => {
+        if (s && s.id) {
+          subMap[s.id] = s.name + (s.code ? ` (${s.code})` : '');
+        }
+      });
     }
-    return logs;
-  }, [logs, userRole, filteredLogs]);
+
+    return [...list].map(l => {
+      const sName = l.subject_name || (l.subject_id ? (subMap[l.subject_id] || `Subject #${l.subject_id}`) : 'General Attendance');
+      const pName = l.period || resolvePeriodName(l.time || '');
+      const pLabel = l.period_label || getPeriodSlotLabel(pName);
+      return {
+        ...l,
+        subject_name: sName,
+        period: pName,
+        period_label: pLabel
+      };
+    }).sort((a, b) => {
+      const idA = parseInt(a.id, 10) || 0;
+      const idB = parseInt(b.id, 10) || 0;
+      if (idA && idB && idA !== idB) return idB - idA;
+      const strA = `${a.date || ''} ${a.time || ''}`;
+      const strB = `${b.date || ''} ${b.time || ''}`;
+      return strB.localeCompare(strA);
+    });
+  }, [logs, userRole, filteredLogs, subjects]);
 
   useEffect(() => {
     const built = [];
@@ -10402,8 +10426,8 @@ export default function App() {
                       </div>
 
                       {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {dashboardRecentLogs.slice(0, 6).map((log, idx) => {
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {dashboardRecentLogs.slice(0, 8).map((log, idx) => {
                             const isPresent = log.attendance?.toLowerCase() === 'present';
                             return (
                               <div
@@ -10416,39 +10440,72 @@ export default function App() {
                                 style={{
                                   padding: '12px 14px',
                                   display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
+                                  flexDirection: 'column',
+                                  gap: '8px',
                                   cursor: 'pointer',
-                                  background: 'rgba(255, 255, 255, 0.02)'
+                                  background: 'rgba(255, 255, 255, 0.02)',
+                                  borderRadius: '12px',
+                                  border: '1px solid rgba(255, 255, 255, 0.06)'
                                 }}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                                  <div style={{
-                                    width: '36px', height: '36px', borderRadius: '50%',
-                                    background: isPresent ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                                    color: isPresent ? '#34d399' : '#f87171',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontWeight: 700, fontSize: '0.85rem', flexShrink: 0
-                                  }}>
-                                    {log.name ? log.name.charAt(0).toUpperCase() : 'S'}
-                                  </div>
-                                  <div style={{ minWidth: 0 }}>
-                                    <div style={{ color: 'var(--color-text-main)', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {log.name}
+                                {/* Top Row: Avatar, Student Name, Roll/Dep, Status Pill */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                                    <div style={{
+                                      width: '36px', height: '36px', borderRadius: '50%',
+                                      background: isPresent ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                      color: isPresent ? '#34d399' : '#f87171',
+                                      border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      fontWeight: 700, fontSize: '0.85rem', flexShrink: 0
+                                    }}>
+                                      {log.name ? log.name.charAt(0).toUpperCase() : 'S'}
                                     </div>
-                                    <div style={{ color: 'var(--color-text-dim)', fontSize: '0.76rem', display: 'flex', gap: '8px' }}>
-                                      <span>{log.roll}</span>
-                                      {log.dep && <span>· {log.dep}</span>}
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ color: 'var(--color-text-main)', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {log.name}
+                                      </div>
+                                      <div style={{ color: 'var(--color-text-dim)', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <span>Roll: {log.roll || 'N/A'}</span>
+                                        {(log.dep || log.department) && <span>· {log.dep || log.department}</span>}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                                  <span style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>
-                                    {log.time}
-                                  </span>
-                                  <span className={`status-pill ${isPresent ? 'status-pill-success' : 'status-pill-danger'}`} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                                  
+                                  <span className={`status-pill ${isPresent ? 'status-pill-success' : 'status-pill-danger'}`} style={{ fontSize: '0.72rem', padding: '3px 10px', flexShrink: 0 }}>
                                     {log.attendance || 'Present'}
                                   </span>
+                                </div>
+
+                                {/* Bottom Details Row: Subject, Period, Date & Time */}
+                                <div style={{
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                  paddingTop: '6px',
+                                  borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+                                  fontSize: '0.76rem',
+                                  color: '#94a3b8'
+                                }}>
+                                  {/* Subject & Period badges */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
+                                      📚 {log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance')}
+                                    </span>
+                                    {(log.period_label || log.period) && (
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(168, 85, 247, 0.12)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
+                                        ⏰ {log.period_label || log.period}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Date & Time info */}
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', color: '#cbd5e1', fontSize: '0.76rem' }}>
+                                    {log.date && <span>📅 {log.date}</span>}
+                                    <span>🕒 {log.time || 'N/A'}</span>
+                                  </div>
                                 </div>
                               </div>
                             );
