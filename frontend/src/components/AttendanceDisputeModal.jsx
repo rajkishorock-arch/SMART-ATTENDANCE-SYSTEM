@@ -29,10 +29,13 @@ export default function AttendanceDisputeModal({
   currentUser, 
   subjects = [], 
   prefillSession = null,
-  playCyberSound = () => {} 
+  playCyberSound = () => {},
+  API_BASE_URL: customApiBaseUrl
 }) {
+  const activeApiUrl = customApiBaseUrl || API_BASE_URL || getApiBaseUrl();
+
   const [activeView, setActiveView] = useState('new'); // 'new' | 'history'
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(''); // Stores YYYY-MM-DD for <input type="date" />
   const [sessionTime, setSessionTime] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [originalStatus, setOriginalStatus] = useState('Absent');
@@ -53,8 +56,15 @@ export default function AttendanceDisputeModal({
   // Initialize or prefill from props
   useEffect(() => {
     if (prefillSession) {
-      setDate(prefillSession.date || '');
-      setSessionTime(prefillSession.time || '');
+      let d = prefillSession.date || '';
+      if (d.includes('/')) {
+        const parts = d.split('/');
+        if (parts.length === 3) {
+          d = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+      setDate(d);
+      setSessionTime(prefillSession.time || prefillSession.period_label || '');
       setOriginalStatus(prefillSession.attendance || 'Absent');
       if (prefillSession.subject_id) {
         setSelectedSubjectId(String(prefillSession.subject_id));
@@ -62,10 +72,10 @@ export default function AttendanceDisputeModal({
       setActiveView('new');
     } else if (!date) {
       const today = new Date();
-      const dd = String(today.getDate()).padStart(2, '0');
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
       const yyyy = today.getFullYear();
-      setDate(`${dd}/${mm}/${yyyy}`);
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      setDate(`${yyyy}-${mm}-${dd}`);
     }
   }, [prefillSession]);
 
@@ -74,7 +84,7 @@ export default function AttendanceDisputeModal({
     if (!token) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/disputes/my-disputes`, {
+      const res = await fetch(`${activeApiUrl}/disputes/my-disputes`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -86,7 +96,7 @@ export default function AttendanceDisputeModal({
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, activeApiUrl]);
 
   useEffect(() => {
     if (isOpen) {
@@ -124,8 +134,16 @@ export default function AttendanceDisputeModal({
     playCyberSound('click');
 
     try {
+      let formattedDate = date.trim();
+      if (formattedDate.includes('-')) {
+        const parts = formattedDate.split('-');
+        if (parts.length === 3) {
+          formattedDate = `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`;
+        }
+      }
+
       const formData = new FormData();
-      formData.append('date', date.trim());
+      formData.append('date', formattedDate);
       if (sessionTime) formData.append('session_time', sessionTime.trim());
       if (selectedSubjectId) formData.append('subject_id', selectedSubjectId);
       formData.append('original_status', originalStatus);
@@ -134,7 +152,7 @@ export default function AttendanceDisputeModal({
       if (description) formData.append('description', description);
       if (proofFile) formData.append('proof', proofFile);
 
-      const res = await fetch(`${API_BASE_URL}/disputes`, {
+      const res = await fetch(`${activeApiUrl}/disputes`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -163,7 +181,7 @@ export default function AttendanceDisputeModal({
     if (!window.confirm("Are you sure you want to cancel this dispute?")) return;
     playCyberSound('click');
     try {
-      const res = await fetch(`${API_BASE_URL}/disputes/${disputeId}/cancel`, {
+      const res = await fetch(`${activeApiUrl}/disputes/${disputeId}/cancel`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -180,7 +198,7 @@ export default function AttendanceDisputeModal({
     if (!commentText.trim()) return;
     setIsPostingComment(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/disputes/${disputeId}/comments`, {
+      const res = await fetch(`${activeApiUrl}/disputes/${disputeId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,7 +209,7 @@ export default function AttendanceDisputeModal({
       if (res.ok) {
         setCommentText('');
         // Refresh dispute details
-        const detRes = await fetch(`${API_BASE_URL}/disputes/${disputeId}`, {
+        const detRes = await fetch(`${activeApiUrl}/disputes/${disputeId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (detRes.ok) {
@@ -386,22 +404,22 @@ export default function AttendanceDisputeModal({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>
-                    Attendance Date (DD/MM/YYYY) *
+                    Attendance Date (Select from Calendar) *
                   </label>
                   <input
-                    type="text"
+                    type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    placeholder="e.g. 12/09/2026"
                     required
                     style={{
                       width: '100%',
                       padding: '10px 14px',
                       borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: '#0d1322',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       color: '#f8fafc',
-                      fontSize: '0.85rem'
+                      fontSize: '0.85rem',
+                      colorScheme: 'dark'
                     }}
                   />
                 </div>
@@ -717,7 +735,7 @@ export default function AttendanceDisputeModal({
                               <button
                                 onClick={async () => {
                                   try {
-                                    const res = await fetch(`${API_BASE_URL}/disputes/${d.id}/proof`, {
+                                    const res = await fetch(`${activeApiUrl}/disputes/${d.id}/proof`, {
                                       headers: { 'Authorization': `Bearer ${token}` }
                                     });
                                     if (res.ok) {

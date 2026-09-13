@@ -106,16 +106,24 @@ async def submit_dispute(
     # 1. Validate Deadline Window (from attendance date)
     try:
         clean_date = date.strip()
-        att_dt = datetime.strptime(clean_date, "%d/%m/%Y")
-        now_dt = datetime.now()
-        # Allow deadline from end of attendance day
-        if (now_dt - att_dt).total_seconds() > (deadline_hours + 24) * 3600:
-            raise HTTPException(
-                status_code=400,
-                detail=f"The correction window for attendance date {date} has expired (allowed within {deadline_hours} hours). Please contact your administrator."
-            )
-    except ValueError:
-        pass  # Skip if date format is non-standard (e.g. ISO)
+        att_dt = None
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+            try:
+                att_dt = datetime.strptime(clean_date, fmt)
+                break
+            except ValueError:
+                pass
+
+        if att_dt:
+            now_dt = datetime.now()
+            # Allow deadline from end of attendance day
+            if (now_dt - att_dt).total_seconds() > (deadline_hours + 24) * 3600:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"The correction window for attendance date {date} has expired (allowed within {deadline_hours} hours). Please contact your administrator."
+                )
+    except Exception:
+        pass  # Skip if date format validation fails
 
     # 2. Prevent Duplicate Active Disputes for the same record
     query = db.query(models.AttendanceDispute).filter(
