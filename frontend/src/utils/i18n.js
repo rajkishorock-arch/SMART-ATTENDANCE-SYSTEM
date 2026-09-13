@@ -60,8 +60,14 @@ export const translations = {
     all_synced: 'All records synced',
     offline_mode: 'Offline Mode (Local Storage Active)',
     pending_sync_count: '{count} records pending sync',
+    unique_students_pending: '{students} student(s) · {records} record(s)',
     last_sync: 'Last synced at {time}',
     offline_guarantee: 'Internet unavailable. Attendance is safe on this device and will sync automatically.',
+    online_sync_active: 'Internet Connected. Real-time cloud sync is active.',
+    offline_storage_active: 'Internet unavailable. Attendance is safe on this device and will sync automatically once connected.',
+    clear_queue: 'Clear Queue',
+    clear_queue_confirm: 'Clear local pending attendance queue on this device?',
+    queue_cleared: 'Local queue cleared.',
 
     // Student Dashboard
     my_attendance_rate: 'My Attendance Rate',
@@ -138,8 +144,14 @@ export const translations = {
     all_synced: 'सभी रिकॉर्ड सिंक हैं',
     offline_mode: 'ऑफलाइन मोड (स्थानीय स्टोरेज सक्रिय)',
     pending_sync_count: '{count} रिकॉर्ड सिंक हेतु लंबित',
+    unique_students_pending: '{students} छात्र · {records} रिकॉर्ड',
     last_sync: 'अंतिम सिंक: {time}',
     offline_guarantee: 'इंटरनेट उपलब्ध नहीं है। उपस्थिति इस डिवाइस में सुरक्षित है और ऑनलाइन आते ही सिंक हो जाएगी।',
+    online_sync_active: 'इंटरनेट कनेक्टेड है। रियल-टाइम क्लाउड सिंक सक्रिय है।',
+    offline_storage_active: 'इंटरनेट उपलब्ध नहीं है। उपस्थिति इस डिवाइस में सुरक्षित है और ऑनलाइन आते ही सिंक हो जाएगी।',
+    clear_queue: 'क्यू साफ़ करें',
+    clear_queue_confirm: 'क्या आप स्थानीय ऑफलाइन रिकॉर्ड्स हटाना चाहते हैं?',
+    queue_cleared: 'ऑफलाइन क्यू साफ़ कर दिया गया है।',
 
     // Student Dashboard
     my_attendance_rate: 'मेरी उपस्थिति दर',

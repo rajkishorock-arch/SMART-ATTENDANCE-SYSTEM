@@ -4848,7 +4848,9 @@ export default function App() {
               dep: primary.dep,
               time: timeStr,
               confidence: primary.confidence,
-              status: primary.newly_marked ? 'Present' : 'Already Marked'
+              status: primary.newly_marked ? 'Present' : 'Already Marked',
+              isOffline: false,
+              sync_status: 'SYNCED'
             });
             
             updateServerRecognizedFaces({
@@ -4864,17 +4866,6 @@ export default function App() {
 
             validMatches.forEach((matched) => {
               addDiagnosticLog(`MATCH FOUND: ${matched.name} (Accuracy: ${matched.confidence}%)`);
-              offlineAttendanceQueue.enqueue({
-                student_id: matched.user_id,
-                name: matched.name,
-                roll: matched.roll,
-                dep: matched.dep,
-                confidence: matched.confidence,
-                date: dateStr,
-                time: timeStr,
-                subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : null,
-                institution_id: currentUser?.institution_id || 1
-              });
               setRecognizedStudents((prev) => {
                 if (prev.some((s) => s.id === matched.user_id)) return prev;
                 return [{
@@ -9080,7 +9071,13 @@ export default function App() {
 
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                 <h1 className="clean-scanner-title">Face Scanner</h1>
-                <SyncStatusPill compact={true} />
+                <SyncStatusPill 
+                  compact={true} 
+                  apiBaseUrl={API_BASE_URL}
+                  token={token}
+                  institutionId={currentUser?.institution_id || 1}
+                  lang={appLang}
+                />
               </div>
 
               {/* Floating Camera Controls (Right) */}
@@ -9750,7 +9747,13 @@ export default function App() {
           
           <div className="header-actions">
             {/* Real-time Cloud / Offline Sync Status Pill */}
-            <SyncStatusPill compact={false} />
+            <SyncStatusPill 
+              compact={false}
+              apiBaseUrl={API_BASE_URL}
+              token={token}
+              institutionId={currentUser?.institution_id || 1}
+              lang={appLang}
+            />
 
             {/* Accessibility & Language Modal Trigger */}
             <button 

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Cloud, CloudOff, RefreshCw, CheckCircle2, X } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Cloud, CloudOff, RefreshCw, CheckCircle2, Trash2, X } from 'lucide-react';
 import { offlineAttendanceQueue } from '../services/offlineAttendanceQueue';
 import { t } from '../utils/i18n';
 
@@ -8,6 +8,7 @@ export default function SyncStatusPill({
   token,
   institutionId = 1,
   lang = 'en',
+  compact = false,
   onSyncSuccess
 }) {
   const [queue, setQueue] = useState(() => offlineAttendanceQueue.getQueue());
@@ -40,7 +41,12 @@ export default function SyncStatusPill({
 
   const pendingCount = queue.filter(item => item.sync_status === 'PENDING').length;
 
-  const handleManualSync = async (e) => {
+  const uniqueStudentsCount = useMemo(() => {
+    const ids = new Set(queue.map(i => String(i.student_id || i.roll || i.name || '')));
+    return ids.size;
+  }, [queue]);
+
+  const handleManualSync = useCallback(async (e) => {
     if (e) e.stopPropagation();
     if (isSyncing || !isOnline) return;
 
@@ -59,6 +65,25 @@ export default function SyncStatusPill({
     } finally {
       setIsSyncing(false);
     }
+  }, [apiBaseUrl, token, institutionId, lang, onSyncSuccess, isSyncing, isOnline]);
+
+  // Auto-sync when online and pending items exist
+  useEffect(() => {
+    if (isOnline && pendingCount > 0 && !isSyncing) {
+      const timer = setTimeout(() => {
+        handleManualSync();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, pendingCount, isSyncing, handleManualSync]);
+
+  const handleClearQueue = (e) => {
+    if (e) e.stopPropagation();
+    if (window.confirm(t('clear_queue_confirm', lang))) {
+      offlineAttendanceQueue.clearQueue();
+      setSyncMessage(t('queue_cleared', lang));
+      setTimeout(() => setSyncMessage(''), 3000);
+    }
   };
 
   return (
@@ -73,13 +98,13 @@ export default function SyncStatusPill({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '5px 12px',
+          gap: '6px',
+          padding: compact ? '3px 8px' : '5px 12px',
           borderRadius: 'var(--radius-full)',
           background: pendingCount > 0 ? 'rgba(245, 158, 11, 0.15)' : !isOnline ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
           border: `1px solid ${pendingCount > 0 ? 'rgba(245, 158, 11, 0.4)' : !isOnline ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.35)'}`,
           color: pendingCount > 0 ? '#fbbf24' : !isOnline ? '#f87171' : '#34d399',
-          fontSize: '0.78rem',
+          fontSize: compact ? '0.7rem' : '0.78rem',
           fontWeight: 700,
           cursor: 'pointer',
           userSelect: 'none',
@@ -89,11 +114,11 @@ export default function SyncStatusPill({
         }}
       >
         {!isOnline ? (
-          <CloudOff size={14} color="#f87171" />
+          <CloudOff size={compact ? 12 : 14} color="#f87171" />
         ) : pendingCount > 0 ? (
-          <Cloud size={14} color="#fbbf24" />
+          <Cloud size={compact ? 12 : 14} color="#fbbf24" />
         ) : (
-          <CheckCircle2 size={14} color="#34d399" />
+          <CheckCircle2 size={compact ? 12 : 14} color="#34d399" />
         )}
 
         <span>
@@ -106,7 +131,7 @@ export default function SyncStatusPill({
                 : t('synced_to_cloud', lang)}
         </span>
 
-        {isOnline && pendingCount > 0 && (
+        {isOnline && pendingCount > 0 && !compact && (
           <button
             onClick={handleManualSync}
             disabled={isSyncing}
@@ -122,7 +147,7 @@ export default function SyncStatusPill({
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              minHeight: '26px'
+              minHeight: '24px'
             }}
             title="Sync records to server now"
           >
@@ -183,10 +208,10 @@ export default function SyncStatusPill({
               </button>
             </div>
 
-            {/* Offline Guarantee Notice */}
+            {/* Dynamic Real-time Network Notice */}
             <div style={{
-              background: 'rgba(14, 165, 233, 0.1)',
-              border: '1px solid rgba(14, 165, 233, 0.25)',
+              background: isOnline ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+              border: `1px solid ${isOnline ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
               borderRadius: 'var(--radius-md)',
               padding: '12px 14px',
               marginBottom: '16px',
@@ -195,28 +220,66 @@ export default function SyncStatusPill({
               lineHeight: 1.4
             }}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                <CheckCircle2 size={16} color="#0ea5e9" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <span>{t('offline_guarantee', lang)}</span>
+                {isOnline ? (
+                  <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                ) : (
+                  <CloudOff size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+                )}
+                <span>
+                  {isOnline
+                    ? (lang === 'hi'
+                        ? 'इंटरनेट कनेक्टेड है। रियल-टाइम में सभी उपस्थिति रिकॉर्ड्स क्लाउड सर्वर पर सुरक्षित सिंक हो रहे हैं।'
+                        : 'Internet Connected. Real-time cloud sync is active. All attendance records save to the server immediately.')
+                    : (lang === 'hi'
+                        ? 'इंटरनेट उपलब्ध नहीं है। उपस्थिति इस डिवाइस में सुरक्षित है और ऑनलाइन आते ही सिंक हो जाएगी।'
+                        : 'Internet unavailable. Attendance is safe on this device and will sync automatically once connected.')}
+                </span>
               </div>
             </div>
 
             {/* Action Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-                {pendingCount > 0 ? `${pendingCount} ${t('pending_sync_count', lang, { count: pendingCount })}` : t('all_synced', lang)}
+                {pendingCount > 0 
+                  ? `${uniqueStudentsCount} ${lang === 'hi' ? 'छात्र' : (uniqueStudentsCount === 1 ? 'student' : 'students')} (${pendingCount} ${lang === 'hi' ? 'रिकॉर्ड' : (pendingCount === 1 ? 'record' : 'records')})`
+                  : t('all_synced', lang)}
               </span>
 
-              {isOnline && pendingCount > 0 && (
-                <button
-                  onClick={handleManualSync}
-                  disabled={isSyncing}
-                  className="btn-primary"
-                  style={{ minHeight: '38px', padding: '6px 14px', fontSize: '0.8rem' }}
-                >
-                  <RefreshCw size={13} className={isSyncing ? 'spin-fast' : ''} />
-                  {isSyncing ? t('syncing', lang) : t('sync_now', lang)}
-                </button>
-              )}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {pendingCount > 0 && (
+                  <button
+                    onClick={handleClearQueue}
+                    className="btn-secondary"
+                    style={{
+                      minHeight: '34px',
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                      color: '#f87171',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Clear local pending queue"
+                  >
+                    <Trash2 size={12} />
+                    <span>{t('clear_queue', lang)}</span>
+                  </button>
+                )}
+
+                {isOnline && pendingCount > 0 && (
+                  <button
+                    onClick={handleManualSync}
+                    disabled={isSyncing}
+                    className="btn-primary"
+                    style={{ minHeight: '34px', padding: '4px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <RefreshCw size={12} className={isSyncing ? 'spin-fast' : ''} />
+                    {isSyncing ? t('syncing', lang) : t('sync_now', lang)}
+                  </button>
+                )}
+              </div>
             </div>
 
             {syncMessage && (

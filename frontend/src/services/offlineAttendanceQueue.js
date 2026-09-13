@@ -8,6 +8,8 @@
  * 4. Automatic auto-flush on network reconnection.
  */
 
+import { getApiBaseUrl } from '../utils/platform';
+
 const QUEUE_STORAGE_KEY = 'smart_attendance_offline_queue';
 
 class OfflineAttendanceQueue {
@@ -29,7 +31,28 @@ class OfflineAttendanceQueue {
   getQueue() {
     try {
       const raw = localStorage.getItem(QUEUE_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+
+      // Prune identical duplicates on read (same student + same date)
+      const seen = new Set();
+      const uniqueQueue = [];
+      for (const item of parsed) {
+        const studentKey = String(item.student_id || item.roll || item.name || '');
+        const dateKey = String(item.date || '');
+        const subKey = String(item.subject_id || 'default');
+        const key = `${studentKey}_${dateKey}_${subKey}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueQueue.push(item);
+        }
+      }
+
+      if (uniqueQueue.length !== parsed.length) {
+        localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(uniqueQueue));
+      }
+      return uniqueQueue;
     } catch (e) {
       console.error('[OfflineQueue] Error reading queue from storage:', e);
       return [];
@@ -47,7 +70,7 @@ class OfflineAttendanceQueue {
 
   _notifyChange(items) {
     for (const fn of this._listeners) {
-      try { fn(items); } catch (e) {}
+      try { fn(items); } catch { /* ignore listener error */ }
     }
   }
 
@@ -62,14 +85,15 @@ class OfflineAttendanceQueue {
   enqueue(record) {
     const queue = this.getQueue();
     const studentId = record.student_id || record.studentId;
+    if (!studentId) return false;
     const now = new Date();
     const dateStr = record.date || `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
 
     // Deduplication check: already queued today for this student
     const isDuplicate = queue.some(item => 
-      (item.student_id === studentId) && 
-      (item.date === dateStr) &&
-      (!record.subject_id || item.subject_id === record.subject_id)
+      String(item.student_id) === String(studentId) && 
+      String(item.date) === String(dateStr) &&
+      (!record.subject_id || String(item.subject_id) === String(record.subject_id))
     );
 
     if (isDuplicate) {
@@ -101,15 +125,31 @@ class OfflineAttendanceQueue {
   }
 
   /**
+   * Clear all pending items from local storage
+   */
+  clearQueue() {
+    this._saveQueue([]);
+    console.info('[OfflineQueue] Local attendance queue cleared.');
+    return { synced: 0, pending: 0 };
+  }
+
+  /**
    * Flush pending items to the server in the background
    */
   async flushQueue(apiBaseUrl, token, institutionId) {
-    if (this.isSyncing || !token || !institutionId) return { synced: 0, pending: 0 };
     const queue = this.getQueue();
     const pendingItems = queue.filter(i => i.sync_status === 'PENDING');
 
     if (pendingItems.length === 0) {
       return { synced: 0, pending: 0 };
+    }
+
+    const resolvedUrl = (apiBaseUrl || getApiBaseUrl()).replace(/\/+$/, '');
+    const resolvedToken = token || (typeof window !== 'undefined' ? (localStorage.getItem('token') || '') : '');
+    const resolvedInstId = institutionId || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('institution_id') || '1', 10) : 1);
+
+    if (this.isSyncing || !resolvedToken) {
+      return { synced: 0, pending: pendingItems.length };
     }
 
     this.isSyncing = true;
@@ -126,10 +166,10 @@ class OfflineAttendanceQueue {
         }))
       };
 
-      const res = await fetch(`${apiBaseUrl}/offline-face/sync-attendance/${institutionId}`, {
+      const res = await fetch(`${resolvedUrl}/offline-face/sync-attendance/${resolvedInstId}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${resolvedToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
@@ -137,12 +177,18 @@ class OfflineAttendanceQueue {
 
       if (res.ok) {
         const result = await res.json();
-        // Remove synced items from queue
+        // Remove synced/processed items from queue
         const syncedIds = new Set(pendingItems.map(p => p.localId));
         const updatedQueue = queue.filter(q => !syncedIds.has(q.localId));
         this._saveQueue(updatedQueue);
-        console.info(`[OfflineQueue] Successfully synced ${result.synced} records with backend.`);
-        return { synced: result.synced, pending: updatedQueue.length };
+        console.info(`[OfflineQueue] Successfully synced ${result.synced || 0} records (${result.skipped || 0} already existing) with backend.`);
+        return { synced: result.synced || pendingItems.length, pending: updatedQueue.length };
+      } else if (res.status === 400 || res.status === 422) {
+        // Records already exist or bad format: clean up duplicate local state
+        const syncedIds = new Set(pendingItems.map(p => p.localId));
+        const updatedQueue = queue.filter(q => !syncedIds.has(q.localId));
+        this._saveQueue(updatedQueue);
+        return { synced: 0, pending: updatedQueue.length };
       } else {
         console.warn(`[OfflineQueue] Server sync returned status ${res.status}`);
       }
@@ -156,12 +202,12 @@ class OfflineAttendanceQueue {
   }
 
   /**
-   * Hook for manual trigger
+   * Hook for manual or automatic trigger
    */
   triggerSync() {
-    const token = localStorage.getItem('token') || '';
-    const instId = parseInt(localStorage.getItem('institutionId') || '1');
-    const apiBase = localStorage.getItem('apiBaseUrl') || '';
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || '') : '';
+    const instId = typeof window !== 'undefined' ? parseInt(localStorage.getItem('institution_id') || '1', 10) : 1;
+    const apiBase = getApiBaseUrl();
     if (token && apiBase) {
       this.flushQueue(apiBase, token, instId);
     }
