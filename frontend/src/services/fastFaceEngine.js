@@ -91,6 +91,18 @@ class FastFaceEngine {
       });
 
       console.info(`[FastFaceEngine] Successfully cached ${studentsData.length} student embeddings.`);
+      try {
+        const cachedList = studentsData.map(s => ({
+          id: s.student_id,
+          student_id: s.student_id,
+          name: s.name,
+          roll: s.roll_number || 'N/A',
+          dep: s.department || 'CSE'
+        }));
+        localStorage.setItem('cached_students', JSON.stringify(cachedList));
+      } catch (e) {
+        console.warn('Failed to save cached_students to localStorage:', e);
+      }
       await this.loadFromCache(institutionId);
       return true;
     } catch (err) {

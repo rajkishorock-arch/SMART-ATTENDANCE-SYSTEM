@@ -25,26 +25,53 @@ export default function OfflineBanner() {
   if (!offline || dismissed) return null;
 
   return (
-    <div className="offline-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', position: 'relative' }}>
-      <WifiOff size={15} style={{ flexShrink: 0 }} />
+    <div
+      className="offline-banner"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        zIndex: 99999,
+        background: 'linear-gradient(90deg, #b45309, #d97706)',
+        color: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px',
+        padding: '8px 16px',
+        fontSize: '0.82rem',
+        fontWeight: 600,
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        boxSizing: 'border-box'
+      }}
+    >
+      <WifiOff size={16} style={{ flexShrink: 0 }} />
       <span>Offline Mode — Displaying cached data. Will auto-sync when network reconnects.</span>
       <button
         onClick={() => setDismissed(true)}
         style={{
-          background: 'transparent',
+          background: 'rgba(255, 255, 255, 0.2)',
           border: 'none',
+          borderRadius: '4px',
           color: '#ffffff',
           cursor: 'pointer',
-          padding: '2px 6px',
-          marginLeft: '12px',
+          padding: '3px 8px',
+          marginLeft: '8px',
           display: 'flex',
           alignItems: 'center',
-          opacity: 0.9
+          gap: '4px',
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          opacity: 0.9,
+          transition: 'all 0.2s ease'
         }}
         title="Dismiss banner"
       >
-        <X size={16} />
+        <X size={14} /> Close
       </button>
     </div>
   );
 }
+
