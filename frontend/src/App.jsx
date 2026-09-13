@@ -16359,86 +16359,88 @@ export default function App() {
               </div>
 
               {/* Desktop Table View */}
-              <div className="desktop-table-view table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL (USERNAME)</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>ROLE</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>STATUS</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 600 }}>CREATED DATE</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(teachers || []).filter(u => u.role === 'admin').map((adminUser) => (
-                      <tr key={adminUser.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
-                        <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontFamily: 'monospace', fontSize: '0.8rem' }}>#{adminUser.id}</td>
-                        <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>{adminUser.name}</td>
-                        <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>{adminUser.email}</td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{ 
-                            padding: '2px 8px', 
-                            borderRadius: '4px', 
-                            fontSize: '0.72rem', 
-                            fontWeight: 'bold',
-                            background: 'rgba(0, 242, 254, 0.12)',
-                            color: '#00f2fe'
-                          }}>
-                            SYSTEM ADMIN
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{ 
-                            padding: '2px 8px', 
-                            borderRadius: '4px', 
-                            fontSize: '0.72rem', 
-                            fontWeight: 'bold',
-                            background: adminUser.is_active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                            color: adminUser.is_active ? '#10b981' : '#ef4444'
-                          }}>
-                            {adminUser.is_active ? 'ACTIVE' : 'DEACTIVATED'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>
-                          {new Date(adminUser.created_at).toLocaleDateString()}
-                        </td>
-                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            <button 
-                              onClick={() => handleToggleAdminStatus(adminUser)}
-                              className="action-btn"
-                              style={{ 
-                                padding: '5px 10px', 
-                                fontSize: '0.75rem', 
-                                background: adminUser.is_active ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                                border: `1px solid ${adminUser.is_active ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
-                                color: adminUser.is_active ? '#ef4444' : '#10b981'
-                              }}
-                            >
-                              {adminUser.is_active ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteAdminUser(adminUser)}
-                              className="action-btn"
-                              style={{ 
-                                padding: '5px 10px', 
-                                fontSize: '0.75rem', 
-                                background: 'rgba(239, 68, 68, 0.15)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                color: '#ef4444'
-                              }}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </td>
+              <div className="desktop-table-view" style={{ width: '100%' }}>
+                <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL (USERNAME)</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>ROLE</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>STATUS</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>CREATED DATE</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {(teachers || []).filter(u => u.role === 'admin').map((adminUser) => (
+                        <tr key={adminUser.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
+                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontFamily: 'monospace', fontSize: '0.8rem' }}>#{adminUser.id}</td>
+                          <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>{adminUser.name}</td>
+                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>{adminUser.email}</td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{ 
+                              padding: '2px 8px', 
+                              borderRadius: '4px', 
+                              fontSize: '0.72rem', 
+                              fontWeight: 'bold',
+                              background: 'rgba(0, 242, 254, 0.12)',
+                              color: '#00f2fe'
+                            }}>
+                              SYSTEM ADMIN
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{ 
+                              padding: '2px 8px', 
+                              borderRadius: '4px', 
+                              fontSize: '0.72rem', 
+                              fontWeight: 'bold',
+                              background: adminUser.is_active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                              color: adminUser.is_active ? '#10b981' : '#ef4444'
+                            }}>
+                              {adminUser.is_active ? 'ACTIVE' : 'DEACTIVATED'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>
+                            {new Date(adminUser.created_at).toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              <button 
+                                onClick={() => handleToggleAdminStatus(adminUser)}
+                                className="action-btn"
+                                style={{ 
+                                  padding: '5px 10px', 
+                                  fontSize: '0.75rem', 
+                                  background: adminUser.is_active ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                  border: `1px solid ${adminUser.is_active ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+                                  color: adminUser.is_active ? '#ef4444' : '#10b981'
+                                }}
+                              >
+                                {adminUser.is_active ? 'Deactivate' : 'Activate'}
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteAdminUser(adminUser)}
+                                className="action-btn"
+                                style={{ 
+                                  padding: '5px 10px', 
+                                  fontSize: '0.75rem', 
+                                  background: 'rgba(239, 68, 68, 0.15)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  color: '#ef4444'
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Mobile Cards View */}
@@ -16925,87 +16927,107 @@ export default function App() {
                   </button>
                 </form>
 
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
+                    🏫 Registered Institution Directory
+                  </h4>
+                  <span className="telemetry-stat-pill admin" style={{
+                    padding: '4px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    background: 'rgba(0, 242, 254, 0.12)',
+                    color: '#00f2fe',
+                    border: '1px solid rgba(0, 242, 254, 0.25)',
+                    letterSpacing: '0.5px'
+                  }}>
+                    TOTAL: {institutionsList.length}
+                  </span>
+                </div>
+
                 {/* Desktop Table View */}
-                <div className="desktop-table-view table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>SLUG (SUBDOMAIN)</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>PRIMARY COLOR</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>SECONDARY COLOR</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {institutionsList.map((inst) => (
-                        <tr key={inst.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
-                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>#{inst.id}</td>
-                          <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>{inst.name}</td>
-                          <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>
-                            <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', fontSize: '0.78rem', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.08)' }}>
-                              {inst.slug}
-                            </span>
-                          </td>
-                          <td style={{ padding: '14px 16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#4F46E5', border: '1px solid rgba(255,255,255,0.1)' }} />
-                              <span style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{inst.primary_color || '#4F46E5'}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '14px 16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid rgba(255,255,255,0.1)' }} />
-                              <span style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{inst.secondary_color || '#06B6D4'}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                            {inst.id === 1 ? (
-                              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem', fontStyle: 'italic', paddingRight: '12px' }}>System Default</span>
-                            ) : (
-                              <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                <button
-                                  onClick={() => { playCyberSound('click'); setEditingInst(inst); }}
-                                  className="action-btn"
-                                  style={{
-                                    padding: '5px 12px',
-                                    fontSize: '0.75rem',
-                                    background: 'rgba(0, 242, 254, 0.15)',
-                                    border: '1px solid rgba(0, 242, 254, 0.3)',
-                                    color: '#00f2fe',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteInstitution(inst.id, inst.name)}
-                                  className="action-btn"
-                                  style={{
-                                    padding: '5px 12px',
-                                    fontSize: '0.75rem',
-                                    background: 'rgba(239, 68, 68, 0.15)',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: '#ef4444',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </td>
+                <div className="desktop-table-view" style={{ width: '100%' }}>
+                  <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>SLUG (SUBDOMAIN)</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>PRIMARY COLOR</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>SECONDARY COLOR</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {institutionsList.map((inst) => (
+                          <tr key={inst.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
+                            <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>#{inst.id}</td>
+                            <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>{inst.name}</td>
+                            <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>
+                              <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', fontSize: '0.78rem', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                {inst.slug}
+                              </span>
+                            </td>
+                            <td style={{ padding: '14px 16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#4F46E5', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{inst.primary_color || '#4F46E5'}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '14px 16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{inst.secondary_color || '#06B6D4'}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                              {inst.id === 1 ? (
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem', fontStyle: 'italic', paddingRight: '12px' }}>System Default</span>
+                              ) : (
+                                <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                  <button
+                                    onClick={() => { playCyberSound('click'); setEditingInst(inst); }}
+                                    className="action-btn"
+                                    style={{
+                                      padding: '5px 12px',
+                                      fontSize: '0.75rem',
+                                      background: 'rgba(0, 242, 254, 0.15)',
+                                      border: '1px solid rgba(0, 242, 254, 0.3)',
+                                      color: '#00f2fe',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteInstitution(inst.id, inst.name)}
+                                    className="action-btn"
+                                    style={{
+                                      padding: '5px 12px',
+                                      fontSize: '0.75rem',
+                                      background: 'rgba(239, 68, 68, 0.15)',
+                                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                                      color: '#ef4444',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {/* Mobile Cards View */}
-                <div className="mobile-cards-view" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                <div className="mobile-cards-view" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                   {institutionsList.map((inst) => (
                     <div
                       key={inst.id}

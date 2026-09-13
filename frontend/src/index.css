@@ -377,6 +377,15 @@ body {
   transform: translateY(-2px);
 }
 
+/* Responsive table vs mobile card view toggles */
+.desktop-table-view {
+  display: block;
+  width: 100%;
+}
+.mobile-cards-view {
+  display: none !important;
+}
+
 /* Gradients & Text */
 .text-gradient {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
@@ -1437,14 +1446,6 @@ button:active,
     height: 36px !important;
     flex: 0 0 40px !important;
     box-sizing: border-box !important;
-  }
-
-  /* Responsive table vs card view helpers */
-  .desktop-table-view {
-    display: block;
-  }
-  .mobile-cards-view {
-    display: none;
   }
 
   /* Custom styling for relative container items like absolute icon inputs */
@@ -3910,14 +3911,14 @@ html {
   }
 
   /* Table containers: strictly constrained to 100% width with smooth horizontal touch swipe */
-  .table-container,
-  .table-responsive,
-  div[style*="overflow-x: auto"],
-  div[style*="overflowX: auto"],
-  div[style*="overflow-x:auto"],
-  div[style*="overflowX:auto"],
-  div[style*="overflowX: 'auto'"],
-  div[style*='overflowX: "auto"'] {
+  .table-container:not(.desktop-table-view),
+  .table-responsive:not(.desktop-table-view),
+  div[style*="overflow-x: auto"]:not(.desktop-table-view),
+  div[style*="overflowX: auto"]:not(.desktop-table-view),
+  div[style*="overflow-x:auto"]:not(.desktop-table-view),
+  div[style*="overflowX:auto"]:not(.desktop-table-view),
+  div[style*="overflowX: 'auto'"]:not(.desktop-table-view),
+  div[style*='overflowX: "auto"']:not(.desktop-table-view) {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -3963,8 +3964,8 @@ html {
   .table-responsive::-webkit-scrollbar-thumb,
   div[style*="overflow-x: auto"]::-webkit-scrollbar-thumb,
   div[style*="overflowX: auto"]::-webkit-scrollbar-thumb {
-    background: rgba(14, 165, 233, 0.6) !important;
-    border-radius: 4px !important;
+    background: rgba(0, 242, 254, 0.3) !important;
+    border-radius: 3px !important;
   }
 
   .mobile-scroll-hint {
@@ -3993,11 +3994,24 @@ html {
   }
 
   /* Switch full wide tables to compact cards on mobile for guaranteed zero-overflow readability */
-  .desktop-table-view {
+  .desktop-table-view,
+  div.desktop-table-view,
+  div[class*="desktop-table-view"],
+  div[class*="desktop-table-view"][style*="overflow"] {
     display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
-  .mobile-cards-view {
+  .mobile-cards-view,
+  div.mobile-cards-view {
     display: flex !important;
     flex-direction: column !important;
     gap: 12px !important;
@@ -4271,6 +4285,36 @@ html {
 
 .feedback-fab:active {
   transform: scale(0.95);
+}
+
+/* Switch wide tables to compact cards on tablet, mobile, or split desktop windows (<= 960px) */
+@media (max-width: 960px) {
+  .desktop-table-view,
+  div.desktop-table-view,
+  div[class*="desktop-table-view"],
+  div[class*="desktop-table-view"][style*="overflow"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .mobile-cards-view,
+  div.mobile-cards-view {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }
 
 @media (max-width: 768px) {
