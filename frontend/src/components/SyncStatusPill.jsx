@@ -14,7 +14,7 @@ export default function SyncStatusPill({
   const [queue, setQueue] = useState(() => offlineAttendanceQueue.getQueue());
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(() => {
-    return localStorage.getItem('last_successful_sync_time') || '';
+    return localStorage.getItem('last_successful_sync_time') || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   });
   const [showSheet, setShowSheet] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');

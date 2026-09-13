@@ -426,6 +426,15 @@ async def submit_dispute(
         create_notification(
             db=db,
             institution_id=inst_id,
+            recipient_role="admin",
+            category="DISPUTE",
+            title="New Attendance Dispute Request",
+            message=f"{s_name} submitted a dispute for {date} ({session_time or 'Regular Session'})",
+            action_url="/#/disputes"
+        )
+        create_notification(
+            db=db,
+            institution_id=inst_id,
             recipient_role="teacher",
             category="DISPUTE",
             title="New Attendance Dispute Request",

@@ -144,6 +144,15 @@ def apply_for_leave(
         create_notification(
             db=db,
             institution_id=current_student.institution_id,
+            recipient_role="admin",
+            category="LEAVE",
+            title="New Student Leave Application",
+            message=f"{current_student.name} applied for leave from {payload.start_date} to {payload.end_date}",
+            action_url="/#/leave-management"
+        )
+        create_notification(
+            db=db,
+            institution_id=current_student.institution_id,
             recipient_role="teacher",
             category="LEAVE",
             title="New Student Leave Application",
