@@ -7437,13 +7437,9 @@ body.app-reduced-motion *::after {
 .dispute-modal-card {
   width: 100% !important;
   max-width: 750px !important;
-  max-height: 90vh !important;
-  max-height: 90dvh !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  -webkit-overflow-scrolling: touch !important;
-  overscroll-behavior-y: contain !important;
-  touch-action: pan-y !important;
+  max-height: 88vh !important;
+  max-height: 88dvh !important;
+  overflow: hidden !important;
   border-radius: 20px !important;
   border: 1px solid rgba(0, 242, 254, 0.25) !important;
   background: linear-gradient(135deg, rgba(10, 14, 28, 0.98), rgba(15, 23, 42, 0.98)) !important;
@@ -7455,34 +7451,34 @@ body.app-reduced-motion *::after {
 }
 
 .dispute-modal-header-wrap {
-  position: sticky !important;
-  top: 0 !important;
-  background: rgba(10, 14, 28, 0.98) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  z-index: 20 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   flex-shrink: 0 !important;
+  background: rgba(10, 14, 28, 0.98) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  z-index: 2 !important;
 }
 
 .dispute-modal-body {
   padding: 24px !important;
   flex: 1 1 auto !important;
-  overflow-y: visible !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain !important;
   box-sizing: border-box !important;
 }
 
 @media (max-width: 768px) {
   .dispute-modal-overlay {
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 8px calc(24px + env(safe-area-inset-bottom, 16px)) 8px !important;
-    align-items: flex-start !important;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 6px calc(16px + env(safe-area-inset-bottom, 16px)) 6px !important;
+    align-items: center !important;
   }
 
   .dispute-modal-card {
-    max-height: calc(100dvh - 30px) !important;
+    max-height: calc(100dvh - 20px) !important;
+    height: auto !important;
     border-radius: 16px !important;
-    margin-top: 5px !important;
-    margin-bottom: 25px !important;
+    width: 100% !important;
   }
 
   .dispute-modal-body {
