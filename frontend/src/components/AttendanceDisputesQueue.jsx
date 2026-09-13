@@ -4,6 +4,7 @@ import {
   HelpCircle, ChevronDown, ChevronUp, ShieldCheck, ArrowUpRight, MessageSquare
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
+import { generateDisputePdf } from '../utils/disputePdfGenerator';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -414,6 +415,25 @@ export default function AttendanceDisputesQueue({
                         <FileText size={14} /> View Student Proof
                       </button>
                     )}
+
+                    <button
+                      onClick={() => generateDisputePdf(d)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        color: '#10b981',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      📄 Download Official PDF
+                    </button>
 
                     <button
                       onClick={() => setExpandedDisputeId(isExpanded ? null : d.id)}

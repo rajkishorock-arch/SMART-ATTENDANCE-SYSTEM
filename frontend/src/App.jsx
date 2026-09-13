@@ -20707,6 +20707,7 @@ export default function App() {
         subjects={subjects}
         prefillSession={disputePrefillSession}
         playCyberSound={playCyberSound}
+        API_BASE_URL={API_BASE_URL}
       />
 
       {/* Multi-Sample Face Enrollment Modal (Phase 7) */}

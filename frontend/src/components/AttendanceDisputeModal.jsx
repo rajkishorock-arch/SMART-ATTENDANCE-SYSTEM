@@ -4,6 +4,7 @@ import {
   HelpCircle, MessageSquare, Send, ShieldAlert, ChevronRight, XCircle
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
+import { generateDisputePdf } from '../utils/disputePdfGenerator';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -744,6 +745,24 @@ export default function AttendanceDisputeModal({
                                 <FileText size={12} /> View Proof
                               </button>
                             )}
+                            <button
+                              onClick={() => generateDisputePdf({ ...d, student_name: currentUser?.name || d.student_name, student_roll: currentUser?.details?.roll_number || d.student_roll || currentUser?.email })}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                                color: '#10b981',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              📄 Download Official PDF
+                            </button>
                             {['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFORMATION'].includes(d.status) && (
                               <button
                                 onClick={() => handleCancelDispute(d.id)}
