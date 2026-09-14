@@ -76,7 +76,10 @@ async def bulk_import_subjects(
         code = (row.get("code") or "").strip()
         if not code:
             continue
-        existing = db.query(models.Subject).filter(models.Subject.code == code).first()
+        existing = db.query(models.Subject).filter(
+            models.Subject.code == code,
+            models.Subject.institution_id == current_user.institution_id,
+        ).first()
         if existing:
             skipped += 1
             continue

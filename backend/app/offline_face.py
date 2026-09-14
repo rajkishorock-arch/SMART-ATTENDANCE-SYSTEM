@@ -130,18 +130,24 @@ async def sync_offline_attendance(
             time_str = timestamp.strftime("%H:%M:%S")
             date_str = timestamp.strftime("%d/%m/%Y")
 
-            student_obj = db.query(StudentModel).filter(StudentModel.id == record.student_id).first()
-            target_inst = student_obj.institution_id if (student_obj and student_obj.institution_id) else institution_id
+            student_obj = db.query(StudentModel).filter(
+                StudentModel.id == record.student_id,
+                StudentModel.institution_id == institution_id
+            ).first()
+            if not student_obj:
+                skipped_count += 1
+                errors.append(f"Student {record.student_id}: Not found in institution {institution_id}")
+                continue
 
             _, newly_marked = crud.mark_student_attendance(
                 db,
                 student_id=record.student_id,
-                name=student_obj.name if student_obj else "",
-                roll=student_obj.roll if student_obj else "",
-                dep=student_obj.dep if student_obj else "",
+                name=student_obj.name,
+                roll=student_obj.roll or "",
+                dep=student_obj.dep or "",
                 custom_date=date_str,
                 custom_time=time_str,
-                institution_id=target_inst
+                institution_id=institution_id
             )
             if newly_marked:
                 synced_count += 1

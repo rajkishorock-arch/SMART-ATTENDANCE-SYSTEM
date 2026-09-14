@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 
 from . import models, security, crud, schemas
 from .database import get_db
+from .core import config
 
 IST = timezone(timedelta(hours=5, minutes=30))
 router = APIRouter()
@@ -182,6 +183,16 @@ def transfer_student(
     ).first()
     if not target:
         raise HTTPException(status_code=404, detail="Target institution not found.")
+
+    # Enforce campus hierarchy: target must be a subcampus of current institution (unless System Owner)
+    is_owner = current_user.email.strip().lower() == getattr(config, "SYSTEM_OWNER_EMAIL", "").strip().lower()
+    if not is_owner:
+        is_subcampus = (target.parent_institution_id == current_user.institution_id)
+        if not is_subcampus:
+            raise HTTPException(
+                status_code=403,
+                detail="Cross-tenant transfer forbidden: Target institution is not an authorized sub-campus of your institution."
+            )
 
     old_inst_id = student.institution_id
     student.institution_id = target_institution_id

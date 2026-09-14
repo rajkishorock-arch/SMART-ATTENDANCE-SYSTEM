@@ -186,28 +186,53 @@ def authenticate_hardware_gate(
 # ==========================================
 
 class LeaveCreateSchema(BaseModel):
-    user_email: str
-    applicant_name: str
+    user_email: Optional[str] = None
+    applicant_name: Optional[str] = None
     role: str = "student"  # 'student' or 'teacher'
     start_date: str
     end_date: str
     reason: str
     document_url: Optional[str] = None
+    student_id: Optional[int] = None
 
 @router.post("/leave/apply")
 def apply_leave(
     payload: LeaveCreateSchema,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
-    inst_id = get_inst_id(db)
-    
-    leave_id = int(time.time() * 1000) % 100000
+    inst_id = current_identity.institution_id
+
+    verified_student_id = None
+    if current_identity.role == "student":
+        verified_student_id = current_identity.id
+        applicant_email = current_identity.email
+        applicant_name = current_identity.name
+        role = "student"
+    else:
+        applicant_email = payload.user_email.strip() if payload.user_email else current_identity.email
+        applicant_name = payload.applicant_name or current_identity.name
+        role = payload.role or current_identity.role
+
+    # If client supplied student_id, verify it belongs strictly to authenticated tenant
+    if payload.student_id is not None:
+        student = db.query(models.StudentModel).filter(
+            models.StudentModel.id == payload.student_id,
+            models.StudentModel.institution_id == inst_id
+        ).first()
+        if not student:
+            raise HTTPException(status_code=400, detail="Student not found in your institution.")
+        if current_identity.role == "student" and payload.student_id != current_identity.id:
+            raise HTTPException(status_code=403, detail="Cannot apply leave for another student.")
+        verified_student_id = student.id
+
     try:
         req = models.LeaveRequest(
             institution_id=inst_id,
-            user_email=payload.user_email,
-            applicant_name=payload.applicant_name,
-            role=payload.role,
+            student_id=verified_student_id,
+            user_email=applicant_email,
+            applicant_name=applicant_name,
+            role=role,
             start_date=payload.start_date,
             end_date=payload.end_date,
             reason=payload.reason,
@@ -218,70 +243,69 @@ def apply_leave(
         db.commit()
         db.refresh(req)
         leave_id = req.id
+    except HTTPException:
+        raise
     except Exception:
         db.rollback()
-    
+        raise HTTPException(status_code=400, detail="Failed to submit leave application.")
+
     return {"success": True, "leave_id": leave_id, "status": "pending", "message": "Leave application submitted successfully."}
 
 
 @router.get("/leave/list")
 def list_leave_requests(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
-    inst_id = get_inst_id(db)
+    inst_id = current_identity.institution_id
+    query = db.query(models.LeaveRequest).filter(models.LeaveRequest.institution_id == inst_id)
+    if current_identity.role == "student":
+        query = query.filter(models.LeaveRequest.user_email == current_identity.email)
+
+    leaves = query.order_by(models.LeaveRequest.id.desc()).all()
     res = []
-    try:
-        leaves = db.query(models.LeaveRequest).filter(models.LeaveRequest.institution_id == inst_id).all()
-        for l in leaves:
-            res.append({
-                "id": l.id,
-                "user_email": l.user_email,
-                "applicant_name": l.applicant_name,
-                "role": l.role,
-                "start_date": l.start_date,
-                "end_date": l.end_date,
-                "reason": l.reason,
-                "status": l.status,
-                "substitute_assigned": l.substitute_assigned,
-                "created_at": l.created_at.isoformat() if hasattr(l, 'created_at') and l.created_at else None
-            })
-    except Exception:
-        pass
-    
-    if not res:
-        res = [{
-            "id": 101,
-            "user_email": "rahul@institute.edu",
-            "applicant_name": "Rahul Sharma",
-            "role": "teacher",
-            "start_date": "2026-08-01",
-            "end_date": "2026-08-02",
-            "reason": "Attending AI Conference",
-            "status": "pending",
-            "substitute_assigned": None
-        }]
+    for l in leaves:
+        res.append({
+            "id": l.id,
+            "user_email": l.user_email,
+            "applicant_name": l.applicant_name,
+            "role": l.role,
+            "start_date": l.start_date,
+            "end_date": l.end_date,
+            "reason": l.reason,
+            "status": l.status,
+            "substitute_assigned": l.substitute_assigned,
+            "created_at": l.created_at.isoformat() if hasattr(l, 'created_at') and l.created_at else None
+        })
     return res
 
 
 @router.post("/leave/{leave_id}/approve")
 def approve_leave(
     leave_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
 ):
-    inst_id = get_inst_id(db)
+    if current_user.role not in ("admin", "teacher", "hod"):
+        raise HTTPException(status_code=403, detail="Staff access only.")
+
+    inst_id = current_user.institution_id
+    req = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.id == leave_id,
+        models.LeaveRequest.institution_id == inst_id
+    ).first()
+
+    if not req:
+        raise HTTPException(status_code=404, detail="Leave request not found.")
+
     substitute_msg = " Auto-assigned substitute: Prof. Anita Roy"
     try:
-        req = db.query(models.LeaveRequest).filter(
-            models.LeaveRequest.id == leave_id,
-            models.LeaveRequest.institution_id == inst_id
-        ).first()
-        
-        if req:
-            req.status = "approved"
-            req.substitute_assigned = "Prof. Anita Roy"
-            db.commit()
+        req.status = "approved"
+        req.substitute_assigned = "Prof. Anita Roy"
+        db.commit()
     except Exception:
         db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to approve leave request.")
 
     return {"success": True, "status": "approved", "message": f"Leave approved.{substitute_msg}"}
 

@@ -189,7 +189,8 @@ def notify_absent_batch(
         if not student:
             continue
         parent = db.query(models.ParentAccount).filter(
-            models.ParentAccount.student_id == student.id
+            models.ParentAccount.student_id == student.id,
+            models.ParentAccount.institution_id == current_user.institution_id,
         ).first()
         phone = student.parent_phone or (parent.phone if parent else student.phone)
         email = student.parent_email or (parent.email if parent else student.email)

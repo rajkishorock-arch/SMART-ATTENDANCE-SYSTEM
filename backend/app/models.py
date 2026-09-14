@@ -38,6 +38,11 @@ class Institution(Base):
     # Institution specific master key
     master_key = Column(String(100), nullable=True)
 
+    # Multi-campus support
+    parent_institution_id = Column(Integer, nullable=True)
+    campus_name = Column(String(100), nullable=True)
+    campus_address = Column(String(255), nullable=True)
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -84,6 +89,12 @@ class StudentModel(Base):
     parent_phone = Column(String(45), nullable=True)
     consent_given = Column(Boolean, default=False)
     consent_at = Column(DateTime(timezone=True), nullable=True)
+    attendance_points = Column(Integer, default=0)
+    streak_days = Column(Integer, default=0)
+    longest_streak = Column(Integer, default=0)
+    last_present_date = Column(String(20), nullable=True)
+    badges_json = Column(Text, nullable=True)
+    estimated_age = Column(Integer, nullable=True)
 
     __table_args__ = (
         UniqueConstraint('institution_id', 'roll', name='_institution_roll_uc'),
@@ -749,6 +760,10 @@ class WellnessCheckin(Base):
     mood_score = Column(Integer, default=5)                # 1-10
     note = Column(Text, nullable=True)
     counselor_alerted = Column(Boolean, default=False)
+    resolved = Column(Boolean, default=False)
+    counselor_notes = Column(Text, nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_by = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

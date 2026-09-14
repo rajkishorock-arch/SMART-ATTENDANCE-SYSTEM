@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 
 from . import models, security, crud, schemas
 from .database import get_db
+from .core import config
 
 IST = timezone(timedelta(hours=5, minutes=30))
 router = APIRouter()
@@ -50,7 +51,7 @@ def _compute_wellness(db: Session, student_id: int, institution_id: int) -> dict
         mood_score = max(0.0, min(30.0, 15.0 + avg_mood * 15.0))
 
     # Streak component (20 pts max)
-    streak = student.streak_days or 0
+    streak = getattr(student, "streak_days", 0) or 0
     streak_score = min(20.0, streak * 1.5)
 
     # Wellness checkins (10 pts max)
@@ -91,6 +92,9 @@ def get_wellness_score(
     current_user: models.User = Depends(security.get_current_user),
 ):
     """Get wellness score for a specific student."""
+    if current_user.email.strip().lower() != getattr(config, "SYSTEM_OWNER_EMAIL", "").strip().lower():
+        security.verify_tenant_isolation(institution_id, current_user.institution_id)
+
     result = _compute_wellness(db, student_id, institution_id)
     if not result.get("name"):
         raise HTTPException(status_code=404, detail="Student not found.")
@@ -127,6 +131,9 @@ def student_wellness_checkin(
     current_user: models.User = Depends(security.get_current_user),
 ):
     """Student submits daily wellness check-in (accessible by admin or student)."""
+    if current_user.email.strip().lower() != getattr(config, "SYSTEM_OWNER_EMAIL", "").strip().lower():
+        security.verify_tenant_isolation(institution_id, current_user.institution_id)
+
     student_id = payload.get("student_id")
     mood = payload.get("mood", "neutral")
     notes = payload.get("notes", "")
@@ -264,6 +271,9 @@ def get_student_mood_log(
     current_user: models.User = Depends(security.get_current_user),
 ):
     """Get mood check-in history for a student."""
+    if current_user.email.strip().lower() != getattr(config, "SYSTEM_OWNER_EMAIL", "").strip().lower():
+        security.verify_tenant_isolation(institution_id, current_user.institution_id)
+
     checkins = db.query(models.WellnessCheckin).filter(
         models.WellnessCheckin.institution_id == institution_id,
         models.WellnessCheckin.student_id == student_id,
@@ -300,6 +310,9 @@ def get_counselor_alerts(
     current_user: models.User = Depends(security.get_current_user),
 ):
     """Get wellness alerts for counselor review."""
+    if current_user.email.strip().lower() != getattr(config, "SYSTEM_OWNER_EMAIL", "").strip().lower():
+        security.verify_tenant_isolation(institution_id, current_user.institution_id)
+
     if current_user.role not in ("admin", "teacher", "hod"):
         raise HTTPException(status_code=403, detail="Staff access only.")
     
@@ -348,6 +361,9 @@ def resolve_counselor_alert(
     current_user: models.User = Depends(security.get_current_user),
 ):
     """Mark a counselor alert as resolved."""
+    if current_user.email.strip().lower() != getattr(config, "SYSTEM_OWNER_EMAIL", "").strip().lower():
+        security.verify_tenant_isolation(institution_id, current_user.institution_id)
+
     if current_user.role not in ("admin", "teacher", "hod"):
         raise HTTPException(status_code=403, detail="Staff access only.")
     

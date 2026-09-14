@@ -100,9 +100,10 @@ def cleanup_test_logs(
     if current_user.role not in ["admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Staff only")
     
-    # Delete test logs created at 03:21:52 or test records
+    # Delete test logs created at 03:21:52 for this institution only
     deleted = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.time == "03:21:52"
+        models.AttendanceModel.time == "03:21:52",
+        models.AttendanceModel.institution_id == current_user.institution_id
     ).delete(synchronize_session=False)
     
     db.commit()
@@ -1225,7 +1226,8 @@ def checkin_via_student_qr(
     attendance_id = f"{student.id}_{date_str}_{active_subject_id or 'none'}"
     
     db_attendance = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.id == attendance_id
+        models.AttendanceModel.id == attendance_id,
+        models.AttendanceModel.institution_id == current_user.institution_id
     ).first()
     
     if db_attendance:
