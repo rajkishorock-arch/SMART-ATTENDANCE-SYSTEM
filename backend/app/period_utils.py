@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, Any
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -76,3 +76,36 @@ def get_period_slot_label(period_or_time: Optional[str]) -> str:
     """Returns human-readable time slot label for any period or timestamp."""
     p_name = resolve_period_name(period_or_time)
     return PERIOD_SLOT_LABELS.get(p_name, p_name)
+
+def normalize_date_str(date_str: Optional[str]) -> str:
+    """Normalizes any date string (YYYY-MM-DD or DD/MM/YYYY) to standard DD/MM/YYYY."""
+    if not date_str:
+        return datetime.now(IST).strftime("%d/%m/%Y")
+    
+    d_clean = str(date_str).strip()
+    if "-" in d_clean:
+        try:
+            return datetime.strptime(d_clean, "%Y-%m-%d").strftime("%d/%m/%Y")
+        except ValueError:
+            return d_clean
+    return d_clean
+
+def generate_session_key(
+    institution_id: Optional[int],
+    student_id: Any,
+    date_str: Optional[str],
+    time_or_period: Optional[str],
+    subject_id: Optional[int]
+) -> str:
+    """
+    Generates canonical, deterministic session key for attendance uniqueness.
+    Format: inst_{inst_id}_std_{student_id}_date_{normalized_date}_period_{period_name}_sub_{subject_id}
+    """
+    inst_val = institution_id if institution_id is not None else 0
+    std_val = str(student_id).strip() if student_id is not None else ""
+    norm_date = normalize_date_str(date_str)
+    p_name = resolve_period_name(time_or_period)
+    sub_val = subject_id if subject_id is not None else 0
+    
+    return f"inst_{inst_val}_std_{std_val}_date_{norm_date}_period_{p_name}_sub_{sub_val}"
+

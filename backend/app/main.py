@@ -96,6 +96,34 @@ def update_schema():
         safe_add_column('attendence', 'subject_id', 'INT NULL')
         safe_add_column('attendence', 'verification_method', "VARCHAR(30) DEFAULT 'FACE_SCAN'")
         safe_add_column('attendence', 'fallback_reason', 'VARCHAR(255) NULL')
+        safe_add_column('attendence', 'session_key', 'VARCHAR(255) NULL')
+
+        # Phase 1B: Backfill session_key & Deduplicate legacy rows
+        try:
+            from app.period_utils import generate_session_key
+            all_attendance = db.query(models.AttendanceModel).all()
+            key_groups = {}
+            for rec in all_attendance:
+                s_key = generate_session_key(rec.institution_id, rec.id, rec.date, rec.time, rec.subject_id)
+                if not rec.session_key or rec.session_key != s_key:
+                    rec.session_key = s_key
+                key_groups.setdefault(s_key, []).append(rec)
+            db.commit()
+
+            # Stage C: Clean up legacy duplicate rows if any exist
+            deleted_dups_count = 0
+            for s_key, rec_list in key_groups.items():
+                if len(rec_list) > 1:
+                    rec_list.sort(key=lambda r: (r.date or "", r.time or ""))
+                    for dup_rec in rec_list[1:]:
+                        db.delete(dup_rec)
+                        deleted_dups_count += 1
+            if deleted_dups_count > 0:
+                db.commit()
+                print(f"Phase 1B Migration: Cleaned up {deleted_dups_count} duplicate legacy attendance rows.")
+        except Exception as bfk_err:
+            db.rollback()
+            print("Phase 1B Backfill warning:", bfk_err)
 
         # Feedbacks table columns
         safe_add_column('feedbacks', 'user_id', 'INT NULL')
@@ -261,6 +289,45 @@ def update_schema():
         # Create new tables for advanced features
         from app.database import Base
         Base.metadata.create_all(bind=engine)
+
+        # Stage D & E: Unique Index idx_attendence_session_key Creation & Verification
+        if db_dialect == 'mysql':
+            try:
+                idx_rows = db.execute(text("SHOW INDEX FROM attendence WHERE Key_name = 'idx_attendence_session_key'")).fetchall()
+                if not idx_rows:
+                    db.execute(text("CREATE UNIQUE INDEX idx_attendence_session_key ON attendence (session_key)"))
+                    db.commit()
+                    print("Created unique index idx_attendence_session_key on attendence table (MySQL)")
+            except Exception as my_ex:
+                db.rollback()
+                print(f"MySQL index creation notice: {my_ex}")
+        else:
+            safe_execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_attendence_session_key ON attendence (session_key)", "Created unique index idx_attendence_session_key")
+
+        # Stage E: Verify UNIQUE Index Existence
+        index_verified = False
+        try:
+            insp = inspect(engine)
+            indexes = [idx['name'] for idx in insp.get_indexes('attendence')]
+            index_verified = 'idx_attendence_session_key' in indexes
+            if not index_verified:
+                if db_dialect == 'sqlite':
+                    idx_check = db.execute(text("PRAGMA index_list(attendence)")).fetchall()
+                    index_verified = any(row[1] == 'idx_attendence_session_key' for row in idx_check)
+                elif db_dialect == 'postgresql':
+                    idx_check = db.execute(text("SELECT 1 FROM pg_indexes WHERE indexname = 'idx_attendence_session_key'")).fetchone()
+                    index_verified = idx_check is not None
+                elif db_dialect == 'mysql':
+                    idx_check = db.execute(text("SHOW INDEX FROM attendence WHERE Key_name = 'idx_attendence_session_key'")).fetchone()
+                    index_verified = idx_check is not None
+        except Exception as v_err:
+            db.rollback()
+            print(f"Notice during index verification: {v_err}")
+
+        if index_verified:
+            print("Phase 1B Migration Verified: UNIQUE index 'idx_attendence_session_key' is active on table 'attendence'.")
+        else:
+            print("Warning: UNIQUE index 'idx_attendence_session_key' creation could not be verified automatically.")
     except Exception as e:
         db.rollback()
         print("Schema update check failed:", e)

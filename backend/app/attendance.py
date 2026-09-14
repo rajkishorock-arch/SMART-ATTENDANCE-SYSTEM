@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 IST = timezone(timedelta(hours=5, minutes=30))
 
 from . import crud, schemas, models, security, security_utils
-from .period_utils import resolve_period_name, get_period_slot_label, PERIOD_SLOT_LABELS
+from .period_utils import resolve_period_name, get_period_slot_label, PERIOD_SLOT_LABELS, generate_session_key
 from .database import get_db
 from .recognition_service import recognition_service
 from .email_service import send_presence_email, send_absent_email
@@ -859,6 +859,7 @@ def mark_manual_attendance_bulk(
                     existing.attendance = attendance_status
                     db.commit()
                 else:
+                    s_key = generate_session_key(current_user.institution_id, student_id, date_str, period, subject_id)
                     new_record = models.AttendanceModel(
                         id=student_id,
                         name=student.name,
@@ -868,7 +869,8 @@ def mark_manual_attendance_bulk(
                         time=period,
                         attendance=attendance_status,
                         subject_id=subject_id,
-                        institution_id=current_user.institution_id
+                        institution_id=current_user.institution_id,
+                        session_key=s_key
                     )
                     db.add(new_record)
                     db.commit()
@@ -1230,6 +1232,7 @@ def checkin_via_student_qr(
         db_attendance.attendance = "Present"
         db_attendance.time = time_str
     else:
+        s_key = generate_session_key(institution_id, attendance_id, date_str, time_str, active_subject_id)
         db_attendance = models.AttendanceModel(
             id=attendance_id,
             institution_id=institution_id,
@@ -1239,7 +1242,8 @@ def checkin_via_student_qr(
             time=time_str,
             date=date_str,
             attendance="Present",
-            subject_id=active_subject_id
+            subject_id=active_subject_id,
+            session_key=s_key
         )
         db.add(db_attendance)
         

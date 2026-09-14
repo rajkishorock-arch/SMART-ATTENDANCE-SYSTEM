@@ -274,23 +274,13 @@ def mark_student_attendance(
     institution_id: Optional[int] = None
 ):
     from sqlalchemy.exc import IntegrityError
-
-    if custom_date:
-        if "-" in custom_date:
-            try:
-                today_str = datetime.strptime(custom_date, "%Y-%m-%d").strftime("%d/%m/%Y")
-            except ValueError:
-                today_str = custom_date
-        else:
-            today_str = custom_date
-    else:
-        today_str = datetime.now(IST).strftime("%d/%m/%Y")
-        
-    from .period_utils import resolve_period_name
+    from .period_utils import resolve_period_name, normalize_date_str, generate_session_key
     from sqlalchemy import or_
 
+    today_str = normalize_date_str(custom_date)
     actual_clock_time = custom_time if custom_time else datetime.now(IST).strftime("%H:%M:%S")
     period_name = resolve_period_name(actual_clock_time)
+    s_key = generate_session_key(institution_id, student_id, today_str, actual_clock_time, subject_id)
     
     with _attendance_lock:
         # 1. Check if already marked in DB for this student, subject, date, and period slot
@@ -312,14 +302,14 @@ def mark_student_attendance(
         existing_candidates = query.all()
         existing = None
         for cand in existing_candidates:
-            if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
+            if (cand.session_key and cand.session_key == s_key) or cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
                 existing = cand
                 break
         
         if existing:
             return existing, False
             
-        # 2. Insert into MySQL DB with actual clock time
+        # 2. Insert into DB with actual clock time and deterministic session_key
         db_attendance = models.AttendanceModel(
             id=str(student_id),
             roll=roll,
@@ -330,7 +320,8 @@ def mark_student_attendance(
             attendance="Present",
             subject_id=subject_id,
             institution_id=institution_id,
-            fallback_reason=f"Scan at {actual_clock_time}"
+            fallback_reason=f"Scan at {actual_clock_time}",
+            session_key=s_key
         )
         db.add(db_attendance)
         try:
@@ -338,6 +329,13 @@ def mark_student_attendance(
             db.refresh(db_attendance)
         except IntegrityError:
             db.rollback()
+            # Race condition handling: check if another process beat us using session_key
+            existing = db.query(models.AttendanceModel).filter(
+                models.AttendanceModel.session_key == s_key
+            ).first()
+            if existing:
+                return existing, False
+
             existing_candidates = query.all()
             for cand in existing_candidates:
                 if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:

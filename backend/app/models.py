@@ -120,6 +120,7 @@ class AttendanceModel(Base):
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
     verification_method = Column(String(30), default="FACE_SCAN")  # FACE_SCAN, DYNAMIC_QR, SESSION_PIN, MANUAL_STAFF
     fallback_reason = Column(String(255), nullable=True)
+    session_key = Column(String(255), unique=True, index=True, nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
