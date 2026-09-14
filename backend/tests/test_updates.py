@@ -32,7 +32,7 @@ def test_db():
     db.commit()
     
     # Seed default institution and settings
-    inst = models.Institution(id=1, name="Default Inst", slug="default", master_key="dev_master_raj_9211_secure")
+    inst = models.Institution(id=1, name="Default Inst", slug="default", master_key="system_admin_key_9211")
     db.add(inst)
     
     # Seed a secondary institution for non-owner login tests
@@ -122,7 +122,7 @@ def test_release_update_unauthorized_user(client):
     # Attempt update release
     headers = {"Authorization": f"Bearer {token}"}
     payload = {
-        "master_password": "dev_master_raj_9211_secure",
+        "master_password": "system_admin_key_9211",
         "latest_version": "1.0.2",
         "update_download_url": "https://example.com/app-v2.apk"
     }
@@ -156,7 +156,7 @@ def test_release_update_success(client):
     # Publish release
     headers = {"Authorization": f"Bearer {token}"}
     payload = {
-        "master_password": "dev_master_raj_9211_secure",
+        "master_password": "system_admin_key_9211",
         "latest_version": "1.0.2",
         "update_download_url": "https://example.com/app-v2.apk"
     }

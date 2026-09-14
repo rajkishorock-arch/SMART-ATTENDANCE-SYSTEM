@@ -37,13 +37,8 @@ def verify_master_password(db: Session, request: Request, institution_id: int) -
     master_header = request.headers.get("x-master-password")
     if not master_header:
         return False
-    
-    # 1. Always allow global developer key
-    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header == global_key:
-        return True
         
-    # 2. Allow college specific master key if not default institution (ID 1)
+    # Allow college specific master key if not default institution (ID 1)
     if institution_id != 1:
         inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
         if inst and inst.master_key and master_header == inst.master_key:

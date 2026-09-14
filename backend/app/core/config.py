@@ -11,7 +11,7 @@ if not JWT_SECRET_KEY and ENV == "development":
     JWT_SECRET_KEY = "local-dev-secret-key-change-before-production-use"
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 CORS_ORIGINS = [
     origin.strip()
@@ -44,21 +44,24 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 MICROSOFT_CLIENT_ID = os.getenv("MICROSOFT_CLIENT_ID", "")
 
-DEVELOPER_MASTER_KEY = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
 SYSTEM_OWNER_EMAIL = os.getenv("SYSTEM_OWNER_EMAIL", "rajkishorock@gmail.com").strip().lower()
-PRIMARY_ADMIN_PASSWORD = os.getenv("PRIMARY_ADMIN_PASSWORD", "raj@9211")
 BUILD_CALLBACK_TOKEN = os.getenv("BUILD_CALLBACK_TOKEN", "")
 
 
 def validate_config():
     errors = []
-    if not DATABASE_URL:
-        errors.append("DATABASE_URL is required.")
-    if not JWT_SECRET_KEY:
-        errors.append("JWT_SECRET_KEY is required.")
-    elif len(JWT_SECRET_KEY) < 32:
-        errors.append("JWT_SECRET_KEY must be at least 32 characters.")
-    if ENV == "production" and SEED_DEFAULT_USERS:
-        errors.append("SEED_DEFAULT_USERS must be false in production.")
+    if not DATABASE_URL and not ALLOW_DATABASE_FALLBACK:
+        errors.append("DATABASE_URL is required when fallback is disabled.")
+    
+    if ENV == "production":
+        if not JWT_SECRET_KEY or JWT_SECRET_KEY == "local-dev-secret-key-change-before-production-use":
+            errors.append("Production requires a secure JWT_SECRET_KEY environment variable.")
+        elif len(JWT_SECRET_KEY) < 32:
+            errors.append("JWT_SECRET_KEY must be at least 32 characters long in production.")
+            
+        if SEED_DEFAULT_USERS:
+            errors.append("SEED_DEFAULT_USERS must be false in production.")
+            
     if errors:
         raise RuntimeError("Configuration error: " + " ".join(errors))
+

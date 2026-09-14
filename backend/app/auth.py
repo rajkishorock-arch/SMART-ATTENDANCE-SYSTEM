@@ -5,10 +5,9 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-from . import crud, schemas, security, models
+from . import crud, schemas, security, models, security_utils
 from .database import get_db
 from .core import config
-from .security_utils import verify_global_master_key
 
 router = APIRouter()
 
@@ -53,35 +52,7 @@ def login_for_access_token(
 ):
     rate_key = form_data.username.strip().lower()
     _check_rate_limit(rate_key)
-
-    # A. Check if logging in via institution slug/name and Developer Master Key
-    if verify_global_master_key(form_data.password):
-        from sqlalchemy import func
-        target_inst = db.query(models.Institution).filter(
-            (func.lower(models.Institution.slug) == form_data.username.strip().lower()) |
-            (func.lower(models.Institution.name) == form_data.username.strip().lower())
-        ).first()
-        if target_inst:
-            # Find the primary admin user for this target institution
-            admin_user = db.query(models.User).filter(
-                models.User.institution_id == target_inst.id,
-                models.User.role == "admin"
-            ).order_by(models.User.id.asc()).first()
-            if admin_user:
-                if not admin_user.is_active:
-                    raise HTTPException(status_code=400, detail="Inactive user")
-                record_active_user(admin_user.email, admin_user.role)
-                access_token = security.create_access_token(
-                    data={"sub": admin_user.email, "role": admin_user.role, "institution_id": admin_user.institution_id}
-                )
-                crud.create_audit_log(
-                    db, 
-                    log=schemas.AuditLogCreate(
-                        user_email=admin_user.email, 
-                        action=f"Admin logged in via institution credentials & master key."
-                    )
-                )
-                return {"access_token": access_token, "token_type": "bearer"}
+    client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
 
     tenant_slug = request.headers.get("X-Tenant-Slug", "default")
     # Resolve active institution from tenant_slug header
@@ -96,23 +67,21 @@ def login_for_access_token(
     # - TEACHERS and STUDENTS of this institution CAN login normally
     _is_default_inst = (institution_id == 1)
 
-    # 1. Try Admin/Teacher Login
+    # 2. Try Admin/Teacher Login
     user = crud.get_user_by_email(db, email=form_data.username, institution_id=institution_id)
     if user:
         # For default institution, only system owner can login as admin
         if _is_default_inst and user.role in ("admin",) and user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Default Institution admin access is restricted to the System Owner only."
+                detail="Default Institution admin access is restricted to the System Owner only."
             )
 
         is_authenticated = False
-        # Fallback developer recovery mechanisms
-        if user.email.strip().lower() == config.SYSTEM_OWNER_EMAIL and config.PRIMARY_ADMIN_PASSWORD and form_data.password == config.PRIMARY_ADMIN_PASSWORD:
-            is_authenticated = True
-        elif verify_global_master_key(form_data.password):
-            is_authenticated = True
-        elif security.verify_password(form_data.password, user.password_hash):
+        print(f"DEBUG AUTH USER: email={user.email}, inst_id={user.institution_id}, hash={user.password_hash}")
+        res = security.verify_password(form_data.password, user.password_hash)
+        print(f"DEBUG VERIFY RESULT: {res} for input password={form_data.password}")
+        if res:
             is_authenticated = True
 
         if not is_authenticated:
@@ -123,7 +92,15 @@ def login_for_access_token(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         if not user.is_active:
-            raise HTTPException(status_code=400, detail="Inactive user")
+            raise HTTPException(status_code=400, detail="Inactive user account.")
+
+        # Transparent password hash upgrade if legacy format detected
+        if security.needs_rehash(user.password_hash):
+            try:
+                user.password_hash = security.get_password_hash(form_data.password)
+                db.commit()
+            except Exception:
+                db.rollback()
 
         record_active_user(user.email, user.role)
         access_token = security.create_access_token(
@@ -132,15 +109,16 @@ def login_for_access_token(
         crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=user.email, action="Admin/User logged in."))
         return {"access_token": access_token, "token_type": "bearer"}
 
-    # 2. Try Student Login
+    # 3. Try Student Login
     student = crud.get_student_by_email(db, email=form_data.username, institution_id=institution_id)
     if student:
         is_valid = False
-        if verify_global_master_key(form_data.password):
-            is_valid = True
-        elif not student.password_hash:
+        if not student.password_hash:
             if config.ALLOW_ROLL_PASSWORD and student.roll and form_data.password == student.roll:
                 is_valid = True
+                # Set initial password hash for roll password
+                student.password_hash = security.get_password_hash(form_data.password)
+                db.commit()
         elif security.verify_password(form_data.password, student.password_hash):
             is_valid = True
 
@@ -151,6 +129,14 @@ def login_for_access_token(
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+        # Transparent password hash upgrade if legacy format detected
+        if student.password_hash and security.needs_rehash(student.password_hash):
+            try:
+                student.password_hash = security.get_password_hash(form_data.password)
+                db.commit()
+            except Exception:
+                db.rollback()
 
         record_active_user(student.email, "student")
         access_token = security.create_access_token(

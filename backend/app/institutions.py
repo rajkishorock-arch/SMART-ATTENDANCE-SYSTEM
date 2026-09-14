@@ -54,14 +54,7 @@ def create_institution(
             detail="Only the Default System Administrator can manage institutions."
         )
 
-    # Verify master password header
-    master_header = request.headers.get("x-master-password")
-    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header != expected_key:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid Master Password! Master key verification is required to add a new institution/college."
-        )
+
 
     slug_clean = payload.slug.strip().lower()
     existing_slug = db.query(models.Institution).filter(models.Institution.slug == slug_clean).first()
@@ -157,14 +150,7 @@ def delete_institution(
             detail="Only the Default System Administrator can manage institutions."
         )
 
-    # Verify master password header
-    master_header = request.headers.get("x-master-password")
-    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header != expected_key:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid Master Password! Master key verification is required to delete an institution."
-        )
+
 
     if id == 1:
         raise HTTPException(
@@ -208,13 +194,7 @@ def update_college_master_key(
         raise HTTPException(status_code=404, detail="Institution not found")
         
     current_key_input = payload.current_master_key.strip()
-    global_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    
-    is_valid = False
-    if current_key_input == global_key:
-        is_valid = True
-    elif inst.master_key and current_key_input == inst.master_key:
-        is_valid = True
+    is_valid = bool(inst.master_key and current_key_input == inst.master_key)
         
     if not is_valid:
         raise HTTPException(
@@ -252,14 +232,7 @@ def update_institution(
             detail="Only the Default System Administrator can manage institutions."
         )
 
-    # Verify master password header
-    master_header = request.headers.get("x-master-password")
-    expected_key = os.getenv("DEVELOPER_MASTER_KEY", "dev_master_raj_9211_secure")
-    if master_header != expected_key:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid Master Password! Master key verification is required to update an institution."
-        )
+
 
     inst = db.query(models.Institution).filter(models.Institution.id == id).first()
     if not inst:

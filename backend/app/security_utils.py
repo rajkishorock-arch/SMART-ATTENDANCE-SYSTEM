@@ -13,15 +13,8 @@ def constant_time_equals(left: str, right: str) -> bool:
     return hmac.compare_digest(str(left), str(right))
 
 
-def verify_global_master_key(candidate: str) -> bool:
-    """Verify the system-level developer master key."""
-    return constant_time_equals(candidate, config.DEVELOPER_MASTER_KEY)
-
-
 def verify_master_key_for_institution(db, candidate: str, institution_id: int) -> bool:
-    """Allow the global key everywhere and the institution key for non-default tenants."""
-    if verify_global_master_key(candidate):
-        return True
+    """Allow the institution key for non-default tenants."""
     if not candidate or institution_id == 1:
         return False
     inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
@@ -29,9 +22,7 @@ def verify_master_key_for_institution(db, candidate: str, institution_id: int) -
 
 
 def verify_master_key_for_system_action(db, candidate: str, institution_id: int) -> bool:
-    """Allow global key and the current institution key for existing system update flows."""
-    if verify_global_master_key(candidate):
-        return True
+    """Allow the current institution key for existing system update flows."""
     if not candidate or not institution_id:
         return False
     inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()

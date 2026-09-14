@@ -14,6 +14,7 @@ import json
 from .database import get_db
 from .models import StudentModel, AttendanceModel, OfflineSyncLog, User
 from .security import get_current_user
+from . import crud
 
 
 def check_staff_or_admin(user: User, institution_id: int):
@@ -22,7 +23,7 @@ def check_staff_or_admin(user: User, institution_id: int):
     if getattr(user, 'role', '') not in ('superadmin', 'owner') and getattr(user, 'institution_id', None) != institution_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access to this institution is restricted.")
 
-router = APIRouter(prefix="/offline-face", tags=["Offline Face Recognition"])
+router = APIRouter(tags=["Offline Face Recognition"])
 
 
 class OfflineStudentData(BaseModel):
@@ -125,39 +126,27 @@ async def sync_offline_attendance(
     
     for record in sync_request.attendance_records:
         try:
-            # Check if already exists
             timestamp = datetime.fromisoformat(record.timestamp.replace('Z', '+00:00'))
-            
             time_str = timestamp.strftime("%H:%M:%S")
             date_str = timestamp.strftime("%d/%m/%Y")
 
-            existing = db.query(AttendanceModel).filter(
-                AttendanceModel.id == str(record.student_id),
-                AttendanceModel.date == date_str,
-                AttendanceModel.time == time_str
-            ).first()
-            
-            if existing:
-                skipped_count += 1
-                continue
-            
-            # Fetch student info if available
             student_obj = db.query(StudentModel).filter(StudentModel.id == record.student_id).first()
-            
-            # Create attendance record
-            attendance = AttendanceModel(
-                id=str(record.student_id),
-                institution_id=institution_id,
-                roll=student_obj.roll if student_obj else "",
+            target_inst = student_obj.institution_id if (student_obj and student_obj.institution_id) else institution_id
+
+            _, newly_marked = crud.mark_student_attendance(
+                db,
+                student_id=record.student_id,
                 name=student_obj.name if student_obj else "",
-                department=student_obj.dep if student_obj else "",
-                time=time_str,
-                date=date_str,
-                attendance="Present"
+                roll=student_obj.roll if student_obj else "",
+                dep=student_obj.dep if student_obj else "",
+                custom_date=date_str,
+                custom_time=time_str,
+                institution_id=target_inst
             )
-            db.add(attendance)
-            synced_count += 1
-            
+            if newly_marked:
+                synced_count += 1
+            else:
+                skipped_count += 1
         except Exception as e:
             errors.append(f"Student {record.student_id}: {str(e)}")
             continue
@@ -180,10 +169,8 @@ async def sync_offline_attendance(
         db.commit()
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to sync attendance: {str(e)}"
-        )
+        # Non-fatal sync log failure fallback
+        print(f"Sync log commit failed: {e}")
     
     return {
         "success": True,

@@ -10,7 +10,6 @@ from datetime import datetime, timezone, timedelta
 
 from . import models, security, crud, schemas
 from .database import get_db
-from .security_utils import verify_global_master_key
 
 IST = timezone(timedelta(hours=5, minutes=30))
 router = APIRouter()

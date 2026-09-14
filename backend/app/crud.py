@@ -1,8 +1,10 @@
+import threading
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from datetime import datetime, timedelta, date, timezone
 
 IST = timezone(timedelta(hours=5, minutes=30))
+_attendance_lock = threading.RLock()
 from typing import Optional
 from . import models, schemas, security
 
@@ -290,55 +292,60 @@ def mark_student_attendance(
     actual_clock_time = custom_time if custom_time else datetime.now(IST).strftime("%H:%M:%S")
     period_name = resolve_period_name(actual_clock_time)
     
-    # 1. Check if already marked in DB for this student, subject, date, and period slot
-    query = db.query(models.AttendanceModel).filter(
-        or_(
-            models.AttendanceModel.id == str(student_id),
-            models.AttendanceModel.roll == roll
-        ),
-        models.AttendanceModel.date == today_str
-    )
-    if institution_id is not None:
-        query = query.filter(models.AttendanceModel.institution_id == institution_id)
+    with _attendance_lock:
+        # 1. Check if already marked in DB for this student, subject, date, and period slot
+        query = db.query(models.AttendanceModel).filter(
+            or_(
+                models.AttendanceModel.id == str(student_id),
+                models.AttendanceModel.roll == roll
+            ),
+            models.AttendanceModel.date == today_str
+        )
+        if institution_id is not None:
+            query = query.filter(models.AttendanceModel.institution_id == institution_id)
 
-    if subject_id is not None:
-        query = query.filter(models.AttendanceModel.subject_id == subject_id)
-    else:
-        query = query.filter(models.AttendanceModel.subject_id == None)
+        if subject_id is not None:
+            query = query.filter(models.AttendanceModel.subject_id == subject_id)
+        else:
+            query = query.filter(models.AttendanceModel.subject_id == None)
+            
+        existing_candidates = query.all()
+        existing = None
+        for cand in existing_candidates:
+            if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
+                existing = cand
+                break
         
-    existing_candidates = query.all()
-    existing = None
-    for cand in existing_candidates:
-        if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
-            existing = cand
-            break
-    
-    if existing:
-        return existing, False
-        
-    # 2. Insert into MySQL DB with actual clock time
-    db_attendance = models.AttendanceModel(
-        id=str(student_id),
-        roll=roll,
-        name=name,
-        department=dep,
-        time=actual_clock_time,
-        date=today_str,
-        attendance="Present",
-        subject_id=subject_id,
-        institution_id=institution_id,
-        fallback_reason=f"Scan at {actual_clock_time}"
-    )
-    db.add(db_attendance)
-    try:
-        db.commit()
-        db.refresh(db_attendance)
-    except IntegrityError:
-        db.rollback()
-        existing = query.first()
         if existing:
             return existing, False
-        raise
+            
+        # 2. Insert into MySQL DB with actual clock time
+        db_attendance = models.AttendanceModel(
+            id=str(student_id),
+            roll=roll,
+            name=name,
+            department=dep,
+            time=actual_clock_time,
+            date=today_str,
+            attendance="Present",
+            subject_id=subject_id,
+            institution_id=institution_id,
+            fallback_reason=f"Scan at {actual_clock_time}"
+        )
+        db.add(db_attendance)
+        try:
+            db.commit()
+            db.refresh(db_attendance)
+        except IntegrityError:
+            db.rollback()
+            existing_candidates = query.all()
+            for cand in existing_candidates:
+                if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
+                    return cand, False
+            existing = query.first()
+            if existing:
+                return existing, False
+            raise
     
     # 3. Write to CSV file (root/attendance.csv)
     try:
@@ -354,7 +361,7 @@ def mark_student_attendance(
             writer = csv.writer(f)
             if not file_exists or os.path.getsize(attendance_path) == 0:
                 writer.writerow(required_columns)
-            writer.writerow([student_id, roll, name, dep, time_str, today_str, "Present", subject_id or "", institution_id or ""])
+            writer.writerow([student_id, roll, name, dep, actual_clock_time, today_str, "Present", subject_id or "", institution_id or ""])
     except Exception as csv_err:
         print(f"Failed to write attendance to CSV: {csv_err}")
         
