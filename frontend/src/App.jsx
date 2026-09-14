@@ -11161,44 +11161,7 @@ export default function App() {
                   />
                 ) : null}
 
-                {/* Header Command Bar */}
-                <div className="surface-card" style={{ padding: isMobileView ? '16px 14px' : '20px 24px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <h2 style={{ fontSize: isMobileView ? '1.25rem' : '1.5rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0, letterSpacing: '-0.02em' }}>
-                          {userRole === 'teacher' ? 'Teacher Command Center' : 'Institutional Command Center'}
-                        </h2>
-                        <span className={`status-pill ${wsConnected ? 'status-pill-success' : 'status-pill-warning'}`} style={{ fontSize: '0.7rem' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: wsConnected ? '#10b981' : '#f59e0b', display: 'inline-block' }} />
-                          {wsConnected ? 'Live Real-time' : 'Local Queue Sync'}
-                        </span>
-                      </div>
-                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: '4px 0 0' }}>
-                        {tenantBranding ? tenantBranding.name : 'Smart Attendance System'} · Real-time biometric attendance monitoring and operational telemetry.
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <VersionBadge
-                        compact
-                        serverLatest={serverLatestVersion}
-                        updateActive={updateActiveFlag}
-                        onCheckUpdate={handleManualCheck}
-                      />
-                      <button
-                        onClick={() => {
-                          playCyberSound('click');
-                          setActiveTab('attendance');
-                          setShowScannerModal(true);
-                        }}
-                        className="btn-primary"
-                        style={{ padding: '8px 16px', minHeight: '40px', fontSize: '0.85rem' }}
-                      >
-                        <Camera size={16} /> Open Scanner
-                      </button>
-                    </div>
-                  </div>
-                </div>
+
 
                 {/* KPI Cards: Today's Attendance, Scanner State, Attention, Rate */}
                 {!stats ? (

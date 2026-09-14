@@ -30,13 +30,13 @@ export default function AdminPulseDashboard({
   const totalStudents = stats?.total_students ?? (presentToday + absentToday);
 
   return (
-    <div className="admin-pulse-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeInUp 0.3s ease both' }}>
-      {/* ── Campus Pulse KPI Overview ── */}
+    <div className="admin-pulse-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeInUp 0.25s ease both' }}>
+      {/* ── Today's Attendance Overview ── */}
       <div
         className="surface-card"
         style={{
-          padding: '22px',
-          background: 'linear-gradient(135deg, rgba(14, 22, 38, 0.95) 0%, rgba(17, 26, 46, 0.9) 100%)',
+          padding: '20px 24px',
+          background: 'var(--bg-card)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -46,18 +46,17 @@ export default function AdminPulseDashboard({
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Building2 size={24} color="var(--color-primary)" />
-            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#fff' }}>
-              {t('admin_pulse', lang)}
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-main)' }}>
+              {lang === 'hi' ? 'आज की उपस्थिति' : "Today's Attendance Overview"}
             </h2>
             <span className="status-pill status-pill-success" style={{ fontSize: '0.7rem' }}>
-              {lang === 'hi' ? 'कैंपस एक्टिव' : 'Campus Active'}
+              {lang === 'hi' ? 'सक्रिय' : 'Active Session'}
             </span>
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: '0.84rem', color: 'var(--color-text-secondary)' }}>
+          <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: 'var(--color-text-secondary)' }}>
             {lang === 'hi'
               ? `कुल ${totalStudents} नामांकित छात्र • आज की उपस्थिति दर: ${attendanceRate}%`
-              : `Overall ${totalStudents} enrolled students • Real-time attendance rate: ${attendanceRate}%`}
+              : `${totalStudents} Enrolled Students • Live Attendance Rate: ${attendanceRate}%`}
           </p>
         </div>
 
@@ -65,20 +64,20 @@ export default function AdminPulseDashboard({
           <button
             onClick={onOpenScanner}
             className="btn-primary"
-            style={{ minHeight: '42px', padding: '8px 18px', fontSize: '0.85rem' }}
+            style={{ minHeight: '44px', padding: '10px 20px', fontSize: '0.88rem' }}
           >
-            <Camera size={16} />
-            <span>{t('open_scanner', lang)}</span>
+            <Camera size={18} />
+            <span>{lang === 'hi' ? 'स्कैनर खोलें' : 'Start Attendance Session'}</span>
           </button>
         </div>
       </div>
 
-      {/* ── High-Impact Pulse Scorecards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+      {/* ── High-Impact Scorecards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
         {/* Card 1: Attendance Rate */}
         <div className="surface-card" style={{ padding: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
               {t('attendance_rate', lang)}
             </span>
             <TrendingUp size={18} color={attendanceRate >= 75 ? '#10b981' : '#f59e0b'} />
@@ -86,15 +85,15 @@ export default function AdminPulseDashboard({
           <div style={{ fontSize: '2rem', fontWeight: 800, color: attendanceRate >= 75 ? '#10b981' : '#f59e0b' }}>
             {attendanceRate}%
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            {attendanceRate >= 75 ? (lang === 'hi' ? 'सुरक्षित लक्ष्य से ऊपर' : 'Above mandatory 75% target') : (lang === 'hi' ? 'चेतावनी स्तर' : 'Deficit below target')}
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+            {attendanceRate >= 75 ? (lang === 'hi' ? 'सुरक्षित लक्ष्य से ऊपर' : 'Above target') : (lang === 'hi' ? 'चेतावनी स्तर' : 'Deficit below target')}
           </div>
         </div>
 
         {/* Card 2: Present Today */}
         <div className="surface-card" style={{ padding: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
               {t('present_today', lang)}
             </span>
             <CheckCircle2 size={18} color="#10b981" />
@@ -102,15 +101,15 @@ export default function AdminPulseDashboard({
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff' }}>
             {presentToday}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            {lang === 'hi' ? 'बायोमेट्रिक से सत्यापित' : 'Verified via face biometric'}
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+            {lang === 'hi' ? 'बायोमेट्रिक से सत्याप‍ित' : 'Verified attendance'}
           </div>
         </div>
 
         {/* Card 3: Absent Today */}
         <div className="surface-card" style={{ padding: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
               {t('absent_today', lang)}
             </span>
             <AlertTriangle size={18} color="#ef4444" />
@@ -118,24 +117,8 @@ export default function AdminPulseDashboard({
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>
             {absentToday}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            {lang === 'hi' ? 'अलर्ट हेतु कतारबद्ध' : 'Eligible for parent alerts'}
-          </div>
-        </div>
-
-        {/* Card 4: System Health */}
-        <div className="surface-card" style={{ padding: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-              {lang === 'hi' ? 'सिस्टम स्थिति' : 'AI Engine Health'}
-            </span>
-            <Activity size={18} color="#0ea5e9" />
-          </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0ea5e9', marginTop: '6px' }}>
-            {systemHealth?.status || 'OPTIMAL'}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            YuNet + SFace Vector Engine OK
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+            {lang === 'hi' ? 'अनुपस्थित छात्र' : 'Unmarked / Absent'}
           </div>
         </div>
       </div>
