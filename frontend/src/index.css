@@ -7502,4 +7502,48 @@ body.app-reduced-motion *::after {
   }
 }
 
+/* Accessibility & Motion System Rules */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch Target Minimum Height & Micro-interaction Classes */
+.btn-touch-target,
+.form-input-touch {
+  min-height: 44px;
+}
+
+.auth-card-motion {
+  animation: authFadeUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shakeOnce {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.auth-error-shake {
+  animation: shakeOnce 0.35s ease-in-out;
+}
+
+
 
