@@ -55,8 +55,8 @@ export default function AdminPulseDashboard({
           </div>
           <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: 'var(--color-text-secondary)' }}>
             {lang === 'hi'
-              ? `कुल ${totalStudents} नामांकित छात्र • आज की उपस्थिति दर: ${attendanceRate}%`
-              : `${totalStudents} Enrolled Students • Live Attendance Rate: ${attendanceRate}%`}
+              ? `कुल ${totalStudents} नामांकित छात्र`
+              : `${totalStudents} Enrolled Students`}
           </p>
         </div>
 
@@ -69,57 +69,6 @@ export default function AdminPulseDashboard({
             <Camera size={18} />
             <span>{lang === 'hi' ? 'स्कैनर खोलें' : 'Start Attendance Session'}</span>
           </button>
-        </div>
-      </div>
-
-      {/* ── High-Impact Scorecards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-        {/* Card 1: Attendance Rate */}
-        <div className="surface-card" style={{ padding: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-              {t('attendance_rate', lang)}
-            </span>
-            <TrendingUp size={18} color={attendanceRate >= 75 ? '#10b981' : '#f59e0b'} />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: attendanceRate >= 75 ? '#10b981' : '#f59e0b' }}>
-            {attendanceRate}%
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            {attendanceRate >= 75 ? (lang === 'hi' ? 'सुरक्षित लक्ष्य से ऊपर' : 'Above target') : (lang === 'hi' ? 'चेतावनी स्तर' : 'Deficit below target')}
-          </div>
-        </div>
-
-        {/* Card 2: Present Today */}
-        <div className="surface-card" style={{ padding: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-              {t('present_today', lang)}
-            </span>
-            <CheckCircle2 size={18} color="#10b981" />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff' }}>
-            {presentToday}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            {lang === 'hi' ? 'बायोमेट्रिक से सत्याप‍ित' : 'Verified attendance'}
-          </div>
-        </div>
-
-        {/* Card 3: Absent Today */}
-        <div className="surface-card" style={{ padding: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-              {t('absent_today', lang)}
-            </span>
-            <AlertTriangle size={18} color="#ef4444" />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>
-            {absentToday}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            {lang === 'hi' ? 'अनुपस्थित छात्र' : 'Unmarked / Absent'}
-          </div>
         </div>
       </div>
 
