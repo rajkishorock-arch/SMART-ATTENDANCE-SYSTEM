@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import logging
 
 from . import models, security
@@ -34,6 +34,25 @@ def create_notification(
     Creates an in-app notification record and dispatches background FCM push alert.
     """
     try:
+        # Idempotency Protection: Check if identical notification was created within last 10 seconds
+        try:
+            cutoff = datetime.now(timezone.utc) - timedelta(seconds=10)
+            recent_existing = db.query(models.NotificationModel).filter(
+                models.NotificationModel.institution_id == institution_id,
+                models.NotificationModel.recipient_role == recipient_role,
+                models.NotificationModel.recipient_id == recipient_id,
+                models.NotificationModel.recipient_email == recipient_email,
+                models.NotificationModel.category == category,
+                models.NotificationModel.title == title,
+                models.NotificationModel.created_at >= cutoff
+            ).first()
+
+            if recent_existing:
+                logger.info(f"[Idempotency] Duplicate notification skipped: {title}")
+                return recent_existing
+        except Exception as idemp_err:
+            logger.warn(f"Idempotency check error: {idemp_err}")
+
         notif = models.NotificationModel(
             institution_id=institution_id,
             recipient_id=recipient_id,
@@ -48,6 +67,7 @@ def create_notification(
         db.add(notif)
         db.commit()
         db.refresh(notif)
+
 
         # Check notification category preferences & quiet hours if recipient_email provided
         send_push = True

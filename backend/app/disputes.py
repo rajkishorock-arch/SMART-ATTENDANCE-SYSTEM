@@ -788,7 +788,30 @@ def review_dispute(
             db.add(comment_entry)
             db.commit()
 
+    try:
+        from .notifications import create_notification
+        student_email = student.email if student else None
+        action_text = "Approved" if action == "APPROVE" else ("Rejected" if action == "REJECT" else "Needs Information")
+        msg = f"Your attendance dispute for date {dispute.date} was marked as {action_text}."
+        if payload.comment:
+            msg += f" Note: {payload.comment}"
+
+        create_notification(
+            db=db,
+            institution_id=current_user.institution_id,
+            recipient_role="student",
+            recipient_id=dispute.student_id,
+            recipient_email=student_email,
+            category="DISPUTE",
+            title=f"Attendance Dispute {action_text}",
+            message=msg,
+            action_url="/#/disputes"
+        )
+    except Exception as n_err:
+        logger.warn(f"Dispute review notification trigger error: {n_err}")
+
     return _format_dispute(dispute, db)
+
 
 
 @router.post("/{dispute_id}/escalate", response_model=schemas.DisputeResponse)

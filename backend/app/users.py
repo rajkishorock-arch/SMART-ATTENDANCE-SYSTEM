@@ -1128,6 +1128,48 @@ def apply_leave_request(
     
     subject = db.query(models.Subject).filter(models.Subject.id == new_leave.subject_id).first() if new_leave.subject_id else None
     
+    try:
+        from .notifications import create_notification
+        # 1. Notify Admins in institution
+        create_notification(
+            db=db,
+            institution_id=current_student.institution_id,
+            recipient_role="admin",
+            category="LEAVE",
+            title="New Student Leave Request",
+            message=f"{current_student.name} (Roll: {current_student.roll}) applied for leave ({payload.start_date} to {payload.end_date})",
+            action_url="/#/leave-management"
+        )
+        
+        # 2. Notify Relevant Subject / Department Teacher
+        target_teacher_email = None
+        if payload.subject_id and subject and subject.teacher_id:
+            t = db.query(models.User).filter(models.User.id == subject.teacher_id).first()
+            if t:
+                target_teacher_email = t.email
+
+        if not target_teacher_email and current_student.dep:
+            dept_teacher = db.query(models.User).filter(
+                models.User.institution_id == current_student.institution_id,
+                models.User.role.in_(["teacher", "hod"]),
+                models.User.department == current_student.dep
+            ).first()
+            if dept_teacher:
+                target_teacher_email = dept_teacher.email
+
+        create_notification(
+            db=db,
+            institution_id=current_student.institution_id,
+            recipient_role="teacher",
+            recipient_email=target_teacher_email,
+            category="LEAVE",
+            title="New Student Leave Request",
+            message=f"{current_student.name} (Roll: {current_student.roll}) applied for leave ({payload.start_date} to {payload.end_date})",
+            action_url="/#/leave-management"
+        )
+    except Exception as n_err:
+        logger.warn(f"Failed to create leave submission notifications: {n_err}")
+
     return schemas.LeaveRequestResponse(
         id=new_leave.id,
         student_id=new_leave.student_id,
@@ -1144,6 +1186,7 @@ def apply_leave_request(
         status=new_leave.status or "Pending",
         created_at=new_leave.created_at or now_utc
     )
+
 
 @router.get("/students/me/leave-requests", response_model=List[schemas.LeaveRequestResponse])
 def list_student_my_leaves(
