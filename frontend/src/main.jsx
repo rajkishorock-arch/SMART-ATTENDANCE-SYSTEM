@@ -25,6 +25,7 @@ import './styles/extremeFeatures.css';
 import './styles/ideas150.css';
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext';
+import { TenantProvider } from './context/TenantContext';
 import { initIdeas150FxOnBoot } from './utils/ideas150Effects'
 
 try {
@@ -205,7 +206,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <TenantProvider>
+          <App />
+        </TenantProvider>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,

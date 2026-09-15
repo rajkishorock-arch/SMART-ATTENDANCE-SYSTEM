@@ -11,6 +11,7 @@ import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
 import { getActiveTenantSlug } from './utils/tenantConfig';
 import useAuth from './hooks/useAuth';
+import useTenant from './hooks/useTenant';
 import { getRoleMismatchMessage } from './context/AuthContext';
 import MobileControlPanel from './components/MobileControlPanel';
 import GamificationHub from './components/GamificationHub';
@@ -1910,37 +1911,7 @@ export default function App() {
     });
   };
 
-  const [tenantBranding, setTenantBranding] = useState(null);
-  
-  useEffect(() => {
-    const loadTenantBranding = async () => {
-      try {
-        const slug = getActiveTenantSlug();
-        const res = await systemApi.fetchBranding(slug);
-        if (res.ok) {
-          const branding = await res.json();
-          setTenantBranding(branding);
-          
-          if (branding.primary_color) {
-            document.documentElement.style.setProperty('--color-primary', branding.primary_color);
-            document.documentElement.style.setProperty('--border-color-glow', `${branding.primary_color}59`);
-            document.documentElement.style.setProperty('--glow-shadow', `0 0 25px ${branding.primary_color}33`);
-          }
-          if (branding.secondary_color) {
-            document.documentElement.style.setProperty('--color-secondary', branding.secondary_color);
-          }
-          
-          document.title = `${branding.name} - Smart Attendance System`;
-          addDiagnosticLog(`[SYS] Loaded branding: ${branding.name}`);
-        } else {
-          addDiagnosticLog(`[SYS] Branding fetch failed. Using default settings.`);
-        }
-      } catch (err) {
-        console.error("Branding load error:", err);
-      }
-    };
-    loadTenantBranding();
-  }, []);
+
 
   useEffect(() => {
     if (isNative) {
@@ -2181,6 +2152,14 @@ export default function App() {
     sendHeartbeat: authSendHeartbeat,
     fetchActiveUsers: authFetchActiveUsers,
   } = useAuth();
+
+  // Tenant Context
+  const {
+    tenantSlug,
+    tenantBranding,
+    loadTenantBranding,
+    switchTenant,
+  } = useTenant();
 
   useEffect(() => {
     if (!token) return undefined;
