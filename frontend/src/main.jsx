@@ -24,6 +24,7 @@ import './styles/futuristicFeatures.css';
 import './styles/extremeFeatures.css';
 import './styles/ideas150.css';
 import App from './App.jsx'
+import { AuthProvider } from './context/AuthContext';
 import { initIdeas150FxOnBoot } from './utils/ideas150Effects'
 
 try {
@@ -203,7 +204,9 @@ class ErrorBoundary extends Component {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

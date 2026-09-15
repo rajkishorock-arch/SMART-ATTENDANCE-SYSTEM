@@ -10,6 +10,8 @@ import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
 import { getActiveTenantSlug } from './utils/tenantConfig';
+import useAuth from './hooks/useAuth';
+import { getRoleMismatchMessage } from './context/AuthContext';
 import MobileControlPanel from './components/MobileControlPanel';
 import GamificationHub from './components/GamificationHub';
 import NotificationCenter from './components/NotificationCenter';
@@ -2148,17 +2150,37 @@ export default function App() {
     }
   };
 
-  // Authentication State
-  const [token, setToken] = useState(localStorage.getItem('token') || '');
-  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || '');
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem('cached_user');
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch (_) {
-      return null;
-    }
-  });
+  // Authentication Context
+  const {
+    token,
+    setToken,
+    userRole,
+    setUserRole,
+    currentUser,
+    setCurrentUser,
+    sessionFetchError,
+    setSessionFetchError,
+    loginEmail,
+    setLoginEmail,
+    loginPassword,
+    setLoginPassword,
+    loginRole,
+    setLoginRole,
+    authError,
+    setAuthError,
+    isLoading,
+    setIsLoading,
+    serverWarmingUp,
+    setServerWarmingUp,
+    activeTelemetry,
+    setActiveTelemetry,
+    handleLogin: authHandleLogin,
+    handleSsoLogin: authHandleSsoLogin,
+    handleLogout: authHandleLogout,
+    fetchSessionInfo: authFetchSessionInfo,
+    sendHeartbeat: authSendHeartbeat,
+    fetchActiveUsers: authFetchActiveUsers,
+  } = useAuth();
 
   useEffect(() => {
     if (!token) return undefined;
@@ -2177,12 +2199,6 @@ export default function App() {
       } catch (_) { /* optional */ }
     }
   };
-  const [sessionFetchError, setSessionFetchError] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginRole, setLoginRole] = useState('admin');
-  const [authError, setAuthError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   // Multi-select States
   const [selectedStudentIds, setSelectedStudentIds] = useState(new Set());
@@ -3533,8 +3549,6 @@ export default function App() {
     syncVoiceListeners();
   };
 
-  const [activeTelemetry, setActiveTelemetry] = useState({ total_active: 0, students: 0, teachers: 0, admins: 0 });
-
   // Auto scroll chat to bottom when messages update
   useEffect(() => {
     if (chatBottomRef.current) {
@@ -3763,7 +3777,6 @@ export default function App() {
   const [reportData, setReportData] = useState({ total_working_days: 0, students: [] });
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isSendingAlerts, setIsSendingAlerts] = useState(false);
-  const [serverWarmingUp, setServerWarmingUp] = useState(false);
   const [cameraScanSettings, setCameraScanSettings] = useState(() => loadCameraSettings());
   const meshFrameSkipRef = useRef(0);
   const lastLandmarksRef = useRef(null);
@@ -4247,27 +4260,13 @@ export default function App() {
   // Fetch active users counts (Admins only)
   const fetchActiveUsers = async () => {
     if (isDemoMode) return;
-    if (!token || userRole !== 'admin') return;
-    try {
-      const res = await authApi.fetchActiveUsers(token);
-      if (res.ok) {
-        const data = await res.json();
-        setActiveTelemetry(data);
-      }
-    } catch (err) {
-      console.error('Error fetching active users:', err);
-    }
+    await authFetchActiveUsers();
   };
 
   // Send heartbeat ping
   const sendHeartbeat = async () => {
     if (isDemoMode) return;
-    if (!token) return;
-    try {
-      await authApi.sendHeartbeat(token, currentUser?.id || 0);
-    } catch (err) {
-      console.error('Error sending heartbeat:', err);
-    }
+    await authSendHeartbeat();
   };
 
   // Fetch session history
@@ -7169,31 +7168,17 @@ export default function App() {
   // Fetch session information (role and details) from backend
   const fetchSessionInfo = async (authToken) => {
     if (isDemoMode) return;
-    setSessionFetchError(false);
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUserRole(data.role);
-        setCurrentUser(data);
-        localStorage.setItem('userRole', data.role);
-        localStorage.setItem('cached_user', JSON.stringify(data));
-
-        // ── Blank-screen fix: eagerly prefetch data using the fresh authToken
-        //    This runs in parallel with the render cycle so data arrives before
-        //    or right as the dashboard first renders, preventing an empty state.
+    await authFetchSessionInfo(
+      authToken,
+      (data, tokenVal) => {
         if (data.role !== 'student') {
-          fetchStats(authToken);
-          fetchLogs(authToken);
+          fetchStats(tokenVal);
+          fetchLogs(tokenVal);
         } else {
-          fetchStudentLogs(authToken);
-          fetchBlueprint(authToken);
+          fetchStudentLogs(tokenVal);
+          fetchBlueprint(tokenVal);
         }
-        
+
         if (!sessionInitializedRef.current) {
           sessionInitializedRef.current = true;
           const currentHash = window.location.hash.replace(/^#\/?/, '');
@@ -7218,26 +7203,14 @@ export default function App() {
             }
           }
         }
-      } else {
-        if (res.status === 401 || res.status === 403) {
-          handleLogout();
-        } else {
-          console.error("Server error when fetching session info:", res.status);
-          setSessionFetchError(true);
-        }
+      },
+      () => {
+        sessionInitializedRef.current = false;
+        setStudentLogs([]);
+        setActiveTab('dashboard');
+        setIsDemoMode(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch session info (network error):", err);
-      setSessionFetchError(true);
-      const cached = localStorage.getItem('cached_user');
-      const cachedRole = localStorage.getItem('userRole');
-      if (cached && authToken) {
-        try {
-          setCurrentUser(JSON.parse(cached));
-          if (cachedRole) setUserRole(cachedRole);
-        } catch (_) { /* ignore */ }
-      }
-    }
+    );
   };
 
   // Fetch student personal logs
@@ -8224,208 +8197,72 @@ export default function App() {
     setSettingsIpRanges('192.168.1.0/24');
   };
 
-  // SSO login (Google / Microsoft / demo)
+  // Handle SSO Login (delegated to AuthContext)
   const handleSsoLogin = async (provider, emailHint) => {
-    if (!emailHint?.includes('@')) {
-      setAuthError('Enter your email above first, then tap SSO.');
-      return;
-    }
-    setIsLoading(true);
-    setAuthError('');
-    try {
-      const res = await fetch(`${API_BASE_URL}/sso/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Tenant-Slug': getActiveTenantSlug() },
-        body: JSON.stringify({ provider: provider === 'microsoft' && !import.meta.env.VITE_MICROSOFT_CLIENT_ID ? 'demo' : (provider === 'google' && !import.meta.env.VITE_GOOGLE_CLIENT_ID ? 'demo' : provider), id_token: emailHint.trim().toLowerCase(), institution_slug: getActiveTenantSlug() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'SSO failed');
-      const meRes = await fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${data.access_token}` } });
-      const meData = meRes.ok ? await meRes.json() : { role: data.role, email: emailHint };
+    await authHandleSsoLogin(provider, emailHint, ({ token: newToken, currentUser: meData }) => {
       loginJustCompletedRef.current = true;
       loginBootstrapDoneRef.current = true;
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('userRole', meData.role);
-      localStorage.setItem('cached_user', JSON.stringify(meData));
-      setToken(data.access_token);
-      setUserRole(meData.role);
-      setCurrentUser(meData);
-      setLoginRole(meData.role);
-      playCyberSound('success');
-
       if (meData.role === 'student') {
-        fetchStudentLogs(data.access_token);
-        fetchStudentLeaves(data.access_token);
-        fetchBlueprint(data.access_token);
+        fetchStudentLogs(newToken);
+        fetchStudentLeaves(newToken);
+        fetchBlueprint(newToken);
       } else {
         Promise.all([
-          fetchDepartments(data.access_token),
-          fetchStats(data.access_token),
-          fetchLogs(data.access_token),
-          fetchSchedules(data.access_token),
-          fetchAdminLeaves(data.access_token),
+          fetchDepartments(newToken),
+          fetchStats(newToken),
+          fetchLogs(newToken),
+          fetchSchedules(newToken),
+          fetchAdminLeaves(newToken),
         ]);
-        fetchSubjects(data.access_token).then(() => fetchStudents(data.access_token));
+        fetchSubjects(newToken).then(() => fetchStudents(newToken));
         if (meData.role === 'admin') {
-          fetchTeachers(data.access_token);
-          fetchFeedbacks(data.access_token, meData.role);
+          fetchTeachers(newToken);
+          fetchFeedbacks(newToken, meData.role);
         }
       }
-    } catch (e) {
-      setAuthError(e.message || 'SSO login failed');
-      playCyberSound('error');
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
-  // Handle Login submission (with auto-retry for Render cold starts)
+  // Handle Login submission (delegated to AuthContext)
   const handleLogin = async (e) => {
-    e.preventDefault();
-    playCyberSound('click');
-    setAuthError('');
-    setIsLoading(true);
-    setServerWarmingUp(true);
-
-    // Wake sleeping Render instance before auth attempt
-    await wakeBackend(API_BASE_URL, 2500);
-
-    const formData = new URLSearchParams();
-    formData.append('username', loginEmail.trim().toLowerCase());
-    formData.append('password', loginPassword);
-
-    const MAX_RETRIES = 2;
-    let lastError = null;
-
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        if (attempt > 0) {
-          setAuthError(`Cloud server waking up... Retry ${attempt}/${MAX_RETRIES}`);
-          await new Promise((r) => setTimeout(r, 2000 + attempt * 1000));
-          await wakeBackend(API_BASE_URL, 2500);
-        }
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000);
-
-        const res = await fetch(`${API_BASE_URL}/auth/token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Tenant-Slug': getActiveTenantSlug(),
-          },
-          body: formData,
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        let data = {};
-        const raw = await res.text();
-        try {
-          data = raw ? JSON.parse(raw) : {};
-        } catch {
-          throw new Error('Server returned invalid response. Backend may still be starting.');
-        }
-
-        if (res.ok && data.access_token) {
-          const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: { Authorization: `Bearer ${data.access_token}` },
-          });
-
-          if (!meRes.ok) {
-            throw new Error('Session validation failed');
-          }
-          const meData = await meRes.json();
-          if (meData.role !== loginRole) {
-            playCyberSound('error');
-            setAuthError(getRoleMismatchMessage(loginRole, meData.role));
-            setIsLoading(false);
-            setServerWarmingUp(false);
-            return;
-          }
-
-          playCyberSound('success');
-          setAuthError('');
-          setServerWarmingUp(false);
-          localStorage.setItem('token', data.access_token);
-          localStorage.setItem('loginRole', loginRole);
-          localStorage.setItem('userRole', meData.role);
-          localStorage.setItem('cached_user', JSON.stringify(meData));
-          sessionStorage.setItem('just_logged_in_tour', 'true');
-          loginJustCompletedRef.current = true;
-          loginBootstrapDoneRef.current = true;
-          setToken(data.access_token);
-          setUserRole(meData.role);
-          setCurrentUser(meData);
-          setIsLoading(false);
-
-          if (!sessionInitializedRef.current) {
-            sessionInitializedRef.current = true;
-            if (meData.role === 'student') setActiveTab('student-attendance');
-            else setActiveTab('dashboard');
-          }
-
-          if (meData.role === 'student') {
-            fetchStudentLogs(data.access_token);
-            fetchStudentLeaves(data.access_token);
-            fetchBlueprint(data.access_token);
-          } else {
-            Promise.all([
-              fetchDepartments(data.access_token),
-              fetchStats(data.access_token),
-              fetchLogs(data.access_token),
-              fetchSchedules(data.access_token),
-              fetchAdminLeaves(data.access_token),
-            ]);
-            fetchSubjects(data.access_token).then(() => fetchStudents(data.access_token));
-            if (meData.role === 'admin') {
-              fetchTeachers(data.access_token);
-              fetchFeedbacks(data.access_token, meData.role);
-            }
-          }
-          return;
-        }
-
-        const detail = data.detail;
-        const msg = Array.isArray(detail)
-          ? detail.map((d) => d.msg || JSON.stringify(d)).join(', ')
-          : (detail || 'Incorrect email or password');
-        playCyberSound('error');
-        setAuthError(msg);
-        setIsLoading(false);
-        setServerWarmingUp(false);
-        return;
-      } catch (err) {
-        lastError = err;
-        console.log(`Login attempt ${attempt + 1} failed:`, err.message);
+    await authHandleLogin(e, ({ token: newToken, currentUser: meData }) => {
+      loginJustCompletedRef.current = true;
+      loginBootstrapDoneRef.current = true;
+      if (!sessionInitializedRef.current) {
+        sessionInitializedRef.current = true;
+        if (meData.role === 'student') setActiveTab('student-attendance');
+        else setActiveTab('dashboard');
       }
-    }
 
-    playCyberSound('error');
-    const hint = lastError?.name === 'AbortError'
-      ? 'Request timed out — Render server is still waking up.'
-      : (lastError?.message || 'Network error');
-    setAuthError(`${hint} Tap "Wake Cloud Server" below, wait 45s, then login again. Default admin password: raj@9211`);
-    setServerWarmingUp(true);
-    setIsLoading(false);
+      if (meData.role === 'student') {
+        fetchStudentLogs(newToken);
+        fetchStudentLeaves(newToken);
+        fetchBlueprint(newToken);
+      } else {
+        Promise.all([
+          fetchDepartments(newToken),
+          fetchStats(newToken),
+          fetchLogs(newToken),
+          fetchSchedules(newToken),
+          fetchAdminLeaves(newToken),
+        ]);
+        fetchSubjects(newToken).then(() => fetchStudents(newToken));
+        if (meData.role === 'admin') {
+          fetchTeachers(newToken);
+          fetchFeedbacks(newToken, meData.role);
+        }
+      }
+    });
   };
 
-  // Handle Logout
+  // Handle Logout (delegated to AuthContext)
   const handleLogout = () => {
-    playCyberSound('click');
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('isDemoMode');
-    localStorage.removeItem('cached_user');
-    localStorage.removeItem('onboarding_tour_done');
-    localStorage.removeItem('onboarding_guide_done');
-    sessionInitializedRef.current = false;
-    setToken('');
-    setUserRole('');
-    setCurrentUser(null);
-    setStudentLogs([]);
-    setActiveTab('dashboard');
-    setIsDemoMode(false);
+    authHandleLogout(() => {
+      sessionInitializedRef.current = false;
+      setStudentLogs([]);
+      setActiveTab('dashboard');
+      setIsDemoMode(false);
+    });
   };
 
   // Submit Feedback Form
