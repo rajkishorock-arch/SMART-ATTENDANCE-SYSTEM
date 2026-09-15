@@ -5,6 +5,7 @@ import { generateLeavePdf } from './utils/leavePdfGenerator';
 import { initKeepAliveEngine } from './utils/keepAlive';
 import { fetchWithDedupe } from './utils/apiClient';
 import { fetchWithStaleCache } from './utils/cacheUtils';
+import { authApi, studentApi, teacherApi, attendanceApi, systemApi, apiGet } from './api';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -1913,7 +1914,7 @@ export default function App() {
     const loadTenantBranding = async () => {
       try {
         const slug = getActiveTenantSlug();
-        const res = await fetch(`${API_BASE_URL}/institutions/branding/${slug}`);
+        const res = await systemApi.fetchBranding(slug);
         if (res.ok) {
           const branding = await res.json();
           setTenantBranding(branding);
@@ -4060,11 +4061,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetchWithDedupe(`${API_BASE_URL}/attendance/stats`, {
-        headers: {
-          'Authorization': `Bearer ${usedToken}`
-        }
-      });
+      const res = await attendanceApi.fetchStats(usedToken);
       if (res.status === 401) {
         handleLogout();
         return;
@@ -4089,11 +4086,7 @@ export default function App() {
     if (!usedToken || usedRole !== 'admin') return;
     setIsLoadingFeedbacks(true);
     try {
-      const res = await fetchWithDedupe(`${API_BASE_URL}/feedbacks/`, {
-        headers: {
-          'Authorization': `Bearer ${usedToken}`
-        }
-      });
+      const res = await systemApi.fetchFeedbacks(usedToken);
       if (res.status === 401) {
         handleLogout();
         return;
@@ -4152,11 +4145,7 @@ export default function App() {
     const usedToken = authToken || token;
     if (!usedToken) return;
     try {
-      const res = await fetchWithDedupe(`${API_BASE_URL}/departments/`, {
-        headers: {
-          'Authorization': `Bearer ${usedToken}`
-        }
-      });
+      const res = await systemApi.fetchDepartments(usedToken);
       if (res.status === 401) {
         handleLogout();
         return;
@@ -4193,11 +4182,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetchWithDedupe(`${API_BASE_URL}/users/students`, {
-        headers: {
-          'Authorization': `Bearer ${usedToken}`
-        }
-      });
+      const res = await studentApi.listStudents(usedToken);
       if (res.status === 401) {
         handleLogout();
         return;
@@ -4221,12 +4206,8 @@ export default function App() {
       fetchStudentLogs(usedToken);
     }
     try {
-      const limitQuery = options && options.limit ? `?limit=${options.limit}` : '';
-      const res = await fetchWithDedupe(`${API_BASE_URL}/attendance/logs${limitQuery}`, {
-        headers: {
-          'Authorization': `Bearer ${usedToken}`
-        }
-      });
+      const limitVal = options && options.limit ? options.limit : 100;
+      const res = await attendanceApi.fetchLogs(usedToken, 0, limitVal);
       if (res.status === 401) {
         handleLogout();
         return;
@@ -4247,11 +4228,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetchWithDedupe(`${API_BASE_URL}/subjects`, {
-        headers: {
-          'Authorization': `Bearer ${usedToken}`
-        }
-      });
+      const res = await systemApi.fetchSubjects(usedToken);
       if (res.status === 401) {
         handleLogout();
         return;
@@ -4272,11 +4249,7 @@ export default function App() {
     if (isDemoMode) return;
     if (!token || userRole !== 'admin') return;
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/active-users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await authApi.fetchActiveUsers(token);
       if (res.ok) {
         const data = await res.json();
         setActiveTelemetry(data);
@@ -4291,12 +4264,7 @@ export default function App() {
     if (isDemoMode) return;
     if (!token) return;
     try {
-      await fetch(`${API_BASE_URL}/auth/heartbeat`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await authApi.sendHeartbeat(token, currentUser?.id || 0);
     } catch (err) {
       console.error('Error sending heartbeat:', err);
     }
@@ -4480,11 +4448,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetch(`${API_BASE_URL}/schedules`, {
-        headers: {
-          'Authorization': `Bearer ${usedToken}`
-        }
-      });
+      const res = await systemApi.fetchSchedules(usedToken);
       if (res.ok) {
         const data = await res.json();
         setSchedules(data);
@@ -4500,11 +4464,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetch(`${API_BASE_URL}/users`, {
-        headers: {
-          'Authorization': `Bearer ${usedToken}`
-        }
-      });
+      const res = await teacherApi.listTeachers(usedToken);
       if (res.ok) {
         const data = await res.json();
         const teacherUsers = data.filter(u => u.role === 'teacher' || u.role === 'admin');
@@ -4526,9 +4486,7 @@ export default function App() {
     if (isDemoMode) return;
     const usedToken = authToken || token;
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/me/leave-requests`, {
-        headers: { 'Authorization': `Bearer ${usedToken}` }
-      });
+      const res = await studentApi.fetchMyLeaves(usedToken);
       if (res.ok) {
         const data = await res.json();
         setStudentLeaveRequests(data);
@@ -4543,9 +4501,7 @@ export default function App() {
     const usedToken = authToken || token;
     setIsFetchingLeaves(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/users/leaves`, {
-        headers: { 'Authorization': `Bearer ${usedToken}` }
-      });
+      const res = await apiGet('/users/leaves', { token: usedToken });
       if (res.ok) {
         const data = await res.json();
         setAdminLeaveRequests(data);
