@@ -53,6 +53,8 @@ from . import lms_sync
 from . import staff_payroll
 from . import notifications
 api_router.include_router(leave.router, prefix="", tags=["Leave Management"])
+# Backward-compatible alias for legacy double-prefix callers (/api/v1/api/v1/leaves/...)
+api_router.include_router(leave.router, prefix="/api/v1", tags=["Leave Management (Legacy Alias)"], include_in_schema=False)
 api_router.include_router(disputes.router, prefix="/disputes", tags=["Attendance Disputes"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(calendar_engine.router, prefix="/calendar", tags=["Academic Calendar Engine"])

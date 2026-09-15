@@ -13,7 +13,7 @@ from .database import get_db
 IST = timezone(timedelta(hours=5, minutes=30))
 
 router = APIRouter(
-    prefix="/api/v1/leaves",
+    prefix="/leaves",
     tags=["Leave Management"],
 )
 

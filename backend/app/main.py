@@ -26,17 +26,58 @@ from app.core.lifecycle import (
     on_shutdown,
 )
 from app.core.config import validate_config, SEED_DEFAULT_USERS
-from app.core.middleware import setup_middlewares
+from app.core.middleware import setup_middlewares, setup_exception_handlers
 
 validate_config()
 
+openapi_tags = [
+    {
+        "name": "Authentication",
+        "description": "Session issuance, OAuth verification, role verification, and credential lifecycle.",
+    },
+    {
+        "name": "Attendance",
+        "description": "Biometric face matching, classroom attendance ledger, and daily record tracking.",
+    },
+    {
+        "name": "Security & Geofence",
+        "description": "Physical GPS boundary verification, device telemetry, and anti-spoofing security controls.",
+    },
+    {
+        "name": "QR Tokens & Biometric Fallback",
+        "description": "Rotating HMAC-signed dynamic QR validation, single-use nonce burning, and offline fallback claims.",
+    },
+    {
+        "name": "Academic Planning",
+        "description": "Course subjects, departmental class schedules, what-if attendance simulations, and calendar scheduling.",
+    },
+    {
+        "name": "Multi-Tenancy",
+        "description": "Tenant institution isolation, departmental hierarchy, and institution-level policies.",
+    },
+    {
+        "name": "Leave Management",
+        "description": "Student leave application submission, status approval workflows, and audit trails.",
+    },
+    {
+        "name": "System Health",
+        "description": "Operational readiness, database diagnostics, and subsystem health indicators.",
+    },
+    {
+        "name": "System Administration",
+        "description": "Platform management, secure backups, and administrative system controls.",
+    },
+]
+
 app = FastAPI(
     title="AI-Powered Secure Face Recognition Attendance System",
-    description="Industry Grade Face Recognition Attendance System with FastAPI backend.",
-    version="1.0.0"
+    description="Enterprise Multi-Tenant Face Recognition Attendance System with FastAPI backend and high-assurance security controls.",
+    version="1.0.0",
+    openapi_tags=openapi_tags,
 )
 
 setup_middlewares(app)
+setup_exception_handlers(app)
 setup_lifecycle_handlers(app)
 
 

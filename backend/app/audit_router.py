@@ -3,25 +3,13 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-
-from . import models, security
+from . import models, schemas, security
 from .database import get_db
 
 router = APIRouter()
 
 
-class AuditLogResponse(BaseModel):
-    id: int
-    timestamp: datetime
-    user_email: str
-    action: str
-
-    class Config:
-        from_attributes = True
-
-
-@router.get("/", response_model=List[AuditLogResponse])
+@router.get("/", response_model=List[schemas.AuditLogResponse])
 def get_audit_trail(
     skip: int = 0,
     limit: int = 100,

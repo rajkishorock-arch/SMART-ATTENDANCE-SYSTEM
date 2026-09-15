@@ -34,3 +34,46 @@ def setup_middlewares(app: FastAPI) -> None:
         if duration_ms > 1000:
             print(f"[SLOW ENDPOINT WARNING] {request.method} {request.url.path} took {duration_ms:.2f}ms")
         return response
+
+
+def setup_exception_handlers(app: FastAPI) -> None:
+    """Configures centralized exception handlers for domain AppException and sanitizes production errors."""
+    import logging
+    from fastapi.responses import JSONResponse
+    from app.core.exceptions import AppException
+    from app.core.config import ENV
+
+    logger = logging.getLogger("app.exception")
+
+    @app.exception_handler(AppException)
+    async def app_exception_handler(request: Request, exc: AppException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "success": False,
+                "message": exc.message,
+                "detail": exc.message,  # Preserved for backward compatibility
+                "error": {
+                    "code": exc.__class__.__name__,
+                    "details": exc.details,
+                },
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception):
+        logger.exception(f"Unhandled server error on {request.method} {request.url.path}: {exc}")
+        is_prod = (ENV == "production")
+        msg = "An unexpected internal server error occurred." if is_prod else str(exc)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": msg,
+                "detail": "Internal server error." if is_prod else msg,
+                "error": {
+                    "code": "InternalServerError",
+                    "details": None if is_prod else str(exc),
+                },
+            },
+        )

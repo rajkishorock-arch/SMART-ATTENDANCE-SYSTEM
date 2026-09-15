@@ -7,7 +7,7 @@ from .database import get_db
 
 router = APIRouter()
 
-@router.post("/subjects", response_model=schemas.SubjectResponse)
+@router.post("/subjects", response_model=schemas.SubjectResponse, status_code=status.HTTP_201_CREATED)
 def create_new_subject(
     subject: schemas.SubjectCreate,
     db: Session = Depends(get_db),
@@ -109,7 +109,7 @@ def read_subjects(
         })
     return res
 
-@router.post("/schedules", response_model=schemas.ScheduleResponse)
+@router.post("/schedules", response_model=schemas.ScheduleResponse, status_code=status.HTTP_201_CREATED)
 def create_new_schedule(
     schedule: schemas.ScheduleCreate,
     db: Session = Depends(get_db),

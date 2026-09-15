@@ -603,6 +603,8 @@ async def upload_student_selfie(
 
 @router.get("/students", response_model=List[schemas.Student])
 def list_students(
+    skip: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(100, ge=1, le=500, description="Max number of students to return (max 500)"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -621,14 +623,14 @@ def list_students(
         ).all()
         if not teacher_subjects:
             # No subject assigned to teacher yet - return all students as fallback
-            return crud.get_students(db, institution_id=current_user.institution_id)
+            return crud.get_students(db, skip=skip, limit=limit, institution_id=current_user.institution_id)
         teacher_departments = [s.department for s in teacher_subjects]
         
         # Primary: filter by department name
         students = db.query(models.StudentModel).filter(
             models.StudentModel.dep.in_(teacher_departments),
             models.StudentModel.institution_id == current_user.institution_id
-        ).all()
+        ).offset(skip).limit(limit).all()
         
         # Fallback: if no students found by dept (mismatch), return students who attended teacher's sessions
         if not students:
@@ -643,15 +645,15 @@ def list_students(
                 students = db.query(models.StudentModel).filter(
                     models.StudentModel.id.in_(attended_ids),
                     models.StudentModel.institution_id == current_user.institution_id
-                ).all()
+                ).offset(skip).limit(limit).all()
         
         # Last resort fallback: return all students if still empty
         if not students:
-            return crud.get_students(db, institution_id=current_user.institution_id)
+            return crud.get_students(db, skip=skip, limit=limit, institution_id=current_user.institution_id)
             
         return students
         
-    return crud.get_students(db, institution_id=current_user.institution_id)
+    return crud.get_students(db, skip=skip, limit=limit, institution_id=current_user.institution_id)
 
 
 @router.post("/students", response_model=schemas.Student, status_code=status.HTTP_201_CREATED)

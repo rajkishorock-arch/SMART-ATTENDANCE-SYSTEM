@@ -26,18 +26,21 @@ def check_staff_or_admin(user: User, institution_id: int):
 router = APIRouter(tags=["Offline Face Recognition"])
 
 
+from pydantic import BaseModel, ConfigDict, Field
+
 class OfflineStudentData(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     student_id: int
     name: str
     roll_number: str
     face_embedding: List[float]
     photo_base64: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
 
 class OfflineAttendanceRecord(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     student_id: int
     timestamp: str
     location: Optional[str] = None
@@ -48,7 +51,7 @@ class OfflineAttendanceRecord(BaseModel):
 class OfflineSyncRequest(BaseModel):
     device_id: str
     last_sync_time: Optional[str] = None
-    attendance_records: List[OfflineAttendanceRecord] = []
+    attendance_records: List[OfflineAttendanceRecord] = Field(default_factory=list)
 
 
 @router.get("/download-embeddings/{institution_id}", response_model=List[OfflineStudentData])
