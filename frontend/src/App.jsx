@@ -24,6 +24,8 @@ import OnboardingGuideModal from './components/OnboardingGuideModal';
 import NotificationBell from './components/NotificationBell';
 import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync, useNotifications } from './hooks';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import LeaveApplicationForm from './components/LeaveApplicationForm';
+import VirtualIdCardModal from './components/VirtualIdCardModal';
 import { addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import { completeLivenessFlow } from './utils/livenessClient';
 import LiveActivityTicker from './components/LiveActivityTicker';
@@ -749,220 +751,6 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
 }
 
 // =====================================================================
-// LEAVE APPLICATION FORM - Used on student dashboard
-// =====================================================================
-function LeaveApplicationForm({ token, API_BASE_URL, onLeaveApplied, playCyberSound, subjects = [], studentLeaveRequests = [] }) {
-  const [activeSubTab, setActiveSubTab] = React.useState('apply'); // 'apply' | 'history'
-  const [form, setForm] = React.useState({ start_date: '', end_date: '', leave_type: 'Medical', reason: '', subject_id: '' });
-  const [submitting, setSubmitting] = React.useState(false);
-  const [msg, setMsg] = React.useState(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.start_date || !form.end_date || !form.reason.trim()) {
-      setMsg({ type: 'error', text: 'Please fill in all fields.' });
-      return;
-    }
-    setSubmitting(true);
-    setMsg(null);
-    try {
-      const res = await fetch(`${API_BASE_URL}/users/students/me/leave-requests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          ...form,
-          subject_id: form.subject_id ? parseInt(form.subject_id) : null
-        })
-      });
-      if (res.ok) {
-        setMsg({ type: 'success', text: '✅ Leave request submitted successfully!' });
-        setForm({ start_date: '', end_date: '', leave_type: 'Medical', reason: '', subject_id: '' });
-        if (playCyberSound) playCyberSound('success');
-        if (onLeaveApplied) onLeaveApplied();
-        setActiveSubTab('history');
-      } else {
-        let errText = 'Failed to submit leave request.';
-        try {
-          const err = await res.json();
-          if (err.detail) {
-            errText = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
-          }
-        } catch (_) {}
-        setMsg({ type: 'error', text: errText });
-      }
-    } catch (e) {
-      setMsg({ type: 'error', text: 'Network connection or server error. Please try again.' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div>
-      {/* Sub Tabs: Apply vs History */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('apply')}
-          style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
-            border: 'none',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            background: activeSubTab === 'apply' ? 'rgba(251,146,60,0.2)' : 'transparent',
-            color: activeSubTab === 'apply' ? '#fb923c' : '#9ca3af'
-          }}
-        >
-          📝 Apply Leave
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('history')}
-          style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
-            border: 'none',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: activeSubTab === 'history' ? 'rgba(14,165,233,0.2)' : 'transparent',
-            color: activeSubTab === 'history' ? '#38bdf8' : '#9ca3af'
-          }}
-        >
-          📜 My Leave History
-          {studentLeaveRequests.length > 0 && (
-            <span style={{ background: '#0ea5e9', color: '#fff', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '10px' }}>
-              {studentLeaveRequests.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {activeSubTab === 'apply' ? (
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>From Date</label>
-              <input type="date" value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>To Date</label>
-              <input type="date" value={form.end_date} onChange={e => setForm(p => ({ ...p, end_date: e.target.value }))}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }} />
-            </div>
-          </div>
-          <div>
-            <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Subject (Optional)</label>
-            <select value={form.subject_id} onChange={e => setForm(p => ({ ...p, subject_id: e.target.value }))}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(30,30,45,0.98)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }}>
-              <option value="">Personal / General Leave (All Subjects)</option>
-              {subjects.map(sub => (
-                <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Leave Type</label>
-            <select value={form.leave_type} onChange={e => setForm(p => ({ ...p, leave_type: e.target.value }))}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(30,30,45,0.98)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem' }}>
-              <option>Medical</option>
-              <option>Personal</option>
-              <option>Official</option>
-              <option>Family Emergency</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Reason</label>
-            <textarea value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} rows={3}
-              placeholder="Briefly explain your reason for leave..."
-              style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.82rem', resize: 'vertical', boxSizing: 'border-box' }} />
-          </div>
-          {msg && (
-            <p style={{ fontSize: '0.8rem', fontWeight: 600, margin: 0, color: msg.type === 'success' ? '#10b981' : '#ef4444' }}>{msg.text}</p>
-          )}
-          <button type="submit" disabled={submitting}
-            style={{ padding: '10px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: '0.85rem', cursor: submitting ? 'not-allowed' : 'pointer', background: submitting ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #fb923c, #f97316)', color: submitting ? '#9ca3af' : 'white', transition: 'all 0.2s' }}>
-            {submitting ? '⏳ Submitting...' : '📩 Submit Leave Request'}
-          </button>
-        </form>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '350px', overflowY: 'auto' }}>
-          {studentLeaveRequests.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 10px', color: '#9ca3af', fontSize: '0.82rem' }}>
-              No leave applications submitted yet.
-            </div>
-          ) : (
-            studentLeaveRequests.map((req) => {
-              const st = (req.status || 'Pending').toLowerCase();
-              const isApproved = st === 'approved';
-              const isRejected = st === 'rejected';
-              return (
-                <div key={req.id} style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f3f4f6' }}>
-                      {req.leave_type || 'Leave Request'} #{req.id}
-                    </span>
-                    <span style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      background: isApproved ? 'rgba(16,185,129,0.15)' : isRejected ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                      color: isApproved ? '#34d399' : isRejected ? '#f87171' : '#fbbf24',
-                      border: `1px solid ${isApproved ? 'rgba(16,185,129,0.3)' : isRejected ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`
-                    }}>
-                      {st.toUpperCase()}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: '#9ca3af', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <span>📅 {req.start_date} → {req.end_date}</span>
-                    <span>📚 {req.subject_name || 'General (All Subjects)'}</span>
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: '#cbd5e1', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px' }}>
-                    "{req.reason}"
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (playCyberSound) playCyberSound('click');
-                      generateLeavePdf(req);
-                    }}
-                    style={{
-                      alignSelf: 'flex-end',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(14,165,233,0.3)',
-                      background: 'rgba(14,165,233,0.12)',
-                      color: '#38bdf8',
-                      fontSize: '0.74rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      marginTop: '4px'
-                    }}
-                  >
-                    📄 Download Official PDF
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// =====================================================================
 // QR CODE SCANNER MODAL - Dynamic QR scan for checkin
 // =====================================================================
 function QrScannerModal({ token, API_BASE_URL, selectedSubjectId, subjects, onClose, onStudentCheckedIn, playCyberSound, addDiagnosticLog }) {
@@ -1575,130 +1363,6 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
   );
 }
 
-function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
-  const [qrToken, setQrToken] = React.useState(null);
-  const [countdown, setCountdown] = React.useState(30);
-  const [loading, setLoading] = React.useState(false);
-
-  const fetchQrToken = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/users/students/me/qr-token`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setQrToken(data.token);
-        setCountdown(data.expires_in || 30);
-      }
-    } catch (e) {
-      console.error('QR token fetch failed', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, API_BASE_URL]);
-
-  React.useEffect(() => {
-    fetchQrToken();
-  }, [fetchQrToken]);
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          fetchQrToken();
-          return 30;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [fetchQrToken]);
-
-  // Build QR code image URL using Google Charts API (no npm needed)
-  const qrUrl = qrToken
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}&bgcolor=ffffff&color=000000&margin=10`
-    : null;
-
-  const detail = currentUser?.details || {};
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 99999,
-      background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px',
-      animation: 'fadeIn 0.3s ease'
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(13,13,26,0.98) 0%, rgba(22,22,44,0.98) 100%)',
-        border: '1px solid rgba(0,242,254,0.3)',
-        borderRadius: '24px', padding: '36px 32px',
-        width: '100%', maxWidth: '400px',
-        boxShadow: '0 0 60px rgba(0,242,254,0.15), 0 0 120px rgba(139,92,246,0.08)',
-        position: 'relative', overflow: 'hidden'
-      }}>
-        {/* Glow effect blobs */}
-        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(0,242,254,0.12), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(139,92,246,0.1), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-
-        <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: '#9ca3af', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={{ display: 'inline-block', padding: '4px 16px', borderRadius: '20px', background: 'rgba(0,242,254,0.1)', border: '1px solid rgba(0,242,254,0.25)', color: '#00f2fe', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>
-            🎓 Smart Attendance System
-          </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 4px', background: 'linear-gradient(135deg, #00f2fe, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            {currentUser?.name}
-          </h2>
-          <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0 }}>{detail.dep || 'N/A'} · {detail.course || 'N/A'}</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
-          {[
-            { label: 'Roll No', value: detail.roll || 'N/A' },
-            { label: 'Year', value: detail.year || 'N/A' },
-            { label: 'Semester', value: detail.semester || 'N/A' },
-            { label: 'Mentor', value: detail.teacher || 'N/A' },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p style={{ color: '#6b7280', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>{label}</p>
-              <p style={{ color: '#f3f4f6', fontSize: '0.9rem', fontWeight: 600, margin: '2px 0 0' }}>{value}</p>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-          <p style={{ color: '#9ca3af', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1.5px', margin: 0 }}>Dynamic QR — Show to Teacher</p>
-          <div style={{
-            borderRadius: '16px', padding: '8px', width: '216px', height: '216px',
-            background: '#0d0d1a', border: '2px solid rgba(0,242,254,0.35)',
-            boxShadow: '0 0 30px rgba(0,242,254,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            {loading ? (
-              <div style={{ color: '#00f2fe', fontSize: '0.8rem' }}>Generating QR...</div>
-            ) : qrUrl ? (
-              <img src={qrUrl} alt="QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px' }} />
-            ) : (
-              <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center' }}>Failed to load QR code</div>
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: `${(countdown / 30) * 80}px`, height: '4px', borderRadius: '2px', background: countdown > 10 ? '#10b981' : '#ef4444', transition: 'width 1s linear, background 0.5s' }} />
-            <p style={{ color: countdown > 10 ? '#10b981' : '#ef4444', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
-              {countdown}s
-            </p>
-          </div>
-          <p style={{ color: '#6b7280', fontSize: '0.72rem', textAlign: 'center', margin: 0 }}>
-            QR refreshes automatically every 30 seconds for security.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   API_BASE_URL = getApiBaseUrl();
   const [masterKeyPrompt, setMasterKeyPrompt] = useState({
@@ -2149,6 +1813,9 @@ export default function App() {
   const activeDashboardSubTabRef = useRef(activeDashboardSubTab);
   const showFeedbackModalRef = useRef(showFeedbackModal);
   const showPrivacyPolicyRef = useRef(showPrivacyPolicy);
+  const showDisputeModalRef = useRef(showDisputeModal);
+  const showFaceEnrollModalRef = useRef(showFaceEnrollModal);
+  const showFallbackModalRef = useRef(showFallbackModal);
   const userRoleRef = useRef(userRole);
   const isPopStateNavRef = useRef(false);
 
@@ -2157,6 +1824,9 @@ export default function App() {
   useEffect(() => { activeDashboardSubTabRef.current = activeDashboardSubTab; }, [activeDashboardSubTab]);
   useEffect(() => { showFeedbackModalRef.current = showFeedbackModal; }, [showFeedbackModal]);
   useEffect(() => { showPrivacyPolicyRef.current = showPrivacyPolicy; }, [showPrivacyPolicy]);
+  useEffect(() => { showDisputeModalRef.current = showDisputeModal; }, [showDisputeModal]);
+  useEffect(() => { showFaceEnrollModalRef.current = showFaceEnrollModal; }, [showFaceEnrollModal]);
+  useEffect(() => { showFallbackModalRef.current = showFallbackModal; }, [showFallbackModal]);
   useEffect(() => { userRoleRef.current = userRole; }, [userRole]);
 
   // Synchronize activeSubSetting with HTML5 History API for phone back button & gesture navigation
@@ -2191,6 +1861,24 @@ export default function App() {
       }
 
 
+
+      // If dispute modal is open, close it
+      if (showDisputeModalRef.current) {
+        setShowDisputeModal(false);
+        return;
+      }
+
+      // If face enroll modal is open, close it
+      if (showFaceEnrollModalRef.current) {
+        setShowFaceEnrollModal(false);
+        return;
+      }
+
+      // If fallback modal is open, close it
+      if (showFallbackModalRef.current) {
+        setShowFallbackModal(false);
+        return;
+      }
 
       // If feedback modal is open, close it
       if (showFeedbackModalRef.current) {
@@ -2233,6 +1921,12 @@ export default function App() {
               setActiveSubSetting(null);
             }
             playCyberSound('click');
+          } else if (showDisputeModalRef.current) {
+            setShowDisputeModal(false);
+          } else if (showFaceEnrollModalRef.current) {
+            setShowFaceEnrollModal(false);
+          } else if (showFallbackModalRef.current) {
+            setShowFallbackModal(false);
           } else if (activeDashboardSubTabRef.current) {
             setActiveDashboardSubTab(null);
 
