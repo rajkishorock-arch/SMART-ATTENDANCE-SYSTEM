@@ -12,6 +12,7 @@ import LoginPortal from './components/LoginPortal';
 import { getActiveTenantSlug } from './utils/tenantConfig';
 import useAuth from './hooks/useAuth';
 import useTenant from './hooks/useTenant';
+import useUI from './hooks/useUI';
 import { getRoleMismatchMessage } from './context/AuthContext';
 import MobileControlPanel from './components/MobileControlPanel';
 import GamificationHub from './components/GamificationHub';
@@ -1883,9 +1884,6 @@ export default function App() {
 
   // Biometric / Sound / Theme States
   const [hudMetrics, setHudMetrics] = useState({ fps: '30.0', lighting: '92%', quality: 'EXCELLENT' });
-  const [activeTheme, setActiveTheme] = useState(localStorage.getItem('theme') || 'cyberpunk');
-  const [audioVolume, setAudioVolume] = useState(parseFloat(localStorage.getItem('audioVolume') || '0.5'));
-  const [soundEnabled, setSoundEnabled] = useState(localStorage.getItem('soundEnabled') === 'true');
 
   const [diagnosticLogs, setDiagnosticLogs] = useState([
     '[SYS] Bios boot sequence completed.',
@@ -2069,57 +2067,7 @@ export default function App() {
     return null;
   };
 
-  const playCyberSound = (type) => {
-    if (!soundEnabled) return;
-    if (typeof window === 'undefined') return;
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      const now = ctx.currentTime;
-      gain.gain.setValueAtTime(audioVolume, now);
-      
-      const scale = synthPitchScale || 1.0;
-      
-      if (type === 'click') {
-        osc.type = synthModulator === 'classic' ? 'sine' : synthModulator;
-        osc.frequency.setValueAtTime(1200 * scale, now);
-        osc.frequency.exponentialRampToValueAtTime(800 * scale, now + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-        osc.start(now);
-        osc.stop(now + 0.05);
-      } else if (type === 'success') {
-        osc.type = synthModulator === 'classic' ? 'triangle' : synthModulator;
-        osc.frequency.setValueAtTime(600 * scale, now);
-        osc.frequency.setValueAtTime(800 * scale, now + 0.08);
-        gain.gain.setValueAtTime(audioVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-        osc.start(now);
-        osc.stop(now + 0.25);
-      } else if (type === 'error') {
-        osc.type = synthModulator === 'classic' ? 'sawtooth' : synthModulator;
-        osc.frequency.setValueAtTime(150 * scale, now);
-        osc.frequency.linearRampToValueAtTime(100 * scale, now + 0.3);
-        gain.gain.setValueAtTime(audioVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-        osc.start(now);
-        osc.stop(now + 0.35);
-      } else if (type === 'scan') {
-        osc.type = synthModulator === 'classic' ? 'sine' : synthModulator;
-        osc.frequency.setValueAtTime(400 * scale, now);
-        osc.frequency.exponentialRampToValueAtTime(1000 * scale, now + 0.2);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-        osc.start(now);
-        osc.stop(now + 0.2);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+
 
   // Authentication Context
   const {
@@ -2160,6 +2108,23 @@ export default function App() {
     loadTenantBranding,
     switchTenant,
   } = useTenant();
+
+  // UI Context
+  const {
+    activeTheme,
+    setActiveTheme,
+    changeTheme,
+    audioVolume,
+    setAudioVolume,
+    soundEnabled,
+    setSoundEnabled,
+    toggleSound,
+    synthModulator,
+    setSynthModulator,
+    synthPitchScale,
+    setSynthPitchScale,
+    playCyberSound,
+  } = useUI();
 
   useEffect(() => {
     if (!token) return undefined;
@@ -3650,8 +3615,6 @@ export default function App() {
   // Phase 3 Cyber-Aesthetic States
   const [voicePitch, setVoicePitch] = useState(parseFloat(localStorage.getItem('voicePitch') || '1.0'));
   const [voiceRobotEffect, setVoiceRobotEffect] = useState(localStorage.getItem('voiceRobotEffect') === 'true');
-  const [synthModulator, setSynthModulator] = useState(localStorage.getItem('synthModulator') || 'classic');
-  const [synthPitchScale, setSynthPitchScale] = useState(parseFloat(localStorage.getItem('synthPitchScale') || '1.0'));
 
   // Phase 4 Ultra Sci-Fi States
   const [ambientHumActive, setAmbientHumActive] = useState(localStorage.getItem('ambientHumActive') === 'true');
@@ -3690,12 +3653,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('voiceRobotEffect', voiceRobotEffect);
   }, [voiceRobotEffect]);
-  useEffect(() => {
-    localStorage.setItem('synthModulator', synthModulator);
-  }, [synthModulator]);
-  useEffect(() => {
-    localStorage.setItem('synthPitchScale', synthPitchScale);
-  }, [synthPitchScale]);
   useEffect(() => {
     localStorage.setItem('ambientHumActive', ambientHumActive);
   }, [ambientHumActive]);
