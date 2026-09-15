@@ -20,6 +20,8 @@ import NotificationCenter from './components/NotificationCenter';
 import AdvancedFeaturesHub from './components/AdvancedFeaturesHub';
 import ConsentModal from './components/ConsentModal';
 import CyberBotWidget from './components/CyberBotWidget';
+import FeedbackModal from './components/FeedbackModal';
+import { useFeedback } from './hooks';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { setupOfflineSyncListener, addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import { completeLivenessFlow } from './utils/livenessClient';
@@ -2280,16 +2282,14 @@ export default function App() {
   // Biometric Fallback System Modal States (Phase 9)
   const [showFallbackModal, setShowFallbackModal] = useState(false);
 
-  // Feedback Form States
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [feedbackType, setFeedbackType] = useState('suggestion'); // 'bug', 'suggestion', 'general'
-  const [feedbackRating, setFeedbackRating] = useState(5);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [feedbackSuccess, setFeedbackSuccess] = useState('');
-  const [feedbackError, setFeedbackError] = useState('');
-  const [submittingFeedback, setSubmittingFeedback] = useState(false);
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
+  // Feedback Form System
+  const feedbackState = useFeedback();
+  const {
+    showFeedbackModal,
+    setShowFeedbackModal,
+    feedbacks,
+    fetchFeedbacks,
+  } = feedbackState;
 
 
 
@@ -3989,29 +3989,7 @@ export default function App() {
     }
   };
 
-  // Fetch Feedbacks (Admins Only)
-  const fetchFeedbacks = async (authToken, role) => {
-    if (isDemoMode) return;
-    const usedToken = authToken || token;
-    const usedRole = role || userRole;
-    if (!usedToken || usedRole !== 'admin') return;
-    setIsLoadingFeedbacks(true);
-    try {
-      const res = await systemApi.fetchFeedbacks(usedToken);
-      if (res.status === 401) {
-        handleLogout();
-        return;
-      }
-      if (res.ok) {
-        const data = await res.json();
-        setFeedbacks(data);
-      }
-    } catch (err) {
-      console.error('Error fetching feedbacks:', err);
-    } finally {
-      setIsLoadingFeedbacks(false);
-    }
-  };
+
 
   // Fetch System Health & Telemetry
   const fetchSystemHealth = async () => {
@@ -8163,84 +8141,7 @@ export default function App() {
     });
   };
 
-  // Submit Feedback Form
-  const handleFeedbackSubmit = async (e) => {
-    if (e) e.preventDefault();
-    if (!feedbackMessage.trim()) {
-      setFeedbackError('Please enter your feedback message.');
-      return;
-    }
-    setSubmittingFeedback(true);
-    setFeedbackError('');
-    setFeedbackSuccess('');
 
-    if (isDemoMode) {
-      setTimeout(() => {
-        setFeedbackSuccess('SIMULATOR ACTION: Feedback submitted successfully (Read-Only Demo Mode).');
-        setFeedbackMessage('');
-        setSubmittingFeedback(false);
-        const newFb = {
-          id: Date.now(),
-          user_id: 999,
-          user_email: 'guest@smartattendance.io',
-          role: 'admin',
-          type: feedbackType,
-          rating: feedbackRating,
-          message: feedbackMessage,
-          created_at: new Date().toISOString()
-        };
-        setFeedbacks(prev => [newFb, ...prev]);
-        setTimeout(() => {
-          setShowFeedbackModal(false);
-          setFeedbackSuccess('');
-        }, 1500);
-      }, 600);
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/feedbacks/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          type: feedbackType,
-          rating: feedbackRating,
-          message: feedbackMessage
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        playCyberSound('success');
-        setFeedbackSuccess('Thank you! Your feedback has been submitted successfully.');
-        setFeedbackMessage('');
-        setFeedbackRating(5);
-        setFeedbackType('suggestion');
-        // Refresh logs if currently viewing them to show new audit entry
-        if (userRole && userRole !== 'student' && (activeTab === 'logs' || activeTab === 'dashboard')) {
-          fetchLogs();
-          if (activeTab === 'dashboard') {
-            fetchStats();
-            if (userRole === 'admin') fetchFeedbacks();
-          }
-        }
-        setTimeout(() => {
-          setShowFeedbackModal(false);
-          setFeedbackSuccess('');
-        }, 2200);
-      } else {
-        playCyberSound('error');
-        setFeedbackError(data.detail || 'Failed to submit feedback.');
-      }
-    } catch (err) {
-      playCyberSound('error');
-      setFeedbackError('Network error. Please try again.');
-    } finally {
-      setSubmittingFeedback(false);
-    }
-  };
 
   // Change college specific master key
   const handleChangeMasterKey = async () => {
@@ -20434,125 +20335,7 @@ export default function App() {
       />
 
       {/* Feedback Submission Modal */}
-      {showFeedbackModal && (
-        <div className="feedback-modal-overlay" onClick={() => setShowFeedbackModal(false)}>
-          <div className="feedback-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="feedback-modal-header">
-              <h2 className="feedback-modal-title">Share Your Feedback</h2>
-              <button 
-                className="feedback-modal-close" 
-                onClick={() => {
-                  playCyberSound('click');
-                  setShowFeedbackModal(false);
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleFeedbackSubmit}>
-              {feedbackSuccess && (
-                <div className="alert alert-success" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle2 size={18} />
-                  <span style={{ fontSize: '0.9rem' }}>{feedbackSuccess}</span>
-                </div>
-              )}
-
-              {feedbackError && (
-                <div className="alert alert-danger" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={18} />
-                  <span style={{ fontSize: '0.9rem' }}>{feedbackError}</span>
-                </div>
-              )}
-
-              <div className="feedback-form-group">
-                <label className="feedback-form-label">Category</label>
-                <div className="feedback-type-select">
-                  <div 
-                    className={`feedback-type-option ${feedbackType === 'suggestion' ? 'active' : ''}`}
-                    onClick={() => { playCyberSound('click'); setFeedbackType('suggestion'); }}
-                  >
-                    Suggestion
-                  </div>
-                  <div 
-                    className={`feedback-type-option ${feedbackType === 'bug' ? 'active' : ''}`}
-                    onClick={() => { playCyberSound('click'); setFeedbackType('bug'); }}
-                  >
-                    Report Bug
-                  </div>
-                  <div 
-                    className={`feedback-type-option ${feedbackType === 'general' ? 'active' : ''}`}
-                    onClick={() => { playCyberSound('click'); setFeedbackType('general'); }}
-                  >
-                    General
-                  </div>
-                </div>
-              </div>
-
-              <div className="feedback-form-group">
-                <label className="feedback-form-label">Rating</label>
-                <div className="feedback-rating-container">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      className={`feedback-star-btn ${star <= feedbackRating ? 'active' : ''}`}
-                      onClick={() => {
-                        playCyberSound('click');
-                        setFeedbackRating(star);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px'
-                      }}
-                    >
-                      <svg 
-                        width="30" 
-                        height="30" 
-                        viewBox="0 0 24 24" 
-                        fill={star <= feedbackRating ? "#fbbf24" : "none"} 
-                        stroke={star <= feedbackRating ? "#fbbf24" : "rgba(255, 255, 255, 0.2)"} 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                        style={{ transition: 'transform 0.1s' }}
-                      >
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="feedback-form-group">
-                <label className="feedback-form-label">Message</label>
-                <textarea
-                  className="feedback-textarea"
-                  placeholder="Tell us what is working well, what needs adjustment, or what features you would love to see next..."
-                  value={feedbackMessage}
-                  onChange={(e) => setFeedbackMessage(e.target.value)}
-                  disabled={submittingFeedback || !!feedbackSuccess}
-                  maxLength={1000}
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                className="feedback-submit-btn"
-                disabled={submittingFeedback || !!feedbackSuccess || !feedbackMessage.trim()}
-                style={{ marginTop: '8px' }}
-              >
-                {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <FeedbackModal feedbackState={feedbackState} />
 
 
 
