@@ -29,10 +29,8 @@ def create_audit_log(db: Session, log: schemas.AuditLogCreate, institution_id: O
 
 # --- User (Admins/Teachers) ---
 def get_user_by_email(db: Session, email: str, institution_id: Optional[int] = None):
-    query = db.query(models.User).filter(func.lower(models.User.email) == func.lower(email.strip()))
-    if institution_id is not None:
-        query = query.filter(models.User.institution_id == institution_id)
-    return query.first()
+    from app.repositories.user_repository import UserRepository
+    return UserRepository.get_user_by_email(db=db, email=email, institution_id=institution_id)
 
 def create_user(db: Session, user: schemas.UserCreate, institution_id: Optional[int] = None):
     hashed_password = security.get_password_hash(user.password)
@@ -50,22 +48,17 @@ def create_user(db: Session, user: schemas.UserCreate, institution_id: Optional[
 
 # --- Student ---
 def get_students(db: Session, skip: int = 0, limit: int = 100, institution_id: Optional[int] = None):
-    query = db.query(models.StudentModel)
-    if institution_id is not None:
-        query = query.filter(models.StudentModel.institution_id == institution_id)
-    return query.offset(skip).limit(limit).all()
+    from app.repositories.user_repository import UserRepository
+    return UserRepository.get_students(db=db, skip=skip, limit=limit, institution_id=institution_id)
 
 def get_student_by_id(db: Session, student_id: int, institution_id: Optional[int] = None):
-    query = db.query(models.StudentModel).filter(models.StudentModel.id == student_id)
-    if institution_id is not None:
-        query = query.filter(models.StudentModel.institution_id == institution_id)
-    return query.first()
+    from app.repositories.user_repository import UserRepository
+    return UserRepository.get_student_by_id(db=db, student_id=student_id, institution_id=institution_id)
 
 def get_student_by_email(db: Session, email: str, institution_id: Optional[int] = None):
-    query = db.query(models.StudentModel).filter(func.lower(models.StudentModel.email) == func.lower(email.strip()))
-    if institution_id is not None:
-        query = query.filter(models.StudentModel.institution_id == institution_id)
-    return query.first()
+    from app.repositories.user_repository import UserRepository
+    return UserRepository.get_student_by_email(db=db, email=email, institution_id=institution_id)
+
 
 def update_student_password(db: Session, student_id: int, new_password_plain: str, institution_id: Optional[int] = None):
     query = db.query(models.StudentModel).filter(models.StudentModel.id == student_id)
@@ -274,119 +267,21 @@ def mark_student_attendance(
     institution_id: Optional[int] = None,
     commit: bool = True
 ):
-    from sqlalchemy.exc import IntegrityError
-    from .period_utils import resolve_period_name, normalize_date_str, generate_session_key
-    from sqlalchemy import or_
+    """Delegates to canonical AttendanceService while maintaining 100% signature compatibility."""
+    from app.services.attendance_service import AttendanceService
+    return AttendanceService.mark_attendance(
+        db=db,
+        student_id=student_id,
+        name=name,
+        roll=roll,
+        dep=dep,
+        subject_id=subject_id,
+        custom_date=custom_date,
+        custom_time=custom_time,
+        institution_id=institution_id,
+        commit=commit
+    )
 
-    today_str = normalize_date_str(custom_date)
-    actual_clock_time = custom_time if custom_time else datetime.now(IST).strftime("%H:%M:%S")
-    period_name = resolve_period_name(actual_clock_time)
-    s_key = generate_session_key(institution_id, student_id, today_str, actual_clock_time, subject_id)
-    
-    with _attendance_lock:
-        # 1. Check if already marked in DB for this student, subject, date, and period slot
-        query = db.query(models.AttendanceModel).filter(
-            or_(
-                models.AttendanceModel.id == str(student_id),
-                models.AttendanceModel.roll == roll
-            ),
-            models.AttendanceModel.date == today_str
-        )
-        if institution_id is not None:
-            query = query.filter(models.AttendanceModel.institution_id == institution_id)
-
-        if subject_id is not None:
-            query = query.filter(models.AttendanceModel.subject_id == subject_id)
-        else:
-            query = query.filter(models.AttendanceModel.subject_id == None)
-            
-        existing_candidates = query.all()
-        existing = None
-        for cand in existing_candidates:
-            if (cand.session_key and cand.session_key == s_key) or cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
-                existing = cand
-                break
-        
-        if existing:
-            return existing, False
-            
-        # 2. Insert into DB with actual clock time and deterministic session_key
-        db_attendance = models.AttendanceModel(
-            id=str(student_id),
-            roll=roll,
-            name=name,
-            department=dep,
-            time=actual_clock_time,
-            date=today_str,
-            attendance="Present",
-            subject_id=subject_id,
-            institution_id=institution_id,
-            fallback_reason=f"Scan at {actual_clock_time}",
-            session_key=s_key
-        )
-        db.add(db_attendance)
-        if commit:
-            try:
-                db.commit()
-                db.refresh(db_attendance)
-            except IntegrityError:
-                db.rollback()
-                # Race condition handling: check if another process beat us using session_key
-                existing = db.query(models.AttendanceModel).filter(
-                    models.AttendanceModel.session_key == s_key
-                ).first()
-                if existing:
-                    return existing, False
-
-                existing_candidates = query.all()
-                for cand in existing_candidates:
-                    if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
-                        return cand, False
-                existing = query.first()
-                if existing:
-                    return existing, False
-                raise
-        else:
-            sp = db.begin_nested()
-            try:
-                db.flush()
-            except IntegrityError:
-                sp.rollback()
-                existing = db.query(models.AttendanceModel).filter(
-                    models.AttendanceModel.session_key == s_key
-                ).first()
-                if existing:
-                    return existing, False
-
-                existing_candidates = query.all()
-                for cand in existing_candidates:
-                    if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
-                        return cand, False
-                existing = query.first()
-                if existing:
-                    return existing, False
-                raise
-
-    
-    # 3. Write to CSV file (root/attendance.csv)
-    try:
-        import csv
-        import os
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        attendance_path = os.path.join(base_dir, "attendance.csv")
-        
-        required_columns = ["ID", "Roll", "Name", "Department", "Time", "Date", "Status", "SubjectID", "InstitutionID"]
-        file_exists = os.path.exists(attendance_path)
-        
-        with open(attendance_path, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            if not file_exists or os.path.getsize(attendance_path) == 0:
-                writer.writerow(required_columns)
-            writer.writerow([student_id, roll, name, dep, actual_clock_time, today_str, "Present", subject_id or "", institution_id or ""])
-    except Exception as csv_err:
-        print(f"Failed to write attendance to CSV: {csv_err}")
-        
-    return db_attendance, True
 
 
 def get_attendance_report(
@@ -513,38 +408,16 @@ def get_system_settings(db: Session, institution_id: Optional[int] = None) -> mo
     """
     Get system settings. Creates a default row if it does not exist.
     """
-    query = db.query(models.SystemSettings)
-    if institution_id is not None:
-        query = query.filter(models.SystemSettings.institution_id == institution_id)
-    settings = query.first()
-    if not settings:
-        settings = models.SystemSettings(
-            geofencing_enabled=False,
-            center_latitude=28.6139,
-            center_longitude=77.2090,
-            allowed_radius_meters=100.0,
-            ip_restriction_enabled=False,
-            allowed_ip_ranges="127.0.0.1,192.168.1.0/24",
-            institution_id=institution_id
-        )
-        db.add(settings)
-        db.commit()
-        db.refresh(settings)
-    return settings
+    from app.repositories.settings_repository import SettingsRepository
+    return SettingsRepository.get_system_settings(db=db, institution_id=institution_id)
 
 def update_system_settings(db: Session, update_data: schemas.SystemSettingsUpdate, institution_id: Optional[int] = None) -> models.SystemSettings:
     """
     Updates the system settings row.
     """
-    settings = get_system_settings(db, institution_id=institution_id)
-    
-    update_dict = update_data.dict(exclude_unset=True)
-    for key, value in update_dict.items():
-        setattr(settings, key, value)
-        
-    db.commit()
-    db.refresh(settings)
-    return settings
+    from app.repositories.settings_repository import SettingsRepository
+    return SettingsRepository.update_system_settings(db=db, settings_in=update_data, institution_id=institution_id)
+
 
 def create_subject(db: Session, subject: schemas.SubjectCreate, institution_id: Optional[int] = None) -> models.Subject:
     db_subject = models.Subject(
