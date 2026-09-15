@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { generateLeavePdf } from './utils/leavePdfGenerator';
@@ -109,28 +109,28 @@ import {
 } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
 import VersionBadge from './components/VersionBadge';
-import PremiumUpgradeHub from './components/PremiumUpgradeHub';
-import ExplorationLab from './components/ExplorationLab';
+const PremiumUpgradeHub = lazy(() => import('./components/PremiumUpgradeHub'));
+const ExplorationLab = lazy(() => import('./components/ExplorationLab'));
 import CameraSettingsPanel from './components/CameraSettingsPanel';
-import FuturisticFeaturesHub from './components/FuturisticFeaturesHub';
-import IndustryEnterpriseHub from './components/IndustryEnterpriseHub';
-import ExtremeLevelHub from './components/ExtremeLevelHub';
-import Ideas150Hub from './components/Ideas150Hub';
-import Enterprise7FeaturesHub from './components/Enterprise7FeaturesHub';
+const FuturisticFeaturesHub = lazy(() => import('./components/FuturisticFeaturesHub'));
+const IndustryEnterpriseHub = lazy(() => import('./components/IndustryEnterpriseHub'));
+const ExtremeLevelHub = lazy(() => import('./components/ExtremeLevelHub'));
+const Ideas150Hub = lazy(() => import('./components/Ideas150Hub'));
+const Enterprise7FeaturesHub = lazy(() => import('./components/Enterprise7FeaturesHub'));
 import UniversalSearch from './components/UniversalSearch';
 import LiveBoardStrip from './components/LiveBoardStrip';
 import RoleCommandCenter from './components/RoleCommandCenter';
-import AttendanceDisputeModal from './components/AttendanceDisputeModal';
+const AttendanceDisputeModal = lazy(() => import('./components/AttendanceDisputeModal'));
 import AttendanceDisputesQueue from './components/AttendanceDisputesQueue';
-import AcademicCalendarView from './components/AcademicCalendarView';
+const AcademicCalendarView = lazy(() => import('./components/AcademicCalendarView'));
 import AttendancePlannerWidget from './components/AttendancePlannerWidget';
-import LowConfidenceReviewQueue from './components/LowConfidenceReviewQueue';
-import DeviceHealthDashboard from './components/DeviceHealthDashboard';
-import FaceEnrollmentModal from './components/FaceEnrollmentModal';
-import InterventionsManagementView from './components/InterventionsManagementView';
-import BiometricFallbackModal from './components/BiometricFallbackModal';
-import LmsSyncIntegrationView from './components/LmsSyncIntegrationView';
-import StaffPayrollView from './components/StaffPayrollView';
+const LowConfidenceReviewQueue = lazy(() => import('./components/LowConfidenceReviewQueue'));
+const DeviceHealthDashboard = lazy(() => import('./components/DeviceHealthDashboard'));
+const FaceEnrollmentModal = lazy(() => import('./components/FaceEnrollmentModal'));
+const InterventionsManagementView = lazy(() => import('./components/InterventionsManagementView'));
+const BiometricFallbackModal = lazy(() => import('./components/BiometricFallbackModal'));
+const LmsSyncIntegrationView = lazy(() => import('./components/LmsSyncIntegrationView'));
+const StaffPayrollView = lazy(() => import('./components/StaffPayrollView'));
 import QuickActionsDock from './components/QuickActionsDock';
 import SmartEmptyState from './components/SmartEmptyState';
 import SkeletonLoader from './components/SkeletonLoader';
@@ -142,12 +142,12 @@ import SmartSuggestionsBar from './components/SmartSuggestionsBar';
 import TeacherMiniDashboard from './components/TeacherMiniDashboard';
 import StudentAttendanceWallet from './components/StudentAttendanceWallet';
 import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings, applySpringPhysics } from './utils/futuristicFeatures';
-import NewFeaturesHub from './components/NewFeaturesHub';
+const NewFeaturesHub = lazy(() => import('./components/NewFeaturesHub'));
 import { fastFaceEngine } from './services/fastFaceEngine';
 import { offlineAttendanceQueue } from './services/offlineAttendanceQueue';
 import { nativeScannerBridge } from './services/nativeScannerBridge';
-import WellnessCounselorPanel from './components/WellnessCounselorPanel';
-import ARGamificationPortal from './components/ARGamificationPortal';
+const WellnessCounselorPanel = lazy(() => import('./components/WellnessCounselorPanel'));
+const ARGamificationPortal = lazy(() => import('./components/ARGamificationPortal'));
 import AttendanceChartsWidget from './components/AttendanceChartsWidget';
 import { getStoredLanguage } from './utils/i18n';
 import SyncStatusPill from './components/SyncStatusPill';
@@ -155,23 +155,23 @@ import { ScannerSuccessReceipt, ScannerFallbackOptions } from './components/Scan
 import TodaySessionHub from './components/TodaySessionHub';
 import AdminPulseDashboard from './components/AdminPulseDashboard';
 import StudentTodayView from './components/StudentTodayView';
-import AccessibilitySettingsModal from './components/AccessibilitySettingsModal';
-import PrivacyTrustCenter from './components/PrivacyTrustCenter';
-import NotificationDrawerModal from './components/NotificationDrawerModal';
-import GeofenceSettings from './components/settings/GeofenceSettings';
+const AccessibilitySettingsModal = lazy(() => import('./components/AccessibilitySettingsModal'));
+const PrivacyTrustCenter = lazy(() => import('./components/PrivacyTrustCenter'));
+const NotificationDrawerModal = lazy(() => import('./components/NotificationDrawerModal'));
+const GeofenceSettings = lazy(() => import('./components/settings/GeofenceSettings'));
 import SmtpSettings from './components/settings/SmtpSettings';
-import MasterKeySettings from './components/settings/MasterKeySettings';
-import ReleaseSettings from './components/settings/ReleaseSettings';
-import InstitutionManagement from './components/settings/InstitutionManagement';
-import AdminProfileSettings from './components/settings/AdminProfileSettings';
-import LeaveManagementSettings from './components/settings/LeaveManagementSettings';
-import AppVersionSettings from './components/settings/AppVersionSettings';
-import DepartmentSettings from './components/settings/DepartmentSettings';
-import AdminUserManagement from './components/settings/AdminUserManagement';
-import ThemeEqualizerSettings from './components/settings/ThemeEqualizerSettings';
-import SettingsDirectoryHub from './components/settings/SettingsDirectoryHub';
-import FeaturesDirectoryHub from './components/settings/FeaturesDirectoryHub';
-import AdvancedBiometricSettings from './components/settings/AdvancedBiometricSettings';
+const MasterKeySettings = lazy(() => import('./components/settings/MasterKeySettings'));
+const ReleaseSettings = lazy(() => import('./components/settings/ReleaseSettings'));
+const InstitutionManagement = lazy(() => import('./components/settings/InstitutionManagement'));
+const AdminProfileSettings = lazy(() => import('./components/settings/AdminProfileSettings'));
+const LeaveManagementSettings = lazy(() => import('./components/settings/LeaveManagementSettings'));
+const AppVersionSettings = lazy(() => import('./components/settings/AppVersionSettings'));
+const DepartmentSettings = lazy(() => import('./components/settings/DepartmentSettings'));
+const AdminUserManagement = lazy(() => import('./components/settings/AdminUserManagement'));
+const ThemeEqualizerSettings = lazy(() => import('./components/settings/ThemeEqualizerSettings'));
+const SettingsDirectoryHub = lazy(() => import('./components/settings/SettingsDirectoryHub'));
+const FeaturesDirectoryHub = lazy(() => import('./components/settings/FeaturesDirectoryHub'));
+const AdvancedBiometricSettings = lazy(() => import('./components/settings/AdvancedBiometricSettings'));
 import AdminTeacherDashboardView from './components/dashboard/AdminTeacherDashboardView';
 import StudentsDirectoryView, { StudentsDirectoryHeaderAction } from './components/dashboard/StudentsDirectoryView';
 import TeachersDirectoryView from './components/dashboard/TeachersDirectoryView';
@@ -7749,6 +7749,7 @@ export default function App() {
 
       {/* Main Panel */}
       <main className="main-content">
+        <Suspense fallback={<div style={{ padding: "40px 20px", textAlign: "center", color: "#94a3b8" }}>Loading...</div>}>
         {/* Header */}
         <header className={`flex-between header-container ${activeTab === 'settings' && activeSubSetting !== null ? 'hide-on-mobile' : ''}`} style={{ marginBottom: '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
@@ -8608,6 +8609,7 @@ export default function App() {
         {activeTab === 'ai-assistant' && (
           <CyberBotWidget activeTab={activeTab} />
         )}
+              </Suspense>
       </main>
 
       {/* Add Student Modal */}

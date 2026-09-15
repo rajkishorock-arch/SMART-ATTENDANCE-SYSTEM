@@ -1,3 +1,4 @@
+import { PushNotifications } from '@capacitor/push-notifications';
 import { isNative } from './platform';
 
 const PUSH_TOKEN_KEY = 'smart_attendance_push_token';
@@ -34,7 +35,7 @@ export async function triggerNativeHaptic(type = 'light') {
 export async function initializePushNotifications(onToken) {
   if (!isNative) return { status: 'web' };
   try {
-    const { PushNotifications } = await import('@capacitor/push-notifications');
+
     let permission = await PushNotifications.checkPermissions();
     if (permission.receive !== 'granted') {
       permission = await PushNotifications.requestPermissions();
