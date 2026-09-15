@@ -598,10 +598,7 @@ export default function App() {
     setShowConsentModal(false);
     if (token && userRole === 'student') {
       try {
-        await fetch(`${API_BASE_URL}/users/students/me/consent`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await studentApi.submitConsent(token);
       } catch (_) { /* optional */ }
     }
   };
@@ -2724,13 +2721,8 @@ export default function App() {
     if (isDemoMode) return;
     if (!studentDept || !studentId) return;
     try {
-      const subRes = await fetch(`${API_BASE_URL}/subjects`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!subRes.ok) return;
-      const subjectsList = await subRes.json();
+      const subjectsList = await systemApi.fetchSubjects(token);
+      if (!Array.isArray(subjectsList)) return;
       
       const statsMap = {};
       await Promise.all(subjectsList.map(async (sub) => {
@@ -2850,13 +2842,8 @@ export default function App() {
   const fetchSystemSettings = async () => {
     if (isDemoMode) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/settings/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await systemApi.fetchSettings(token);
+      if (data) {
         setSettingsGeoEnabled(data.geofencing_enabled);
         setSettingsLat(data.center_latitude);
         setSettingsLon(data.center_longitude);
@@ -2884,31 +2871,20 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/settings/`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          geofencing_enabled: settingsGeoEnabled,
-          center_latitude: parseFloat(settingsLat),
-          center_longitude: parseFloat(settingsLon),
-          allowed_radius_meters: parseFloat(settingsRadius),
-          ip_restriction_enabled: settingsIpEnabled,
-          allowed_ip_ranges: settingsIpRanges
-        })
-      });
-      if (res.ok) {
-        setSettingsMessage('Settings updated successfully!');
-        setTimeout(() => setSettingsMessage(''), 3000);
-      } else {
-        const errData = await res.json();
-        setSettingsError(errData.detail || 'Failed to update settings.');
-      }
+      const payload = {
+        geofencing_enabled: settingsGeoEnabled,
+        center_latitude: parseFloat(settingsLat),
+        center_longitude: parseFloat(settingsLon),
+        allowed_radius_meters: parseFloat(settingsRadius),
+        ip_restriction_enabled: settingsIpEnabled,
+        allowed_ip_ranges: settingsIpRanges
+      };
+      await systemApi.saveSettings(token, payload);
+      setSettingsMessage('Settings updated successfully!');
+      setTimeout(() => setSettingsMessage(''), 3000);
     } catch (err) {
       console.error('Error saving settings:', err);
-      setSettingsError('Failed to connect to backend server.');
+      setSettingsError(err.message || 'Failed to update settings.');
     } finally {
       setIsSavingSettings(false);
     }
@@ -4933,13 +4909,8 @@ export default function App() {
   const fetchStudentLogs = async (authToken) => {
     setIsLoadingStudentLogs(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/me/attendance`, {
-        headers: {
-          'Authorization': `Bearer ${authToken || token}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await studentApi.fetchMyAttendance(authToken || token);
+      if (data) {
         setStudentLogs(data);
         try {
           localStorage.setItem('cached_student_logs', JSON.stringify(data));
@@ -5997,21 +5968,13 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (res.ok) {
-        fetchStudents();
-        fetchStats();
-        fetchLogs();
-      } else {
-        alert('Failed to delete student');
-      }
+      await studentApi.deleteStudent(token, id);
+      fetchStudents();
+      fetchStats();
+      fetchLogs();
     } catch (err) {
       console.error('Error deleting student:', err);
+      alert('Failed to delete student');
     }
   };
 
@@ -6036,15 +5999,10 @@ export default function App() {
       let successCount = 0;
       let failCount = 0;
       for (const id of idsToDelete) {
-        const res = await fetch(`${API_BASE_URL}/users/students/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (res.ok) {
+        try {
+          await studentApi.deleteStudent(token, id);
           successCount++;
-        } else {
+        } catch (_) {
           failCount++;
         }
       }
@@ -6097,61 +6055,35 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...newStudent,
-          id: parseInt(newStudent.id)
-        })
+      const payload = {
+        ...newStudent,
+        id: parseInt(newStudent.id)
+      };
+      const data = await studentApi.createStudent(token, payload);
+      fetchStudents();
+      fetchStats();
+      setShowAddModal(false);
+      // Open webcam capture modal for the newly registered student
+      setCaptureStudent(data);
+      setShowWebcamModal(true);
+      // Reset form
+      setNewStudent({
+        id: '',
+        name: '',
+        roll: '',
+        dep: 'CSE(IOT)',
+        course: 'B.Tech',
+        year: '2026',
+        semester: '1st',
+        gender: 'Male',
+        dob: '',
+        email: '',
+        phone: '',
+        address: '',
+        teacher: ''
       });
-
-      let data;
-      try {
-        data = await res.json();
-      } catch (jsonErr) {
-        data = { detail: 'Server error occurred during student registration.' };
-      }
-
-      if (res.ok) {
-        fetchStudents();
-        fetchStats();
-        setShowAddModal(false);
-        // Open webcam capture modal for the newly registered student
-        setCaptureStudent(data);
-        setShowWebcamModal(true);
-        // Reset form
-        setNewStudent({
-          id: '',
-          name: '',
-          roll: '',
-          dep: 'CSE(IOT)',
-          course: 'B.Tech',
-          year: '2026',
-          semester: '1st',
-          gender: 'Male',
-          dob: '',
-          email: '',
-          phone: '',
-          address: '',
-          teacher: ''
-        });
-      } else {
-        let errorMsg = 'Failed to register student.';
-        if (typeof data.detail === 'string') {
-          errorMsg = data.detail;
-        } else if (Array.isArray(data.detail)) {
-          errorMsg = data.detail.map(err => `${err.loc.slice(1).join('.') || 'field'}: ${err.msg}`).join(', ');
-        } else if (data.message) {
-          errorMsg = data.message;
-        }
-        setFormError(errorMsg);
-      }
     } catch (err) {
-      setFormError('Failed to connect to API.');
+      setStudentError(err.message || 'Failed to register student.');
     }
   };
 
@@ -6174,42 +6106,31 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/${editingStudent.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: editingStudent.name,
-          roll: editingStudent.roll,
-          dep: editingStudent.dep,
-          course: editingStudent.course,
-          year: editingStudent.year,
-          semester: editingStudent.semester,
-          gender: editingStudent.gender,
-          dob: editingStudent.dob,
-          email: editingStudent.email,
-          phone: editingStudent.phone,
-          address: editingStudent.address,
-          teacher: editingStudent.teacher,
-          password: editingStudent.password ? editingStudent.password : undefined
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setEditStudentSuccess('Student details updated successfully!');
-        fetchStudents();
-        setTimeout(() => {
-          setShowEditStudentModal(false);
-          setEditingStudent(null);
-          setEditStudentSuccess('');
-        }, 1500);
-      } else {
-        setEditStudentError(data.detail || 'Failed to update student details.');
-      }
+      const payload = {
+        name: editingStudent.name,
+        roll: editingStudent.roll,
+        dep: editingStudent.dep,
+        course: editingStudent.course,
+        year: editingStudent.year,
+        semester: editingStudent.semester,
+        gender: editingStudent.gender,
+        dob: editingStudent.dob,
+        email: editingStudent.email,
+        phone: editingStudent.phone,
+        address: editingStudent.address,
+        teacher: editingStudent.teacher,
+        password: editingStudent.password ? editingStudent.password : undefined
+      };
+      await studentApi.updateStudent(token, editingStudent.id, payload);
+      setEditStudentSuccess('Student details updated successfully!');
+      fetchStudents();
+      setTimeout(() => {
+        setShowEditStudentModal(false);
+        setEditingStudent(null);
+        setEditStudentSuccess('');
+      }, 1500);
     } catch (err) {
-      setEditStudentError('Connection failed.');
+      setEditStudentError(err.message || 'Failed to update student details.');
     }
   };
 
@@ -6224,33 +6145,22 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/me`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: editingStudentSelf.name,
-          phone: editingStudentSelf.phone,
-          address: editingStudentSelf.address,
-          gender: editingStudentSelf.gender,
-          dob: editingStudentSelf.dob
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setEditStudentSelfSuccess('Your profile details updated successfully!');
-        fetchSessionInfo(token);
-        setTimeout(() => {
-          setShowEditStudentSelfModal(false);
-          setEditStudentSelfSuccess('');
-        }, 1500);
-      } else {
-        setEditStudentSelfError(data.detail || 'Failed to update profile details.');
-      }
+      const payload = {
+        name: editingStudentSelf.name,
+        phone: editingStudentSelf.phone,
+        address: editingStudentSelf.address,
+        gender: editingStudentSelf.gender,
+        dob: editingStudentSelf.dob
+      };
+      await studentApi.updateSelf(token, payload);
+      setEditStudentSelfSuccess('Your profile details updated successfully!');
+      fetchSessionInfo(token);
+      setTimeout(() => {
+        setShowEditStudentSelfModal(false);
+        setEditStudentSelfSuccess('');
+      }, 1500);
     } catch (err) {
-      setEditStudentSelfError('Connection failed.');
+      setEditStudentSelfError(err.message || 'Failed to update profile details.');
     }
   };
 
@@ -6279,28 +6189,15 @@ export default function App() {
         payload.subject_department = editingTeacherSelf.subject_department;
       }
 
-      const res = await fetch(`${API_BASE_URL}/users/me`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await res.json();
-      if (res.ok) {
-        setEditTeacherSelfSuccess('Profile details updated successfully!');
-        fetchSessionInfo(token);
-        setTimeout(() => {
-          setShowEditTeacherSelfModal(false);
-          setEditTeacherSelfSuccess('');
-        }, 1500);
-      } else {
-        setEditTeacherSelfError(data.detail || 'Failed to update profile details.');
-      }
+      await teacherApi.updateSelf(token, payload);
+      setEditTeacherSelfSuccess('Profile details updated successfully!');
+      fetchSessionInfo(token);
+      setTimeout(() => {
+        setShowEditTeacherSelfModal(false);
+        setEditTeacherSelfSuccess('');
+      }, 1500);
     } catch (err) {
-      setEditTeacherSelfError('Connection failed.');
+      setEditTeacherSelfError(err.message || 'Failed to update profile details.');
     }
   };
 
@@ -6536,30 +6433,18 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/subjects`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: newSubject.name,
-          code: newSubject.code,
-          department: newSubject.department,
-          teacher_id: newSubject.teacher_id ? parseInt(newSubject.teacher_id) : null
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setSubjectSuccess('Subject registered successfully!');
-        fetchSubjects();
-        setNewSubject({ name: '', code: '', department: 'CSE(IOT)', teacher_id: '' });
-      } else {
-        setSubjectError(data.detail || 'Failed to register subject.');
-      }
+      const payload = {
+        name: newSubject.name,
+        code: newSubject.code,
+        department: newSubject.department,
+        teacher_id: newSubject.teacher_id ? parseInt(newSubject.teacher_id) : null
+      };
+      await systemApi.createSubject(token, payload);
+      setSubjectSuccess('Subject registered successfully!');
+      fetchSubjects();
+      setNewSubject({ name: '', code: '', department: 'CSE(IOT)', teacher_id: '' });
     } catch (err) {
-      setSubjectError('Failed to connect to API.');
+      setSubjectError(err.message || 'Failed to register subject.');
     }
   };
 
@@ -6582,30 +6467,18 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/schedules`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          subject_id: parseInt(newSchedule.subject_id),
-          day_of_week: newSchedule.day_of_week,
-          start_time: newSchedule.start_time,
-          end_time: newSchedule.end_time
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setScheduleSuccess('Schedule registered successfully!');
-        fetchSchedules();
-        setNewSchedule({ subject_id: '', day_of_week: 'Monday', start_time: '', end_time: '' });
-      } else {
-        setScheduleError(data.detail || 'Failed to register schedule.');
-      }
+      const payload = {
+        subject_id: parseInt(newSchedule.subject_id),
+        day_of_week: newSchedule.day_of_week,
+        start_time: newSchedule.start_time,
+        end_time: newSchedule.end_time
+      };
+      await systemApi.createSchedule(token, payload);
+      setScheduleSuccess('Schedule registered successfully!');
+      fetchSchedules();
+      setNewSchedule({ subject_id: '', day_of_week: 'Monday', start_time: '', end_time: '' });
     } catch (err) {
-      setScheduleError('Failed to connect to API.');
+      setScheduleError(err.message || 'Failed to register schedule.');
     }
   };
 
