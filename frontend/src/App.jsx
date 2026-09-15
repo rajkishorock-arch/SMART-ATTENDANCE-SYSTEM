@@ -4202,6 +4202,9 @@ export default function App() {
           }
         });
 
+        let detectRafId = null;
+        let detectTimerId = null;
+
         const detectLoop = async () => {
           if (!active || !attendanceActive) return;
           const isVideo = video instanceof HTMLVideoElement;
@@ -4257,10 +4260,10 @@ export default function App() {
             }
           }
           if (active && attendanceActive) {
-            requestAnimationFrame(detectLoop);
+            detectRafId = requestAnimationFrame(detectLoop);
           }
         };
-        setTimeout(detectLoop, 100);
+        detectTimerId = setTimeout(detectLoop, 100);
       } catch (err) {
         console.error('Face detection init failed:', err);
         addDiagnosticLog('WARN: Fast face detector unavailable — using mesh-only mode.');
@@ -4271,6 +4274,8 @@ export default function App() {
 
     return () => {
       active = false;
+      if (detectRafId) cancelAnimationFrame(detectRafId);
+      if (detectTimerId) clearTimeout(detectTimerId);
       if (faceDetectorRef.current) {
         try { faceDetectorRef.current.close(); } catch (_) { /* ignore */ }
         faceDetectorRef.current = null;
@@ -4541,6 +4546,8 @@ export default function App() {
     faceMeshRef.current = faceMesh;
 
     let active = true;
+    let meshRafId = null;
+    let meshTimerId = null;
 
     const sendFrames = async () => {
       if (!active || !attendanceActive) return;
@@ -4560,14 +4567,16 @@ export default function App() {
       }
       
       if (active && attendanceActive) {
-        requestAnimationFrame(sendFrames);
+        meshRafId = requestAnimationFrame(sendFrames);
       }
     };
 
-    setTimeout(sendFrames, 300);
+    meshTimerId = setTimeout(sendFrames, 300);
 
     return () => {
       active = false;
+      if (meshRafId) cancelAnimationFrame(meshRafId);
+      if (meshTimerId) clearTimeout(meshTimerId);
       livenessStatusRef.current = 'pending';
       setLivenessStatus('pending');
       if (faceMeshRef.current) {
