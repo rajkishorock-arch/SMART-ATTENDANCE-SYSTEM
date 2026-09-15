@@ -129,7 +129,7 @@ class AttendanceModel(Base):
     date = Column(String(20), primary_key=True)
     attendance = Column(String(20)) # 'Present', 'Absent', 'Late'
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
-    verification_method = Column(String(30), default="FACE_SCAN")  # FACE_SCAN, DYNAMIC_QR, SESSION_PIN, MANUAL_STAFF
+    verification_method = Column(String(50), default="FACE_SCAN")  # FACE_SCAN, DYNAMIC_QR, DYNAMIC_QR_UNVERIFIED_LOCATION, SESSION_PIN, MANUAL_STAFF
     fallback_reason = Column(String(255), nullable=True)
     session_key = Column(String(255), unique=True, index=True, nullable=True)
 
@@ -1225,6 +1225,47 @@ class NotificationPreferenceModel(Base):
     quiet_start_time = Column(String(5), default="22:00")
     quiet_end_time = Column(String(5), default="07:00")
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PHASE 2B: QR REPLAY PREVENTION & FALLBACK CLAIM MODELS
+# ═══════════════════════════════════════════════════════════════════════════
+
+class ConsumedQrToken(Base):
+    """
+    Tracks consumed student-presented QR tokens to prevent replay attacks.
+    Enforces atomic one-time consumption per tenant and JTI.
+    """
+    __tablename__ = "used_qr_tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    jti = Column(String(64), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=True, index=True)
+    token_type = Column(String(30), default="student_qr")
+    consumed_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+
+    __table_args__ = (
+        UniqueConstraint('institution_id', 'jti', name='_institution_qr_jti_uc'),
+    )
+
+
+class AttendanceFallbackClaim(Base):
+    """
+    Per-student claim tracking for teacher rolling dynamic QR fallback sessions.
+    Guarantees each student can claim a session at most once.
+    """
+    __tablename__ = "attendance_fallback_claims"
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("attendance_fallback_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
+    claimed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('session_id', 'student_id', name='_session_student_claim_uc'),
+    )
+
 
 
 

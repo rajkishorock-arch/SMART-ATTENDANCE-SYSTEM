@@ -271,7 +271,8 @@ def mark_student_attendance(
     subject_id: Optional[int] = None,
     custom_date: Optional[str] = None,
     custom_time: Optional[str] = None,
-    institution_id: Optional[int] = None
+    institution_id: Optional[int] = None,
+    commit: bool = True
 ):
     from sqlalchemy.exc import IntegrityError
     from .period_utils import resolve_period_name, normalize_date_str, generate_session_key
@@ -324,26 +325,48 @@ def mark_student_attendance(
             session_key=s_key
         )
         db.add(db_attendance)
-        try:
-            db.commit()
-            db.refresh(db_attendance)
-        except IntegrityError:
-            db.rollback()
-            # Race condition handling: check if another process beat us using session_key
-            existing = db.query(models.AttendanceModel).filter(
-                models.AttendanceModel.session_key == s_key
-            ).first()
-            if existing:
-                return existing, False
+        if commit:
+            try:
+                db.commit()
+                db.refresh(db_attendance)
+            except IntegrityError:
+                db.rollback()
+                # Race condition handling: check if another process beat us using session_key
+                existing = db.query(models.AttendanceModel).filter(
+                    models.AttendanceModel.session_key == s_key
+                ).first()
+                if existing:
+                    return existing, False
 
-            existing_candidates = query.all()
-            for cand in existing_candidates:
-                if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
-                    return cand, False
-            existing = query.first()
-            if existing:
-                return existing, False
-            raise
+                existing_candidates = query.all()
+                for cand in existing_candidates:
+                    if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
+                        return cand, False
+                existing = query.first()
+                if existing:
+                    return existing, False
+                raise
+        else:
+            sp = db.begin_nested()
+            try:
+                db.flush()
+            except IntegrityError:
+                sp.rollback()
+                existing = db.query(models.AttendanceModel).filter(
+                    models.AttendanceModel.session_key == s_key
+                ).first()
+                if existing:
+                    return existing, False
+
+                existing_candidates = query.all()
+                for cand in existing_candidates:
+                    if cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
+                        return cand, False
+                existing = query.first()
+                if existing:
+                    return existing, False
+                raise
+
     
     # 3. Write to CSV file (root/attendance.csv)
     try:

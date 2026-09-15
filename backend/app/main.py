@@ -328,6 +328,53 @@ def update_schema():
             print("Phase 1B Migration Verified: UNIQUE index 'idx_attendence_session_key' is active on table 'attendence'.")
         else:
             print("Warning: UNIQUE index 'idx_attendence_session_key' creation could not be verified automatically.")
+
+        # ═══════════════════════════════════════════════════════════════════════
+        # Phase 2B: QR Replay Prevention & Fallback Claims Migration & Cleanup
+        # ═══════════════════════════════════════════════════════════════════════
+        try:
+            # Expand verification_method column size to 50 if needed
+            if db_dialect == 'postgresql':
+                safe_execute("ALTER TABLE attendence ALTER COLUMN verification_method TYPE VARCHAR(50)", "Expanded verification_method to VARCHAR(50)")
+            elif db_dialect == 'mysql':
+                safe_execute("ALTER TABLE attendence MODIFY verification_method VARCHAR(50)", "Expanded verification_method to VARCHAR(50)")
+
+            # Create Phase 2B tables if not present
+            models.ConsumedQrToken.__table__.create(bind=engine, checkfirst=True)
+            models.AttendanceFallbackClaim.__table__.create(bind=engine, checkfirst=True)
+
+            # Ensure unique constraints/indexes
+            if db_dialect == 'mysql':
+                safe_execute(
+                    "ALTER TABLE used_qr_tokens ADD UNIQUE KEY _institution_qr_jti_uc (institution_id, jti)",
+                    "Added composite unique key _institution_qr_jti_uc"
+                )
+                safe_execute(
+                    "ALTER TABLE attendance_fallback_claims ADD UNIQUE KEY _session_student_claim_uc (session_id, student_id)",
+                    "Added composite unique key _session_student_claim_uc"
+                )
+            else:
+                safe_execute("CREATE UNIQUE INDEX IF NOT EXISTS _institution_qr_jti_uc ON used_qr_tokens (institution_id, jti)", "Created unique index _institution_qr_jti_uc")
+                safe_execute("CREATE UNIQUE INDEX IF NOT EXISTS _session_student_claim_uc ON attendance_fallback_claims (session_id, student_id)", "Created unique index _session_student_claim_uc")
+
+            # Verify unique indexes exist
+            p2b_insp = inspect(engine)
+            qr_indexes = [idx['name'] for idx in p2b_insp.get_indexes('used_qr_tokens')] if 'used_qr_tokens' in p2b_insp.get_table_names() else []
+            claim_indexes = [idx['name'] for idx in p2b_insp.get_indexes('attendance_fallback_claims')] if 'attendance_fallback_claims' in p2b_insp.get_table_names() else []
+            print(f"Phase 2B Verification: used_qr_tokens indexes: {qr_indexes}, attendance_fallback_claims indexes: {claim_indexes}")
+
+            # Purge expired consumed QR records older than ~1 hour
+            from datetime import datetime, timezone, timedelta
+            one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+            deleted_tokens = db.query(models.ConsumedQrToken).filter(
+                models.ConsumedQrToken.expires_at < one_hour_ago
+            ).delete(synchronize_session=False)
+            if deleted_tokens > 0:
+                db.commit()
+                print(f"Phase 2B Cleanup: Purged {deleted_tokens} expired consumed QR records older than 1 hour.")
+        except Exception as p2b_mig_err:
+            db.rollback()
+            print("Phase 2B migration/cleanup notice:", p2b_mig_err)
     except Exception as e:
         db.rollback()
         print("Schema update check failed:", e)

@@ -865,6 +865,8 @@ class ActiveRollingTokenResponse(BaseModel):
 class ClaimQrPayload(BaseModel):
     token: str
     fallback_reason: Optional[str] = "Camera failure / optical occlusion"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class ClaimPinPayload(BaseModel):
@@ -878,6 +880,7 @@ class FallbackClaimResult(BaseModel):
     message: str
     verification_method: str
     attendance_record_id: str
+    geofence_verified: Optional[bool] = False
 
 
 # ── SIS & LMS Integration Schemas (Phase 10) ─────────────────────────────────
