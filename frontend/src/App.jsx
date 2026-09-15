@@ -16,14 +16,13 @@ import useUI from './hooks/useUI';
 import { getRoleMismatchMessage } from './context/AuthContext';
 import MobileControlPanel from './components/MobileControlPanel';
 import GamificationHub from './components/GamificationHub';
-import NotificationCenter from './components/NotificationCenter';
-import AdvancedFeaturesHub from './components/AdvancedFeaturesHub';
 import ConsentModal from './components/ConsentModal';
 import CyberBotWidget from './components/CyberBotWidget';
 import FeedbackModal from './components/FeedbackModal';
 import UpdateNotification from './components/UpdateNotification';
 import OnboardingGuideModal from './components/OnboardingGuideModal';
-import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync } from './hooks';
+import NotificationBell from './components/NotificationBell';
+import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync, useNotifications } from './hooks';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import { completeLivenessFlow } from './utils/livenessClient';
@@ -156,7 +155,6 @@ import StudentTodayView from './components/StudentTodayView';
 import AccessibilitySettingsModal from './components/AccessibilitySettingsModal';
 import PrivacyTrustCenter from './components/PrivacyTrustCenter';
 import NotificationDrawerModal from './components/NotificationDrawerModal';
-import { initializePushNotifications } from './services/pushNotificationService';
 
 let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
@@ -2074,42 +2072,18 @@ export default function App() {
   }, [activeTab]);
 
 
-  // Real-Time Role Notification System States
-  const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
-  const [realtimeUnreadCount, setRealtimeUnreadCount] = useState(0);
+  // Real-Time Role Notification System
+  const handleNotificationNavigate = useCallback(({ targetTab, openScanner }) => {
+    if (targetTab) setActiveTab(targetTab);
+    if (openScanner) setShowScannerModal(true);
+  }, []);
 
-  const fetchUnreadNotificationCount = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRealtimeUnreadCount(data.unread_count || 0);
-      }
-    } catch (e) {}
-  }, [token]);
-
-  useEffect(() => {
-    if (token && currentUser) {
-      initializePushNotifications(token, currentUser, (data) => {
-        const cat = (data?.category || '').toUpperCase();
-        if (cat === 'LEAVE' || cat === 'DISPUTE') {
-          setActiveTab('settings');
-        } else if (cat === 'ATTENDANCE') {
-          setActiveTab('dashboard');
-        } else if (cat === 'CLASS_REMINDER' || cat === 'CLASSES') {
-          setShowScannerModal(true);
-        } else if (cat === 'SECURITY' || cat === 'SYSTEM') {
-          setActiveTab('settings');
-        }
-      });
-      fetchUnreadNotificationCount();
-      const interval = setInterval(fetchUnreadNotificationCount, 15000);
-      return () => clearInterval(interval);
-    }
-  }, [token, currentUser, fetchUnreadNotificationCount]);
+  const {
+    showNotificationDrawer,
+    setShowNotificationDrawer,
+    unreadCount: realtimeUnreadCount,
+    handleNotificationClick,
+  } = useNotifications(token, currentUser, handleNotificationNavigate);
 
 
   // Attendance Dispute & Correction Modal States (Phase 2)
@@ -3241,9 +3215,7 @@ export default function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileControlOpen, setMobileControlOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [universalSearchOpen, setUniversalSearchOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const sessionInitializedRef = useRef(false);
   const loginJustCompletedRef = useRef(false);
   const loginBootstrapDoneRef = useRef(false);
@@ -8791,80 +8763,7 @@ export default function App() {
     });
   }, [logs, userRole, filteredLogs, subjects]);
 
-  useEffect(() => {
-    const built = [];
 
-    if (userRole === 'student') {
-      // Students only see their own personal logs
-      studentLogs.slice(0, 12).forEach((log, i) => {
-        const isPresent = (log.attendance || '').toLowerCase() === 'present';
-        built.push({
-          id: `n-stud-log-${log.id || i}`,
-          type: isPresent ? 'success' : 'warning',
-          title: isPresent ? 'Attendance Marked' : 'Absent Recorded',
-          message: `${log.subject_name || 'Class'} — ${log.date}`,
-          time: log.time || 'Recently',
-          read: false,
-        });
-      });
-    } else if (userRole === 'teacher') {
-      // Teachers only see logs related to their own classes (already filtered in `logs`)
-      logs.slice(0, 12).forEach((log, i) => {
-        const isPresent = (log.attendance || '').toLowerCase() === 'present';
-        built.push({
-          id: `n-log-${log.id || i}`,
-          type: isPresent ? 'success' : 'warning',
-          title: isPresent ? 'Attendance Marked' : 'Absent Recorded',
-          message: `${log.name} (${log.roll}) — ${log.date}`,
-          time: log.time || 'Recently',
-          read: false,
-        });
-      });
-      // No campus-wide statistics alerts for teachers
-    } else if (userRole === 'admin') {
-      // Admin sees all logs + global statistics alerts
-      logs.slice(0, 12).forEach((log, i) => {
-        const isPresent = (log.attendance || '').toLowerCase() === 'present';
-        built.push({
-          id: `n-log-${log.id || i}`,
-          type: isPresent ? 'success' : 'warning',
-          title: isPresent ? 'Attendance Marked' : 'Absent Recorded',
-          message: `${log.name} (${log.roll}) — ${log.date}`,
-          time: log.time || 'Recently',
-          read: false,
-        });
-      });
-
-      if (stats.total_absent_today > 5) {
-        built.unshift({
-          id: 'n-alert-absent',
-          type: 'warning',
-          title: 'High Absentee Alert',
-          message: `${stats.total_absent_today} students absent today`,
-          time: 'Today',
-          read: false,
-        });
-      }
-      if (stats.average_attendance_rate >= 90) {
-        built.unshift({
-          id: 'n-rate-good',
-          type: 'success',
-          title: 'Excellent Attendance Rate',
-          message: `Campus average at ${stats.average_attendance_rate}%`,
-          time: 'Today',
-          read: false,
-        });
-      }
-    }
-
-    setNotifications(built);
-  }, [logs, studentLogs, userRole, stats.total_absent_today, stats.average_attendance_rate]);
-
-  const unreadNotificationCount = notifications.filter((n) => !n.read).length;
-
-  const markAllNotificationsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
 
   // Login Page View
   if (token && !currentUser) {
@@ -9858,51 +9757,11 @@ export default function App() {
             </div>
 
             {/* Notification Bell Button (Placed directly to the Left of 3-line Hamburger Menu) */}
-            <button
-              type="button"
-              onClick={() => { setShowNotificationDrawer(true); playCyberSound('click'); }}
-              aria-label="Notifications"
-              title="Notifications"
-              style={{
-                background: 'rgba(0, 242, 254, 0.08)',
-                border: '1px solid rgba(0, 242, 254, 0.25)',
-                borderRadius: '10px',
-                color: '#00f2fe',
-                width: '38px',
-                height: '38px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                position: 'relative',
-                marginRight: '8px',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
-            >
-              <Bell size={18} />
-              {realtimeUnreadCount > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  minWidth: '18px',
-                  height: '18px',
-                  borderRadius: '10px',
-                  padding: '0 4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 0 8px #ef4444'
-                }}>
-                  {realtimeUnreadCount > 99 ? '99+' : realtimeUnreadCount}
-                </span>
-              )}
-            </button>
+            <NotificationBell
+              unreadCount={realtimeUnreadCount}
+              onClick={() => setShowNotificationDrawer(true)}
+              playCyberSound={playCyberSound}
+            />
 
             <button 
               type="button"
@@ -20707,24 +20566,7 @@ export default function App() {
         currentUser={currentUser}
         userRole={userRole}
         playCyberSound={playCyberSound}
-        onNotificationClick={(notif) => {
-          fetchUnreadNotificationCount();
-          const cat = (notif.category || '').toUpperCase();
-          if (notif.action_url) {
-            if (notif.action_url.includes('disputes')) setActiveTab('disputes');
-            else if (notif.action_url.includes('leave')) setActiveTab('interventions');
-            else if (notif.action_url.includes('student-attendance')) setActiveTab('student-attendance');
-          } else if (cat === 'LEAVE' || cat === 'DISPUTE') {
-            setActiveTab('settings');
-          } else if (cat === 'ATTENDANCE') {
-            setActiveTab('dashboard');
-          } else if (cat === 'CLASS_REMINDER' || cat === 'CLASSES') {
-            setShowScannerModal(true);
-          } else if (cat === 'SECURITY' || cat === 'SYSTEM') {
-            setActiveTab('security');
-          }
-        }}
-
+        onNotificationClick={handleNotificationClick}
       />
 
       {/* Accessibility & Display Controls Modal */}
