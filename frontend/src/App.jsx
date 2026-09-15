@@ -23,9 +23,9 @@ import CyberBotWidget from './components/CyberBotWidget';
 import FeedbackModal from './components/FeedbackModal';
 import UpdateNotification from './components/UpdateNotification';
 import OnboardingGuideModal from './components/OnboardingGuideModal';
-import { useFeedback, useUpdateChecker, useOnboarding } from './hooks';
+import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync } from './hooks';
 import PrivacyPolicy from './components/PrivacyPolicy';
-import { setupOfflineSyncListener, addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
+import { addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import { completeLivenessFlow } from './utils/livenessClient';
 import LiveActivityTicker from './components/LiveActivityTicker';
 import AppAmbientLayer from './components/animations/AppAmbientLayer';
@@ -1981,10 +1981,7 @@ export default function App() {
     playCyberSound,
   } = useUI();
 
-  useEffect(() => {
-    if (!token) return undefined;
-    return setupOfflineSyncListener(API_BASE_URL, () => token);
-  }, [token]);
+  useOfflineSync(token, API_BASE_URL);
 
   const handleConsentAccept = async () => {
     localStorage.setItem('biometric_consent', 'true');
@@ -2160,18 +2157,7 @@ export default function App() {
   const [explorationSettings, setExplorationSettings] = useState(() => loadExplorationSettings());
   const [subscriptionPlan, setSubscriptionPlan] = useState('free');
   const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
-  const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
-  useEffect(() => {
-    const handleOnline = () => setIsOfflineMode(false);
-    const handleOffline = () => setIsOfflineMode(true);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   // Initialize Spring Physics settings on launch
   useEffect(() => {
