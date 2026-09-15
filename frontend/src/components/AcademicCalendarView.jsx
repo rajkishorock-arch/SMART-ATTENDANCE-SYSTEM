@@ -5,6 +5,7 @@ import {
   Sparkles, RefreshCw, X, FileText, ChevronRight, UserX, AlertCircle
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
+import { systemApi } from '../api';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -123,10 +124,7 @@ export default function AcademicCalendarView({
   useEffect(() => {
     if (!token) return;
     // Fetch subjects
-    fetch(`${API_BASE_URL}/subjects/`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.ok ? res.json() : [])
+    systemApi.fetchSubjects(token)
       .then(data => {
         if (Array.isArray(data)) {
           setSubjectsList(data);
