@@ -19,6 +19,7 @@ import GamificationHub from './components/GamificationHub';
 import NotificationCenter from './components/NotificationCenter';
 import AdvancedFeaturesHub from './components/AdvancedFeaturesHub';
 import ConsentModal from './components/ConsentModal';
+import CyberBotWidget from './components/CyberBotWidget';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { setupOfflineSyncListener, addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import { completeLivenessFlow } from './utils/livenessClient';
@@ -2290,39 +2291,7 @@ export default function App() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
 
-  // AI Chatbot States
-  const [showChatBot, setShowChatBot] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState([]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
 
-  const chatBottomRef = useRef(null);
-
-  // Advanced AI Chatbot States
-  const [botPersonality, setBotPersonality] = useState('futuristic');
-  const [botVoiceEnabled, setBotVoiceEnabled] = useState(false);
-  const [botWakeWordEnabled, setBotWakeWordEnabled] = useState(
-    localStorage.getItem('botWakeWordEnabled') === 'true'
-  );
-  const [botVoiceSpeed, setBotVoiceSpeed] = useState(1.0);
-  const [botVoicePitch, setBotVoicePitch] = useState(1.0);
-  const [botSuggestionCategory, setBotSuggestionCategory] = useState('general');
-  const [botAttachedImage, setBotAttachedImage] = useState(null);
-  const [botAttachedImageMime, setBotAttachedImageMime] = useState(null);
-  const [botAttachedImageName, setBotAttachedImageName] = useState('');
-  const [isListeningSpeech, setIsListeningSpeech] = useState(false);
-
-  const [botVoiceSelected, setBotVoiceSelected] = useState('');
-  const [availableVoices, setAvailableVoices] = useState([]);
-  const [botAutoSpeak, setBotAutoSpeak] = useState(false);
-  const recognitionRef = useRef(null);
-  const chatListRef = useRef(null);
-  const [isVoiceAssistantMode, setIsVoiceAssistantMode] = useState(false);
-  const voiceAssistantActiveRef = useRef(false);
-  const wakeWordRecRef = useRef(null);
-  const voiceAssistantErrorCountRef = useRef(0);
-  const wakeWordErrorCountRef = useRef(0);
-  const [showVoicePulseFlash, setShowVoicePulseFlash] = useState(false);
 
   // New Voice State Machine & Resiliency Refs
   const voiceSystemStateRef = useRef('off'); // 'off', 'wake_word', 'active_assistant', 'chatbot_mic'
@@ -2367,7 +2336,6 @@ export default function App() {
   const activeTabRef = useRef(activeTab);
   const activeSubSettingRef = useRef(activeSubSetting);
   const activeDashboardSubTabRef = useRef(activeDashboardSubTab);
-  const showChatBotRef = useRef(showChatBot);
   const showFeedbackModalRef = useRef(showFeedbackModal);
   const showPrivacyPolicyRef = useRef(showPrivacyPolicy);
   const userRoleRef = useRef(userRole);
@@ -2376,7 +2344,6 @@ export default function App() {
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { activeSubSettingRef.current = activeSubSetting; }, [activeSubSetting]);
   useEffect(() => { activeDashboardSubTabRef.current = activeDashboardSubTab; }, [activeDashboardSubTab]);
-  useEffect(() => { showChatBotRef.current = showChatBot; }, [showChatBot]);
   useEffect(() => { showFeedbackModalRef.current = showFeedbackModal; }, [showFeedbackModal]);
   useEffect(() => { showPrivacyPolicyRef.current = showPrivacyPolicy; }, [showPrivacyPolicy]);
   useEffect(() => { userRoleRef.current = userRole; }, [userRole]);
@@ -2412,11 +2379,7 @@ export default function App() {
         return;
       }
 
-      // If chatbot is open, close it
-      if (showChatBotRef.current) {
-        setShowChatBot(false);
-        return;
-      }
+
 
       // If feedback modal is open, close it
       if (showFeedbackModalRef.current) {
@@ -2461,8 +2424,7 @@ export default function App() {
             playCyberSound('click');
           } else if (activeDashboardSubTabRef.current) {
             setActiveDashboardSubTab(null);
-          } else if (showChatBotRef.current) {
-            setShowChatBot(false);
+
           } else if (showFeedbackModalRef.current) {
             setShowFeedbackModal(false);
           } else if (showPrivacyPolicyRef.current) {
@@ -8324,175 +8286,7 @@ export default function App() {
     }
   };
 
-  // Send AI Chatbot Message
-  const handleSendChatMessage = async (customMessage = null) => {
-    const textToSend = customMessage || chatInput;
-    if (!textToSend.trim()) return;
 
-    playCyberSound('click');
-    const userMsgId = Date.now();
-    const newUserMessage = {
-      id: userMsgId,
-      role: 'user',
-      content: textToSend,
-      attachedImage: botAttachedImage ? `data:${botAttachedImageMime};base64,${botAttachedImage}` : null,
-      attachedImageName: botAttachedImageName
-    };
-
-    setChatMessages((prev) => [...prev, newUserMessage]);
-    
-    if (!customMessage) setChatInput('');
-    const tempImage = botAttachedImage;
-    const tempImageMime = botAttachedImageMime;
-    
-    setBotAttachedImage(null);
-    setBotAttachedImageMime(null);
-    setBotAttachedImageName('');
-    setIsChatLoading(true);
-
-    // Build the user context description to feed the AI
-    let userContextStr = "";
-    if (currentUser) {
-      userContextStr += `[Current User Profile Context]:\n`;
-      userContextStr += `- Name: ${currentUser.name}\n`;
-      userContextStr += `- Role: ${userRole}\n`;
-      if (currentUser.details) {
-        if (currentUser.details.roll) userContextStr += `- Roll Number: ${currentUser.details.roll}\n`;
-        if (currentUser.details.dep) userContextStr += `- Department/Branch: ${currentUser.details.dep}\n`;
-        if (currentUser.details.course) userContextStr += `- Course: ${currentUser.details.course}\n`;
-        if (currentUser.details.year) userContextStr += `- Year: ${currentUser.details.year}\n`;
-        if (currentUser.details.semester) userContextStr += `- Semester: ${currentUser.details.semester}\n`;
-        if (currentUser.details.phone) userContextStr += `- Contact Phone: ${currentUser.details.phone}\n`;
-        if (currentUser.details.teacher) userContextStr += `- Mentor / Assigned Teacher: ${currentUser.details.teacher}\n`;
-      }
-      if (userRole === 'student' && studentLogs) {
-        const total = studentLogs.length;
-        const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-        const absent = studentLogs.filter(l => l.attendance === 'Absent').length;
-        const rate = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
-        const minRequired = 0.75;
-        const canBunk = Math.floor(present / minRequired - total);
-        const needMore = total > 0 ? Math.ceil((minRequired * total - present) / (1 - minRequired)) : 0;
-        userContextStr += `- Student Attendance Rate: ${rate}%\n`;
-        userContextStr += `- Attendance Count: ${present} Present, ${absent} Absent out of ${total} total classes\n`;
-        if (parseFloat(rate) >= 75) {
-          userContextStr += `- Attendance Status: SAFE (above 75%). Can bunk up to ${canBunk > 0 ? canBunk : 0} more classes safely.\n`;
-        } else {
-          userContextStr += `- Attendance Status: WARNING (below 75%). Must attend ${needMore} more classes to reach 75%.\n`;
-        }
-        // Subject-wise stats
-        if (Object.keys(studentSubjectStats).length > 0) {
-          userContextStr += `\n[Subject-wise Attendance]:\n`;
-          Object.values(studentSubjectStats).forEach(s => {
-            userContextStr += `- ${s.subjectName} (${s.subjectCode || 'N/A'}): ${s.percentage?.toFixed(1) || 0}% (${s.presentDays || 0}/${s.totalDays || 0} classes)${s.lowAttendance ? ' ⚠️ LOW' : ''}\n`;
-          });
-        }
-        // Leave requests
-        if (studentLeaveRequests.length > 0) {
-          userContextStr += `\n[My Leave Requests]:\n`;
-          studentLeaveRequests.forEach(l => {
-            userContextStr += `- ${l.leave_type} leave from ${l.start_date} to ${l.end_date}: ${l.status}\n`;
-          });
-        }
-      }
-    }
-    if (aiCognitiveLevel === 'hyper') {
-      userContextStr += `\n[System Core Directive: HYPER-PROCESSING COGNITIVE MODE ACTIVE. Respond with extremely dense, analytical, and highly structured information. Avoid generic pleasantries, prioritize direct code/data formatting, and use advanced technical terminology.]\n`;
-    }
-
-    try {
-      const historyPayload = chatMessages.map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-
-      const res = await fetch(`${API_BASE_URL}/chat/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          message: textToSend,
-          history: historyPayload,
-          image_base64: tempImage,
-          image_mime_type: tempImageMime,
-          personality: botPersonality,
-          user_context: userContextStr
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        playCyberSound('success');
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            role: 'model',
-            content: data.response
-          }
-        ]);
-        if (botAutoSpeak) {
-          handleSpeakText(data.response);
-        }
-      } else {
-        playCyberSound('error');
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            role: 'model',
-            content: 'Sorry, I encountered an error communicating with the chat server. Please try again.'
-          }
-        ]);
-      }
-    } catch (err) {
-      playCyberSound('error');
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: 'model',
-          content: 'Network error. Please check your internet connection.'
-        }
-      ]);
-    } finally {
-      setIsChatLoading(false);
-    }
-  };
-
-  const handleExportChatHistory = () => {
-    playCyberSound('success');
-    let transcript = `AI Chat Transcript - Smart Attendance System\n`;
-    transcript += `Generated: ${new Date().toLocaleString()}\n`;
-    transcript += `User: ${currentUser?.name || 'Unknown'} (${userRole})\n`;
-    transcript += `=========================================\n\n`;
-
-    chatMessages.forEach(m => {
-      const sender = m.role === 'user' ? 'USER' : 'AI BOT';
-      transcript += `[${sender}]: ${m.content}\n`;
-      if (m.attachedImageName) {
-        transcript += `(Attached Image: ${m.attachedImageName})\n`;
-      }
-      transcript += `\n`;
-    });
-
-    const element = document.createElement("a");
-    const file = new Blob([transcript], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = `smart_attendance_chat_transcript.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
-
-  const handleClearChatHistory = () => {
-    if (window.confirm("Are you sure you want to clear your conversation history?")) {
-      playCyberSound('click');
-      setChatMessages([]);
-    }
-  };
 
   // Delete Student
   const handleDeleteStudent = async (id) => {
@@ -19689,389 +19483,7 @@ export default function App() {
         )}
 
         {activeTab === 'ai-assistant' && (
-          <div className="ai-assistant-wrapper" onDragOver={handleChatDragOver} onDrop={handleChatDrop} onPaste={handleChatPaste} style={{ animation: 'fadeInUp 0.5s ease' }}>
-            {/* Left pane: chat */}
-            <div className="ai-chat-pane" style={{ position: 'relative' }}>
-              <div className="ai-chat-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className="ai-message-avatar">
-                    <Bot size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      Smart Attendance 
-                      <span className="text-gradient" style={{ fontSize: '0.75rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.1)', border: '1px solid rgba(0, 242, 254, 0.2)' }}>
-                        {botPersonality.toUpperCase()}
-                      </span>
-                    </h3>
-                    <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 1s infinite' }} />
-                      ACTIVE TELEMETRY ONLINE
-                    </span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {isListeningSpeech && (
-                    <div style={{ fontSize: '0.8rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginRight: '12px' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
-                      LISTENING VOICE...
-                    </div>
-                  )}
-                  <button 
-                    type="button" 
-                    className="ai-icon-btn" 
-                    onClick={() => {
-                      const enabled = !botWakeWordEnabled;
-                      playCyberSound('click'); 
-                      setBotWakeWordEnabled(enabled); 
-                      localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
-                      voiceSystemStateRef.current = enabled ? 'wake_word' : 'off';
-                      setTimeout(() => syncVoiceListeners(), 50);
-                    }} 
-                    title={botWakeWordEnabled ? "Wake Word Listening Active. Click to turn OFF mic background listening." : "Wake Word Off. Click to enable background 'Hey Raj' mic listener."}
-                    style={{ 
-                      width: 'auto', 
-                      height: '32px', 
-                      borderRadius: '6px', 
-                      fontSize: '0.72rem', 
-                      fontWeight: 700, 
-                      padding: '0 10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      border: botWakeWordEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255,255,255,0.08)',
-                      background: botWakeWordEnabled ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
-                      color: botWakeWordEnabled ? '#10b981' : '#9ca3af'
-                    }}
-                  >
-                    <span style={{ 
-                      width: '6px', 
-                      height: '6px', 
-                      borderRadius: '50%', 
-                      background: botWakeWordEnabled ? '#10b981' : '#9ca3af',
-                      animation: botWakeWordEnabled ? 'pulse 1.5s infinite' : 'none'
-                    }} />
-                    <span>WAKE WORD: {botWakeWordEnabled ? 'ON' : 'OFF'}</span>
-                  </button>
-                  <button 
-                    type="button" 
-                    className="ai-icon-btn" 
-                    onClick={startVoiceAssistantMode} 
-                    title="Start Live Voice Assistant Call"
-                    style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#00f2fe', borderColor: 'rgba(0,242,254,0.15)' }}
-                  >
-                    <Phone size={14} />
-                  </button>
-                  <button 
-                    type="button" 
-                    className="ai-icon-btn" 
-                    onClick={handleExportChatHistory} 
-                    title="Export Chat History to Text File"
-                    style={{ width: '32px', height: '32px', borderRadius: '6px' }}
-                  >
-                    <FileDown size={14} />
-                  </button>
-                  <button 
-                    type="button" 
-                    className="ai-icon-btn" 
-                    onClick={handleClearChatHistory} 
-                    title="Clear Conversation History"
-                    style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.15)' }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Global dynamic orb handles voice session overlay on all pages */}
-
-              <div className="ai-chat-messages" ref={chatListRef}>
-                {chatMessages.length === 0 && !isChatLoading && (
-                  <div className="gpt-empty-state">
-                    <div className="gpt-empty-logo">
-                      <svg width="24" height="24" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835 9.964 9.964 0 0 0-6.313-3.glimpse 10.079 10.079 0 0 0-9.617 6.977 9.967 9.967 0 0 0-6.67 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.313 3.027 10.079 10.079 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.67-4.834 10.079 10.079 0 0 0-1.24-11.817" fill="white"/>
-                      </svg>
-                    </div>
-                    <div className="gpt-empty-title">How can I help you today?</div>
-                    <div className="gpt-empty-subtitle">Ask me anything</div>
-                  </div>
-                )}
-                {chatMessages.map((msg) => {
-                  let diagramType = null;
-                  if (msg.role === 'model') {
-                    if (msg.content.includes('[ShowDiagram: face_recognition]')) {
-                      diagramType = 'face_recognition';
-                    } else if (msg.content.includes('[ShowDiagram: geofencing]')) {
-                      diagramType = 'geofencing';
-                    } else if (msg.content.includes('[ShowDiagram: attendance_flow]')) {
-                      diagramType = 'attendance_flow';
-                    }
-                  }
-                  
-                  const displayContent = msg.content
-                    .replace(/\[ShowDiagram: face_recognition\]/g, '')
-                    .replace(/\[ShowDiagram: geofencing\]/g, '')
-                    .replace(/\[ShowDiagram: attendance_flow\]/g, '');
-
-                  return (
-                    <div key={msg.id} className={`ai-message-bubble ${msg.role}`}>
-                      {msg.role === 'model' && (
-                        <div className="gpt-ai-row">
-                          <div className="gpt-ai-icon" style={{ flexShrink: 0 }}>
-                            <svg width="14" height="14" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 19.508.43a10.079 10.079 0 0 0-9.617 6.977 9.967 9.967 0 0 0-6.67 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.313 3.027 10.079 10.079 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.67-4.834 10.079 10.079 0 0 0-1.24-11.817z" fill="white"/>
-                            </svg>
-                          </div>
-                          <div className="ai-message-content">
-                            <div className="ai-message-text">
-                              {displayContent.split('\n').map((para, i) => (
-                                <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 12px 0' : 0 }}>
-                                  {para.split('**').map((text, idx) =>
-                                    idx % 2 === 1 ? <strong key={idx} style={{ color: '#ececec', fontWeight: 600 }}>{text}</strong> : text
-                                  )}
-                                </p>
-                              ))}
-                              {diagramType && renderInteractiveDiagram(diagramType)}
-                            </div>
-                            <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                              <button
-                                className="ai-voice-action"
-                                onClick={() => { playCyberSound('click'); handleSpeakText(displayContent); }}
-                                title="Listen to Response"
-                              >
-                                <Volume2 size={14} />
-                                <span>Listen</span>
-                              </button>
-                              <button
-                                className="ai-voice-action"
-                                onClick={() => { playCyberSound('click'); window.speechSynthesis.cancel(); }}
-                                title="Stop Audio"
-                                style={{ color: '#8e8ea0' }}
-                              >
-                                <VolumeX size={14} />
-                                <span>Stop</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      {msg.role === 'user' && (
-                        <div className="ai-message-content">
-                          <div className="ai-message-text">
-                            {displayContent.split('\n').map((para, i) => (
-                              <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 8px 0' : 0 }}>
-                                {para}
-                              </p>
-                            ))}
-                            {msg.attachedImage && (
-                              <div style={{ marginTop: '8px' }}>
-                                <img src={msg.attachedImage} alt="User attachment" style={{ maxWidth: '220px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                                {msg.attachedImageName && <div style={{ fontSize: '0.72rem', color: '#8e8ea0', marginTop: '4px' }}>{msg.attachedImageName}</div>}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {isChatLoading && (
-                  <div className="ai-message-bubble model">
-                    <div className="gpt-ai-row">
-                      <div className="gpt-ai-icon" style={{ flexShrink: 0 }}>
-                        <svg width="14" height="14" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 19.508.43a10.079 10.079 0 0 0-9.617 6.977 9.967 9.967 0 0 0-6.67 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.313 3.027 10.079 10.079 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.67-4.834 10.079 10.079 0 0 0-1.24-11.817z" fill="white"/>
-                        </svg>
-                      </div>
-                      <div className="ai-message-content">
-                        <div className="ai-message-text">
-                          <div className="chatbot-typing-indicator">
-                            <span />
-                            <span />
-                            <span />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={chatBottomRef} />
-              </div>
-
-
-              {/* Suggestion Chips */}
-              <div className="ai-chat-suggestions">
-                {getSuggestions().map((s, idx) => (
-                  <button key={idx} type="button" className="ai-suggestion-chip" onClick={() => handleSendChatMessage(s)}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-
-              {/* Attachment Preview Bar */}
-              {botAttachedImage && (
-                <div className="ai-attachment-preview-bar">
-                  <img src={`data:${botAttachedImageMime};base64,${botAttachedImage}`} alt="Preview" className="ai-attachment-thumbnail" />
-                  <div className="ai-attachment-file-pill">
-                    <span>{botAttachedImageName || 'image_attachment.png'}</span>
-                    <button type="button" className="ai-attachment-remove-btn" onClick={() => { setBotAttachedImage(null); setBotAttachedImageMime(null); setBotAttachedImageName(''); }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Input Form Bar — ChatGPT style centered pill */}
-              <div className="ai-chat-input-bar">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendChatMessage();
-                  }}
-                >
-                  <input
-                    type="file"
-                    accept="image/*,.txt,.py,.js,.json,.csv,.c,.cpp"
-                    onChange={handleBotFileSelect}
-                    style={{ display: 'none' }}
-                    id="bot-file-upload-panel"
-                  />
-                  <label htmlFor="bot-file-upload-panel" className="ai-icon-btn" title="Attach file or image">
-                    <Paperclip size={16} />
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={handleToggleSpeechRecognition}
-                    className={`ai-icon-btn ${isListeningSpeech ? 'recording' : ''}`}
-                    title={isListeningSpeech ? "Stop voice listening" : "Ask using your voice"}
-                  >
-                    <Mic size={16} />
-                  </button>
-
-                  <input
-                    type="text"
-                    className="ai-chat-input-text"
-                    placeholder="Message Smart Attendance AI..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    disabled={isChatLoading}
-                  />
-
-                  <button
-                    type="submit"
-                    className="ai-send-btn"
-                    disabled={isChatLoading || !chatInput.trim()}
-                  >
-                    <Send size={16} />
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            {/* Right pane: settings */}
-            <div className="ai-settings-pane">
-              <h2 className="ai-settings-title">
-                <Settings size={18} />
-                Bot Configurator
-              </h2>
-
-              <div className="ai-settings-section">
-                <label className="ai-settings-label">Bot Personality</label>
-                <div className="ai-settings-grid">
-                  {[
-                    { id: 'futuristic', label: 'Futuristic', desc: 'Cyber robotic tone' },
-                    { id: 'casual', label: 'Casual', desc: 'Friendly classmate' },
-                    { id: 'tutor', label: 'Tutor', desc: 'Patient study advisor' },
-                    { id: 'robotic', label: 'Robotic', desc: 'Strict factual data' }
-                  ].map((p) => (
-                    <div key={p.id} className={`ai-settings-card ${botPersonality === p.id ? 'active' : ''}`} onClick={() => { playCyberSound('click'); setBotPersonality(p.id); }}>
-                      <span>{p.label}</span>
-                      <small>{p.desc}</small>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="ai-settings-section">
-                <label className="ai-settings-label">Help Suggestions Category</label>
-                <select className="ai-select-dropdown" value={botSuggestionCategory} onChange={(e) => { playCyberSound('click'); setBotSuggestionCategory(e.target.value); }}>
-                  <option value="general">General System FAQs</option>
-                  <option value="attendance">Face Scanning & Geofence</option>
-                  <option value="profile">Student Profile & Selfie Registration</option>
-                  <option value="security">Portal Security & Passwords</option>
-                </select>
-              </div>
-
-              <div className="ai-settings-section">
-                <label className="ai-settings-label">Speech Synthesis Engine</label>
-                
-                <div className="ai-toggle-group" style={{ marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Voice Activation Mode</span>
-                    <small style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Listen for "Hey Raj" in background</small>
-                  </div>
-                  <label className="ai-toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      checked={botWakeWordEnabled} 
-                      onChange={(e) => { 
-                        const enabled = e.target.checked;
-                        playCyberSound('click'); 
-                        setBotWakeWordEnabled(enabled); 
-                        localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
-                        voiceSystemStateRef.current = enabled ? 'wake_word' : 'off';
-                        setTimeout(() => syncVoiceListeners(), 50);
-                      }} 
-                    />
-                    <span className="ai-toggle-slider" />
-                  </label>
-                </div>
-
-                <div className="ai-toggle-group">
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Auto-Read Bot Replies</span>
-                  <label className="ai-toggle-switch">
-                    <input type="checkbox" checked={botAutoSpeak} onChange={(e) => { playCyberSound('click'); setBotAutoSpeak(e.target.checked); }} />
-                    <span className="ai-toggle-slider" />
-                  </label>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Select Voice Accent</span>
-                  <select className="ai-select-dropdown" value={botVoiceSelected} onChange={(e) => setBotVoiceSelected(e.target.value)}>
-                    {availableVoices.length === 0 ? (
-                      <option>System Default Voice</option>
-                    ) : (
-                      availableVoices.map((v, idx) => (
-                        <option key={idx} value={v.name}>{v.name} ({v.lang})</option>
-                      ))
-                    )}
-                  </select>
-                </div>
-
-                <div className="ai-range-control">
-                  <div className="ai-range-val">
-                    <span>Voice Speed (Rate)</span>
-                    <span>{botVoiceSpeed.toFixed(1)}x</span>
-                  </div>
-                  <input type="range" className="ai-range-slider" min="0.5" max="2.0" step="0.1" value={botVoiceSpeed} onChange={(e) => setBotVoiceSpeed(parseFloat(e.target.value))} />
-                </div>
-
-                <div className="ai-range-control">
-                  <div className="ai-range-val">
-                    <span>Voice Pitch</span>
-                    <span>{botVoicePitch.toFixed(1)}</span>
-                  </div>
-                  <input type="range" className="ai-range-slider" min="0.5" max="2.0" step="0.1" value={botVoicePitch} onChange={(e) => setBotVoicePitch(parseFloat(e.target.value))} />
-                </div>
-              </div>
-            </div>
-          </div>
+          <CyberBotWidget activeTab={activeTab} />
         )}
       </main>
 
@@ -21932,6 +21344,9 @@ export default function App() {
 
       {/* Edge border flash overlay */}
       {showVoicePulseFlash && <div className="voice-pulse-flash-overlay" />}
+
+      {/* CyberBot AI Floating Widget & Drawer */}
+      {activeTab !== 'ai-assistant' && <CyberBotWidget activeTab={activeTab} />}
     </div>
   </div>
   );
