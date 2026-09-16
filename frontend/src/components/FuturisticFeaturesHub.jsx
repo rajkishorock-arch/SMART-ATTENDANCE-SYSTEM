@@ -10,6 +10,7 @@ import {
   bumpEasterEgg,
 } from '../utils/futuristicFeatures';
 import OwnerPremiumPanel from './OwnerPremiumPanel';
+import { interactiveApi } from '../api';
 
 const TABS = [
   { id: 'theme', label: 'Theme Studio', icon: Palette, color: '#00f2fe' },
@@ -55,36 +56,36 @@ export default function FuturisticFeaturesHub({
   const loadAudit = useCallback(async () => {
     if (!token) return;
     try {
-      const r = await fetch(`${apiBaseUrl}/audit/?limit=30`, { headers: headers() });
-      if (r.ok) setAuditLogs(await r.json());
+      const data = await interactiveApi.fetchAuditLogs(token, 30);
+      if (data) setAuditLogs(data);
     } catch { /* ignore */ }
-  }, [apiBaseUrl, token, headers]);
+  }, [token]);
 
   const loadHealth = useCallback(async () => {
     if (!token) return;
     try {
       setLoading(true);
-      const r = await fetch(`${apiBaseUrl}/interactive/full-health-check`, { headers: headers() });
-      if (r.ok) setHealth(await r.json());
+      const data = await interactiveApi.fetchHealthCheck(token);
+      if (data) setHealth(data);
     } catch { /* fallback */ }
     finally { setLoading(false); }
-  }, [apiBaseUrl, token, headers]);
+  }, [token]);
 
   const loadPolls = useCallback(async () => {
     if (!token) return;
     try {
-      const r = await fetch(`${apiBaseUrl}/interactive/polls`, { headers: headers() });
-      if (r.ok) setPolls(await r.json());
+      const data = await interactiveApi.fetchPolls(token);
+      if (data) setPolls(data);
     } catch { /* fallback */ }
-  }, [apiBaseUrl, token, headers]);
+  }, [token]);
 
   const loadDigest = useCallback(async () => {
     if (!token) return;
     try {
-      const r = await fetch(`${apiBaseUrl}/interactive/parent-digest-preview`, { headers: headers() });
-      if (r.ok) setDigest(await r.json());
+      const data = await interactiveApi.fetchParentDigest(token);
+      if (data) setDigest(data);
     } catch { /* fallback */ }
-  }, [apiBaseUrl, token, headers]);
+  }, [token]);
 
   const loadAutoSession = useCallback(async () => {
     if (!token) return;
@@ -118,11 +119,11 @@ export default function FuturisticFeaturesHub({
   const createPoll = async () => {
     if (!pollQ.trim()) return;
     try {
-      const r = await fetch(`${apiBaseUrl}/interactive/polls`, {
-        method: 'POST', headers: headers(),
-        body: JSON.stringify({ question: pollQ, options: pollOpts.filter(Boolean) }),
-      });
-      if (r.ok) { setPollQ(''); loadPolls(); setMsg('✅ Quick Poll created successfully!'); setTimeout(() => setMsg(''), 3000); }
+      await interactiveApi.createPoll(token, { question: pollQ, options: pollOpts.filter(Boolean) });
+      setPollQ('');
+      loadPolls();
+      setMsg('✅ Quick Poll created successfully!');
+      setTimeout(() => setMsg(''), 3000);
     } catch (e) {
       setMsg(`Poll created locally! (${e.message})`);
       setTimeout(() => setMsg(''), 3000);
@@ -131,10 +132,7 @@ export default function FuturisticFeaturesHub({
 
   const votePoll = async (pollId, idx) => {
     try {
-      await fetch(`${apiBaseUrl}/interactive/polls/${pollId}/vote`, {
-        method: 'POST', headers: headers(),
-        body: JSON.stringify({ option_index: idx }),
-      });
+      await interactiveApi.votePoll(token, pollId, idx);
       loadPolls();
     } catch { /* fallback */ }
   };
@@ -143,11 +141,7 @@ export default function FuturisticFeaturesHub({
     setLoading(true);
     setAbsentResult('');
     try {
-      const r = await fetch(`${apiBaseUrl}/interactive/notify-absent-batch`, {
-        method: 'POST', headers: headers(),
-        body: JSON.stringify({ notify_whatsapp: true }),
-      });
-      const d = await r.json();
+      const d = await interactiveApi.notifyAbsentBatch(token, { notify_whatsapp: true });
       setAbsentResult(d.message || `✅ Successfully dispatched batch alerts to parents!`);
     } catch (e) {
       setAbsentResult(`✅ Batch Absent Alert queued for dispatch! (${e.message})`);

@@ -7,8 +7,9 @@ export const teacherApi = {
   /**
    * List all teachers/users (/users)
    */
-  async listTeachers(token) {
-    return apiGet('/users', { token });
+  async listTeachers(token, role = null) {
+    const path = role ? `/users?role=${encodeURIComponent(role)}` : '/users';
+    return apiGet(path, { token });
   },
 
   /**

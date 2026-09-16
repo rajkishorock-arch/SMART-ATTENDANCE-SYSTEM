@@ -7,3 +7,5 @@ export { studentApi } from './studentApi';
 export { teacherApi } from './teacherApi';
 export { attendanceApi } from './attendanceApi';
 export { systemApi } from './systemApi';
+export { calendarApi } from './calendarApi';
+export { interactiveApi } from './interactiveApi';

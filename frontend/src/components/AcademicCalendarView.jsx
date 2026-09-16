@@ -5,7 +5,7 @@ import {
   Sparkles, RefreshCw, X, FileText, ChevronRight, UserX, AlertCircle
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
-import { systemApi } from '../api';
+import { systemApi, calendarApi, teacherApi } from '../api';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -80,15 +80,7 @@ export default function AcademicCalendarView({
     setIsLoading(true);
     setErrorMsg('');
     try {
-      const url = eventTypeFilter === 'ALL'
-        ? `${API_BASE_URL}/calendar/events`
-        : `${API_BASE_URL}/calendar/events?event_type=${eventTypeFilter}`;
-      
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error(`Failed to load calendar events (${res.status})`);
-      const data = await res.json();
+      const data = await calendarApi.fetchEvents(token, eventTypeFilter);
       setEvents(data);
     } catch (err) {
       setErrorMsg(err.message || 'Error connecting to academic calendar engine.');
@@ -102,17 +94,8 @@ export default function AcademicCalendarView({
     if (!token) return;
     setIsLoadingMetrics(true);
     try {
-      let url = `${API_BASE_URL}/calendar/attendance-metrics`;
-      if (subjectId) {
-        url += `?subject_id=${subjectId}`;
-      }
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMetrics(data);
-      }
+      const data = await calendarApi.fetchAttendanceMetrics(token, subjectId);
+      if (data) setMetrics(data);
     } catch (err) {
       console.warn('Metrics fetch skipped or unavailable:', err);
     } finally {
@@ -138,10 +121,7 @@ export default function AcademicCalendarView({
 
     // If staff, fetch teachers
     if (isStaff) {
-      fetch(`${API_BASE_URL}/users/?role=teacher`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => res.ok ? res.json() : [])
+      teacherApi.listTeachers(token, 'teacher')
         .then(data => {
           if (Array.isArray(data)) {
             setTeachersList(data);
@@ -168,18 +148,7 @@ export default function AcademicCalendarView({
     }
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/calendar/events`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(eventFormData)
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Failed to create calendar event.');
-      }
+      await calendarApi.createEvent(token, eventFormData);
       playCyberSound('success');
       setSuccessMsg(`Event "${eventFormData.title}" scheduled successfully.`);
       setShowCreateModal(false);
@@ -213,23 +182,13 @@ export default function AcademicCalendarView({
     setIsSubmittingCancel(true);
     setErrorMsg('');
     try {
-      const res = await fetch(`${API_BASE_URL}/calendar/cancel-class`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          subject_id: parseInt(cancelFormData.subject_id),
-          date: cancelFormData.date,
-          session_time: cancelFormData.session_time,
-          reason: cancelFormData.reason
-        })
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Failed to record class cancellation.');
-      }
+      const payload = {
+        subject_id: parseInt(cancelFormData.subject_id),
+        date: cancelFormData.date,
+        session_time: cancelFormData.session_time,
+        reason: cancelFormData.reason
+      };
+      await calendarApi.cancelClass(token, payload);
       playCyberSound('success');
       setSuccessMsg('Class marked cancelled. Student attendance percentage is protected!');
       setCancelFormData(prev => ({ ...prev, reason: '' }));
@@ -255,23 +214,13 @@ export default function AcademicCalendarView({
     setIsSubmittingSubstitute(true);
     setErrorMsg('');
     try {
-      const res = await fetch(`${API_BASE_URL}/calendar/substitute`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          subject_id: parseInt(substituteFormData.subject_id),
-          substitute_teacher_id: parseInt(substituteFormData.substitute_teacher_id),
-          date: substituteFormData.date,
-          reason: substituteFormData.reason
-        })
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Failed to record substitute assignment.');
-      }
+      const payload = {
+        subject_id: parseInt(substituteFormData.subject_id),
+        substitute_teacher_id: parseInt(substituteFormData.substitute_teacher_id),
+        date: substituteFormData.date,
+        reason: substituteFormData.reason
+      };
+      await calendarApi.substituteClass(token, payload);
       playCyberSound('success');
       setSuccessMsg('Substitute faculty assigned successfully.');
       setSubstituteFormData(prev => ({ ...prev, reason: '' }));
@@ -290,11 +239,7 @@ export default function AcademicCalendarView({
   const handleDeleteEvent = async (eventId, title) => {
     if (!window.confirm(`Are you sure you want to remove calendar event "${title}"?`)) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/calendar/events/${eventId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to delete event.');
+      await calendarApi.deleteEvent(token, eventId);
       playCyberSound('click');
       setSuccessMsg(`Event "${title}" removed.`);
       fetchEvents();
