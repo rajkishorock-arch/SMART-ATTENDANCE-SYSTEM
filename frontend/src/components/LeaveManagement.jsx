@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Calendar, Send, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { getApiBaseUrl } from '../utils/platform';
 import { leaveApi } from '../api';
 
 export default function LeaveManagement({ token, currentUser }) {

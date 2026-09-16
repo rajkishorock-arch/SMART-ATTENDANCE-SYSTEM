@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  CheckCircle2, XCircle, AlertCircle, Clock, FileText, Send, 
+  CheckCircle2, XCircle, Clock, FileText,
   HelpCircle, ChevronDown, ChevronUp, ShieldCheck, ArrowUpRight, MessageSquare
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';

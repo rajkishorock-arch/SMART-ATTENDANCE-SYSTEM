@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Globe, Database, UploadCloud, DownloadCloud, CheckCircle2, 
-  AlertTriangle, RefreshCw, Clock, Save, ShieldCheck, 
-  ExternalLink, Layers, Terminal
+  AlertTriangle, RefreshCw, Clock, Save
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 

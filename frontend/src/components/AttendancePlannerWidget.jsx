@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Target, ShieldCheck, AlertTriangle, AlertCircle, TrendingUp, 
-  Sparkles, Sliders, ChevronRight, CheckCircle2, XCircle, 
-  HelpCircle, RefreshCw, BookOpen, Clock, Calendar
+  Target, ShieldCheck, AlertTriangle, AlertCircle,
+  Sparkles, Sliders, CheckCircle2, RefreshCw
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 

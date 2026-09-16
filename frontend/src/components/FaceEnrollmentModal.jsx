@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { 
-  Camera, CheckCircle2, AlertTriangle, ShieldCheck, X, 
-  RefreshCw, Upload, Eye, Sparkles, User, AlertCircle
+  Camera, CheckCircle2, AlertTriangle, X,
+  RefreshCw, Upload
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 

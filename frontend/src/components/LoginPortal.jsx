@@ -12,12 +12,7 @@ import {
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
-  Building,
-  User,
-  BookOpen,
-  Phone,
   Sparkles,
-  Camera,
   Check
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';

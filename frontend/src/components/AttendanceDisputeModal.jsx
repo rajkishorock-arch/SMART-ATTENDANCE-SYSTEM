@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   AlertCircle, CheckCircle2, Clock, UploadCloud, X, FileText, 
-  HelpCircle, MessageSquare, Send, ShieldAlert, ChevronRight, XCircle
+  HelpCircle, ShieldAlert, XCircle
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import { generateDisputePdf } from '../utils/disputePdfGenerator';

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  QrCode, KeyRound, ShieldCheck, Clock, RefreshCw, 
+  QrCode, KeyRound, Clock,
   CheckCircle2, AlertTriangle, X, Play, StopCircle, 
-  Copy, Check, Sparkles, BookOpen, AlertCircle
+  Copy, Check
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 

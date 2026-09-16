@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   ScanFace, UserCheck, UserX, AlertTriangle, CheckCircle2, 
-  Filter, ArrowRightLeft, ShieldAlert, RefreshCw, Clock, 
-  Calendar, Camera, X, MessageSquare, ExternalLink
+  ArrowRightLeft, RefreshCw, Clock,
+  Calendar, X
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
