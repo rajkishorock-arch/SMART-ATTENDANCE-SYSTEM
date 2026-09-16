@@ -70,6 +70,12 @@ class FallbackService:
         if not subject:
             raise HTTPException(status_code=404, detail="Subject not found.")
 
+        if current_user.role == "teacher" and subject.teacher_id is not None and subject.teacher_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized: You can only create fallback sessions for your assigned subject."
+            )
+
         now_utc = datetime.now(timezone.utc)
         expires_at = now_utc + timedelta(minutes=payload.duration_minutes or 60)
         session_date = payload.session_date or now_utc.strftime("%d/%m/%Y")
@@ -346,51 +352,89 @@ class FallbackService:
         if not student:
             raise HTTPException(status_code=404, detail="Student profile not found.")
 
-        time_str = now_utc.strftime("%H:%M")
-        date_str = session.session_date
-        rec_id = f"{student.roll}_{session.subject_id}_{date_str}_{time_str}".replace("/", "-").replace(":", "-")
-
-        existing = db.query(models.AttendanceModel).filter(
-            models.AttendanceModel.institution_id == identity.institution_id,
-            models.AttendanceModel.roll == student.roll,
-            models.AttendanceModel.date == date_str,
-            models.AttendanceModel.subject_id == session.subject_id
-        ).first()
-
-        if existing:
-            existing.attendance = "Present"
-            existing.verification_method = "SESSION_PIN"
-            existing.fallback_reason = payload.fallback_reason.strip()
-        else:
-            new_rec = models.AttendanceModel(
-                id=rec_id,
-                institution_id=identity.institution_id,
-                roll=student.roll,
-                name=student.name,
-                department=student.dep,
-                time=time_str,
-                date=date_str,
-                attendance="Present",
-                subject_id=session.subject_id,
-                verification_method="SESSION_PIN",
-                fallback_reason=payload.fallback_reason.strip()
+        # 1. Per-student single claim protection
+        existing_claim = AttendanceRepository.get_fallback_claim(db, session.id, student.id)
+        if existing_claim:
+            raise HTTPException(
+                status_code=409,
+                detail="Student has already claimed attendance for this fallback session."
             )
-            db.add(new_rec)
 
-        crud.create_audit_log(
-            db,
-            log=schemas.AuditLogCreate(
-                user_email=identity.email,
-                role=identity.role,
-                action=f"Attendance logged via emergency SESSION_PIN for {student.name} ({student.roll})",
-                entity_type="attendance",
-                entity_id=rec_id,
-                reason=payload.fallback_reason.strip()
-            ),
-            institution_id=identity.institution_id
-        )
+        with _fallback_service_lock:
+            # 2. Register claim atomically in DB
+            claim_rec = models.AttendanceFallbackClaim(
+                session_id=session.id,
+                student_id=student.id,
+                institution_id=identity.institution_id
+            )
+            db.add(claim_rec)
+            try:
+                db.flush()
+            except IntegrityError:
+                db.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail="Student has already claimed attendance for this fallback session."
+                )
 
-        db.commit()
+            time_str = now_utc.strftime("%H:%M")
+            date_str = session.session_date
+            rec_id = f"{student.roll}_{session.subject_id}_{date_str}_{time_str}".replace("/", "-").replace(":", "-")
+
+            try:
+                existing = db.query(models.AttendanceModel).filter(
+                    models.AttendanceModel.institution_id == identity.institution_id,
+                    models.AttendanceModel.roll == student.roll,
+                    models.AttendanceModel.date == date_str,
+                    models.AttendanceModel.subject_id == session.subject_id
+                ).first()
+
+                if existing:
+                    existing.attendance = "Present"
+                    existing.verification_method = "SESSION_PIN"
+                    existing.fallback_reason = payload.fallback_reason.strip()
+                else:
+                    new_rec = models.AttendanceModel(
+                        id=rec_id,
+                        institution_id=identity.institution_id,
+                        roll=student.roll,
+                        name=student.name,
+                        department=student.dep,
+                        time=time_str,
+                        date=date_str,
+                        attendance="Present",
+                        subject_id=session.subject_id,
+                        verification_method="SESSION_PIN",
+                        fallback_reason=payload.fallback_reason.strip()
+                    )
+                    db.add(new_rec)
+
+                crud.create_audit_log(
+                    db,
+                    log=schemas.AuditLogCreate(
+                        user_email=identity.email,
+                        role=identity.role,
+                        action=f"Attendance logged via emergency SESSION_PIN for {student.name} ({student.roll})",
+                        entity_type="attendance",
+                        entity_id=rec_id,
+                        reason=payload.fallback_reason.strip()
+                    ),
+                    institution_id=identity.institution_id
+                )
+
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                already_claimed = AttendanceRepository.get_fallback_claim(db, session.id, student.id)
+                if already_claimed:
+                    raise HTTPException(status_code=409, detail="Student has already claimed attendance for this fallback session.")
+                raise HTTPException(status_code=409, detail="Concurrent conflict: Session already claimed.")
+            except HTTPException:
+                db.rollback()
+                raise
+            except Exception:
+                db.rollback()
+                raise HTTPException(status_code=500, detail="Failed to record fallback attendance.")
 
         return schemas.FallbackClaimResult(
             success=True,

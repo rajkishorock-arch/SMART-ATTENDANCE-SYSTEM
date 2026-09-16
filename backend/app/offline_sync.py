@@ -27,6 +27,75 @@ class OfflineSyncRequest(BaseModel):
     items: List[OfflineMarkItem]
 
 
+import re
+
+def validate_offline_item_date(custom_date: Optional[str]) -> Optional[str]:
+    """
+    Validates custom_date for offline attendance submission.
+    Returns error string if invalid, or None if valid.
+    Enforces format check (DD/MM/YYYY or YYYY-MM-DD), future date rejection,
+    and 30-day bounded historical window.
+    """
+    if not custom_date:
+        return None
+
+    d_clean = str(custom_date).strip()
+    parsed_date = None
+    if "-" in d_clean:
+        try:
+            parsed_date = datetime.strptime(d_clean, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    else:
+        try:
+            parsed_date = datetime.strptime(d_clean, "%d/%m/%Y").date()
+        except ValueError:
+            pass
+
+    if parsed_date is None:
+        return "Invalid date format. Expected DD/MM/YYYY or YYYY-MM-DD"
+
+    today = datetime.now(IST).date()
+    if parsed_date > today:
+        return "Future attendance date is not allowed"
+
+    min_allowed = today - timedelta(days=30)
+    if parsed_date < min_allowed:
+        return "Attendance date cannot be older than 30 days"
+
+    return None
+
+
+def validate_offline_item_time(custom_time: Optional[str]) -> Optional[str]:
+    """
+    Validates custom_time for offline attendance submission.
+    Returns error string if invalid, or None if valid.
+    Allows None/empty (which defaults to current server time).
+    """
+    if not custom_time:
+        return None
+
+    t_clean = str(custom_time).strip()
+
+    # Check standard period label format (e.g. "Period 1", "Period 2 (10:00 - 11:00 AM)")
+    if re.match(r"^Period\s*\d+", t_clean, re.IGNORECASE):
+        return None
+
+    # Check numeric period (1-8)
+    if t_clean.isdigit() and 1 <= int(t_clean) <= 8:
+        return None
+
+    # Check timestamp formats
+    for fmt in ("%H:%M:%S", "%H:%M", "%I:%M:%S %p", "%I:%M %p", "%H:%M:%S.%f"):
+        try:
+            datetime.strptime(t_clean, fmt)
+            return None
+        except ValueError:
+            continue
+
+    return "Invalid time format. Expected HH:MM:SS, HH:MM, or Period label"
+
+
 @router.post("/sync")
 def sync_offline_attendance(
     payload: OfflineSyncRequest,
@@ -47,6 +116,14 @@ def sync_offline_attendance(
         student = crud.get_student_by_id(db, item.student_id, current_user.institution_id)
         if not student:
             errors.append(f"Student {item.student_id} not found")
+            continue
+        date_err = validate_offline_item_date(item.custom_date)
+        if date_err:
+            errors.append(f"Student {item.student_id}: {date_err}")
+            continue
+        time_err = validate_offline_item_time(item.custom_time)
+        if time_err:
+            errors.append(f"Student {item.student_id}: {time_err}")
             continue
         try:
             _, newly_marked = crud.mark_student_attendance(
