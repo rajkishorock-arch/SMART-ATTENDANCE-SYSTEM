@@ -136,6 +136,12 @@ def get_student_leave_requests(
     identity: security.AuthIdentity = Depends(security.get_current_identity),
 ):
     """View leave requests for a specific student ID."""
+    if identity.role == "student" and identity.id != student_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: Cannot access another student's leave requests."
+        )
+
     leaves = db.query(models.LeaveRequest).filter(
         models.LeaveRequest.student_id == student_id,
         models.LeaveRequest.institution_id == identity.institution_id,

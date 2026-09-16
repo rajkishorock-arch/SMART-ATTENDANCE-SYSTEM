@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 import os
-from . import models, schemas, security
+from . import models, schemas, security, security_utils
 from .database import get_db
 
 router = APIRouter()
@@ -48,10 +48,10 @@ def create_institution(
     Create a new institution with branding settings and a default admin user.
     Only accessible by the admin of the Default Institution (id=1).
     """
-    if current_user.role != "admin" or current_user.institution_id != 1:
+    if not security.is_system_owner(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the Default System Administrator can manage institutions."
+            detail="Only the System Owner can manage institutions."
         )
 
 
@@ -144,10 +144,10 @@ def delete_institution(
     Delete an institution. All child records (users, students, logs, attendance) cascade delete automatically.
     Only accessible by the admin of the Default Institution (id=1).
     """
-    if current_user.role != "admin" or current_user.institution_id != 1:
+    if not security.is_system_owner(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the Default System Administrator can manage institutions."
+            detail="Only the System Owner can manage institutions."
         )
 
 
@@ -194,7 +194,7 @@ def update_college_master_key(
         raise HTTPException(status_code=404, detail="Institution not found")
         
     current_key_input = payload.current_master_key.strip()
-    is_valid = bool(inst.master_key and current_key_input == inst.master_key)
+    is_valid = bool(inst.master_key and security_utils.constant_time_equals(current_key_input, inst.master_key))
         
     if not is_valid:
         raise HTTPException(
@@ -226,10 +226,10 @@ def update_institution(
     Update an institution's branding and naming details.
     Only accessible by the admin of the Default Institution (id=1).
     """
-    if current_user.role != "admin" or current_user.institution_id != 1:
+    if not security.is_system_owner(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the Default System Administrator can manage institutions."
+            detail="Only the System Owner can manage institutions."
         )
 
 

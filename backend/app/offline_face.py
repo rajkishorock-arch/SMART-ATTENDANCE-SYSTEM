@@ -68,7 +68,8 @@ async def download_embeddings_for_offline(
     
     students = db.query(StudentModel).filter(
         StudentModel.institution_id == institution_id,
-        StudentModel.face_embedding.isnot(None)
+        StudentModel.face_embedding.isnot(None),
+        StudentModel.consent_given == True
     ).all()
     
     if not students:

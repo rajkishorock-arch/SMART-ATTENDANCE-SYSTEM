@@ -43,16 +43,17 @@ class GroupScanResult(BaseModel):
 @router.post("/group-scan", response_model=GroupScanResult)
 def process_group_classroom_scan(
     payload: GroupScanRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity),
 ):
     start_time = time.time()
-    inst_id = get_inst_id(db)
-    
+    inst_id = current_identity.institution_id
+
     students = []
     try:
-        students = db.query(models.StudentModel).filter(models.StudentModel.institution_id == inst_id).all()
-        if not students:
-            students = db.query(models.StudentModel).all()
+        students = db.query(models.StudentModel).filter(
+            models.StudentModel.institution_id == inst_id
+        ).all()
     except Exception:
         pass
     

@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import os
 
-from . import crud, models, schemas, security
+from . import crud, models, schemas, security, security_utils
 from .database import get_db
 from .face_utils import preprocess_face
 from .train_service import train_model
@@ -41,7 +41,7 @@ def verify_master_password(db: Session, request: Request, institution_id: int) -
     # Allow college specific master key if not default institution (ID 1)
     if institution_id != 1:
         inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-        if inst and inst.master_key and master_header == inst.master_key:
+        if inst and inst.master_key and security_utils.constant_time_equals(master_header, inst.master_key):
             return True
             
     return False
