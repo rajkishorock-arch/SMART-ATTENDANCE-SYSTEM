@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import { generateDisputePdf } from '../utils/disputePdfGenerator';
+import { disputeApi } from '../api';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -98,9 +99,7 @@ export default function AttendanceDisputeModal({
     if (!token) return;
     if (myDisputes.length === 0) setIsLoading(true);
     try {
-      const res = await fetch(`${activeApiUrl}/disputes/my-disputes`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await disputeApi.fetchMyDisputes(token);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -221,10 +220,7 @@ export default function AttendanceDisputeModal({
     if (!window.confirm("Are you sure you want to cancel this dispute?")) return;
     playCyberSound('click');
     try {
-      const res = await fetch(`${activeApiUrl}/disputes/${disputeId}/cancel`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await disputeApi.cancelDispute(token, disputeId);
       if (res.ok) {
         setSuccessMsg(`Dispute #${disputeId} was cancelled.`);
         fetchMyDisputes();
@@ -238,20 +234,11 @@ export default function AttendanceDisputeModal({
     if (!commentText.trim()) return;
     setIsPostingComment(true);
     try {
-      const res = await fetch(`${activeApiUrl}/disputes/${disputeId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ message: commentText.trim() })
-      });
+      const res = await disputeApi.addDisputeComment(token, disputeId, { message: commentText.trim() });
       if (res.ok) {
         setCommentText('');
         // Refresh dispute details
-        const detRes = await fetch(`${activeApiUrl}/disputes/${disputeId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const detRes = await disputeApi.fetchDispute(token, disputeId);
         if (detRes.ok) {
           const updated = await detRes.json();
           setSelectedDispute(updated);

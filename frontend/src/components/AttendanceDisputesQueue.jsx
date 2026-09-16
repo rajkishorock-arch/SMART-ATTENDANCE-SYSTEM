@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import { generateDisputePdf } from '../utils/disputePdfGenerator';
+import { disputeApi } from '../api';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -42,12 +43,7 @@ export default function AttendanceDisputesQueue({
     if (!token) return;
     if (disputes.length === 0) setIsLoading(true);
     try {
-      const url = statusFilter === 'ALL'
-        ? `${API_BASE_URL}/disputes/queue`
-        : `${API_BASE_URL}/disputes/queue?status=${statusFilter}`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await disputeApi.fetchDisputeQueue(token, statusFilter);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -75,16 +71,9 @@ export default function AttendanceDisputesQueue({
     setIsSubmittingReview(true);
     playCyberSound('click');
     try {
-      const res = await fetch(`${API_BASE_URL}/disputes/${disputeId}/review`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: reviewAction,
-          comment: reviewComment.trim()
-        })
+      const res = await disputeApi.reviewDispute(token, disputeId, {
+        action: reviewAction,
+        comment: reviewComment.trim()
       });
       const data = await res.json();
       if (!res.ok) {
@@ -109,14 +98,7 @@ export default function AttendanceDisputesQueue({
     if (reason === null) return;
     playCyberSound('click');
     try {
-      const res = await fetch(`${API_BASE_URL}/disputes/${disputeId}/escalate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ reason })
-      });
+      const res = await disputeApi.escalateDispute(token, disputeId, { reason });
       if (res.ok) {
         setActionSuccessMsg(`Dispute #${disputeId} escalated to Department Head.`);
         fetchQueue();
@@ -130,14 +112,7 @@ export default function AttendanceDisputesQueue({
     if (!commentInput.trim()) return;
     setIsPostingComment(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/disputes/${disputeId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ message: commentInput.trim() })
-      });
+      const res = await disputeApi.addDisputeComment(token, disputeId, { message: commentInput.trim() });
       if (res.ok) {
         setCommentInput('');
         fetchQueue();
