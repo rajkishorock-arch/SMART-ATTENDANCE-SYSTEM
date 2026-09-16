@@ -59,7 +59,16 @@ export default function ReleaseSettings({
   }, [token, isDemoMode]);
 
   useEffect(() => {
-    fetchReleaseSettings();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await fetchReleaseSettings();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [fetchReleaseSettings]);
 
   // Poll build status when a build is running

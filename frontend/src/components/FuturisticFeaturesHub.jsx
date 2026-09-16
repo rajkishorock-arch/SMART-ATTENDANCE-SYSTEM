@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Palette, LayoutGrid, Award, History, MapPin, HeartPulse, Rocket,
   BarChart2, MessageCircle, Bell, Calendar, Users, RefreshCw, GripVertical,
-  CheckCircle, AlertTriangle, ShieldCheck, Zap, Sparkles, Send, Play, Layers
+  CheckCircle, Sparkles
 } from 'lucide-react';
 import {
   THEME_PRESETS, ACHIEVEMENTS, loadFuturisticSettings, saveFuturisticSettings,
@@ -29,12 +29,12 @@ const TABS = [
 ];
 
 export default function FuturisticFeaturesHub({
-  apiBaseUrl, token, userRole, currentUser, isOwner,
-  geofenceSettings, onNavigateSettings, releaseSettings,
+  apiBaseUrl, token, userRole, isOwner,
+  geofenceSettings, onNavigateSettings,
 }) {
   const [tab, setTab] = useState('theme');
   const [settings, setSettings] = useState(() => loadFuturisticSettings());
-  const [achievements, setAchievements] = useState(() => loadAchievements());
+  const [achievements] = useState(() => loadAchievements());
   const [widgets, setWidgets] = useState(() => loadWidgetLayout());
   const [auditLogs, setAuditLogs] = useState([]);
   const [health, setHealth] = useState(null);
@@ -103,11 +103,20 @@ export default function FuturisticFeaturesHub({
   }, [apiBaseUrl, token, headers]);
 
   useEffect(() => {
-    if (tab === 'audit') loadAudit();
-    if (tab === 'health') loadHealth();
-    if (tab === 'polls') loadPolls();
-    if (tab === 'parent') loadDigest();
-    if (tab === 'session') loadAutoSession();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        if (tab === 'audit') await loadAudit();
+        if (tab === 'health') await loadHealth();
+        if (tab === 'polls') await loadPolls();
+        if (tab === 'parent') await loadDigest();
+        if (tab === 'session') await loadAutoSession();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [tab, loadAudit, loadHealth, loadPolls, loadDigest, loadAutoSession]);
 
   const updateSettings = (patch) => {

@@ -54,7 +54,16 @@ export default function PremiumUpgradeHub({ apiBaseUrl, token, currentUser, onPl
   }, [apiBaseUrl, token, headers]);
 
   useEffect(() => {
-    refresh();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await refresh();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [refresh]);
 
   const activateFree = async () => {

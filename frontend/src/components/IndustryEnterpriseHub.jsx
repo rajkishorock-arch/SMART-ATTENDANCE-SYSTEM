@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Zap, Shield, FileText, Bell, UserCheck, GraduationCap, Layers,
   Map, Brain, Mic, Monitor, Building2, Key, Link, Activity, Palette, CreditCard,
-  RefreshCw, Download, Radio, Wifi, CheckCircle, AlertTriangle, Sparkles, Cpu
+  RefreshCw, Download, Radio, Wifi, CheckCircle
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -76,12 +76,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
   const [selectedColumns, setSelectedColumns] = useState(['name', 'roll', 'attendance', 'date', 'department']);
   const [filterDept, setFilterDept] = useState('');
   const [wlAppName, setWlAppName] = useState('Default Institution Portal');
-  const [wlLogoUrl, setWlLogoUrl] = useState('https://institute.edu/logo.png');
-  const [wlPrimaryColor, setWlPrimaryColor] = useState('#00f2fe');
-  const [wlSecondaryColor, setWlSecondaryColor] = useState('#4facfe');
   const [wlCustomDomain, setWlCustomDomain] = useState('attendance.institute.edu');
-  const [institutionsList, setInstitutionsList] = useState([{ id: 1, name: 'Default Institution', slug: 'default' }]);
-  const [selectedInstId, setSelectedInstId] = useState(1);
 
   const getHeaders = useCallback(() => {
     const h = { 'Content-Type': 'application/json' };
@@ -201,7 +196,16 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
   }, [tab, apiCall]);
 
   useEffect(() => {
-    loadTabData();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await loadTabData();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [loadTabData]);
 
   const activeCategory = CATEGORIES.find(c => c.tabs.some(t => t.id === tab)) || CATEGORIES[0];
@@ -407,7 +411,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
               type="button"
               style={primaryBtnStyle}
               onClick={async () => {
-                const r = await apiCall('/exam/sessions', { method: 'POST', body: JSON.stringify({ name: examName, geofence_strict: true }) });
+                await apiCall('/exam/sessions', { method: 'POST', body: JSON.stringify({ name: examName, geofence_strict: true }) });
                 showNotify(`Exam Session "${examName}" created with strict geofence boundary.`);
                 loadTabData();
               }}
@@ -699,7 +703,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
               type="button"
               style={primaryBtnStyle}
               onClick={async () => {
-                const r = await apiCall('/voice-mark', { method: 'POST', body: JSON.stringify({ roll: voiceRoll }) });
+                await apiCall('/voice-mark', { method: 'POST', body: JSON.stringify({ roll: voiceRoll }) });
                 showNotify(`Voice mark completed: Student Roll #${voiceRoll} verified & marked Present.`);
               }}
             >

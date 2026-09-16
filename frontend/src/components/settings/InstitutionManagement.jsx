@@ -52,7 +52,16 @@ export default function InstitutionManagement({
 
   useEffect(() => {
     if (getActiveTenantSlug() === 'default') {
-      fetchInstitutionsList();
+      let ignore = false;
+      const run = async () => {
+        if (!ignore) {
+          await fetchInstitutionsList();
+        }
+      };
+      run();
+      return () => {
+        ignore = true;
+      };
     }
   }, [fetchInstitutionsList]);
 
