@@ -64,9 +64,7 @@ export default function AttendanceDisputeModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [selectedDispute, setSelectedDispute] = useState(null);
   const [commentText, setCommentText] = useState('');
-  const [isPostingComment, setIsPostingComment] = useState(false);
 
   // Initialize or prefill from props
   useEffect(() => {
@@ -230,27 +228,6 @@ export default function AttendanceDisputeModal({
     }
   };
 
-  const handlePostComment = async (disputeId) => {
-    if (!commentText.trim()) return;
-    setIsPostingComment(true);
-    try {
-      const res = await disputeApi.addDisputeComment(token, disputeId, { message: commentText.trim() });
-      if (res.ok) {
-        setCommentText('');
-        // Refresh dispute details
-        const detRes = await disputeApi.fetchDispute(token, disputeId);
-        if (detRes.ok) {
-          const updated = await detRes.json();
-          setSelectedDispute(updated);
-        }
-        fetchMyDisputes();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsPostingComment(false);
-    }
-  };
 
   if (!isOpen) return null;
 

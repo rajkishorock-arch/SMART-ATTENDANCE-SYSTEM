@@ -118,7 +118,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
     const waUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(customAlertMsg)}`;
     
     // Try opening popup
-    const newWin = window.open(waUrl, '_blank');
+    window.open(waUrl, '_blank');
     
     setDispatchStatus({
       success: true,

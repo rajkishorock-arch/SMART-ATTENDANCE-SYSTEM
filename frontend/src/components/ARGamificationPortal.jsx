@@ -76,7 +76,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
       } else {
         setLeaderboard(getRegisteredLeaderboard());
       }
-    } catch (error) {
+    } catch {
       setLeaderboard(getRegisteredLeaderboard());
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
           level: Math.floor((response.data.points || 390) / 100) + 1
         });
       }
-    } catch (error) {
+    } catch {
       // Keep default stats
     }
   };
@@ -116,7 +116,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
       } else {
         setBadges(MOCK_BADGES);
       }
-    } catch (error) {
+    } catch {
       setBadges(MOCK_BADGES);
     }
   };
@@ -169,7 +169,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
-      } catch (firstErr) {
+      } catch {
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
 
@@ -255,7 +255,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
         streak: prev.streak + 1
       }));
 
-    } catch (error) {
+    } catch {
       setTimeout(() => {
         setScanResult({
           success: true,

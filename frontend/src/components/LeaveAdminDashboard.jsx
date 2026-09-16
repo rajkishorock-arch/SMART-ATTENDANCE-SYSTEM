@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw, Download } from 'lucide-react';
-import { getApiBaseUrl } from '../utils/platform';
 import { generateLeavePdf } from '../utils/leavePdfGenerator';
 import { leaveApi } from '../api';
-
-const API_BASE_URL = getApiBaseUrl();
 
 export default function LeaveAdminDashboard({ token, currentUser }) {
   const [leaveRequests, setLeaveRequests] = useState(() => {

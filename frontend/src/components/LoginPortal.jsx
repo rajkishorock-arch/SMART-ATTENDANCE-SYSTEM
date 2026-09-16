@@ -86,37 +86,7 @@ export default function LoginPortal({
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [showPostRegFaceEnroll, setShowPostRegFaceEnroll] = useState(false);
 
-  const [institutionsList, setInstitutionsList] = useState([
-    { name: 'Default Institution', slug: 'default' }
-  ]);
   const [selectedTenant, setSelectedTenant] = useState(localStorage.getItem('override_tenant') || 'default');
-
-  useEffect(() => {
-    const fetchInstitutions = async () => {
-      try {
-        const res = await systemApi.listInstitutions();
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0) {
-            setInstitutionsList(data);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load institutions:", err);
-      }
-    };
-    fetchInstitutions();
-  }, []);
-
-  const handleTenantChange = (slug) => {
-    setSelectedTenant(slug);
-    localStorage.setItem('override_tenant', slug);
-    if (onTenantChange) {
-      onTenantChange(slug);
-    } else {
-      window.location.reload();
-    }
-  };
 
   // Step 1 Validation
   const validateStep1 = () => {

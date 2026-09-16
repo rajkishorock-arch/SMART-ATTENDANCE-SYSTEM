@@ -7,7 +7,6 @@ import { leaveApi } from '../api';
 // =====================================================================
 export default function LeaveApplicationForm({
   token,
-  API_BASE_URL,
   onLeaveApplied,
   playCyberSound,
   subjects = [],
