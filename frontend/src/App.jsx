@@ -4617,9 +4617,7 @@ export default function App() {
     setIsTraining(true);
     setTrainMessage('Training AI Model... Please wait...');
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/train`, {
-        method: 'POST'
-      });
+      const res = await studentApi.trainModel(token);
       const data = await res.json();
       if (res.ok) {
         alert(`Success: Model trained successfully!\nTotal Samples: ${data.total_samples}\nTotal Students: ${data.total_students}`);
