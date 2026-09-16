@@ -94,51 +94,35 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
     };
   }, [activeDeviceId, facingMode]);
 
-  // Frame decoding loop
-  React.useEffect(() => {
-    const tick = (time) => {
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
-        if (time - lastScanTimeRef.current >= 150) {
-          lastScanTimeRef.current = time;
-          const video = videoRef.current;
-          const canvas = canvasRef.current;
-          if (canvas) {
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            
-            // OPTIMIZED: Capture full viewport with correct aspect ratio instead of distorting to square crop box
-            const targetWidth = 480;
-            const scale = targetWidth / video.videoWidth;
-            const targetHeight = Math.round(video.videoHeight * scale);
-            
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            
-            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
-            const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-            
-            if (window.jsQR) {
-              const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
-                inversionAttempts: "attemptBoth",
-              });
-              if (code && code.data && !isProcessingRef.current) {
-                isProcessingRef.current = true;
-                handleQrScanned(code.data);
-              }
-            }
-          }
-        }
-      }
-      requestRef.current = requestAnimationFrame(tick);
-    };
-    
-    requestRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(requestRef.current);
-  }, [selectedSubjectId]);
+  const [isProcessing, setIsProcessing] = React.useState(false);
 
-  const handleQrScanned = async (qrData) => {
+  const startCooldown = React.useCallback((durationMs) => {
+    const steps = 50;
+    const stepDuration = durationMs / steps;
+    let currentStep = steps;
+
+    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+
+    cooldownTimerRef.current = setInterval(() => {
+      currentStep--;
+      setCooldown((currentStep / steps) * 100);
+
+      if (currentStep <= 0) {
+        clearInterval(cooldownTimerRef.current);
+        setSuccessStudent(null);
+        setErrorDetails('');
+        setStatusText('Scanning...');
+        setCooldown(0);
+        isProcessingRef.current = false;
+        setIsProcessing(false);
+      }
+    }, stepDuration);
+  }, []);
+
+  const handleQrScanned = React.useCallback(async (qrData) => {
     setStatusText('Verifying token...');
     if (playCyberSound) playCyberSound('click');
-    
+
     try {
       const res = await fetch(`${API_BASE_URL}/attendance/scan-qr`, {
         method: 'POST',
@@ -151,9 +135,9 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
           subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : null
         })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.status === 'success') {
         if (playCyberSound) playCyberSound('success');
         setSuccessStudent(data.student);
@@ -174,29 +158,49 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
       setStatusText('Scan Failed');
       startCooldown(3000);
     }
-  };
+  }, [token, API_BASE_URL, selectedSubjectId, playCyberSound, onStudentCheckedIn, addDiagnosticLog, startCooldown]);
 
-  const startCooldown = (durationMs) => {
-    const steps = 50;
-    const stepDuration = durationMs / steps;
-    let currentStep = steps;
-    
-    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
-    
-    cooldownTimerRef.current = setInterval(() => {
-      currentStep--;
-      setCooldown((currentStep / steps) * 100);
-      
-      if (currentStep <= 0) {
-        clearInterval(cooldownTimerRef.current);
-        setSuccessStudent(null);
-        setErrorDetails('');
-        setStatusText('Scanning...');
-        setCooldown(0);
-        isProcessingRef.current = false;
+  // Frame decoding loop
+  React.useEffect(() => {
+    const tick = (time) => {
+      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+        if (time - lastScanTimeRef.current >= 150) {
+          lastScanTimeRef.current = time;
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          if (canvas) {
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            // OPTIMIZED: Capture full viewport with correct aspect ratio instead of distorting to square crop box
+            const targetWidth = 480;
+            const scale = targetWidth / video.videoWidth;
+            const targetHeight = Math.round(video.videoHeight * scale);
+
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+            const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+
+            if (window.jsQR) {
+              const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "attemptBoth",
+              });
+              if (code && code.data && !isProcessingRef.current) {
+                isProcessingRef.current = true;
+                setIsProcessing(true);
+                handleQrScanned(code.data);
+              }
+            }
+          }
+        }
       }
-    }, stepDuration);
-  };
+      requestRef.current = requestAnimationFrame(tick);
+    };
+
+    requestRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(requestRef.current);
+  }, [handleQrScanned]);
 
   React.useEffect(() => {
     return () => {
@@ -238,8 +242,8 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%',
-              background: isProcessingRef.current ? '#f59e0b' : '#00f2fe',
-              boxShadow: isProcessingRef.current ? '0 0 8px #f59e0b' : '0 0 8px #00f2fe',
+              background: isProcessing ? '#f59e0b' : '#00f2fe',
+              boxShadow: isProcessing ? '0 0 8px #f59e0b' : '0 0 8px #00f2fe',
               animation: 'pulse 1.5s infinite'
             }} />
             <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '0.04em', fontFamily: 'monospace' }}>QR CODE ATTENDANCE SCANNER</span>
@@ -283,7 +287,7 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
           </div>
 
           {/* Scanner horizontal scanning red line */}
-          {!isProcessingRef.current && (
+          {!isProcessing && (
             <div style={{
               position: 'absolute', left: 0, right: 0, height: '2px',
               background: 'linear-gradient(90deg, transparent, #ef4444, transparent)',

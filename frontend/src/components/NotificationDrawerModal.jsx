@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Bell, CheckCircle2, AlertCircle, Clock, FileText, X, ShieldAlert,
-  Calendar, Check, CheckCheck, RefreshCw, MessageSquare, Sliders, Trash2
+  Bell, CheckCircle2, AlertCircle, Clock, X, ShieldAlert,
+  Calendar, CheckCheck, Sliders, Trash2
 } from 'lucide-react';
 import NotificationSettingsModal from './NotificationSettingsModal';
 import { notificationApi } from '../api';
@@ -10,8 +10,6 @@ export default function NotificationDrawerModal({
   isOpen,
   onClose,
   token,
-  currentUser,
-  userRole,
   onNotificationClick = () => {},
   playCyberSound = () => {}
 }) {
@@ -48,9 +46,19 @@ export default function NotificationDrawerModal({
   }, [token, notifications.length]);
 
   useEffect(() => {
+    let ignore = false;
     if (isOpen) {
-      fetchNotifications();
+      const load = async () => {
+        await Promise.resolve();
+        if (!ignore) {
+          await fetchNotifications();
+        }
+      };
+      load();
     }
+    return () => {
+      ignore = true;
+    };
   }, [isOpen, fetchNotifications]);
 
   const handleMarkAllRead = async () => {
