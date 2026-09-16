@@ -16,9 +16,18 @@ export default function LiveBoardStrip({ token, enabled = true }) {
   }, [token, enabled]);
 
   useEffect(() => {
-    load();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await load();
+      }
+    };
+    run();
     const id = setInterval(load, 12000);
-    return () => clearInterval(id);
+    return () => {
+      ignore = true;
+      clearInterval(id);
+    };
   }, [load]);
 
   if (!enabled || !token) return null;

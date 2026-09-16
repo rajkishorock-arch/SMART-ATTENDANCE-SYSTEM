@@ -36,10 +36,19 @@ export default function UniversalSearch({ apiBaseUrl, token, open, onClose, onNa
 
   useEffect(() => {
     if (open) {
-      setQ('');
-      setResults([]);
-      setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      let ignore = false;
+      Promise.resolve().then(() => {
+        if (!ignore) {
+          setQ('');
+          setResults([]);
+          setSelectedIndex(0);
+        }
+      });
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => {
+        ignore = true;
+        clearTimeout(timer);
+      };
     }
   }, [open]);
 

@@ -34,8 +34,19 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
 
   useEffect(() => {
     if (token) {
-      loadOwn();
-      loadAll();
+      let ignore = false;
+      const run = async () => {
+        if (!ignore) {
+          await loadOwn();
+          if (!ignore) {
+            await loadAll();
+          }
+        }
+      };
+      run();
+      return () => {
+        ignore = true;
+      };
     }
   }, [token, loadOwn, loadAll]);
 

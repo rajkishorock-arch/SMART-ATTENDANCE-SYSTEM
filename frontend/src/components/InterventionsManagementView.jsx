@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  AlertOctagon, AlertTriangle, Bell, UserCheck, Calendar, 
-  Clock, CheckCircle2, RefreshCw, Send, Users, ShieldAlert,
-  MessageSquare, FileText, ChevronRight, X
+import {
+  AlertOctagon, AlertTriangle, Bell, Calendar,
+  CheckCircle2, RefreshCw, ShieldAlert,
+  X
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
@@ -66,7 +66,16 @@ export default function InterventionsManagementView({
   }, [token, tierFilter]);
 
   useEffect(() => {
-    fetchData();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await fetchData();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [fetchData]);
 
   // ── Run Automated Campus Evaluation Scan ──────────────────────────────────

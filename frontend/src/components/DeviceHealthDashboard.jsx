@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  Monitor, Wifi, WifiOff, Camera, Battery, Activity, 
-  Plus, RefreshCw, AlertTriangle, CheckCircle2, XCircle, 
-  Sliders, Shield, Trash2, X, Send, Clock, Layers
+import {
+  Monitor, Wifi, WifiOff,
+  Plus, RefreshCw, AlertTriangle, CheckCircle2,
+  X, Send, Clock
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
@@ -10,7 +10,6 @@ const API_BASE_URL = getApiBaseUrl();
 
 export default function DeviceHealthDashboard({
   token,
-  currentUser,
   playCyberSound = () => {}
 }) {
   const [devices, setDevices] = useState([]);
@@ -67,10 +66,19 @@ export default function DeviceHealthDashboard({
   }, [token, statusFilter]);
 
   useEffect(() => {
-    fetchData();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await fetchData();
+      }
+    };
+    run();
     // Auto-refresh telemetry every 30s
     const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      ignore = true;
+      clearInterval(interval);
+    };
   }, [fetchData]);
 
   // ── Send Test Heartbeat Ping ───────────────────────────────────────────────
