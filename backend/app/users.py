@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import os
 
-from . import crud, models, schemas, security, security_utils
+from . import crud, models, schemas, security, security_utils, cache_service
 from .database import get_db
 from .face_utils import preprocess_face
 from .train_service import train_model
@@ -436,6 +436,14 @@ def change_student_password(
     """
     Change current logged in student's password.
     """
+    rate_key = f"pwd_change:student:{current_student.id}"
+    attempts = cache_service.rate_limit_get_attempts(rate_key, ttl=300)
+    if attempts >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed password change attempts. Please try again in 5 minutes."
+        )
+
     # Verify old password
     is_valid = False
     if not current_student.password_hash:
@@ -447,11 +455,13 @@ def change_student_password(
             is_valid = True
             
     if not is_valid:
+        cache_service.rate_limit_record_attempt(rate_key, ttl=300)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect current password"
         )
-        
+
+    cache_service.rate_limit_reset(rate_key)
     updated = crud.update_student_password(db, student_id=current_student.id, new_password_plain=data.new_password, institution_id=current_student.institution_id)
     if not updated:
         raise HTTPException(
@@ -975,12 +985,22 @@ def change_user_password(
     """
     Change current logged in user's (Admin/Teacher) password.
     """
+    rate_key = f"pwd_change:{current_user.role}:{current_user.id}"
+    attempts = cache_service.rate_limit_get_attempts(rate_key, ttl=300)
+    if attempts >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed password change attempts. Please try again in 5 minutes."
+        )
+
     if not security.verify_password(data.old_password, current_user.password_hash):
+        cache_service.rate_limit_record_attempt(rate_key, ttl=300)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect current password"
         )
-        
+
+    cache_service.rate_limit_reset(rate_key)
     current_user.password_hash = security.get_password_hash(data.new_password)
     db.commit()
     db.refresh(current_user)

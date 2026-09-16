@@ -12,7 +12,7 @@ from .core import config
 router = APIRouter()
 
 import time
-from typing import Dict
+from typing import Dict, Optional
 
 # Dictionary to store active user heartbeats
 # Key: email (str), Value: {"role": role, "last_seen": timestamp}
@@ -26,20 +26,50 @@ def record_active_user(email: str, role: str):
 
 MAX_LOGIN_ATTEMPTS = 8
 LOGIN_WINDOW_SECONDS = 300
+MAX_IP_LOGIN_ATTEMPTS = 30
+IP_LOGIN_WINDOW_SECONDS = 60
 
 
-def _check_rate_limit(key: str):
-    attempts = cache_service.rate_limit_get_attempts(key, ttl=LOGIN_WINDOW_SECONDS)
-    if attempts >= MAX_LOGIN_ATTEMPTS:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again later.",
-        )
+def _check_rate_limit(rate_key: str, client_ip: Optional[str] = None):
+    if client_ip:
+        # B. Per client IP check (30 attempts / 60 seconds)
+        ip_attempts = cache_service.rate_limit_get_attempts(f"auth:ip:{client_ip}", ttl=IP_LOGIN_WINDOW_SECONDS)
+        if ip_attempts >= MAX_IP_LOGIN_ATTEMPTS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many login attempts from this IP address. Please try again later.",
+            )
+
+        # A. Per username + client IP check (8 attempts / 300 seconds)
+        user_ip_key = f"auth:user_ip:{rate_key}:{client_ip}"
+        user_ip_attempts = cache_service.rate_limit_get_attempts(user_ip_key, ttl=LOGIN_WINDOW_SECONDS)
+        if user_ip_attempts >= MAX_LOGIN_ATTEMPTS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many login attempts. Please try again later.",
+            )
+    else:
+        attempts = cache_service.rate_limit_get_attempts(rate_key, ttl=LOGIN_WINDOW_SECONDS)
+        if attempts >= MAX_LOGIN_ATTEMPTS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many login attempts. Please try again later.",
+            )
 
 
-def _record_failed_login(key: str):
-    cache_service.rate_limit_record_attempt(key, ttl=LOGIN_WINDOW_SECONDS)
+def _record_failed_login(rate_key: str, client_ip: Optional[str] = None):
+    cache_service.rate_limit_record_attempt(rate_key, ttl=LOGIN_WINDOW_SECONDS)
+    if client_ip:
+        user_ip_key = f"auth:user_ip:{rate_key}:{client_ip}"
+        cache_service.rate_limit_record_attempt(user_ip_key, ttl=LOGIN_WINDOW_SECONDS)
+        cache_service.rate_limit_record_attempt(f"auth:ip:{client_ip}", ttl=IP_LOGIN_WINDOW_SECONDS)
 
+
+def _reset_login_attempts(rate_key: str, client_ip: Optional[str] = None):
+    cache_service.rate_limit_reset(rate_key)
+    if client_ip:
+        user_ip_key = f"auth:user_ip:{rate_key}:{client_ip}"
+        cache_service.rate_limit_reset(user_ip_key)
 
 
 @router.post("/token", response_model=schemas.Token)
@@ -49,11 +79,12 @@ def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
     rate_key = form_data.username.strip().lower()
+    client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
+    user_ip_key = f"auth:user_ip:{rate_key}:{client_ip}"
 
     try:
-        with cache_service.rate_limit_user_lock(rate_key):
-            _check_rate_limit(rate_key)
-            client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
+        with cache_service.rate_limit_user_lock(user_ip_key):
+            _check_rate_limit(rate_key, client_ip=client_ip)
 
             tenant_slug = request.headers.get("X-Tenant-Slug", "default")
             # Resolve active institution from tenant_slug header
@@ -86,7 +117,7 @@ def login_for_access_token(
                     is_authenticated = True
 
                 if not is_authenticated:
-                    _record_failed_login(rate_key)
+                    _record_failed_login(rate_key, client_ip=client_ip)
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="Incorrect email or password",
@@ -103,6 +134,7 @@ def login_for_access_token(
                     except Exception:
                         db.rollback()
 
+                _reset_login_attempts(rate_key, client_ip=client_ip)
                 record_active_user(user.email, user.role)
                 access_token = security.create_access_token(
                     data={"sub": user.email, "role": user.role, "institution_id": user.institution_id}
@@ -124,7 +156,7 @@ def login_for_access_token(
                     is_valid = True
 
                 if not is_valid:
-                    _record_failed_login(rate_key)
+                    _record_failed_login(rate_key, client_ip=client_ip)
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="Incorrect email or password",
@@ -139,6 +171,7 @@ def login_for_access_token(
                     except Exception:
                         db.rollback()
 
+                _reset_login_attempts(rate_key, client_ip=client_ip)
                 record_active_user(student.email, "student")
                 access_token = security.create_access_token(
                     data={"sub": student.email, "role": "student", "institution_id": student.institution_id}
@@ -146,7 +179,7 @@ def login_for_access_token(
                 crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=student.email, action="Student logged in."))
                 return {"access_token": access_token, "token_type": "bearer"}
 
-            _record_failed_login(rate_key)
+            _record_failed_login(rate_key, client_ip=client_ip)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",

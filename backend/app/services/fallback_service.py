@@ -13,12 +13,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
-from app import models, schemas, crud
+from app import models, schemas, crud, cache_service
 from app.repositories.attendance_repository import AttendanceRepository
 from app.security_utils import verify_geofence
 
 ROTATION_WINDOW_SECONDS = 30
 _fallback_service_lock = threading.Lock()
+
 
 
 class FallbackService:
@@ -342,15 +343,26 @@ class FallbackService:
         if now_utc > exp:
             raise HTTPException(status_code=400, detail="Session window has expired.")
 
-        if not hmac.compare_digest(session.session_pin.strip(), payload.session_pin.strip()):
-            raise HTTPException(status_code=400, detail="Invalid session PIN.")
-
         student = db.query(models.StudentModel).filter(
             models.StudentModel.email == identity.email,
             models.StudentModel.institution_id == identity.institution_id
         ).first()
         if not student:
             raise HTTPException(status_code=404, detail="Student profile not found.")
+
+        rate_key = f"fallback_pin:{student.id}:{payload.session_id}"
+        attempts = cache_service.rate_limit_get_attempts(rate_key, ttl=300)
+        if attempts >= 5:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many invalid PIN attempts. Please try again later."
+            )
+
+        if not hmac.compare_digest(session.session_pin.strip(), payload.session_pin.strip()):
+            cache_service.rate_limit_record_attempt(rate_key, ttl=300)
+            raise HTTPException(status_code=400, detail="Invalid session PIN.")
+
+        cache_service.rate_limit_reset(rate_key)
 
         # 1. Per-student single claim protection
         existing_claim = AttendanceRepository.get_fallback_claim(db, session.id, student.id)

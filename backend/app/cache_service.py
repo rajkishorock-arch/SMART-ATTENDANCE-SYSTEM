@@ -183,6 +183,36 @@ def rate_limit_get_attempts(key: str, ttl: int = 300) -> int:
     return len(attempts)
 
 
+def rate_limit_reset(key: str) -> None:
+    """
+    Resets/clears the rate-limit attempt history for a given key.
+    """
+    full_key = f"rate_limit:{key}"
+    if _redis_client:
+        try:
+            _redis_client.delete(full_key)
+        except Exception:
+            pass
+    _memory_store.pop(full_key, None)
+
+
+def check_and_record_rate_limit(key: str, limit: int, ttl: int) -> tuple[bool, int]:
+    """
+    Checks current attempts and atomically records a request attempt within rolling sliding-window (ttl seconds).
+    Returns (allowed: bool, current_attempts: int).
+    If current attempt count >= limit before recording, returns (False, count).
+    Otherwise, records attempt and returns (True, count) if <= limit or (False, count) if > limit.
+    """
+    current = rate_limit_get_attempts(key, ttl=ttl)
+    if current >= limit:
+        return False, current
+    new_count = rate_limit_record_attempt(key, ttl=ttl)
+    if new_count > limit:
+        return False, new_count
+    return True, new_count
+
+
+
 _memory_locks = weakref.WeakValueDictionary()
 _memory_locks_guard = threading.Lock()
 

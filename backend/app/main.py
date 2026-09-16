@@ -2,7 +2,7 @@ import sys
 import os
 import time
 import uvicorn
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 
 # Ensure the 'backend' directory is in sys.path so 'app' can be imported
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -125,12 +125,24 @@ app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health/deep", tags=["System Health"])
-def deep_health_check(db: Session = Depends(get_db)):
+def deep_health_check(request: Request, db: Session = Depends(get_db)):
     """
     Comprehensive multi-subsystem production health check.
     Validates database connection, schema migration status,
     OpenCV engine readiness, and multi-tenant integrity.
     """
+    from app import security_utils, cache_service
+    from app.core import config
+
+    client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
+    rate_key = f"health_deep:ip:{client_ip}"
+    allowed, _ = cache_service.check_and_record_rate_limit(rate_key, limit=30, ttl=60)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Health check rate limit exceeded. Please wait a moment.",
+        )
+
     from sqlalchemy import text
     from datetime import datetime, timezone
     import sys

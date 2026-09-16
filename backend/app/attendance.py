@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
-from . import crud, schemas, models, security, security_utils
+from . import crud, schemas, models, security, security_utils, cache_service
 from .period_utils import resolve_period_name, get_period_slot_label, PERIOD_SLOT_LABELS, generate_session_key
 from .database import get_db
 from .recognition_service import recognition_service
@@ -20,6 +20,7 @@ from .email_service import send_presence_email, send_absent_email
 from .core import config
 
 router = APIRouter()
+
 
 
 @router.get("/logs", response_model=List[schemas.Attendance])
@@ -166,6 +167,15 @@ async def recognize_and_mark_attendance(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can run the attendance scanner."
         )
+
+    rate_key = f"biometric:frame:{current_user.id}:{current_user.role}"
+    allowed, _ = cache_service.check_and_record_rate_limit(rate_key, limit=30, ttl=60)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Biometric frame processing rate limit exceeded. Please wait a moment."
+        )
+
 
     # Server-side liveness enforcement
     settings = crud.get_system_settings(db, institution_id=current_user.institution_id)
