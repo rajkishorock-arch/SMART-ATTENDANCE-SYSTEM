@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   ShieldCheck,
   Mail,
@@ -16,8 +16,6 @@ import {
   Check
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
-import { wakeBackend } from '../utils/cameraScanner';
-import { systemApi } from '../api';
 
 const ROLES = [
   {
