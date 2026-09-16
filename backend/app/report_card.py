@@ -3,14 +3,14 @@ Feature 10: Automated Report Card PDF Generation
 Auto-generates student report cards with attendance % per subject.
 Emails directly to parent/student.
 """
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 import json, os
 
-from . import models, security, crud, schemas
+from . import models, security, crud, schemas, cache_service
 from .database import get_db
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -158,6 +158,14 @@ def generate_report_card(
     """Generate and optionally email a report card for a student."""
     if current_user.role not in ("admin", "teacher", "hod"):
         raise HTTPException(status_code=403, detail="Staff access only.")
+
+    rate_key = f"pdf_report:{current_user.role}:{current_user.id}"
+    allowed, _ = cache_service.check_and_record_rate_limit(rate_key, limit=10, ttl=60)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="PDF report generation rate limit exceeded. Please wait a moment."
+        )
 
     start_date = payload.get("start_date", "")
     end_date = payload.get("end_date", "")

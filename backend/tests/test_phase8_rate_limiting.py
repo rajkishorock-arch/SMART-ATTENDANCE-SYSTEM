@@ -427,3 +427,77 @@ def test_deep_health_rate_limit_per_ip():
     resp_other = client.get("/api/v1/health/deep", headers=other_headers)
     assert resp_other.status_code == 200
     assert resp_other.json()["status"] == "healthy"
+
+
+# ---------------------------------------------------------------------------
+# 7. Phase 8 Step 8-7 Batch 2 Defense-in-Depth Rate Limiting Tests
+# ---------------------------------------------------------------------------
+
+def test_absentee_alert_rate_limit():
+    """3 absentee notification batch requests/600s per teacher allowed; 4th returns HTTP 429."""
+    db = TestingSessionLocal()
+    user = models.User(
+        id=99,
+        name="Batch Teacher",
+        email="batchteacher@test.com",
+        password_hash=security.get_password_hash("Password123!"),
+        role="teacher",
+        institution_id=1,
+        is_active=True
+    )
+    db.add(user)
+    db.commit()
+
+    token = security.create_access_token(data={"sub": user.email, "role": user.role, "institution_id": user.institution_id})
+    db.close()
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Simulate 3 successful or attempt calls recorded under rate_key "absentee_alert:teacher:99"
+    rate_key = f"absentee_alert:teacher:99"
+    for _ in range(3):
+        cache_service.rate_limit_record_attempt(rate_key, ttl=600)
+
+    # 4th call is rejected with HTTP 429
+    resp = client.post(
+        "/api/v1/interactive/notify-absent-batch",
+        json={"student_rolls": []},
+        headers=headers
+    )
+    assert resp.status_code == 429
+    assert "Absentee notification dispatch rate limit exceeded" in resp.json()["detail"]
+
+
+def test_pdf_report_card_rate_limit():
+    """10 PDF report card generation requests/60s per user allowed; 11th returns HTTP 429."""
+    db = TestingSessionLocal()
+    user = models.User(
+        id=101,
+        name="Report Admin",
+        email="reportadmin@test.com",
+        password_hash=security.get_password_hash("Password123!"),
+        role="admin",
+        institution_id=1,
+        is_active=True
+    )
+    db.add(user)
+    db.commit()
+
+    token = security.create_access_token(data={"sub": user.email, "role": user.role, "institution_id": user.institution_id})
+    db.close()
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Simulate 10 PDF generation calls under rate_key "pdf_report:admin:101"
+    rate_key = f"pdf_report:admin:101"
+    for _ in range(10):
+        cache_service.rate_limit_record_attempt(rate_key, ttl=60)
+
+    # 11th call is rejected with HTTP 429
+    resp = client.post(
+        "/api/v1/report-card/generate/1",
+        json={"start_date": "2026-01-01", "end_date": "2026-09-01"},
+        headers=headers
+    )
+    assert resp.status_code == 429
+    assert "PDF report generation rate limit exceeded" in resp.json()["detail"]

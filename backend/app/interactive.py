@@ -5,12 +5,12 @@ import time
 from datetime import datetime, date
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from . import models, security, crud, schemas
+from . import models, security, crud, schemas, cache_service
 from .database import get_db
 from .notification_service import notify_parent_absent
 
@@ -162,6 +162,14 @@ def notify_absent_batch(
 ):
     if current_user.role not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Teachers and admins only.")
+
+    rate_key = f"absentee_alert:{current_user.role}:{current_user.id}"
+    allowed, _ = cache_service.check_and_record_rate_limit(rate_key, limit=3, ttl=600)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Absentee notification dispatch rate limit exceeded. Please wait a moment."
+        )
 
     today_str, _ = _today_formats()
     absent_query = db.query(models.AttendanceModel).filter(
