@@ -31,7 +31,7 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
         setLeaveRequests(list);
         try {
           localStorage.setItem('cached_leave_admin_requests', JSON.stringify(list));
-        } catch {}
+        } catch { /* ignore fallback error */ }
       } else {
         setError('Failed to fetch leave requests.');
       }
@@ -98,7 +98,6 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
               style={{
                 padding: '6px 14px',
                 borderRadius: '8px',
-                border: 'none',
                 fontSize: '0.78rem',
                 fontWeight: 700,
                 cursor: 'pointer',

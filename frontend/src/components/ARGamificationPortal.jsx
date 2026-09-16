@@ -63,18 +63,6 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
     }];
   };
 
-  useEffect(() => {
-    loadLeaderboard();
-    loadMyStats();
-    loadBadges();
-  }, [instId, userId, students]);
-
-  useEffect(() => {
-    return () => {
-      stopARScanner();
-    };
-  }, []);
-
   const loadLeaderboard = async () => {
     try {
       setLoading(true);
@@ -132,6 +120,20 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
       setBadges(MOCK_BADGES);
     }
   };
+
+  useEffect(() => {
+    loadLeaderboard();
+    loadMyStats();
+    loadBadges();
+  }, [instId, userId, students]);
+
+  useEffect(() => {
+    return () => {
+      stopARScanner();
+    };
+  }, []);
+
+
 
   // Start AR Scanner with smart fallbacks for both Mobile & Laptop
   const startARScanner = async (overrideFacing, overrideDeviceId) => {

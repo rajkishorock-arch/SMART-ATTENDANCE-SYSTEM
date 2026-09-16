@@ -50,7 +50,7 @@ export default function AttendanceDisputesQueue({
         setDisputes(list);
         try {
           localStorage.setItem('cached_disputes_queue', JSON.stringify(list));
-        } catch {}
+        } catch { /* ignore fallback error */ }
       } else {
         setErrorMsg('Failed to load dispute queue.');
       }

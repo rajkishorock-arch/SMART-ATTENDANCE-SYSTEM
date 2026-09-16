@@ -398,8 +398,6 @@ export default function ExtremeLevelHub({
     return json;
   }, [apiBaseUrl, headers]);
 
-  api.baseUrl = `${apiBaseUrl}/extreme`;
-  api.headers = headers;
 
   const currentLevel = EXTREME_LEVELS.find((l) => l.id === level) || EXTREME_LEVELS[0];
 

@@ -161,7 +161,6 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
   const runAllInCategory = async () => {
     notify(`Running ${features.length} features…`);
     for (const f of features) {
-      // eslint-disable-next-line no-await-in-loop
       await onRun(f);
     }
     notify(`Category ${cat} complete — Home pe effects active`);

@@ -693,7 +693,7 @@ export default function App() {
     try {
       const savedRole = localStorage.getItem('userRole');
       if (savedRole === 'student') return 'student-attendance';
-    } catch (err) {}
+    } catch (err) { /* ignore fallback error */ }
     return 'dashboard';
   });
   const [activeSubSetting, setActiveSubSetting] = useState(null);
@@ -775,7 +775,7 @@ export default function App() {
       if (settings.customSpringEnabled) {
         document.body.classList.add('spring-physics');
       }
-    } catch (err) {}
+    } catch (err) { /* ignore fallback error */ }
   }, []);
 
   // Navigation State Refs for event handlers without stale closures
@@ -981,11 +981,11 @@ export default function App() {
     // If speaking, we must temporarily abort all recognition instances to prevent feedback loop
     if (isSpeaking || state === 'off') {
       if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
-        try { wakeWordRecRef.current.abort(); } catch (err) {}
+        try { wakeWordRecRef.current.abort(); } catch (err) { /* ignore fallback error */ }
         isWakeWordRunningRef.current = false;
       }
       if (recognitionRef.current && (isActiveAssistantRunningRef.current || isChatbotMicRunningRef.current)) {
-        try { recognitionRef.current.abort(); } catch (err) {}
+        try { recognitionRef.current.abort(); } catch (err) { /* ignore fallback error */ }
         isActiveAssistantRunningRef.current = false;
         isChatbotMicRunningRef.current = false;
       }
@@ -996,7 +996,7 @@ export default function App() {
     if (state === 'wake_word') {
       // Ensure active assistant or chatbot mic are stopped
       if (recognitionRef.current && (isActiveAssistantRunningRef.current || isChatbotMicRunningRef.current)) {
-        try { recognitionRef.current.abort(); } catch (err) {}
+        try { recognitionRef.current.abort(); } catch (err) { /* ignore fallback error */ }
         isActiveAssistantRunningRef.current = false;
         isChatbotMicRunningRef.current = false;
       }
@@ -1010,7 +1010,7 @@ export default function App() {
     if (state === 'active_assistant') {
       // Ensure wake word is stopped
       if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
-        try { wakeWordRecRef.current.abort(); } catch (err) {}
+        try { wakeWordRecRef.current.abort(); } catch (err) { /* ignore fallback error */ }
         isWakeWordRunningRef.current = false;
       }
 
@@ -1023,7 +1023,7 @@ export default function App() {
     if (state === 'chatbot_mic') {
       // Ensure wake word is stopped
       if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
-        try { wakeWordRecRef.current.abort(); } catch (err) {}
+        try { wakeWordRecRef.current.abort(); } catch (err) { /* ignore fallback error */ }
         isWakeWordRunningRef.current = false;
       }
 
@@ -1399,16 +1399,16 @@ export default function App() {
       setActiveTab(tabId);
       try {
         setMobileSidebarOpen(false);
-      } catch (err) {}
+      } catch (err) { /* ignore fallback error */ }
       try {
         setMobileControlOpen(false);
-      } catch (err) {}
+      } catch (err) { /* ignore fallback error */ }
       try {
         setShowScannerModal(false);
-      } catch (err) {}
+      } catch (err) { /* ignore fallback error */ }
       try {
         setShowFeedbackModal(false);
-      } catch (err) {}
+      } catch (err) { /* ignore fallback error */ }
     };
 
     // 1. Scanner specific helpers
@@ -1563,7 +1563,7 @@ export default function App() {
               else if (top === 'bottom') el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
               else el.scrollBy({ top: top, behavior: 'smooth' });
             }
-          } catch (err) {}
+          } catch (err) { /* ignore fallback error */ }
         });
       };
 
@@ -1699,7 +1699,7 @@ export default function App() {
     }
     if (lowerSpeech.includes('capture face') || lowerSpeech.includes('webcam chalu') || lowerSpeech.includes('open webcam')) {
       setShowWebcamModal(true);
-      setTimeout(() => { try { startWebcam(); } catch (err) {} }, 300);
+      setTimeout(() => { try { startWebcam(); } catch (err) { /* ignore fallback error */ } }, 300);
       playCyberSound('success');
       return true;
     }
@@ -1710,8 +1710,8 @@ export default function App() {
       setShowEditStudentSelfModal(false);
       setShowScannerModal(false);
       setShowFeedbackModal(false);
-      try { stopWebcam(); } catch {}{}
-      try { stopAttendanceCam(); } catch {}{}
+      try { stopWebcam(); } catch { /* ignore fallback error */ }
+      try { stopAttendanceCam(); } catch { /* ignore fallback error */ }
       playCyberSound('click');
       return true;
     }
@@ -3628,7 +3628,7 @@ export default function App() {
         if (osc1) osc1.stop();
         if (osc2) osc2.stop();
         if (audioCtx) audioCtx.close();
-      } catch (err) {}
+      } catch (err) { /* ignore fallback error */ }
     };
   }, [ambientHumActive, ambientHumVolume, isScanning, attendanceActive, webcamActive, studentWebcamActive]);
 
@@ -4077,13 +4077,13 @@ export default function App() {
         try {
           osc.stop();
           osc.disconnect();
-        } catch (err) {}
+        } catch (err) { /* ignore fallback error */ }
       }
       if (gain) {
-        try { gain.disconnect(); } catch (err) {}
+        try { gain.disconnect(); } catch (err) { /* ignore fallback error */ }
       }
       if (ctx) {
-        try { ctx.close(); } catch (err) {}
+        try { ctx.close(); } catch (err) { /* ignore fallback error */ }
       }
     };
   }, [lockdownActive, soundEnabled, audioVolume]);
@@ -4879,7 +4879,7 @@ export default function App() {
         setStudentLogs(data);
         try {
           localStorage.setItem('cached_student_logs', JSON.stringify(data));
-        } catch (err) {}
+        } catch (err) { /* ignore fallback error */ }
       } else {
         console.error("Failed to fetch student attendance logs");
       }

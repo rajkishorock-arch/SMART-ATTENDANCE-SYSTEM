@@ -80,15 +80,6 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
     setAlerts(getDynamicAlerts());
   }, [students, user]);
 
-  useEffect(() => {
-    if (viewMode === 'student') {
-      loadWellnessScore();
-      loadMoodLog();
-    } else if (viewMode === 'counselor') {
-      loadCounselorAlerts();
-    }
-  }, [viewMode, instId, userId]);
-
   const loadWellnessScore = async () => {
     try {
       setLoading(true);
@@ -141,6 +132,17 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (viewMode === 'student') {
+      loadWellnessScore();
+      loadMoodLog();
+    } else if (viewMode === 'counselor') {
+      loadCounselorAlerts();
+    }
+  }, [viewMode, instId, userId]);
+
+
 
   const submitMoodCheckIn = async () => {
     if (!selectedMood) return;

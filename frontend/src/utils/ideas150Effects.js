@@ -44,7 +44,9 @@ function setStorageItem(key, val) {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(key, val);
     }
-  } catch {}
+  } catch {
+    // ignore fallback error
+  }
 }
 
 function removeStorageItem(key) {
@@ -52,7 +54,9 @@ function removeStorageItem(key) {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem(key);
     }
-  } catch {}
+  } catch {
+    // ignore fallback error
+  }
 }
 
 function readEnabled() {

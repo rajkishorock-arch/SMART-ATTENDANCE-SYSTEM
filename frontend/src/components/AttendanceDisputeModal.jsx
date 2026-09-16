@@ -106,7 +106,7 @@ export default function AttendanceDisputeModal({
         setMyDisputes(list);
         try {
           localStorage.setItem('cached_my_disputes', JSON.stringify(list));
-        } catch {}
+        } catch { /* ignore fallback error */ }
       }
     } catch (err) {
       console.error("Error fetching disputes:", err);

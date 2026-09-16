@@ -38,7 +38,7 @@ export default function NotificationDrawerModal({
         setNotifications(list);
         try {
           localStorage.setItem('cached_realtime_notifications', JSON.stringify(list));
-        } catch {}
+        } catch { /* ignore fallback error */ }
       }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
@@ -85,7 +85,7 @@ export default function NotificationDrawerModal({
       try {
         await notificationApi.markNotificationRead(token, notif.id);
         setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
-      } catch {}
+      } catch { /* ignore fallback error */ }
     }
     if (onNotificationClick) {
       onNotificationClick(notif);

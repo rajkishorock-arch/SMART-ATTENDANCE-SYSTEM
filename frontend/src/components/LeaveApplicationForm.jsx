@@ -44,7 +44,7 @@ export default function LeaveApplicationForm({
           if (err.detail) {
             errText = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
           }
-        } catch {}
+        } catch { /* ignore fallback error */ }
         setMsg({ type: 'error', text: errText });
       }
     } catch {

@@ -30,7 +30,7 @@ export default function LeaveManagement({ token, currentUser }) {
         setLeaveRequests(list);
         try {
           localStorage.setItem('cached_leave_requests', JSON.stringify(list));
-        } catch {}
+        } catch { /* ignore fallback error */ }
       } else {
         setError('Failed to fetch leave requests.');
       }
