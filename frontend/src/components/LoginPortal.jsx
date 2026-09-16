@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import { wakeBackend } from '../utils/cameraScanner';
+import { systemApi } from '../api';
 
 const ROLES = [
   {
@@ -98,8 +99,7 @@ export default function LoginPortal({
   useEffect(() => {
     const fetchInstitutions = async () => {
       try {
-        const apiBase = getApiBaseUrl();
-        const res = await fetch(`${apiBase}/institutions/`);
+        const res = await systemApi.listInstitutions();
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {

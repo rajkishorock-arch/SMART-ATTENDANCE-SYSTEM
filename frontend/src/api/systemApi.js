@@ -1,7 +1,8 @@
 /**
  * System Administration & Multi-Tenant Domain API Module
  */
-import { apiGet, apiPost, apiPut, apiDelete } from './client';
+import { apiGet, apiPost, apiPut, apiDelete, buildApiUrl } from './client';
+import { fetchWithDedupe } from '../utils/apiClient';
 
 export const systemApi = {
   /**
@@ -15,7 +16,10 @@ export const systemApi = {
    * Fetch system institutions list (/institutions/)
    */
   async listInstitutions(token) {
-    return apiGet('/institutions/', { token });
+    if (token) {
+      return apiGet('/institutions/', { token });
+    }
+    return fetchWithDedupe(buildApiUrl('/institutions/'));
   },
 
   /**
