@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Calendar, Clock, Plus, Trash2, AlertTriangle, UserCheck, 
-  CheckCircle2, Filter, ShieldCheck, Layers, BookOpen, 
-  Sparkles, RefreshCw, X, FileText, ChevronRight, UserX, AlertCircle
+  CheckCircle2, Filter, ShieldCheck, BookOpen,
+  RefreshCw, X, UserX
 } from 'lucide-react';
-import { getApiBaseUrl } from '../utils/platform';
 import { systemApi, calendarApi, teacherApi } from '../api';
-
-const API_BASE_URL = getApiBaseUrl();
 
 const EVENT_TYPE_COLORS = {
   HOLIDAY: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', text: '#f87171', label: 'Holiday' },
@@ -111,9 +108,9 @@ export default function AcademicCalendarView({
       .then(data => {
         if (Array.isArray(data)) {
           setSubjectsList(data);
-          if (data.length > 0 && !cancelFormData.subject_id) {
-            setCancelFormData(prev => ({ ...prev, subject_id: data[0].id }));
-            setSubstituteFormData(prev => ({ ...prev, subject_id: data[0].id }));
+          if (data.length > 0) {
+            setCancelFormData(prev => (prev.subject_id ? prev : { ...prev, subject_id: data[0].id }));
+            setSubstituteFormData(prev => (prev.subject_id ? prev : { ...prev, subject_id: data[0].id }));
           }
         }
       })
@@ -125,8 +122,8 @@ export default function AcademicCalendarView({
         .then(data => {
           if (Array.isArray(data)) {
             setTeachersList(data);
-            if (data.length > 0 && !substituteFormData.substitute_teacher_id) {
-              setSubstituteFormData(prev => ({ ...prev, substitute_teacher_id: data[0].id }));
+            if (data.length > 0) {
+              setSubstituteFormData(prev => (prev.substitute_teacher_id ? prev : { ...prev, substitute_teacher_id: data[0].id }));
             }
           }
         })
@@ -135,8 +132,16 @@ export default function AcademicCalendarView({
   }, [token, isStaff]);
 
   useEffect(() => {
-    fetchEvents();
-    fetchMetrics(selectedSubjectIdForMetrics);
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (!ignore) {
+        fetchEvents();
+        fetchMetrics(selectedSubjectIdForMetrics);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [fetchEvents, fetchMetrics, selectedSubjectIdForMetrics]);
 
   // ── Handle Create Event ────────────────────────────────────────────────────
