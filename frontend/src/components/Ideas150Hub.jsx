@@ -79,10 +79,10 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
     return data;
   }, [apiBaseUrl, headers]);
 
-  const notify = (text) => {
+  const notify = useCallback((text) => {
     setMsg(text);
     if (onMsg) onMsg(text);
-  };
+  }, [onMsg]);
 
   const refreshStates = useCallback(async () => {
     if (!token) return;
@@ -99,13 +99,19 @@ export default function Ideas150Hub({ token, apiBaseUrl, userRole, onMsg }) {
     } finally {
       setLoadingStates(false);
     }
-  }, [api, token]);
+  }, [api, token, notify]);
 
   useEffect(() => {
+    let ignore = false;
     setIdeas150HubOpen(true);
     restoreAllIdeaFx();
-    refreshStates();
+    Promise.resolve().then(() => {
+      if (!ignore) {
+        refreshStates();
+      }
+    });
     return () => {
+      ignore = true;
       setIdeas150HubOpen(false);
       // Keep live FX on Home — do NOT clear on unmount
       restoreAllIdeaFx();

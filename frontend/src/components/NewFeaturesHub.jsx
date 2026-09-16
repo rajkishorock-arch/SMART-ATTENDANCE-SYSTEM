@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Brain, Zap, Shield, Award, Users, BarChart3, MessageCircle,
+  Zap, Shield, Award, Users, BarChart3, MessageCircle,
   Eye, Clock, Calendar, Map, QrCode, Building2, FileText,
   TrendingUp, DollarSign, Camera, Link, Lock, Heart,
   Gift, AlertTriangle, UserCheck, Cpu, Globe, Mic,
@@ -355,7 +355,7 @@ const FEATURES = [
 
 const CATEGORIES = ['All', 'AI & ML', 'Security', 'Engagement', 'Administration', 'Analytics', 'Technology'];
 
-export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
+export default function NewFeaturesHub({ token, apiBaseUrl }) {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFeature, setSelectedFeature] = useState(null);
@@ -549,7 +549,6 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
         {filtered.map(f => {
           const Icon = f.icon;
-          const isTesting = loading[f.id];
           const hasResult = testResults[f.id];
 
           return (
