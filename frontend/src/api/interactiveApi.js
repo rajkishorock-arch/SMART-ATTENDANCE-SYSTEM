@@ -1,9 +1,18 @@
 /**
  * Interactive Features & Audit Domain API Module
  */
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPost, buildApiUrl } from './client';
+import { fetchWithDedupe } from '../utils/apiClient';
 
 export const interactiveApi = {
+  /**
+   * Fetch extreme live-board mark feed (/extreme/level1/live-board)
+   */
+  async fetchLiveBoard(token) {
+    return fetchWithDedupe(buildApiUrl('/extreme/level1/live-board'), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
   /**
    * Fetch system audit logs (/audit/)
    */

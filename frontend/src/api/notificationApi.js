@@ -1,9 +1,18 @@
 /**
  * Notification Domain API Module
  */
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPost, buildApiUrl } from './client';
+import { fetchWithDedupe } from '../utils/apiClient';
 
 export const notificationApi = {
+  /**
+   * Fetch unread notification count (/notifications/unread-count)
+   */
+  async fetchUnreadCount(token) {
+    return fetchWithDedupe(buildApiUrl('/notifications/unread-count'), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
   /**
    * Fetch current user's notifications (/notifications/my-notifications)
    */

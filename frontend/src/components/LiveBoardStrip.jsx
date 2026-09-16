@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { interactiveApi } from '../api';
 
 export default function LiveBoardStrip({ apiBaseUrl, token, enabled = true }) {
   const [events, setEvents] = useState([]);
@@ -6,15 +7,13 @@ export default function LiveBoardStrip({ apiBaseUrl, token, enabled = true }) {
   const load = useCallback(async () => {
     if (!token || !enabled) return;
     try {
-      const res = await fetch(`${apiBaseUrl}/extreme/level1/live-board`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await interactiveApi.fetchLiveBoard(token);
       if (res.ok) {
         const data = await res.json();
         setEvents(data.events || []);
       }
     } catch { /* silent */ }
-  }, [apiBaseUrl, token, enabled]);
+  }, [token, enabled]);
 
   useEffect(() => {
     load();

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getApiBaseUrl } from '../utils/platform';
 import { initializePushNotifications } from '../services/pushNotificationService';
+import { notificationApi } from '../api';
 
 export function resolveNotificationNavigation(notif) {
   if (!notif) return { targetTab: null, openScanner: false };
@@ -37,10 +38,7 @@ export default function useNotifications(token, currentUser, onNavigate) {
   const fetchUnreadNotificationCount = useCallback(async () => {
     if (!token) return;
     try {
-      const apiBaseUrl = getApiBaseUrl();
-      const res = await fetch(`${apiBaseUrl}/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await notificationApi.fetchUnreadCount(token);
       if (res.ok) {
         const data = await res.json();
         setUnreadCount(data.unread_count || 0);

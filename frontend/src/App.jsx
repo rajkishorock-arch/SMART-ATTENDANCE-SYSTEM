@@ -924,9 +924,7 @@ export default function App() {
   // Fetch premium + subscription status
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_BASE_URL}/premium/status`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    systemApi.fetchPremiumStatus(token)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.premium) setHasPremiumAccess(true);
@@ -2224,9 +2222,7 @@ export default function App() {
 
   useEffect(() => {
     if (activeTab !== 'attendance' || !token || userRole === 'student') return;
-    fetch(`${API_BASE_URL}/schedules-auto/current-session`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    systemApi.fetchCurrentAutoSession(token)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.active && data.session) {
@@ -2686,11 +2682,7 @@ export default function App() {
       const statsMap = {};
       await Promise.all(subjectsList.map(async (sub) => {
         try {
-          const res = await fetch(`${API_BASE_URL}/attendance/my-report?subject_id=${sub.id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+          const res = await attendanceApi.fetchMyReport(token, sub.id);
           if (res.ok) {
             const data = await res.json();
             const myRecord = data.students.find(s => s.id === studentId);

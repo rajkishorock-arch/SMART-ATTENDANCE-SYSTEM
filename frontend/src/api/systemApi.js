@@ -23,6 +23,24 @@ export const systemApi = {
   },
 
   /**
+   * Fetch premium + subscription status (/premium/status)
+   */
+  async fetchPremiumStatus(token) {
+    return fetchWithDedupe(buildApiUrl('/premium/status'), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+
+  /**
+   * Fetch active automated attendance session (/schedules-auto/current-session)
+   */
+  async fetchCurrentAutoSession(token) {
+    return fetchWithDedupe(buildApiUrl('/schedules-auto/current-session'), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+
+  /**
    * Create new institution tenant (/institutions/)
    */
   async createInstitution(token, instData) {

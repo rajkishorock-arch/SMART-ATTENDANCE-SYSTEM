@@ -1,7 +1,8 @@
 /**
  * Attendance & Session Domain API Module
  */
-import { apiGet, apiPost, apiPut } from './client';
+import { apiGet, apiPost, apiPut, buildApiUrl } from './client';
+import { fetchWithDedupe } from '../utils/apiClient';
 
 export const attendanceApi = {
   /**
@@ -97,6 +98,15 @@ export const attendanceApi = {
    */
   async fetchSubjectStats(token) {
     return apiGet('/attendance/my-report', { token });
+  },
+
+  /**
+   * Fetch student's attendance report for specific subject (/attendance/my-report?subject_id=...)
+   */
+  async fetchMyReport(token, subjectId) {
+    return fetchWithDedupe(buildApiUrl(`/attendance/my-report?subject_id=${encodeURIComponent(subjectId)}`), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   },
 
   /**
