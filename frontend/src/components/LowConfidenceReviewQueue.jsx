@@ -50,7 +50,16 @@ export default function LowConfidenceReviewQueue({
   }, [token, statusFilter]);
 
   useEffect(() => {
-    fetchQueue();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await fetchQueue();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [fetchQueue]);
 
   // ── Handle Quick Action (CONFIRM / REJECT) ──────────────────────────────────

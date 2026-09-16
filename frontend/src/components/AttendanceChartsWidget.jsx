@@ -13,6 +13,36 @@ import {
 } from 'recharts';
 import { TrendingUp, PieChart as PieIcon } from 'lucide-react';
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.95)',
+        border: '1px solid rgba(0, 242, 254, 0.3)',
+        borderRadius: '10px',
+        padding: '8px 12px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+        color: '#f8fafc',
+        fontSize: '0.78rem'
+      }}>
+        <div style={{ fontWeight: 700, marginBottom: '4px', color: '#00f2fe' }}>
+          {label ? `${label}` : 'Metrics'}
+        </div>
+        {payload.map((entry, index) => (
+          <div key={`item-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: entry.color || entry.fill }} />
+              {entry.name}:
+            </span>
+            <span style={{ fontWeight: 700, color: '#fff' }}>{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function AttendanceChartsWidget({ stats = {} }) {
   const [timeRange, setTimeRange] = useState('weekly');
   const containerRef1 = useRef(null);
@@ -125,36 +155,6 @@ export default function AttendanceChartsWidget({ stats = {} }) {
     { name: 'Absent Today', value: absentCount, color: '#ef4444' },
     { name: 'Late Arrivals', value: lateCount, color: '#f59e0b' },
   ];
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.95)',
-          border: '1px solid rgba(0, 242, 254, 0.3)',
-          borderRadius: '10px',
-          padding: '8px 12px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-          color: '#f8fafc',
-          fontSize: '0.78rem'
-        }}>
-          <div style={{ fontWeight: 700, marginBottom: '4px', color: '#00f2fe' }}>
-            {label ? `${label}` : 'Metrics'}
-          </div>
-          {payload.map((entry, index) => (
-            <div key={`item-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: entry.color || entry.fill }} />
-                {entry.name}:
-              </span>
-              <span style={{ fontWeight: 700, color: '#fff' }}>{entry.value}</span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   const attendancePercent = totalLogged > 0 ? Math.round((presentCount / totalLogged) * 100) : 0;
   const activePieSlices = distributionData.filter(d => d.value > 0);

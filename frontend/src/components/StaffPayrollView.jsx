@@ -64,7 +64,16 @@ export default function StaffPayrollView({
   }, [token, activeSubTab, selectedMonth]);
 
   useEffect(() => {
-    fetchData();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await fetchData();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [fetchData]);
 
   // ── Staff Punch In / Out ──────────────────────────────────────────────────

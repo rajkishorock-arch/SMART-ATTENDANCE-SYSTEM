@@ -24,7 +24,16 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
   }, [token, API_BASE_URL]);
 
   React.useEffect(() => {
-    fetchQrToken();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await fetchQrToken();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [fetchQrToken]);
 
   React.useEffect(() => {

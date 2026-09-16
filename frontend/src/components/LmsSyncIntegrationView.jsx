@@ -63,7 +63,16 @@ export default function LmsSyncIntegrationView({
   }, [token]);
 
   useEffect(() => {
-    fetchData();
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await fetchData();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [fetchData]);
 
   // ── Save LMS Settings ──────────────────────────────────────────────────────
