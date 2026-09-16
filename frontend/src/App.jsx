@@ -5,7 +5,7 @@ import { generateLeavePdf } from './utils/leavePdfGenerator';
 import { initKeepAliveEngine } from './utils/keepAlive';
 import { fetchWithDedupe } from './utils/apiClient';
 import { fetchWithStaleCache } from './utils/cacheUtils';
-import { authApi, studentApi, teacherApi, attendanceApi, systemApi, apiGet } from './api';
+import { authApi, studentApi, teacherApi, attendanceApi, systemApi, interactiveApi, apiGet } from './api';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -2478,33 +2478,17 @@ export default function App() {
   const fetchSessionHistory = async (subjId = null, dateVal = null, periodVal = null) => {
     if (isDemoMode) return;
     try {
-      const queryParams = new URLSearchParams();
       const sId = subjId || selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
-      if (sId) {
-        queryParams.append('subject_id', sId);
-      }
       const dVal = dateVal !== null ? dateVal : historyFilterDate;
-      if (dVal) {
-        queryParams.append('date_filter', dVal);
-      }
       const pVal = periodVal !== null ? periodVal : historyFilterPeriod;
-      if (pVal && pVal.trim() !== '') {
-        queryParams.append('period', pVal);
-      }
-      const res = await fetch(`${API_BASE_URL}/attendance/sessions-history?${queryParams.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (res.status === 401) {
+
+      const data = await attendanceApi.fetchSessionHistory(token, sId, dVal, pVal);
+      setSessionHistory(data);
+    } catch (err) {
+      if (err.status === 401) {
         handleLogout();
         return;
       }
-      if (res.ok) {
-        const data = await res.json();
-        setSessionHistory(data);
-      }
-    } catch (err) {
       console.error('Error fetching session history:', err);
     }
   };
@@ -2536,37 +2520,25 @@ export default function App() {
         };
       });
 
-      const response = await fetch(`${API_BASE_URL}/attendance/manual`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ records })
-      });
+      const result = await attendanceApi.submitManualAttendance(token, { records });
 
       setIsSubmittingManual(false);
       setIsManualAttendanceOpen(false);
 
-      if (response.ok) {
-        const result = await response.json();
-        const successCount = result.success_count || 0;
-        const failCount = result.fail_count || 0;
-        alert(`Successfully marked manual attendance for ${successCount} students.${failCount > 0 ? ` Failed for ${failCount} students.` : ''}`);
-        playCyberSound('success');
-        setSelectedHistorySubjectId(String(manualSubjectId));
-        setHistoryFilterDate(manualDate);
-        setHistoryFilterPeriod(manualPeriod);
-        fetchSessionHistory(manualSubjectId, manualDate, manualPeriod);
-        fetchStats();
-        fetchLogs();
-      } else {
-        const err = await response.json().catch(() => ({}));
-        alert(err.detail || 'Failed to mark manual attendance. Please check network and security settings.');
-        playCyberSound('error');
-      }
+      const successCount = result.success_count || 0;
+      const failCount = result.fail_count || 0;
+      alert(`Successfully marked manual attendance for ${successCount} students.${failCount > 0 ? ` Failed for ${failCount} students.` : ''}`);
+      playCyberSound('success');
+      setSelectedHistorySubjectId(String(manualSubjectId));
+      setHistoryFilterDate(manualDate);
+      setHistoryFilterPeriod(manualPeriod);
+      fetchSessionHistory(manualSubjectId, manualDate, manualPeriod);
+      fetchStats();
+      fetchLogs();
     } catch (err) {
       setIsSubmittingManual(false);
+      alert(err.message || 'Failed to mark manual attendance. Please check network and security settings.');
+      playCyberSound('error');
       classStudents.forEach((student) => {
         const stateData = manualAttendanceData[student.id] || { status: 'Present' };
         addToOfflineQueue({
@@ -2614,36 +2586,23 @@ export default function App() {
     try {
       const nextStatus = currentStatus === 'Present' ? 'Absent' : 'Present';
       const sId = selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
-      const res = await fetch(`${API_BASE_URL}/attendance/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          student_id: studentId,
-          attendance_status: nextStatus,
-          subject_id: sId ? parseInt(sId) : null,
-          custom_date: dateVal,
-          custom_time: periodVal
-        })
+      await attendanceApi.toggleSessionStatus(token, {
+        student_id: studentId,
+        attendance_status: nextStatus,
+        subject_id: sId ? parseInt(sId) : null,
+        custom_date: dateVal,
+        custom_time: periodVal
       });
 
-      if (res.status === 401) {
+      playCyberSound('success');
+      fetchSessionHistory();
+    } catch (err) {
+      if (err.status === 401) {
         handleLogout();
         return;
       }
-
-      if (res.ok) {
-        playCyberSound('success');
-        fetchSessionHistory();
-      } else {
-        const errorData = await res.json();
-        alert(errorData.detail || 'Failed to update attendance status.');
-      }
-    } catch (err) {
       console.error('Error toggling student attendance:', err);
-      alert('Failed to connect to backend server.');
+      alert(err.message || 'Failed to connect to backend server.');
     }
   };
 
@@ -4699,15 +4658,13 @@ export default function App() {
           }
         }
       }
-      const res = await fetch(`${API_BASE_URL}/attendance/report?${queryParams.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const data = await attendanceApi.fetchReport(token, {
+        start_date: reportStartDate,
+        end_date: reportEndDate,
+        department: userRole === 'admin' ? reportDeptFilter : null,
+        subject_id: queryParams.get('subject_id')
       });
-      if (res.ok) {
-        const data = await res.json();
-        setReportData(data);
-      }
+      setReportData(data);
     } catch (err) {
       console.error('Error fetching report:', err);
     } finally {
@@ -4737,20 +4694,10 @@ export default function App() {
           }
         }
       }
-      const res = await fetch(`${API_BASE_URL}/attendance/send-absentee-alerts?${queryParams.toString()}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message || "Absentee warning emails queued successfully!");
-      } else {
-        alert(`Error: ${data.detail || "Failed to send absentee alerts."}`);
-      }
+      const data = await attendanceApi.sendAbsenteeAlerts(token, queryParams.get('subject_id'));
+      alert(data.message || "Absentee warning emails queued successfully!");
     } catch (err) {
-      alert("Connection failed. Make sure the backend server is running.");
+      alert(err.message || "Connection failed. Make sure the backend server is running.");
     } finally {
       setIsSendingAlerts(false);
     }
@@ -6292,32 +6239,21 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/users/${editingTeacher.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: editingTeacher.name,
-          email: editingTeacher.email,
-          password: editingTeacher.password ? editingTeacher.password : undefined,
-          role: editingTeacher.role,
-          subject_name: editingTeacher.subject_name || '',
-          subject_code: editingTeacher.subject_code || '',
-          subject_department: editingTeacher.subject_department || 'CSE(IOT)'
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setTeacherSuccess('Teacher details updated successfully!');
-        fetchTeachers();
-        setEditingTeacher(null);
-      } else {
-        setTeacherError(data.detail || 'Failed to update teacher.');
-      }
+      const payload = {
+        name: editingTeacher.name,
+        email: editingTeacher.email,
+        password: editingTeacher.password ? editingTeacher.password : undefined,
+        role: editingTeacher.role,
+        subject_name: editingTeacher.subject_name || '',
+        subject_code: editingTeacher.subject_code || '',
+        subject_department: editingTeacher.subject_department || 'CSE(IOT)'
+      };
+      await teacherApi.updateTeacher(token, editingTeacher.id, payload);
+      setTeacherSuccess('Teacher details updated successfully!');
+      fetchTeachers();
+      setEditingTeacher(null);
     } catch (err) {
-      setTeacherError('Connection failed.');
+      setTeacherError(err.message || 'Connection failed.');
     }
   };
 
@@ -9462,12 +9398,7 @@ export default function App() {
           onNotify={async () => {
             playCyberSound('click');
             try {
-              const r = await fetch(`${API_BASE_URL}/interactive/notify-absent-batch`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ notify_whatsapp: true }),
-              });
-              const d = await r.json();
+              const d = await interactiveApi.notifyAbsentBatch(token, { notify_whatsapp: true });
               alert(d.message || `Notified ${d.notified_count} parents`);
             } catch { alert('Notify failed — check network'); }
           }}
