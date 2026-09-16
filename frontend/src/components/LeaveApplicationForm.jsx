@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { generateLeavePdf } from '../utils/leavePdfGenerator';
+import { leaveApi } from '../api';
 
 // =====================================================================
 // LEAVE APPLICATION FORM - Used on student dashboard
@@ -26,13 +27,9 @@ export default function LeaveApplicationForm({
     setSubmitting(true);
     setMsg(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/me/leave-requests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          ...form,
-          subject_id: form.subject_id ? parseInt(form.subject_id, 10) : null
-        })
+      const res = await leaveApi.submitStudentLeaveRequest(token, {
+        ...form,
+        subject_id: form.subject_id ? parseInt(form.subject_id, 10) : null
       });
       if (res.ok) {
         setMsg({ type: 'success', text: '✅ Leave request submitted successfully!' });

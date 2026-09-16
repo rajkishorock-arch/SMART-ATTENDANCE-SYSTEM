@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Send, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
+import { leaveApi } from '../api';
 
 export default function LeaveManagement({ token, currentUser }) {
   const [startDate, setStartDate] = useState('');
@@ -22,12 +23,7 @@ export default function LeaveManagement({ token, currentUser }) {
     if (!token) return;
     if (leaveRequests.length === 0) setIsLoading(true);
     try {
-      const url = currentUser?.details?.id 
-        ? `${API_BASE_URL}/leaves/student/${currentUser.details.id}`
-        : `${API_BASE_URL}/leaves/my-requests`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const res = await leaveApi.fetchMyLeaveRequests(token, currentUser?.details?.id);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -58,19 +54,12 @@ export default function LeaveManagement({ token, currentUser }) {
     }
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/leaves/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          student_id: currentUser.details.id,
-          start_date: new Date(startDate).toISOString(),
-          end_date: new Date(endDate).toISOString(),
-          reason,
-		      institution_id: currentUser.institution_id,
-        }),
+      const res = await leaveApi.createLeaveRequest(token, {
+        student_id: currentUser.details.id,
+        start_date: new Date(startDate).toISOString(),
+        end_date: new Date(endDate).toISOString(),
+        reason,
+        institution_id: currentUser.institution_id,
       });
       if (res.ok) {
         setSuccess('Leave request submitted successfully!');

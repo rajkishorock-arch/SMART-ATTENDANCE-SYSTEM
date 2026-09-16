@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw, Download, FileText } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import { generateLeavePdf } from '../utils/leavePdfGenerator';
+import { leaveApi } from '../api';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -23,9 +24,7 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
     if (leaveRequests.length === 0) setIsLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/users/leaves`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const res = await leaveApi.fetchAllLeaveRequests(token);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -49,14 +48,7 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
 
   const handleUpdateStatus = async (id, status) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/users/leaves/${id}/review`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ status })
-      });
+      const res = await leaveApi.reviewLeaveRequest(token, id, { status });
       if (res.ok) {
         fetchLeaveRequests();
       } else {

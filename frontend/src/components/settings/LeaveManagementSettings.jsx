@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FileDown } from 'lucide-react';
 import { generateLeavePdf } from '../../utils/leavePdfGenerator';
 import { getApiBaseUrl } from '../../utils/platform';
+import { leaveApi } from '../../api';
 
 export default function LeaveManagementSettings({
   token,
@@ -14,15 +15,7 @@ export default function LeaveManagementSettings({
 
   const handleReviewLeave = async (reqId, status) => {
     try {
-      const apiBaseUrl = getApiBaseUrl();
-      const res = await fetch(`${apiBaseUrl}/users/leaves/${reqId}/review`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
-      });
+      const res = await leaveApi.reviewLeaveRequest(token, reqId, { status });
       if (res.ok) {
         if (fetchAdminLeaves) fetchAdminLeaves();
         if (playCyberSound) playCyberSound(status === 'Approved' ? 'success' : 'error');
