@@ -9,3 +9,4 @@ export { attendanceApi } from './attendanceApi';
 export { systemApi } from './systemApi';
 export { calendarApi } from './calendarApi';
 export { interactiveApi } from './interactiveApi';
+export { notificationApi } from './notificationApi';

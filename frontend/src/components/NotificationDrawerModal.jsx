@@ -3,10 +3,8 @@ import {
   Bell, CheckCircle2, AlertCircle, Clock, FileText, X, ShieldAlert,
   Calendar, Check, CheckCheck, RefreshCw, MessageSquare, Sliders, Trash2
 } from 'lucide-react';
-import { getApiBaseUrl } from '../utils/platform';
 import NotificationSettingsModal from './NotificationSettingsModal';
-
-const API_BASE_URL = getApiBaseUrl();
+import { notificationApi } from '../api';
 
 export default function NotificationDrawerModal({
   isOpen,
@@ -33,9 +31,7 @@ export default function NotificationDrawerModal({
     if (!token) return;
     if (notifications.length === 0) setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/notifications/my-notifications?limit=50`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await notificationApi.fetchMyNotifications(token, 50);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -61,10 +57,7 @@ export default function NotificationDrawerModal({
     if (!token) return;
     playCyberSound('click');
     try {
-      const res = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await notificationApi.markAllNotificationsRead(token);
       if (res.ok) {
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         playCyberSound('success');
@@ -79,10 +72,7 @@ export default function NotificationDrawerModal({
     if (!token) return;
     playCyberSound('click');
     try {
-      await fetch(`${API_BASE_URL}/notifications/delete/${id}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await notificationApi.deleteNotification(token, id);
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) {
       console.error(err);
@@ -93,10 +83,7 @@ export default function NotificationDrawerModal({
     playCyberSound('click');
     if (!notif.is_read) {
       try {
-        await fetch(`${API_BASE_URL}/notifications/mark-read/${notif.id}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        await notificationApi.markNotificationRead(token, notif.id);
         setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
       } catch (err) {}
     }
