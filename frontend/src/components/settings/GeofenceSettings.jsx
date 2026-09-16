@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertCircle } from 'lucide-react';
 
 export default function GeofenceSettings({
@@ -217,7 +216,7 @@ export default function GeofenceSettings({
                             setSettingsMessage("Fetched current GPS coordinates!");
                             setTimeout(() => setSettingsMessage(""), 2500);
                           },
-                          (err) => {
+                          () => {
                             setSettingsError("Could not fetch location permissions.");
                             setTimeout(() => setSettingsError(""), 3000);
                           }

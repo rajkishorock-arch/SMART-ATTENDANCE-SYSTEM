@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Flame, Award, Zap } from 'lucide-react';
+import { Flame } from 'lucide-react';
 import { getScanStreakLocal } from '../utils/futuristicFeatures';
 
 export default function ScanStreakCounter({ apiBaseUrl, token }) {

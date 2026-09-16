@@ -62,7 +62,7 @@ export default function useUpdateChecker(currentUser) {
           alert(`✨ Up to Date!\n\nYou are already using the latest version of the app (v${APP_VERSION}). No updates required at this time.`);
         }
       }
-    } catch (_) {
+    } catch {
       if (isManual) {
         alert("Failed to connect to the update check endpoint. Please check your internet connection.");
       }

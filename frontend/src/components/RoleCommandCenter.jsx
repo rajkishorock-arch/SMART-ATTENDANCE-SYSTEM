@@ -1,6 +1,6 @@
 import LiveCommandCenter from './LiveCommandCenter';
 
-export default function RoleCommandCenter({ stats, scannerLive, userRole, department, teacherSubjects = [] }) {
+export default function RoleCommandCenter({ stats, scannerLive, userRole, teacherSubjects = [] }) {
   const lateCount = stats?.total_late_today ?? 0;
 
   if (userRole === 'teacher') {

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getApiBaseUrl } from '../utils/platform';
 import { initializePushNotifications } from '../services/pushNotificationService';
 import { notificationApi } from '../api';
 
@@ -43,7 +42,7 @@ export default function useNotifications(token, currentUser, onNavigate) {
         const data = await res.json();
         setUnreadCount(data.unread_count || 0);
       }
-    } catch (e) {
+    } catch {
       // Ignore network errors on background poll
     }
   }, [token]);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Bell, CheckCircle2, AlertCircle, Clock, FileText, X, ShieldAlert,
   Calendar, Check, CheckCheck, RefreshCw, MessageSquare, Sliders, Trash2
@@ -19,7 +19,7 @@ export default function NotificationDrawerModal({
     try {
       const cached = localStorage.getItem('cached_realtime_notifications');
       return cached ? JSON.parse(cached) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   });
@@ -38,7 +38,7 @@ export default function NotificationDrawerModal({
         setNotifications(list);
         try {
           localStorage.setItem('cached_realtime_notifications', JSON.stringify(list));
-        } catch (e) {}
+        } catch {}
       }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
@@ -85,7 +85,7 @@ export default function NotificationDrawerModal({
       try {
         await notificationApi.markNotificationRead(token, notif.id);
         setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
-      } catch (err) {}
+      } catch {}
     }
     if (onNotificationClick) {
       onNotificationClick(notif);
@@ -132,7 +132,7 @@ export default function NotificationDrawerModal({
       if (diffHours < 24) return `${diffHours}h ago`;
       const diffDays = Math.floor(diffHours / 24);
       return `${diffDays}d ago`;
-    } catch (e) {
+    } catch {
       return '';
     }
   };

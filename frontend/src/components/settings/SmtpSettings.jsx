@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { getApiBaseUrl } from '../../utils/platform';
 
 export default function SmtpSettings({ token }) {

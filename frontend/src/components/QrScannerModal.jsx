@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId, subjects, onClose, onStudentCheckedIn, playCyberSound, addDiagnosticLog }) {
+export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId, onClose, onStudentCheckedIn, playCyberSound, addDiagnosticLog }) {
   const [errorMsg, setErrorMsg] = React.useState('');
   const [successStudent, setSuccessStudent] = React.useState(null);
   const [errorDetails, setErrorDetails] = React.useState('');

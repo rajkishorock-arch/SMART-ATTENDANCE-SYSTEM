@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   ScanFace, UserCheck, UserX, AlertTriangle, CheckCircle2, 
   Filter, ArrowRightLeft, ShieldAlert, RefreshCw, Clock, 

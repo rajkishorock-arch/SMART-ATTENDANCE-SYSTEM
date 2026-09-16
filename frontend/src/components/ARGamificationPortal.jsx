@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 const DEFAULT_BACKEND = (import.meta.env.VITE_API_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1').replace(/\/api\/v1\/?$/, '');

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { 
   Camera, CheckCircle2, AlertTriangle, ShieldCheck, X, 
   RefreshCw, Upload, Eye, Sparkles, User, AlertCircle

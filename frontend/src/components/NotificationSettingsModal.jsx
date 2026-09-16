@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  Bell, Shield, Clock, CheckCircle2, AlertCircle, Calendar, 
+  Shield, Clock, CheckCircle2, Calendar,
   Sparkles, X, Save, Trash2, VolumeX, Sliders
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
@@ -23,7 +23,7 @@ export default function NotificationSettingsModal({
     quiet_start_time: '22:00',
     quiet_end_time: '07:00'
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
 

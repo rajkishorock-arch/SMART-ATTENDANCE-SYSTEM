@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Zap, Shield, FileText, Bell, UserCheck, GraduationCap, Layers,
   Map, Brain, Mic, Monitor, Building2, Key, Link, Activity, Palette, CreditCard,
@@ -100,7 +100,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       if (res.ok) {
         return await res.json();
       }
-    } catch (e) {
+    } catch {
       /* fallback handled below */
     }
     return null;

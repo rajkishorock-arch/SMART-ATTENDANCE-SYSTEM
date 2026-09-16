@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getApiBaseUrl } from '../../utils/platform';
 import { wakeBackend } from '../../utils/cameraScanner';
 import { APP_VERSION } from '../../utils/versionManager';

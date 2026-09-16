@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Target, ShieldCheck, AlertTriangle, AlertCircle, TrendingUp, 
   Sparkles, Sliders, ChevronRight, CheckCircle2, XCircle, 

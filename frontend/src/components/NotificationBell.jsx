@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bell } from 'lucide-react';
 
 export default function NotificationBell({ unreadCount = 0, onClick, playCyberSound }) {

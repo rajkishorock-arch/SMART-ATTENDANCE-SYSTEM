@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
-  DollarSign, Briefcase, Clock, UserCheck, CheckCircle2, 
-  AlertTriangle, RefreshCw, Calendar, CreditCard, ChevronRight, 
-  LogIn, LogOut, FileText, Check, ShieldCheck, X
+  DollarSign, Clock, CheckCircle2,
+  AlertTriangle, RefreshCw, CreditCard,
+  LogIn, LogOut, X
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 

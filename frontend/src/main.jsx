@@ -1,4 +1,4 @@
-import React, { Component, StrictMode } from 'react'
+import { Component, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { getActiveTenantSlug } from './utils/tenantConfig'
@@ -31,7 +31,7 @@ import { initIdeas150FxOnBoot } from './utils/ideas150Effects'
 
 try {
   initIdeas150FxOnBoot();
-} catch (_) { /* ignore */ }
+} catch { /* ignore */ }
 
 class ErrorBoundary extends Component {
   constructor(props) {

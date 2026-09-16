@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', userRole = 'admin', students = [], onMsg }) {
   const [activeTab, setActiveTab] = useState('groupScan');
@@ -71,7 +71,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
         showNotification(data.message || 'Group scan completed successfully!');
         return;
       }
-    } catch (err) { /* fallback */ }
+    } catch { /* fallback */ }
     finally {
       setLoading(false);
     }
@@ -132,7 +132,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
         setLoading(false);
         return;
       }
-    } catch (err) { /* fallback */ }
+    } catch { /* fallback */ }
 
     const fallbackBot = {
       success: true,
@@ -168,7 +168,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
         setLoading(false);
         return;
       }
-    } catch (err) { /* fallback */ }
+    } catch { /* fallback */ }
 
     const fallbackGate = {
       access_granted: true,
@@ -204,7 +204,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
         setLoading(false);
         return;
       }
-    } catch (err) { /* fallback */ }
+    } catch { /* fallback */ }
 
     const newId = Date.now();
     setLeaveList(prev => [...prev, { id: newId, ...newLeave, status: 'pending' }]);
@@ -228,7 +228,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
         setLoading(false);
         return;
       }
-    } catch (err) { /* fallback */ }
+    } catch { /* fallback */ }
 
     setLeaveList(prev => prev.map(item => item.id === id ? { ...item, status: 'approved', substitute_assigned: 'Prof. Anita Roy' } : item));
     showNotification('Leave approved. Auto-assigned substitute: Prof. Anita Roy');
@@ -251,7 +251,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
         setLoading(false);
         return;
       }
-    } catch (err) { /* fallback */ }
+    } catch { /* fallback */ }
 
     const perDayRate = payrollForm.base_salary_inr / Math.max(1, payrollForm.working_days);
     const absentDays = Math.max(0, payrollForm.working_days - payrollForm.present_days);
@@ -301,7 +301,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
         setLoading(false);
         return;
       }
-    } catch (err) { /* fallback */ }
+    } catch { /* fallback */ }
 
     const fallbackEdge = {
       success: true,
@@ -333,7 +333,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
         setLoading(false);
         return;
       }
-    } catch (err) { /* fallback */ }
+    } catch { /* fallback */ }
 
     const fallback3D = {
       is_live: true,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   CheckCircle2, XCircle, AlertCircle, Clock, FileText, Send, 
   HelpCircle, ChevronDown, ChevronUp, ShieldCheck, ArrowUpRight, MessageSquare
@@ -19,7 +19,7 @@ export default function AttendanceDisputesQueue({
     try {
       const cached = localStorage.getItem('cached_disputes_queue');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) {
+    } catch {
       return [];
     }
   });
@@ -50,7 +50,7 @@ export default function AttendanceDisputesQueue({
         setDisputes(list);
         try {
           localStorage.setItem('cached_disputes_queue', JSON.stringify(list));
-        } catch (_) {}
+        } catch {}
       } else {
         setErrorMsg('Failed to load dispute queue.');
       }
@@ -103,7 +103,7 @@ export default function AttendanceDisputesQueue({
         setActionSuccessMsg(`Dispute #${disputeId} escalated to Department Head.`);
         fetchQueue();
       }
-    } catch (err) {
+    } catch {
       alert("Failed to escalate.");
     }
   };
@@ -407,7 +407,7 @@ export default function AttendanceDisputesQueue({
                               const url = window.URL.createObjectURL(blob);
                               window.open(url, '_blank');
                             }
-                          } catch (e) {
+                          } catch {
                             alert('Could not download proof document.');
                           }
                         }}

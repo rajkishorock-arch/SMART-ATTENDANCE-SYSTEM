@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Camera, FileSpreadsheet, Bell, Plus, Zap, X } from 'lucide-react';
 
-export default function QuickActionsDock({ onScan, onManual, onReport, onNotify, userRole }) {
+export default function QuickActionsDock({ onScan, onManual, onReport, onNotify }) {
   const [open, setOpen] = useState(false);
 
   const actions = [
@@ -22,7 +22,7 @@ export default function QuickActionsDock({ onScan, onManual, onReport, onNotify,
           alignItems: 'flex-end',
           animation: 'fadeInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
-          {actions.map((a, index) => (
+          {actions.map((a) => (
             <button
               key={a.id}
               type="button"

@@ -59,7 +59,7 @@ export function loadCameraSettings() {
   try {
     const raw = localStorage.getItem('camera_scan_settings');
     if (raw) return { ...CAMERA_PRESETS.balanced, ...JSON.parse(raw), preset: JSON.parse(raw).preset || 'turbo' };
-  } catch (_) { /* ignore */ }
+  } catch { /* ignore */ }
   return { preset: 'turbo', ...getCameraPreset('turbo'), autoFocusBox: true, mirrorPreview: true, hapticFeedback: true, classroomMultiScan: true };
 }
 

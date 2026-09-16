@@ -1,29 +1,19 @@
-import { useMemo } from 'react';
+
 import { 
-  Building2, 
-  CheckCircle2, 
-  AlertTriangle, 
   Camera, 
   ShieldAlert, 
   FileText, 
   Smartphone, 
   Calendar, 
   ChevronRight,
-  TrendingUp,
-  Activity
 } from 'lucide-react';
-import { t } from '../utils/i18n';
 
 export default function AdminPulseDashboard({
   stats,
-  systemHealth,
   onOpenScanner,
   onNavigateTab,
   lang = 'en'
 }) {
-  const attendanceRate = useMemo(() => {
-    return stats?.average_attendance_rate ?? 0;
-  }, [stats]);
 
   const presentToday = stats?.total_present_today ?? 0;
   const absentToday = stats?.total_absent_today ?? 0;

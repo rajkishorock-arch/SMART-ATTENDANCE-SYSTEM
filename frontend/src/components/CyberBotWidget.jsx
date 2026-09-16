@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   Bot, X, Send, Paperclip, Mic, Volume2, VolumeX, Trash2, 
   Settings, Video, ShieldCheck, Clock, Phone, FileDown 

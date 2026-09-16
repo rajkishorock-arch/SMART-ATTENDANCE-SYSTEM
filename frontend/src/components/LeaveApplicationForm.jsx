@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { generateLeavePdf } from '../utils/leavePdfGenerator';
 import { leaveApi } from '../api';
 
@@ -44,10 +44,10 @@ export default function LeaveApplicationForm({
           if (err.detail) {
             errText = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
           }
-        } catch (_) {}
+        } catch {}
         setMsg({ type: 'error', text: errText });
       }
-    } catch (e) {
+    } catch {
       setMsg({ type: 'error', text: 'Network connection or server error. Please try again.' });
     } finally {
       setSubmitting(false);

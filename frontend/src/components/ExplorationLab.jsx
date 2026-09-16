@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, Gamepad2, Palette, Gauge, Star, Lock, CheckCircle2, Volume2, Flame, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Gamepad2, Palette, Gauge, Star } from 'lucide-react';
 import {
   DEFAULT_EXPLORATION,
   loadExplorationSettings,

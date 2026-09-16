@@ -415,7 +415,7 @@ export default function NewFeaturesHub({ token, userRole, apiBaseUrl }) {
           }
         }));
       }
-    } catch (e) {
+    } catch {
       setTestResults(prev => ({
         ...prev,
         [feature.id]: { 

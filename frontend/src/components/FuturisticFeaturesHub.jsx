@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Palette, LayoutGrid, Award, History, MapPin, HeartPulse, Rocket,
   BarChart2, MessageCircle, Bell, Calendar, Users, RefreshCw, GripVertical,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const DEFAULT_BACKEND = (import.meta.env.VITE_API_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1').replace(/\/api\/v1\/?$/, '');
@@ -117,7 +117,7 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
       if (response.data?.log && response.data.log.length > 0) {
         setMoodLog(response.data.log);
       }
-    } catch (error) {
+    } catch {
       console.warn('Using default mood log history');
     }
   };
@@ -135,7 +135,7 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
       } else {
         setAlerts(getDynamicAlerts());
       }
-    } catch (error) {
+    } catch {
       setAlerts(getDynamicAlerts());
     } finally {
       setLoading(false);
@@ -187,7 +187,7 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
         { notes: 'Counselor contacted student' },
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
-    } catch (error) {
+    } catch {
       // Local state fallback
     } finally {
       setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, resolved: true } : a));

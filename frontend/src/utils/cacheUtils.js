@@ -10,7 +10,7 @@ export function getCachedData(cacheKey) {
     const raw = localStorage.getItem(cacheKey);
     if (!raw) return null;
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -19,7 +19,7 @@ export function getCachedTimestamp(cacheKey) {
   try {
     const ts = localStorage.getItem(`${cacheKey}_timestamp`);
     return ts ? parseInt(ts, 10) : 0;
-  } catch (e) {
+  } catch {
     return 0;
   }
 }
@@ -28,7 +28,7 @@ export function setCachedData(cacheKey, data) {
   try {
     localStorage.setItem(cacheKey, JSON.stringify(data));
     localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
-  } catch (e) {
+  } catch {
     // Ignore storage quota errors
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   QrCode, KeyRound, ShieldCheck, Clock, RefreshCw, 
   CheckCircle2, AlertTriangle, X, Play, StopCircle, 

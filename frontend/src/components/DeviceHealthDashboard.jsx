@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Monitor, Wifi, WifiOff, Camera, Battery, Activity, 
   Plus, RefreshCw, AlertTriangle, CheckCircle2, XCircle, 

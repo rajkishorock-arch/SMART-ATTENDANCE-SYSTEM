@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { APP_VERSION, getVersionStatusLabel } from '../utils/versionManager';
-import { RefreshCw, Download, CheckCircle, ShieldCheck, Sparkles, AlertCircle, Layers, Cpu } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 export default function VersionBadge({ serverLatest, updateActive, compact = false, onCheckUpdate }) {
   const [checking, setChecking] = useState(false);

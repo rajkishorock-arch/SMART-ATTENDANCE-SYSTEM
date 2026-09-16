@@ -248,7 +248,7 @@ export function AuthProvider({ children }) {
         try {
           const errData = await res.json();
           msg = errData.detail || msg;
-        } catch (_) { /* ignore */ }
+        } catch { /* ignore */ }
         throw new Error(msg);
       }
 

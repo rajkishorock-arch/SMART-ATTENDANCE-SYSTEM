@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Camera, Zap, Gauge, Sparkles, Users, Eye, FlipHorizontal, Smartphone, Wifi, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { Zap, Gauge, Sparkles, Users, Eye, FlipHorizontal, Smartphone, Wifi, CheckCircle2 } from 'lucide-react';
 import { CAMERA_PRESETS, loadCameraSettings, saveCameraSettings } from '../utils/cameraScanner';
 
 export default function CameraSettingsPanel({ onChange }) {

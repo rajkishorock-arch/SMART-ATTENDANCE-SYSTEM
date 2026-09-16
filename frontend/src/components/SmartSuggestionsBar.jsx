@@ -1,4 +1,4 @@
-import { X, Sparkles, Zap, Shield, BookOpen } from 'lucide-react';
+import { X, Sparkles, Zap, BookOpen } from 'lucide-react';
 import { SMART_SUGGESTIONS, getDismissedSuggestions, dismissSuggestion } from '../utils/futuristicFeatures';
 import { useState } from 'react';
 

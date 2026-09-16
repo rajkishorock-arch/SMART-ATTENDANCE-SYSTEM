@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { interactiveApi } from '../api';
 
-export default function LiveBoardStrip({ apiBaseUrl, token, enabled = true }) {
+export default function LiveBoardStrip({ token, enabled = true }) {
   const [events, setEvents] = useState([]);
 
   const load = useCallback(async () => {

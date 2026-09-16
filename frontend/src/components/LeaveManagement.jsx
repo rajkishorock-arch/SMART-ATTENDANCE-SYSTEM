@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Calendar, Send, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import { leaveApi } from '../api';
@@ -11,7 +11,7 @@ export default function LeaveManagement({ token, currentUser }) {
     try {
       const cached = localStorage.getItem('cached_leave_requests');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) {
+    } catch {
       return [];
     }
   });
@@ -30,11 +30,11 @@ export default function LeaveManagement({ token, currentUser }) {
         setLeaveRequests(list);
         try {
           localStorage.setItem('cached_leave_requests', JSON.stringify(list));
-        } catch (_) {}
+        } catch {}
       } else {
         setError('Failed to fetch leave requests.');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while fetching leave requests.');
     } finally {
       setIsLoading(false);
@@ -71,7 +71,7 @@ export default function LeaveManagement({ token, currentUser }) {
         const errData = await res.json();
         setError(errData.detail || 'Failed to submit leave request.');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while submitting the request.');
     } finally {
       setIsLoading(false);

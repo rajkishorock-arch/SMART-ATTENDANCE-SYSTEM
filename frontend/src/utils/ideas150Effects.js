@@ -34,7 +34,7 @@ const HUB_ONLY_FX = new Set([
 function getStorageItem(key) {
   try {
     return typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(key) : null;
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -44,7 +44,7 @@ function setStorageItem(key, val) {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(key, val);
     }
-  } catch (_) {}
+  } catch {}
 }
 
 function removeStorageItem(key) {
@@ -52,7 +52,7 @@ function removeStorageItem(key) {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem(key);
     }
-  } catch (_) {}
+  } catch {}
 }
 
 function readEnabled() {
@@ -61,7 +61,7 @@ function readEnabled() {
     if (!val) return [];
     const parsed = JSON.parse(val);
     return Array.isArray(parsed) ? parsed : [];
-  } catch (_) {
+  } catch {
     return [];
   }
 }

@@ -22,7 +22,7 @@ class NativeScannerBridge {
       try {
         const res = await FastFaceScannerNative.isAvailable();
         this._pluginAvailable = !!(res && res.available);
-      } catch (e) {
+      } catch {
         this._pluginAvailable = false;
       }
     }

@@ -1,5 +1,4 @@
 const STORAGE_KEY = 'futuristic_features_v1';
-const WIDGET_KEY = 'futuristic_widgets_v1';
 const ACHIEVEMENT_KEY = 'futuristic_achievements_v1';
 const SCAN_STREAK_KEY = 'futuristic_scan_streak_v1';
 

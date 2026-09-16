@@ -109,6 +109,7 @@ import {
 } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
 import VersionBadge from './components/VersionBadge';
+const AdvancedFeaturesHub = lazy(() => import('./components/AdvancedFeaturesHub'));
 const PremiumUpgradeHub = lazy(() => import('./components/PremiumUpgradeHub'));
 const ExplorationLab = lazy(() => import('./components/ExplorationLab'));
 import CameraSettingsPanel from './components/CameraSettingsPanel';
@@ -297,7 +298,7 @@ function calculateEAR(landmarks, eyeIndices) {
 
     if (distHorizontal === 0) return 0.0;
     return (distVertical1 + distVertical2) / (2.0 * distHorizontal);
-  } catch (e) {
+  } catch (err) {
     return 0.0;
   }
 }
@@ -315,7 +316,7 @@ function calculateEAR(landmarks, eyeIndices) {
 // AI ATTENDANCE FORECASTER & BUNK SIMULATOR CARD
 // =====================================================================
 export default function App() {
-  API_BASE_URL = getApiBaseUrl();
+  const API_BASE_URL = getApiBaseUrl();
   const [masterKeyPrompt, setMasterKeyPrompt] = useState({
     isOpen: false,
     title: '',
@@ -339,6 +340,30 @@ export default function App() {
   };
 
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+
+  const { addNotification } = useNotifications();
+  const [botWakeWordEnabled, setBotWakeWordEnabled] = useState(false);
+  const [isListeningSpeech, setIsListeningSpeech] = useState(false);
+  const [isVoiceAssistantMode, setIsVoiceAssistantMode] = useState(false);
+  const [botVoiceSelected, setBotVoiceSelected] = useState('');
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [showVoicePulseFlash, setShowVoicePulseFlash] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [botSuggestionCategory, setBotSuggestionCategory] = useState('all');
+  const [botAttachedImage, setBotAttachedImage] = useState(null);
+  const [botAttachedImageMime, setBotAttachedImageMime] = useState('');
+  const [botAttachedImageName, setBotAttachedImageName] = useState('');
+  const [chatMessages, setChatMessages] = useState([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [studentError, setStudentError] = useState('');
+
+  const recognitionRef = useRef(null);
+  const wakeWordRecRef = useRef(null);
+  const voiceAssistantActiveRef = useRef(false);
+  const voiceAssistantErrorCountRef = useRef(0);
+  const wakeWordErrorCountRef = useRef(0);
+  const chatBottomRef = useRef(null);
+
 
   const [neuralMeshCanvas, setNeuralMeshCanvas] = useState(null);
   const neuralMeshCanvasRef = useCallback((node) => {
@@ -386,8 +411,8 @@ export default function App() {
         await StatusBar.setStyle({ style: Style.Dark });
         await StatusBar.setBackgroundColor({ color: '#080c14' });
         await StatusBar.setOverlaysWebView({ overlay: false });
-      } catch (e) {
-        console.warn('Native status bar styling not active:', e);
+      } catch (err) {
+        console.warn('Native status bar styling not active:', err);
       }
     };
     styleStatusBar();
@@ -599,7 +624,7 @@ export default function App() {
     if (token && userRole === 'student') {
       try {
         await studentApi.submitConsent(token);
-      } catch (_) { /* optional */ }
+      } catch (err) { /* optional */ }
     }
   };
 
@@ -613,7 +638,7 @@ export default function App() {
     try {
       const cached = localStorage.getItem('cached_student_logs');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) {
+    } catch (err) {
       return [];
     }
   });
@@ -668,7 +693,7 @@ export default function App() {
     try {
       const savedRole = localStorage.getItem('userRole');
       if (savedRole === 'student') return 'student-attendance';
-    } catch (_) {}
+    } catch (err) {}
     return 'dashboard';
   });
   const [activeSubSetting, setActiveSubSetting] = useState(null);
@@ -711,6 +736,8 @@ export default function App() {
     showFeedbackModal,
     setShowFeedbackModal,
     feedbacks,
+    setFeedbacks,
+    isLoadingFeedbacks,
     fetchFeedbacks,
   } = feedbackState;
 
@@ -748,7 +775,7 @@ export default function App() {
       if (settings.customSpringEnabled) {
         document.body.classList.add('spring-physics');
       }
-    } catch (_) {}
+    } catch (err) {}
   }, []);
 
   // Navigation State Refs for event handlers without stale closures
@@ -899,7 +926,7 @@ export default function App() {
             CapApp.exitApp();
           }
         });
-      } catch (e) {
+      } catch (err) {
         // Not running in Capacitor or native plugin unavailable
       }
     };
@@ -954,11 +981,11 @@ export default function App() {
     // If speaking, we must temporarily abort all recognition instances to prevent feedback loop
     if (isSpeaking || state === 'off') {
       if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
-        try { wakeWordRecRef.current.abort(); } catch (e) {}
+        try { wakeWordRecRef.current.abort(); } catch (err) {}
         isWakeWordRunningRef.current = false;
       }
       if (recognitionRef.current && (isActiveAssistantRunningRef.current || isChatbotMicRunningRef.current)) {
-        try { recognitionRef.current.abort(); } catch (e) {}
+        try { recognitionRef.current.abort(); } catch (err) {}
         isActiveAssistantRunningRef.current = false;
         isChatbotMicRunningRef.current = false;
       }
@@ -969,7 +996,7 @@ export default function App() {
     if (state === 'wake_word') {
       // Ensure active assistant or chatbot mic are stopped
       if (recognitionRef.current && (isActiveAssistantRunningRef.current || isChatbotMicRunningRef.current)) {
-        try { recognitionRef.current.abort(); } catch (e) {}
+        try { recognitionRef.current.abort(); } catch (err) {}
         isActiveAssistantRunningRef.current = false;
         isChatbotMicRunningRef.current = false;
       }
@@ -983,7 +1010,7 @@ export default function App() {
     if (state === 'active_assistant') {
       // Ensure wake word is stopped
       if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
-        try { wakeWordRecRef.current.abort(); } catch (e) {}
+        try { wakeWordRecRef.current.abort(); } catch (err) {}
         isWakeWordRunningRef.current = false;
       }
 
@@ -996,7 +1023,7 @@ export default function App() {
     if (state === 'chatbot_mic') {
       // Ensure wake word is stopped
       if (wakeWordRecRef.current && isWakeWordRunningRef.current) {
-        try { wakeWordRecRef.current.abort(); } catch (e) {}
+        try { wakeWordRecRef.current.abort(); } catch (err) {}
         isWakeWordRunningRef.current = false;
       }
 
@@ -1536,7 +1563,7 @@ export default function App() {
               else if (top === 'bottom') el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
               else el.scrollBy({ top: top, behavior: 'smooth' });
             }
-          } catch(e) {}
+          } catch (err) {}
         });
       };
 
@@ -1672,7 +1699,7 @@ export default function App() {
     }
     if (lowerSpeech.includes('capture face') || lowerSpeech.includes('webcam chalu') || lowerSpeech.includes('open webcam')) {
       setShowWebcamModal(true);
-      setTimeout(() => { try { startWebcam(); } catch(e) {} }, 300);
+      setTimeout(() => { try { startWebcam(); } catch (err) {} }, 300);
       playCyberSound('success');
       return true;
     }
@@ -1683,8 +1710,8 @@ export default function App() {
       setShowEditStudentSelfModal(false);
       setShowScannerModal(false);
       setShowFeedbackModal(false);
-      try { stopWebcam(); } catch(e){}
-      try { stopAttendanceCam(); } catch(e){}
+      try { stopWebcam(); } catch {}{}
+      try { stopAttendanceCam(); } catch {}{}
       playCyberSound('click');
       return true;
     }
@@ -2088,7 +2115,7 @@ export default function App() {
         department_stats: {},
         weekly_trends: []
       };
-    } catch (_) {
+    } catch (err) {
       return {
         total_students: 0,
         total_present_today: 0,
@@ -2136,25 +2163,25 @@ export default function App() {
     try {
       const cached = localStorage.getItem('cached_students');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) { return []; }
+    } catch (err) { return []; }
   });
   const [logs, setLogs] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_logs');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) { return []; }
+    } catch (err) { return []; }
   });
   const [departments, setDepartments] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_departments');
       return cached ? JSON.parse(cached) : ['CSE(IOT)', 'ECE', 'Mechanical'];
-    } catch (_) { return ['CSE(IOT)', 'ECE', 'Mechanical']; }
+    } catch (err) { return ['CSE(IOT)', 'ECE', 'Mechanical']; }
   });
   const [departmentsList, setDepartmentsList] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_departmentsList');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) { return []; }
+    } catch (err) { return []; }
   });
 
   // Search & Filter States
@@ -2204,19 +2231,19 @@ export default function App() {
     try {
       const cached = localStorage.getItem('cached_subjects');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) { return []; }
+    } catch (err) { return []; }
   });
   const [schedules, setSchedules] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_schedules');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) { return []; }
+    } catch (err) { return []; }
   });
   const [teachers, setTeachers] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_teachers');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) { return []; }
+    } catch (err) { return []; }
   });
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
 
@@ -2760,8 +2787,8 @@ export default function App() {
               fetchLogs();
             }
           }
-        } catch (e) {
-          console.error('Error parsing WS message:', e);
+        } catch (err) {
+          console.error('Error parsing WS message:', err);
         }
       };
 
@@ -3038,8 +3065,8 @@ export default function App() {
       if (attendanceStreamRef.current) {
         try {
           attendanceStreamRef.current.getTracks().forEach(track => track.stop());
-        } catch (e) {
-          console.warn('Error stopping tracks:', e);
+        } catch (err) {
+          console.warn('Error stopping tracks:', err);
         }
         attendanceStreamRef.current = null;
       }
@@ -3064,14 +3091,14 @@ export default function App() {
       setFaceDetected(false);
       recognitionBusyRef.current = false;
       if (faceDetectorRef.current) {
-        try { faceDetectorRef.current.close(); } catch (_) { /* ignore */ }
+        try { faceDetectorRef.current.close(); } catch (err) { /* ignore */ }
         faceDetectorRef.current = null;
       }
       addDiagnosticLog('Ocular feed terminated.');
       try {
         handleSpeak("Scanner stopped.");
-      } catch (e) {
-        console.warn('Speech feedback failed:', e);
+      } catch (err) {
+        console.warn('Speech feedback failed:', err);
       }
     } catch (err) {
       console.error('Error in stopAttendanceCam:', err);
@@ -3088,8 +3115,8 @@ export default function App() {
       if (attendanceStreamRef.current) {
         try {
           attendanceStreamRef.current.getTracks().forEach(track => track.stop());
-        } catch (e) {
-          console.warn('Error stopping tracks for switch:', e);
+        } catch (err) {
+          console.warn('Error stopping tracks for switch:', err);
         }
         attendanceStreamRef.current = null;
       }
@@ -3269,6 +3296,9 @@ export default function App() {
       const formData = new FormData();
       formData.append('file', blob, 'frame.jpg');
 
+      const effectiveSubId = selectedSubjectId || (currentUser?.details?.subject_id) || (subjects && subjects.length > 0 ? subjects[0].id : null);
+      const activeInstId = currentUser?.institution_id || 1;
+
       try {
         setIsScanning(true);
         setScanStatus('Logging presence...');
@@ -3279,7 +3309,6 @@ export default function App() {
           queryParams.append('latitude', userCoords.latitude);
           queryParams.append('longitude', userCoords.longitude);
         }
-        const effectiveSubId = selectedSubjectId || (currentUser?.details?.subject_id) || (subjects && subjects.length > 0 ? subjects[0].id : null);
         if (effectiveSubId) {
           queryParams.append('subject_id', effectiveSubId);
         }
@@ -3590,8 +3619,8 @@ export default function App() {
       osc1.start();
       osc2.start();
       
-    } catch (e) {
-      console.error("Hum Drone error:", e);
+    } catch (err) {
+      console.error("Hum Drone error:", err);
     }
     
     return () => {
@@ -3599,7 +3628,7 @@ export default function App() {
         if (osc1) osc1.stop();
         if (osc2) osc2.stop();
         if (audioCtx) audioCtx.close();
-      } catch (e) {}
+      } catch (err) {}
     };
   }, [ambientHumActive, ambientHumVolume, isScanning, attendanceActive, webcamActive, studentWebcamActive]);
 
@@ -4039,8 +4068,8 @@ export default function App() {
         if (freq <= 300) dir = 1;
         osc.frequency.setValueAtTime(freq, ctx.currentTime);
       }, 20);
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     }
     return () => {
       clearInterval(timer);
@@ -4048,13 +4077,13 @@ export default function App() {
         try {
           osc.stop();
           osc.disconnect();
-        } catch (e) {}
+        } catch (err) {}
       }
       if (gain) {
-        try { gain.disconnect(); } catch (e) {}
+        try { gain.disconnect(); } catch (err) {}
       }
       if (ctx) {
-        try { ctx.close(); } catch (e) {}
+        try { ctx.close(); } catch (err) {}
       }
     };
   }, [lockdownActive, soundEnabled, audioVolume]);
@@ -4080,6 +4109,8 @@ export default function App() {
     }
 
     let active = true;
+    let detectRafId = null;
+    let detectTimerId = null;
     const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
 
     const runDetector = async () => {
@@ -4128,9 +4159,6 @@ export default function App() {
             }
           }
         });
-
-        let detectRafId = null;
-        let detectTimerId = null;
 
         const detectLoop = async () => {
           if (!active || !attendanceActive) return;
@@ -4204,7 +4232,7 @@ export default function App() {
       if (detectRafId) cancelAnimationFrame(detectRafId);
       if (detectTimerId) clearTimeout(detectTimerId);
       if (faceDetectorRef.current) {
-        try { faceDetectorRef.current.close(); } catch (_) { /* ignore */ }
+        try { faceDetectorRef.current.close(); } catch (err) { /* ignore */ }
         faceDetectorRef.current = null;
       }
     };
@@ -4382,8 +4410,8 @@ export default function App() {
               totalLuminance += (0.299 * r + 0.587 * g + 0.114 * b);
             }
             avgBrightness = totalLuminance / (data.length / 4);
-          } catch (e) {
-            console.error("Luminance sampling error:", e);
+          } catch (err) {
+            console.error("Luminance sampling error:", err);
           }
 
           // Calculate eye distance
@@ -4851,7 +4879,7 @@ export default function App() {
         setStudentLogs(data);
         try {
           localStorage.setItem('cached_student_logs', JSON.stringify(data));
-        } catch (e) {}
+        } catch (err) {}
       } else {
         console.error("Failed to fetch student attendance logs");
       }
@@ -4885,8 +4913,8 @@ export default function App() {
       } else {
         console.warn('Blueprint fetch returned status:', res.status);
       }
-    } catch (e) {
-      console.error('Blueprint fetch error:', e);
+    } catch (err) {
+      console.error('Blueprint fetch error:', err);
     } finally {
       setBlueprintLoading(false);
     }
@@ -5247,7 +5275,7 @@ export default function App() {
         if (cached) setCurrentUser(JSON.parse(cached));
         const role = localStorage.getItem('userRole');
         if (role) setUserRole(role);
-      } catch (_) { /* ignore */ }
+      } catch (err) { /* ignore */ }
     }
   }, [token, currentUser]);
 
@@ -5384,8 +5412,8 @@ export default function App() {
         setServerWarmingUp(false);
         return true;
       }
-    } catch (e) {
-      console.log("Server health check failed, warming up...", e);
+    } catch (err) {
+      console.log("Server health check failed, warming up...", err);
     }
     if (stats) {
       setServerWarmingUp(false);
@@ -5939,7 +5967,7 @@ export default function App() {
         try {
           await studentApi.deleteStudent(token, id);
           successCount++;
-        } catch (_) {
+        } catch (err) {
           failCount++;
         }
       }

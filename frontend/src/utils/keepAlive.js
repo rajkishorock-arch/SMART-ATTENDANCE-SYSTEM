@@ -19,7 +19,7 @@ export function initKeepAliveEngine() {
         method: 'GET',
         cache: 'no-store'
       });
-    } catch (e) {
+    } catch {
       // Ignore network failures
     }
   };

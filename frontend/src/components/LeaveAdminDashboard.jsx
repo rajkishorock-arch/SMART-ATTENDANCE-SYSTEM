@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw, Download, FileText } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import { generateLeavePdf } from '../utils/leavePdfGenerator';
@@ -11,7 +11,7 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
     try {
       const cached = localStorage.getItem('cached_leave_admin_requests');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) {
+    } catch {
       return [];
     }
   });
@@ -31,11 +31,11 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
         setLeaveRequests(list);
         try {
           localStorage.setItem('cached_leave_admin_requests', JSON.stringify(list));
-        } catch (_) {}
+        } catch {}
       } else {
         setError('Failed to fetch leave requests.');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while fetching leave requests.');
     } finally {
       setIsLoading(false);
@@ -54,7 +54,7 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
       } else {
         setError('Failed to update leave request status.');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while updating status.');
     }
   };

@@ -22,14 +22,14 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
     try {
       const res = await fetch(`${apiBaseUrl}/premium/grants`, { headers: headers() });
       if (res.ok) setUsers(await res.json());
-    } catch (e) { /* silent */ }
+    } catch { /* silent */ }
   }, [apiBaseUrl, headers]);
 
   const loadAll = useCallback(async () => {
     try {
       const res = await fetch(`${apiBaseUrl}/premium/all-grants`, { headers: headers() });
       if (res.ok) setAllGrants(await res.json());
-    } catch (e) { /* silent */ }
+    } catch { /* silent */ }
   }, [apiBaseUrl, headers]);
 
   useEffect(() => {

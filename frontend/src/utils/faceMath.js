@@ -16,7 +16,7 @@ export function calculateEAR(landmarks, eyeIndices) {
 
     if (distHorizontal === 0) return 0.0;
     return (distVertical1 + distVertical2) / (2.0 * distHorizontal);
-  } catch (e) {
+  } catch {
     return 0.0;
   }
 }

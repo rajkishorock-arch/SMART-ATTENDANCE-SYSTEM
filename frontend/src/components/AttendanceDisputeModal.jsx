@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   AlertCircle, CheckCircle2, Clock, UploadCloud, X, FileText, 
   HelpCircle, MessageSquare, Send, ShieldAlert, ChevronRight, XCircle
@@ -56,7 +56,7 @@ export default function AttendanceDisputeModal({
     try {
       const cached = localStorage.getItem('cached_my_disputes');
       return cached ? JSON.parse(cached) : [];
-    } catch (_) {
+    } catch {
       return [];
     }
   });
@@ -106,7 +106,7 @@ export default function AttendanceDisputeModal({
         setMyDisputes(list);
         try {
           localStorage.setItem('cached_my_disputes', JSON.stringify(list));
-        } catch (_) {}
+        } catch {}
       }
     } catch (err) {
       console.error("Error fetching disputes:", err);
@@ -225,7 +225,7 @@ export default function AttendanceDisputeModal({
         setSuccessMsg(`Dispute #${disputeId} was cancelled.`);
         fetchMyDisputes();
       }
-    } catch (err) {
+    } catch {
       setErrorMsg('Failed to cancel dispute.');
     }
   };
@@ -777,7 +777,7 @@ export default function AttendanceDisputeModal({
                                       const url = window.URL.createObjectURL(blob);
                                       window.open(url, '_blank');
                                     }
-                                  } catch (e) {
+                                  } catch {
                                     alert('Could not download proof document.');
                                   }
                                 }}
