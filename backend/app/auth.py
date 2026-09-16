@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-from . import crud, schemas, security, models, security_utils
+from . import crud, schemas, security, models, security_utils, cache_service
 from .database import get_db
 from .core import config
 
@@ -24,16 +24,13 @@ def record_active_user(email: str, role: str):
         "last_seen": time.time()
     }
 
-_login_attempts = defaultdict(list)
 MAX_LOGIN_ATTEMPTS = 8
 LOGIN_WINDOW_SECONDS = 300
 
 
 def _check_rate_limit(key: str):
-    now = datetime.utcnow()
-    window_start = now - timedelta(seconds=LOGIN_WINDOW_SECONDS)
-    _login_attempts[key] = [t for t in _login_attempts[key] if t > window_start]
-    if len(_login_attempts[key]) >= MAX_LOGIN_ATTEMPTS:
+    attempts = cache_service.rate_limit_get_attempts(key, ttl=LOGIN_WINDOW_SECONDS)
+    if attempts >= MAX_LOGIN_ATTEMPTS:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many login attempts. Please try again later.",
@@ -41,7 +38,8 @@ def _check_rate_limit(key: str):
 
 
 def _record_failed_login(key: str):
-    _login_attempts[key].append(datetime.utcnow())
+    cache_service.rate_limit_record_attempt(key, ttl=LOGIN_WINDOW_SECONDS)
+
 
 
 @router.post("/token", response_model=schemas.Token)
@@ -51,106 +49,116 @@ def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
     rate_key = form_data.username.strip().lower()
-    _check_rate_limit(rate_key)
-    client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
 
-    tenant_slug = request.headers.get("X-Tenant-Slug", "default")
-    # Resolve active institution from tenant_slug header
-    inst = db.query(models.Institution).filter(models.Institution.slug == tenant_slug).first()
-    if not inst:
-        # Fallback to default institution if not found
-        inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
-    institution_id = inst.id if inst else 1
+    try:
+        with cache_service.rate_limit_user_lock(rate_key):
+            _check_rate_limit(rate_key)
+            client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
 
-    # For Default/System institution (id==1):
-    # - ADMIN logins are restricted to System Owner only
-    # - TEACHERS and STUDENTS of this institution CAN login normally
-    _is_default_inst = (institution_id == 1)
+            tenant_slug = request.headers.get("X-Tenant-Slug", "default")
+            # Resolve active institution from tenant_slug header
+            inst = db.query(models.Institution).filter(models.Institution.slug == tenant_slug).first()
+            if not inst:
+                # Fallback to default institution if not found
+                inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
+            institution_id = inst.id if inst else 1
 
-    # 2. Try Admin/Teacher Login
-    user = crud.get_user_by_email(db, email=form_data.username, institution_id=institution_id)
-    if user:
-        # For default institution, only system owner can login as admin
-        if _is_default_inst and user.role in ("admin",) and user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Default Institution admin access is restricted to the System Owner only."
-            )
+            # For Default/System institution (id==1):
+            # - ADMIN logins are restricted to System Owner only
+            # - TEACHERS and STUDENTS of this institution CAN login normally
+            _is_default_inst = (institution_id == 1)
 
-        is_authenticated = False
-        print(f"DEBUG AUTH USER: email={user.email}, inst_id={user.institution_id}, hash={user.password_hash}")
-        res = security.verify_password(form_data.password, user.password_hash)
-        print(f"DEBUG VERIFY RESULT: {res} for input password={form_data.password}")
-        if res:
-            is_authenticated = True
+            # 2. Try Admin/Teacher Login
+            user = crud.get_user_by_email(db, email=form_data.username, institution_id=institution_id)
+            if user:
+                # For default institution, only system owner can login as admin
+                if _is_default_inst and user.role in ("admin",) and user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Default Institution admin access is restricted to the System Owner only."
+                    )
 
-        if not is_authenticated:
+                is_authenticated = False
+                print(f"DEBUG AUTH USER: email={user.email}, inst_id={user.institution_id}, hash={user.password_hash}")
+                res = security.verify_password(form_data.password, user.password_hash)
+                print(f"DEBUG VERIFY RESULT: {res} for input password={form_data.password}")
+                if res:
+                    is_authenticated = True
+
+                if not is_authenticated:
+                    _record_failed_login(rate_key)
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Incorrect email or password",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                if not user.is_active:
+                    raise HTTPException(status_code=400, detail="Inactive user account.")
+
+                # Transparent password hash upgrade if legacy format detected
+                if security.needs_rehash(user.password_hash):
+                    try:
+                        user.password_hash = security.get_password_hash(form_data.password)
+                        db.commit()
+                    except Exception:
+                        db.rollback()
+
+                record_active_user(user.email, user.role)
+                access_token = security.create_access_token(
+                    data={"sub": user.email, "role": user.role, "institution_id": user.institution_id}
+                )
+                crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=user.email, action="Admin/User logged in."))
+                return {"access_token": access_token, "token_type": "bearer"}
+
+            # 3. Try Student Login
+            student = crud.get_student_by_email(db, email=form_data.username, institution_id=institution_id)
+            if student:
+                is_valid = False
+                if not student.password_hash:
+                    if config.ALLOW_ROLL_PASSWORD and student.roll and form_data.password == student.roll:
+                        is_valid = True
+                        # Set initial password hash for roll password
+                        student.password_hash = security.get_password_hash(form_data.password)
+                        db.commit()
+                elif security.verify_password(form_data.password, student.password_hash):
+                    is_valid = True
+
+                if not is_valid:
+                    _record_failed_login(rate_key)
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Incorrect email or password",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+
+                # Transparent password hash upgrade if legacy format detected
+                if student.password_hash and security.needs_rehash(student.password_hash):
+                    try:
+                        student.password_hash = security.get_password_hash(form_data.password)
+                        db.commit()
+                    except Exception:
+                        db.rollback()
+
+                record_active_user(student.email, "student")
+                access_token = security.create_access_token(
+                    data={"sub": student.email, "role": "student", "institution_id": student.institution_id}
+                )
+                crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=student.email, action="Student logged in."))
+                return {"access_token": access_token, "token_type": "bearer"}
+
             _record_failed_login(rate_key)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        if not user.is_active:
-            raise HTTPException(status_code=400, detail="Inactive user account.")
-
-        # Transparent password hash upgrade if legacy format detected
-        if security.needs_rehash(user.password_hash):
-            try:
-                user.password_hash = security.get_password_hash(form_data.password)
-                db.commit()
-            except Exception:
-                db.rollback()
-
-        record_active_user(user.email, user.role)
-        access_token = security.create_access_token(
-            data={"sub": user.email, "role": user.role, "institution_id": user.institution_id}
+    except cache_service.LockAcquisitionError as err:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(err) or "Account login is currently processing another request. Please try again.",
         )
-        crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=user.email, action="Admin/User logged in."))
-        return {"access_token": access_token, "token_type": "bearer"}
 
-    # 3. Try Student Login
-    student = crud.get_student_by_email(db, email=form_data.username, institution_id=institution_id)
-    if student:
-        is_valid = False
-        if not student.password_hash:
-            if config.ALLOW_ROLL_PASSWORD and student.roll and form_data.password == student.roll:
-                is_valid = True
-                # Set initial password hash for roll password
-                student.password_hash = security.get_password_hash(form_data.password)
-                db.commit()
-        elif security.verify_password(form_data.password, student.password_hash):
-            is_valid = True
 
-        if not is_valid:
-            _record_failed_login(rate_key)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        # Transparent password hash upgrade if legacy format detected
-        if student.password_hash and security.needs_rehash(student.password_hash):
-            try:
-                student.password_hash = security.get_password_hash(form_data.password)
-                db.commit()
-            except Exception:
-                db.rollback()
-
-        record_active_user(student.email, "student")
-        access_token = security.create_access_token(
-            data={"sub": student.email, "role": "student", "institution_id": student.institution_id}
-        )
-        crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=student.email, action="Student logged in."))
-        return {"access_token": access_token, "token_type": "bearer"}
-
-    _record_failed_login(rate_key)
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect email or password",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
 
 
 @router.get("/me")

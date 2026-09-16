@@ -61,6 +61,9 @@ def validate_config():
             
         if SEED_DEFAULT_USERS:
             errors.append("SEED_DEFAULT_USERS must be false in production.")
+
+        if ALLOW_ROLL_PASSWORD:
+            errors.append("ALLOW_ROLL_PASSWORD must be false in production.")
             
     if errors:
         raise RuntimeError("Configuration error: " + " ".join(errors))
