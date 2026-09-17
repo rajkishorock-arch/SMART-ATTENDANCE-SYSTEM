@@ -78,7 +78,6 @@ export default function LoginPortal({
   const [regConsent, setRegConsent] = useState(true);
 
   const [regError, setRegError] = useState('');
-  const [regSuccess, setRegSuccess] = useState('');
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [showPostRegFaceEnroll, setShowPostRegFaceEnroll] = useState(false);
 
@@ -127,7 +126,6 @@ export default function LoginPortal({
   const handleRegisterSubmit = async (e) => {
     if (e) e.preventDefault();
     setRegError('');
-    setRegSuccess('');
 
     if (regPassword.length < 6) {
       setRegError('Password must be at least 6 characters long.');
@@ -179,7 +177,6 @@ export default function LoginPortal({
         throw new Error(data.detail || 'Registration failed. Please check credentials.');
       }
 
-      setRegSuccess('Account created successfully!');
       setShowPostRegFaceEnroll(true);
     } catch (err) {
       setRegError(err.message || 'Registration failed');
