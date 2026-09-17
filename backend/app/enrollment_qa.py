@@ -123,6 +123,9 @@ async def validate_enrollment_sample(
         is_valid = False
         feedback_parts.append(f"Multiple faces ({qa['face_count']}) detected. Only the student should be in the frame.")
 
+    # Resolve effective student_id (fall back to identity.student_id for student role)
+    effective_student_id = student_id if student_id is not None else (identity.student_id if identity.role == "student" else None)
+
     # Duplicate face check against institution's enrolled cache
     duplicate_id = None
     duplicate_name = None
@@ -136,7 +139,7 @@ async def validate_enrollment_sample(
                 best = results[0]
                 matched_user_id = best["user_id"]
                 # If matched to a DIFFERENT student with high similarity >= 0.70
-                if student_id is None or matched_user_id != student_id:
+                if effective_student_id is None or matched_user_id != effective_student_id:
                     if best["confidence"] >= 70.0:
                         duplicate_id = matched_user_id
                         duplicate_name = best["name"]

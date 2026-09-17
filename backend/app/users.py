@@ -48,19 +48,23 @@ def verify_master_password(db: Session, request: Request, institution_id: int) -
 
 def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student_id: int = None, institution_id: int = None) -> bool:
     """
-    Checks if a face is already registered to another student.
-    Returns True if a duplicate face is found.
+    Checks if a face is already registered to another student within the same institution.
+    Enforces strict tenant isolation; returns False if institution_id is None to avoid cross-tenant leaks.
     """
+    if institution_id is None:
+        return False
+
     import json
     from . import models
     from .face_utils import get_face_engines
     
     detector, recognizer = get_face_engines()
     
-    # Query all students who have face embeddings registered
-    query = db.query(models.StudentModel).filter(models.StudentModel.face_embedding != None)
-    if institution_id is not None:
-        query = query.filter(models.StudentModel.institution_id == institution_id)
+    # Query students within the same institution who have face embeddings registered
+    query = db.query(models.StudentModel).filter(
+        models.StudentModel.face_embedding != None,
+        models.StudentModel.institution_id == institution_id
+    )
     if exclude_student_id is not None:
         query = query.filter(models.StudentModel.id != exclude_student_id)
         

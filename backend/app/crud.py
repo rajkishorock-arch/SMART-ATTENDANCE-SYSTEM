@@ -105,6 +105,7 @@ def delete_student(db: Session, student_id: int, institution_id: Optional[int] =
         query = query.filter(models.StudentModel.institution_id == institution_id)
     db_student = query.first()
     if db_student:
+        target_inst_id = db_student.institution_id
         # Also delete related attendance logs
         attn_query = db.query(models.AttendanceModel).filter(models.AttendanceModel.id == str(student_id))
         if institution_id is not None:
@@ -112,6 +113,16 @@ def delete_student(db: Session, student_id: int, institution_id: Optional[int] =
         attn_query.delete()
         db.delete(db_student)
         db.commit()
+
+        # Invalidate and refresh in-memory recognition service cache
+        try:
+            from app.recognition_service import recognition_service
+            if target_inst_id is not None:
+                recognition_service.invalidate_cache(target_inst_id)
+                recognition_service.load_student_records(db, institution_id=target_inst_id)
+        except Exception:
+            pass
+
         return True
     return False
 

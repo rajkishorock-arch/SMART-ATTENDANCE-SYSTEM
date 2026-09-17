@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 from .database import get_db
@@ -103,7 +103,7 @@ async def download_embeddings_for_offline(
         device_id=f"admin_{current_user.id}",
         sync_type="download",
         records_count=len(offline_data),
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     db.add(sync_log)
     db.commit()
@@ -167,7 +167,7 @@ async def sync_offline_attendance(
         device_id=sync_request.device_id,
         sync_type="upload",
         records_count=synced_count,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         sync_metadata=json.dumps({
             "skipped": skipped_count,
             "errors": errors
@@ -187,7 +187,7 @@ async def sync_offline_attendance(
         "synced": synced_count,
         "skipped": skipped_count,
         "errors": errors,
-        "last_sync_time": datetime.utcnow().isoformat()
+        "last_sync_time": datetime.now(timezone.utc).isoformat()
     }
 
 
