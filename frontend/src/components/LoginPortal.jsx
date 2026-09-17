@@ -54,7 +54,6 @@ export default function LoginPortal({
   serverWarmingUp,
   onWakeServer,
   onExploreGuest,
-  onSsoLogin,
 }) {
   // UI Controls
   const [showPassword, setShowPassword] = useState(false);
