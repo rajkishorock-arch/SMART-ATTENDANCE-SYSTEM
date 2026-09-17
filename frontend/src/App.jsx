@@ -2648,7 +2648,7 @@ export default function App() {
       streamRef.current = stream;
     } catch (err) {
       setWebcamBootActive(false);
-      setWebcamError('Unable to access webcam. Please check permissions.');
+      setWebcamError("Camera access is blocked. Allow camera access from your browser's address-bar permissions, then try again.");
     }
   };
 
@@ -2752,7 +2752,7 @@ export default function App() {
       addDiagnosticLog(`Optical array online (${preset.label})`);
     } catch (err) {
       setScannerBootActive(false);
-      setAttendanceError('Unable to access webcam. Please check permissions.');
+      setAttendanceError("Camera access is blocked. Allow camera access from your browser's address-bar permissions, then try again.");
       setScanStatus('Camera Error');
       addDiagnosticLog('ERROR: Camera interface binding failed.');
     }
@@ -2927,7 +2927,7 @@ export default function App() {
           const newly_marked = Math.random() > 0.3;
           matchSuccess = true;
           
-          setScanStatus(newly_marked ? `Recognized: ${matched.name} (${confidence}%)` : `Recognized: ${matched.name} (Already Marked)`);
+          setScanStatus(newly_marked ? `Recognized: ${matched.name} (${confidence}%)` : `Recognized: ${matched.name} (Attendance already recorded for this class today.)`);
           playCyberSound('success');
           triggerNativeHaptic('light');
           if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
@@ -3147,7 +3147,7 @@ export default function App() {
         } else if (res.status === 403) {
           playCyberSound('error');
           const errData = await res.json();
-          const detail = errData.detail || 'Access Denied: Geofence or IP restricted.';
+          const detail = errData.detail || (geofenceStatus?.distance ? `You are outside the campus attendance area (${geofenceStatus.distance}m away).` : 'You are outside the campus attendance area.');
           setScanStatus(detail);
           addDiagnosticLog('SECURITY ALERT: Geofence boundaries breached');
           handleSpeak("Access denied.");
@@ -3228,7 +3228,7 @@ export default function App() {
           if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
           triggerHaptic([40, 30, 40]);
           triggerNativeHaptic('medium');
-          setScanStatus(`Recognized (Offline): ${matchedStudent.name} (Saved to Queue)`);
+          setScanStatus(`Recognized (Offline): ${matchedStudent.name} • Attendance saved on this device and will sync when you're online.`);
           handleSpeak(`Attendance queued offline for ${matchedStudent.name}.`);
         } catch (offlineErr) {
           console.error('Offline match execution error:', offlineErr);
@@ -3248,7 +3248,7 @@ export default function App() {
           };
           offlineAttendanceQueue.enqueue(queuedRecord);
           matchSuccess = true;
-          setScanStatus(`Recognized (Offline): ${fallbackName} (Saved to Queue)`);
+          setScanStatus(`Recognized (Offline): ${fallbackName} • Attendance saved on this device and will sync when you're online.`);
           handleSpeak(`Attendance queued offline.`);
         }
       } finally {
@@ -3860,8 +3860,8 @@ export default function App() {
               status: livenessStatusRef.current === 'verified' ? 'Verified' : 'Detecting',
             })));
             if (livenessStatusRef.current === 'verifying') {
-              setLivenessMessage(livenessBypassRef.current ? 'Scanning...' : 'Face locked — blink to verify');
-              setScanStatus(livenessBypassRef.current ? 'Scanning...' : 'Face detected — blink once');
+              setLivenessMessage(livenessBypassRef.current ? 'Scanning...' : 'Hold Still • Blink to Confirm');
+              setScanStatus(livenessBypassRef.current ? 'Scanning...' : 'Blink to Confirm');
             }
           } else {
             lastFaceBoxesRef.current = [];
@@ -3870,8 +3870,8 @@ export default function App() {
             setFaceDetected(false);
             setLiveFaceGrid([]);
             if (livenessStatusRef.current === 'verifying') {
-              setLivenessMessage('Position your face in the frame');
-              setScanStatus('Searching for face...');
+              setLivenessMessage('Position Face in Center');
+              setScanStatus('Position Face in Center');
             }
           }
         });
@@ -4158,13 +4158,13 @@ export default function App() {
               const earThreshold = antiSpoofingThreshold;
               if (avgEAR < earThreshold) {
                 eyeStateRef.current = 'closed';
-                setLivenessMessage('Eyes Closed. Now open them.');
+                setLivenessMessage('Blink Naturally • Now Open Eyes');
                 addDiagnosticLog('Ocular state: Blink trigger detected');
               } else if (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') {
                 eyeStateRef.current = 'open';
                 livenessStatusRef.current = 'verified';
                 setLivenessStatus('verified');
-                setLivenessMessage('Liveness Verified! Scanning face...');
+                setLivenessMessage('Liveness Confirmed • Scanning face...');
                 addDiagnosticLog('Ocular verification complete: PASS');
                 
                 if (voiceAnnounceLiveness) {
@@ -4726,7 +4726,7 @@ export default function App() {
       studentStreamRef.current = stream;
     } catch (err) {
       setStudentWebcamBootActive(false);
-      setSelfieError('Unable to access webcam. Please check permissions.');
+      setSelfieError("Camera access is blocked. Allow camera access from your browser's address-bar permissions, then try again.");
     }
   };
 
