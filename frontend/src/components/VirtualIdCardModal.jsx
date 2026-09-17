@@ -3,37 +3,46 @@ import React from 'react';
 export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
   const [qrToken, setQrToken] = React.useState(null);
   const [countdown, setCountdown] = React.useState(30);
+  const [maxTtl, setMaxTtl] = React.useState(30);
   const [loading, setLoading] = React.useState(false);
+  const [errorMsg, setErrorMsg] = React.useState(null);
+
+  const isFetchingRef = React.useRef(false);
 
   const fetchQrToken = React.useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setLoading(true);
+    setErrorMsg(null);
     try {
       const res = await fetch(`${API_BASE_URL}/users/students/me/qr-token`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
+        const ttl = data.expires_in || 30;
         setQrToken(data.token);
-        setCountdown(data.expires_in || 30);
+        setMaxTtl(ttl);
+        setCountdown(ttl);
+      } else {
+        setQrToken(null);
+        setErrorMsg('Failed to generate secure QR token');
       }
     } catch (e) {
       console.error('QR token fetch failed', e);
+      setQrToken(null);
+      setErrorMsg('Network error while generating QR code');
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [token, API_BASE_URL]);
 
   React.useEffect(() => {
-    let ignore = false;
-    const run = async () => {
-      if (!ignore) {
-        await fetchQrToken();
-      }
-    };
-    run();
-    return () => {
-      ignore = true;
-    };
+    const t = setTimeout(() => {
+      fetchQrToken();
+    }, 0);
+    return () => clearTimeout(t);
   }, [fetchQrToken]);
 
   React.useEffect(() => {
@@ -41,13 +50,13 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
       setCountdown(prev => {
         if (prev <= 1) {
           fetchQrToken();
-          return 30;
+          return maxTtl;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [fetchQrToken]);
+  }, [fetchQrToken, maxTtl]);
 
   // Build QR code image URL using Google Charts API (no npm needed)
   const qrUrl = qrToken
@@ -110,22 +119,38 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
             boxShadow: '0 0 30px rgba(0,242,254,0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
-            {loading ? (
-              <div style={{ color: '#00f2fe', fontSize: '0.8rem' }}>Generating QR...</div>
-            ) : qrUrl ? (
-              <img src={qrUrl} alt="QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px' }} />
+            {loading && !qrToken ? (
+              <div style={{ color: '#00f2fe', fontSize: '0.8rem', textAlign: 'center' }}>Generating QR...</div>
+            ) : qrToken && qrUrl ? (
+              <img src={qrUrl} alt="QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px', opacity: loading ? 0.6 : 1 }} />
             ) : (
-              <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center' }}>Failed to load QR code</div>
+              <div style={{ color: '#ef4444', fontSize: '0.78rem', textAlign: 'center', padding: '12px' }}>
+                <p style={{ margin: '0 0 8px' }}>{errorMsg || 'Failed to load QR code'}</p>
+                <button
+                  onClick={fetchQrToken}
+                  style={{
+                    background: 'rgba(0, 242, 254, 0.15)',
+                    border: '1px solid #00f2fe',
+                    color: '#00f2fe',
+                    borderRadius: '8px',
+                    padding: '4px 12px',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Retry Now
+                </button>
+              </div>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: `${(countdown / 30) * 80}px`, height: '4px', borderRadius: '2px', background: countdown > 10 ? '#10b981' : '#ef4444', transition: 'width 1s linear, background 0.5s' }} />
+            <div style={{ width: `${Math.max(0, Math.min(100, (countdown / (maxTtl || 30)) * 100))}%`, height: '4px', borderRadius: '2px', background: countdown > 10 ? '#10b981' : '#ef4444', transition: 'width 1s linear, background 0.5s', minWidth: '20px' }} />
             <p style={{ color: countdown > 10 ? '#10b981' : '#ef4444', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
-              {countdown}s
+              {countdown > 0 ? `${countdown}s` : 'Refreshing...'}
             </p>
           </div>
           <p style={{ color: '#6b7280', fontSize: '0.72rem', textAlign: 'center', margin: 0 }}>
-            QR refreshes automatically every 30 seconds for security.
+            QR refreshes automatically every {maxTtl || 30} seconds for security.
           </p>
         </div>
       </div>

@@ -2936,11 +2936,15 @@ export default function App() {
           const timeStr = sessionActive ? sessionPeriod : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
           const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
           
+          const matchedSubject = subjects.find(s => String(s.id) === String(effectiveSubId));
           setScannedStudent({
             name: matched.name,
             roll: matched.roll,
             dep: matched.dep,
             time: timeStr,
+            clockTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            period: sessionActive ? sessionPeriod : (effectivePeriod || null),
+            subject_name: matchedSubject ? `${matchedSubject.name} (${matchedSubject.code})` : (effectiveSubId ? `Subject #${effectiveSubId}` : null),
             confidence: confidence,
             status: newly_marked ? 'Present' : 'Already Marked'
           });
@@ -5329,32 +5333,48 @@ export default function App() {
   }, [token, userRole, activeTab]);
 
 
-  // For teachers, automatically select their first assigned subject for active scanner and filters
+  // For teachers, automatically preselect currently active scheduled class if reliably resolved
   useEffect(() => {
-    if (userRole === 'teacher' && currentUser && currentUser.details && subjects.length > 0) {
+    let cancel = false;
+    if (userRole === 'teacher' && currentUser && currentUser.details && subjects.length > 0 && token) {
       const teacherSubjects = subjects.filter(s => s.teacher_id === currentUser.details.id);
       if (teacherSubjects.length > 0) {
-        const firstSubIdStr = teacherSubjects[0].id.toString();
-        
-        // Auto-select for Active Scanner
-        if (!selectedSubjectId || !teacherSubjects.some(s => s.id === parseInt(selectedSubjectId))) {
-          setSelectedSubjectId(firstSubIdStr);
-        }
-        // Auto-select for Student list filter
-        if (!selectedTeacherSubjectId || !teacherSubjects.some(s => s.id === parseInt(selectedTeacherSubjectId))) {
-          setSelectedTeacherSubjectId(firstSubIdStr);
-        }
-        // Auto-select for Log list filter
-        if (!selectedTeacherLogSubjectId || !teacherSubjects.some(s => s.id === parseInt(selectedTeacherLogSubjectId))) {
-          setSelectedTeacherLogSubjectId(firstSubIdStr);
-        }
-        // Auto-select for Report filter
-        if (!selectedReportSubjectId || !teacherSubjects.some(s => s.id === parseInt(selectedReportSubjectId))) {
-          setSelectedReportSubjectId(firstSubIdStr);
-        }
+        const resolveScheduledSubject = async () => {
+          let targetSubIdStr = null;
+          try {
+            const res = await systemApi.fetchCurrentAutoSession(token);
+            if (res && res.active && res.session?.subject_id) {
+              const scheduledSubId = res.session.subject_id;
+              if (teacherSubjects.some(s => s.id === scheduledSubId)) {
+                targetSubIdStr = scheduledSubId.toString();
+              }
+            }
+          } catch {
+            // API/network lookup failed — preserve existing manual selection state
+          }
+
+          if (cancel || !targetSubIdStr) return;
+
+          // Auto-select ONLY if a valid active scheduled class was resolved and current selection is unselected/invalid
+          if (!selectedSubjectId || !teacherSubjects.some(s => s.id === parseInt(selectedSubjectId, 10))) {
+            setSelectedSubjectId(targetSubIdStr);
+          }
+          if (!selectedTeacherSubjectId || !teacherSubjects.some(s => s.id === parseInt(selectedTeacherSubjectId, 10))) {
+            setSelectedTeacherSubjectId(targetSubIdStr);
+          }
+          if (!selectedTeacherLogSubjectId || !teacherSubjects.some(s => s.id === parseInt(selectedTeacherLogSubjectId, 10))) {
+            setSelectedTeacherLogSubjectId(targetSubIdStr);
+          }
+          if (!selectedReportSubjectId || !teacherSubjects.some(s => s.id === parseInt(selectedReportSubjectId, 10))) {
+            setSelectedReportSubjectId(targetSubIdStr);
+          }
+        };
+
+        resolveScheduledSubject();
       }
     }
-  }, [userRole, currentUser, subjects, selectedSubjectId, selectedTeacherSubjectId, selectedTeacherLogSubjectId, selectedReportSubjectId]);
+    return () => { cancel = true; };
+  }, [userRole, currentUser, subjects, token, selectedSubjectId, selectedTeacherSubjectId, selectedTeacherLogSubjectId, selectedReportSubjectId]);
 
 
   // Initialize Session History filters

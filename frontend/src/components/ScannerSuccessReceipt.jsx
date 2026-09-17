@@ -109,8 +109,11 @@ export function ScannerSuccessReceipt({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <UserCheck size={12} color="#0ea5e9" />
-          <span>{sessionInfo?.subject_name || sessionInfo?.name || student.time || 'Class Session'}</span>
-          {student.time && <span>• {student.time}</span>}
+          <span>
+            {student.subject_name || sessionInfo?.subject_name || sessionInfo?.name || 'Class Session'}
+            {student.period ? ` (${student.period})` : ''}
+          </span>
+          {(student.clockTime || student.time) && <span>• Scan Time: {student.clockTime || student.time}</span>}
         </div>
 
         {/* Sync Status Badge */}
