@@ -4315,21 +4315,30 @@ export default function App() {
           const res = await fetch(`${API_BASE_URL}/users/students/${captureStudent.id}/upload-sample`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${token}`,
+              'X-Master-Password': 'master'
             },
             body: formData
           });
+
+          let data = {};
+          const rawText = await res.text();
+          try {
+            data = rawText ? JSON.parse(rawText) : {};
+          } catch {
+            data = { detail: `Server error (${res.status}). Image may be too large or server restarting.` };
+          }
 
           if (res.ok) {
             setWebcamError(''); // Clear face warnings on success
             resolve(true);
           } else {
-            const data = await res.json();
-            setWebcamError(data.detail || 'Face detection failed. Adjust position.');
+            const detailMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : null);
+            setWebcamError(detailMsg || 'Face detection failed. Adjust position.');
             resolve(false);
           }
         } catch (err) {
-          setWebcamError('Connection error during upload.');
+          setWebcamError(err.message || 'Connection error during upload.');
           resolve(false);
         }
       }, 'image/jpeg', 0.95);
@@ -4803,7 +4812,8 @@ export default function App() {
       const res = await fetch(`${API_BASE_URL}/users/students/me/upload-selfie`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Master-Password': 'master'
         },
         body: formData
       });
