@@ -1099,35 +1099,7 @@ export default function App() {
     }
   }, []);
 
-  // Helper to handle image selection and convert to Base64
-  const handleImageFileAttach = (file) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Please attach an image file (PNG, JPG, etc.).');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64Str = reader.result.split(',')[1];
-      setBotAttachedImage(base64Str);
-      setBotAttachedImageMime(file.type);
-      setBotAttachedImageName(file.name);
-      playCyberSound('success');
-    };
-    reader.readAsDataURL(file);
-  };
 
-  // Helper to handle text files and read their contents
-  const handleTextFileAttach = (file) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const fileText = e.target.result;
-      setChatInput((prev) => `${prev}\n\n[Attached File Content: ${file.name}]\n${fileText}\n[End of File Content]\n`);
-      playCyberSound('success');
-    };
-    reader.readAsText(file);
-  };
 
 
 
@@ -4623,7 +4595,7 @@ export default function App() {
         setStudentLogs(data);
         try {
           localStorage.setItem('cached_student_logs', JSON.stringify(data));
-        } catch (err) { /* ignore fallback error */ }
+        } catch { /* ignore fallback error */ }
       } else {
         console.error("Failed to fetch student attendance logs");
       }
@@ -5005,7 +4977,7 @@ export default function App() {
         if (cached) setCurrentUser(JSON.parse(cached));
         const role = localStorage.getItem('userRole');
         if (role) setUserRole(role);
-      } catch (err) { /* ignore */ }
+      } catch { /* ignore */ }
     }
   }, [token, currentUser]);
 
