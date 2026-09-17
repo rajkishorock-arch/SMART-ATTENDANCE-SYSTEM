@@ -362,13 +362,13 @@ export default function StaffPayrollView({
               background: 'rgba(15, 23, 42, 0.75)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '16px',
-              overflow: 'hidden',
+              overflowX: 'auto',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
             }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem', minWidth: '600px' }}>
                 <thead>
                   <tr style={{ background: 'rgba(30, 41, 59, 0.8)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                    <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Staff Member</th>
+                    <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600, position: 'sticky', left: 0, zIndex: 10, background: '#1e293b' }}>Staff Member</th>
                     <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Attendance Breakdown</th>
                     <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Gross Base</th>
                     <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Deductions</th>
@@ -380,7 +380,7 @@ export default function StaffPayrollView({
                 <tbody>
                   {payrollRecords.map(rec => (
                     <tr key={rec.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '14px 18px', position: 'sticky', left: 0, zIndex: 5, background: '#0f172a' }}>
                         <div style={{ fontWeight: 700, color: '#fff' }}>{rec.staff_name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{rec.staff_email}</div>
                       </td>
