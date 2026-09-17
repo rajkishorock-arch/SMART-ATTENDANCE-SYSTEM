@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 const DEFAULT_BACKEND = (import.meta.env.VITE_API_URL || 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1').replace(/\/api\/v1\/?$/, '');
@@ -35,11 +35,12 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
   const instId = institutionId || user?.institution_id || user?.details?.institution_id || 1;
   const userId = user?.id || user?.details?.id || 1;
   const userName = user?.name || user?.details?.name || 'Registered User';
+  const userRoll = user?.roll || user?.details?.roll || 'REG-USER-01';
 
   const API_BASE = apiBaseUrl ? apiBaseUrl.replace(/\/api\/v1\/?$/, '') : DEFAULT_BACKEND;
 
   // Helper to dynamically build leaderboard from ACTUAL registered students in user's institution
-  const getRegisteredLeaderboard = () => {
+  const getRegisteredLeaderboard = useCallback(() => {
     if (students && Array.isArray(students) && students.length > 0) {
       return students.map((st, idx) => ({
         rank: idx + 1,
@@ -56,34 +57,34 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
       rank: 1,
       student_id: userId,
       student_name: userName,
-      roll_number: user?.roll || user?.details?.roll || 'REG-USER-01',
+      roll_number: userRoll,
       points: 390,
       streak: 9,
       badges_count: 5
     }];
-  };
+  }, [students, userId, userName, userRoll]);
 
-  const loadLeaderboard = async () => {
+  const loadLeaderboard = useCallback(async (isCancelled = () => false) => {
     try {
-      setLoading(true);
+      if (!isCancelled()) setLoading(true);
       const authToken = token || localStorage.getItem('token');
       const response = await axios.get(
         `${API_BASE}/gamification/leaderboard/${instId}?limit=10`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       if (response.data?.leaderboard && response.data.leaderboard.length > 0) {
-        setLeaderboard(response.data.leaderboard);
+        if (!isCancelled()) setLeaderboard(response.data.leaderboard);
       } else {
-        setLeaderboard(getRegisteredLeaderboard());
+        if (!isCancelled()) setLeaderboard(getRegisteredLeaderboard());
       }
     } catch {
-      setLeaderboard(getRegisteredLeaderboard());
+      if (!isCancelled()) setLeaderboard(getRegisteredLeaderboard());
     } finally {
-      setLoading(false);
+      if (!isCancelled()) setLoading(false);
     }
-  };
+  }, [instId, token, API_BASE, getRegisteredLeaderboard]);
 
-  const loadMyStats = async () => {
+  const loadMyStats = useCallback(async (isCancelled = () => false) => {
     try {
       const authToken = token || localStorage.getItem('token');
       const response = await axios.get(
@@ -91,20 +92,22 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       if (response.data) {
-        setMyStats({
-          points: response.data.points || 390,
-          streak: response.data.streak || 9,
-          rank: response.data.rank || 1,
-          badges: response.data.badges_count || 5,
-          level: Math.floor((response.data.points || 390) / 100) + 1
-        });
+        if (!isCancelled()) {
+          setMyStats({
+            points: response.data.points || 390,
+            streak: response.data.streak || 9,
+            rank: response.data.rank || 1,
+            badges: response.data.badges_count || 5,
+            level: Math.floor((response.data.points || 390) / 100) + 1
+          });
+        }
       }
     } catch {
       // Keep default stats
     }
-  };
+  }, [instId, userId, token, API_BASE]);
 
-  const loadBadges = async () => {
+  const loadBadges = useCallback(async (isCancelled = () => false) => {
     try {
       const authToken = token || localStorage.getItem('token');
       const response = await axios.get(
@@ -112,28 +115,46 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       if (response.data?.badges && response.data.badges.length > 0) {
-        setBadges(response.data.badges);
+        if (!isCancelled()) setBadges(response.data.badges);
       } else {
-        setBadges(MOCK_BADGES);
+        if (!isCancelled()) setBadges(MOCK_BADGES);
       }
     } catch {
-      setBadges(MOCK_BADGES);
+      if (!isCancelled()) setBadges(MOCK_BADGES);
     }
-  };
+  }, [instId, userId, token, API_BASE]);
 
   useEffect(() => {
-    loadLeaderboard();
-    loadMyStats();
-    loadBadges();
-  }, [instId, userId, students]);
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (ignore) return;
+      loadLeaderboard(() => ignore);
+      loadMyStats(() => ignore);
+      loadBadges(() => ignore);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [loadLeaderboard, loadMyStats, loadBadges]);
+
+  const stopARScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setArMode(false);
+    setScanResult(null);
+    setIsScanning(false);
+  };
 
   useEffect(() => {
     return () => {
       stopARScanner();
     };
   }, []);
-
-
 
   // Start AR Scanner with smart fallbacks for both Mobile & Laptop
   const startARScanner = async (overrideFacing, overrideDeviceId) => {
@@ -183,19 +204,6 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
       console.error('AR Camera init error:', error);
       setCameraError('Unable to access camera. Please allow camera permissions in browser.');
     }
-  };
-
-  const stopARScanner = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setArMode(false);
-    setScanResult(null);
-    setIsScanning(false);
   };
 
   const toggleFacingMode = () => {
