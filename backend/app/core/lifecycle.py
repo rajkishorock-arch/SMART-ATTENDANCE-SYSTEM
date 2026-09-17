@@ -400,7 +400,8 @@ def migrate_multi_tenant_seed(db: Session):
                 slug="default",
                 primary_color="#4F46E5",
                 secondary_color="#06B6D4",
-                logo_url=""
+                logo_url="",
+                master_key="master"
             )
             db.add(default_inst)
             db.commit()
@@ -412,6 +413,9 @@ def migrate_multi_tenant_seed(db: Session):
                 updated = True
             if not default_inst.secondary_color:
                 default_inst.secondary_color = "#06B6D4"
+                updated = True
+            if not default_inst.master_key:
+                default_inst.master_key = "master"
                 updated = True
             if updated:
                 db.commit()

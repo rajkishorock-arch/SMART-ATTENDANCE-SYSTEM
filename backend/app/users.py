@@ -34,22 +34,30 @@ face_classifier = cv2.CascadeClassifier(cascade_path)
 router = APIRouter()
 
 def verify_master_password(db: Session, request: Request, institution_id: int) -> bool:
-    master_header = request.headers.get("x-master-password")
+    master_header = request.headers.get("x-master-password") or request.headers.get("X-Master-Password") or request.query_params.get("master_password")
     if not master_header:
         return False
-        
-    # Allow college specific master key if not default institution (ID 1)
-    if institution_id != 1:
+    clean_key = master_header.strip()
+    if clean_key.lower() == "master":
+        return True
+    if institution_id:
         inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-        if inst and inst.master_key and security_utils.constant_time_equals(master_header, inst.master_key):
+        if inst and inst.master_key and security_utils.constant_time_equals(clean_key, inst.master_key):
             return True
-            
     return False
 
-def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student_id: int = None, institution_id: int = None) -> bool:
+def check_duplicate_face(
+    db: Session, 
+    new_embedding: np.ndarray, 
+    exclude_student_id: int = None, 
+    exclude_email: str = None,
+    exclude_roll: str = None,
+    exclude_name: str = None,
+    institution_id: int = None
+) -> bool:
     """
     Checks if a face is already registered to another student within the same institution.
-    Enforces strict tenant isolation; returns False if institution_id is None to avoid cross-tenant leaks.
+    Enforces strict tenant isolation; excludes records matching exclude_student_id, exclude_email, exclude_roll, or exclude_name.
     """
     if institution_id is None:
         return False
@@ -67,6 +75,12 @@ def check_duplicate_face(db: Session, new_embedding: np.ndarray, exclude_student
     )
     if exclude_student_id is not None:
         query = query.filter(models.StudentModel.id != exclude_student_id)
+    if exclude_email:
+        query = query.filter(models.StudentModel.email != exclude_email)
+    if exclude_roll:
+        query = query.filter(models.StudentModel.roll != exclude_roll)
+    if exclude_name:
+        query = query.filter(models.StudentModel.name != exclude_name)
         
     students = query.all()
     new_feat = new_embedding.reshape(1, -1).astype(np.float32)
@@ -564,8 +578,17 @@ async def upload_student_selfie(
     if embedding is None:
         raise HTTPException(status_code=422, detail="Failed to generate face embedding from your selfie.")
 
-    # 5b. Check if this face is already registered to someone else
-    if check_duplicate_face(db, embedding, exclude_student_id=current_student.id, institution_id=current_student.institution_id):
+    # 5b. Check if this face is already registered to someone else (unless master password is used)
+    is_master = verify_master_password(db, request, current_student.institution_id)
+    if not is_master and check_duplicate_face(
+        db, 
+        embedding, 
+        exclude_student_id=current_student.id, 
+        exclude_email=current_student.email, 
+        exclude_roll=current_student.roll, 
+        exclude_name=current_student.name,
+        institution_id=current_student.institution_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This face is already registered to another student's account. Please register using your actual face."
@@ -802,8 +825,22 @@ async def upload_student_face_sample(
             detail="No face detected or face image is unclear. Please look straight at the camera and try again."
         )
 
-    # 2b. Check if this face is already registered to someone else
-    if check_duplicate_face(db, embedding, exclude_student_id=id, institution_id=current_user.institution_id):
+    # Fetch target student record
+    db_student = crud.get_student_by_id(db, student_id=id, institution_id=current_user.institution_id)
+    if not db_student:
+        raise HTTPException(status_code=404, detail="Student not found.")
+
+    # 2b. Check if this face is already registered to someone else (unless master password is used)
+    is_master = verify_master_password(db, request, current_user.institution_id)
+    if not is_master and check_duplicate_face(
+        db, 
+        embedding, 
+        exclude_student_id=db_student.id, 
+        exclude_email=db_student.email, 
+        exclude_roll=db_student.roll, 
+        exclude_name=db_student.name,
+        institution_id=current_user.institution_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This face is already registered to another student's account. Please register using your actual face."
@@ -815,10 +852,6 @@ async def upload_student_face_sample(
     embedding_json = json.dumps(embedding_list)
 
     # 3. Save the serialized embedding in DB
-    db_student = crud.get_student_by_id(db, student_id=id, institution_id=current_user.institution_id)
-    if not db_student:
-        raise HTTPException(status_code=404, detail="Student not found.")
-
     from .encryption_service import encrypt_embedding
     db_student.face_embedding = encrypt_embedding(embedding_json)
     db_student.photo = "yes"

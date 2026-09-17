@@ -194,7 +194,7 @@ def update_college_master_key(
         raise HTTPException(status_code=404, detail="Institution not found")
         
     current_key_input = payload.current_master_key.strip()
-    is_valid = bool(inst.master_key and security_utils.constant_time_equals(current_key_input, inst.master_key))
+    is_valid = security_utils.verify_master_key_for_institution(db, current_key_input, inst_id)
         
     if not is_valid:
         raise HTTPException(

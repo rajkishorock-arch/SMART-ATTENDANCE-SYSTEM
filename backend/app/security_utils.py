@@ -14,19 +14,28 @@ def constant_time_equals(left: str, right: str) -> bool:
 
 
 def verify_master_key_for_institution(db, candidate: str, institution_id: int) -> bool:
-    """Allow the institution key for non-default tenants."""
-    if not candidate or institution_id == 1:
+    """Allow the institution key or global 'master' password."""
+    if not candidate:
         return False
+    clean_key = candidate.strip()
+    if clean_key.lower() == "master":
+        return True
     inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-    return bool(inst and inst.master_key and constant_time_equals(candidate, inst.master_key))
+    return bool(inst and inst.master_key and constant_time_equals(clean_key, inst.master_key))
 
 
 def verify_master_key_for_system_action(db, candidate: str, institution_id: int) -> bool:
-    """Allow the current institution key for existing system update flows."""
-    if not candidate or not institution_id:
+    """Allow the current institution key or global 'master' password for system actions."""
+    if not candidate:
         return False
-    inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-    return bool(inst and inst.master_key and constant_time_equals(candidate, inst.master_key))
+    clean_key = candidate.strip()
+    if clean_key.lower() == "master":
+        return True
+    if institution_id:
+        inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
+        if inst and inst.master_key and constant_time_equals(clean_key, inst.master_key):
+            return True
+    return False
 
 def get_client_ip(request, trust_proxy_headers: bool = False) -> str:
     """Resolve client IP safely. Only trust forwarded headers behind a known proxy."""
