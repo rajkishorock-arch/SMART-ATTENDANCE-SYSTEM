@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
 import { triggerNativeHaptic } from './utils/nativeMobile';
-import { generateLeavePdf } from './utils/leavePdfGenerator';
 import { initKeepAliveEngine } from './utils/keepAlive';
 import { fetchWithDedupe } from './utils/apiClient';
-import { fetchWithStaleCache } from './utils/cacheUtils';
-import { authApi, studentApi, teacherApi, attendanceApi, systemApi, interactiveApi, apiGet } from './api';
+import { studentApi, teacherApi, attendanceApi, systemApi, interactiveApi, apiGet } from './api';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -13,9 +11,7 @@ import { getActiveTenantSlug } from './utils/tenantConfig';
 import useAuth from './hooks/useAuth';
 import useTenant from './hooks/useTenant';
 import useUI from './hooks/useUI';
-import { getRoleMismatchMessage } from './context/AuthContext';
 import MobileControlPanel from './components/MobileControlPanel';
-import GamificationHub from './components/GamificationHub';
 import ConsentModal from './components/ConsentModal';
 import CyberBotWidget from './components/CyberBotWidget';
 import FeedbackModal from './components/FeedbackModal';
@@ -24,26 +20,19 @@ import OnboardingGuideModal from './components/OnboardingGuideModal';
 import NotificationBell from './components/NotificationBell';
 import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync, useNotifications } from './hooks';
 import PrivacyPolicy from './components/PrivacyPolicy';
-import LeaveApplicationForm from './components/LeaveApplicationForm';
 import VirtualIdCardModal from './components/VirtualIdCardModal';
 import QrScannerModal from './components/QrScannerModal';
 import { addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
-import { completeLivenessFlow } from './utils/livenessClient';
-import LiveActivityTicker from './components/LiveActivityTicker';
 import AppAmbientLayer from './components/animations/AppAmbientLayer';
 import ClickFxLayer from './components/animations/ClickFxLayer';
 import PageTransitionFlash from './components/animations/PageTransitionFlash';
 import CameraAttractHud from './components/animations/CameraAttractHud';
 import { 
-  Activity,
   Users, 
-  Bell,
   CheckCircle2, 
   AlertCircle, 
   TrendingUp, 
   LogOut, 
-  Plus, 
-  Search, 
   FileSpreadsheet, 
   BookOpen, 
   Info,
@@ -53,36 +42,16 @@ import {
   ScanFace,
   Monitor,
   Calendar,
-  Layers,
   Globe,
   DollarSign,
-  Trash2,
-  Mail,
   Lock,
   Camera,
   Video,
   RefreshCw,
-  FileDown,
-  Edit,
   Clock,
   History,
-  UserCheck,
-  UserPlus,
-  Volume2,
-  VolumeX,
   ArrowLeft,
-  MessageSquare,
   Bot,
-  Send,
-  Paperclip,
-  Mic,
-  MicOff,
-  Settings,
-  Phone,
-  BarChart3,
-  ArrowUpCircle,
-  Sliders,
-  Palette,
   X,
 } from 'lucide-react';
 import { 
