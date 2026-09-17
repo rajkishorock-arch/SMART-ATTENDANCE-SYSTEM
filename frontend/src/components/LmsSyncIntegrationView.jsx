@@ -16,7 +16,6 @@ export default function LmsSyncIntegrationView({
   const [apiToken, setApiToken] = useState('');
   const [syncCron, setSyncCron] = useState('0 23 * * *');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
-  const [lastSyncAt, setLastSyncAt] = useState(null);
 
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +41,6 @@ export default function LmsSyncIntegrationView({
           setApiEndpoint(cfg.api_endpoint || '');
           setSyncCron(cfg.sync_schedule_cron || '0 23 * * *');
           setAutoSyncEnabled(cfg.auto_sync_enabled ?? true);
-          setLastSyncAt(cfg.last_sync_at);
         }
       }
 
@@ -94,10 +92,9 @@ export default function LmsSyncIntegrationView({
         })
       });
       if (!res.ok) throw new Error('Failed to update LMS integration configuration.');
-      const data = await res.json();
+      await res.json();
       playCyberSound('success');
       setSuccessMsg('LMS integration configuration saved successfully!');
-      setLastSyncAt(data.last_sync_at);
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       setErrorMsg(err.message);
