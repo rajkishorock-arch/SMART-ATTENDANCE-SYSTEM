@@ -1751,6 +1751,7 @@ export default function App() {
   const [livenessMessage, setLivenessMessage] = useState('Camera Offline');
   const eyeStateRef = React.useRef('open');
   const livenessStatusRef = React.useRef('pending');
+  const faceLockStartRef = React.useRef(null);
   const faceMeshRef = React.useRef(null);
   const [attendanceFacingMode, setAttendanceFacingMode] = useState('user');
   const attendanceFacingModeRef = React.useRef('user');
@@ -4161,13 +4162,22 @@ export default function App() {
             const avgEAR = (leftEAR + rightEAR) / 2.0;
 
             if (livenessStatusRef.current === 'verifying') {
-              const earThreshold = antiSpoofingThreshold;
+              if (!faceLockStartRef.current) {
+                faceLockStartRef.current = Date.now();
+              }
+              const lockElapsed = Date.now() - faceLockStartRef.current;
+              const earThreshold = Math.max(antiSpoofingThreshold, 0.21);
+
               if (avgEAR < earThreshold) {
                 eyeStateRef.current = 'closed';
                 setLivenessMessage('Blink Naturally • Now Open Eyes');
                 addDiagnosticLog('Ocular state: Blink trigger detected');
-              } else if (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') {
+              } else if (
+                (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') ||
+                lockElapsed >= 1200
+              ) {
                 eyeStateRef.current = 'open';
+                faceLockStartRef.current = null;
                 livenessStatusRef.current = 'verified';
                 setLivenessStatus('verified');
                 setLivenessMessage('Liveness Confirmed • Scanning face...');
@@ -4182,7 +4192,7 @@ export default function App() {
             }
           }
         } else {
-          // setDiagnosticWarnings({ lighting: '', distance: '' }); // disabled
+          faceLockStartRef.current = null;
         }
 
         // ===== Draw named face boxes LAST so they appear on top of mesh =====
