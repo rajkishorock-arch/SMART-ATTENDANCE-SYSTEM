@@ -54,28 +54,9 @@ import {
   Bot,
   X,
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from 'recharts';
-
 import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
 import { createFaceDetector, extractFaceBox, drawFaceBox } from './utils/faceDetectionEngine';
-import {
-  APP_VERSION,
-  acknowledgeUpdateVersion,
-  markCurrentVersionInstalled,
-  shouldShowUpdateBanner,
-  isUpdateNewer,
-  isVersionAcknowledged,
-} from './utils/versionManager';
+import { APP_VERSION } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
 import VersionBadge from './components/VersionBadge';
 const AdvancedFeaturesHub = lazy(() => import('./components/AdvancedFeaturesHub'));
@@ -88,12 +69,9 @@ const ExtremeLevelHub = lazy(() => import('./components/ExtremeLevelHub'));
 const Ideas150Hub = lazy(() => import('./components/Ideas150Hub'));
 const Enterprise7FeaturesHub = lazy(() => import('./components/Enterprise7FeaturesHub'));
 import UniversalSearch from './components/UniversalSearch';
-import LiveBoardStrip from './components/LiveBoardStrip';
-import RoleCommandCenter from './components/RoleCommandCenter';
 const AttendanceDisputeModal = lazy(() => import('./components/AttendanceDisputeModal'));
 import AttendanceDisputesQueue from './components/AttendanceDisputesQueue';
 const AcademicCalendarView = lazy(() => import('./components/AcademicCalendarView'));
-import AttendancePlannerWidget from './components/AttendancePlannerWidget';
 const LowConfidenceReviewQueue = lazy(() => import('./components/LowConfidenceReviewQueue'));
 const DeviceHealthDashboard = lazy(() => import('./components/DeviceHealthDashboard'));
 const FaceEnrollmentModal = lazy(() => import('./components/FaceEnrollmentModal'));
@@ -102,20 +80,13 @@ const BiometricFallbackModal = lazy(() => import('./components/BiometricFallback
 const LmsSyncIntegrationView = lazy(() => import('./components/LmsSyncIntegrationView'));
 const StaffPayrollView = lazy(() => import('./components/StaffPayrollView'));
 import QuickActionsDock from './components/QuickActionsDock';
-import SmartEmptyState from './components/SmartEmptyState';
-import SkeletonLoader from './components/SkeletonLoader';
 import OnboardingTour from './components/OnboardingTour';
-import ClassroomLiveGrid from './components/ClassroomLiveGrid';
 import OfflineBanner from './components/OfflineBanner';
-import PullToRefresh from './components/PullToRefresh';
-import SmartSuggestionsBar from './components/SmartSuggestionsBar';
-import TeacherMiniDashboard from './components/TeacherMiniDashboard';
 import StudentAttendanceWallet from './components/StudentAttendanceWallet';
-import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings, applySpringPhysics } from './utils/futuristicFeatures';
+import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings } from './utils/futuristicFeatures';
 const NewFeaturesHub = lazy(() => import('./components/NewFeaturesHub'));
 import { fastFaceEngine } from './services/fastFaceEngine';
 import { offlineAttendanceQueue } from './services/offlineAttendanceQueue';
-import { nativeScannerBridge } from './services/nativeScannerBridge';
 const WellnessCounselorPanel = lazy(() => import('./components/WellnessCounselorPanel'));
 const ARGamificationPortal = lazy(() => import('./components/ARGamificationPortal'));
 import AttendanceChartsWidget from './components/AttendanceChartsWidget';
@@ -123,13 +94,10 @@ import { getStoredLanguage } from './utils/i18n';
 import SyncStatusPill from './components/SyncStatusPill';
 import { ScannerSuccessReceipt, ScannerFallbackOptions } from './components/ScannerSuccessReceipt';
 import TodaySessionHub from './components/TodaySessionHub';
-import AdminPulseDashboard from './components/AdminPulseDashboard';
-import StudentTodayView from './components/StudentTodayView';
 const AccessibilitySettingsModal = lazy(() => import('./components/AccessibilitySettingsModal'));
 const PrivacyTrustCenter = lazy(() => import('./components/PrivacyTrustCenter'));
 const NotificationDrawerModal = lazy(() => import('./components/NotificationDrawerModal'));
 const GeofenceSettings = lazy(() => import('./components/settings/GeofenceSettings'));
-import SmtpSettings from './components/settings/SmtpSettings';
 const MasterKeySettings = lazy(() => import('./components/settings/MasterKeySettings'));
 const ReleaseSettings = lazy(() => import('./components/settings/ReleaseSettings'));
 const InstitutionManagement = lazy(() => import('./components/settings/InstitutionManagement'));
@@ -151,8 +119,6 @@ import LiveScannerSessionHubView from './components/dashboard/LiveScannerSession
 import SessionHistoryView from './components/dashboard/SessionHistoryView';
 import StudentAttendanceDashboardView from './components/dashboard/StudentAttendanceDashboardView';
 import StudentProfileView from './components/dashboard/StudentProfileView';
-
-let API_BASE_URL = 'https://smart-attendance-system-1-mvwa.onrender.com/api/v1';
 
 const getLocalDateString = (d = new Date()) => {
   const year = d.getFullYear();
@@ -1864,7 +1830,6 @@ export default function App() {
 
   // Phase 5 States
   const [diagnosticWarnings, setDiagnosticWarnings] = useState({ lighting: '', distance: '' });
-  const [timetableSubTab, setTimetableSubTab] = useState('directory'); // 'directory' or 'planner'
 
 
 
@@ -1924,9 +1889,7 @@ export default function App() {
 
   // Voice Assistant States
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [voiceLanguage, setVoiceLanguage] = useState('english'); // 'english'
   const [voiceSpeed, setVoiceSpeed] = useState(1.0); // speech rate
-  const [voiceVolume, setVoiceVolume] = useState(1.0);
   const [voiceAnnounceLiveness, setVoiceAnnounceLiveness] = useState(false);
 
   // Phase 3 Cyber-Aesthetic States
