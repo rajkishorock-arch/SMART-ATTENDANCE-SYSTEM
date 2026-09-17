@@ -60,7 +60,7 @@ export default function LeaveManagement({ token, currentUser }) {
     };
   }, [fetchLeaveRequests]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async () => {
     setError('');
     setSuccess('');
     if (!startDate || !endDate || !reason) {

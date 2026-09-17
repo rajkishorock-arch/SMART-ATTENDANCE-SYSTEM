@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', userRole = 'admin', students = [], onMsg }) {
+export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', students = [], onMsg }) {
   const [activeTab, setActiveTab] = useState('groupScan');
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
