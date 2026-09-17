@@ -516,12 +516,26 @@ async def upload_student_selfie(
     # 2. Check face count using YuNet detector
     from . import face_utils
     try:
-        detector, recognizer = face_utils.get_face_engines()
+        detector, recognizer = face_utils.get_face_engines(score_threshold=0.35)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load face detection engine: {e}")
 
     detector.setInputSize((w_img, h_img))
     retval, faces = detector.detect(img)
+    if not retval or faces is None or len(faces) == 0:
+        # Retry fallback with contrast enhancement
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+        cl = clahe.apply(l)
+        limg = cv2.merge((cl, a, b))
+        enhanced_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+        
+        detector_fb, _ = face_utils.get_face_engines(score_threshold=0.25)
+        detector_fb.setInputSize((w_img, h_img))
+        retval, faces = detector_fb.detect(enhanced_img)
+        if retval and faces is not None and len(faces) > 0:
+            img = enhanced_img
     
     if not retval or faces is None or len(faces) == 0:
         raise HTTPException(

@@ -55,16 +55,17 @@ def download_onnx_models():
         
     return yunet_path, sface_path
 
-def get_face_engines():
+def get_face_engines(score_threshold=0.45, nms_threshold=0.3):
     """
     Returns (detector, recognizer) instances. Re-creates detector to prevent
     multi-threaded race conditions when modifying input size concurrently.
+    Sets default score_threshold to 0.45 for enhanced sensitivity.
     """
     global _recognizer
     yunet_path, sface_path = download_onnx_models()
     if _recognizer is None:
         _recognizer = cv2.FaceRecognizerSF_create(sface_path, "")
-    detector = cv2.FaceDetectorYN_create(yunet_path, "", (320, 240))
+    detector = cv2.FaceDetectorYN_create(yunet_path, "", (320, 240), score_threshold, nms_threshold)
     return detector, _recognizer
 
 def resize_large_image(image, max_dim=1000):
@@ -118,7 +119,7 @@ def get_face_embedding(image):
         
     try:
         image = resize_large_image(image)
-        detector, recognizer = get_face_engines()
+        detector, recognizer = get_face_engines(score_threshold=0.45)
         
         # Set the input size dynamically based on the image dimensions
         h, w = image.shape[:2]
@@ -126,6 +127,27 @@ def get_face_embedding(image):
         
         # Detect faces
         retval, faces = detector.detect(image)
+        if not retval or faces is None or len(faces) == 0:
+            # Fallback 1: Retry with score_threshold=0.3 for low-light / dark photos / glasses
+            detector_fallback, _ = get_face_engines(score_threshold=0.3)
+            detector_fallback.setInputSize((w, h))
+            retval, faces = detector_fallback.detect(image)
+            
+        if not retval or faces is None or len(faces) == 0:
+            # Fallback 2: Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) for dark/under-exposed room lighting
+            lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+            cl = clahe.apply(l)
+            limg = cv2.merge((cl, a, b))
+            enhanced_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+            
+            detector_fallback, _ = get_face_engines(score_threshold=0.3)
+            detector_fallback.setInputSize((w, h))
+            retval, faces = detector_fallback.detect(enhanced_img)
+            if retval and faces is not None and len(faces) > 0:
+                image = enhanced_img
+
         if not retval or faces is None or len(faces) == 0:
             return None
             
