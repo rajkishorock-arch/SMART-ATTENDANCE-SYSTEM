@@ -16,7 +16,7 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
 
-  const fetchLeaveRequests = useCallback(async () => {
+  const fetchLeaveRequests = useCallback(async (isCancelled = () => false) => {
     if (!token) return;
     if (leaveRequests.length === 0) setIsLoading(true);
     setError('');
@@ -25,22 +25,38 @@ export default function LeaveAdminDashboard({ token, currentUser }) {
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
-        setLeaveRequests(list);
-        try {
-          localStorage.setItem('cached_leave_admin_requests', JSON.stringify(list));
-        } catch { /* ignore fallback error */ }
+        if (!isCancelled()) {
+          setLeaveRequests(list);
+          try {
+            localStorage.setItem('cached_leave_admin_requests', JSON.stringify(list));
+          } catch { /* ignore fallback error */ }
+        }
       } else {
-        setError('Failed to fetch leave requests.');
+        if (!isCancelled()) {
+          setError('Failed to fetch leave requests.');
+        }
       }
     } catch {
-      setError('An error occurred while fetching leave requests.');
+      if (!isCancelled()) {
+        setError('An error occurred while fetching leave requests.');
+      }
     } finally {
-      setIsLoading(false);
+      if (!isCancelled()) {
+        setIsLoading(false);
+      }
     }
   }, [token, leaveRequests.length]);
 
   useEffect(() => {
-    fetchLeaveRequests();
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (!ignore) {
+        fetchLeaveRequests(() => ignore);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [fetchLeaveRequests]);
 
   const handleUpdateStatus = async (id, status) => {
