@@ -426,7 +426,7 @@ export default function App() {
     try {
       const cached = localStorage.getItem('cached_student_logs');
       return cached ? JSON.parse(cached) : [];
-    } catch (err) {
+    } catch {
       return [];
     }
   });
@@ -1831,7 +1831,7 @@ export default function App() {
         department_stats: {},
         weekly_trends: []
       };
-    } catch (err) {
+    } catch {
       return {
         total_students: 0,
         total_present_today: 0,
@@ -1879,25 +1879,25 @@ export default function App() {
     try {
       const cached = localStorage.getItem('cached_students');
       return cached ? JSON.parse(cached) : [];
-    } catch (err) { return []; }
+    } catch { return []; }
   });
   const [logs, setLogs] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_logs');
       return cached ? JSON.parse(cached) : [];
-    } catch (err) { return []; }
+    } catch { return []; }
   });
   const [departments, setDepartments] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_departments');
       return cached ? JSON.parse(cached) : ['CSE(IOT)', 'ECE', 'Mechanical'];
-    } catch (err) { return ['CSE(IOT)', 'ECE', 'Mechanical']; }
+    } catch { return ['CSE(IOT)', 'ECE', 'Mechanical']; }
   });
   const [departmentsList, setDepartmentsList] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_departmentsList');
       return cached ? JSON.parse(cached) : [];
-    } catch (err) { return []; }
+    } catch { return []; }
   });
 
   // Search & Filter States
@@ -1947,19 +1947,19 @@ export default function App() {
     try {
       const cached = localStorage.getItem('cached_subjects');
       return cached ? JSON.parse(cached) : [];
-    } catch (err) { return []; }
+    } catch { return []; }
   });
   const [schedules, setSchedules] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_schedules');
       return cached ? JSON.parse(cached) : [];
-    } catch (err) { return []; }
+    } catch { return []; }
   });
   const [teachers, setTeachers] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_teachers');
       return cached ? JSON.parse(cached) : [];
-    } catch (err) { return []; }
+    } catch { return []; }
   });
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
 
@@ -5669,7 +5669,7 @@ export default function App() {
         try {
           await studentApi.deleteStudent(token, id);
           successCount++;
-        } catch (err) {
+        } catch {
           failCount++;
         }
       }
