@@ -115,6 +115,7 @@ import LiveScannerSessionHubView from './components/dashboard/LiveScannerSession
 import SessionHistoryView from './components/dashboard/SessionHistoryView';
 import StudentAttendanceDashboardView from './components/dashboard/StudentAttendanceDashboardView';
 import StudentProfileView from './components/dashboard/StudentProfileView';
+import HodDashboardView from './components/HodDashboardView';
 
 const getLocalDateString = (d = new Date()) => {
   const year = d.getFullYear();
@@ -7518,49 +7519,58 @@ export default function App() {
 
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
-          <AdminTeacherDashboardView
-            fetchStats={fetchStats}
-            fetchLogs={fetchLogs}
-            activeDashboardSubTab={activeDashboardSubTab}
-            setActiveDashboardSubTab={setActiveDashboardSubTab}
-            subjects={subjects}
-            schedules={schedules}
-            dashboardRecentLogs={dashboardRecentLogs}
-            filteredStudents={filteredStudents}
-            attendanceActive={attendanceActive}
-            scannerBootActive={scannerBootActive}
-            wsConnected={wsConnected}
-            setSelectedSubjectId={setSelectedSubjectId}
-            setSessionPeriod={setSessionPeriod}
-            setSessionActive={setSessionActive}
-            setActiveTab={setActiveTab}
-            setShowScannerModal={setShowScannerModal}
-            startAttendanceCam={startAttendanceCam}
-            stopAttendanceCam={stopAttendanceCam}
-            setIsManualAttendanceOpen={setIsManualAttendanceOpen}
-            exportToCSV={exportToCSV}
-            appLang={appLang}
-            stats={stats}
-            scopedDashboardStats={scopedDashboardStats}
-            isMobileView={isMobileView}
-            setSelectedAuditLog={setSelectedAuditLog}
-            setShowFeedbackModal={setShowFeedbackModal}
-            liveActivities={liveActivities}
-            activeTelemetry={activeTelemetry}
-            chartRef1={chartRef1}
-            chartWidth1={chartWidth1}
-            chartRef2={chartRef2}
-            chartWidth2={chartWidth2}
-            hudMetrics={hudMetrics}
-            neuralMeshCanvasRef={neuralMeshCanvasRef}
-            systemHealth={systemHealth}
-            apiLatency={apiLatency}
-            healthLoading={healthLoading}
-            setHealthLoading={setHealthLoading}
-            fetchSystemHealth={fetchSystemHealth}
-            isLoadingFeedbacks={isLoadingFeedbacks}
-            feedbacks={feedbacks}
-          />
+          userRole === 'hod' ? (
+            <HodDashboardView
+              token={token}
+              currentUser={currentUser}
+              navigateToTab={navigateToTab}
+              playCyberSound={playCyberSound}
+            />
+          ) : (
+            <AdminTeacherDashboardView
+              fetchStats={fetchStats}
+              fetchLogs={fetchLogs}
+              activeDashboardSubTab={activeDashboardSubTab}
+              setActiveDashboardSubTab={setActiveDashboardSubTab}
+              subjects={subjects}
+              schedules={schedules}
+              dashboardRecentLogs={dashboardRecentLogs}
+              filteredStudents={filteredStudents}
+              attendanceActive={attendanceActive}
+              scannerBootActive={scannerBootActive}
+              wsConnected={wsConnected}
+              setSelectedSubjectId={setSelectedSubjectId}
+              setSessionPeriod={setSessionPeriod}
+              setSessionActive={setSessionActive}
+              setActiveTab={setActiveTab}
+              setShowScannerModal={setShowScannerModal}
+              startAttendanceCam={startAttendanceCam}
+              stopAttendanceCam={stopAttendanceCam}
+              setIsManualAttendanceOpen={setIsManualAttendanceOpen}
+              exportToCSV={exportToCSV}
+              appLang={appLang}
+              stats={stats}
+              scopedDashboardStats={scopedDashboardStats}
+              isMobileView={isMobileView}
+              setSelectedAuditLog={setSelectedAuditLog}
+              setShowFeedbackModal={setShowFeedbackModal}
+              liveActivities={liveActivities}
+              activeTelemetry={activeTelemetry}
+              chartRef1={chartRef1}
+              chartWidth1={chartWidth1}
+              chartRef2={chartRef2}
+              chartWidth2={chartWidth2}
+              hudMetrics={hudMetrics}
+              neuralMeshCanvasRef={neuralMeshCanvasRef}
+              systemHealth={systemHealth}
+              apiLatency={apiLatency}
+              healthLoading={healthLoading}
+              setHealthLoading={setHealthLoading}
+              fetchSystemHealth={fetchSystemHealth}
+              isLoadingFeedbacks={isLoadingFeedbacks}
+              feedbacks={feedbacks}
+            />
+          )
         )}
 
         {activeTab === 'students' && (
