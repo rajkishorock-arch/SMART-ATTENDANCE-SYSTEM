@@ -220,3 +220,110 @@ def test_non_hod_teacher_fails_hod_role_requirement():
     with pytest.raises(HTTPException) as exc_info:
         checker(identity)
     assert exc_info.value.status_code == 403
+
+
+def test_parent_auth_me_matching_student_id_success(client, test_env):
+    """Verifies that a Parent JWT with matching student_id and institution_id successfully validates /auth/me."""
+    test_client, _ = client
+    db, _ = test_env
+
+    parent = models.ParentAccount(
+        id=1,
+        institution_id=1,
+        student_id=101,
+        name="Parent Alpha",
+        email="parenta@alpha.edu",
+        phone="9998887770",
+        password_hash=security.get_password_hash("ParentPass123!"),
+    )
+    db.add(parent)
+    db.commit()
+
+    token = security.create_access_token({
+        "sub": "parenta@alpha.edu",
+        "role": "parent",
+        "institution_id": 1,
+        "student_id": 101,
+    })
+
+    res = test_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["role"] == "parent"
+    assert data["email"] == "parenta@alpha.edu"
+    assert data["institution_id"] == 1
+    assert data["details"]["student_id"] == 101
+    assert data["details"]["student_name"] == "Student A"
+
+
+def test_parent_auth_me_mismatched_student_id_rejected(client, test_env):
+    """Verifies that a Parent JWT with a mismatched student_id is rejected (401 Unauthorized)."""
+    test_client, _ = client
+    db, _ = test_env
+
+    parent = models.ParentAccount(
+        id=2,
+        institution_id=1,
+        student_id=101,
+        name="Parent Alpha 2",
+        email="parenta2@alpha.edu",
+        phone="9998887770",
+        password_hash=security.get_password_hash("ParentPass123!"),
+    )
+    db.add(parent)
+    db.commit()
+
+    # JWT specifies student_id=999 which does NOT match parent's student_id=101
+    token = security.create_access_token({
+        "sub": "parenta2@alpha.edu",
+        "role": "parent",
+        "institution_id": 1,
+        "student_id": 999,
+    })
+
+    res = test_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 401
+
+
+def test_parent_auth_me_wrong_institution_rejected(client, test_env):
+    """Verifies that a Parent JWT with an unassigned institution_id is rejected (401 Unauthorized)."""
+    test_client, _ = client
+    db, _ = test_env
+
+    parent = models.ParentAccount(
+        id=3,
+        institution_id=1,
+        student_id=101,
+        name="Parent Alpha 3",
+        email="parenta3@alpha.edu",
+        phone="9998887770",
+        password_hash=security.get_password_hash("ParentPass123!"),
+    )
+    db.add(parent)
+    db.commit()
+
+    # JWT specifies institution_id=2 which does NOT match parent's institution_id=1
+    token = security.create_access_token({
+        "sub": "parenta3@alpha.edu",
+        "role": "parent",
+        "institution_id": 2,
+        "student_id": 101,
+    })
+
+    res = test_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 401
+
+
+def test_parent_auth_me_nonexistent_parent_rejected(client):
+    """Verifies that a token for a non-existent parent email is rejected (401 Unauthorized)."""
+    test_client, _ = client
+
+    token = security.create_access_token({
+        "sub": "nonexistent@alpha.edu",
+        "role": "parent",
+        "institution_id": 1,
+        "student_id": 101,
+    })
+
+    res = test_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 401

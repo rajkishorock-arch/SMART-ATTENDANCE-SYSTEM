@@ -236,6 +236,37 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             }
         }
 
+    if role == "parent":
+        jwt_student_id = payload.get("student_id")
+        if jwt_student_id is None:
+            raise credentials_exception
+        parent = db.query(models.ParentAccount).filter(
+            models.ParentAccount.email == email,
+            models.ParentAccount.institution_id == institution_id,
+            models.ParentAccount.student_id == jwt_student_id,
+        ).first()
+        if not parent:
+            raise credentials_exception
+        student = db.query(models.StudentModel).filter(
+            models.StudentModel.id == parent.student_id,
+            models.StudentModel.institution_id == institution_id,
+        ).first()
+        if not student:
+            raise credentials_exception
+        return {
+            "role": "parent",
+            "email": parent.email,
+            "name": parent.name,
+            "institution_id": parent.institution_id,
+            "details": {
+                "id": parent.id,
+                "student_id": parent.student_id,
+                "student_name": student.name if student else None,
+                "student_roll": student.roll if student else None,
+                "phone": parent.phone,
+            }
+        }
+
     user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
     if not user or not user.is_active or user.role != role:
         raise credentials_exception

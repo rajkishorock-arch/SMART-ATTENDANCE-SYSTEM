@@ -8,6 +8,8 @@ import {
   AlertCircle,
   GraduationCap,
   UserCog,
+  UserCheck,
+  Users,
   Crown,
   CheckCircle2,
   ArrowRight,
@@ -33,11 +35,25 @@ const ROLES = [
     description: 'Mark attendance, manage logs & sessions'
   },
   {
+    id: 'hod',
+    label: 'HOD',
+    icon: UserCheck,
+    color: '#f59e0b',
+    description: 'Department oversight, faculty & attendance'
+  },
+  {
     id: 'admin',
     label: 'Admin',
     icon: Crown,
     color: '#8b5cf6',
     description: 'Full institution administration & reports'
+  },
+  {
+    id: 'parent',
+    label: 'Parent',
+    icon: Users,
+    color: '#ec4899',
+    description: 'Track child attendance, alerts & progress'
   }
 ];
 

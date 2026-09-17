@@ -7,7 +7,7 @@ import { wakeBackend } from '../utils/cameraScanner';
 export const AuthContext = createContext(null);
 
 export const getRoleMismatchMessage = (expectedRole, actualRole) => {
-  const portalNames = { student: 'Student', teacher: 'Teacher', admin: 'Admin' };
+  const portalNames = { student: 'Student', teacher: 'Teacher', hod: 'HOD', admin: 'Admin', parent: 'Parent' };
   const expected = portalNames[expectedRole] || expectedRole;
   const actual = portalNames[actualRole] || actualRole;
   return `This is a ${actual} account. Please navigate to the correct "${expected} Portal" to log in.`;
@@ -127,11 +127,19 @@ export function AuthProvider({ children }) {
 
     const API_BASE_URL = getApiBaseUrl();
 
-    await wakeBackend(API_BASE_URL, 2500);
-
-    const formData = new URLSearchParams();
-    formData.append('username', loginEmail.trim().toLowerCase());
-    formData.append('password', loginPassword);
+    const isParentLogin = loginRole === 'parent';
+    const loginEndpoint = isParentLogin ? `${API_BASE_URL}/parents/login` : `${API_BASE_URL}/auth/token`;
+    const loginHeaders = isParentLogin
+      ? { 'Content-Type': 'application/json', 'X-Tenant-Slug': getActiveTenantSlug() }
+      : { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Tenant-Slug': getActiveTenantSlug() };
+    const loginBody = isParentLogin
+      ? JSON.stringify({ email: loginEmail.trim().toLowerCase(), password: loginPassword })
+      : (() => {
+          const fd = new URLSearchParams();
+          fd.append('username', loginEmail.trim().toLowerCase());
+          fd.append('password', loginPassword);
+          return fd;
+        })();
 
     const MAX_RETRIES = 2;
     let lastError = null;
@@ -147,13 +155,10 @@ export function AuthProvider({ children }) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 35000);
 
-        const res = await fetch(`${API_BASE_URL}/auth/token`, {
+        const res = await fetch(loginEndpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Tenant-Slug': getActiveTenantSlug(),
-          },
-          body: formData,
+          headers: loginHeaders,
+          body: loginBody,
           signal: controller.signal,
         });
         clearTimeout(timeoutId);

@@ -5029,8 +5029,12 @@ export default function App() {
     const isTabValidForRole = (tabId, role) => {
       if (role === 'student') {
         return ['student-attendance', 'student-profile', 'ai-assistant', 'settings'].includes(tabId);
+      } else if (role === 'parent') {
+        return ['dashboard', 'student-attendance', 'settings'].includes(tabId);
       } else if (role === 'teacher') {
         return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
+      } else if (role === 'hod') {
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant'].includes(tabId);
       } else if (role === 'admin') {
         return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
       }
