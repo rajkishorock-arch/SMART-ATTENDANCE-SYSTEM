@@ -327,3 +327,64 @@ def test_parent_auth_me_nonexistent_parent_rejected(client):
 
     res = test_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 401
+
+
+# ============================================================================
+# TEST: Parent AuthIdentity Resolution via get_current_identity()
+# ============================================================================
+
+def test_parent_get_current_identity_notifications_access(client, test_env):
+    """Verifies that a valid Parent JWT resolves AuthIdentity and accesses /notifications/my."""
+    test_client, _ = client
+    db, _ = test_env
+
+    parent = models.ParentAccount(
+        id=10,
+        institution_id=1,
+        student_id=101,
+        name="Parent Alpha 10",
+        email="parenta10@alpha.edu",
+        phone="9998887771",
+        password_hash=security.get_password_hash("ParentPass123!"),
+    )
+    db.add(parent)
+    db.commit()
+
+    token = security.create_access_token({
+        "sub": "parenta10@alpha.edu",
+        "role": "parent",
+        "institution_id": 1,
+        "student_id": 101,
+    })
+
+    res = test_client.get("/api/v1/notifications/my-notifications", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    assert isinstance(res.json(), list)
+
+
+def test_parent_get_current_identity_mismatched_student_rejected(client, test_env):
+    """Verifies that Parent JWT with mismatched student_id fails get_current_identity (401 Unauthorized)."""
+    test_client, _ = client
+    db, _ = test_env
+
+    parent = models.ParentAccount(
+        id=11,
+        institution_id=1,
+        student_id=101,
+        name="Parent Alpha 11",
+        email="parenta11@alpha.edu",
+        phone="9998887772",
+        password_hash=security.get_password_hash("ParentPass123!"),
+    )
+    db.add(parent)
+    db.commit()
+
+    token = security.create_access_token({
+        "sub": "parenta11@alpha.edu",
+        "role": "parent",
+        "institution_id": 1,
+        "student_id": 999,
+    })
+
+    res = test_client.get("/api/v1/notifications/my-notifications", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 401

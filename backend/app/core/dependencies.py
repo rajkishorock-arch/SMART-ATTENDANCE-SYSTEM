@@ -114,6 +114,25 @@ def get_current_identity(db: Session = Depends(get_db), token: str = Depends(oau
             institution_id=student.institution_id,
             model_instance=student
         )
+    elif role == "parent":
+        jwt_student_id = payload.get("student_id")
+        if jwt_student_id is None:
+            raise credentials_exception
+        parent = db.query(models.ParentAccount).filter(
+            models.ParentAccount.email == email,
+            models.ParentAccount.institution_id == institution_id,
+            models.ParentAccount.student_id == jwt_student_id,
+        ).first()
+        if not parent:
+            raise credentials_exception
+        return AuthIdentity(
+            id=parent.id,
+            email=parent.email,
+            role="parent",
+            name=parent.name or "Parent",
+            institution_id=parent.institution_id,
+            model_instance=parent
+        )
     else:
         user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
         if not user or not user.is_active:
