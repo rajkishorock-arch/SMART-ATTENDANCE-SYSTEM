@@ -10,6 +10,7 @@ import {
 } from '../utils/explorationSettings';
 
 const PREMIUM_KEYS = ['matrixRain', 'dashboardCelebration'];
+const shouldTriggerSecret = () => Math.random() > 0.6;
 
 export default function ExplorationLab({
   isPremium = false,
@@ -32,7 +33,7 @@ export default function ExplorationLab({
     const nextVal = !settings[key];
     apply({ ...settings, [key]: nextVal });
     
-    if (Math.random() > 0.6) {
+    if (shouldTriggerSecret()) {
       const count = bumpSecretDiscovery();
       setDiscovered(count);
       setSecretAlert(`🎉 Secret FX Discovered! Total Secrets: ${count}`);

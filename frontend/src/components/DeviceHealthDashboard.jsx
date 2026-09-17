@@ -8,6 +8,11 @@ import { getApiBaseUrl } from '../utils/platform';
 
 const API_BASE_URL = getApiBaseUrl();
 
+const getRandomTelemetryMetrics = () => ({
+  battery_level: Math.floor(Math.random() * 20) + 80,
+  network_latency_ms: Math.floor(Math.random() * 30) + 12
+});
+
 export default function DeviceHealthDashboard({
   token,
   playCyberSound = () => {}
@@ -85,6 +90,7 @@ export default function DeviceHealthDashboard({
   const handleSendPing = async (device) => {
     setPingingIds(prev => ({ ...prev, [device.id]: true }));
     try {
+      const telemetry = getRandomTelemetryMetrics();
       const res = await fetch(`${API_BASE_URL}/devices/heartbeat`, {
         method: 'POST',
         headers: {
@@ -94,9 +100,9 @@ export default function DeviceHealthDashboard({
         body: JSON.stringify({
           device_identifier: device.device_identifier,
           status: 'ONLINE',
-          battery_level: Math.floor(Math.random() * 20) + 80,
+          battery_level: telemetry.battery_level,
           camera_status: 'OK',
-          network_latency_ms: Math.floor(Math.random() * 30) + 12,
+          network_latency_ms: telemetry.network_latency_ms,
           pending_sync_count: 0
         })
       });
