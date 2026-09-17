@@ -54,7 +54,6 @@ export default function LoginPortal({
   serverWarmingUp,
   onWakeServer,
   onExploreGuest,
-  onTenantChange,
   onSsoLogin,
 }) {
   // UI Controls
@@ -72,11 +71,11 @@ export default function LoginPortal({
   const [regInstitutionCode, setRegInstitutionCode] = useState('');
   const [regRoll, setRegRoll] = useState('');
   const [regDep, setRegDep] = useState('');
-  const [regCourse, setRegCourse] = useState('');
-  const [regYear, setRegYear] = useState('1st Year');
-  const [regSemester, setRegSemester] = useState('Sem 1');
-  const [regGender, setRegGender] = useState('Male');
-  const [regPhone, setRegPhone] = useState('');
+  const [regCourse] = useState('');
+  const [regYear] = useState('1st Year');
+  const [regSemester] = useState('Sem 1');
+  const [regGender] = useState('Male');
+  const [regPhone] = useState('');
   const [regConsent, setRegConsent] = useState(true);
 
   const [regError, setRegError] = useState('');
