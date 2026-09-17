@@ -349,145 +349,6 @@ export default function App() {
     styleStatusBar();
   }, []);
 
-  const getSuggestions = () => {
-    switch (botSuggestionCategory) {
-      case 'attendance':
-        return [
-          "Why did face scan show already marked?",
-          "How to view session-wise history?",
-          "What is geofencing location filter?"
-        ];
-      case 'profile':
-        return [
-          "How to register my face photo?",
-          "Can I change my registered email?",
-          "Where do I find my teacher/mentor info?"
-        ];
-      case 'security':
-        return [
-          "How to update account password?",
-          "Is my webcam biometric data safe?",
-          "How to check local geofence parameters?"
-        ];
-      case 'general':
-      default:
-        return [
-          "How does this system work?",
-          "What features does this app have?",
-          "How to submit feature feedback?"
-        ];
-    }
-  };
-
-  const renderInteractiveDiagram = (diagramType) => {
-    if (diagramType === 'face_recognition') {
-      return (
-        <div className="ai-diagram-card">
-          <div className="ai-diagram-title">
-            <Video size={14} /> Biometric Facial Recognition Scanner
-          </div>
-          <svg width="100%" height="150" viewBox="0 0 400 150" style={{ background: '#020617', borderRadius: '8px' }}>
-            <rect x="135" y="15" width="130" height="120" rx="8" fill="none" stroke="rgba(0, 242, 254, 0.3)" strokeWidth="1" />
-            <circle cx="200" cy="50" r="3" fill="#00f2fe" />
-            <circle cx="170" cy="40" r="3" fill="#00f2fe" />
-            <circle cx="230" cy="40" r="3" fill="#00f2fe" />
-            <circle cx="175" cy="80" r="3" fill="#00f2fe" />
-            <circle cx="225" cy="80" r="3" fill="#00f2fe" />
-            <circle cx="200" cy="110" r="3" fill="#00f2fe" />
-            <circle cx="200" cy="125" r="3" fill="#00f2fe" />
-            
-            <line x1="170" y1="40" x2="200" y2="50" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="230" y1="40" x2="200" y2="50" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="170" y1="40" x2="175" y2="80" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="230" y1="40" x2="225" y2="80" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="200" y1="50" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="175" y1="80" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="225" y1="80" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="200" y1="110" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="175" y1="80" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="225" y1="80" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-
-            <line x1="125" y1="75" x2="275" y2="75" stroke="#00f2fe" strokeWidth="2" style={{ filter: 'drop-shadow(0 0 6px #00f2fe)', animation: 'radarBeam 3s ease-in-out infinite' }} />
-            
-            <text x="280" y="40" fill="#a78bfa" fontSize="8" fontFamily="monospace">MODEL: RESNET-50</text>
-            <text x="280" y="55" fill="#a78bfa" fontSize="8" fontFamily="monospace">LANDMARKS: 68 PTS</text>
-            <text x="280" y="70" fill="#a78bfa" fontSize="8" fontFamily="monospace">CONFIDENCE: 99.4%</text>
-            <text x="280" y="85" fill="#00f2fe" fontSize="8" fontFamily="monospace">BIOMETRIC: MATCH</text>
-
-            <text x="20" y="40" fill="#6b7280" fontSize="8" fontFamily="monospace">FEED: WEBCAM_0</text>
-            <text x="20" y="55" fill="#6b7280" fontSize="8" fontFamily="monospace">STATUS: ACQUIRING</text>
-            <text x="20" y="70" fill="#6b7280" fontSize="8" fontFamily="monospace">FPS: 30.00</text>
-          </svg>
-          <style>{`
-            @keyframes radarBeam {
-              0%, 100% { transform: translateY(-40px); }
-              50% { transform: translateY(40px); }
-            }
-          `}</style>
-        </div>
-      );
-    }
-
-    if (diagramType === 'geofencing') {
-      return (
-        <div className="ai-diagram-card">
-          <div className="ai-diagram-title">
-            <ShieldCheck size={14} /> Geofencing Perimeter Map
-          </div>
-          <svg width="100%" height="150" viewBox="0 0 400 150" style={{ background: '#020617', borderRadius: '8px' }}>
-            <circle cx="200" cy="75" r="50" fill="rgba(16, 185, 129, 0.05)" stroke="#10b981" strokeWidth="2" strokeDasharray="4 3" style={{ animation: 'radarPulse 3s linear infinite' }} />
-            <circle cx="200" cy="75" r="4" fill="#10b981" />
-            <text x="210" y="79" fill="#10b981" fontSize="8" fontFamily="monospace">CAMPUS CENTER</text>
-            
-            <circle cx="230" cy="55" r="6" fill="#00f2fe" style={{ animation: 'pulse 1.5s infinite' }} />
-            <line x1="200" y1="75" x2="230" y2="55" stroke="rgba(0, 242, 254, 0.5)" strokeWidth="1" strokeDasharray="2 2" />
-            <text x="242" y="59" fill="#00f2fe" fontSize="8" fontFamily="monospace">YOUR DEVICE (INSIDE)</text>
-            
-            <text x="20" y="30" fill="#9ca3af" fontSize="8" fontFamily="monospace">GEOFENCE LIMIT: 500m</text>
-            <text x="20" y="45" fill="#9ca3af" fontSize="8" fontFamily="monospace">CURRENT DIST: 124m</text>
-            <text x="20" y="60" fill="#10b981" fontSize="8" fontFamily="monospace">VERIFICATION: ALLOWED</text>
-            
-            <text x="290" y="30" fill="#6b7280" fontSize="8" fontFamily="monospace">LAT: 28.7041° N</text>
-            <text x="290" y="45" fill="#6b7280" fontSize="8" fontFamily="monospace">LON: 77.1025° E</text>
-            <text x="290" y="60" fill="#6b7280" fontSize="8" fontFamily="monospace">ACCURACY: 4.2m</text>
-          </svg>
-          <style>{`
-            @keyframes radarPulse {
-              0% { r: 10; opacity: 1; }
-              100% { r: 65; opacity: 0; }
-            }
-          `}</style>
-        </div>
-      );
-    }
-
-    if (diagramType === 'attendance_flow') {
-      return (
-        <div className="ai-diagram-card">
-          <div className="ai-diagram-title">
-            <Clock size={14} /> Attendance Verification Workflow
-          </div>
-          <svg width="100%" height="80" viewBox="0 0 400 80" style={{ background: '#020617', borderRadius: '8px' }}>
-            <rect x="15" y="20" width="90" height="40" rx="6" fill="rgba(167, 139, 250, 0.1)" stroke="rgba(167, 139, 250, 0.4)" strokeWidth="1" />
-            <text x="25" y="44" fill="#a78bfa" fontSize="9" fontFamily="monospace" fontWeight="bold">1. Capture Face</text>
-            
-            <path d="M 115 40 L 135 40 M 130 36 L 135 40 L 130 44" stroke="#00f2fe" strokeWidth="1.5" fill="none" />
-
-            <rect x="145" y="20" width="110" height="40" rx="6" fill="rgba(0, 242, 254, 0.1)" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <text x="155" y="44" fill="#00f2fe" fontSize="9" fontFamily="monospace" fontWeight="bold">2. Anti-Spoofing</text>
-
-            <path d="M 265 40 L 285 40 M 280 36 L 285 40 L 280 44" stroke="#10b981" strokeWidth="1.5" fill="none" />
-
-            <rect x="295" y="20" width="90" height="40" rx="6" fill="rgba(16, 185, 129, 0.1)" stroke="rgba(16, 185, 129, 0.4)" strokeWidth="1" />
-            <text x="305" y="44" fill="#10b981" fontSize="9" fontFamily="monospace" fontWeight="bold">3. Mark Present</text>
-          </svg>
-        </div>
-      );
-    }
-    
-    return null;
-  };
-
 
 
   // Authentication Context
@@ -534,15 +395,11 @@ export default function App() {
   const {
     activeTheme,
     setActiveTheme,
-    changeTheme,
     audioVolume,
     setAudioVolume,
     soundEnabled,
     setSoundEnabled,
-    toggleSound,
-    synthModulator,
     setSynthModulator,
-    synthPitchScale,
     setSynthPitchScale,
     playCyberSound,
   } = useUI();
@@ -691,7 +548,6 @@ export default function App() {
     setUpdateDownloadedToast,
     serverLatestVersion,
     updateActiveFlag,
-    checkForUpdate,
     handleManualCheck,
   } = useUpdateChecker(currentUser);
   const [explorationSettings, setExplorationSettings] = useState(() => loadExplorationSettings());
@@ -1273,47 +1129,7 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // Handle general file input selection
-  const handleBotFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.type.startsWith('image/')) {
-      handleImageFileAttach(file);
-    } else {
-      handleTextFileAttach(file);
-    }
-    e.target.value = '';
-  };
 
-  const handleChatPaste = (e) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const blob = items[i].getAsFile();
-        handleImageFileAttach(blob);
-        e.preventDefault();
-        break;
-      }
-    }
-  };
-
-  const handleChatDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleChatDrop = (e) => {
-    e.preventDefault();
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('image/')) {
-        handleImageFileAttach(file);
-      } else {
-        handleTextFileAttach(file);
-      }
-    }
-  };
 
   const handleVoiceCommand = (text) => {
     const lowerSpeech = text.toLowerCase().trim();
@@ -4909,21 +4725,7 @@ export default function App() {
     }
   };
 
-  const handlePrevMonth = () => {
-    setCalendarDate(prev => {
-      const newDate = new Date(prev);
-      newDate.setMonth(newDate.getMonth() - 1);
-      return newDate;
-    });
-  };
 
-  const handleNextMonth = () => {
-    setCalendarDate(prev => {
-      const newDate = new Date(prev);
-      newDate.setMonth(newDate.getMonth() + 1);
-      return newDate;
-    });
-  };
 
   const startStudentWebcam = async () => {
     setSelfieError('');
