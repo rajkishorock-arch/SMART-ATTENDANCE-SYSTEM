@@ -26,7 +26,7 @@ export default function AttendancePlannerWidget({
   const [isSimulating, setIsSimulating] = useState(false);
 
   // ── Fetch Planner Summary ──────────────────────────────────────────────────
-  const fetchPlanner = useCallback(async (target = targetPct) => {
+  const fetchPlanner = useCallback(async (target = targetPct, isCancelled = () => false) => {
     if (!token) return;
     setIsLoading(true);
     setErrorMsg('');
@@ -36,20 +36,34 @@ export default function AttendancePlannerWidget({
       });
       if (!res.ok) throw new Error(`Planner unavailable (${res.status})`);
       const data = await res.json();
-      setPlannerData(data);
+      if (!isCancelled()) {
+        setPlannerData(data);
+      }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to load attendance planner.');
+      if (!isCancelled()) {
+        setErrorMsg(err.message || 'Failed to load attendance planner.');
+      }
     } finally {
-      setIsLoading(false);
+      if (!isCancelled()) {
+        setIsLoading(false);
+      }
     }
   }, [token, targetPct]);
 
   useEffect(() => {
-    fetchPlanner(targetPct);
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (!ignore) {
+        fetchPlanner(targetPct, () => ignore);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [fetchPlanner, targetPct]);
 
   // ── Run What-If Simulation ─────────────────────────────────────────────────
-  const runSimulation = useCallback(async () => {
+  const runSimulation = useCallback(async (isCancelled = () => false) => {
     if (!token) return;
     setIsSimulating(true);
     try {
@@ -69,19 +83,31 @@ export default function AttendancePlannerWidget({
       });
       if (res.ok) {
         const data = await res.json();
-        setSimResult(data);
+        if (!isCancelled()) {
+          setSimResult(data);
+        }
       }
     } catch (err) {
       console.warn('Simulation failed:', err);
     } finally {
-      setIsSimulating(false);
+      if (!isCancelled()) {
+        setIsSimulating(false);
+      }
     }
   }, [token, simSubjectId, targetPct, simUpcoming, simPlanned]);
 
   useEffect(() => {
+    let ignore = false;
     if (showWhatIf) {
-      runSimulation();
+      Promise.resolve().then(() => {
+        if (!ignore) {
+          runSimulation(() => ignore);
+        }
+      });
     }
+    return () => {
+      ignore = true;
+    };
   }, [showWhatIf, runSimulation]);
 
   const getStatusBadge = (status) => {
