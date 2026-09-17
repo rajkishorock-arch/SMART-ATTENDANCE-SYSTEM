@@ -81,8 +81,6 @@ export default function LoginPortal({
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [showPostRegFaceEnroll, setShowPostRegFaceEnroll] = useState(false);
 
-  const [selectedTenant, setSelectedTenant] = useState(localStorage.getItem('override_tenant') || 'default');
-
   // Step 1 Validation
   const validateStep1 = () => {
     setRegError('');
