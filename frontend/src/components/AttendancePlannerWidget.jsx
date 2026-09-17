@@ -9,7 +9,6 @@ const API_BASE_URL = getApiBaseUrl();
 
 export default function AttendancePlannerWidget({
   token,
-  currentUser,
   playCyberSound = () => {}
 }) {
   const [plannerData, setPlannerData] = useState(null);

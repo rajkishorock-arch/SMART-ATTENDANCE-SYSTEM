@@ -3,7 +3,7 @@ import { CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw, Download } fro
 import { generateLeavePdf } from '../utils/leavePdfGenerator';
 import { leaveApi } from '../api';
 
-export default function LeaveAdminDashboard({ token, currentUser }) {
+export default function LeaveAdminDashboard({ token }) {
   const [leaveRequests, setLeaveRequests] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_leave_admin_requests');

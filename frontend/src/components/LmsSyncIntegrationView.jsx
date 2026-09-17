@@ -9,7 +9,6 @@ const API_BASE_URL = getApiBaseUrl();
 
 export default function LmsSyncIntegrationView({
   token,
-  currentUser,
   playCyberSound = () => {}
 }) {
   const [provider, setProvider] = useState('CANVAS');

@@ -11,7 +11,6 @@ const API_BASE_URL = getApiBaseUrl();
 
 export default function AttendanceDisputesQueue({ 
   token, 
-  currentUser, 
   playCyberSound = () => {},
   onDisputeUpdated
 }) {

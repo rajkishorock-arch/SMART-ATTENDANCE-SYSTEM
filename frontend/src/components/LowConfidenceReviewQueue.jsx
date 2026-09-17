@@ -10,7 +10,6 @@ const API_BASE_URL = getApiBaseUrl();
 
 export default function LowConfidenceReviewQueue({
   token,
-  currentUser,
   playCyberSound = () => {}
 }) {
   const [reviews, setReviews] = useState([]);
