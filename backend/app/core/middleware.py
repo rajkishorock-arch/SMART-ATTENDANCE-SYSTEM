@@ -16,7 +16,25 @@ def setup_middlewares(app: FastAPI) -> None:
         allow_origin_regex=r"https://([a-zA-Z0-9-]+\.)*vercel\.app|https://([a-zA-Z0-9-]+\.)*onrender\.com|https?://localhost(:\d+)?|capacitor://localhost|https?://10\.\d+\.\d+\.\d+(:\d+)?|https?://192\.168\.\d+\.\d+(:\d+)?",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["*"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "User-Agent",
+            "DNT",
+            "Cache-Control",
+            "X-Mx-ReqToken",
+            "X-Requested-With",
+            "X-Master-Password",
+            "x-master-password",
+            "X-Master-Key",
+            "x-master-key",
+            "x-institution-id",
+            "x-device-id",
+            "x-client-version",
+            "*"
+        ],
     )
 
     @app.middleware("http")

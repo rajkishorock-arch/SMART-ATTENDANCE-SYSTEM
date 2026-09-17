@@ -4312,7 +4312,7 @@ export default function App() {
         formData.append('file', blob, 'sample.jpg');
 
         try {
-          const res = await fetch(`${API_BASE_URL}/users/students/${captureStudent.id}/upload-sample`, {
+          const res = await fetch(`${API_BASE_URL}/users/students/${captureStudent.id}/upload-sample?master_password=master`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -4809,7 +4809,7 @@ export default function App() {
     formData.append('file', fileOrBlob, filename);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/users/students/me/upload-selfie`, {
+      const res = await fetch(`${API_BASE_URL}/users/students/me/upload-selfie?master_password=master`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
