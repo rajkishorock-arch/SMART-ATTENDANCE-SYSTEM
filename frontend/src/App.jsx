@@ -116,6 +116,7 @@ import SessionHistoryView from './components/dashboard/SessionHistoryView';
 import StudentAttendanceDashboardView from './components/dashboard/StudentAttendanceDashboardView';
 import StudentProfileView from './components/dashboard/StudentProfileView';
 import HodDashboardView from './components/HodDashboardView';
+import ParentDashboardView from './components/ParentDashboardView';
 
 const getLocalDateString = (d = new Date()) => {
   const year = d.getFullYear();
@@ -7519,7 +7520,15 @@ export default function App() {
 
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
-          userRole === 'hod' ? (
+          userRole === 'parent' ? (
+            <ParentDashboardView
+              token={token}
+              currentUser={currentUser}
+              navigateToTab={navigateToTab}
+              playCyberSound={playCyberSound}
+              setShowNotificationDrawer={setShowNotificationDrawer}
+            />
+          ) : userRole === 'hod' ? (
             <HodDashboardView
               token={token}
               currentUser={currentUser}
