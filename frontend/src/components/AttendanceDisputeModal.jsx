@@ -64,36 +64,41 @@ export default function AttendanceDisputeModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [commentText, setCommentText] = useState('');
-
   // Initialize or prefill from props
   useEffect(() => {
-    if (prefillSession) {
-      let d = prefillSession.date || '';
-      if (d.includes('/')) {
-        const parts = d.split('/');
-        if (parts.length === 3) {
-          d = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (ignore) return;
+      if (prefillSession) {
+        let d = prefillSession.date || '';
+        if (d.includes('/')) {
+          const parts = d.split('/');
+          if (parts.length === 3) {
+            d = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          }
         }
+        setDate(d);
+        setSessionTime(prefillSession.time || prefillSession.period_label || '');
+        setOriginalStatus(prefillSession.attendance || 'Absent');
+        if (prefillSession.subject_id) {
+          setSelectedSubjectId(String(prefillSession.subject_id));
+        }
+        setActiveView('new');
+      } else if (!date) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        setDate(`${yyyy}-${mm}-${dd}`);
       }
-      setDate(d);
-      setSessionTime(prefillSession.time || prefillSession.period_label || '');
-      setOriginalStatus(prefillSession.attendance || 'Absent');
-      if (prefillSession.subject_id) {
-        setSelectedSubjectId(String(prefillSession.subject_id));
-      }
-      setActiveView('new');
-    } else if (!date) {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      setDate(`${yyyy}-${mm}-${dd}`);
-    }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [prefillSession]);
 
   // Fetch student's past disputes
-  const fetchMyDisputes = useCallback(async () => {
+  const fetchMyDisputes = useCallback(async (isCancelled = () => false) => {
     if (!token) return;
     if (myDisputes.length === 0) setIsLoading(true);
     try {
@@ -101,24 +106,34 @@ export default function AttendanceDisputeModal({
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
-        setMyDisputes(list);
-        try {
-          localStorage.setItem('cached_my_disputes', JSON.stringify(list));
-        } catch { /* ignore fallback error */ }
+        if (!isCancelled()) {
+          setMyDisputes(list);
+          try {
+            localStorage.setItem('cached_my_disputes', JSON.stringify(list));
+          } catch { /* ignore fallback error */ }
+        }
       }
     } catch (err) {
       console.error("Error fetching disputes:", err);
     } finally {
-      setIsLoading(false);
+      if (!isCancelled()) {
+        setIsLoading(false);
+      }
     }
-  }, [token, activeApiUrl, myDisputes.length]);
+  }, [token, myDisputes.length]);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchMyDisputes();
+    if (!isOpen) return undefined;
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (ignore) return;
       setErrorMsg('');
       setSuccessMsg('');
-    }
+      fetchMyDisputes(() => ignore);
+    });
+    return () => {
+      ignore = true;
+    };
   }, [isOpen, fetchMyDisputes]);
 
   const handleFileChange = (e) => {
