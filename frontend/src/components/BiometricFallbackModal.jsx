@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   QrCode, KeyRound, Clock,
   CheckCircle2, AlertTriangle, X, Play, StopCircle, 
@@ -23,6 +23,7 @@ export default function BiometricFallbackModal({
   const [activeSession, setActiveSession] = useState(null);
   const [rollingToken, setRollingToken] = useState(null);
   const [secondsRemaining, setSecondsRemaining] = useState(30);
+  const secondsRemainingRef = useRef(30);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Student claim states
@@ -39,7 +40,7 @@ export default function BiometricFallbackModal({
   const [successMsg, setSuccessMsg] = useState('');
 
   // ── Poll Rolling Token for Teacher ─────────────────────────────────────────
-  const fetchRollingToken = useCallback(async (sessionId) => {
+  const fetchRollingToken = useCallback(async (sessionId, isCancelled = () => false) => {
     if (!sessionId || !token) return;
     try {
       const res = await fetch(`${API_BASE_URL}/fallback/active-token/${sessionId}`, {
@@ -47,8 +48,11 @@ export default function BiometricFallbackModal({
       });
       if (res.ok) {
         const data = await res.json();
-        setRollingToken(data.token);
-        setSecondsRemaining(data.seconds_remaining);
+        if (!isCancelled()) {
+          setRollingToken(data.token);
+          secondsRemainingRef.current = data.seconds_remaining;
+          setSecondsRemaining(data.seconds_remaining);
+        }
       }
     } catch (err) {
       console.error('Failed to poll rolling token:', err);
@@ -56,20 +60,31 @@ export default function BiometricFallbackModal({
   }, [token]);
 
   useEffect(() => {
+    let ignore = false;
     let timer;
     if (activeSession?.id && isTeacherOrAdmin) {
-      fetchRollingToken(activeSession.id);
+      Promise.resolve().then(() => {
+        if (!ignore) {
+          fetchRollingToken(activeSession.id, () => ignore);
+        }
+      });
       timer = setInterval(() => {
-        setSecondsRemaining(prev => {
-          if (prev <= 1) {
-            fetchRollingToken(activeSession.id);
-            return 30;
+        if (secondsRemainingRef.current <= 1) {
+          secondsRemainingRef.current = 30;
+          setSecondsRemaining(30);
+          if (!ignore) {
+            fetchRollingToken(activeSession.id, () => ignore);
           }
-          return prev - 1;
-        });
+        } else {
+          secondsRemainingRef.current -= 1;
+          setSecondsRemaining(secondsRemainingRef.current);
+        }
       }, 1000);
     }
-    return () => clearInterval(timer);
+    return () => {
+      ignore = true;
+      clearInterval(timer);
+    };
   }, [activeSession, isTeacherOrAdmin, fetchRollingToken]);
 
   if (!isOpen) return null;
