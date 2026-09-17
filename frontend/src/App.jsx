@@ -82,23 +82,19 @@ const StaffPayrollView = lazy(() => import('./components/StaffPayrollView'));
 import QuickActionsDock from './components/QuickActionsDock';
 import OnboardingTour from './components/OnboardingTour';
 import OfflineBanner from './components/OfflineBanner';
-import StudentAttendanceWallet from './components/StudentAttendanceWallet';
 import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings } from './utils/futuristicFeatures';
 const NewFeaturesHub = lazy(() => import('./components/NewFeaturesHub'));
 import { fastFaceEngine } from './services/fastFaceEngine';
 import { offlineAttendanceQueue } from './services/offlineAttendanceQueue';
 const WellnessCounselorPanel = lazy(() => import('./components/WellnessCounselorPanel'));
 const ARGamificationPortal = lazy(() => import('./components/ARGamificationPortal'));
-import AttendanceChartsWidget from './components/AttendanceChartsWidget';
 import { getStoredLanguage } from './utils/i18n';
 import SyncStatusPill from './components/SyncStatusPill';
 import { ScannerSuccessReceipt, ScannerFallbackOptions } from './components/ScannerSuccessReceipt';
-import TodaySessionHub from './components/TodaySessionHub';
 const AccessibilitySettingsModal = lazy(() => import('./components/AccessibilitySettingsModal'));
 const PrivacyTrustCenter = lazy(() => import('./components/PrivacyTrustCenter'));
 const NotificationDrawerModal = lazy(() => import('./components/NotificationDrawerModal'));
 const GeofenceSettings = lazy(() => import('./components/settings/GeofenceSettings'));
-const MasterKeySettings = lazy(() => import('./components/settings/MasterKeySettings'));
 const ReleaseSettings = lazy(() => import('./components/settings/ReleaseSettings'));
 const InstitutionManagement = lazy(() => import('./components/settings/InstitutionManagement'));
 const AdminProfileSettings = lazy(() => import('./components/settings/AdminProfileSettings'));
@@ -559,7 +555,7 @@ export default function App() {
     if (token && userRole === 'student') {
       try {
         await studentApi.submitConsent(token);
-      } catch (err) { /* optional */ }
+      } catch { /* optional */ }
     }
   };
 
@@ -628,7 +624,7 @@ export default function App() {
     try {
       const savedRole = localStorage.getItem('userRole');
       if (savedRole === 'student') return 'student-attendance';
-    } catch (err) { /* ignore fallback error */ }
+    } catch { /* ignore fallback error */ }
     return 'dashboard';
   });
   const [activeSubSetting, setActiveSubSetting] = useState(null);
@@ -710,7 +706,7 @@ export default function App() {
       if (settings.customSpringEnabled) {
         document.body.classList.add('spring-physics');
       }
-    } catch (err) { /* ignore fallback error */ }
+    } catch { /* ignore fallback error */ }
   }, []);
 
   // Navigation State Refs for event handlers without stale closures
@@ -1334,16 +1330,16 @@ export default function App() {
       setActiveTab(tabId);
       try {
         setMobileSidebarOpen(false);
-      } catch (err) { /* ignore fallback error */ }
+      } catch { /* ignore fallback error */ }
       try {
         setMobileControlOpen(false);
-      } catch (err) { /* ignore fallback error */ }
+      } catch { /* ignore fallback error */ }
       try {
         setShowScannerModal(false);
-      } catch (err) { /* ignore fallback error */ }
+      } catch { /* ignore fallback error */ }
       try {
         setShowFeedbackModal(false);
-      } catch (err) { /* ignore fallback error */ }
+      } catch { /* ignore fallback error */ }
     };
 
     // 1. Scanner specific helpers
@@ -1498,7 +1494,7 @@ export default function App() {
               else if (top === 'bottom') el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
               else el.scrollBy({ top: top, behavior: 'smooth' });
             }
-          } catch (err) { /* ignore fallback error */ }
+          } catch { /* ignore fallback error */ }
         });
       };
 
@@ -3560,7 +3556,7 @@ export default function App() {
         if (osc1) osc1.stop();
         if (osc2) osc2.stop();
         if (audioCtx) audioCtx.close();
-      } catch (err) { /* ignore fallback error */ }
+      } catch { /* ignore fallback error */ }
     };
   }, [ambientHumActive, ambientHumVolume, isScanning, attendanceActive, webcamActive, studentWebcamActive]);
 
@@ -4009,13 +4005,13 @@ export default function App() {
         try {
           osc.stop();
           osc.disconnect();
-        } catch (err) { /* ignore fallback error */ }
+        } catch { /* ignore fallback error */ }
       }
       if (gain) {
-        try { gain.disconnect(); } catch (err) { /* ignore fallback error */ }
+        try { gain.disconnect(); } catch { /* ignore fallback error */ }
       }
       if (ctx) {
-        try { ctx.close(); } catch (err) { /* ignore fallback error */ }
+        try { ctx.close(); } catch { /* ignore fallback error */ }
       }
     };
   }, [lockdownActive, soundEnabled, audioVolume]);
