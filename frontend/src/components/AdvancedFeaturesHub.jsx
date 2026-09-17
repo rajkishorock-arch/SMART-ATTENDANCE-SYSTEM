@@ -27,11 +27,11 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
     Authorization: `Bearer ${token}`,
   }), [token]);
 
-  const fetchJson = async (url, options = {}) => {
+  const fetchJson = useCallback(async (url, options = {}) => {
     const res = await fetch(url, { ...options, headers: { ...headers(), ...options.headers } });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Request failed');
     return res.json();
-  };
+  }, [headers]);
 
   const [selectedStudentForAlert, setSelectedStudentForAlert] = useState(null);
   const [parentPhone, setParentPhone] = useState('');
@@ -180,7 +180,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
     if (tab === 'billing' && userRole === 'admin') {
       fetchJson(`${apiBaseUrl}/billing/status`).then(setBilling).catch((e) => setMessage(e.message));
     }
-  }, [tab, token, apiBaseUrl, userRole, headers]);
+  }, [tab, token, apiBaseUrl, userRole, headers, fetchJson]);
 
   const handleBulkUpload = async (entity, file) => {
     if (!file) return;
