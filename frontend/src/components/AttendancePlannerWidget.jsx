@@ -22,7 +22,6 @@ export default function AttendancePlannerWidget({
   const [simUpcoming, setSimUpcoming] = useState(10);
   const [simPlanned, setSimPlanned] = useState(8);
   const [simResult, setSimResult] = useState(null);
-  const [isSimulating, setIsSimulating] = useState(false);
 
   // ── Fetch Planner Summary ──────────────────────────────────────────────────
   const fetchPlanner = useCallback(async (target = targetPct, isCancelled = () => false) => {
@@ -64,7 +63,6 @@ export default function AttendancePlannerWidget({
   // ── Run What-If Simulation ─────────────────────────────────────────────────
   const runSimulation = useCallback(async (isCancelled = () => false) => {
     if (!token) return;
-    setIsSimulating(true);
     try {
       const payload = {
         subject_id: simSubjectId ? parseInt(simSubjectId) : null,
@@ -88,10 +86,6 @@ export default function AttendancePlannerWidget({
       }
     } catch (err) {
       console.warn('Simulation failed:', err);
-    } finally {
-      if (!isCancelled()) {
-        setIsSimulating(false);
-      }
     }
   }, [token, simSubjectId, targetPct, simUpcoming, simPlanned]);
 

@@ -24,7 +24,6 @@ export default function AttendanceDisputesQueue({
   });
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
 
   // Review Action State
@@ -52,16 +51,9 @@ export default function AttendanceDisputesQueue({
             localStorage.setItem('cached_disputes_queue', JSON.stringify(list));
           } catch { /* ignore fallback error */ }
         }
-      } else {
-        if (!isCancelled()) {
-          setErrorMsg('Failed to load dispute queue.');
-        }
       }
     } catch (err) {
       console.error(err);
-      if (!isCancelled()) {
-        setErrorMsg('Error loading disputes queue.');
-      }
     } finally {
       if (!isCancelled()) {
         setIsLoading(false);
