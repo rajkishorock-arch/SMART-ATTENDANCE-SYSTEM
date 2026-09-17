@@ -39,7 +39,7 @@ export default function AttendanceDisputesQueue({
   const [commentInput, setCommentInput] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
 
-  const fetchQueue = useCallback(async () => {
+  const fetchQueue = useCallback(async (isCancelled = () => false) => {
     if (!token) return;
     if (disputes.length === 0) setIsLoading(true);
     try {
@@ -47,23 +47,39 @@ export default function AttendanceDisputesQueue({
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
-        setDisputes(list);
-        try {
-          localStorage.setItem('cached_disputes_queue', JSON.stringify(list));
-        } catch { /* ignore fallback error */ }
+        if (!isCancelled()) {
+          setDisputes(list);
+          try {
+            localStorage.setItem('cached_disputes_queue', JSON.stringify(list));
+          } catch { /* ignore fallback error */ }
+        }
       } else {
-        setErrorMsg('Failed to load dispute queue.');
+        if (!isCancelled()) {
+          setErrorMsg('Failed to load dispute queue.');
+        }
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg('Error loading disputes queue.');
+      if (!isCancelled()) {
+        setErrorMsg('Error loading disputes queue.');
+      }
     } finally {
-      setIsLoading(false);
+      if (!isCancelled()) {
+        setIsLoading(false);
+      }
     }
   }, [token, statusFilter, disputes.length]);
 
   useEffect(() => {
-    fetchQueue();
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (!ignore) {
+        fetchQueue(() => ignore);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [fetchQueue]);
 
   const handleExecuteReview = async (disputeId) => {
