@@ -119,7 +119,7 @@ def get_face_embedding(image):
         
     try:
         image = resize_large_image(image)
-        detector, recognizer = get_face_engines(score_threshold=0.45)
+        detector, recognizer = get_face_engines(score_threshold=0.35)
         
         # Set the input size dynamically based on the image dimensions
         h, w = image.shape[:2]
@@ -128,13 +128,13 @@ def get_face_embedding(image):
         # Detect faces
         retval, faces = detector.detect(image)
         if not retval or faces is None or len(faces) == 0:
-            # Fallback 1: Retry with score_threshold=0.3 for low-light / dark photos / glasses
-            detector_fallback, _ = get_face_engines(score_threshold=0.3)
+            # Fallback 1: Retry with score_threshold=0.20 for low-light / dark photos / glasses
+            detector_fallback, _ = get_face_engines(score_threshold=0.20)
             detector_fallback.setInputSize((w, h))
             retval, faces = detector_fallback.detect(image)
             
         if not retval or faces is None or len(faces) == 0:
-            # Fallback 2: Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) for dark/under-exposed room lighting
+            # Fallback 2: Apply CLAHE for under-exposed/backlit lighting + score_threshold=0.18
             lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
             l, a, b = cv2.split(lab)
             clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
@@ -142,11 +142,32 @@ def get_face_embedding(image):
             limg = cv2.merge((cl, a, b))
             enhanced_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
             
-            detector_fallback, _ = get_face_engines(score_threshold=0.3)
+            detector_fallback, _ = get_face_engines(score_threshold=0.18)
             detector_fallback.setInputSize((w, h))
             retval, faces = detector_fallback.detect(enhanced_img)
             if retval and faces is not None and len(faces) > 0:
                 image = enhanced_img
+
+        if not retval or faces is None or len(faces) == 0:
+            # Fallback 3: Haar Cascade detection fallback for glasses / high glare / side angles
+            cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+            if os.path.exists(cascade_path):
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                face_cascade = cv2.CascadeClassifier(cascade_path)
+                haar_faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30))
+                if len(haar_faces) > 0:
+                    (hx, hy, hw, hh) = max(haar_faces, key=lambda b: b[2] * b[3])
+                    synthetic_face = np.array([
+                        float(hx), float(hy), float(hw), float(hh),
+                        float(hx + 0.3 * hw), float(hy + 0.35 * hh),
+                        float(hx + 0.7 * hw), float(hy + 0.35 * hh),
+                        float(hx + 0.5 * hw), float(hy + 0.6 * hh),
+                        float(hx + 0.35 * hw), float(hy + 0.8 * hh),
+                        float(hx + 0.65 * hw), float(hy + 0.8 * hh),
+                        0.9
+                    ], dtype=np.float32)
+                    faces = np.array([synthetic_face], dtype=np.float32)
+                    retval = True
 
         if not retval or faces is None or len(faces) == 0:
             return None
