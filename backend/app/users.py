@@ -490,6 +490,7 @@ def change_student_password(
 
 @router.post("/students/me/upload-selfie", response_model=schemas.Student)
 async def upload_student_selfie(
+    request: Request,
     file: UploadFile = File(...),
     current_student: models.StudentModel = Depends(security.get_current_student),
     db: Session = Depends(get_db)
@@ -803,6 +804,7 @@ def remove_student(
 @router.post("/students/{id}/upload-sample", status_code=status.HTTP_200_OK)
 async def upload_student_face_sample(
     id: int,
+    request: Request,
     sample_num: int = Query(1, ge=1, le=100),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),

@@ -4348,7 +4348,8 @@ export default function App() {
             resolve(false);
           }
         } catch (err) {
-          setWebcamError(err.message || 'Connection error during upload.');
+          const isFetchErr = err.message && (err.message.includes('fetch') || err.message.includes('NetworkError') || err.message.includes('Failed'));
+          setWebcamError(isFetchErr ? 'Connection error. The backend server might be starting up or unreachable. Please try again.' : (err.message || 'Connection error during upload.'));
           resolve(false);
         }
       }, 'image/jpeg', 0.95);
