@@ -90,8 +90,7 @@ def get_all_user_details_for_recognition(db: Session, institution_id: Optional[i
 
 def create_student(db: Session, student: schemas.StudentCreate, institution_id: Optional[int] = None):
     db_student = models.StudentModel(**student.dict())
-    if institution_id is not None:
-        db_student.institution_id = institution_id
+    db_student.institution_id = institution_id if institution_id is not None else 1
     if student.roll:
         db_student.password_hash = security.get_password_hash(student.roll)
     db.add(db_student)

@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./web-fALUzFkg.js","./chunk-B9KmgOQC.js","./dist-BR2jfC9n.js"])))=>i.map(i=>d[i]);
+import"./chunk-B9KmgOQC.js";import{a as e}from"./dist-BR2jfC9n.js";import{t}from"./preload-helper-DwbLSCfE.js";var n=e(`App`,{web:()=>t(()=>import(`./web-fALUzFkg.js`).then(e=>new e.AppWeb),__vite__mapDeps([0,1,2]),import.meta.url)});export{n as App};

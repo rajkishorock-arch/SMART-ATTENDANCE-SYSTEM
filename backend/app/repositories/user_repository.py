@@ -68,7 +68,8 @@ class UserRepository:
             query = query.filter(
                 or_(
                     models.StudentModel.institution_id == institution_id,
-                    models.StudentModel.institution_id.is_(None)
+                    models.StudentModel.institution_id.is_(None),
+                    models.StudentModel.institution_id == 1
                 )
             )
         if department:
