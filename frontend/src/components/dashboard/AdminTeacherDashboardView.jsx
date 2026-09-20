@@ -59,6 +59,7 @@ export default function AdminTeacherDashboardView({
 }) {
   const { currentUser, userRole, token } = useAuth();
   const { activeTheme, playCyberSound } = useUI();
+  const displayStats = scopedDashboardStats || stats;
 
   return (
     <PullToRefresh onRefresh={async () => { await fetchStats(); await fetchLogs(); }}>
@@ -558,7 +559,7 @@ export default function AdminTeacherDashboardView({
                   }}>
                     <div className="metric-info">
                       <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Present Today</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#34d399', margin: '4px 0 0' }}>{stats?.total_present_today || 0}</p>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#34d399', margin: '4px 0 0' }}>{displayStats?.total_present_today || 0}</p>
                     </div>
                     <div className="metric-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', borderRadius: '12px', padding: '12px' }}>
                       <CheckCircle2 size={24} />
@@ -573,7 +574,7 @@ export default function AdminTeacherDashboardView({
                   }}>
                     <div className="metric-info">
                       <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Absent Today</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f87171', margin: '4px 0 0' }}>{stats?.total_absent_today || 0}</p>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f87171', margin: '4px 0 0' }}>{displayStats?.total_absent_today || 0}</p>
                     </div>
                     <div className="metric-icon" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderRadius: '12px', padding: '12px' }}>
                       <AlertCircle size={24} />

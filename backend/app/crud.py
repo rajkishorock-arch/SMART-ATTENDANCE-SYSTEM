@@ -180,13 +180,24 @@ def get_dashboard_stats(
 ):
     from sqlalchemy import or_
     today_str = datetime.now(IST).strftime("%d/%m/%Y")
+    today_dash = datetime.now(IST).strftime("%Y-%m-%d")
     
     student_query = db.query(models.StudentModel)
     attn_query = db.query(models.AttendanceModel)
     
     if institution_id is not None:
-        student_query = student_query.filter(models.StudentModel.institution_id == institution_id)
-        attn_query = attn_query.filter(models.AttendanceModel.institution_id == institution_id)
+        student_query = student_query.filter(
+            or_(
+                models.StudentModel.institution_id == institution_id,
+                models.StudentModel.institution_id.is_(None)
+            )
+        )
+        attn_query = attn_query.filter(
+            or_(
+                models.AttendanceModel.institution_id == institution_id,
+                models.AttendanceModel.institution_id.is_(None)
+            )
+        )
         
     active_depts = []
     if department:
@@ -212,25 +223,47 @@ def get_dashboard_stats(
         
     total_students = student_query.count()
     
-    total_present_today = attn_query.filter(
-        models.AttendanceModel.date == today_str,
-        models.AttendanceModel.attendance == "Present"
+    today_logs_count = attn_query.filter(
+        or_(
+            models.AttendanceModel.date == today_str,
+            models.AttendanceModel.date == today_dash
+        )
     ).count()
-    
-    total_absent_today = max(0, total_students - total_present_today)
-    
-    avg_rate = (total_present_today / total_students * 100.0) if total_students > 0 else 0.0
+
+    if today_logs_count == 0:
+        total_present_today = 0
+        total_absent_today = 0
+        avg_rate = 0.0
+    else:
+        total_present_today = attn_query.filter(
+            or_(
+                models.AttendanceModel.date == today_str,
+                models.AttendanceModel.date == today_dash
+            ),
+            models.AttendanceModel.attendance == "Present"
+        ).count()
+        
+        total_absent_today = max(0, total_students - total_present_today)
+        avg_rate = (total_present_today / total_students * 100.0) if total_students > 0 else 0.0
     
     # Department stats (present today)
     q = db.query(
         models.AttendanceModel.department,
         func.count(models.AttendanceModel.id)
     ).filter(
-        models.AttendanceModel.date == today_str,
+        or_(
+            models.AttendanceModel.date == today_str,
+            models.AttendanceModel.date == today_dash
+        ),
         models.AttendanceModel.attendance == "Present"
     )
     if institution_id is not None:
-        q = q.filter(models.AttendanceModel.institution_id == institution_id)
+        q = q.filter(
+            or_(
+                models.AttendanceModel.institution_id == institution_id,
+                models.AttendanceModel.institution_id.is_(None)
+            )
+        )
     if active_depts:
         q = q.filter(models.AttendanceModel.department.in_(active_depts))
     elif subject_ids:
@@ -244,10 +277,14 @@ def get_dashboard_stats(
     for i in range(6, -1, -1):
         day = datetime.now(IST) - timedelta(days=i)
         day_str = day.strftime("%d/%m/%Y")
+        day_dash_item = day.strftime("%Y-%m-%d")
         day_label = day.strftime("%a")
         
         count = attn_query.filter(
-            models.AttendanceModel.date == day_str,
+            or_(
+                models.AttendanceModel.date == day_str,
+                models.AttendanceModel.date == day_dash_item
+            ),
             models.AttendanceModel.attendance == "Present"
         ).count()
         

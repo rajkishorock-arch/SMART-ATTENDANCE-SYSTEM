@@ -1843,7 +1843,12 @@ export default function App() {
   const [stats, setStats] = React.useState(() => {
     try {
       const cached = localStorage.getItem('cached_stats');
-      return cached ? JSON.parse(cached) : {
+      const cachedDate = localStorage.getItem('cached_stats_date');
+      const todayStr = getLocalDateString();
+      if (cached && cachedDate === todayStr) {
+        return JSON.parse(cached);
+      }
+      return {
         total_students: 0,
         total_present_today: 0,
         total_absent_today: 0,
@@ -2070,6 +2075,7 @@ export default function App() {
         setStats(data);
         localStorage.setItem('cached_stats', JSON.stringify(data));
         localStorage.setItem('cached_stats_timestamp', Date.now().toString());
+        localStorage.setItem('cached_stats_date', getLocalDateString());
         setServerWarmingUp(false);
       }
     } catch (err) {
@@ -5295,6 +5301,7 @@ export default function App() {
       case 'dashboard':
         fetchStats();
         fetchLogs(token, { limit: 10 });
+        if (userRole === 'admin' || userRole === 'teacher') fetchStudents();
         break;
       case 'students':
         fetchSubjects().then(() => fetchStudents());
@@ -6242,15 +6249,20 @@ export default function App() {
   // Filtering lists
   // Filtering lists (Memoized for high performance)
   const filteredStudents = useMemo(() => {
+    if (!students || !Array.isArray(students)) return [];
+    const query = (studentSearch || '').toLowerCase().trim();
     return students.filter(student => {
-      const matchesSearch = 
-        (student.name || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
-        (student.roll || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
-        student.id.toString().includes(studentSearch);
+      if (!student) return false;
+      const sName = (student.name || '').toLowerCase();
+      const sRoll = (student.roll || '').toLowerCase();
+      const sId = (student.id !== undefined && student.id !== null) ? String(student.id).toLowerCase() : '';
+
+      const matchesSearch = !query || sName.includes(query) || sRoll.includes(query) || sId.includes(query);
       
       let matchesDept = true;
+      const sDept = student.dep || student.department || '';
       if (userRole === 'admin') {
-        matchesDept = !studentDeptFilter || student.dep === studentDeptFilter;
+        matchesDept = !studentDeptFilter || sDept === studentDeptFilter;
       } else if (userRole === 'teacher') {
         // If subjects haven't loaded yet, show all students (don't hide them)
         if (subjects.length === 0) {
@@ -6258,13 +6270,13 @@ export default function App() {
         } else if (selectedTeacherSubjectId) {
           const sub = subjects.find(s => s.id === parseInt(selectedTeacherSubjectId));
           // If subject found, match by dept; if not found, show all (fallback)
-          matchesDept = sub ? student.dep === sub.department : true;
+          matchesDept = sub ? sDept === sub.department : true;
         } else {
           const teacherDepts = subjects
             .filter(s => s.teacher_id === currentUser?.details?.id)
             .map(s => s.department);
           // If no dept found (subjects not assigned), show all
-          matchesDept = teacherDepts.length === 0 ? true : teacherDepts.includes(student.dep);
+          matchesDept = teacherDepts.length === 0 ? true : teacherDepts.includes(sDept);
         }
       }
       return matchesSearch && matchesDept;
