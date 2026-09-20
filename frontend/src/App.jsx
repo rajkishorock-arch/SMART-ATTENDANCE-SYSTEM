@@ -4371,12 +4371,16 @@ export default function App() {
             resolve(true);
           } else {
             const detailMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : null);
-            setWebcamError(detailMsg || 'Face detection failed. Adjust position.');
+            const finalErr = detailMsg || 'Face detection failed. Adjust position.';
+            setWebcamError(finalErr);
+            alert(`⚠️ BIOMETRIC FACE REGISTRATION REJECTED:\n\n${finalErr}`);
             resolve(false);
           }
         } catch (err) {
           const isFetchErr = err.message && (err.message.includes('fetch') || err.message.includes('NetworkError') || err.message.includes('Failed'));
-          setWebcamError(isFetchErr ? 'Connection error. The backend server might be starting up or unreachable. Please try again.' : (err.message || 'Connection error during upload.'));
+          const errMsg = isFetchErr ? 'Connection error. The backend server might be starting up or unreachable. Please try again.' : (err.message || 'Connection error during upload.');
+          setWebcamError(errMsg);
+          alert(`⚠️ BIOMETRIC UPLOAD ERROR:\n\n${errMsg}`);
           resolve(false);
         }
       }, 'image/jpeg', 0.95);
@@ -5838,6 +5842,7 @@ export default function App() {
       const errMsg = err.message || 'Failed to register student.';
       setFormError(errMsg);
       setStudentError(errMsg);
+      alert(`⚠️ REGISTRATION REJECTED:\n\n${errMsg}`);
     }
   };
 
