@@ -72,5 +72,11 @@ class UserRepository:
                 )
             )
         if department:
-            query = query.filter(models.StudentModel.dep == department)
+            from sqlalchemy import or_
+            query = query.filter(
+                or_(
+                    models.StudentModel.dep == department,
+                    models.StudentModel.dep.ilike(f"%{department}%")
+                )
+            )
         return query.offset(skip).limit(limit).all()

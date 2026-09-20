@@ -5798,6 +5798,7 @@ export default function App() {
         id: parseInt(newStudent.id)
       };
       const data = await studentApi.createStudent(token, payload);
+      setStudents(prev => Array.isArray(prev) ? [...prev.filter(s => s.id !== data.id), data] : [data]);
       fetchStudents();
       fetchStats();
       setShowAddModal(false);
@@ -6251,6 +6252,8 @@ export default function App() {
   const filteredStudents = useMemo(() => {
     if (!students || !Array.isArray(students)) return [];
     const query = (studentSearch || '').toLowerCase().trim();
+    const normalizeDeptStr = (str) => (str || '').toLowerCase().replace(/[\s\(\)\_\-]/g, '');
+
     return students.filter(student => {
       if (!student) return false;
       const sName = (student.name || '').toLowerCase();
@@ -6261,22 +6264,30 @@ export default function App() {
       
       let matchesDept = true;
       const sDept = student.dep || student.department || '';
+      const normSDept = normalizeDeptStr(sDept);
+      
       if (userRole === 'admin') {
-        matchesDept = !studentDeptFilter || sDept === studentDeptFilter;
+        const normFilter = normalizeDeptStr(studentDeptFilter);
+        matchesDept = !studentDeptFilter || 
+                      sDept === studentDeptFilter || 
+                      normSDept === normFilter || 
+                      (normFilter.length >= 3 && normSDept.includes(normFilter)) || 
+                      (normSDept.length >= 3 && normFilter.includes(normSDept));
       } else if (userRole === 'teacher') {
         // If subjects haven't loaded yet, show all students (don't hide them)
         if (subjects.length === 0) {
           matchesDept = true;
         } else if (selectedTeacherSubjectId) {
           const sub = subjects.find(s => s.id === parseInt(selectedTeacherSubjectId));
+          const subNorm = normalizeDeptStr(sub?.department);
           // If subject found, match by dept; if not found, show all (fallback)
-          matchesDept = sub ? sDept === sub.department : true;
+          matchesDept = sub ? (normSDept === subNorm || normSDept.includes(subNorm) || subNorm.includes(normSDept)) : true;
         } else {
           const teacherDepts = subjects
             .filter(s => s.teacher_id === currentUser?.details?.id)
-            .map(s => s.department);
+            .map(s => normalizeDeptStr(s.department));
           // If no dept found (subjects not assigned), show all
-          matchesDept = teacherDepts.length === 0 ? true : teacherDepts.includes(sDept);
+          matchesDept = teacherDepts.length === 0 ? true : teacherDepts.some(td => td === normSDept || normSDept.includes(td) || td.includes(normSDept));
         }
       }
       return matchesSearch && matchesDept;
