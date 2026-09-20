@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { initializePushNotifications } from '../services/pushNotificationService';
-import { notificationApi } from '../api/notificationApi.js';
+import { notificationApi } from '../api/notificationApi';
 
 export function resolveNotificationNavigation(notif) {
   if (!notif) return { targetTab: null, openScanner: false };

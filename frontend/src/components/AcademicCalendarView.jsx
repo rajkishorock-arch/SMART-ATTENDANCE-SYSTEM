@@ -4,9 +4,9 @@ import {
   CheckCircle2, Filter, ShieldCheck, BookOpen,
   RefreshCw, X, UserX
 } from 'lucide-react';
-import { systemApi } from '../api/systemApi.js';
-import { calendarApi } from '../api/calendarApi.js';
-import { teacherApi } from '../api/teacherApi.js';
+import { systemApi } from '../api/systemApi';
+import { calendarApi } from '../api/calendarApi';
+import { teacherApi } from '../api/teacherApi';
 
 const EVENT_TYPE_COLORS = {
   HOLIDAY: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', text: '#f87171', label: 'Holiday' },

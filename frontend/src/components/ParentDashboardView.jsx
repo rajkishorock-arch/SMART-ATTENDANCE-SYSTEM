@@ -12,7 +12,7 @@ import {
   Clock,
   BookOpen
 } from 'lucide-react';
-import { apiGet } from '../api/client.js';
+import { apiGet } from '../api/client';
 import AttendanceChartsWidget from './AttendanceChartsWidget';
 
 export default function ParentDashboardView({

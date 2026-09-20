@@ -10,7 +10,7 @@ import {
   bumpEasterEgg,
 } from '../utils/futuristicFeatures';
 import OwnerPremiumPanel from './OwnerPremiumPanel';
-import { interactiveApi } from '../api/interactiveApi.js';
+import { interactiveApi } from '../api/interactiveApi';
 
 const TABS = [
   { id: 'theme', label: 'Theme Studio', icon: Palette, color: '#00f2fe' },

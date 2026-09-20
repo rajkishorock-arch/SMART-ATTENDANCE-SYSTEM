@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { interactiveApi } from '../api/interactiveApi.js';
+import { interactiveApi } from '../api/interactiveApi';
 
 export default function LiveBoardStrip({ token, enabled = true }) {
   const [events, setEvents] = useState([]);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Calendar, Send, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { leaveApi } from '../api/leaveApi.js';
+import { leaveApi } from '../api/leaveApi';
 
 export default function LeaveManagement({ token, currentUser }) {
   const [startDate, setStartDate] = useState('');
