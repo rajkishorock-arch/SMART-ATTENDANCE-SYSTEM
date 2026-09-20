@@ -4,7 +4,7 @@ import {
   Calendar, CheckCheck, Sliders, Trash2
 } from 'lucide-react';
 import NotificationSettingsModal from './NotificationSettingsModal';
-import { notificationApi } from '../api/index.js';
+import { notificationApi } from '../api/notificationApi.js';
 
 export default function NotificationDrawerModal({
   isOpen,

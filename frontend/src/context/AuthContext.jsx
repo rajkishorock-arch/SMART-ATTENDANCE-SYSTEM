@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
-import { authApi } from '../api/index.js';
+import { authApi } from '../api/authApi.js';
 import { getActiveTenantSlug } from '../utils/tenantConfig';
 import { getApiBaseUrl } from '../utils/platform';
 import { wakeBackend } from '../utils/cameraScanner';

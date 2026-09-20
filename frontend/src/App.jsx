@@ -3,7 +3,12 @@ import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } f
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { initKeepAliveEngine } from './utils/keepAlive';
 import { fetchWithDedupe } from './utils/apiClient';
-import { studentApi, teacherApi, attendanceApi, systemApi, interactiveApi, apiGet } from './api/index.js';
+import { studentApi } from './api/studentApi.js';
+import { teacherApi } from './api/teacherApi.js';
+import { attendanceApi } from './api/attendanceApi.js';
+import { systemApi } from './api/systemApi.js';
+import { interactiveApi } from './api/interactiveApi.js';
+import { apiGet } from './api/client.js';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';

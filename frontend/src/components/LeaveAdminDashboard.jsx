@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw, Download } from 'lucide-react';
 import { generateLeavePdf } from '../utils/leavePdfGenerator';
-import { leaveApi } from '../api/index.js';
+import { leaveApi } from '../api/leaveApi.js';
 
 export default function LeaveAdminDashboard({ token }) {
   const [leaveRequests, setLeaveRequests] = useState(() => {
