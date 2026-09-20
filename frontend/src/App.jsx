@@ -3,7 +3,7 @@ import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } f
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { initKeepAliveEngine } from './utils/keepAlive';
 import { fetchWithDedupe } from './utils/apiClient';
-import { studentApi, teacherApi, attendanceApi, systemApi, interactiveApi, apiGet } from './api';
+import { studentApi, teacherApi, attendanceApi, systemApi, interactiveApi, apiGet } from './api/index.js';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -18,7 +18,7 @@ import FeedbackModal from './components/FeedbackModal';
 import UpdateNotification from './components/UpdateNotification';
 import OnboardingGuideModal from './components/OnboardingGuideModal';
 import NotificationBell from './components/NotificationBell';
-import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync, useNotifications } from './hooks';
+import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync, useNotifications } from './hooks/index.js';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import VirtualIdCardModal from './components/VirtualIdCardModal';
 import QrScannerModal from './components/QrScannerModal';
