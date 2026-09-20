@@ -10,7 +10,7 @@ import {
   ArrowRight,
   UserX
 } from 'lucide-react';
-import { apiGet } from '../api';
+import { apiGet } from '../api/index.js';
 import AttendanceChartsWidget from './AttendanceChartsWidget';
 
 export default function HodDashboardView({

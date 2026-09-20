@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { generateLeavePdf } from '../utils/leavePdfGenerator';
-import { leaveApi } from '../api';
+import { leaveApi } from '../api/index.js';
 
 // =====================================================================
 // LEAVE APPLICATION FORM - Used on student dashboard

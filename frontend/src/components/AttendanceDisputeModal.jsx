@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import { generateDisputePdf } from '../utils/disputePdfGenerator';
-import { disputeApi } from '../api';
+import { disputeApi } from '../api/index.js';
 
 const API_BASE_URL = getApiBaseUrl();
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileDown } from 'lucide-react';
 import { generateLeavePdf } from '../../utils/leavePdfGenerator';
-import { leaveApi } from '../../api';
+import { leaveApi } from '../../api/index.js';
 
 export default function LeaveManagementSettings({
   token,
