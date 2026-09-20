@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import useAuth from './useAuth';
 import useUI from './useUI';
 import { getApiBaseUrl } from '../utils/platform';
-import systemApi from '../api/systemApi';
+import { systemApi } from '../api/systemApi.js';
 
 export default function useFeedback() {
   const { currentUser, userRole, token } = useAuth();

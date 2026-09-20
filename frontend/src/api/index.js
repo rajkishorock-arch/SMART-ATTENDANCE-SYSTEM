@@ -1,14 +1,14 @@
 /**
  * Centralized API Service Layer Index
  */
-export { buildApiUrl, buildHeaders, apiGet, apiPost, apiPut, apiDelete } from './client';
-export { authApi } from './authApi';
-export { studentApi } from './studentApi';
-export { teacherApi } from './teacherApi';
-export { attendanceApi } from './attendanceApi';
-export { systemApi } from './systemApi';
-export { calendarApi } from './calendarApi';
-export { interactiveApi } from './interactiveApi';
-export { notificationApi } from './notificationApi';
-export { disputeApi } from './disputeApi';
-export { leaveApi } from './leaveApi';
+export { buildApiUrl, buildHeaders, apiGet, apiPost, apiPut, apiDelete } from './client.js';
+export { authApi } from './authApi.js';
+export { studentApi } from './studentApi.js';
+export { teacherApi } from './teacherApi.js';
+export { attendanceApi } from './attendanceApi.js';
+export { systemApi } from './systemApi.js';
+export { calendarApi } from './calendarApi.js';
+export { interactiveApi } from './interactiveApi.js';
+export { notificationApi } from './notificationApi.js';
+export { disputeApi } from './disputeApi.js';
+export { leaveApi } from './leaveApi.js';

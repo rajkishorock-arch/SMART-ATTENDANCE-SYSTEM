@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { getActiveTenantSlug } from '../utils/tenantConfig';
-import { systemApi } from '../api/systemApi';
+import { systemApi } from '../api/systemApi.js';
 
 const TenantContext = createContext(null);
 
