@@ -19,9 +19,10 @@ function BlueprintDayBreakdownModal({
 }) {
   if (!isOpen || !dateStr) return null;
 
+  const safeLogs = Array.isArray(studentLogs) ? studentLogs : [];
   // Normalize date string for matching (both DD/MM/YYYY and YYYY-MM-DD)
-  const matchingLogs = studentLogs.filter(log => {
-    if (!log.date) return false;
+  const matchingLogs = safeLogs.filter(log => {
+    if (!log || !log.date) return false;
     const lDate = log.date.trim();
     if (lDate === dateStr) return true;
 
@@ -151,47 +152,46 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
   const [showLastLogModal, setShowLastLogModal] = React.useState(false);
   const [logFilter, setLogFilter] = React.useState('all');
 
-  const totalLogs = studentLogs.length;
-  const presentLogs = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late');
-  const absentLogs = studentLogs.filter(l => l.attendance === 'Absent');
-  const lateLogs = studentLogs.filter(l => l.attendance === 'Late');
+  const safeLogs = Array.isArray(studentLogs) ? studentLogs : [];
+  const totalLogs = safeLogs.length;
+  const presentLogs = safeLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late');
+  const absentLogs = safeLogs.filter(l => l.attendance === 'Absent');
+  const lateLogs = safeLogs.filter(l => l.attendance === 'Late');
   const presentCount = presentLogs.length;
   const attendanceRate = totalLogs > 0 ? Math.min(100.0, Math.max(0.0, (presentCount / totalLogs) * 100)) : 0;
 
   // Latest log calculation strictly from real studentLogs in DB
   const latestLog = React.useMemo(() => {
-    if (studentLogs.length === 0) return null;
-    const sorted = [...studentLogs].sort((a, b) => {
+    if (safeLogs.length === 0) return null;
+    const sorted = [...safeLogs].sort((a, b) => {
       const dateA = (a.date || '').split('/').reverse().join('-');
       const dateB = (b.date || '').split('/').reverse().join('-');
-      return new Date(`${dateB}T${b.time || '00:00'}`) - new Date(`${dateA}T${a.time || '00:00'}`);
+      return (dateB + (b.time || '')) > (dateA + (a.time || '')) ? 1 : -1;
     });
     return sorted[0];
-  }, [studentLogs]);
+  }, [safeLogs]);
 
   // Subject-wise breakdown calculation strictly from real studentLogs
   const subjectBreakdown = React.useMemo(() => {
     const map = {};
-    studentLogs.forEach(log => {
-      const subKey = log.subject_name ? `${log.subject_name} (${log.subject_code || ''})` : (log.department || 'General Class');
-      if (!map[subKey]) {
-        map[subKey] = { name: subKey, total: 0, present: 0 };
-      }
-      map[subKey].total += 1;
-      if (log.attendance === 'Present' || log.attendance === 'Late') {
-        map[subKey].present += 1;
-      }
+    safeLogs.forEach(log => {
+      const sub = log.subject_name || log.subject_code || 'General / Unclassified';
+      if (!map[sub]) map[sub] = { name: sub, total: 0, present: 0, absent: 0, late: 0 };
+      map[sub].total += 1;
+      if (log.attendance === 'Present') map[sub].present += 1;
+      else if (log.attendance === 'Late') map[sub].late += 1;
+      else if (log.attendance === 'Absent') map[sub].absent += 1;
     });
     return Object.values(map);
-  }, [studentLogs]);
+  }, [safeLogs]);
 
   // Filtered logs for Presents Breakdown modal
   const filteredLogs = React.useMemo(() => {
-    if (logFilter === 'present') return studentLogs.filter(l => l.attendance === 'Present');
-    if (logFilter === 'absent') return studentLogs.filter(l => l.attendance === 'Absent');
-    if (logFilter === 'late') return studentLogs.filter(l => l.attendance === 'Late');
-    return studentLogs;
-  }, [studentLogs, logFilter]);
+    if (logFilter === 'present') return safeLogs.filter(l => l.attendance === 'Present');
+    if (logFilter === 'absent') return safeLogs.filter(l => l.attendance === 'Absent');
+    if (logFilter === 'late') return safeLogs.filter(l => l.attendance === 'Late');
+    return safeLogs;
+  }, [safeLogs, logFilter]);
 
   return (
     <>
@@ -642,20 +642,20 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
 
 
 export default function StudentAttendanceDashboardView({
-  studentLogs,
-  studentSubjectStats,
+  studentLogs = [],
+  studentSubjectStats = [],
   blueprintData,
   blueprintLoading,
   selectedBlueprintSubject,
   setSelectedBlueprintSubject,
   blueprintCalendarDate,
   setBlueprintCalendarDate,
-  geofenceStatus,
-  setGeofenceStatus,
-  studentLeaveRequests,
+  geofenceStatus = { checked: false, inside: false, distance: null },
+  setGeofenceStatus = () => {},
+  studentLeaveRequests = [],
   token,
   API_BASE_URL,
-  subjects,
+  subjects = [],
   fetchBlueprint,
   fetchStudentLeaves,
   exportToCSV,
@@ -671,6 +671,10 @@ export default function StudentAttendanceDashboardView({
 }) {
   const { currentUser } = useAuth();
   const { playCyberSound } = useUI();
+
+  const safeStudentLogs = Array.isArray(studentLogs) ? studentLogs : [];
+  const safeSubjects = Array.isArray(subjects) ? subjects : [];
+  const safeLeaveRequests = Array.isArray(studentLeaveRequests) ? studentLeaveRequests : [];
 
   return (
     <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
@@ -762,8 +766,8 @@ export default function StudentAttendanceDashboardView({
             <span style={{ fontSize: '1.2rem' }}>📊</span> Attendance Forecast
           </h3>
           {(() => {
-            const total = studentLogs.length;
-            const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+            const total = safeStudentLogs.length;
+            const present = safeStudentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
             const rate = total > 0 ? (present / total) * 100 : 0;
             const minRequired = 0.75;
             const canBunk = Math.floor(present / minRequired - total);
@@ -1006,8 +1010,8 @@ export default function StudentAttendanceDashboardView({
 
       {/* Attendance Shortage Warning */}
       {(() => {
-        const total = studentLogs.length;
-        const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+        const total = safeStudentLogs.length;
+        const present = safeStudentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
         const rate = total > 0 ? Math.min(100.0, (present / total) * 100) : 0;
         if (total > 0 && rate < 75) {
           return (

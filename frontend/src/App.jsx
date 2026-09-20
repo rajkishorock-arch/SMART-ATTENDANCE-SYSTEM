@@ -4647,16 +4647,20 @@ export default function App() {
   const fetchStudentLogs = async (authToken) => {
     setIsLoadingStudentLogs(true);
     try {
-      const data = await studentApi.fetchMyAttendance(authToken || token);
-      if (data) {
-        setStudentLogs(data);
+      const res = await studentApi.fetchMyAttendance(authToken || token);
+      if (res && res.ok) {
+        const data = await res.json();
+        const logsArray = Array.isArray(data) ? data : [];
+        setStudentLogs(logsArray);
         try {
-          localStorage.setItem('cached_student_logs', JSON.stringify(data));
+          localStorage.setItem('cached_student_logs', JSON.stringify(logsArray));
         } catch { /* ignore fallback error */ }
       } else {
+        setStudentLogs([]);
         console.error("Failed to fetch student attendance logs");
       }
     } catch (err) {
+      setStudentLogs([]);
       console.error("Error fetching student attendance logs:", err);
     } finally {
       setIsLoadingStudentLogs(false);
