@@ -4315,6 +4315,11 @@ export default function App() {
 
   const captureFrame = async () => {
     if (!videoRef.current || !canvasRef.current || !streamRef.current) return false;
+    if (!captureStudent || !captureStudent.id || isNaN(parseInt(captureStudent.id))) {
+      setWebcamError('Invalid or missing student ID for face upload.');
+      return false;
+    }
+    const studentId = parseInt(captureStudent.id);
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
@@ -4345,7 +4350,7 @@ export default function App() {
         formData.append('file', blob, 'sample.jpg');
 
         try {
-          const res = await fetch(`${API_BASE_URL}/users/students/${captureStudent.id}/upload-sample?master_password=master`, {
+          const res = await fetch(`${API_BASE_URL}/users/students/${studentId}/upload-sample?master_password=master`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -5797,7 +5802,13 @@ export default function App() {
         ...newStudent,
         id: parseInt(newStudent.id)
       };
-      const data = await studentApi.createStudent(token, payload);
+      const res = await studentApi.createStudent(token, payload);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const detailMsg = typeof errorData.detail === 'string' ? errorData.detail : (Array.isArray(errorData.detail) ? errorData.detail[0]?.msg : null);
+        throw new Error(detailMsg || `Student registration failed (HTTP ${res.status}).`);
+      }
+      const data = await res.json();
       setStudents(prev => Array.isArray(prev) ? [...prev.filter(s => s.id !== data.id), data] : [data]);
       fetchStudents();
       fetchStats();
@@ -5860,7 +5871,12 @@ export default function App() {
         teacher: editingStudent.teacher,
         password: editingStudent.password ? editingStudent.password : undefined
       };
-      await studentApi.updateStudent(token, editingStudent.id, payload);
+      const res = await studentApi.updateStudent(token, editingStudent.id, payload);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const detailMsg = typeof errorData.detail === 'string' ? errorData.detail : (Array.isArray(errorData.detail) ? errorData.detail[0]?.msg : null);
+        throw new Error(detailMsg || `Student update failed (HTTP ${res.status}).`);
+      }
       setEditStudentSuccess('Student details updated successfully!');
       fetchStudents();
       setTimeout(() => {
