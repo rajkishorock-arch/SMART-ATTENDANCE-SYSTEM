@@ -1,7 +1,7 @@
 /**
  * Student Domain API Module
  */
-import { apiGet, apiPost, apiPut, apiDelete } from './client';
+import { apiGet, apiPost, apiPut, apiDelete } from './client.js';
 
 export const studentApi = {
   /**

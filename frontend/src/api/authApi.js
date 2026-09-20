@@ -1,7 +1,7 @@
 /**
  * Auth & Session Domain API Module
  */
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPost } from './client.js';
 
 export const authApi = {
   /**

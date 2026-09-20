@@ -1,7 +1,7 @@
 /**
  * Attendance Dispute Domain API Module
  */
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPost } from './client.js';
 
 export const disputeApi = {
   /**

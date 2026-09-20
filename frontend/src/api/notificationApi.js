@@ -1,8 +1,8 @@
 /**
  * Notification Domain API Module
  */
-import { apiGet, apiPost, buildApiUrl } from './client';
-import { fetchWithDedupe } from '../utils/apiClient';
+import { apiGet, apiPost, buildApiUrl } from './client.js';
+import { fetchWithDedupe } from '../utils/apiClient.js';
 
 export const notificationApi = {
   /**

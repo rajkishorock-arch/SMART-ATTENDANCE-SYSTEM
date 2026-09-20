@@ -2,8 +2,8 @@
  * Low-level HTTP Client for SMART-ATTENDANCE-SYSTEM API Service Layer.
  * Reuses existing getApiBaseUrl() and fetchWithDedupe() while preserving 100% contract compatibility.
  */
-import { getApiBaseUrl } from '../utils/platform';
-import { fetchWithDedupe } from '../utils/apiClient';
+import { getApiBaseUrl } from '../utils/platform.js';
+import { fetchWithDedupe } from '../utils/apiClient.js';
 
 /**
  * Builds canonical full API URL for a given path.

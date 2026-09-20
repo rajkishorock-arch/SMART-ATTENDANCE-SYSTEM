@@ -1,8 +1,8 @@
 /**
  * System Administration & Multi-Tenant Domain API Module
  */
-import { apiGet, apiPost, apiPut, apiDelete, buildApiUrl } from './client';
-import { fetchWithDedupe } from '../utils/apiClient';
+import { apiGet, apiPost, apiPut, apiDelete, buildApiUrl } from './client.js';
+import { fetchWithDedupe } from '../utils/apiClient.js';
 
 export const systemApi = {
   /**

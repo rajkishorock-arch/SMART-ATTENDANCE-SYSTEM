@@ -1,7 +1,7 @@
 /**
  * Academic Calendar Domain API Module
  */
-import { apiGet, apiPost, apiDelete } from './client';
+import { apiGet, apiPost, apiDelete } from './client.js';
 
 export const calendarApi = {
   /**

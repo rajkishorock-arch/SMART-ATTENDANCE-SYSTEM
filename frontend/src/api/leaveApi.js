@@ -1,7 +1,7 @@
 /**
  * Leave Management Domain API Module
  */
-import { apiGet, apiPost, apiPut } from './client';
+import { apiGet, apiPost, apiPut } from './client.js';
 
 export const leaveApi = {
   /**

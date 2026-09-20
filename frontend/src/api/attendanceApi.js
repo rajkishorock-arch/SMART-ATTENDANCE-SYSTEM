@@ -1,8 +1,8 @@
 /**
  * Attendance & Session Domain API Module
  */
-import { apiGet, apiPost, apiPut, buildApiUrl } from './client';
-import { fetchWithDedupe } from '../utils/apiClient';
+import { apiGet, apiPost, apiPut, buildApiUrl } from './client.js';
+import { fetchWithDedupe } from '../utils/apiClient.js';
 
 export const attendanceApi = {
   /**
