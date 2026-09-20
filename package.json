@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "cd frontend && npm run build",
-    "install": "npm install --prefix frontend"
+    "install": "cd frontend && npm install"
   },
   "engines": {
     "node": ">=18.0.0",
