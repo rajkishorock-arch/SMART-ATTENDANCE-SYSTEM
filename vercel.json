@@ -1,9 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm run build",
+  "buildCommand": "if [ -d \"frontend\" ]; then cd frontend && npm run build; else npm run build; fi",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm install --prefix frontend",
-  "framework": "vite",
   "rewrites": [
     {
       "source": "/(.*)",
