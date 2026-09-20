@@ -10,7 +10,8 @@ __pycache__/
 .idea/
 models/
 plane_book/
-api/
+/api/
+!frontend/src/api/
 *.onnx
 *.xml
 *.csv
