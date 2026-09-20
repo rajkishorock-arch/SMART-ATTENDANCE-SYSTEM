@@ -5765,10 +5765,13 @@ export default function App() {
   const handleAddStudent = async (e) => {
     e.preventDefault();
     setFormError('');
+    setStudentError('');
 
     // Quick validation
     if (!newStudent.id || !newStudent.name || !newStudent.roll || !newStudent.email) {
-      setFormError('ID, Name, Roll, and Email are required.');
+      const msg = 'ID, Name, Roll, and Email are required.';
+      setFormError(msg);
+      setStudentError(msg);
       return;
     }
 
@@ -5832,7 +5835,9 @@ export default function App() {
         teacher: ''
       });
     } catch (err) {
-      setStudentError(err.message || 'Failed to register student.');
+      const errMsg = err.message || 'Failed to register student.';
+      setFormError(errMsg);
+      setStudentError(errMsg);
     }
   };
 
@@ -8707,10 +8712,10 @@ export default function App() {
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px' }}>Register New Student</h3>
             
-            {formError && (
+            {(formError || studentError) && (
               <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
                 <AlertCircle size={16} />
-                <span>{formError}</span>
+                <span>{formError || studentError}</span>
               </div>
             )}
 
