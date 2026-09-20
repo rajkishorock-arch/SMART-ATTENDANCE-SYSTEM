@@ -724,14 +724,23 @@ def add_student(
         )
     db_student = crud.get_student_by_id(db, student_id=student.id, institution_id=current_user.institution_id)
     if db_student:
-        raise HTTPException(status_code=400, detail="Student with this ID already exists")
+        raise HTTPException(status_code=400, detail=f"Student with ID #{student.id} already exists.")
     
+    clean_email = student.email.strip().lower() if student.email else ""
+    if clean_email:
+        existing_student_email = crud.get_student_by_email(db, email=clean_email, institution_id=current_user.institution_id)
+        if existing_student_email:
+            raise HTTPException(status_code=400, detail=f"Privacy Error: A student with email '{student.email}' already exists in this institution.")
+        existing_user_email = crud.get_user_by_email(db, email=clean_email, institution_id=current_user.institution_id)
+        if existing_user_email:
+            raise HTTPException(status_code=400, detail=f"Privacy Error: An admin or teacher account with email '{student.email}' already exists.")
+
     from sqlalchemy.exc import IntegrityError
     try:
         new_s = crud.create_student(db, student=student, institution_id=current_user.institution_id)
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Student with this Roll Number already exists in this institution")
+        raise HTTPException(status_code=400, detail="Student with this Roll Number or Email already exists in this institution.")
         
     crud.create_audit_log(
         db, 
@@ -758,8 +767,18 @@ def update_student_details(
         
     db_student = crud.get_student_by_id(db, student_id=id, institution_id=current_user.institution_id)
     if not db_student:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="Student not found.")
         
+    if student_data.email:
+        clean_email = student_data.email.strip().lower()
+        if clean_email != (db_student.email or "").strip().lower():
+            existing_s = crud.get_student_by_email(db, email=clean_email, institution_id=current_user.institution_id)
+            if existing_s and existing_s.id != id:
+                raise HTTPException(status_code=400, detail=f"Privacy Error: Email '{student_data.email}' is already registered to another student.")
+            existing_u = crud.get_user_by_email(db, email=clean_email, institution_id=current_user.institution_id)
+            if existing_u:
+                raise HTTPException(status_code=400, detail=f"Privacy Error: Email '{student_data.email}' is already registered to an admin/teacher account.")
+
     # Update fields
     for key, value in student_data.dict(exclude_unset=True).items():
         if key == "password":
@@ -778,22 +797,34 @@ def update_student_details(
     return db_student
 
 @router.delete("/students/{id}", status_code=status.HTTP_200_OK)
-def remove_student(
-    id: int, 
+def delete_student(
+    id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
     """
-    Delete a student and their attendance logs (Admins & Teachers only).
+    Delete a student record (Admins & Teachers only).
     """
     if current_user.role not in ["admin", "teacher"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can delete student records."
         )
-    success = crud.delete_student(db, student_id=id, institution_id=current_user.institution_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Student not found")
+        
+    db_student = crud.get_student_by_id(db, student_id=id, institution_id=current_user.institution_id)
+    if not db_student:
+        raise HTTPException(status_code=404, detail="Student not found.")
+        
+    db.delete(db_student)
+    db.commit()
+    
+    # Invalidate face recognition cache
+    try:
+        from .recognition_service import recognition_service
+        recognition_service.invalidate_cache(current_user.institution_id)
+    except Exception as e:
+        print(f"Failed to invalidate recognition cache on student deletion: {e}")
+
     crud.create_audit_log(
         db, 
         log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student ID {id} deleted by {current_user.email}."),
@@ -846,9 +877,8 @@ async def upload_student_face_sample(
     if not db_student:
         raise HTTPException(status_code=404, detail="Student not found.")
 
-    # 2b. Check if this face is already registered to someone else (unless master password is used)
-    is_master = verify_master_password(db, request, current_user.institution_id)
-    if not is_master and check_duplicate_face(
+    # 2b. Check if this face is already registered to another student
+    if check_duplicate_face(
         db, 
         embedding, 
         exclude_student_id=db_student.id, 
@@ -859,7 +889,7 @@ async def upload_student_face_sample(
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This face is already registered to another student's account. Please register using your actual face."
+            detail="Biometric Privacy Error: This face is already registered to another student in this institution. Duplicate face registration is not allowed."
         )
 
     # Convert embedding numpy array to a serializable Python list

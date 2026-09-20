@@ -4350,11 +4350,10 @@ export default function App() {
         formData.append('file', blob, 'sample.jpg');
 
         try {
-          const res = await fetch(`${API_BASE_URL}/users/students/${studentId}/upload-sample?master_password=master`, {
+          const res = await fetch(`${API_BASE_URL}/users/students/${studentId}/upload-sample`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'X-Master-Password': 'master'
+              'Authorization': `Bearer ${token}`
             },
             body: formData
           });
