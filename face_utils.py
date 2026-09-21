@@ -258,98 +258,91 @@ def get_db_connection():
 
 def draw_hud_boundary(img, x, y, w, h, color, text_label, tracking_info=None):
     """
-    Draws a futuristic sci-fi face scanning HUD around the bounding box (x, y, w, h).
-    Includes corner brackets, animated scan line, and an overlay info panel.
+    Draws a clean, professional face-recognition HUD around the bounding box
+    (x, y, w, h). Uses subtle corner brackets, a rounded info panel, and
+    readable text. Keeps the same public interface so callers do not change.
     """
-    import time
     import math
 
-    # 1. Draw a thin boundary rectangle
+    # ── 1. Subtle thin boundary ────────────────────────────────────
     cv2.rectangle(img, (x, y), (x + w, y + h), color, 1, lineType=cv2.LINE_AA)
 
-    # 2. Draw futuristic L-shaped corner brackets (thick)
-    thickness = 3
-    length = int(min(w, h) * 0.15)  # 15% of face size
-    
-    # Top-Left corner
-    cv2.line(img, (x, y), (x + length, y), color, thickness)
-    cv2.line(img, (x, y), (x, y + length), color, thickness)
-    # Top-Right corner
-    cv2.line(img, (x + w, y), (x + w - length, y), color, thickness)
-    cv2.line(img, (x + w, y), (x + w, y + length), color, thickness)
-    # Bottom-Left corner
-    cv2.line(img, (x, y + h), (x + length, y + h), color, thickness)
-    cv2.line(img, (x, y + h), (x, y + h - length), color, thickness)
-    # Bottom-Right corner
-    cv2.line(img, (x + w, y + h), (x + w - length, y + h), color, thickness)
-    cv2.line(img, (x + w, y + h), (x + w, y + h - length), color, thickness)
+    # ── 2. L-shaped corner brackets (clean, consistent thickness) ──
+    thickness = 2
+    length = int(min(w, h) * 0.18)
 
-    # 3. Animated horizontal scanning line (oscillating)
-    scan_speed = 4.0
-    pos = (math.sin(time.time() * scan_speed) + 1.0) / 2.0
-    scan_y = int(y + pos * h)
-    
-    # Draw laser line
-    cv2.line(img, (x, scan_y), (x + w, scan_y), color, 2, lineType=cv2.LINE_AA)
-    # Edge glowing circles
-    cv2.circle(img, (x, scan_y), 4, color, -1)
-    cv2.circle(img, (x + w, scan_y), 4, color, -1)
+    def _corner(cx, cy, dx, dy):
+        cv2.line(img, (cx, cy), (cx + length * dx, cy), color, thickness, lineType=cv2.LINE_AA)
+        cv2.line(img, (cx, cy), (cx, cy + length * dy), color, thickness, lineType=cv2.LINE_AA)
 
-    # 4. Translucent Info Panel (HUD details)
+    _corner(x,         y,          +1, +1)   # top-left
+    _corner(x + w,     y,          -1, +1)   # top-right
+    _corner(x,         y + h,      +1, -1)   # bottom-left
+    _corner(x + w,     y + h,      -1, -1)   # bottom-right
+
+    # ── 3. Prepare info panel content ──────────────────────────────
     lines = []
     if tracking_info:
-        lines.append(f"NAME: {tracking_info.get('name', 'Unknown')}")
-        lines.append(f"ROLL: {tracking_info.get('roll', 'Unknown')}")
-        lines.append(f"DEPT: {tracking_info.get('dep', 'Unknown')}")
-        lines.append(f"DIST: {tracking_info.get('dist', 0.0):.1f}")
-        lines.append(f"LIVENESS: {tracking_info.get('liveness', 'Pending')}")
+        lines.append(f"  NAME     : {tracking_info.get('name', 'Unknown')}")
+        lines.append(f"  ROLL     : {tracking_info.get('roll', 'Unknown')}")
+        lines.append(f"  DEPT     : {tracking_info.get('dep', 'Unknown')}")
+        lines.append(f"  MATCH    : {tracking_info.get('dist', 0.0):.1f}%")
+        lines.append(f"  LIVENESS : {tracking_info.get('liveness', 'Pending')}")
     else:
-        lines.append(f"STATUS: {text_label}")
-        lines.append("LIVENESS: PENDING")
+        lines.append(f"  STATUS : {text_label}")
+        lines.append(f"  LIVENESS : Verifying…")
 
-    # Determine layout of text box
-    panel_padding = 8
-    line_height = 16
-    panel_w = int(w * 1.1)
-    if panel_w < 180:
-        panel_w = 180
-    panel_h = len(lines) * line_height + (panel_padding * 2)
+    panel_padding_x = 10
+    panel_padding_y = 8
+    line_height = 17
+    panel_w = max(210, int(w * 1.15))
+    panel_h = len(lines) * line_height + (panel_padding_y * 2)
 
-    # Align panel to the side or top of the scanning box
-    panel_x1 = x + w + 10
-    panel_y1 = y
-    
-    # Check if panel goes off-screen right
+    # ── 4. Decide panel position (avoid going off-screen) ──────────
     frame_h, frame_w, _ = img.shape
-    if panel_x1 + panel_w > frame_w:
-        # Fallback to drawing above the box
-        panel_x1 = x
-        panel_y1 = max(10, y - panel_h - 10)
-        
+    panel_x1 = x + w + 12
+    panel_y1 = y
+    if panel_x1 + panel_w > frame_w - 4:
+        panel_x1 = max(4, x - panel_w - 12)
+        if panel_x1 < 4:
+            panel_x1 = x
+            panel_y1 = max(4, y - panel_h - 10)
     panel_x2 = panel_x1 + panel_w
     panel_y2 = panel_y1 + panel_h
 
-    # Ensure coordinates are within image boundaries
-    panel_x1 = max(0, min(panel_x1, frame_w - 1))
-    panel_x2 = max(0, min(panel_x2, frame_w - 1))
-    panel_y1 = max(0, min(panel_y1, frame_h - 1))
-    panel_y2 = max(0, min(panel_y2, frame_h - 1))
+    def _clamp(v, lo, hi):
+        return int(max(lo, min(v, hi)))
 
-    if panel_x2 > panel_x1 and panel_y2 > panel_y1:
-        # Draw translucent background panel
+    panel_x1 = _clamp(panel_x1, 0, frame_w - 2)
+    panel_x2 = _clamp(panel_x2, 1, frame_w - 1)
+    panel_y1 = _clamp(panel_y1, 0, frame_h - 2)
+    panel_y2 = _clamp(panel_y2, 1, frame_h - 1)
+
+    if panel_x2 - panel_x1 > 10 and panel_y2 - panel_y1 > 10:
+        # Semi-transparent light panel (professional, not dark sci-fi)
         overlay = img.copy()
-        cv2.rectangle(overlay, (panel_x1, panel_y1), (panel_x2, panel_y2), (0, 0, 0), -1)
-        cv2.addWeighted(overlay, 0.45, img, 0.55, 0, img)
-        
-        # Draw thin border around panel
+        # Pick a tinted background based on the color tuple's brightness
+        bg_tint = (245, 247, 250)  # default off-white
+        if tracking_info and "Verified" in tracking_info.get("liveness", ""):
+            bg_tint = (220, 248, 230)  # soft green when verified
+        elif not tracking_info:
+            bg_tint = (255, 243, 224)  # soft amber while scanning
+        cv2.rectangle(overlay, (panel_x1, panel_y1), (panel_x2, panel_y2), bg_tint, -1)
+        cv2.addWeighted(overlay, 0.80, img, 0.20, 0, img)
+
+        # Border matching the face-box color
         cv2.rectangle(img, (panel_x1, panel_y1), (panel_x2, panel_y2), color, 1, lineType=cv2.LINE_AA)
-        
-        # Render text list
-        current_y = panel_y1 + panel_padding + 10
-        # Render text list
-        current_y = panel_y1 + panel_padding + 10
+
+        # Small accent bar at top
+        bar_h = 2
+        cv2.rectangle(img, (panel_x1, panel_y1), (panel_x2, panel_y1 + bar_h), color, -1)
+
+        # Readable dark text on the light panel
+        text_color = (20, 30, 48)
+        current_y = panel_y1 + panel_padding_y + line_height - 2
         for line in lines:
-            cv2.putText(img, line, (panel_x1 + 10, current_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(img, line, (panel_x1 + panel_padding_x, current_y),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, text_color, 1, cv2.LINE_AA)
             current_y += line_height
 
 
@@ -523,5 +516,255 @@ def play_camera_boot_sequence(window_name="Welcome to Face Recognition", duratio
             frame = cv2.convertScaleAbs(frame, alpha=1.2, beta=20)
         cv2.imshow(window_name, frame)
         cv2.waitKey(40)
+
+
+# ================================================================
+#  CLEAN PROFESSIONAL UI THEME SYSTEM (shared across all windows)
+# ================================================================
+
+# ── Color Palette: Corporate Blue / Light Theme ────────────────
+UI_PRIMARY      = "#1e40af"   # Deep professional blue (headers, primary buttons)
+UI_PRIMARY_HVR  = "#1d4ed8"   # Hover blue
+UI_ACCENT       = "#2563eb"   # Bright accent blue
+UI_BG           = "#f1f5f9"   # Page background (light gray-blue)
+UI_SURFACE      = "#ffffff"   # Card / frame background
+UI_SURFACE_ALT  = "#f8fafc"   # Alternate surface (subtle)
+UI_BORDER       = "#e2e8f0"   # Card border
+UI_TEXT         = "#0f172a"   # Primary text (near black)
+UI_TEXT_MUTED   = "#64748b"   # Secondary / label text (slate)
+UI_SUCCESS      = "#059669"   # Success green
+UI_SUCCESS_HVR  = "#047857"
+UI_WARNING      = "#d97706"   # Warning amber
+UI_DANGER       = "#dc2626"   # Danger red
+UI_DANGER_HVR   = "#b91c1c"
+UI_INFO         = "#0891b2"   # Info cyan
+
+# ── Typography ─────────────────────────────────────────────────
+UI_FONT_FAMILY  = "Segoe UI"   # Clean, modern, built-in Windows font
+UI_FONT_TITLE   = (UI_FONT_FAMILY, 22, "bold")
+UI_FONT_SUBTITLE = (UI_FONT_FAMILY, 14, "bold")
+UI_FONT_HEADING = (UI_FONT_FAMILY, 13, "bold")
+UI_FONT_BODY    = (UI_FONT_FAMILY, 11, "normal")
+UI_FONT_LABEL   = (UI_FONT_FAMILY, 10, "bold")
+UI_FONT_BTN     = (UI_FONT_FAMILY, 11, "bold")
+UI_FONT_BTN_LG  = (UI_FONT_FAMILY, 13, "bold")
+
+# ── Spacing ────────────────────────────────────────────────────
+UI_PAD_SM   = 6
+UI_PAD      = 12
+UI_PAD_LG   = 20
+UI_PAD_XL   = 32
+UI_RADIUS   = 10   # (visual reference for rounded feel; Tkinter can't round natively)
+
+
+def apply_ttk_theme(root):
+    """Configures ttk widgets (Treeview, Combobox, Entry, Scrollbar) to the clean theme."""
+    try:
+        from tkinter import ttk
+        style = ttk.Style(root)
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+
+        # Entry field
+        style.configure("TEntry",
+                        fieldbackground=UI_SURFACE,
+                        background=UI_SURFACE,
+                        foreground=UI_TEXT,
+                        bordercolor=UI_BORDER,
+                        lightcolor=UI_BORDER,
+                        darkcolor=UI_BORDER,
+                        padding=6,
+                        font=UI_FONT_BODY)
+        style.map("TEntry",
+                  bordercolor=[("focus", UI_PRIMARY)],
+                  lightcolor=[("focus", UI_PRIMARY)],
+                  darkcolor=[("focus", UI_PRIMARY)])
+
+        # Combobox
+        style.configure("TCombobox",
+                        fieldbackground=UI_SURFACE,
+                        background=UI_SURFACE,
+                        foreground=UI_TEXT,
+                        bordercolor=UI_BORDER,
+                        arrowcolor=UI_PRIMARY,
+                        padding=4,
+                        font=UI_FONT_BODY)
+        style.map("TCombobox",
+                  fieldbackground=[("readonly", UI_SURFACE)],
+                  foreground=[("readonly", UI_TEXT)])
+
+        # Treeview (tables)
+        style.configure("Treeview",
+                        background=UI_SURFACE,
+                        fieldbackground=UI_SURFACE,
+                        foreground=UI_TEXT,
+                        rowheight=26,
+                        bordercolor=UI_BORDER,
+                        font=UI_FONT_BODY)
+        style.configure("Treeview.Heading",
+                        background=UI_PRIMARY,
+                        foreground="white",
+                        font=UI_FONT_HEADING,
+                        padding=8,
+                        relief="flat")
+        style.map("Treeview",
+                  background=[("selected", UI_ACCENT)],
+                  foreground=[("selected", "white")])
+        style.map("Treeview.Heading",
+                  background=[("active", UI_PRIMARY_HVR)])
+
+        # Scrollbar
+        style.configure("TScrollbar",
+                        background=UI_SURFACE_ALT,
+                        troughcolor=UI_BG,
+                        bordercolor=UI_BORDER,
+                        arrowcolor=UI_TEXT_MUTED,
+                        relief="flat")
+        style.map("TScrollbar",
+                  background=[("active", UI_PRIMARY)])
+
+        # Notebook tabs (if used)
+        style.configure("TNotebook",
+                        background=UI_BG,
+                        borderwidth=0)
+        style.configure("TNotebook.Tab",
+                        background=UI_SURFACE_ALT,
+                        foreground=UI_TEXT_MUTED,
+                        padding=[14, 8],
+                        font=UI_FONT_LABEL)
+        style.map("TNotebook.Tab",
+                  background=[("selected", UI_PRIMARY)],
+                  foreground=[("selected", "white")])
+    except Exception:
+        pass
+
+
+def make_card(parent, **kwargs):
+    """Creates a clean card Frame (white surface + subtle border + padding)."""
+    from tkinter import Frame
+    bd = kwargs.pop("bd", 1)
+    bg = kwargs.pop("bg", UI_SURFACE)
+    highlight = kwargs.pop("highlightbackground", UI_BORDER)
+    padx = kwargs.pop("padx", UI_PAD)
+    pady = kwargs.pop("pady", UI_PAD)
+    card = Frame(parent, bd=bd, bg=bg,
+                 highlightbackground=highlight,
+                 highlightthickness=1,
+                 **kwargs)
+    card.configure(**kwargs) if False else None
+    # Wrap content padding via inner frame
+    inner = Frame(card, bg=bg)
+    inner.pack(fill="both", expand=True, padx=padx, pady=pady)
+    card._inner = inner
+    return card
+
+
+def make_header(parent, text, subtitle=None):
+    """Creates a clean page header bar with title and optional subtitle."""
+    from tkinter import Frame, Label
+    bar = Frame(parent, bg=UI_PRIMARY, height=70)
+    bar.pack(fill="x", side="top")
+    bar.pack_propagate(False)
+
+    inner = Frame(bar, bg=UI_PRIMARY)
+    inner.pack(fill="both", expand=True, padx=UI_PAD_LG, pady=UI_PAD)
+
+    title = Label(inner, text=text, font=UI_FONT_TITLE, bg=UI_PRIMARY, fg="white")
+    title.pack(side="left", anchor="w")
+
+    if subtitle:
+        sub = Label(inner, text=subtitle, font=UI_FONT_BODY, bg=UI_PRIMARY, fg="#bfdbfe")
+        sub.pack(side="right", anchor="e")
+
+    return bar
+
+
+def make_section_label(parent, text, color=None):
+    """Creates a small section heading label."""
+    from tkinter import Label
+    return Label(parent, text=text, font=UI_FONT_HEADING,
+                 bg=parent.cget("bg") if hasattr(parent, "cget") else UI_SURFACE,
+                 fg=color or UI_TEXT)
+
+
+def make_status_chip(parent, text, state="info"):
+    """Creates a status pill/chip label (info/success/warning/danger)."""
+    from tkinter import Label
+    colors = {
+        "info":    (UI_INFO, "#e0f2fe"),
+        "success": (UI_SUCCESS, "#d1fae5"),
+        "warning": (UI_WARNING, "#fef3c7"),
+        "danger":  (UI_DANGER,  "#fee2e2"),
+        "loading": (UI_ACCENT,  "#dbeafe"),
+    }
+    fg, bg = colors.get(state, colors["info"])
+    chip = Label(parent, text=text, font=UI_FONT_LABEL,
+                 fg=fg, bg=bg, padx=12, pady=4)
+    return chip
+
+
+def style_button(btn, variant="primary"):
+    """Applies themed styling to a tkinter Button with hover behavior."""
+    variants = {
+        "primary":   (UI_PRIMARY,   "white", UI_PRIMARY_HVR,   "white"),
+        "success":   (UI_SUCCESS,   "white", UI_SUCCESS_HVR,   "white"),
+        "danger":    (UI_DANGER,    "white", UI_DANGER_HVR,    "white"),
+        "secondary": (UI_SURFACE,   UI_TEXT, UI_BG,            UI_PRIMARY),
+        "outline":   (UI_SURFACE,   UI_PRIMARY, UI_PRIMARY,    "white"),
+        "ghost":     (UI_BG,        UI_TEXT, UI_SURFACE_ALT,   UI_TEXT),
+    }
+    bg, fg, hbg, hfg = variants.get(variant, variants["primary"])
+    btn.configure(bg=bg, fg=fg, font=UI_FONT_BTN,
+                  relief="flat", bd=0, padx=16, pady=8,
+                  activebackground=hbg, activeforeground=hfg,
+                  cursor="hand2", highlightthickness=0)
+
+    def on_enter(_):
+        btn.configure(bg=hbg, fg=hfg)
+
+    def on_leave(_):
+        btn.configure(bg=bg, fg=fg)
+
+    btn.bind("<Enter>", on_enter)
+    btn.bind("<Leave>", on_leave)
+    return btn
+
+
+def make_button(parent, text, command=None, variant="primary", **kw):
+    """Factory: creates a pre-styled themed tkinter Button."""
+    from tkinter import Button
+    if variant in ("outline",):
+        kw.setdefault("bd", 1)
+        kw.setdefault("highlightthickness", 1)
+        kw.setdefault("highlightbackground", UI_PRIMARY)
+    b = Button(parent, text=text, command=command, **kw)
+    style_button(b, variant=variant)
+    return b
+
+
+def setup_standard_window(root, title_text, subtitle_text=None):
+    """
+    Bootstraps a Toplevel / root window with the clean theme.
+    Returns the main content area Frame (padded, on UI_BG).
+    """
+    from tkinter import Frame
+    sw = root.winfo_screenwidth()
+    sh = root.winfo_screenheight()
+    root.geometry(f"{sw}x{sh}+0+0")
+    try:
+        root.state("zoomed")
+    except Exception:
+        pass
+    root.title(title_text)
+    root.configure(bg=UI_BG)
+    apply_ttk_theme(root)
+
+    make_header(root, title_text, subtitle=subtitle_text)
+
+    content = Frame(root, bg=UI_BG)
+    content.pack(fill="both", expand=True, padx=UI_PAD_LG, pady=UI_PAD_LG)
+    return content
 
 

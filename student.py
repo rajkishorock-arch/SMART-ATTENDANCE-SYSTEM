@@ -7,18 +7,25 @@ from tkinter import messagebox
 import mysql.connector
 import cv2
 import numpy as np
-from face_utils import open_camera, preprocess_face, get_db_connection, get_face_engines
+from face_utils import (
+    open_camera, preprocess_face, get_db_connection, get_face_engines,
+    setup_standard_window,
+    make_card,
+    make_button,
+    make_section_label,
+    make_status_chip,
+    style_button,
+    UI_BG, UI_SURFACE, UI_SURFACE_ALT, UI_PRIMARY, UI_ACCENT,
+    UI_TEXT, UI_TEXT_MUTED, UI_SUCCESS, UI_DANGER, UI_INFO, UI_WARNING,
+    UI_PAD, UI_PAD_LG, UI_PAD_SM,
+    UI_FONT_HEADING, UI_FONT_SUBTITLE, UI_FONT_BODY, UI_FONT_LABEL,
+)
 
 class Student:
     def __init__(self, root):
         self.root = root
-        self.screen_width = self.root.winfo_screenwidth()
-        self.screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
-        self.root.state('zoomed')
-        self.root.title("Face Recognition System")
 
-        #variables
+        # ── Variables (unchanged) ──────────────────────────────────────
         self.var_dep = StringVar()
         self.var_course = StringVar()
         self.var_year = StringVar()
@@ -28,343 +35,315 @@ class Student:
         self.var_div = StringVar()
         self.var_roll = StringVar()
         self.var_gender = StringVar()
-        self.var_dob = StringVar()   
-        self.var_email = StringVar() 
+        self.var_dob = StringVar()
+        self.var_email = StringVar()
         self.var_phone = StringVar()
         self.var_address = StringVar()
         self.var_teacher = StringVar()
         self.var_photo = StringVar()
+        self.var_photo.set("")
 
+        # ── Theme bootstrap ─────────────────────────────────────────────
+        content = setup_standard_window(
+            root,
+            "Student Management",
+            subtitle_text="Enrollment  •  Profiles  •  Face Registration  •  Search"
+        )
 
-        # first image
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        img = Image.open(os.path.join(base_dir, "image", "download.jpg"))
-        img_w = self.screen_width // 3
-        img = img.resize((img_w, 130), Image.LANCZOS)
-        self.photoimg = ImageTk.PhotoImage(img)
+        # ── Main split: Left (Form) | Right (Search + Table) ───────────
+        split = Frame(content, bg=UI_BG)
+        split.pack(fill="both", expand=True)
 
-        f_lbl = Label(self.root, image=self.photoimg)
-        f_lbl.place(x=0, y=0, width=img_w, height=130)
+        # ═══════════════════  LEFT COLUMN  ══════════════════════════════
+        left_wrap = Frame(split, bg=UI_BG)
+        left_wrap.pack(side="left", fill="both", expand=True, padx=(0, UI_PAD_LG))
 
-         # second image
-        img1 = Image.open(os.path.join(base_dir, "image", "images.jpg"))
-        img1 = img1.resize((img_w, 130), Image.LANCZOS)
-        self.photoimg1 = ImageTk.PhotoImage(img1)
+        # Use canvas + scrollbar on the left so the form never clips
+        left_canvas = Canvas(left_wrap, bg=UI_BG, highlightthickness=0)
+        left_scroll = ttk.Scrollbar(left_wrap, orient="vertical", command=left_canvas.yview)
+        left_inner = Frame(left_canvas, bg=UI_BG)
+        left_inner.bind("<Configure>",
+                        lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
+        left_canvas.create_window((0, 0), window=left_inner, anchor="nw")
+        left_canvas.configure(yscrollcommand=left_scroll.set)
+        left_canvas.pack(side="left", fill="both", expand=True)
+        left_scroll.pack(side="right", fill="y")
 
-        f_lbl1 = Label(self.root, image=self.photoimg1)
-        f_lbl1.place(x=img_w, y=0, width=img_w, height=130)
+        # --- Course / Enrollment card ---
+        course_card = make_card(left_inner, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        course_card.pack(fill="x", pady=(0, UI_PAD_LG))
+        cc = course_card._inner
 
-         # third image
-        img2 = Image.open(os.path.join(base_dir, "image", "raj.jpg"))
-        img2 = img2.resize((img_w, 130), Image.LANCZOS)
-        self.photoimg2 = ImageTk.PhotoImage(img2)
+        course_hdr = make_section_label(cc, "Current Course", color=UI_PRIMARY)
+        course_hdr.pack(anchor="w", pady=(0, UI_PAD))
 
-        f_lbl2 = Label(self.root, image=self.photoimg2)
-        f_lbl2.place(x=img_w*2, y=0, width=img_w, height=130)
+        course_grid = Frame(cc, bg=UI_SURFACE)
+        course_grid.pack(fill="x")
 
-        # background image
-        img3 = Image.open(os.path.join(base_dir, "image", "im.jpg"))
-        img3 = img3.resize((self.screen_width, self.screen_height - 130), Image.LANCZOS)
-        self.photoimg3 = ImageTk.PhotoImage(img3) 
-        bg_img = Label(self.root, image=self.photoimg3)      
-        bg_img.place(x=0, y=130, width=self.screen_width, height=self.screen_height - 130)
+        def grid_field(row, col, label, widget):
+            lbl = Label(course_grid, text=label, font=UI_FONT_LABEL,
+                        bg=UI_SURFACE, fg=UI_TEXT_MUTED)
+            lbl.grid(row=row, column=col * 2, padx=(0, UI_PAD_SM), pady=(UI_PAD_SM, 0), sticky="w")
+            widget.grid(row=row, column=col * 2 + 1, pady=(UI_PAD_SM, 0), sticky="we")
+            course_grid.grid_columnconfigure(col * 2 + 1, weight=1)
 
-        title_lbl = Label(bg_img, text="STUDENT MANAGEMENT SYSTEM", font=(
-            "times new roman", 35, "bold"), bg="white", fg="darkgreen")
-        title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
-
-        main_frame = Frame(bg_img, bd=2, bg="white")
-        main_frame.place(x=5, y=55, width=self.screen_width, height=self.screen_height - 180)
-
-        # left label frame
-        Left_frame = LabelFrame(main_frame, bd=2, bg="white", relief=RIDGE, text="Student Details", font=(
-            "times new roman", 12, "bold"))
-        Left_frame.place(x=10, y=10, width=(self.screen_width // 2) - 20, height=self.screen_height - 210)
-
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        img_left = Image.open(os.path.join(base_dir, "image", "stu.jpg"))
-        img_left = img_left.resize((720, 130), Image.LANCZOS)
-        self.photoimg_left = ImageTk.PhotoImage(img_left)
-
-        f_lbl_left = Label(Left_frame, image=self.photoimg_left)
-        f_lbl_left.place(x=5, y=0, width=720, height=130)
-
-        # current course
-        current_course_label = LabelFrame(Left_frame,bd=2,bg="white",relief=RIDGE, text="Current Course:", font=(
-            "times new roman", 12, "bold"))
-        current_course_label.place(x=5, y=135 , width=720, height=90)
-
-        #department
-        department_label = Label( current_course_label, text="Department:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        department_label.grid(row=0, column=0, padx=10, pady=5)
-
-        department_combo = ttk.Combobox( current_course_label,textvariable=self.var_dep, font=(
-            "times new roman", 12, "bold"), width=17, state="readonly")
-        department_combo["values"] = ("Select Department", "Computer Science", "Electrical Engineering", "Mechanical Engineering")
+        department_combo = ttk.Combobox(course_grid, textvariable=self.var_dep,
+                                        state="readonly", font=UI_FONT_BODY)
+        department_combo["values"] = (
+            "Select Department",
+            "Computer Science",
+            "Electrical Engineering",
+            "Mechanical Engineering",
+        )
         department_combo.current(0)
-        department_combo.grid(row=0, column=1, padx=10, pady=5)
+        grid_field(0, 0, "Department", department_combo)
 
-        #course
-        course_label = Label( current_course_label, text="Course:", font=(
-            "times new roman", 12, "bold "),bd=2, bg="white")
-        course_label.grid(row=0, column=2, padx=10, pady=5)
-
-        course_combo = ttk.Combobox( current_course_label,textvariable=self.var_course, font=(
-            "times new roman", 12, "bold"), width=17, state="readonly")
-        course_combo["values"] = ("Select Course", "Bachelor of Computer Science", "Bachelor of Electrical Engineering", "Bachelor of Mechanical Engineering")
+        course_combo = ttk.Combobox(course_grid, textvariable=self.var_course,
+                                    state="readonly", font=UI_FONT_BODY)
+        course_combo["values"] = (
+            "Select Course",
+            "Bachelor of Computer Science",
+            "Bachelor of Electrical Engineering",
+            "Bachelor of Mechanical Engineering",
+        )
         course_combo.current(0)
-        course_combo.grid(row=0, column=3, padx=10, pady=5)
+        grid_field(0, 1, "Course", course_combo)
 
-        #year
-        year_label = Label( current_course_label, text="Year:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        year_label.grid(row=1, column=0, padx=10, pady=5)
-
-        year_combo = ttk.Combobox( current_course_label,textvariable=self.var_year, font=(
-            "times new roman", 12, "bold"), width=17, state="readonly")
-        year_combo["values"] = ("Select Year", "First Year", "Second Year", "Third Year", "Fourth Year")
+        year_combo = ttk.Combobox(course_grid, textvariable=self.var_year,
+                                  state="readonly", font=UI_FONT_BODY)
+        year_combo["values"] = (
+            "Select Year", "First Year", "Second Year", "Third Year", "Fourth Year"
+        )
         year_combo.current(0)
-        year_combo.grid(row=1, column=1, padx=10, pady=5, sticky=W)
+        grid_field(1, 0, "Year", year_combo)
 
-        #semester
-        semester_label = Label( current_course_label, text="Semester:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        semester_label.grid(row=1, column=2, padx=10, pady=5)
-
-        semester_combo = ttk.Combobox( current_course_label,textvariable=self.var_semester, font=(
-            "times new roman", 12, "bold"), width=17, state="readonly")
+        semester_combo = ttk.Combobox(course_grid, textvariable=self.var_semester,
+                                      state="readonly", font=UI_FONT_BODY)
         semester_combo["values"] = ("Select Semester", "First Semester", "Second Semester")
         semester_combo.current(0)
-        semester_combo.grid(row=1, column=3, padx=10, pady=5, sticky=W)
+        grid_field(1, 1, "Semester", semester_combo)
 
-        #class student information
-        class_student_information_label = LabelFrame(Left_frame,bd=2,bg="white",relief=RIDGE, text="Class Student Information:", font=(
-            "times new roman", 12, "bold"))
-        class_student_information_label.place(x=5, y=230 , width=720, height=250)
+        # --- Student info card ---
+        info_card = make_card(left_inner, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        info_card.pack(fill="x", pady=(0, UI_PAD_LG))
+        ic = info_card._inner
 
-        #student id
-        studentid_label = Label(class_student_information_label, text="Student ID:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        studentid_label.grid(row=0, column=0, padx=10, pady=5)
+        info_hdr = make_section_label(ic, "Student Information", color=UI_PRIMARY)
+        info_hdr.pack(anchor="w", pady=(0, UI_PAD))
 
-        studentid_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_id)
-        studentid_entry.grid(row=0, column=1, padx=10, pady=5, sticky=W)
+        info_grid = Frame(ic, bg=UI_SURFACE)
+        info_grid.pack(fill="x")
 
-        #student name
-        studentname_label = Label(class_student_information_label, text="Student Name:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        studentname_label.grid(row=0, column=2, padx=10, pady=5)
+        def info_field(row, col, label, widget):
+            lbl = Label(info_grid, text=label, font=UI_FONT_LABEL,
+                        bg=UI_SURFACE, fg=UI_TEXT_MUTED)
+            lbl.grid(row=row, column=col * 2, padx=(0, UI_PAD_SM), pady=(UI_PAD_SM, 0), sticky="w")
+            widget.grid(row=row, column=col * 2 + 1, pady=(UI_PAD_SM, 0), sticky="we")
+            info_grid.grid_columnconfigure(col * 2 + 1, weight=1)
 
-        studentname_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_name)
-        studentname_entry.grid(row=0, column=3, padx=10, pady=5, sticky=W)
+        studentid_entry = ttk.Entry(info_grid, textvariable=self.var_id, font=UI_FONT_BODY)
+        info_field(0, 0, "Student ID", studentid_entry)
 
-        #class division
-        class_div_label = Label(class_student_information_label, text="Class Division:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        class_div_label.grid(row=1, column=0, padx=10, pady=5)
+        studentname_entry = ttk.Entry(info_grid, textvariable=self.var_name, font=UI_FONT_BODY)
+        info_field(0, 1, "Student Name", studentname_entry)
 
-        class_div_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_div)
-        class_div_entry.grid(row=1, column=1, padx=10, pady=5, sticky=W)
+        class_div_entry = ttk.Entry(info_grid, textvariable=self.var_div, font=UI_FONT_BODY)
+        info_field(1, 0, "Class Division", class_div_entry)
 
-        #roll number
-        roll_no_label = Label(class_student_information_label, text="Roll Number:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        roll_no_label.grid(row=1, column=2, padx=10, pady=5)
+        roll_no_entry = ttk.Entry(info_grid, textvariable=self.var_roll, font=UI_FONT_BODY)
+        info_field(1, 1, "Roll Number", roll_no_entry)
 
-        roll_no_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_roll)
-        roll_no_entry.grid(row=1, column=3, padx=10, pady=5, sticky=W)
-
-        #gender
-        gender_label = Label(class_student_information_label, text="Gender:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        gender_label.grid(row=2, column=0, padx=10, pady=5)
-
-        gender_combo = ttk.Combobox(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, state="readonly", textvariable=self.var_gender)
+        gender_combo = ttk.Combobox(info_grid, state="readonly",
+                                    textvariable=self.var_gender, font=UI_FONT_BODY)
         gender_combo["values"] = ("Select Gender", "Male", "Female", "Other")
         gender_combo.current(0)
-        gender_combo.grid(row=2, column=1, padx=10, pady=5, sticky=W)
+        info_field(2, 0, "Gender", gender_combo)
 
-        #DOB
-        dob_label = Label(class_student_information_label, text="DOB:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        dob_label.grid(row=2, column=2, padx=10, pady=5)
+        dob_entry = ttk.Entry(info_grid, textvariable=self.var_dob, font=UI_FONT_BODY)
+        info_field(2, 1, "Date of Birth", dob_entry)
 
-        dob_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_dob)
-        dob_entry.grid(row=2, column=3, padx=10, pady=5, sticky=W)
+        email_entry = ttk.Entry(info_grid, textvariable=self.var_email, font=UI_FONT_BODY)
+        info_field(3, 0, "Email Address", email_entry)
 
-        #student email
-        email_label = Label(class_student_information_label, text="Student Email:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        email_label.grid(row=3, column=0, padx=10, pady=5)
+        phone_entry = ttk.Entry(info_grid, textvariable=self.var_phone, font=UI_FONT_BODY)
+        info_field(3, 1, "Phone Number", phone_entry)
 
-        email_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_email)
-        email_entry.grid(row=3, column=1, padx=10, pady=5, sticky=W)
+        address_entry = ttk.Entry(info_grid, textvariable=self.var_address, font=UI_FONT_BODY)
+        info_field(4, 0, "Address", address_entry)
 
-        #student phone
-        phone_label = Label(class_student_information_label, text="Student Phone:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        phone_label.grid(row=3, column=2, padx=10, pady=5)
+        teacher_entry = ttk.Entry(info_grid, textvariable=self.var_teacher, font=UI_FONT_BODY)
+        info_field(4, 1, "Teacher Name", teacher_entry)
 
-        phone_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_phone)
-        phone_entry.grid(row=3, column=3, padx=10, pady=5, sticky=W)
+        # Photo sample radio row
+        radio_row = Label(ic, text="Photo Sample Status", font=UI_FONT_LABEL,
+                          bg=UI_SURFACE, fg=UI_TEXT_MUTED)
+        radio_row.pack(anchor="w", pady=(UI_PAD_LG, UI_PAD_SM))
 
-        #address
-        address_label = Label(class_student_information_label, text="Address :", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        address_label.grid(row=4, column=0, padx=10, pady=5)
+        r_frame = Frame(ic, bg=UI_SURFACE)
+        r_frame.pack(fill="x")
 
-        address_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_address)
-        address_entry.grid(row=4, column=1, padx=10, pady=5, sticky=W)
+        radiobtn1 = Radiobutton(r_frame, variable=self.var_photo,
+                                text="Take Photo Sample", value="yes",
+                                font=UI_FONT_BODY, bg=UI_SURFACE, fg=UI_TEXT,
+                                activebackground=UI_SURFACE, selectcolor=UI_SURFACE)
+        radiobtn1.pack(side="left", padx=(0, UI_PAD_LG))
 
-        
-        #teacher name
-        teacher_label = Label(class_student_information_label, text="Teacher Name:", font=(
-            "times new roman", 12, "bold"),bd=2, bg="white")
-        teacher_label.grid(row=4, column=2, padx=10, pady=5)
+        radiobtn2 = Radiobutton(r_frame, variable=self.var_photo,
+                                text="No Photo Sample", value="no",
+                                font=UI_FONT_BODY, bg=UI_SURFACE, fg=UI_TEXT,
+                                activebackground=UI_SURFACE, selectcolor=UI_SURFACE)
+        radiobtn2.pack(side="left")
 
-        teacher_entry = ttk.Entry(class_student_information_label, font=(
-            "times new roman", 12, "bold"), width=17, textvariable=self.var_teacher)
-        teacher_entry.grid(row=4, column=3, padx=10, pady=5, sticky=W)
+        # --- CRUD Buttons card ---
+        btns_card = make_card(left_inner, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        btns_card.pack(fill="x", pady=(0, UI_PAD_LG))
+        bc = btns_card._inner
 
-        #radio buttons
-        self.var_photo.set("")
-        radiobtn1 = Radiobutton(class_student_information_label, variable=self.var_photo, text="Take Photo Sample", value="yes", font=(
-            "times new roman", 12, "bold"), bg="white")
-        radiobtn1.grid(row=5, column=0, padx=10, pady=5)
+        btns_hdr = make_section_label(bc, "Record Actions", color=UI_TEXT)
+        btns_hdr.pack(anchor="w", pady=(0, UI_PAD))
 
-        radiobtn2 = Radiobutton(class_student_information_label, variable=self.var_photo, text="No Photo Sample", value="no", font=(
-            "times new roman", 12, "bold"), bg="white")
-        radiobtn2.grid(row=5, column=1, padx=10, pady=5)
+        row1 = Frame(bc, bg=UI_SURFACE)
+        row1.pack(fill="x", pady=(0, UI_PAD_SM))
 
-        #button frame
-        btn_frame = Frame(Left_frame, bd=2, relief=RIDGE, bg="white")
-        btn_frame.place(x=5, y=480, width=720, height=35)
+        save_btn = make_button(row1, "💾  Save", command=self.add_data, variant="primary")
+        save_btn.pack(side="left", padx=(0, UI_PAD_SM), fill="x", expand=True)
 
-        save_btn = Button(btn_frame, text="Save",command=self.add_data, font=(
-            "times new roman", 13, "bold"), bg="blue", fg="white", width=17)
-        save_btn.grid(row=0, column=0, )
+        update_btn = make_button(row1, "✏️  Update", command=self.update_data, variant="success")
+        update_btn.pack(side="left", padx=(0, UI_PAD_SM), fill="x", expand=True)
 
-        update_btn = Button(btn_frame, text="Update",command=self.update_data, font=(
-            "times new roman", 13, "bold"), bg="blue", fg="white", width=17)
-        update_btn.grid(row=0, column=1, )
+        delete_btn = make_button(row1, "🗑️  Delete", command=self.delete_data, variant="danger")
+        delete_btn.pack(side="left", padx=(0, UI_PAD_SM), fill="x", expand=True)
 
-        delete_btn = Button(btn_frame, text="Delete",command=self.delete_data, font=(
-            "times new roman", 13, "bold"), bg="blue", fg="white", width=17)
-        delete_btn.grid(row=0, column=2, )
+        reset_btn = make_button(row1, "↺  Reset", command=self.reset_data, variant="ghost")
+        reset_btn.pack(side="left", fill="x", expand=True)
 
-        reset_btn = Button(btn_frame, text="Reset",command=self.reset_data, font=(
-            "times new roman", 13, "bold"), bg="blue", fg="white", width=17)    
-        reset_btn.grid(row=0, column=3, )
+        # --- Face enrollment card ---
+        face_card = make_card(left_inner, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        face_card.pack(fill="x")
+        fc = face_card._inner
 
-        btn_frame1 = Frame(Left_frame, bd=2, relief=RIDGE, bg="white")
-        btn_frame1.place(x=5, y=515, width=720, height=70)
+        face_hdr = make_section_label(fc, "Biometric Enrollment", color=UI_PRIMARY)
+        face_hdr.pack(anchor="w", pady=(0, UI_PAD_SM))
 
-        take_photo_btn = Button(btn_frame1,command=self.generate_dataset, text="Take Photo Sample", font=(
-            "times new roman", 13, "bold"), bg="blue", fg="white", width=36)
-        take_photo_btn.grid(row=1, column=0,)
+        face_desc = Label(
+            fc,
+            text="Launches your webcam, captures 10 high-quality frames, extracts SFace 128-D embeddings, and saves them to the student record.",
+            font=UI_FONT_BODY, bg=UI_SURFACE, fg=UI_TEXT_MUTED, wraplength=500, justify="left"
+        )
+        face_desc.pack(anchor="w", pady=(0, UI_PAD))
 
-        update_photo_btn = Button(btn_frame1, text="Update Photo Sample", font=(
-            "times new roman", 13, "bold"), bg="blue", fg="white", width=36)
-        update_photo_btn.grid(row=1, column=1,)
+        chips = Frame(fc, bg=UI_SURFACE)
+        chips.pack(anchor="w", pady=(0, UI_PAD))
+        make_status_chip(chips, " 10 Samples ", "info").pack(side="left", padx=(0, UI_PAD_SM))
+        make_status_chip(chips, " SFace Deep-Learning ", "success").pack(side="left", padx=(0, UI_PAD_SM))
+        make_status_chip(chips, " YuNet Detector ", "loading").pack(side="left")
 
-        # right label frame
-        Right_frame = LabelFrame(main_frame, bd=2, bg="white", relief=RIDGE, text="Student Details", font=(
-            "times new roman", 12, "bold")) 
-        Right_frame.place(x=(self.screen_width // 2) + 10, y=10, width=(self.screen_width // 2) - 20, height=self.screen_height - 210)
+        row2 = Frame(fc, bg=UI_SURFACE)
+        row2.pack(fill="x")
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        img_right = Image.open(os.path.join(base_dir, "image", "stu.jpg"))
-        img_right = img_right.resize((720, 130), Image.LANCZOS)
-        self.photoimg_right = ImageTk.PhotoImage(img_right)
+        take_photo_btn = make_button(row2, "📸  Take Photo Sample",
+                                     command=self.generate_dataset, variant="primary")
+        take_photo_btn.pack(side="left", padx=(0, UI_PAD_SM), fill="x", expand=True)
 
-        f_lbl_right = Label(Right_frame, image=self.photoimg_right)
-        f_lbl_right.place(x=5, y=0, width=720, height=130)
+        update_photo_btn = make_button(row2, "🔁  Update Photo Sample", variant="secondary")
+        update_photo_btn.pack(side="left", fill="x", expand=True)
 
-        #search system
-        search_frame = LabelFrame(Right_frame,bd=2, relief=RIDGE, text="Search System:", font=(
-            "times new roman", 12, "bold"), bg="white")
-        search_frame.place(x=5, y=135 , width=720, height=60)
+        # ═══════════════════  RIGHT COLUMN  ═════════════════════════════
+        right_wrap = Frame(split, bg=UI_BG)
+        right_wrap.pack(side="left", fill="both", expand=True, padx=(UI_PAD_LG, 0))
 
-        search_label = Label(search_frame, text="Search By:", font=(
-            "times new roman", 15, "bold"), bg="red",fg="white")
-        search_label.grid(row=0, column=0, pady=5,sticky=W )
+        # --- Search card ---
+        search_card = make_card(right_wrap, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        search_card.pack(fill="x", pady=(0, UI_PAD_LG))
+        sc = search_card._inner
 
-        search_combo = ttk.Combobox(search_frame, font=(
-            "times new roman", 12, "bold"), width=17, state="readonly")
+        search_hdr = make_section_label(sc, "Search & Filter", color=UI_PRIMARY)
+        search_hdr.pack(anchor="w", pady=(0, UI_PAD))
+
+        search_row = Frame(sc, bg=UI_SURFACE)
+        search_row.pack(fill="x")
+
+        Label(search_row, text="Search By:", font=UI_FONT_LABEL,
+              bg=UI_SURFACE, fg=UI_TEXT_MUTED).pack(side="left", padx=(0, UI_PAD_SM))
+
+        search_combo = ttk.Combobox(search_row, state="readonly",
+                                    width=18, font=UI_FONT_BODY)
         search_combo["values"] = ("Select Option", "Roll Number", "Phone Number", "Student ID")
         search_combo.current(0)
-        search_combo.grid(row=0, column=1,padx=2,  pady=10, sticky=W)
+        search_combo.pack(side="left", padx=(0, UI_PAD_SM))
 
-        search_entry = ttk.Entry(search_frame, font=(
-            "times new roman", 12, "bold"), width=17)
-        search_entry.grid(row=0, column=2, padx=10, pady=5, sticky=W)
+        search_entry = ttk.Entry(search_row, width=22, font=UI_FONT_BODY)
+        search_entry.pack(side="left", padx=(0, UI_PAD_SM))
 
-        search_btn = Button(search_frame, text="Search", font=(
-            "times new roman", 12, "bold"), bg="blue", fg="white", width=10)
-        search_btn.grid(row=0, column=3, padx=10, pady=5)
+        search_btn = make_button(search_row, "🔍  Search", variant="primary")
+        search_btn.pack(side="left", padx=(0, UI_PAD_SM))
 
-        showall_btn = Button(search_frame, text="Show All", font=(
-            "times new roman", 12, "bold"), bg="blue", fg="white", width=10)
-        showall_btn.grid(row=0, column=4, padx=10, pady=5)
+        showall_btn = make_button(search_row, "⤴  Show All", variant="secondary")
+        showall_btn.pack(side="left")
 
-        #table frame
-        table_frame = Frame(Right_frame, bd=2, relief=RIDGE, bg="white")
-        table_frame.place(x=5, y=210, width=720, height=350)
+        # --- Table card ---
+        table_card = make_card(right_wrap, padx=UI_PAD, pady=UI_PAD)
+        table_card.pack(fill="both", expand=True)
+        tc_inner = table_card._inner
 
-        scroll_x = ttk.Scrollbar(table_frame, orient=HORIZONTAL)
-        scroll_y = ttk.Scrollbar(table_frame, orient=VERTICAL)
-        self.student_table = ttk.Treeview(table_frame, column=(
-            "dep", "course", "year", "sem", "id", "name", "div", "roll", "gender", "dob", "email", "phone", "address","teacher","photo"), xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
-        
+        table_hdr_row = Frame(tc_inner, bg=UI_SURFACE)
+        table_hdr_row.pack(fill="x", pady=(0, UI_PAD_SM))
+
+        table_hdr = make_section_label(table_hdr_row, "Enrolled Students", color=UI_TEXT)
+        table_hdr.pack(side="left", anchor="w")
+
+        count_hint = Label(
+            table_hdr_row,
+            text="Click a row to auto-fill the form on the left  •  Scroll to view all 15 columns",
+            font=("Segoe UI", 9, "normal"),
+            bg=UI_SURFACE, fg=UI_TEXT_MUTED
+        )
+        count_hint.pack(side="right", anchor="e")
+
+        tv_container = Frame(tc_inner, bg=UI_SURFACE,
+                             highlightbackground=UI_BORDER, highlightthickness=1)
+        tv_container.pack(fill="both", expand=True)
+
+        scroll_x = ttk.Scrollbar(tv_container, orient=HORIZONTAL)
+        scroll_y = ttk.Scrollbar(tv_container, orient=VERTICAL)
+
+        self.student_table = ttk.Treeview(
+            tv_container,
+            column=("dep", "course", "year", "sem", "id", "name", "div",
+                    "roll", "gender", "dob", "email", "phone",
+                    "address", "teacher", "photo"),
+            xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set
+        )
+
         scroll_x.pack(side=BOTTOM, fill=X)
         scroll_y.pack(side=RIGHT, fill=Y)
         scroll_x.config(command=self.student_table.xview)
         scroll_y.config(command=self.student_table.yview)
 
-        self.student_table.heading("dep", text="Department")
-        self.student_table.heading("course", text="Course")
-        self.student_table.heading("year", text="Year")
-        self.student_table.heading("sem", text="Semester")
-        self.student_table.heading("id", text="Student ID")
-        self.student_table.heading("name", text="Name")
-        self.student_table.heading("div", text="Division")
-        self.student_table.heading("roll", text="Roll Number")
-        self.student_table.heading("gender", text="Gender")
-        self.student_table.heading("dob", text="DOB")
-        self.student_table.heading("email", text="Email")
-        self.student_table.heading("phone", text="Phone NUmber")
-        self.student_table.heading("address", text="Address")
-        self.student_table.heading("teacher", text="Teacher Name")
-        self.student_table.heading("photo", text="photosample status")
+        col_defs = [
+            ("dep",     "Department",   120),
+            ("course",  "Course",       140),
+            ("year",    "Year",         90),
+            ("sem",     "Semester",     100),
+            ("id",      "Student ID",   90),
+            ("name",    "Name",         140),
+            ("div",     "Division",     80),
+            ("roll",    "Roll Number",  100),
+            ("gender",  "Gender",       70),
+            ("dob",     "DOB",          90),
+            ("email",   "Email",        160),
+            ("phone",   "Phone",        110),
+            ("address", "Address",      140),
+            ("teacher", "Teacher",      120),
+            ("photo",   "Photo Status", 100),
+        ]
+        for key, label, width in col_defs:
+            self.student_table.heading(key, text=label)
+            self.student_table.column(key, width=width, anchor="w")
+
         self.student_table["show"] = "headings"
+        self.student_table.pack(fill=BOTH, expand=True)
 
-        self.student_table.column("dep", width=100)
-        self.student_table.column("course", width=100)
-        self.student_table.column("year", width=100)
-        self.student_table.column("sem", width=100)
-        self.student_table.column("id", width=100)
-        self.student_table.column("name", width=100)
-        self.student_table.column("div", width=100)
-        self.student_table.column("roll", width=100)
-        self.student_table.column("gender", width=100)
-        self.student_table.column("dob", width=100)
-        self.student_table.column("email", width=100)
-        self.student_table.column("phone", width=100)
-        self.student_table.column("address", width=100)
-        self.student_table.column("teacher", width=100)
-        self.student_table.column("photo", width=100)
-
-        self.student_table.pack(fill=BOTH, expand=1)
         self.student_table.bind("<ButtonRelease>", self.get_cursor)
         self.fetch_data()
 

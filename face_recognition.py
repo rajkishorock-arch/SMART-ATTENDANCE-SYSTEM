@@ -24,17 +24,22 @@ from face_utils import (
     get_db_connection,
     draw_hud_boundary,
     play_camera_boot_sequence,
+    setup_standard_window,
+    make_card,
+    make_button,
+    make_section_label,
+    make_status_chip,
+    style_button,
+    UI_BG, UI_SURFACE, UI_SURFACE_ALT, UI_PRIMARY, UI_ACCENT,
+    UI_TEXT, UI_TEXT_MUTED, UI_SUCCESS, UI_DANGER, UI_INFO,
+    UI_PAD, UI_PAD_LG, UI_PAD_SM,
+    UI_FONT_HEADING, UI_FONT_SUBTITLE, UI_FONT_BODY, UI_FONT_LABEL, UI_FONT_BTN_LG,
 )
 from notification_utils import send_telegram_message_async
 
 class Face_Recognition:
     def __init__(self, root):
         self.root = root
-        self.screen_width = self.root.winfo_screenwidth()
-        self.screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
-        self.root.state('zoomed')
-        self.root.title("Face Recognition System")
 
         # Set up default states
         self.clf = None
@@ -42,34 +47,131 @@ class Face_Recognition:
         self.recognizer = None
         self.model_loaded = False
 
-        title_lbl = Label(self.root, text="Face Recognition", font=( "times new roman", 35, "bold"), bg="white", fg="red")
-        title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
+        # ── Theme bootstrap ─────────────────────────────────────────────
+        content = setup_standard_window(
+            root,
+            "Face Recognition Scanner",
+            subtitle_text="Live Biometric Attendance  •  YuNet + SFace + Liveness"
+        )
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        img_top = Image.open(os.path.join(base_dir, "image", "face4.jpg"))
-        img_top = img_top.resize((650, 750), Image.LANCZOS)
-        self.photoimg_top = ImageTk.PhotoImage(img_top) 
+        # ── Top row: Info + Model Status ────────────────────────────────
+        top_row = Frame(content, bg=UI_BG)
+        top_row.pack(fill="x", pady=(0, UI_PAD_LG))
 
-        f_lbl = Label(self.root, image=self.photoimg_top)      
-        f_lbl.place(x=0, y=45, width=650, height=750)
+        # Left: Scanner info card
+        info_card = make_card(top_row, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        info_card.pack(side="left", fill="both", expand=True, padx=(0, UI_PAD_LG))
+        ic = info_card._inner
 
-        #second image
-        img_bottom = Image.open(os.path.join(base_dir, "image", "eace.jpg"))
-        img_bottom = img_bottom.resize((950, 750), Image.LANCZOS)
-        self.photoimg_bottom = ImageTk.PhotoImage(img_bottom)
+        hdr = make_section_label(ic, "Live Scanner Overview", color=UI_PRIMARY)
+        hdr.pack(anchor="w")
 
-        f_lbl = Label(self.root, image=self.photoimg_bottom)
-        f_lbl.place(x=650, y=45, width=950, height=750)
+        desc = Label(
+            ic,
+            text=(
+                "This module captures live video from your webcam, detects faces using the YuNet "
+                "deep-learning detector, matches identities against SFace 128D embeddings, enforces "
+                "a 2-blink liveness challenge, and automatically marks verified attendance in "
+                "both CSV and the MySQL database with Telegram notifications."
+            ),
+            font=UI_FONT_BODY, bg=UI_SURFACE, fg=UI_TEXT_MUTED,
+            wraplength=700, justify="left"
+        )
+        desc.pack(anchor="w", pady=(UI_PAD_SM, UI_PAD))
 
-        # Status loading label
-        self.status_lbl = Label(f_lbl, text="Loading Deep Learning Models... Please wait...", font=("times new roman", 12, "bold"), bg="yellow", fg="black")
-        self.status_lbl.place(x=77, y=550, width=300, height=35)
+        # Feature highlights
+        features_row = Frame(ic, bg=UI_SURFACE)
+        features_row.pack(anchor="w")
 
-        # Start button is disabled initially
-        self.b1 = Button(f_lbl, text="Face Recognition", state=DISABLED, cursor="hand2", command=self.face_recog, font=("times new roman", 30, "bold"), bg="darkgreen", fg="white")
-        self.b1.place(x=77, y=600, width=300, height=50)
+        highlights = [
+            ("📸", "YuNet Detection"),
+            ("🧠", "SFace Matching"),
+            ("👁️", "2-Blink Liveness"),
+            ("✅", "Auto Attendance"),
+        ]
+        for icon, label in highlights:
+            chip = make_status_chip(features_row, f" {icon}  {label} ", "info")
+            chip.pack(side="left", padx=(0, UI_PAD_SM))
 
-        # Start the background thread
+        # Right: Status + Control card
+        ctrl_card = make_card(top_row, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        ctrl_card.pack(side="right", fill="y", padx=(UI_PAD_LG, 0))
+        cc = ctrl_card._inner
+
+        st_hdr = make_section_label(cc, "System Status", color=UI_TEXT)
+        st_hdr.pack(anchor="w")
+
+        # Status chip (replaces old yellow/red labels)
+        self.status_chip = make_status_chip(
+            cc, "⏳  Loading Deep Learning Models…  Please wait", "loading"
+        )
+        self.status_chip.pack(anchor="w", fill="x", pady=(UI_PAD_SM, UI_PAD))
+
+        # Status text (secondary)
+        self.status_text_lbl = Label(
+            cc,
+            text="YuNet + SFace ONNX models are loading in the background.\nThe Start button will become active once models are ready.",
+            font=UI_FONT_BODY, bg=UI_SURFACE, fg=UI_TEXT_MUTED, justify="left"
+        )
+        self.status_text_lbl.pack(anchor="w", pady=(0, UI_PAD_LG))
+
+        # Big primary action button
+        self.b1 = Button(
+            cc, text="▶  Start Face Recognition", state=DISABLED,
+            command=self.face_recog, font=UI_FONT_BTN_LG, pady=12
+        )
+        style_button(self.b1, variant="success")
+        self.b1.pack(fill="x")
+
+        # Hint
+        hint_lbl = Label(
+            cc,
+            text="Press Enter or Esc to close the live camera window during scanning.",
+            font=("Segoe UI", 9, "normal"), bg=UI_SURFACE, fg=UI_TEXT_MUTED, justify="left"
+        )
+        hint_lbl.pack(anchor="w", pady=(UI_PAD, 0))
+
+        # ── Bottom: Workflow steps ──────────────────────────────────────
+        steps_card = make_card(content, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        steps_card.pack(fill="both", expand=True)
+        sc = steps_card._inner
+
+        steps_hdr = make_section_label(sc, "Scanner Workflow", color=UI_PRIMARY)
+        steps_hdr.pack(anchor="w", pady=(0, UI_PAD))
+
+        steps = [
+            ("1", "Model Initialization", "YuNet face detector and SFace recognizer ONNX models are loaded into memory on a background thread."),
+            ("2", "Camera Warmup", "Your webcam is detected, boot animation plays, and the MediaPipe Face Mesh pipeline starts for blink tracking."),
+            ("3", "Detection + Matching", "Every frame runs face detection → 128D embedding extraction → cosine match against enrolled records (threshold ≥ 0.43)."),
+            ("4", "Liveness Challenge", "Tracked identities must exhibit 2 valid eye-blink cycles (EAR < 0.20) before they are trusted as a live human."),
+            ("5", "Attendance Commit", "Once a live identity is confirmed, attendance is appended to attendance.csv, upserted into MySQL, and a Telegram alert is fired asynchronously."),
+        ]
+
+        steps_grid = Frame(sc, bg=UI_SURFACE)
+        steps_grid.pack(fill="both", expand=True)
+
+        for i, (num, title, desc) in enumerate(steps):
+            row = Frame(steps_grid, bg=UI_SURFACE)
+            row.pack(fill="x", pady=UI_PAD_SM)
+
+            num_lbl = Label(
+                row, text=num, width=3,
+                font=("Segoe UI", 14, "bold"),
+                bg=UI_PRIMARY, fg="white",
+                padx=8, pady=6
+            )
+            num_lbl.pack(side="left")
+
+            right = Frame(row, bg=UI_SURFACE)
+            right.pack(side="left", fill="x", expand=True, padx=UI_PAD)
+
+            t_lbl = Label(right, text=title, font=UI_FONT_HEADING, bg=UI_SURFACE, fg=UI_TEXT)
+            t_lbl.pack(anchor="w")
+
+            d_lbl = Label(right, text=desc, font=UI_FONT_BODY, bg=UI_SURFACE, fg=UI_TEXT_MUTED, wraplength=900, justify="left")
+            d_lbl.pack(anchor="w")
+
+        # Start the background model-loader thread
         threading.Thread(target=self.load_model_in_background, daemon=True).start()
 
     def load_model_in_background(self):
@@ -86,11 +188,17 @@ class Face_Recognition:
             self.root.after(0, lambda: self.on_model_load_error(e))
 
     def on_model_loaded(self):
-        self.status_lbl.config(text="Deep Learning Models Loaded!", bg="lightgreen", fg="black")
+        self.status_chip.config(text="✔  Deep Learning Models Ready — Start scanning",
+                                fg=UI_SUCCESS, bg="#d1fae5")
+        self.status_text_lbl.config(
+            text="All AI models are loaded. Click the button below to begin live recognition."
+        )
         self.b1.config(state=NORMAL)
 
     def on_model_load_error(self, err):
-        self.status_lbl.config(text=f"Error loading models: {err}", bg="red", fg="white")
+        self.status_chip.config(text=f"✖  Model error — see logs",
+                                fg=UI_DANGER, bg="#fee2e2")
+        self.status_text_lbl.config(text=f"Model failure: {err}")
 
     #face recognition
     def face_recog(self):

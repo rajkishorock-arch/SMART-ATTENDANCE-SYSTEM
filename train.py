@@ -7,48 +7,108 @@ import mysql.connector
 import cv2
 import os
 import numpy as np
-from face_utils import get_face_engines, get_db_connection
+from face_utils import (
+    get_face_engines,
+    get_db_connection,
+    setup_standard_window,
+    make_card,
+    make_button,
+    make_section_label,
+    make_status_chip,
+    style_button,
+    UI_BG, UI_SURFACE, UI_SURFACE_ALT, UI_PRIMARY, UI_ACCENT,
+    UI_TEXT, UI_TEXT_MUTED, UI_SUCCESS, UI_DANGER, UI_INFO, UI_WARNING,
+    UI_PAD, UI_PAD_LG, UI_PAD_SM,
+    UI_FONT_HEADING, UI_FONT_SUBTITLE, UI_FONT_BODY, UI_FONT_LABEL, UI_FONT_BTN_LG,
+)
 
 class Train:
     def __init__(self, root):
         self.root = root
-        self.screen_width = self.root.winfo_screenwidth()
-        self.screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
-        self.root.state('zoomed')
-        self.root.title("Face Recognition System")
 
-        title_lbl = Label(self.root, text="SYNC DATABASE EMBEDDINGS", font=(
-            "times new roman", 35, "bold"), bg="white", fg="red")
-        title_lbl.place(x=0, y=0, width=self.screen_width, height=45)
+        # ── Theme bootstrap ─────────────────────────────────────────────
+        content = setup_standard_window(
+            root,
+            "Sync Database Embeddings",
+            subtitle_text="Deep Learning  •  YuNet + SFace  •  Local Photos → MySQL"
+        )
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        img_top = Image.open(os.path.join(base_dir, "image", "train.jpg"))
-        img_top = img_top.resize((1530, 325), Image.LANCZOS)
-        self.photoimg_top = ImageTk.PhotoImage(img_top) 
+        # ── Centered info + action card ────────────────────────────────
+        outer = Frame(content, bg=UI_BG)
+        outer.pack(fill="both", expand=True)
 
-        f_lbl = Label(self.root, image=self.photoimg_top)      
-        f_lbl.place(x=0, y=45, width=1530, height=325)
+        card = make_card(outer, padx=UI_PAD_XL if hasattr(UI_PAD, 'real') else UI_PAD_LG * 2,
+                         pady=UI_PAD_LG * 2)
+        card.pack(padx=100, pady=40, fill="both", expand=True)
+        cc = card._inner
 
-        #buton 
-        b1 = Button(self.root, text="SYNC FACE EMBEDDINGS", cursor="hand2", font=(
-            "times new roman", 30, "bold"), bg="darkblue", fg="white", command=self.sync_embeddings)
-        b1.place(x=0, y=370, width=1530, height=60)        
+        # Icon + title
+        top_row = Frame(cc, bg=UI_SURFACE)
+        top_row.pack(fill="x")
 
-        # Description
-        desc_lbl = Label(self.root, text="Deep Learning (YuNet & SFace) is active. Enrollment is direct and instant!\nManual training is obsolete. Use this tool if you need to re-sync local photo samples to the database.", font=("Courier", 13, "bold"), bg="#0a0a0a", fg="#00ff00")
-        desc_lbl.place(x=0, y=440, width=1530, height=50)
+        icon_lbl = Label(top_row, text="🔄", font=("Segoe UI", 52, "normal"),
+                         bg=UI_SURFACE, fg=UI_PRIMARY)
+        icon_lbl.pack(side="left")
 
-        # Optional decorative image (avoid crashing if file missing)
-        try:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            img_bottom = Image.open(os.path.join(base_dir, "image", "people.jpg"))
-            img_bottom = img_bottom.resize((1530, 250), Image.LANCZOS)
-            self.photoimg_bottom = ImageTk.PhotoImage(img_bottom)
-            f_lbl = Label(self.root, image=self.photoimg_bottom)
-            f_lbl.place(x=0, y=500, width=1530, height=250)
-        except Exception:
-            pass
+        title_col = Frame(top_row, bg=UI_SURFACE)
+        title_col.pack(side="left", fill="x", expand=True, padx=UI_PAD_LG)
+
+        title = Label(title_col, text="Re-Sync Face Embeddings",
+                      font=("Segoe UI", 20, "bold"), bg=UI_SURFACE, fg=UI_TEXT)
+        title.pack(anchor="w")
+
+        subtitle = Label(title_col,
+                         text="Converts local JPG photo samples into SFace 128-D vectors and writes them to the student table.",
+                         font=UI_FONT_BODY, bg=UI_SURFACE, fg=UI_TEXT_MUTED, wraplength=700, justify="left")
+        subtitle.pack(anchor="w", pady=(UI_PAD_SM, 0))
+
+        # Separator
+        sep = Frame(cc, bg=UI_BORDER, height=1)
+        sep.pack(fill="x", pady=UI_PAD_LG)
+
+        # Feature bullets
+        bullets = [
+            ("✅", "Direct & Instant — No LBPH classifier training file required."),
+            ("🧠", "Uses YuNet detector + SFace embedding extractor (ONNX models)."),
+            ("📁", "Scans `data/user.{student_id}.{n}.jpg` files in the local data folder."),
+            ("🗄️", "Updates `student.face_embedding` JSON and sets `photo='yes'` in MySQL."),
+            ("📺", "Live preview window shows each image during the synchronization pass."),
+        ]
+        bullets_frame = Frame(cc, bg=UI_SURFACE)
+        bullets_frame.pack(fill="x", pady=(0, UI_PAD_LG))
+        for icon, text in bullets:
+            row = Frame(bullets_frame, bg=UI_SURFACE)
+            row.pack(fill="x", pady=UI_PAD_SM)
+            Label(row, text=icon, font=UI_FONT_BODY,
+                  bg=UI_SURFACE, fg=UI_SUCCESS).pack(side="left", padx=(0, UI_PAD_SM))
+            Label(row, text=text, font=UI_FONT_BODY,
+                  bg=UI_SURFACE, fg=UI_TEXT).pack(side="left", anchor="w")
+
+        # Info chips
+        chips_row = Frame(cc, bg=UI_SURFACE)
+        chips_row.pack(anchor="w", pady=(0, UI_PAD_LG))
+        make_status_chip(chips_row, " AI Models: YuNet + SFace ", "info").pack(side="left", padx=(0, UI_PAD_SM))
+        make_status_chip(chips_row, " Storage: MySQL student table ", "loading").pack(side="left", padx=(0, UI_PAD_SM))
+        make_status_chip(chips_row, " Output: 128-D Embedding JSON ", "success").pack(side="left")
+
+        # Separator
+        sep2 = Frame(cc, bg=UI_BORDER, height=1)
+        sep2.pack(fill="x", pady=(0, UI_PAD_LG))
+
+        # Primary action
+        b1 = Button(cc, text="▶  Start Sync Now", command=self.sync_embeddings,
+                    font=UI_FONT_BTN_LG, pady=14)
+        style_button(b1, variant="primary")
+        b1.pack(fill="x")
+
+        # Footer note
+        note = Label(cc,
+                     text="Tip: Normal day-to-day enrollment is done via Student Details → Take Photo Sample. "
+                          "Use this sync tool only if you have manually added JPG files to the `data/` folder.",
+                     font=("Segoe UI", 10, "italic"),
+                     bg=UI_SURFACE, fg=UI_TEXT_MUTED,
+                     wraplength=900, justify="left")
+        note.pack(anchor="w", pady=(UI_PAD_LG, 0))
 
     def sync_embeddings(self):
         import json

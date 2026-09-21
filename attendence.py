@@ -6,179 +6,206 @@ from PIL import Image, ImageTk
 import mysql.connector
 import cv2
 import csv
+from face_utils import (
+    setup_standard_window,
+    make_card,
+    make_button,
+    make_section_label,
+    style_button,
+    UI_BG, UI_SURFACE, UI_SURFACE_ALT, UI_PRIMARY, UI_ACCENT,
+    UI_TEXT, UI_TEXT_MUTED, UI_SUCCESS, UI_DANGER, UI_INFO,
+    UI_PAD, UI_PAD_LG, UI_PAD_SM,
+    UI_FONT_HEADING, UI_FONT_SUBTITLE, UI_FONT_BODY, UI_FONT_LABEL,
+)
 
 mydata = []
 class Attendence:
     def __init__(self, root):
         self.root = root
-        self.screen_width = self.root.winfo_screenwidth()
-        self.screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
-        self.root.state('zoomed')
-        self.root.title("Face Recognition System")
 
-        #first image
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        img_top = Image.open(os.path.join(base_dir, "image", "atten.jpg"))
-        img_top = img_top.resize((800, 200), Image.LANCZOS)
-        self.photoimg_top = ImageTk.PhotoImage(img_top) 
+        # ── Theme bootstrap ─────────────────────────────────────────────
+        content = setup_standard_window(
+            root,
+            "Attendance Management",
+            subtitle_text="Records  •  CSV Import / Export  •  MySQL Sync"
+        )
 
-        f_lbl = Label(self.root, image=self.photoimg_top)      
-        f_lbl.place(x=0, y=0, width=800, height=200)
+        # ── Main split: Left (Form + Actions) | Right (Table) ──────────
+        split = Frame(content, bg=UI_BG)
+        split.pack(fill="both", expand=True)
 
-        #second image
-        img_bottom = Image.open(os.path.join(base_dir, "image", "at.jpg"))
-        img_bottom = img_bottom.resize((800, 200), Image.LANCZOS)
-        self.photoimg_bottom = ImageTk.PhotoImage(img_bottom)
+        # ─────────── LEFT COLUMN: Entry form ───────────────────────────
+        left_wrap = Frame(split, bg=UI_BG)
+        left_wrap.pack(side="left", fill="both", expand=True, padx=(0, UI_PAD_LG))
 
-        f_lbl = Label(self.root, image=self.photoimg_bottom)
-        f_lbl.place(x=800, y=0, width=800, height=200)
+        form_card = make_card(left_wrap, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        form_card.pack(fill="both", expand=True)
+        lc = form_card._inner
 
-        #bg image
-        img3 = Image.open(os.path.join(base_dir, "image", "at2.jpg"))
-        img3 = img3.resize((1530, 790), Image.LANCZOS)
-        self.photoimg3 = ImageTk.PhotoImage(img3)
+        form_hdr = make_section_label(lc, "Record Entry", color=UI_PRIMARY)
+        form_hdr.pack(anchor="w", pady=(0, UI_PAD))
 
-        bg_img = Label(self.root, image=self.photoimg3)
-        bg_img.place(x=0, y=200, width=1530, height=790)
+        form_sub = Label(
+            lc,
+            text="Edit fields to create or modify an attendance row. Click a record in the right-hand table to auto-fill this form.",
+            font=UI_FONT_BODY, bg=UI_SURFACE, fg=UI_TEXT_MUTED, wraplength=500, justify="left"
+        )
+        form_sub.pack(anchor="w", pady=(0, UI_PAD_LG))
 
-        title_lbl=Label(bg_img,text="ATTENDANCE  MANAGEMENT SYSTEM",font=("times new roman",35,"bold"),bg="white",fg="green")
-        title_lbl.place(x=0,y=0,width=1530,height=45)
+        form_grid = Frame(lc, bg=UI_SURFACE)
+        form_grid.pack(fill="x")
 
-        #main frame
-        main_frame = Frame(bg_img,bd=2,bg="white")
-        main_frame.place(x=20,y=55,width=1480,height=600)
+        # Helper: create a labeled field
+        def field(row, col, label_text, widget):
+            lbl = Label(form_grid, text=label_text,
+                        font=UI_FONT_LABEL, bg=UI_SURFACE, fg=UI_TEXT_MUTED)
+            lbl.grid(row=row, column=col * 2, padx=(0, UI_PAD_SM), pady=(UI_PAD_SM, 0), sticky="w")
+            widget.grid(row=row, column=col * 2 + 1, pady=(UI_PAD_SM, 0), sticky="we")
+            form_grid.grid_columnconfigure(col * 2 + 1, weight=1)
 
-        #left label frame
-        Left_frame = LabelFrame(main_frame,bd=2,bg="white",relief=RIDGE,text="Attendence",font=("times new roman",12,"bold"))
-        Left_frame.place(x=10,y=10,width=730,height=580)
+        self.AttendenceId_entry = ttk.Entry(form_grid, font=UI_FONT_BODY)
+        field(0, 0, "Attendance ID", self.AttendenceId_entry)
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        image_left = Image.open(os.path.join(base_dir, "image", "atten.jpg"))
-        image_left = image_left.resize((720, 130), Image.LANCZOS)
-        self.photoimage_left = ImageTk.PhotoImage(image_left)
+        self.roll_entry = ttk.Entry(form_grid, font=UI_FONT_BODY)
+        field(0, 1, "Roll Number", self.roll_entry)
 
-        f_lbl = Label(Left_frame, image=self.photoimage_left)
-        f_lbl.place(x=5, y=0, width=720, height=130)
+        self.name_entry = ttk.Entry(form_grid, font=UI_FONT_BODY)
+        field(1, 0, "Student Name", self.name_entry)
 
-        #left inside frame
-        left_inside_frame = Frame(Left_frame,bd=2,bg="white",relief=RIDGE)
-        left_inside_frame.place(x=5,y=135,width=720,height=430)
+        self.dep_entry = ttk.Entry(form_grid, font=UI_FONT_BODY)
+        field(1, 1, "Department", self.dep_entry)
 
-        #label entry
-        AttendenceId_label = Label(left_inside_frame,text="Attendence ID:",font=("times new roman",13,"bold"),bg="white")
-        AttendenceId_label.grid(row=0,column=0,padx=10,pady=5,sticky=W)
+        self.time_entry = ttk.Entry(form_grid, font=UI_FONT_BODY)
+        field(2, 0, "Time (HH:MM:SS)", self.time_entry)
 
-        self.AttendenceId_entry = ttk.Entry(left_inside_frame,width=20,font=("times new roman",13,"bold"))
-        self.AttendenceId_entry.grid(row=0,column=1,padx=10,pady=5,sticky=W)
+        self.date_entry = ttk.Entry(form_grid, font=UI_FONT_BODY)
+        field(2, 1, "Date (DD/MM/YYYY)", self.date_entry)
 
-        #roll
-        roll_label = Label(left_inside_frame,text="Roll:",font=("times new roman",13,"bold"),bg="white")
-        roll_label.grid(row=0,column=2,padx=10,pady=5,sticky=W)
-
-        self.roll_entry = ttk.Entry(left_inside_frame,width=20,font=("times new roman",13,"bold"))
-        self.roll_entry.grid(row=0,column=3,padx=10,pady=5,sticky=W)
-
-        #name
-        name_label = Label(left_inside_frame,text="Name:",font=("times new roman",13,"bold"),bg="white")
-        name_label.grid(row=1,column=0,padx=10,pady=5,sticky=W)
-
-        self.name_entry = ttk.Entry(left_inside_frame,width=20,font=("times new roman",13,"bold"))
-        self.name_entry.grid(row=1,column=1,padx=10,pady=5,sticky=W)
-
-        #department
-        dep_label = Label(left_inside_frame,text="Department:",font=("times new roman",13,"bold"),bg="white")
-        dep_label.grid(row=1,column=2,padx=10,pady=5,sticky=W)
-
-        self.dep_entry = ttk.Entry(left_inside_frame,width=20,font=("times new roman",13,"bold"))
-        self.dep_entry.grid(row=1,column=3,padx=10,pady=5,sticky=W)
-
-        #time
-        time_label = Label(left_inside_frame,text="Time:",font=("times new roman",13,"bold"),bg="white")
-        time_label.grid(row=2,column=0,padx=10,pady=5,sticky=W)
-
-        self.time_entry = ttk.Entry(left_inside_frame,width=20,font=("times new roman",13,"bold"))
-        self.time_entry.grid(row=2,column=1,padx=10,pady=5,sticky=W)
-
-        #date
-        date_label = Label(left_inside_frame,text="Date:",font=("times new roman",13,"bold"),bg="white")
-        date_label.grid(row=2,column=2,padx=10,pady=5,sticky=W)
-
-        self.date_entry = ttk.Entry(left_inside_frame,width=20,font=("times new roman",13,"bold"))
-        self.date_entry.grid(row=2,column=3,padx=10,pady=5,sticky=W)
-
-        #attendance
-        attendance_label = Label(left_inside_frame,text="Attendance:",font=("times new roman",13,"bold"),bg="white")
-        attendance_label.grid(row=3,column=0,padx=10,pady=5,sticky=W)
-
-        self.atten_status=ttk.Combobox(left_inside_frame,width=20,font=("times new roman",13,"bold"),state="readonly")
-        self.atten_status["values"]=("Present","Absent")
-        self.atten_status.grid(row=3,column=1,padx=10,pady=5,sticky=W)
+        self.atten_status = ttk.Combobox(form_grid, font=UI_FONT_BODY, state="readonly",
+                                         values=("Present", "Absent"))
         self.atten_status.current(0)
+        field(3, 0, "Attendance Status", self.atten_status)
 
-        #buttons frame
-        btn_frame = Frame(left_inside_frame,bd=2,bg="white",relief=RIDGE)
-        btn_frame.place(x=0,y=300,width=715,height=35)
+        # Empty spacer col 1 (row 3 col 1 empty)
+        spacer = Frame(form_grid, bg=UI_SURFACE)
+        spacer.grid(row=3, column=3, pady=(UI_PAD_SM, 0), sticky="we")
 
-        #import csv
-        import_btn = Button(btn_frame,text="Import CSV",command=self.importCsv,width=17,font=("times new roman",13,"bold"),fg="white",bg="green")
-        import_btn.grid(row=0,column=0)
+        # ── Action Buttons ─────────────────────────────────────────────
+        btns_sep = Frame(lc, bg=UI_SURFACE)
+        btns_sep.pack(fill="x", pady=(UI_PAD_LG, UI_PAD))
+        sep = Frame(btns_sep, bg=UI_BORDER, height=1)
+        sep.pack(fill="x")
 
-        #export csv
-        export_btn = Button(btn_frame,text="Export CSV",command=self.exportCsv,width=17,font=("times new roman",13,"bold"),fg="white",bg="green")
-        export_btn.grid(row=0,column=1)
+        btns_hdr = make_section_label(lc, "Actions", color=UI_TEXT)
+        btns_hdr.pack(anchor="w", pady=(0, UI_PAD_SM))
 
-        #save to database
-        save_btn = Button(btn_frame,text="Save",command=self.saveData,width=17,font=("times new roman",13,"bold"),fg="white",bg="green")
-        save_btn.grid(row=0,column=2)
+        # Top action row (Import/Export CSV)
+        btns_row1 = Frame(lc, bg=UI_SURFACE)
+        btns_row1.pack(fill="x", pady=(0, UI_PAD_SM))
 
-        #update
-        update_btn = Button(btn_frame,text="Update",command=self.updateData,width=17,font=("times new roman",13,"bold"),fg="white",bg="green")
-        update_btn.grid(row=0,column=3)
+        import_btn = make_button(btns_row1, "📥  Import CSV", command=self.importCsv, variant="secondary")
+        import_btn.pack(side="left", padx=(0, UI_PAD_SM))
 
-        #reset
-        reset_btn = Button(btn_frame,text="Reset",command=self.reset,width=17,font=("times new roman",13,"bold"),fg="white",bg="green")
-        reset_btn.grid(row=0,column=4)
-        
+        export_btn = make_button(btns_row1, "📤  Export CSV", command=self.exportCsv, variant="secondary")
+        export_btn.pack(side="left")
 
+        # Bottom action row (Save/Update/Reset)
+        btns_row2 = Frame(lc, bg=UI_SURFACE)
+        btns_row2.pack(fill="x")
 
-        #right frame
-        Right_frame = LabelFrame(main_frame,bd=2,bg="white",relief=RIDGE,text="Attendence Details",font=("times new roman",12,"bold"))
-        Right_frame.place(x=750,y=10,width=720,height=580)
+        save_btn = make_button(btns_row2, "💾  Save Record", command=self.saveData, variant="primary")
+        save_btn.pack(side="left", padx=(0, UI_PAD_SM))
 
-        table_frame = Frame(Right_frame,bd=2,bg="white",relief=RIDGE)
-        table_frame.place(x=0,y=10,width=700,height=350)
+        update_btn = make_button(btns_row2, "✏️  Update", command=self.updateData, variant="success")
+        update_btn.pack(side="left", padx=(0, UI_PAD_SM))
 
-        #scrollbar
-        scroll_x = ttk.Scrollbar(Right_frame,orient=HORIZONTAL)
-        scroll_y = ttk.Scrollbar(Right_frame,orient=VERTICAL)
+        reset_btn = make_button(btns_row2, "↺  Reset Fields", command=self.reset, variant="ghost")
+        reset_btn.pack(side="left")
 
-        self.AttendenceReport = ttk.Treeview(Right_frame,columns=("id","roll","name","department","time","date","attendance"),xscrollcommand=scroll_x.set,yscrollcommand=scroll_y.set)
+        # ─────────── RIGHT COLUMN: Attendance table ─────────────────────
+        right_wrap = Frame(split, bg=UI_BG)
+        right_wrap.pack(side="left", fill="both", expand=True, padx=(UI_PAD_LG, 0))
 
-        scroll_x.pack(side=BOTTOM,fill=X)
-        scroll_y.pack(side=RIGHT,fill=Y)
+        table_card = make_card(right_wrap, padx=UI_PAD_LG, pady=UI_PAD_LG)
+        table_card.pack(fill="both", expand=True)
+        rc = table_card._inner
 
+        table_hdr_row = Frame(rc, bg=UI_SURFACE)
+        table_hdr_row.pack(fill="x", pady=(0, UI_PAD))
+
+        table_hdr = make_section_label(table_hdr_row, "Attendance Records", color=UI_PRIMARY)
+        table_hdr.pack(side="left", anchor="w")
+
+        # Hint
+        hint = Label(
+            table_hdr_row,
+            text="Data auto-loaded from MySQL → attendance.csv fallback",
+            font=("Segoe UI", 9, "normal"), bg=UI_SURFACE, fg=UI_TEXT_MUTED
+        )
+        hint.pack(side="right", anchor="e")
+
+        # Treeview container (to attach scrollbars)
+        tv_container = Frame(rc, bg=UI_SURFACE,
+                             highlightbackground=UI_BORDER, highlightthickness=1)
+        tv_container.pack(fill="both", expand=True)
+
+        scroll_x = ttk.Scrollbar(tv_container, orient=HORIZONTAL)
+        scroll_y = ttk.Scrollbar(tv_container, orient=VERTICAL)
+
+        self.AttendenceReport = ttk.Treeview(
+            tv_container,
+            columns=("id", "roll", "name", "department", "time", "date", "attendance"),
+            xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set
+        )
+
+        scroll_x.pack(side=BOTTOM, fill=X)
+        scroll_y.pack(side=RIGHT, fill=Y)
         scroll_x.config(command=self.AttendenceReport.xview)
         scroll_y.config(command=self.AttendenceReport.yview)
 
-        self.AttendenceReport.heading("id",text="ID")
-        self.AttendenceReport.heading("roll",text="Roll")
-        self.AttendenceReport.heading("name",text="Name")
-        self.AttendenceReport.heading("department",text="Department")
-        self.AttendenceReport.heading("time",text="Time")
-        self.AttendenceReport.heading("date",text="Date")
-        self.AttendenceReport.heading("attendance",text="Attendance")
-        self.AttendenceReport["show"]="headings"
+        col_defs = [
+            ("id", "ID", 60),
+            ("roll", "Roll", 100),
+            ("name", "Name", 160),
+            ("department", "Department", 160),
+            ("time", "Time", 110),
+            ("date", "Date", 110),
+            ("attendance", "Status", 100),
+        ]
+        for key, label, width in col_defs:
+            self.AttendenceReport.heading(key, text=label)
+            self.AttendenceReport.column(key, width=width, anchor="w")
 
-        self.AttendenceReport.column("id",width=50)
-        self.AttendenceReport.column("roll",width=100)
-        self.AttendenceReport.column("name",width=100)
-        self.AttendenceReport.column("department",width=100)
-        self.AttendenceReport.column("time",width=100)
-        self.AttendenceReport.column("date",width=100)
-        self.AttendenceReport.column("attendance",width=100)
+        self.AttendenceReport["show"] = "headings"
+        self.AttendenceReport.pack(fill=BOTH, expand=True)
 
-        self.AttendenceReport.pack(fill=BOTH,expand=1)
+        # Row selection populates the form
+        def on_row_select(_event=""):
+            focus = self.AttendenceReport.focus()
+            if not focus:
+                return
+            vals = self.AttendenceReport.item(focus, "values")
+            fields = [
+                self.AttendenceId_entry,
+                self.roll_entry,
+                self.name_entry,
+                self.dep_entry,
+                self.time_entry,
+                self.date_entry,
+            ]
+            for entry, val in zip(fields, list(vals) + [""] * (len(fields) - len(vals))):
+                entry.delete(0, END)
+                entry.insert(0, str(val))
+            # attendance status (last col)
+            if len(vals) >= 7:
+                try:
+                    idx = ["Present", "Absent"].index(str(vals[6]))
+                    self.atten_status.current(idx)
+                except ValueError:
+                    self.atten_status.current(0)
+
+        self.AttendenceReport.bind("<<TreeviewSelect>>", on_row_select)
+
         self.createAttendanceTable()
         self.fetchData()
 
