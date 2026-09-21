@@ -87,7 +87,7 @@ export default function AdminPulseDashboard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <FileText size={20} color="#0ea5e9" />
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>
                   {lang === 'hi' ? 'छात्र उपस्थिति आपत्तियां' : 'Attendance Disputes'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
@@ -115,7 +115,7 @@ export default function AdminPulseDashboard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Camera size={20} color="#f59e0b" />
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>
                   {lang === 'hi' ? 'कम सटीकता वाले चेहरे' : 'Borderline Matches'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
@@ -143,7 +143,7 @@ export default function AdminPulseDashboard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Smartphone size={20} color="#10b981" />
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>
                   {lang === 'hi' ? 'कियोस्क एवं कैमरा फ्लीट' : 'Scanner Kiosk Fleet'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
@@ -171,7 +171,7 @@ export default function AdminPulseDashboard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Calendar size={20} color="#a78bfa" />
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--color-text-main)' }}>
                   {lang === 'hi' ? 'अकादमिक कैलेंडर' : 'Academic Calendar'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>

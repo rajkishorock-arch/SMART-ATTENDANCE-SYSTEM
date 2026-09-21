@@ -112,7 +112,7 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Scanner Engine
             </span>
-            <span className={`status-pill ${scannerLive ? 'status-pill-cyan' : ''}`} style={{ fontSize: '0.68rem', padding: '2px 8px', background: scannerLive ? 'var(--color-primary-light)' : 'rgba(255,255,255,0.05)', color: scannerLive ? '#38bdf8' : 'var(--color-text-muted)' }}>
+            <span className={`status-pill ${scannerLive ? 'status-pill-cyan' : ''}`} style={{ fontSize: '0.68rem', padding: '2px 8px', background: scannerLive ? 'var(--color-primary-light)' : '#f1f5f9', color: scannerLive ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
               <Zap size={11} /> {scannerLive ? 'ONLINE' : 'STANDBY'}
             </span>
           </div>
@@ -138,7 +138,7 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
           </div>
         </div>
 
-        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: scannerLive ? 'var(--color-primary-light)' : 'rgba(255, 255, 255, 0.05)', color: scannerLive ? '#38bdf8' : 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: scannerLive ? 'var(--color-primary-light)' : '#f1f5f9', color: scannerLive ? 'var(--color-primary)' : 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Radio size={20} />
         </div>
       </div>
@@ -163,7 +163,7 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
           </div>
 
           {/* Progress Track */}
-          <div style={{ margin: '10px 0 10px', height: '6px', width: '100%', background: 'rgba(255, 255, 255, 0.06)', borderRadius: '9999px', overflow: 'hidden' }}>
+          <div style={{ margin: '10px 0 10px', height: '6px', width: '100%', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
             <div 
               style={{
                 width: `${Math.min(100, Math.max(0, animated.rate))}%`,
