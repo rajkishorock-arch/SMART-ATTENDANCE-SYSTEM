@@ -34,7 +34,12 @@ export async function fetchWithDedupe(url, options = {}) {
   // Check if an identical GET request is currently in-flight
   if (activeRequestsMap.has(requestKey)) {
     console.log(`[DEDUPE] Reusing in-flight request for: ${url}`);
-    return activeRequestsMap.get(requestKey);
+    try {
+      const inFlightResponse = await activeRequestsMap.get(requestKey);
+      return inFlightResponse.clone();
+    } catch (err) {
+      throw err;
+    }
   }
 
   // Create AbortController for controller cancellation if needed
@@ -61,12 +66,15 @@ export async function fetchWithDedupe(url, options = {}) {
       }
       throw err;
     } finally {
-      activeRequestsMap.delete(requestKey);
+      setTimeout(() => {
+        activeRequestsMap.delete(requestKey);
+      }, 60);
     }
   })();
 
   activeRequestsMap.set(requestKey, requestPromise);
-  return requestPromise;
+  const finalResponse = await requestPromise;
+  return finalResponse.clone();
 }
 
 export function cancelAbortGroup(groupKey) {

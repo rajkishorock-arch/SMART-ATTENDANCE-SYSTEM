@@ -170,12 +170,12 @@ p, span, div, label, li, td, th {
 .glass-panel h1, .glass-panel h2, .glass-panel h3, .glass-panel h4, .glass-panel h5, .glass-panel h6,
 .surface-card h1, .surface-card h2, .surface-card h3, .surface-card h4,
 [class*="card"] h1, [class*="card"] h2, [class*="card"] h3, [class*="card"] h4,
-[class*="modal"] h1, [class*="modal"] h2, [class*="modal"] h3, [class*="modal"] h4 {
-  color: #0f172a !important;
+.modal-card h1, .modal-card h2, .modal-card h3, .modal-card h4 {
+  color: #0f172a;
 }
 
-.glass-panel p, .surface-card p, [class*="card"] p, [class*="panel"] p, [class*="modal"] p {
-  color: #475569 !important;
+.glass-panel p, .surface-card p, [class*="card"] p, [class*="panel"] p, .modal-card p {
+  color: #475569;
 }
 
 /* Inputs, Textareas, Selects across the entire application */
@@ -1193,6 +1193,33 @@ select.form-input {
   -webkit-backdrop-filter: blur(8px);
   z-index: 999;
   animation: fadeIn 0.25s ease-out;
+}
+
+@media (min-width: 769px) {
+  .sidebar-backdrop {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
+}
+
+/* Ensure Onboarding Guide Modal text is always crystal-clear white & legible */
+.onboarding-guide-card,
+.onboarding-guide-card p,
+.onboarding-guide-card span,
+.onboarding-guide-card div,
+.onboarding-guide-card li {
+  color: #f1f5f9 !important;
+}
+
+.onboarding-guide-card strong {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.onboarding-guide-card em {
+  color: #38bdf8 !important;
+  font-style: normal !important;
 }
 
 /* Global Responsive Overrides for Media & Viewports */
@@ -6792,10 +6819,44 @@ html {
   color: #ffffff !important;
   margin: 0;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Universal High-Contrast Overrides for Face Scanner */
+.clean-camera-overlay,
+.clean-camera-overlay p,
+.clean-camera-overlay span,
+.clean-camera-overlay h1,
+.clean-camera-inner p,
+.clean-camera-inner span,
+.clean-scanner-state-bar,
+.clean-scanner-state-bar span,
+.scanner-instruction-pill,
+.scanner-instruction-pill p,
+.scanner-instruction-pill span,
+.clean-offline-placeholder p {
+  color: #ffffff !important;
+}
+
+.clean-scanner-title {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9) !important;
+}
+
+.clean-scanner-state-bar span {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.clean-camera-toggle span,
+.clean-camera-switch span,
+.clean-liveness-toggle span {
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 /* Desktop Viewport Adaptations */

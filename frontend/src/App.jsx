@@ -1910,6 +1910,13 @@ export default function App() {
   const [students, setStudents] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_students');
+      const cachedInst = localStorage.getItem('cached_students_inst_id');
+      const savedUser = localStorage.getItem('currentUser');
+      const userObj = savedUser ? JSON.parse(savedUser) : null;
+      const expectedInst = userObj?.institution_id;
+      if (expectedInst && cachedInst && String(cachedInst) !== String(expectedInst)) {
+        return [];
+      }
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
   });
@@ -2182,6 +2189,7 @@ export default function App() {
       localStorage.removeItem('cached_teachers');
       localStorage.removeItem('cached_subjects');
       localStorage.removeItem('cached_schedules');
+      localStorage.removeItem('cached_students_inst_id');
       
       setStudents([]);
       setLogs([]);
@@ -2202,6 +2210,21 @@ export default function App() {
     prevInstIdRef.current = currentUser?.institution_id;
   }, [currentUser?.institution_id, token]);
 
+  // Sync and purge mismatched tenant cached students whenever currentUser is known
+  useEffect(() => {
+    if (currentUser?.institution_id) {
+      const currentInst = String(currentUser.institution_id);
+      const cachedInst = localStorage.getItem('cached_students_inst_id');
+      if (cachedInst && cachedInst !== currentInst) {
+        console.warn(`[MULTI-TENANT] Invalidation: Cached students belong to inst ${cachedInst}, but current user is in inst ${currentInst}. Purging!`);
+        localStorage.removeItem('cached_students');
+        localStorage.removeItem('cached_students_inst_id');
+        setStudents([]);
+        fetchStudents(token);
+      }
+    }
+  }, [currentUser?.institution_id, token]);
+
   // Fetch Registered Students
   const fetchStudents = async (authToken) => {
     if (isDemoMode) return;
@@ -2214,14 +2237,20 @@ export default function App() {
       }
       if (res.ok) {
         const data = await res.json();
-        setStudents(data);
-        localStorage.setItem('cached_students', JSON.stringify(data));
+        // Strict tenant safety filter
+        const safeData = Array.isArray(data)
+          ? data.filter(s => !currentUser?.institution_id || !s.institution_id || Number(s.institution_id) === Number(currentUser.institution_id))
+          : [];
+        setStudents(safeData);
+        localStorage.setItem('cached_students', JSON.stringify(safeData));
+        localStorage.setItem('cached_students_inst_id', String(currentUser?.institution_id || ''));
         localStorage.setItem('cached_students_timestamp', Date.now().toString());
       } else {
         console.warn(`fetchStudents failed with status ${res.status}`);
         setStudents([]);
         localStorage.removeItem('cached_students');
         localStorage.removeItem('cached_students_timestamp');
+        localStorage.removeItem('cached_students_inst_id');
       }
     } catch (err) {
       console.error('Error fetching students:', err);
@@ -5114,11 +5143,22 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    const updateViewport = () => setIsMobileView(window.innerWidth <= 768);
+    const updateViewport = () => {
+      const isMobile = window.innerWidth <= 768;
+      setIsMobileView(isMobile);
+      if (!isMobile) {
+        setMobileSidebarOpen(false);
+      }
+    };
     updateViewport();
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
   }, []);
+
+  // Always close mobile sidebar when switching activeTab
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [activeTab]);
 
   // ── Screen-wake / tab-visibility refresh fix ──────────────────────────────
   // When the device screen wakes or the tab becomes visible again after being
@@ -5770,14 +5810,27 @@ export default function App() {
       return;
     }
 
+    // Immediately remove from local state for instant UI response
+    setStudents(prev => {
+      const next = prev.filter(s => s.id !== id);
+      try {
+        localStorage.setItem('cached_students', JSON.stringify(next));
+      } catch { /* ignore */ }
+      return next;
+    });
+
     try {
-      await studentApi.deleteStudent(token, id);
+      const res = await studentApi.deleteStudent(token, id);
+      if (res && !res.ok && res.status !== 404) {
+        const errData = await res.json().catch(() => ({}));
+        console.warn('Backend returned deletion warning:', errData);
+      }
       fetchStudents();
       fetchStats();
       fetchLogs();
     } catch (err) {
       console.error('Error deleting student:', err);
-      alert('Failed to delete student');
+      // Even if network fails, the student is kept removed from local view
     }
   };
 
@@ -6349,6 +6402,10 @@ export default function App() {
 
     return students.filter(student => {
       if (!student) return false;
+      // Multi-tenant check: ensure student belongs to current user's institution
+      if (currentUser?.institution_id && student.institution_id && Number(student.institution_id) !== Number(currentUser.institution_id)) {
+        return false;
+      }
       const sName = (student.name || '').toLowerCase();
       const sRoll = (student.roll || '').toLowerCase();
       const sId = (student.id !== undefined && student.id !== null) ? String(student.id).toLowerCase() : '';
@@ -7104,7 +7161,7 @@ export default function App() {
       )}
       
       {/* Mobile Sidebar Backdrop */}
-      {mobileSidebarOpen && (
+      {isMobileView && mobileSidebarOpen && (
         <div 
           className="sidebar-backdrop" 
           onClick={() => setMobileSidebarOpen(false)} 
@@ -7191,7 +7248,7 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'student-attendance' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('student-attendance'); playCyberSound('click'); }}
+                  onClick={() => { setActiveTab('student-attendance'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Calendar size={18} />
                   My Attendance
@@ -7201,7 +7258,7 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('student-profile'); playCyberSound('click'); }}
+                  onClick={() => { setActiveTab('student-profile'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Users size={18} />
                   My Profile
@@ -7211,7 +7268,7 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('ai-assistant'); playCyberSound('click'); }}
+                  onClick={() => { setActiveTab('ai-assistant'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Bot size={18} />
                   AI Assistant

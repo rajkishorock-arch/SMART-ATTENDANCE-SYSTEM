@@ -66,6 +66,14 @@ class ProfileUpdatePayload(BaseModel):
     gender: Optional[str] = None
 
 
+class TeacherPublicRegister(BaseModel):
+    institution_code: str
+    name: str
+    email: EmailStr
+    password: str
+    department: str
+
+
 __all__ = [
     'UserBase',
     'UserCreate',

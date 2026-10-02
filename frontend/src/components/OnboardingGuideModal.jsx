@@ -6,6 +6,9 @@ import { useState } from 'react';
 export default function OnboardingGuideModal({ onClose, playCyberSound }) {
   const [slide, setSlide] = useState(0);
 
+  const pStyle = { color: '#f1f5f9', margin: '0 0 10px 0', lineHeight: 1.55, fontSize: '0.88rem' };
+  const strongStyle = { color: '#ffffff', fontWeight: 700 };
+
   const slides = [
     {
       title: "🧭 Welcome to Smart Attendance!",
@@ -13,10 +16,10 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       icon: "✨",
       color: "#00f2fe",
       content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#d1d5db' }}>
-          <p><strong>1. Main Navigation Sidebar:</strong> Switch between logs, reports, profiles, leaves, and configurations on the left panel (bottom menu on mobile).</p>
-          <p><strong>2. Profile & Status Check:</strong> Click on "My Profile" at any time to view your enrolled credentials, department mapping, and settings details.</p>
-          <p><strong>3. Institution Customization:</strong> Admins can manage themes, lock down access subnet IPs, and establish geofencing parameters.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={pStyle}><strong style={strongStyle}>1. Main Navigation Sidebar:</strong> Switch between logs, reports, profiles, leaves, and configurations on the left panel (bottom menu on mobile).</p>
+          <p style={pStyle}><strong style={strongStyle}>2. Profile & Status Check:</strong> Click on "My Profile" at any time to view your enrolled credentials, department mapping, and settings details.</p>
+          <p style={pStyle}><strong style={strongStyle}>3. Institution Customization:</strong> Admins can manage themes, lock down access subnet IPs, and establish geofencing parameters.</p>
         </div>
       )
     },
@@ -26,10 +29,10 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       icon: "🎓",
       color: "#fb923c",
       content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#d1d5db' }}>
-          <p><strong>📊 Attendance Forecast:</strong> Real-time indicator displaying your presence rate. Shows if you are safe or how many classes you must attend to cross the 75% limit.</p>
-          <p><strong>🪪 Virtual ID Check-in:</strong> Open your Virtual ID card to generate a dynamic check-in QR code that rotates every 30 seconds for security. Present it to the teacher's scanner.</p>
-          <p><strong>📝 Subject-wise Leaves:</strong> Apply for medical/personal leaves select-wise. These route directly to the respective subject teacher.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={pStyle}><strong style={strongStyle}>📊 Attendance Forecast:</strong> Real-time indicator displaying your presence rate. Shows if you are safe or how many classes you must attend to cross the 75% limit.</p>
+          <p style={pStyle}><strong style={strongStyle}>🪪 Virtual ID Check-in:</strong> Open your Virtual ID card to generate a dynamic check-in QR code that rotates every 30 seconds for security. Present it to the teacher's scanner.</p>
+          <p style={pStyle}><strong style={strongStyle}>📝 Subject-wise Leaves:</strong> Apply for medical/personal leaves select-wise. These route directly to the respective subject teacher.</p>
         </div>
       )
     },
@@ -39,10 +42,10 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       icon: "🏫",
       color: "#a78bfa",
       content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#d1d5db' }}>
-          <p><strong>⚡ Start Session:</strong> Set the subject and date, then initialize the class session to open scanning checks.</p>
-          <p><strong>📸 Dual Scan Options:</strong> Use high-precision <strong>Face Scanner</strong> to verify registered biometric faces, or <strong>Scan Student QR</strong> to verify dynamic check-in tokens.</p>
-          <p><strong>📋 Review Leaves:</strong> Teachers review leaves for their respective subjects. Admins oversee the entire system logs centrally.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={pStyle}><strong style={strongStyle}>⚡ Start Session:</strong> Set the subject and date, then initialize the class session to open scanning checks.</p>
+          <p style={pStyle}><strong style={strongStyle}>📸 Dual Scan Options:</strong> Use high-precision <strong style={strongStyle}>Face Scanner</strong> to verify registered biometric faces, or <strong style={strongStyle}>Scan Student QR</strong> to verify dynamic check-in tokens.</p>
+          <p style={pStyle}><strong style={strongStyle}>📋 Review Leaves:</strong> Teachers review leaves for their respective subjects. Admins oversee the entire system logs centrally.</p>
         </div>
       )
     },
@@ -52,12 +55,12 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       icon: "🤖",
       color: "#10b981",
       content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#d1d5db' }}>
-          <p><strong>💬 AI Chatbot Counselor:</strong> Talk to the smart assistant for instant help on leaves, system stats, or profile details.</p>
-          <p><strong>🗣️ Voice Speech Commands:</strong> Click the microphone and say commands to control the app automatically:
-            <br />• <em>"start scanner"</em> — launches face recognition modal.
-            <br />• <em>"open profile"</em> / <em>"open leaves"</em> — navigates tabs.
-            <br />• <em>"logout"</em> — logs out of the app.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={pStyle}><strong style={strongStyle}>💬 AI Chatbot Counselor:</strong> Talk to the smart assistant for instant help on leaves, system stats, or profile details.</p>
+          <p style={pStyle}><strong style={strongStyle}>🗣️ Voice Speech Commands:</strong> Click the microphone and say commands to control the app automatically:
+            <br /><span style={{ color: '#94a3b8' }}>•</span> <em style={{ color: '#38bdf8' }}>"start scanner"</em> — launches face recognition modal.
+            <br /><span style={{ color: '#94a3b8' }}>•</span> <em style={{ color: '#38bdf8' }}>"open profile"</em> / <em style={{ color: '#38bdf8' }}>"open leaves"</em> — navigates tabs.
+            <br /><span style={{ color: '#94a3b8' }}>•</span> <em style={{ color: '#38bdf8' }}>"logout"</em> — logs out of the app.
           </p>
         </div>
       )
@@ -90,7 +93,9 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       padding: '16px',
       animation: 'fadeIn 0.25s ease'
     }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
+      <div 
+        className="onboarding-guide-card"
+        style={{
         background: 'linear-gradient(135deg, #0d121f 0%, #171c30 100%)',
         border: `1.5px solid ${current.color}60`,
         borderRadius: '24px', 
