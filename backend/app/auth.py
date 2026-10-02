@@ -101,17 +101,52 @@ def login_for_access_token(
             _is_default_inst = (institution_id == 1)
 
             # 2. Try Admin/Teacher Login
-            user = crud.get_user_by_email(db, email=form_data.username, institution_id=institution_id)
-            if not user and tenant_slug in ("default", ""):
-                # If not in default institution, check if email belongs to another active institution
+            clean_username = form_data.username.strip().lower()
+            is_system_owner = (clean_username == config.SYSTEM_OWNER_EMAIL.lower())
+
+            # If user is system owner, prioritize their root admin account (institution 1)
+            if is_system_owner:
+                user = db.query(models.User).filter(
+                    func.lower(models.User.email) == clean_username,
+                    models.User.institution_id == 1,
+                    models.User.role == "admin",
+                    models.User.is_active == True
+                ).first()
+                if not user:
+                    user = db.query(models.User).filter(
+                        func.lower(models.User.email) == clean_username,
+                        models.User.role == "admin",
+                        models.User.is_active == True
+                    ).first()
+                if user:
+                    institution_id = user.institution_id
+                    _is_default_inst = (institution_id == 1)
+            else:
+                user = crud.get_user_by_email(db, email=clean_username, institution_id=institution_id)
+
+            if not user:
+                # If not found in current tenant, check all active users across institutions
                 candidate_users = db.query(models.User).filter(
-                    func.lower(models.User.email) == form_data.username.strip().lower(),
+                    func.lower(models.User.email) == clean_username,
                     models.User.is_active == True
                 ).all()
                 if len(candidate_users) == 1:
                     user = candidate_users[0]
                     institution_id = user.institution_id
                     _is_default_inst = (institution_id == 1)
+                elif len(candidate_users) > 1:
+                    # Find candidate whose password matches
+                    for cand in candidate_users:
+                        if security.verify_password(form_data.password, cand.password_hash):
+                            user = cand
+                            institution_id = user.institution_id
+                            _is_default_inst = (institution_id == 1)
+                            break
+                    if not user:
+                        inst1_cand = next((c for c in candidate_users if c.institution_id == 1), None)
+                        user = inst1_cand or candidate_users[0]
+                        institution_id = user.institution_id
+                        _is_default_inst = (institution_id == 1)
 
             if user:
                 # For default institution, only system owner can login as admin
@@ -122,9 +157,7 @@ def login_for_access_token(
                     )
 
                 is_authenticated = False
-                print(f"DEBUG AUTH USER: email={user.email}, inst_id={user.institution_id}, hash={user.password_hash}")
                 res = security.verify_password(form_data.password, user.password_hash)
-                print(f"DEBUG VERIFY RESULT: {res} for input password={form_data.password}")
                 if res:
                     is_authenticated = True
 
@@ -155,14 +188,23 @@ def login_for_access_token(
                 return {"access_token": access_token, "token_type": "bearer"}
 
             # 3. Try Student Login
-            student = crud.get_student_by_email(db, email=form_data.username, institution_id=institution_id)
-            if not student and tenant_slug in ("default", ""):
+            student = crud.get_student_by_email(db, email=clean_username, institution_id=institution_id)
+            if not student:
                 candidate_students = db.query(models.StudentModel).filter(
-                    func.lower(models.StudentModel.email) == form_data.username.strip().lower()
+                    func.lower(models.StudentModel.email) == clean_username
                 ).all()
                 if len(candidate_students) == 1:
                     student = candidate_students[0]
                     institution_id = student.institution_id
+                elif len(candidate_students) > 1:
+                    for cand in candidate_students:
+                        if cand.password_hash and security.verify_password(form_data.password, cand.password_hash):
+                            student = cand
+                            institution_id = student.institution_id
+                            break
+                    if not student:
+                        student = candidate_students[0]
+                        institution_id = student.institution_id
             if student:
                 is_valid = False
                 if not student.password_hash:

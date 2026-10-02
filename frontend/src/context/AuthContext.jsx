@@ -84,6 +84,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('cached_teachers');
     localStorage.removeItem('cached_subjects');
     localStorage.removeItem('cached_schedules');
+    localStorage.removeItem('override_tenant');
+    localStorage.removeItem('active_tenant_slug');
+    localStorage.removeItem('cached_students_inst_id');
     setToken('');
     setUserRole('');
     setCurrentUser(null);
