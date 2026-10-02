@@ -356,8 +356,8 @@ class Student:
                 conn=get_db_connection()
                 my_cursor=conn.cursor()
                 my_cursor.execute(
-                    "INSERT INTO student (`dep`, `course`, `year`, `semester`, `id`, `name`, `div`, `roll`, `gender`, `dob`, `email`, `phone`, `address`, `teacher`, `photo`) "
-                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (
+                    "INSERT INTO student (`dep`, `course`, `year`, `semester`, `id`, `name`, `div`, `roll`, `gender`, `dob`, `email`, `phone`, `address`, `teacher`, `photo`, `institution_id`) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)", (
                     self.var_dep.get(),
                     self.var_course.get(),
                     self.var_year.get(),
@@ -373,7 +373,6 @@ class Student:
                     self.var_address.get(),
                     self.var_teacher.get(),
                     self.var_photo.get()
-
                 ))
                 conn.commit()
                 self.fetch_data()

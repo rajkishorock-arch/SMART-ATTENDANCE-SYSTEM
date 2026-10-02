@@ -207,53 +207,82 @@ def calculate_ear(landmarks, eye_indices):
 def get_db_connection():
     """
     Parses DATABASE_URL from .env file and returns a MySQL connection.
-    Falls back to local connection if DATABASE_URL is not set or invalid.
+    Supports both pymysql and mysql.connector for resilient cross-platform execution.
     """
     import os
-    import mysql.connector
     from urllib.parse import urlparse, unquote
     from dotenv import load_dotenv
-    
-    # Load .env variables from current or parent directories
+
     load_dotenv()
-    
     db_url = os.getenv("DATABASE_URL")
+
+    # Select available MySQL driver
+    driver_type = None
+    try:
+        import pymysql
+        driver_type = "pymysql"
+    except ImportError:
+        try:
+            import mysql.connector
+            driver_type = "mysql.connector"
+        except ImportError:
+            raise RuntimeError("Please install pymysql or mysql-connector-python.")
+
     if not db_url:
-        print("DATABASE_URL environment variable is missing, falling back to local database.")
-        return mysql.connector.connect(
-            host="localhost",
-            username="root",
-            password="raj@9211",
-            database="face"
-        )
-        
+        print("DATABASE_URL is missing, falling back to localhost.")
+        if driver_type == "pymysql":
+            return pymysql.connect(
+                host="localhost", user="root", password="raj@9211", database="face",
+                cursorclass=pymysql.cursors.Cursor
+            )
+        else:
+            return mysql.connector.connect(
+                host="localhost", user="root", password="raj@9211", database="face"
+            )
+
     try:
         cleaned_url = db_url
-        if cleaned_url.startswith("mysql+mysqlconnector://"):
-            cleaned_url = cleaned_url.replace("mysql+mysqlconnector://", "mysql://", 1)
-        
+        for prefix in ["mysql+mysqlconnector://", "mysql+pymysql://", "mysql://"]:
+            if cleaned_url.startswith(prefix):
+                cleaned_url = cleaned_url.replace(prefix, "mysql://", 1)
+                break
+
         parsed = urlparse(cleaned_url)
         username = unquote(parsed.username) if parsed.username else ""
         password = unquote(parsed.password) if parsed.password else ""
         host = parsed.hostname or "localhost"
         port = parsed.port or 3306
         database = parsed.path.lstrip('/') if parsed.path else ""
-        
-        return mysql.connector.connect(
-            host=host,
-            port=port,
-            user=username,
-            password=password,
-            database=database
-        )
+
+        if driver_type == "pymysql":
+            conn = pymysql.connect(
+                host=host,
+                port=port,
+                user=username,
+                password=password,
+                database=database,
+                connect_timeout=10,
+                autocommit=True
+            )
+            return conn
+        else:
+            return mysql.connector.connect(
+                host=host,
+                port=port,
+                user=username,
+                password=password,
+                database=database
+            )
     except Exception as e:
-        print(f"Error connecting to Aiven Cloud database: {e}. Falling back to local database.")
-        return mysql.connector.connect(
-            host="localhost",
-            username="root",
-            password="raj@9211",
-            database="face"
-        )
+        print(f"Error connecting to Cloud database: {e}. Falling back to local.")
+        if driver_type == "pymysql":
+            return pymysql.connect(
+                host="localhost", user="root", password="raj@9211", database="face"
+            )
+        else:
+            return mysql.connector.connect(
+                host="localhost", user="root", password="raj@9211", database="face"
+            )
 
 
 def draw_hud_boundary(img, x, y, w, h, color, text_label, tracking_info=None):

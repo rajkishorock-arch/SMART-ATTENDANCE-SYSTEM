@@ -7161,6 +7161,8 @@ export default function App() {
             </>
           ) : (
             <>
+              {/* CORE SECTION */}
+              <div className="nav-section-title">Core</div>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
@@ -7171,28 +7173,6 @@ export default function App() {
                   Dashboard
                 </button>
               </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'students' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('students'); playCyberSound('click'); }}
-                >
-                  <Users size={18} />
-                  Students
-                </button>
-              </li>
-              {userRole === 'admin' && (
-                <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'teachers' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('teachers'); playCyberSound('click'); }}
-                  >
-                    <Users size={18} />
-                    Teachers
-                  </button>
-                </li>
-              )}
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
@@ -7221,12 +7201,37 @@ export default function App() {
               </li>
               <li>
                 <button 
-                  className={`nav-item ${activeTab === 'session-history' ? 'active' : ''}`}
+                  className={`nav-item ${activeTab === 'students' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('session-history'); playCyberSound('click'); }}
+                  onClick={() => { setActiveTab('students'); playCyberSound('click'); }}
                 >
-                  <History size={18} />
-                  Session History
+                  <Users size={18} />
+                  Students
+                </button>
+              </li>
+              {userRole === 'admin' && (
+                <li>
+                  <button 
+                    className={`nav-item ${activeTab === 'teachers' ? 'active' : ''}`}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                    onClick={() => { setActiveTab('teachers'); playCyberSound('click'); }}
+                  >
+                    <Users size={18} />
+                    Teachers
+                  </button>
+                </li>
+              )}
+
+              {/* MANAGEMENT SECTION */}
+              <div className="nav-section-title">Management</div>
+              <li>
+                <button 
+                  className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  onClick={() => { setActiveTab('calendar'); playCyberSound('click'); }}
+                >
+                  <Calendar size={18} />
+                  Academic Calendar
                 </button>
               </li>
               <li>
@@ -7247,80 +7252,13 @@ export default function App() {
                     onClick={() => { setActiveTab('disputes'); playCyberSound('click'); }}
                   >
                     <ShieldAlert size={18} />
-                    Disputes & Corrections
+                    Disputes & Requests
                   </button>
                 </li>
               )}
-              {(userRole === 'admin' || userRole === 'teacher') && (
-                <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'face-review' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('face-review'); playCyberSound('click'); }}
-                  >
-                    <ScanFace size={18} />
-                    Face Match QA Queue
-                  </button>
-                </li>
-              )}
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('calendar'); playCyberSound('click'); }}
-                >
-                  <Calendar size={18} />
-                  Academic Calendar
-                </button>
-              </li>
-              {userRole === 'admin' && (
-                <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'devices' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('devices'); playCyberSound('click'); }}
-                  >
-                    <Monitor size={18} />
-                    Kiosk & Device Fleet
-                  </button>
-                </li>
-              )}
-              {(userRole === 'admin' || userRole === 'teacher') && (
-                <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'interventions' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('interventions'); playCyberSound('click'); }}
-                  >
-                    <AlertOctagon size={18} />
-                    Attendance Interventions
-                  </button>
-                </li>
-              )}
-              {userRole === 'admin' && (
-                <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'lms' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('lms'); playCyberSound('click'); }}
-                  >
-                    <Globe size={18} />
-                    SIS & LMS Sync
-                  </button>
-                </li>
-              )}
-              {(userRole === 'admin' || userRole === 'teacher') && (
-                <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'payroll' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('payroll'); playCyberSound('click'); }}
-                  >
-                    <DollarSign size={18} />
-                    Staff & Payroll
-                  </button>
-                </li>
-              )}
+
+              {/* SYSTEM SECTION */}
+              <div className="nav-section-title">System & Settings</div>
               {(userRole === 'admin' || userRole === 'teacher' || userRole === 'student') && (
                 <li>
                   <button 
@@ -7329,7 +7267,7 @@ export default function App() {
                     onClick={() => { navigateToTab('settings'); }}
                   >
                     <ShieldCheck size={18} />
-                    {userRole === 'student' ? 'Settings & Status' : 'Security Settings'}
+                    {userRole === 'student' ? 'Settings & Status' : 'System Settings'}
                   </button>
                 </li>
               )}

@@ -528,6 +528,16 @@ body {
   padding: 0 2px 8px 0;
 }
 
+.nav-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  padding: 14px 12px 4px 12px;
+  user-select: none;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

@@ -24,21 +24,22 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
-          padding: '6px 12px',
+          padding: '4px 10px',
           borderRadius: '999px',
-          border: isNewAvailable ? '1px solid #fbbf24' : '1px solid #10b981',
-          background: isNewAvailable ? 'rgba(251, 191, 36, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+          border: isNewAvailable ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(16, 185, 129, 0.3)',
+          background: isNewAvailable ? 'rgba(251, 191, 36, 0.1)' : 'rgba(16, 185, 129, 0.1)',
           color: isNewAvailable ? '#fbbf24' : '#10b981',
-          fontSize: '0.78rem',
-          fontWeight: 800,
+          fontSize: '0.75rem',
+          fontWeight: 600,
           cursor: 'pointer',
-          fontFamily: 'Inter, monospace',
-          boxShadow: isNewAvailable ? '0 0 10px rgba(251, 191, 36, 0.3)' : 'none',
-          transition: 'all 0.2s ease'
+          fontFamily: 'inherit',
+          transition: 'all 0.2s ease',
+          maxWidth: '100%',
+          whiteSpace: 'nowrap'
         }}
       >
-        <span style={{ fontSize: '0.85rem' }}>{isNewAvailable ? '🔥' : '✨'}</span>
-        v{APP_VERSION} {isNewAvailable ? `(Update v${serverLatest || '1.0.29'} Available)` : '• Latest'}
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isNewAvailable ? '#fbbf24' : '#10b981', display: 'inline-block' }} />
+        v{APP_VERSION}
       </button>
     );
   }

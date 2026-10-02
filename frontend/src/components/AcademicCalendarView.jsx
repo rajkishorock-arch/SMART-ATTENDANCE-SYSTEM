@@ -264,114 +264,88 @@ export default function AcademicCalendarView({
       margin: '0 auto',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Header Banner */}
+      {/* Modern, Clean Header */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.7) 100%)',
-        border: '1px solid rgba(0, 242, 254, 0.25)',
+        background: 'rgba(255, 255, 255, 0.03)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '16px',
-        padding: '24px 28px',
+        padding: '20px 24px',
         marginBottom: '24px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-        backdropFilter: 'blur(12px)',
-        position: 'relative',
-        overflow: 'hidden'
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '16px'
       }}>
-        <div style={{
-          position: 'absolute',
-          top: '-40px',
-          right: '-40px',
-          width: '180px',
-          height: '180px',
-          background: 'radial-gradient(circle, rgba(0, 242, 254, 0.15) 0%, transparent 70%)',
-          borderRadius: '50%',
-          pointerEvents: 'none'
-        }} />
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(6, 182, 212, 0.2))',
+            border: '1px solid rgba(79, 70, 229, 0.3)',
+            borderRadius: '12px',
+            padding: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#38bdf8'
+          }}>
+            <Calendar size={22} />
+          </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{
-                background: 'rgba(0, 242, 254, 0.15)',
-                border: '1px solid rgba(0, 242, 254, 0.4)',
-                borderRadius: '10px',
-                padding: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#00f2fe'
-              }}>
-                <Calendar size={22} />
-              </div>
-              <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#fff' }}>
-                Academic Calendar & Schedule Engine
-              </h2>
-              <span style={{
-                background: 'rgba(0, 242, 254, 0.1)',
-                border: '1px solid rgba(0, 242, 254, 0.3)',
-                color: '#00f2fe',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                padding: '4px 10px',
-                borderRadius: '20px',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase'
-              }}>
-                Phase 3 Production
-              </span>
-            </div>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.92rem', maxWidth: '780px', lineHeight: 1.5 }}>
-              Institutional schedule synchronization, holiday tracking, substitute faculty delegation, and 
-              safe class cancellation protection that automatically safeguards student attendance percentages.
+            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+              Academic Calendar
+            </h2>
+            <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '0.88rem' }}>
+              Manage holidays, schedules, and class events across your institution.
             </p>
           </div>
+        </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            onClick={() => { playCyberSound('click'); fetchEvents(); fetchMetrics(selectedSubjectIdForMetrics); }}
+            disabled={isLoading}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#cbd5e1',
+              padding: '9px 16px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.86rem',
+              fontWeight: 500,
+              transition: 'background 0.2s'
+            }}
+          >
+            <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+
+          {isStaff && (
             <button
-              onClick={() => { playCyberSound('click'); fetchEvents(); fetchMetrics(selectedSubjectIdForMetrics); }}
-              disabled={isLoading}
+              onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#cbd5e1',
-                padding: '10px 16px',
+                background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
+                border: 'none',
+                color: '#ffffff',
+                padding: '9px 18px',
                 borderRadius: '10px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                fontSize: '0.88rem',
+                fontSize: '0.86rem',
                 fontWeight: 600,
-                transition: 'all 0.2s'
+                boxShadow: '0 2px 10px rgba(79, 70, 229, 0.3)',
+                transition: 'transform 0.15s, opacity 0.15s'
               }}
             >
-              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-              Sync
+              <Plus size={16} strokeWidth={2.5} />
+              Add Event
             </button>
-
-            {isStaff && (
-              <button
-                onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
-                style={{
-                  background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)',
-                  border: 'none',
-                  color: '#031726',
-                  padding: '10px 18px',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  boxShadow: '0 4px 14px rgba(0, 242, 254, 0.35)',
-                  transition: 'transform 0.2s'
-                }}
-              >
-                <Plus size={16} strokeWidth={2.5} />
-                Add Event
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
@@ -545,18 +519,58 @@ export default function AcademicCalendarView({
           {/* Events Grid */}
           {events.length === 0 ? (
             <div style={{
-              background: 'rgba(15, 23, 42, 0.4)',
-              border: '1px dashed rgba(255, 255, 255, 0.15)',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px dashed rgba(255, 255, 255, 0.12)',
               borderRadius: '16px',
-              padding: '48px 24px',
+              padding: '60px 24px',
               textAlign: 'center',
-              color: '#64748b'
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}>
-              <Calendar size={40} style={{ opacity: 0.4, marginBottom: '12px' }} />
-              <h4 style={{ margin: '0 0 6px 0', color: '#94a3b8', fontSize: '1.1rem' }}>No Scheduled Events Found</h4>
-              <p style={{ margin: 0, fontSize: '0.88rem' }}>
-                There are currently no events matching the selected filter in your institution calendar.
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#94a3b8',
+                marginBottom: '16px'
+              }}>
+                <Calendar size={28} />
+              </div>
+              <h4 style={{ margin: '0 0 8px 0', color: '#f1f5f9', fontSize: '1.15rem', fontWeight: 600 }}>
+                No events scheduled
+              </h4>
+              <p style={{ margin: '0 0 20px 0', fontSize: '0.9rem', color: '#94a3b8', maxWidth: '420px', lineHeight: 1.5 }}>
+                There are no calendar events or holidays matching this filter.
               </p>
+              {isStaff && (
+                <button
+                  onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                    color: '#f8fafc',
+                    padding: '8px 18px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.88rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <Plus size={15} />
+                  Schedule an event
+                </button>
+              )}
             </div>
           ) : (
             <div style={{

@@ -46,6 +46,8 @@ class Face_Recognition:
         self.detector = None
         self.recognizer = None
         self.model_loaded = False
+        self._attendance_lock = threading.Lock()
+        self._marked_cache = set()
 
         # ── Theme bootstrap ─────────────────────────────────────────────
         content = setup_standard_window(
@@ -525,56 +527,68 @@ class Face_Recognition:
         time_string = now.strftime("%H:%M:%S")
         required_columns = ["ID", "Roll", "Name", "Department", "Time", "Date", "Status"]
 
-        existing_rows = []
-        header = []
-        if os.path.exists(attendance_path):
-            with open(attendance_path, "r", newline="", encoding="utf-8") as f:
-                reader = csv.reader(f)
-                header = next(reader, [])
-                for row in reader:
-                    existing_rows.append(row)
-
-        if header != required_columns:
-            with open(attendance_path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow(required_columns)
-                for row in existing_rows:
-                    writer.writerow(row + [""] * (len(required_columns) - len(row)))
-
-        registered = set()
-        with open(attendance_path, "r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row.get("ID") and row.get("Date"):
-                    registered.add((row.get("ID").strip(), row.get("Date").strip()))
-
         current_key = (str(student_id), date_string)
-        if current_key in registered:
-            print(f"Attendance already exists for {student_id} on {date_string}")
-            return
 
-        with open(attendance_path, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow([student_id, roll, name, dep, time_string, date_string, "Present"])
-            print(f"Attendance written to CSV: {student_id}, {date_string}, {time_string}")
+        with self._attendance_lock:
+            if current_key in self._marked_cache:
+                return
+
+            existing_rows = []
+            header = []
+            if os.path.exists(attendance_path):
+                with open(attendance_path, "r", newline="", encoding="utf-8") as f:
+                    reader = csv.reader(f)
+                    header = next(reader, [])
+                    for row in reader:
+                        existing_rows.append(row)
+
+            if header != required_columns:
+                with open(attendance_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(required_columns)
+                    for row in existing_rows:
+                        writer.writerow(row + [""] * (len(required_columns) - len(row)))
+
+            registered = set()
+            if os.path.exists(attendance_path):
+                with open(attendance_path, "r", newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        if row.get("ID") and row.get("Date"):
+                            registered.add((row.get("ID").strip(), row.get("Date").strip()))
+
+            if current_key in registered:
+                self._marked_cache.add(current_key)
+                print(f"Attendance already recorded today for student {student_id} on {date_string}")
+                return
+
+            # Append single clean entry to CSV
+            with open(attendance_path, "a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow([student_id, roll, name, dep, time_string, date_string, "Present"])
+                print(f"Attendance successfully recorded to CSV: {student_id} ({name}) at {time_string}")
+
+            self._marked_cache.add(current_key)
 
         # Write to MySQL DB
         try:
             conn = get_db_connection()
             my_cursor = conn.cursor()
-            my_cursor.execute("select id from attendence where id = %s and date = %s", (str(student_id), date_string))
+            my_cursor.execute("SELECT id FROM attendence WHERE id = %s AND date = %s", (str(student_id), date_string))
             existing_db = my_cursor.fetchone()
             if not existing_db:
                 my_cursor.execute(
-                    "INSERT INTO attendence (id, roll, name, department, time, date, attendance) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    "INSERT INTO attendence (id, roll, name, department, time, date, attendance, institution_id, verification_method) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, 1, 'FACE_SCAN')",
                     (str(student_id), str(roll), str(name), str(dep), time_string, date_string, "Present")
                 )
-                conn.commit()
-                print(f"Attendance written to MySQL database: {student_id}")
+                if hasattr(conn, "commit"):
+                    conn.commit()
+                print(f"Attendance recorded in Cloud MySQL: {student_id} ({name})")
                 send_telegram_message_async(f"✅ Attendance Marked: {name} (ID: {student_id}, Roll: {roll}) at {time_string} on {date_string}")
             conn.close()
         except Exception as error:
-            print(f"Unable to save attendance to MySQL database: {error}")
+            print(f"Unable to save attendance to Cloud MySQL: {error}")
 
 
 

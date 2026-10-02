@@ -423,44 +423,45 @@ def migrate_multi_tenant_seed(db: Session):
         db.rollback()
         print(f"Migration: Error checking/creating default institution: {inst_err}")
 
-    # Create additional institutions for testing subdomain layout routing
-    try:
-        du_inst = db.query(models.Institution).filter(models.Institution.slug == "du").first()
-        if not du_inst:
-            print("Migration: Creating DU Institution (ID: 2)...")
-            du_inst = models.Institution(
-                id=2,
-                name="Delhi University",
-                slug="du",
-                primary_color="#800020",
-                secondary_color="#DAA520",
-                logo_url=""
-            )
-            db.add(du_inst)
-            db.commit()
-            print("Migration: DU Institution created.")
-    except Exception as du_err:
-        db.rollback()
-        print(f"Migration: Error checking/creating DU institution: {du_err}")
+    # Create additional institutions for testing only if SEED_DEFAULT_USERS is enabled
+    if SEED_DEFAULT_USERS:
+        try:
+            du_inst = db.query(models.Institution).filter(models.Institution.slug == "du").first()
+            if not du_inst:
+                print("Migration: Creating DU Institution (ID: 2)...")
+                du_inst = models.Institution(
+                    id=2,
+                    name="Delhi University",
+                    slug="du",
+                    primary_color="#800020",
+                    secondary_color="#DAA520",
+                    logo_url=""
+                )
+                db.add(du_inst)
+                db.commit()
+                print("Migration: DU Institution created.")
+        except Exception as du_err:
+            db.rollback()
+            print(f"Migration: Error checking/creating DU institution: {du_err}")
 
-    try:
-        iitd_inst = db.query(models.Institution).filter(models.Institution.slug == "iitd").first()
-        if not iitd_inst:
-            print("Migration: Creating IIT Delhi Institution (ID: 3)...")
-            iitd_inst = models.Institution(
-                id=3,
-                name="IIT Delhi",
-                slug="iitd",
-                primary_color="#0D9488",
-                secondary_color="#F59E0B",
-                logo_url=""
-            )
-            db.add(iitd_inst)
-            db.commit()
-            print("Migration: IIT Delhi Institution created.")
-    except Exception as iitd_err:
-        db.rollback()
-        print(f"Migration: Error checking/creating IITD institution: {iitd_err}")
+        try:
+            iitd_inst = db.query(models.Institution).filter(models.Institution.slug == "iitd").first()
+            if not iitd_inst:
+                print("Migration: Creating IIT Delhi Institution (ID: 3)...")
+                iitd_inst = models.Institution(
+                    id=3,
+                    name="IIT Delhi",
+                    slug="iitd",
+                    primary_color="#0D9488",
+                    secondary_color="#F59E0B",
+                    logo_url=""
+                )
+                db.add(iitd_inst)
+                db.commit()
+                print("Migration: IIT Delhi Institution created.")
+        except Exception as iitd_err:
+            db.rollback()
+            print(f"Migration: Error checking/creating IITD institution: {iitd_err}")
 
     # 2. Back-fill null institution_ids
     tables_to_migrate = [
@@ -556,107 +557,125 @@ def ensure_primary_admin(db: Session):
     primary_email = "rajkishorock@gmail.com"
     primary_password = "raj@9211"
 
-    institutions_admin = [
-        {"id": 1, "name": "Raj Kishor"},
-        {"id": 2, "name": "Raj Kishor (DU Admin)"},
-        {"id": 3, "name": "Raj Kishor (IITD Admin)"}
-    ]
-
-    for inst_admin in institutions_admin:
-        inst_id = inst_admin["id"]
-        admin_name = inst_admin["name"]
-
-        try:
-            inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
-            if not inst_exists:
-                continue
-
-            admin = get_user_by_email(db, email=primary_email, institution_id=inst_id)
+    # 1. Always ensure primary admin for Institution 1 exists so owner is never locked out
+    try:
+        inst_1 = db.query(models.Institution).filter(models.Institution.id == 1).first()
+        if inst_1:
+            admin = get_user_by_email(db, email=primary_email, institution_id=1)
             if not admin:
                 create_user(
                     db,
                     user=UserCreate(
                         email=primary_email,
-                        name=admin_name,
+                        name="Raj Kishor",
                         password=primary_password,
                         role="admin",
                     ),
-                    institution_id=inst_id
+                    institution_id=1
                 )
-                print(f"Primary admin account created for institution {inst_id}.")
+                print("Primary admin account created for institution 1.")
             else:
-                admin.password_hash = get_password_hash(primary_password)
-                admin.name = admin_name
-                admin.role = "admin"
                 admin.is_active = True
                 db.commit()
-                print(f"Primary admin account synced for institution {inst_id}.")
-        except Exception as admin_err:
-            db.rollback()
-            print(f"Error seeding admin for institution {inst_id}: {admin_err}")
+    except Exception as admin_err:
+        db.rollback()
+        print(f"Error ensuring primary admin: {admin_err}")
 
-    test_students = [
-        {
-            "id": 10001,
-            "name": "Default Student",
-            "roll": "student123",
-            "email": "student@face.com",
-            "inst_id": 1,
-            "dep": "CSE(IOT)",
-            "course": "B.Tech"
-        },
-        {
-            "id": 20001,
-            "name": "DU Student (Rahul Kumar)",
-            "roll": "du123",
-            "email": "student_du@face.com",
-            "inst_id": 2,
-            "dep": "Physics",
-            "course": "B.Sc"
-        },
-        {
-            "id": 30001,
-            "name": "IIT Delhi Student (Aditya Birla)",
-            "roll": "iitd123",
-            "email": "student_iitd@face.com",
-            "inst_id": 3,
-            "dep": "Computer Science",
-            "course": "B.Tech"
-        }
-    ]
+    # 2. Only seed extra test admins & dummy students if SEED_DEFAULT_USERS is explicitly True
+    if SEED_DEFAULT_USERS:
+        institutions_admin = [
+            {"id": 2, "name": "Raj Kishor (DU Admin)"},
+            {"id": 3, "name": "Raj Kishor (IITD Admin)"}
+        ]
 
-    for s_info in test_students:
-        inst_id = s_info["inst_id"]
-        try:
-            inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
-            if not inst_exists:
-                continue
+        for inst_admin in institutions_admin:
+            inst_id = inst_admin["id"]
+            admin_name = inst_admin["name"]
 
-            s_exists = db.query(models.StudentModel).filter(
-                models.StudentModel.email == s_info["email"],
-                models.StudentModel.institution_id == inst_id
-            ).first()
+            try:
+                inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
+                if not inst_exists:
+                    continue
 
-            if not s_exists:
-                new_s = models.StudentModel(
-                    id=s_info["id"],
-                    name=s_info["name"],
-                    roll=s_info["roll"],
-                    dep=s_info["dep"],
-                    course=s_info["course"],
-                    year="2026",
-                    semester="1st",
-                    email=s_info["email"],
-                    password_hash=get_password_hash("student123"),
-                    photo="no",
-                    institution_id=inst_id
-                )
-                db.add(new_s)
-                db.commit()
-                print(f"Test student '{s_info['name']}' seeded for institution {inst_id}.")
-        except Exception as student_err:
-            db.rollback()
-            print(f"Error seeding student '{s_info['name']}': {student_err}")
+                admin = get_user_by_email(db, email=primary_email, institution_id=inst_id)
+                if not admin:
+                    create_user(
+                        db,
+                        user=UserCreate(
+                            email=primary_email,
+                            name=admin_name,
+                            password=primary_password,
+                            role="admin",
+                        ),
+                        institution_id=inst_id
+                    )
+                    print(f"Test admin account created for institution {inst_id}.")
+            except Exception as admin_err:
+                db.rollback()
+                print(f"Error seeding admin for institution {inst_id}: {admin_err}")
+
+        test_students = [
+            {
+                "id": 10001,
+                "name": "Default Student",
+                "roll": "student123",
+                "email": "student@face.com",
+                "inst_id": 1,
+                "dep": "CSE(IOT)",
+                "course": "B.Tech"
+            },
+            {
+                "id": 20001,
+                "name": "DU Student (Rahul Kumar)",
+                "roll": "du123",
+                "email": "student_du@face.com",
+                "inst_id": 2,
+                "dep": "Physics",
+                "course": "B.Sc"
+            },
+            {
+                "id": 30001,
+                "name": "IIT Delhi Student (Aditya Birla)",
+                "roll": "iitd123",
+                "email": "student_iitd@face.com",
+                "inst_id": 3,
+                "dep": "Computer Science",
+                "course": "B.Tech"
+            }
+        ]
+
+        for s_info in test_students:
+            inst_id = s_info["inst_id"]
+            try:
+                inst_exists = db.query(models.Institution).filter(models.Institution.id == inst_id).first()
+                if not inst_exists:
+                    continue
+
+                s_exists = db.query(models.StudentModel).filter(
+                    models.StudentModel.email == s_info["email"],
+                    models.StudentModel.institution_id == inst_id
+                ).first()
+
+                if not s_exists:
+                    new_s = models.StudentModel(
+                        id=s_info["id"],
+                        name=s_info["name"],
+                        roll=s_info["roll"],
+                        dep=s_info["dep"],
+                        course=s_info["course"],
+                        year="2026",
+                        semester="1st",
+                        email=s_info["email"],
+                        password_hash=get_password_hash("student123"),
+                        photo="no",
+                        institution_id=inst_id
+                    )
+                    db.add(new_s)
+                    db.commit()
+                    print(f"Test student '{s_info['name']}' seeded for institution {inst_id}.")
+            except Exception as student_err:
+                db.rollback()
+                print(f"Error seeding student '{s_info['name']}': {student_err}")
 
 
 def _background_startup_init():

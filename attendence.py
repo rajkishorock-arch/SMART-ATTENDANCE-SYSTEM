@@ -306,11 +306,12 @@ class Attendence:
             conn = self.connectDb()
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO attendence (id, roll, name, department, time, date, attendance) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                "INSERT INTO attendence (id, roll, name, department, time, date, attendance, institution_id, verification_method) VALUES (%s, %s, %s, %s, %s, %s, %s, 1, 'MANUAL_STAFF')",
                 (attendance_id, roll, name, department, time_value, date_value, attendance_value)
             )
-            conn.commit()
-            messagebox.showinfo("Saved", "Attendance saved to MySQL", parent=self.root)
+            if hasattr(conn, "commit"):
+                conn.commit()
+            messagebox.showinfo("Saved", "Attendance saved to database", parent=self.root)
             self.fetchData()
         except Exception as e:
             messagebox.showerror("Error", f"Unable to save to database: {e}", parent=self.root)

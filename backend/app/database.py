@@ -4,12 +4,26 @@ from sqlalchemy import create_engine, text, event
 from sqlalchemy.orm import declarative_base, sessionmaker
 from .core.config import ALLOW_DATABASE_FALLBACK, DATABASE_URL
 
+_BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_SQLITE_FILE = os.path.join(_BACKEND_DIR, "local_attendance.db").replace("\\", "/")
+DEFAULT_SQLITE_URL = f"sqlite:///{_SQLITE_FILE}"
+
 connect_args = {}
-db_url = DATABASE_URL or "sqlite:///local_attendance.db"
+db_url = DATABASE_URL or DEFAULT_SQLITE_URL
 
 # Normalize legacy postgres:// to postgresql://
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+# Ensure resilient MySQL driver (use pymysql if mysqlconnector is unavailable)
+if db_url.startswith("mysql://") or db_url.startswith("mysql+mysqlconnector://"):
+    try:
+        import mysql.connector  # noqa: F401
+    except ImportError:
+        # Transparently use PyMySQL
+        db_url = db_url.replace("mysql+mysqlconnector://", "mysql+pymysql://", 1)
+        if db_url.startswith("mysql://"):
+            db_url = db_url.replace("mysql://", "mysql+pymysql://", 1)
 
 
 def _is_mysql(url: str) -> bool:
@@ -25,11 +39,16 @@ def _is_sqlite(url: str) -> bool:
 
 
 if _is_mysql(db_url):
-    connect_args = {
-        "ssl_verify_cert": False,
-        "ssl_verify_identity": False,
-        "connect_timeout": 5,
-    }
+    if "pymysql" in db_url:
+        connect_args = {
+            "connect_timeout": 10,
+        }
+    else:
+        connect_args = {
+            "ssl_verify_cert": False,
+            "ssl_verify_identity": False,
+            "connect_timeout": 5,
+        }
 elif _is_sqlite(db_url):
     connect_args = {"check_same_thread": False, "timeout": 15}
 elif _is_postgres(db_url):
@@ -39,9 +58,9 @@ elif _is_postgres(db_url):
 def _fallback_to_sqlite(reason: Exception):
     print("=" * 80, file=sys.stderr)
     print(f" DATABASE WARNING: Cloud database connection failed: {reason} ".center(80, "*"), file=sys.stderr)
-    print(" Falling back to local SQLite database: sqlite:///local_attendance.db ".center(80, "*"), file=sys.stderr)
+    print(f" Falling back to local SQLite database: {DEFAULT_SQLITE_URL} ".center(80, "*"), file=sys.stderr)
     print("=" * 80, file=sys.stderr)
-    return "sqlite:///local_attendance.db", {"check_same_thread": False, "timeout": 15}
+    return DEFAULT_SQLITE_URL, {"check_same_thread": False, "timeout": 15}
 
 
 # Verify cloud database connection (MySQL or PostgreSQL) before creating main engine

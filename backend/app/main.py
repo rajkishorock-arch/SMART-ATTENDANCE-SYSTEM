@@ -198,19 +198,50 @@ def create_system_backup(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin authorization required.")
 
-    import shutil
+    import json
     import os
+    import shutil
     from datetime import datetime, timezone
-    backup_dir = "backups"
+    from app.database import engine, _is_sqlite, _SQLITE_FILE, SessionLocal
+
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    backup_dir = os.path.join(backend_dir, "backups")
     os.makedirs(backup_dir, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    backup_file = os.path.join(backup_dir, f"attendance_backup_{timestamp}.db")
 
-    if os.path.exists("attendance.db"):
-        shutil.copyfile("attendance.db", backup_file)
-        file_size = os.path.getsize(backup_file)
+    if _is_sqlite(str(engine.url)):
+        backup_file = os.path.join(backup_dir, f"attendance_backup_{timestamp}.db")
+        if os.path.exists(_SQLITE_FILE):
+            shutil.copyfile(_SQLITE_FILE, backup_file)
+            file_size = os.path.getsize(backup_file)
+        else:
+            file_size = 0
     else:
-        file_size = 0
+        # Export comprehensive JSON dump for Cloud MySQL
+        db = SessionLocal()
+        backup_file = os.path.join(backup_dir, f"attendance_backup_{timestamp}.json")
+        try:
+            dump_data = {
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "institution_id": current_user.institution_id,
+                "students": [
+                    {"id": s.id, "name": s.name, "roll": s.roll, "email": s.email, "dep": s.dep, "course": s.course}
+                    for s in db.query(models.StudentModel).filter(models.StudentModel.institution_id == current_user.institution_id).all()
+                ],
+                "attendance": [
+                    {"id": a.id, "roll": a.roll, "name": a.name, "dep": a.department, "time": a.time, "date": a.date, "status": a.attendance}
+                    for a in db.query(models.AttendanceModel).filter(models.AttendanceModel.institution_id == current_user.institution_id).all()
+                ],
+                "subjects": [
+                    {"id": sub.id, "name": sub.name, "code": sub.code, "department": sub.department}
+                    for sub in db.query(models.Subject).filter(models.Subject.institution_id == current_user.institution_id).all()
+                ]
+            }
+            with open(backup_file, "w", encoding="utf-8") as f:
+                json.dump(dump_data, f, indent=2)
+            file_size = os.path.getsize(backup_file)
+        finally:
+            db.close()
 
     return {
         "success": True,
