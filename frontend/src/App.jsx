@@ -9563,7 +9563,7 @@ export default function App() {
             <input 
               type="password"
               className="form-input"
-              placeholder="Enter Master Password"
+              placeholder="••••••••••••"
               autoFocus
               value={masterKeyPrompt.value}
               onChange={(e) => setMasterKeyPrompt(prev => ({ ...prev, value: e.target.value }))}

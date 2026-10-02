@@ -129,7 +129,7 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
           <input
             type="password"
             className="form-input"
-            placeholder="Enter master password..."
+            placeholder="••••••••••••"
             value={masterPassword}
             onChange={(e) => setMasterPassword(e.target.value)}
             style={{ width: '100%', padding: '9px 14px' }}

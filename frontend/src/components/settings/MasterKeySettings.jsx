@@ -250,7 +250,7 @@ export default function MasterKeySettings({ token, playCyberSound }) {
             </label>
             <input
               type="password"
-              placeholder="Enter current master key"
+              placeholder="••••••••••••"
               value={currentMasterKeyInput}
               onChange={e => setCurrentMasterKeyInput(e.target.value)}
               style={{

@@ -494,15 +494,12 @@ export default function ReleaseSettings({
                 <input
                   type="password"
                   className="form-input"
-                  placeholder="Enter 'master' or your owner login password"
+                  placeholder="••••••••••••"
                   value={releaseMasterPassword}
                   onChange={e => setReleaseMasterPassword(e.target.value)}
                   disabled={buildStatus === 'building'}
                   required
                 />
-                <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '4px 0 0', lineHeight: 1.4 }}>
-                  💡 Enter system master password (<code>master</code>) or your Owner account password.
-                </p>
               </div>
             </div>
 
@@ -575,14 +572,11 @@ export default function ReleaseSettings({
               <input
                 type="password"
                 className="form-input"
-                placeholder="Enter 'master' or your owner login password"
+                placeholder="••••••••••••"
                 value={releaseMasterPassword}
                 onChange={e => setReleaseMasterPassword(e.target.value)}
                 required
               />
-              <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '4px 0 0', lineHeight: 1.4 }}>
-                💡 Enter system master password (<code>master</code>) or your Owner account password.
-              </p>
             </div>
 
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -666,7 +660,7 @@ export default function ReleaseSettings({
               <input
                 type="password"
                 className="form-input"
-                placeholder="Enter 'master' or owner password..."
+                placeholder="••••••••••••"
                 value={toggleMasterPassword}
                 onChange={e => setToggleMasterPassword(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleToggleUpdateActive(); }}
@@ -678,9 +672,6 @@ export default function ReleaseSettings({
                   ❌ {toggleErrorMessage}
                 </p>
               )}
-              <p style={{ color: '#64748b', fontSize: '0.72rem', margin: '8px 0 0', lineHeight: 1.4 }}>
-                💡 Enter system master password (<code>master</code>), your Owner account password, or institution master key.
-              </p>
             </div>
 
             {/* Action Buttons */}
