@@ -23,6 +23,9 @@ class User(Base):
     password_hash = Column(String(200), nullable=False)
     role = Column(String(50), default="admin") # 'admin', 'teacher', 'hod'
     department = Column(String(100), nullable=True)
+    phone = Column(String(50), nullable=True)
+    profile_pic = Column(Text, nullable=True)
+    bio = Column(String(255), nullable=True)
     is_department_head = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     premium_access = Column(Boolean, default=False)

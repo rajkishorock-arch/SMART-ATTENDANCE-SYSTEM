@@ -185,18 +185,22 @@ def get_dashboard_stats(
     attn_query = db.query(models.AttendanceModel)
     
     if institution_id is not None:
-        student_query = student_query.filter(
-            or_(
-                models.StudentModel.institution_id == institution_id,
-                models.StudentModel.institution_id.is_(None)
+        if institution_id == 1:
+            student_query = student_query.filter(
+                or_(
+                    models.StudentModel.institution_id == 1,
+                    models.StudentModel.institution_id.is_(None)
+                )
             )
-        )
-        attn_query = attn_query.filter(
-            or_(
-                models.AttendanceModel.institution_id == institution_id,
-                models.AttendanceModel.institution_id.is_(None)
+            attn_query = attn_query.filter(
+                or_(
+                    models.AttendanceModel.institution_id == 1,
+                    models.AttendanceModel.institution_id.is_(None)
+                )
             )
-        )
+        else:
+            student_query = student_query.filter(models.StudentModel.institution_id == institution_id)
+            attn_query = attn_query.filter(models.AttendanceModel.institution_id == institution_id)
         
     active_depts = []
     if department:
@@ -257,12 +261,15 @@ def get_dashboard_stats(
         models.AttendanceModel.attendance == "Present"
     )
     if institution_id is not None:
-        q = q.filter(
-            or_(
-                models.AttendanceModel.institution_id == institution_id,
-                models.AttendanceModel.institution_id.is_(None)
+        if institution_id == 1:
+            q = q.filter(
+                or_(
+                    models.AttendanceModel.institution_id == 1,
+                    models.AttendanceModel.institution_id.is_(None)
+                )
             )
-        )
+        else:
+            q = q.filter(models.AttendanceModel.institution_id == institution_id)
     if active_depts:
         q = q.filter(models.AttendanceModel.department.in_(active_depts))
     elif subject_ids:

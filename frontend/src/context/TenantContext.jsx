@@ -67,6 +67,18 @@ export function TenantProvider({ children }) {
     };
   }, [tenantSlug, applyBrandingTheme]);
 
+  // Storage change listener to react to tenant changes
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'override_tenant' && e.newValue) {
+        setTenantSlug(e.newValue);
+        loadTenantBranding(e.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [loadTenantBranding]);
+
   // Switch tenant helper
   const switchTenant = useCallback(async (newSlug) => {
     const slug = (newSlug || 'default').toLowerCase().trim();

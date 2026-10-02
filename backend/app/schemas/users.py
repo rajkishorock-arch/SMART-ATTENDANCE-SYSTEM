@@ -55,12 +55,25 @@ class OwnerPremiumRevokePayload(BaseModel):
     institution_id: int
 
 
-class TeacherPublicRegister(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-    institution_code: str
-    department: str
+class ProfileUpdatePayload(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    department: Optional[str] = None
+    profile_pic: Optional[str] = None
+    address: Optional[str] = None
+    dob: Optional[str] = None
+    gender: Optional[str] = None
 
 
-__all__ = ['UserBase', 'UserCreate', 'User', 'UserUpdate', 'UserChangePassword', 'OwnerPremiumGrantPayload', 'OwnerPremiumRevokePayload', 'TeacherPublicRegister']
+__all__ = [
+    'UserBase',
+    'UserCreate',
+    'User',
+    'UserUpdate',
+    'UserChangePassword',
+    'ProfileUpdatePayload',
+    'OwnerPremiumGrantPayload',
+    'OwnerPremiumRevokePayload',
+    'TeacherPublicRegister'
+]

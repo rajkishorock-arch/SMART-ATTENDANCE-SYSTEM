@@ -12,7 +12,7 @@ from app.schemas.common import (
     PaginatedResponse,
     api_response,
 )
-from app.schemas.users import UserBase, UserCreate, User, UserUpdate, UserChangePassword, OwnerPremiumGrantPayload, OwnerPremiumRevokePayload, TeacherPublicRegister
+from app.schemas.users import UserBase, UserCreate, User, UserUpdate, UserChangePassword, ProfileUpdatePayload, OwnerPremiumGrantPayload, OwnerPremiumRevokePayload, TeacherPublicRegister
 from app.schemas.student import StudentBase, StudentCreate, Student, StudentUpdate, StudentChangePassword, StudentPublicRegister, FaceValidationResult, FaceSampleResponse, ReEnrollmentRequestCreate, ReEnrollmentRequestResponse
 from app.schemas.institution import InstitutionBrandingResponse, InstitutionCreate, InstitutionMasterKeyUpdate, InstitutionUpdate, DepartmentBase, DepartmentCreate, Department
 from app.schemas.attendance import AttendanceBase, AttendanceCreate, Attendance, ManualAttendanceCreate, SubjectBase, SubjectCreate, SubjectResponse, ScheduleBase, ScheduleCreate, ScheduleResponse, SubjectAttendancePlan, WhatIfSimulationRequest, WhatIfSimulationResult, AttendancePlannerResponse, LowConfidenceReviewResponse, LowConfidenceResolvePayload, AttendanceInterventionResponse, AssignCounselorPayload, ResolveInterventionPayload, InterventionSummary, DisputeCreate, DisputeReviewPayload, DisputeEscalatePayload, DisputeCommentCreate, DisputeCommentResponse, DisputeResponse
@@ -41,6 +41,7 @@ __all__ = [
     'User',
     'UserUpdate',
     'UserChangePassword',
+    'ProfileUpdatePayload',
     'OwnerPremiumGrantPayload',
     'OwnerPremiumRevokePayload',
     'TeacherPublicRegister',

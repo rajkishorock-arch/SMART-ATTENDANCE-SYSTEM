@@ -425,6 +425,13 @@ export default function App() {
 
   useOfflineSync(token, API_BASE_URL);
 
+  // Sync tenant context with logged-in user's institution automatically
+  useEffect(() => {
+    if (currentUser?.institution_slug && currentUser.institution_slug !== tenantSlug) {
+      switchTenant(currentUser.institution_slug);
+    }
+  }, [currentUser?.institution_slug, tenantSlug, switchTenant]);
+
   const handleConsentAccept = async () => {
     localStorage.setItem('biometric_consent', 'true');
     setShowConsentModal(false);
@@ -7296,6 +7303,47 @@ export default function App() {
           )}
         </ul>
 
+        {currentUser && (
+          <div 
+            onClick={() => { setActiveTab('student-profile'); playCyberSound('click'); }}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              background: activeTab === 'student-profile' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+              border: activeTab === 'student-profile' ? '1px solid #6366f1' : '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              marginTop: 'auto',
+              marginBottom: '10px',
+              transition: 'all 0.2s',
+              textAlign: 'left'
+            }}
+            title="Open My Profile & Account Settings"
+          >
+            {currentUser.profile_pic ? (
+              <img 
+                src={currentUser.profile_pic} 
+                alt={currentUser.name} 
+                style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #6366f1', flexShrink: 0 }} 
+              />
+            ) : (
+              <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>
+                {(currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ color: '#f8fafc', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentUser.name || currentUser.email}
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentUser.role || 'Member'} • {currentUser.institution_name || 'Institute'}
+              </div>
+            </div>
+          </div>
+        )}
+
         <button 
           onClick={() => { playCyberSound('click'); setIsAboutModalOpen(true); }}
           className="nav-item" 
@@ -7307,8 +7355,7 @@ export default function App() {
             display: 'flex', 
             alignItems: 'center', 
             gap: '12px', 
-            marginTop: '16px',
-            marginBottom: '12px',
+            marginBottom: '10px',
             borderRadius: '12px',
             padding: '12px 18px',
             fontWeight: 600
@@ -7329,7 +7376,6 @@ export default function App() {
             display: 'flex', 
             alignItems: 'center', 
             gap: '12px', 
-            marginTop: 'auto',
             borderRadius: '12px',
             padding: '12px 18px',
             fontWeight: 600

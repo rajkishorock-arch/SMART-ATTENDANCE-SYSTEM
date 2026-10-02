@@ -99,6 +99,10 @@ export function AuthProvider({ children }) {
         setCurrentUser(data);
         localStorage.setItem('userRole', data.role);
         localStorage.setItem('cached_user', JSON.stringify(data));
+        if (data.institution_slug) {
+          localStorage.setItem('override_tenant', data.institution_slug);
+          localStorage.setItem('active_tenant_slug', data.institution_slug);
+        }
         if (typeof onSuccess === 'function') {
           onSuccess(data, authToken);
         }
@@ -195,6 +199,10 @@ export function AuthProvider({ children }) {
           localStorage.setItem('loginRole', loginRole);
           localStorage.setItem('userRole', meData.role);
           localStorage.setItem('cached_user', JSON.stringify(meData));
+          if (meData.institution_slug) {
+            localStorage.setItem('override_tenant', meData.institution_slug);
+            localStorage.setItem('active_tenant_slug', meData.institution_slug);
+          }
           sessionStorage.setItem('just_logged_in_tour', 'true');
           setToken(data.access_token);
           setUserRole(meData.role);

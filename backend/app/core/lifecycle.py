@@ -101,6 +101,13 @@ def update_schema():
         for tbl in ['users', 'student', 'subjects', 'schedules', 'attendence', 'audit_logs', 'system_settings', 'feedbacks', 'calendar_events', 'attendance_disputes', 'low_confidence_reviews', 'attendance_devices', 'device_heartbeat_logs', 'face_enrollment_samples', 're_enrollment_requests', 'attendance_interventions', 'attendance_fallback_sessions', 'lms_integration_configs', 'lms_sync_job_logs', 'staff_attendance', 'staff_payroll_records']:
             safe_add_column(tbl, 'institution_id', 'INT NULL')
 
+        # User & Student profile table columns
+        safe_add_column('users', 'phone', 'VARCHAR(50) NULL')
+        safe_add_column('users', 'profile_pic', 'TEXT NULL')
+        safe_add_column('users', 'bio', 'VARCHAR(255) NULL')
+        safe_add_column('student', 'profile_pic', 'TEXT NULL')
+        safe_add_column('student', 'bio', 'VARCHAR(255) NULL')
+
         # Student table columns
         safe_add_column('student', 'password_hash', 'VARCHAR(255) NULL')
         safe_add_column('student', 'face_embedding', 'TEXT NULL')

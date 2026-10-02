@@ -64,14 +64,16 @@ class UserRepository:
         """Retrieves list of students filtered by tenant institution and optional department."""
         query = db.query(models.StudentModel)
         if institution_id is not None:
-            from sqlalchemy import or_
-            query = query.filter(
-                or_(
-                    models.StudentModel.institution_id == institution_id,
-                    models.StudentModel.institution_id.is_(None),
-                    models.StudentModel.institution_id == 1
+            if institution_id == 1:
+                from sqlalchemy import or_
+                query = query.filter(
+                    or_(
+                        models.StudentModel.institution_id == 1,
+                        models.StudentModel.institution_id.is_(None)
+                    )
                 )
-            )
+            else:
+                query = query.filter(models.StudentModel.institution_id == institution_id)
         if department:
             from sqlalchemy import or_
             query = query.filter(

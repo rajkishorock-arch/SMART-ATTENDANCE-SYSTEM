@@ -325,6 +325,198 @@ def delete_user(
     )
     return {"message": "User account deleted successfully."}
 
+
+# --- Self Profile & Credential Management ---
+
+@router.put("/profile/me")
+def update_my_profile(
+    payload: schemas.ProfileUpdatePayload,
+    db: Session = Depends(get_db),
+    token: str = Depends(security.oauth2_scheme)
+):
+    """
+    Self-service profile editing for logged-in user (admin, teacher, hod, or student).
+    Allows updating full name, phone number, bio, department, and profile picture.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    from jose import jwt, JWTError
+    from app.core import config
+    try:
+        token_payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
+        email: str = token_payload.get("sub")
+        role: str = token_payload.get("role")
+        institution_id: int = token_payload.get("institution_id")
+        if not email or not role or institution_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    if role == "student":
+        student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        if payload.name:
+            student.name = payload.name.strip()
+        if payload.phone is not None:
+            student.phone = payload.phone.strip()
+        if payload.bio is not None:
+            student.bio = payload.bio.strip()
+        if payload.address is not None:
+            student.address = payload.address.strip()
+        if payload.dob is not None:
+            student.dob = payload.dob.strip()
+        if payload.gender is not None:
+            student.gender = payload.gender.strip()
+        if payload.profile_pic is not None:
+            student.profile_pic = payload.profile_pic
+            student.photo = "yes"
+        db.commit()
+        db.refresh(student)
+        return {
+            "message": "Profile updated successfully",
+            "name": student.name,
+            "phone": student.phone,
+            "bio": student.bio,
+            "profile_pic": student.profile_pic
+        }
+
+    user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    if payload.name:
+        user.name = payload.name.strip()
+    if payload.phone is not None:
+        user.phone = payload.phone.strip()
+    if payload.bio is not None:
+        user.bio = payload.bio.strip()
+    if payload.department is not None:
+        user.department = payload.department.strip()
+    if payload.profile_pic is not None:
+        user.profile_pic = payload.profile_pic
+
+    db.commit()
+    db.refresh(user)
+    return {
+        "message": "Profile updated successfully",
+        "name": user.name,
+        "phone": user.phone,
+        "bio": user.bio,
+        "department": user.department,
+        "profile_pic": user.profile_pic
+    }
+
+
+@router.post("/profile/photo")
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    token: str = Depends(security.oauth2_scheme)
+):
+    """
+    Upload and save user profile picture avatar.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    from jose import jwt, JWTError
+    from app.core import config
+    import base64
+    try:
+        token_payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
+        email: str = token_payload.get("sub")
+        role: str = token_payload.get("role")
+        institution_id: int = token_payload.get("institution_id")
+        if not email or not role or institution_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image size exceeds 5MB limit.")
+
+    content_type = file.content_type or "image/jpeg"
+    b64_str = base64.b64encode(contents).decode("utf-8")
+    data_url = f"data:{content_type};base64,{b64_str}"
+
+    if role == "student":
+        student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        student.profile_pic = data_url
+        student.photo = "yes"
+        db.commit()
+        return {"message": "Profile picture updated successfully", "profile_pic": data_url}
+
+    user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    user.profile_pic = data_url
+    db.commit()
+    return {"message": "Profile picture updated successfully", "profile_pic": data_url}
+
+
+@router.post("/profile/change-password")
+def change_my_password(
+    payload: schemas.UserChangePassword,
+    db: Session = Depends(get_db),
+    token: str = Depends(security.oauth2_scheme)
+):
+    """
+    Self-service password update for logged in user.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    from jose import jwt, JWTError
+    from app.core import config
+    try:
+        token_payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
+        email: str = token_payload.get("sub")
+        role: str = token_payload.get("role")
+        institution_id: int = token_payload.get("institution_id")
+        if not email or not role or institution_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters long.")
+
+    if role == "student":
+        student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        is_valid = False
+        if not student.password_hash:
+            if student.roll and payload.old_password == student.roll:
+                is_valid = True
+        elif security.verify_password(payload.old_password, student.password_hash):
+            is_valid = True
+        if not is_valid:
+            raise HTTPException(status_code=400, detail="Current password is incorrect.")
+        student.password_hash = security.get_password_hash(payload.new_password)
+        db.commit()
+        return {"message": "Password changed successfully."}
+
+    user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    if not security.verify_password(payload.old_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    user.password_hash = security.get_password_hash(payload.new_password)
+    db.commit()
+    return {"message": "Password changed successfully."}
+
+
 @router.get("/", response_model=List[schemas.User])
 def read_all_users(
     db: Session = Depends(get_db),

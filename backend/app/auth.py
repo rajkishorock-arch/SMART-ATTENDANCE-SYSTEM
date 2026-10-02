@@ -231,6 +231,10 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
     except JWTError:
         raise credentials_exception
 
+    inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
+    inst_name = inst.name if inst else "Smart Attendance"
+    inst_slug = inst.slug if inst else "default"
+
     if role == "student":
         student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
         if not student:
@@ -240,6 +244,8 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             "email": student.email,
             "name": student.name,
             "institution_id": student.institution_id,
+            "institution_name": inst_name,
+            "institution_slug": inst_slug,
             "details": {
                 "id": student.id,
                 "roll": student.roll,
@@ -251,7 +257,11 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
                 "dob": student.dob,
                 "phone": student.phone,
                 "address": student.address,
-                "teacher": student.teacher
+                "teacher": student.teacher,
+                "photo": student.photo,
+                "profile_pic": getattr(student, "profile_pic", None),
+                "bio": getattr(student, "bio", None),
+                "face_enrolled_at": student.face_enrolled_at.isoformat() if student.face_enrolled_at else None
             }
         }
 
@@ -277,6 +287,8 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             "email": parent.email,
             "name": parent.name,
             "institution_id": parent.institution_id,
+            "institution_name": inst_name,
+            "institution_slug": inst_slug,
             "details": {
                 "id": parent.id,
                 "student_id": parent.student_id,
@@ -296,9 +308,15 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
         "email": user.email,
         "name": user.name,
         "institution_id": user.institution_id,
+        "institution_name": inst_name,
+        "institution_slug": inst_slug,
         "details": {
             "id": user.id,
             "role": user.role,
+            "phone": getattr(user, "phone", None),
+            "bio": getattr(user, "bio", None),
+            "profile_pic": getattr(user, "profile_pic", None),
+            "department": getattr(user, "department", None),
             "subject_name": subject.name if subject else None,
             "subject_code": subject.code if subject else None,
             "subject_department": subject.department if subject else None

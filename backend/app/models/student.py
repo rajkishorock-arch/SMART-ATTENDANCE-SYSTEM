@@ -32,6 +32,8 @@ class StudentModel(Base):
     address = Column(String(255))
     teacher = Column(String(100))
     photo = Column(String(45))
+    profile_pic = Column(Text, nullable=True)
+    bio = Column(String(255), nullable=True)
     password_hash = Column(String(255), nullable=True)
     face_embedding = Column(Text, nullable=True)
     face_enrolled_at = Column(DateTime(timezone=True), nullable=True)
