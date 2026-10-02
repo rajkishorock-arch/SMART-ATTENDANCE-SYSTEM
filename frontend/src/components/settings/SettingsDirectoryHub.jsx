@@ -33,46 +33,48 @@ export default function SettingsDirectoryHub({
         gap: '20px'
       }}>
         {/* Category Card 1: GPS & Security Perimeter */}
-        <div 
-          onClick={() => { setActiveSubSetting('geofencing'); if (playCyberSound) playCyberSound('click'); }}
-          className="surface-card hover-card" 
-          style={{ 
-            padding: '24px', 
-            cursor: 'pointer', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '12px', 
-            minHeight: '150px', 
-            borderRadius: '14px', 
-            border: '1px solid var(--border-subtle)',
-            background: '#ffffff',
-            boxShadow: 'var(--shadow-card)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ 
-              width: '42px', 
-              height: '42px', 
-              borderRadius: '10px', 
-              background: 'rgba(30, 64, 175, 0.08)', 
-              color: 'var(--color-primary)', 
+        {userRole === 'admin' && (
+          <div 
+            onClick={() => { setActiveSubSetting('geofencing'); if (playCyberSound) playCyberSound('click'); }}
+            className="surface-card hover-card" 
+            style={{ 
+              padding: '24px', 
+              cursor: 'pointer', 
               display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <ShieldCheck size={22} />
+              flexDirection: 'column', 
+              gap: '12px', 
+              minHeight: '150px', 
+              borderRadius: '14px', 
+              border: '1px solid var(--border-subtle)',
+              background: '#ffffff',
+              boxShadow: 'var(--shadow-card)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ 
+                width: '42px', 
+                height: '42px', 
+                borderRadius: '10px', 
+                background: 'rgba(30, 64, 175, 0.08)', 
+                color: 'var(--color-primary)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <ShieldCheck size={22} />
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#eff6ff', color: '#1e40af' }}>
+                Security
+              </span>
             </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#eff6ff', color: '#1e40af' }}>
-              Security
-            </span>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              Security Perimeter & Geofence
+            </h3>
+            <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
+              Configure GPS campus boundaries, authorized Wi-Fi subnet gates, and security disarm controls.
+            </p>
           </div>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-            Security Perimeter & Geofence
-          </h3>
-          <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-            Configure GPS campus boundaries, authorized Wi-Fi subnet gates, and security disarm controls.
-          </p>
-        </div>
+        )}
 
         {/* Category Card 2: Biometric Security */}
         {userRole !== 'student' && (
@@ -157,13 +159,13 @@ export default function SettingsDirectoryHub({
               My Profile & Credentials
             </h3>
             <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-              Modify administrator profile name, login email address, or update system password credentials.
+              Modify profile name, login email address, or update account security credentials.
             </p>
           </div>
         )}
 
         {/* Category Card 4: Admin Account Registry */}
-        {userRole !== 'student' && (
+        {userRole === 'admin' && (
           <div 
             onClick={() => { setActiveSubSetting('admins'); if (playCyberSound) playCyberSound('click'); }}
             className="surface-card hover-card" 
@@ -207,7 +209,7 @@ export default function SettingsDirectoryHub({
         )}
 
         {/* Category Card 5: Manage Departments */}
-        {userRole !== 'student' && (
+        {userRole === 'admin' && (
           <div 
             onClick={() => { setActiveSubSetting('departments'); if (playCyberSound) playCyberSound('click'); }}
             className="surface-card hover-card" 
@@ -350,7 +352,7 @@ export default function SettingsDirectoryHub({
         </div>
 
         {/* Category Card 8: Multi-Tenant Registry & Management */}
-        {userRole !== 'student' && activeTenantSlug === 'default' && currentUser?.institution_id === 1 && (
+        {userRole === 'admin' && activeTenantSlug === 'default' && Number(currentUser?.institution_id) === 1 && (
           <div 
             onClick={() => { setActiveSubSetting('multitenant'); if (playCyberSound) playCyberSound('click'); }}
             className="surface-card hover-card" 

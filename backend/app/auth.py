@@ -224,28 +224,37 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = payload.get("sub")
         role: str = payload.get("role")
-        institution_id: int = payload.get("institution_id")
-        if email is None or not role or institution_id is None:
+        institution_id: Optional[int] = payload.get("institution_id")
+        if email is None or not role:
             raise credentials_exception
         record_active_user(email, role)
     except JWTError:
         raise credentials_exception
 
-    inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-    inst_name = inst.name if inst else "Smart Attendance"
-    inst_slug = inst.slug if inst else "default"
-
     if role == "student":
         student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
         if not student:
+            student = db.query(models.StudentModel).filter(
+                func.lower(models.StudentModel.email) == email.strip().lower()
+            ).first()
+        if not student:
             raise credentials_exception
+
+        effective_inst_id = student.institution_id or institution_id or 1
+        inst = db.query(models.Institution).filter(models.Institution.id == effective_inst_id).first()
+        inst_name = inst.name if inst else "Smart Attendance System"
+        inst_slug = inst.slug if inst else "default"
+
         return {
             "role": "student",
             "email": student.email,
             "name": student.name,
-            "institution_id": student.institution_id,
+            "institution_id": effective_inst_id,
             "institution_name": inst_name,
             "institution_slug": inst_slug,
+            "profile_pic": getattr(student, "profile_pic", None),
+            "phone": getattr(student, "phone", None),
+            "bio": getattr(student, "bio", None),
             "details": {
                 "id": student.id,
                 "roll": student.roll,
@@ -261,6 +270,8 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
                 "photo": student.photo,
                 "profile_pic": getattr(student, "profile_pic", None),
                 "bio": getattr(student, "bio", None),
+                "institution_name": inst_name,
+                "institution_slug": inst_slug,
                 "face_enrolled_at": student.face_enrolled_at.isoformat() if student.face_enrolled_at else None
             }
         }
@@ -271,22 +282,22 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             raise credentials_exception
         parent = db.query(models.ParentAccount).filter(
             models.ParentAccount.email == email,
-            models.ParentAccount.institution_id == institution_id,
             models.ParentAccount.student_id == jwt_student_id,
         ).first()
         if not parent:
             raise credentials_exception
         student = db.query(models.StudentModel).filter(
             models.StudentModel.id == parent.student_id,
-            models.StudentModel.institution_id == institution_id,
         ).first()
-        if not student:
-            raise credentials_exception
+        effective_inst_id = parent.institution_id or (student.institution_id if student else None) or 1
+        inst = db.query(models.Institution).filter(models.Institution.id == effective_inst_id).first()
+        inst_name = inst.name if inst else "Smart Attendance System"
+        inst_slug = inst.slug if inst else "default"
         return {
             "role": "parent",
             "email": parent.email,
             "name": parent.name,
-            "institution_id": parent.institution_id,
+            "institution_id": effective_inst_id,
             "institution_name": inst_name,
             "institution_slug": inst_slug,
             "details": {
@@ -295,21 +306,37 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
                 "student_name": student.name if student else None,
                 "student_roll": student.roll if student else None,
                 "phone": parent.phone,
+                "institution_name": inst_name,
+                "institution_slug": inst_slug,
             }
         }
 
     user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
+    if not user:
+        user = db.query(models.User).filter(
+            func.lower(models.User.email) == email.strip().lower(),
+            models.User.is_active == True
+        ).first()
     if not user or not user.is_active or user.role != role:
         raise credentials_exception
+
+    effective_inst_id = user.institution_id or institution_id or 1
+    inst = db.query(models.Institution).filter(models.Institution.id == effective_inst_id).first()
+    inst_name = inst.name if inst else "Smart Attendance System"
+    inst_slug = inst.slug if inst else "default"
 
     subject = db.query(models.Subject).filter(models.Subject.teacher_id == user.id).first()
     return {
         "role": user.role,
         "email": user.email,
         "name": user.name,
-        "institution_id": user.institution_id,
+        "institution_id": effective_inst_id,
         "institution_name": inst_name,
         "institution_slug": inst_slug,
+        "profile_pic": getattr(user, "profile_pic", None),
+        "department": getattr(user, "department", None),
+        "phone": getattr(user, "phone", None),
+        "bio": getattr(user, "bio", None),
         "details": {
             "id": user.id,
             "role": user.role,
@@ -317,6 +344,8 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             "bio": getattr(user, "bio", None),
             "profile_pic": getattr(user, "profile_pic", None),
             "department": getattr(user, "department", None),
+            "institution_name": inst_name,
+            "institution_slug": inst_slug,
             "subject_name": subject.name if subject else None,
             "subject_code": subject.code if subject else None,
             "subject_department": subject.department if subject else None

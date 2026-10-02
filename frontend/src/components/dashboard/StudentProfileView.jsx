@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   AlertCircle,
   Camera,
@@ -60,7 +60,7 @@ export default function StudentProfileView({
   token,
   API_BASE_URL,
 }) {
-  const { currentUser, userRole, setCurrentUser, handleLogout } = useAuth();
+  const { currentUser, userRole, setCurrentUser, handleLogout, fetchSessionInfo } = useAuth();
   const {
     activeTheme,
     setActiveTheme,
@@ -73,6 +73,13 @@ export default function StudentProfileView({
     playCyberSound,
   } = useUI();
 
+  // Re-verify and sync fresh session info on profile mount
+  useEffect(() => {
+    if (token && typeof fetchSessionInfo === 'function') {
+      fetchSessionInfo(token);
+    }
+  }, [token, fetchSessionInfo]);
+
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(currentUser?.name || '');
@@ -82,6 +89,18 @@ export default function StudentProfileView({
   const [editAddress, setEditAddress] = useState(currentUser?.details?.address || '');
   const [editDob, setEditDob] = useState(currentUser?.details?.dob || '');
   const [editGender, setEditGender] = useState(currentUser?.details?.gender || 'Male');
+
+  useEffect(() => {
+    if (!isEditingProfile && currentUser) {
+      setEditName(currentUser?.name || '');
+      setEditPhone(currentUser?.details?.phone || currentUser?.phone || '');
+      setEditBio(currentUser?.details?.bio || currentUser?.bio || '');
+      setEditDepartment(currentUser?.details?.dep || currentUser?.details?.department || currentUser?.department || '');
+      setEditAddress(currentUser?.details?.address || '');
+      setEditDob(currentUser?.details?.dob || '');
+      setEditGender(currentUser?.details?.gender || 'Male');
+    }
+  }, [currentUser, isEditingProfile]);
 
   const [profileSaveSuccess, setProfileSaveSuccess] = useState('');
   const [profileSaveError, setProfileSaveError] = useState('');
@@ -105,68 +124,86 @@ export default function StudentProfileView({
     }
 
     setIsUploadingPhoto(true);
-    setPhotoUploadMsg('');
+    setPhotoUploadMsg('Optimizing and uploading photo...');
 
     try {
       // Resize with canvas to 256x256 for fast upload and storage
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const img = new Image();
-        img.onload = async () => {
-          const canvas = document.createElement('canvas');
-          const size = 256;
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Failed to load image preview'));
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const size = 256;
+              canvas.width = size;
+              canvas.height = size;
+              const ctx = canvas.getContext('2d');
 
-          // Center crop to square
-          const minDim = Math.min(img.width, img.height);
-          const sx = (img.width - minDim) / 2;
-          const sy = (img.height - minDim) / 2;
-          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+              // Center crop to square
+              const minDim = Math.min(img.width, img.height);
+              const sx = (img.width - minDim) / 2;
+              const sy = (img.height - minDim) / 2;
+              ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
 
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-          // Upload to profile photo endpoint
-          const res = await fetch(`${API_BASE_URL}/users/profile/me`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ profile_pic: dataUrl })
-          });
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || 'Failed to update profile picture.');
-          }
-
-          // Update local state immediately
-          setCurrentUser(prev => ({
-            ...prev,
-            profile_pic: dataUrl,
-            details: { ...prev?.details, profile_pic: dataUrl }
-          }));
-
-          // Update cached user in localStorage
-          try {
-            const cached = JSON.parse(localStorage.getItem('cached_user') || '{}');
-            cached.profile_pic = dataUrl;
-            if (cached.details) cached.details.profile_pic = dataUrl;
-            localStorage.setItem('cached_user', JSON.stringify(cached));
-          } catch { /* optional */ }
-
-          if (typeof playCyberSound === 'function') playCyberSound('success');
-          setPhotoUploadMsg('Profile picture updated successfully!');
-          setTimeout(() => setPhotoUploadMsg(''), 3000);
+              const resized = canvas.toDataURL('image/jpeg', 0.85);
+              resolve(resized);
+            } catch (canvasErr) {
+              reject(canvasErr);
+            }
+          };
+          img.src = event.target.result;
         };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+      });
+
+      const effectiveApiUrl = API_BASE_URL || (typeof window !== 'undefined' && window.location.origin) || '';
+      const res = await fetch(`${effectiveApiUrl}/users/profile/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ profile_pic: dataUrl })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to update profile picture.');
+      }
+
+      const resData = await res.json().catch(() => ({}));
+
+      // Update local state immediately
+      setCurrentUser(prev => ({
+        ...prev,
+        profile_pic: dataUrl,
+        institution_name: resData.institution_name || prev?.institution_name,
+        institution_slug: resData.institution_slug || prev?.institution_slug,
+        details: { ...prev?.details, profile_pic: dataUrl }
+      }));
+
+      // Update cached user in localStorage
+      try {
+        const cached = JSON.parse(localStorage.getItem('cached_user') || '{}');
+        cached.profile_pic = dataUrl;
+        if (resData.institution_name) cached.institution_name = resData.institution_name;
+        if (resData.institution_slug) cached.institution_slug = resData.institution_slug;
+        if (!cached.details) cached.details = {};
+        cached.details.profile_pic = dataUrl;
+        localStorage.setItem('cached_user', JSON.stringify(cached));
+      } catch { /* optional */ }
+
+      if (typeof playCyberSound === 'function') playCyberSound('success');
+      setPhotoUploadMsg('Profile picture updated successfully!');
+      setTimeout(() => setPhotoUploadMsg(''), 3500);
     } catch (err) {
+      console.error('Error uploading photo:', err);
       if (typeof playCyberSound === 'function') playCyberSound('error');
       alert(err.message || 'Error uploading photo');
+      setPhotoUploadMsg('');
     } finally {
       setIsUploadingPhoto(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -370,20 +407,21 @@ export default function StudentProfileView({
                 fontWeight: 600
               }}>
                 <Building size={13} />
-                {currentUser?.institution_name || 'Smart Attendance System'}
+                {currentUser?.institution_name || currentUser?.details?.institution_name || (Number(currentUser?.institution_id) === 5 ? 'RIT Mumbai' : 'Smart Attendance System')}
               </span>
 
-              {currentUser?.institution_slug && (
+              {(currentUser?.institution_slug || currentUser?.details?.institution_slug || Number(currentUser?.institution_id) === 5) && (
                 <span style={{
                   fontSize: '0.76rem',
-                  color: '#475569',
-                  background: '#f1f5f9',
+                  color: '#7c3aed',
+                  background: '#f5f3ff',
                   padding: '3px 8px',
                   borderRadius: '6px',
+                  border: '1px solid #ddd6fe',
                   fontFamily: 'monospace',
-                  fontWeight: 600
+                  fontWeight: 700
                 }}>
-                  Code: {currentUser?.institution_slug}
+                  Code: {currentUser?.institution_slug || currentUser?.details?.institution_slug || (Number(currentUser?.institution_id) === 5 ? 'rit' : 'default')}
                 </span>
               )}
             </div>
@@ -761,14 +799,14 @@ export default function StudentProfileView({
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                 <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Institution</span>
                 <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0284c7' }}>
-                  {currentUser?.institution_name || 'Smart Attendance System'}
+                  {currentUser?.institution_name || currentUser?.details?.institution_name || (Number(currentUser?.institution_id) === 5 ? 'RIT Mumbai' : 'Smart Attendance System')}
                 </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                 <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Workspace Slug</span>
                 <span style={{ fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace', color: '#7c3aed' }}>
-                  {currentUser?.institution_slug || 'default'}
+                  {currentUser?.institution_slug || currentUser?.details?.institution_slug || (Number(currentUser?.institution_id) === 5 ? 'rit' : 'default')}
                 </span>
               </div>
 

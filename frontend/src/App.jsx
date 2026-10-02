@@ -1911,7 +1911,7 @@ export default function App() {
     try {
       const cached = localStorage.getItem('cached_students');
       const cachedInst = localStorage.getItem('cached_students_inst_id');
-      const savedUser = localStorage.getItem('currentUser');
+      const savedUser = localStorage.getItem('cached_user') || localStorage.getItem('currentUser');
       const userObj = savedUser ? JSON.parse(savedUser) : null;
       const expectedInst = userObj?.institution_id;
       if (expectedInst && cachedInst && String(cachedInst) !== String(expectedInst)) {
@@ -2238,8 +2238,12 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         // Strict tenant safety filter
+        const userInst = Number(currentUser?.institution_id || 1);
         const safeData = Array.isArray(data)
-          ? data.filter(s => !currentUser?.institution_id || !s.institution_id || Number(s.institution_id) === Number(currentUser.institution_id))
+          ? data.filter(s => {
+              const studentInst = Number(s.institution_id || 1);
+              return studentInst === userInst;
+            })
           : [];
         setStudents(safeData);
         localStorage.setItem('cached_students', JSON.stringify(safeData));

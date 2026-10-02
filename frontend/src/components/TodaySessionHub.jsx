@@ -259,41 +259,52 @@ export default function TodaySessionHub({
       {/* ── Primary "Today's Class" Card (When Session Inactive) ── */}
       {!sessionActive && (
         <div className="surface-card" style={{ padding: '22px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Clock size={18} color="var(--color-primary)" />
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-text-main)' }}>
                 {t('current_class', lang)}
               </h3>
             </div>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#38bdf8', background: 'rgba(14, 165, 233, 0.12)', border: '1px solid rgba(14, 165, 233, 0.25)', padding: '3px 10px', borderRadius: '12px' }}>
+              {selectedPeriod} Selected
+            </span>
+          </div>
 
-            {/* Quick Period Switcher */}
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6'].map((p) => {
-                const isSelected = selectedPeriod === p;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => handlePeriodClick(p)}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: 'var(--radius-full)',
-                      border: `1.5px solid ${isSelected ? '#0ea5e9' : 'rgba(255, 255, 255, 0.1)'}`,
-                      background: isSelected ? 'rgba(14, 165, 233, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-                      color: isSelected ? '#38bdf8' : 'var(--color-text-secondary)',
-                      fontSize: '0.74rem',
-                      fontWeight: isSelected ? 800 : 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      boxShadow: isSelected ? '0 0 10px rgba(14, 165, 233, 0.35)' : 'none'
-                    }}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Symmetrical Responsive Grid for Periods (3x2 on phone, 6x1 on desktop) */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '8px',
+            marginBottom: '16px',
+            width: '100%'
+          }} className="periods-selector-grid">
+            {['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6'].map((p) => {
+              const isSelected = selectedPeriod === p;
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => handlePeriodClick(p)}
+                  style={{
+                    padding: '8px 4px',
+                    borderRadius: '10px',
+                    border: `1.5px solid ${isSelected ? '#0ea5e9' : 'rgba(255, 255, 255, 0.12)'}`,
+                    background: isSelected ? 'rgba(14, 165, 233, 0.22)' : 'rgba(255, 255, 255, 0.04)',
+                    color: isSelected ? '#38bdf8' : 'var(--color-text-secondary)',
+                    fontSize: '0.78rem',
+                    fontWeight: isSelected ? 800 : 600,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isSelected ? '0 0 12px rgba(14, 165, 233, 0.35)' : 'none',
+                    width: '100%'
+                  }}
+                >
+                  {p}
+                </button>
+              );
+            })}
           </div>
 
           {/* Subject Selector & Meta */}

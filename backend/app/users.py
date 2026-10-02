@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from datetime import datetime, timezone
 import cv2
@@ -364,14 +365,18 @@ def update_my_profile(
         token_payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = token_payload.get("sub")
         role: str = token_payload.get("role")
-        institution_id: int = token_payload.get("institution_id")
-        if not email or not role or institution_id is None:
+        institution_id: Optional[int] = token_payload.get("institution_id")
+        if not email or not role:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
     if role == "student":
         student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
+        if not student:
+            student = db.query(models.StudentModel).filter(
+                func.lower(models.StudentModel.email) == email.strip().lower()
+            ).first()
         if not student:
             raise HTTPException(status_code=404, detail="Student profile not found")
         if payload.name:
@@ -391,15 +396,29 @@ def update_my_profile(
             student.photo = "yes"
         db.commit()
         db.refresh(student)
+
+        effective_inst_id = student.institution_id or institution_id or 1
+        inst = db.query(models.Institution).filter(models.Institution.id == effective_inst_id).first()
+        inst_name = inst.name if inst else "Smart Attendance System"
+        inst_slug = inst.slug if inst else "default"
+
         return {
             "message": "Profile updated successfully",
             "name": student.name,
             "phone": student.phone,
             "bio": student.bio,
-            "profile_pic": student.profile_pic
+            "profile_pic": student.profile_pic,
+            "institution_id": effective_inst_id,
+            "institution_name": inst_name,
+            "institution_slug": inst_slug
         }
 
     user = crud.get_user_by_email(db, email=email, institution_id=institution_id)
+    if not user:
+        user = db.query(models.User).filter(
+            func.lower(models.User.email) == email.strip().lower(),
+            models.User.is_active == True
+        ).first()
     if not user:
         raise HTTPException(status_code=404, detail="User profile not found")
     if payload.name:
@@ -415,13 +434,22 @@ def update_my_profile(
 
     db.commit()
     db.refresh(user)
+
+    effective_inst_id = user.institution_id or institution_id or 1
+    inst = db.query(models.Institution).filter(models.Institution.id == effective_inst_id).first()
+    inst_name = inst.name if inst else "Smart Attendance System"
+    inst_slug = inst.slug if inst else "default"
+
     return {
         "message": "Profile updated successfully",
         "name": user.name,
         "phone": user.phone,
         "bio": user.bio,
         "department": user.department,
-        "profile_pic": user.profile_pic
+        "profile_pic": user.profile_pic,
+        "institution_id": effective_inst_id,
+        "institution_name": inst_name,
+        "institution_slug": inst_slug
     }
 
 
