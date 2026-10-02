@@ -197,6 +197,26 @@ def update_schema():
             else:
                 print("Constraint uq_institution_email already exists — skipped.")
 
+        # Update unique index constraints on subjects table for multi-tenancy
+        if db_dialect == 'mysql':
+            safe_execute("ALTER TABLE subjects DROP INDEX ix_subjects_code", "Dropped ix_subjects_code index")
+            safe_execute("ALTER TABLE subjects DROP INDEX code", "Dropped code index")
+            safe_execute(
+                "ALTER TABLE subjects ADD UNIQUE KEY uq_institution_subject_code (institution_id, code)",
+                "Added composite unique key on subjects (institution_id, code)"
+            )
+        else:
+            safe_execute("DROP INDEX IF EXISTS ix_subjects_code", "Dropped ix_subjects_code index")
+            safe_execute("DROP INDEX IF EXISTS code", "Dropped code index")
+            safe_execute("ALTER TABLE subjects DROP CONSTRAINT IF EXISTS subjects_code_key", "Dropped subjects_code_key")
+            if not constraint_exists("uq_institution_subject_code"):
+                safe_execute(
+                    "ALTER TABLE subjects ADD CONSTRAINT uq_institution_subject_code UNIQUE (institution_id, code)",
+                    "Added composite unique constraint on subjects"
+                )
+            else:
+                print("Constraint uq_institution_subject_code already exists — skipped.")
+
         # --- Advanced feature columns (idempotent migrations) ---
         safe_add_column('system_settings', 'latest_version', 'VARCHAR(50) NULL')
         safe_add_column('system_settings', 'update_download_url', 'TEXT NULL')

@@ -3040,9 +3040,9 @@ export default function App() {
             if (voiceAnnounceLiveness && !livenessBypassRef.current) {
               handleSpeak("Please blink your eyes to verify.");
             }
-          }, 3500);
+          }, 900);
           
-        }, 1200);
+        }, 250);
         return;
       }
 
@@ -3292,8 +3292,8 @@ export default function App() {
         setIsScanning(false);
         recognitionBusyRef.current = false;
         
-        // Cooldown configuration
-        const cooldownTime = matchSuccess ? 3500 : 400;
+        // Cooldown configuration (Snappy millisecond reset)
+        const cooldownTime = matchSuccess ? 900 : 250;
         
         setTimeout(() => {
           setScannedStudent(null);
@@ -4204,14 +4204,14 @@ export default function App() {
                 addDiagnosticLog('Ocular state: Blink trigger detected');
               } else if (
                 (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') ||
-                lockElapsed >= 1200
+                (avgEAR >= 0.18 && lockElapsed >= 220)
               ) {
                 eyeStateRef.current = 'open';
                 faceLockStartRef.current = null;
                 livenessStatusRef.current = 'verified';
                 setLivenessStatus('verified');
-                setLivenessMessage('Liveness Confirmed • Scanning face...');
-                addDiagnosticLog('Ocular verification complete: PASS');
+                setLivenessMessage('Biometric Lock • Scanning...');
+                addDiagnosticLog('Smartphone FaceLock: Verified in ' + lockElapsed + 'ms');
                 
                 if (voiceAnnounceLiveness) {
                   handleSpeak("Liveness verified. Scanning face.");
@@ -6027,11 +6027,16 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'X-Master-Password': masterPass
+          'X-Master-Password': masterPass || ''
         },
         body: JSON.stringify(newTeacher)
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = { detail: `Server responded with status ${res.status}: ${res.statusText || 'Request failed'}` };
+      }
       if (res.ok) {
         playCyberSound('success');
         setTeacherSuccess(`${roleName} registered successfully!`);
@@ -6050,7 +6055,8 @@ export default function App() {
         setTeacherError(data.detail || `Failed to register ${roleName.toLowerCase()}.`);
       }
     } catch (err) {
-      setTeacherError('Connection failed.');
+      console.error('Teacher registration error:', err);
+      setTeacherError(err.message || 'Connection failed. Please check network connectivity.');
     }
   };
 

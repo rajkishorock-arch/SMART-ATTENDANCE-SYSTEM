@@ -2,19 +2,19 @@
 
 export const CAMERA_PRESETS = {
   turbo: {
-    label: 'Turbo (fastest)',
+    label: 'Turbo FaceLock (Millisecond Speed)',
     video: {
       width: { ideal: 640, max: 1280 },
       height: { ideal: 480, max: 720 },
       frameRate: { ideal: 30, max: 60 },
       facingMode: 'user',
     },
-    captureWidth: 480,
-    captureHeight: 360,
-    jpegQuality: 0.72,
+    captureWidth: 400,
+    captureHeight: 300,
+    jpegQuality: 0.68,
     meshSkipFrames: 0,
-    minDetectionConfidence: 0.4,
-    faceDetectionConfidence: 0.42,
+    minDetectionConfidence: 0.38,
+    faceDetectionConfidence: 0.40,
     refineLandmarks: false,
   },
   balanced: {
@@ -91,19 +91,23 @@ export async function openCameraStream(presetKey = 'turbo', facingMode = 'user')
   throw lastErr || new Error('Camera unavailable');
 }
 
-export function captureFrameBlob(video, width, height, quality = 0.8) {
+let _sharedCanvas = null;
+
+export function captureFrameBlob(video, width, height, quality = 0.7) {
   return new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+    if (!_sharedCanvas) {
+      _sharedCanvas = document.createElement('canvas');
+    }
+    _sharedCanvas.width = width;
+    _sharedCanvas.height = height;
+    const ctx = _sharedCanvas.getContext('2d', { alpha: false, desynchronized: true });
     if (!ctx) {
       resolve(null);
       return;
     }
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(video, 0, 0, width, height);
-    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
+    _sharedCanvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
   });
 }
 

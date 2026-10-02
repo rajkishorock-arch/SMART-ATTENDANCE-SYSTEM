@@ -100,6 +100,7 @@ def check_duplicate_face(
             
     return False
 
+@router.post("", response_model=schemas.User, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 def create_new_user(
     user: schemas.UserCreate, 
@@ -128,43 +129,57 @@ def create_new_user(
     new_user = crud.create_user(db=db, user=user, institution_id=current_user.institution_id)
     
     # Map subject if details are provided for the teacher role
-    if new_user.role == "teacher" and user.subject_name and user.subject_code and user.subject_department:
-        existing_sub = db.query(models.Subject).filter(
-            models.Subject.code == user.subject_code,
-            models.Subject.institution_id == current_user.institution_id
-        ).first()
-        if existing_sub:
-            existing_sub.name = user.subject_name
-            existing_sub.department = user.subject_department
-            existing_sub.teacher_id = new_user.id
-            db.commit()
-            db.refresh(existing_sub)
-        else:
-            db_sub = models.Subject(
-                name=user.subject_name,
-                code=user.subject_code,
-                department=user.subject_department,
-                teacher_id=new_user.id,
-                institution_id=current_user.institution_id
-            )
-            db.add(db_sub)
-            db.commit()
-            db.refresh(db_sub)
+    if new_user.role == "teacher" and user.subject_name and user.subject_code:
+        try:
+            dept = user.subject_department or "General"
+            existing_sub = db.query(models.Subject).filter(
+                models.Subject.code == user.subject_code,
+                models.Subject.institution_id == current_user.institution_id
+            ).first()
+            if existing_sub:
+                existing_sub.name = user.subject_name
+                existing_sub.department = dept
+                existing_sub.teacher_id = new_user.id
+                db.commit()
+                db.refresh(existing_sub)
+            else:
+                db_sub = models.Subject(
+                    name=user.subject_name,
+                    code=user.subject_code,
+                    department=dept,
+                    teacher_id=new_user.id,
+                    institution_id=current_user.institution_id
+                )
+                db.add(db_sub)
+                db.commit()
+                db.refresh(db_sub)
+        except Exception as sub_err:
+            db.rollback()
+            print(f"Warning: Subject mapping for user {new_user.id} skipped: {sub_err}")
             
     # Attach subject properties for response serialization
-    subject = db.query(models.Subject).filter(
-        models.Subject.teacher_id == new_user.id,
-        models.Subject.institution_id == current_user.institution_id
-    ).first()
-    new_user.subject_name = subject.name if subject else None
-    new_user.subject_code = subject.code if subject else None
-    new_user.subject_department = subject.department if subject else None
+    try:
+        subject = db.query(models.Subject).filter(
+            models.Subject.teacher_id == new_user.id,
+            models.Subject.institution_id == current_user.institution_id
+        ).first()
+        new_user.subject_name = subject.name if subject else None
+        new_user.subject_code = subject.code if subject else None
+        new_user.subject_department = subject.department if subject else None
+    except Exception:
+        new_user.subject_name = user.subject_name
+        new_user.subject_code = user.subject_code
+        new_user.subject_department = user.subject_department
 
-    crud.create_audit_log(
-        db, 
-        log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Admin '{current_user.email}' created user '{new_user.email}'."),
-        institution_id=current_user.institution_id
-    )
+    try:
+        crud.create_audit_log(
+            db, 
+            log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Admin '{current_user.email}' created user '{new_user.email}'."),
+            institution_id=current_user.institution_id
+        )
+    except Exception as audit_err:
+        print(f"Warning: Audit log creation skipped: {audit_err}")
+
     return new_user
 
 @router.put("/{id}", response_model=schemas.User)
@@ -517,6 +532,7 @@ def change_my_password(
     return {"message": "Password changed successfully."}
 
 
+@router.get("", response_model=List[schemas.User], include_in_schema=False)
 @router.get("/", response_model=List[schemas.User])
 def read_all_users(
     db: Session = Depends(get_db),

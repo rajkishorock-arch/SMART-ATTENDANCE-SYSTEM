@@ -19,9 +19,13 @@ class Subject(Base):
     id = Column(Integer, primary_key=True, index=True)
     institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(100), nullable=False)
-    code = Column(String(50), nullable=False, unique=True)
+    code = Column(String(50), nullable=False)
     department = Column(String(100), nullable=False)
     teacher_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('institution_id', 'code', name='_institution_subject_code_uc'),
+    )
 
 
 class Schedule(Base):
