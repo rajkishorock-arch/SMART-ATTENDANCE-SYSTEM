@@ -494,12 +494,15 @@ export default function ReleaseSettings({
                 <input
                   type="password"
                   className="form-input"
-                  placeholder="Enter master password to authorize"
+                  placeholder="Enter 'master' or your owner login password"
                   value={releaseMasterPassword}
                   onChange={e => setReleaseMasterPassword(e.target.value)}
                   disabled={buildStatus === 'building'}
                   required
                 />
+                <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '4px 0 0', lineHeight: 1.4 }}>
+                  💡 Enter system master password (<code>master</code>) or your Owner account password.
+                </p>
               </div>
             </div>
 
@@ -572,11 +575,14 @@ export default function ReleaseSettings({
               <input
                 type="password"
                 className="form-input"
-                placeholder="Enter master password to authorize"
+                placeholder="Enter 'master' or your owner login password"
                 value={releaseMasterPassword}
                 onChange={e => setReleaseMasterPassword(e.target.value)}
                 required
               />
+              <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '4px 0 0', lineHeight: 1.4 }}>
+                💡 Enter system master password (<code>master</code>) or your Owner account password.
+              </p>
             </div>
 
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -660,7 +666,7 @@ export default function ReleaseSettings({
               <input
                 type="password"
                 className="form-input"
-                placeholder="Enter system master password..."
+                placeholder="Enter 'master' or owner password..."
                 value={toggleMasterPassword}
                 onChange={e => setToggleMasterPassword(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleToggleUpdateActive(); }}
@@ -673,7 +679,7 @@ export default function ReleaseSettings({
                 </p>
               )}
               <p style={{ color: '#64748b', fontSize: '0.72rem', margin: '8px 0 0', lineHeight: 1.4 }}>
-                Use your institution master key or the global developer key configured on Render (DEVELOPER_MASTER_KEY).
+                💡 Enter system master password (<code>master</code>), your Owner account password, or institution master key.
               </p>
             </div>
 

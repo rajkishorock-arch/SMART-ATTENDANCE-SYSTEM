@@ -1,6 +1,9 @@
 import math
 import ipaddress
 import hmac
+import os
+from typing import Optional
+from sqlalchemy import func
 
 from . import models
 from .core import config
@@ -14,27 +17,85 @@ def constant_time_equals(left: str, right: str) -> bool:
 
 
 def verify_master_key_for_institution(db, candidate: str, institution_id: int) -> bool:
-    """Allow the institution key or global 'master' password."""
+    """Allow the institution key, global 'master' password, or DEVELOPER_MASTER_KEY."""
     if not candidate:
         return False
     clean_key = candidate.strip()
     if clean_key.lower() == "master":
         return True
-    inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-    return bool(inst and inst.master_key and constant_time_equals(clean_key, inst.master_key))
 
-
-def verify_master_key_for_system_action(db, candidate: str, institution_id: int) -> bool:
-    """Allow the current institution key or global 'master' password for system actions."""
-    if not candidate:
-        return False
-    clean_key = candidate.strip()
-    if clean_key.lower() == "master":
+    dev_key = os.getenv("DEVELOPER_MASTER_KEY", "").strip()
+    if dev_key and constant_time_equals(clean_key, dev_key):
         return True
+
     if institution_id:
         inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
         if inst and inst.master_key and constant_time_equals(clean_key, inst.master_key):
             return True
+
+    # Check system owner account password as fallback
+    try:
+        from . import security
+        owner = db.query(models.User).filter(
+            func.lower(models.User.email) == config.SYSTEM_OWNER_EMAIL.lower(),
+            models.User.is_active == True
+        ).first()
+        if owner and owner.password_hash and security.verify_password(clean_key, owner.password_hash):
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+def verify_master_key_for_system_action(db, candidate: str, institution_id: int, current_user: Optional[models.User] = None) -> bool:
+    """
+    Allow:
+    1. Global keyword: 'master'
+    2. Environment variable DEVELOPER_MASTER_KEY
+    3. Target institution master_key
+    4. Default institution (id: 1) master_key
+    5. Current user's account password (if admin)
+    6. System Owner's account password (e.g. raj@9211)
+    """
+    if not candidate:
+        return False
+    clean_key = candidate.strip()
+    if clean_key.lower() == "master":
+        return True
+
+    dev_key = os.getenv("DEVELOPER_MASTER_KEY", "").strip()
+    if dev_key and constant_time_equals(clean_key, dev_key):
+        return True
+
+    if institution_id:
+        inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
+        if inst and inst.master_key and constant_time_equals(clean_key, inst.master_key):
+            return True
+
+    if institution_id != 1:
+        default_inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
+        if default_inst and default_inst.master_key and constant_time_equals(clean_key, default_inst.master_key):
+            return True
+
+    try:
+        from . import security
+        # Check current user password if provided
+        if current_user and current_user.password_hash:
+            if security.verify_password(clean_key, current_user.password_hash):
+                return True
+
+        # Check system owner account password
+        owner = db.query(models.User).filter(
+            func.lower(models.User.email) == config.SYSTEM_OWNER_EMAIL.lower(),
+            models.User.is_active == True
+        ).first()
+        if owner and owner.password_hash:
+            if security.verify_password(clean_key, owner.password_hash):
+                return True
+    except Exception:
+        pass
+
     return False
 
 def get_client_ip(request, trust_proxy_headers: bool = False) -> str:

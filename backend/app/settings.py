@@ -67,7 +67,7 @@ def publish_system_update(
         )
         
     input_key = payload.master_password.strip()
-    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id)
+    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id, current_user=current_user)
     
     if not is_verified:
         raise HTTPException(
@@ -112,7 +112,7 @@ def toggle_update_active(
         )
 
     input_key = payload.master_password.strip()
-    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id)
+    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id, current_user=current_user)
 
     if not is_verified:
         raise HTTPException(
@@ -161,7 +161,7 @@ def trigger_build(
         )
 
     input_key = payload.master_password.strip()
-    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id)
+    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id, current_user=current_user)
     
     if not is_verified:
         raise HTTPException(
@@ -363,7 +363,7 @@ def toggle_beta_update_active(
         )
 
     input_key = payload.master_password.strip()
-    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id)
+    is_verified = verify_master_key_for_system_action(db, input_key, current_user.institution_id, current_user=current_user)
 
     if not is_verified:
         raise HTTPException(

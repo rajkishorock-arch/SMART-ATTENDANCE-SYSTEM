@@ -85,7 +85,7 @@ def grant_or_revoke_premium(
     if not _can_manage_institution_premium(current_user):
         raise HTTPException(status_code=403, detail="Only admins or the system owner can manage premium access.")
 
-    if not verify_master_key_for_system_action(db, payload.master_password.strip(), current_user.institution_id):
+    if not verify_master_key_for_system_action(db, payload.master_password.strip(), current_user.institution_id, current_user=current_user):
         raise HTTPException(status_code=400, detail="Incorrect master password.")
 
     target = db.query(models.User).filter(
@@ -133,7 +133,7 @@ def grant_premium_by_admin_email(
     if current_user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
         raise HTTPException(status_code=403, detail="Only the system owner can grant cross-institution premium.")
 
-    if not verify_master_key_for_system_action(db, payload.master_password.strip(), current_user.institution_id):
+    if not verify_master_key_for_system_action(db, payload.master_password.strip(), current_user.institution_id, current_user=current_user):
         raise HTTPException(status_code=400, detail="Incorrect master password.")
 
     admin_email = payload.admin_email.strip().lower()

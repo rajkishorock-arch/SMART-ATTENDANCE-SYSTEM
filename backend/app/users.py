@@ -39,13 +39,7 @@ def verify_master_password(db: Session, request: Request, institution_id: int) -
     if not master_header:
         return False
     clean_key = master_header.strip()
-    if clean_key.lower() == "master":
-        return True
-    if institution_id:
-        inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
-        if inst and inst.master_key and security_utils.constant_time_equals(clean_key, inst.master_key):
-            return True
-    return False
+    return security_utils.verify_master_key_for_system_action(db, clean_key, institution_id)
 
 def check_duplicate_face(
     db: Session, 
