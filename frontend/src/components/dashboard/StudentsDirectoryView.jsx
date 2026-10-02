@@ -24,14 +24,19 @@ export function StudentsDirectoryHeaderAction({
         }
         setShowAddModal(true);
       }}
-      className="bg-gradient-btn"
+      className="btn-primary"
       style={{ 
-        padding: '10px 18px', 
-        borderRadius: '8px', 
+        padding: '10px 20px', 
+        borderRadius: '10px', 
         display: 'flex', 
         alignItems: 'center', 
         gap: '8px', 
         fontSize: '0.9rem',
+        fontWeight: 600,
+        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+        border: 'none',
+        color: '#ffffff',
+        boxShadow: '0 2px 10px rgba(30, 64, 175, 0.2)',
         opacity: serverWarmingUp ? 0.6 : 1,
         cursor: serverWarmingUp ? 'not-allowed' : 'pointer'
       }}
@@ -69,7 +74,7 @@ export default function StudentsDirectoryView({
           <input 
             type="text" 
             className="form-input" 
-            style={{ paddingLeft: '44px', background: 'rgba(8, 12, 20, 0.4)' }}
+            style={{ paddingLeft: '44px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
             placeholder="Search by ID, Name or Roll..."
             value={studentSearch}
             onChange={e => setStudentSearch(e.target.value)}
@@ -80,7 +85,7 @@ export default function StudentsDirectoryView({
         {userRole === 'admin' ? (
           <select 
             className="form-input" 
-            style={{ width: '220px', background: 'rgba(8, 12, 20, 0.4)' }}
+            style={{ width: '220px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
             value={studentDeptFilter}
             onChange={e => setStudentDeptFilter(e.target.value)}
           >
@@ -91,17 +96,16 @@ export default function StudentsDirectoryView({
           </select>
         ) : userRole === 'teacher' ? (
           <div style={{ 
-            padding: '12px 20px', 
-            background: 'rgba(0, 242, 254, 0.08)', 
-            border: '1px solid rgba(0, 242, 254, 0.2)', 
-            borderRadius: '12px', 
-            color: '#00f2fe',
+            padding: '10px 18px', 
+            background: 'rgba(30, 64, 175, 0.08)', 
+            border: '1px solid rgba(30, 64, 175, 0.2)', 
+            borderRadius: '10px', 
+            color: 'var(--color-primary)',
             fontSize: '0.875rem',
             fontWeight: '600',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 0 15px rgba(0, 242, 254, 0.05)'
+            gap: '8px'
           }}>
             <BookOpen size={16} />
             <span>Subject: {currentUser?.details?.subject_name || 'My Subject'} ({currentUser?.details?.subject_code || 'N/A'})</span>
@@ -122,8 +126,8 @@ export default function StudentsDirectoryView({
           <button
             onClick={() => setSelectedStudentIds(new Set())}
             style={{
-              padding: '5px 12px', fontSize: '0.75rem', background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8',
+              padding: '5px 12px', fontSize: '0.75rem', background: '#ffffff',
+              border: '1px solid var(--border-subtle)', color: 'var(--color-text-muted)',
               borderRadius: '6px', cursor: 'pointer'
             }}
           >Clear</button>
@@ -144,7 +148,7 @@ export default function StudentsDirectoryView({
       {/* List */}
       {filteredStudents.length === 0 ? (
         <div className="flex-center" style={{ padding: '60px 0', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '16px' }}>
-          <BookOpen size={44} style={{ color: 'rgba(255,255,255,0.1)' }} />
+          <BookOpen size={44} style={{ color: '#cbd5e1' }} />
           <span style={{ fontWeight: 500 }}>No registered students found.</span>
         </div>
       ) : (
@@ -163,7 +167,7 @@ export default function StudentsDirectoryView({
                         setSelectedStudentIds(new Set());
                       }
                     }}
-                    style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#00f2fe' }}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
                   />
                 </th>
                 <th style={{ width: '80px' }}>ID</th>
@@ -178,7 +182,7 @@ export default function StudentsDirectoryView({
             </thead>
             <tbody>
               {filteredStudents.map(student => (
-                <tr key={student.id} style={{ background: selectedStudentIds.has(student.id) ? 'rgba(0,242,254,0.03)' : undefined }}>
+                <tr key={student.id} style={{ background: selectedStudentIds.has(student.id) ? 'rgba(30, 64, 175, 0.04)' : undefined }}>
                   <td style={{ textAlign: 'center' }}>
                     <input
                       type="checkbox"
@@ -188,14 +192,14 @@ export default function StudentsDirectoryView({
                         if (e.target.checked) next.add(student.id); else next.delete(student.id);
                         setSelectedStudentIds(next);
                       }}
-                      style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: '#00f2fe' }}
+                      style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: 'var(--color-primary)' }}
                     />
                   </td>
-                  <td style={{ color: '#00f2fe', fontWeight: 600 }}>#{student.id}</td>
-                  <td style={{ fontWeight: 700, color: '#fff' }}>{student.roll}</td>
-                  <td style={{ fontWeight: 500 }}>{student.name}</td>
+                  <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{student.id}</td>
+                  <td style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{student.roll}</td>
+                  <td style={{ fontWeight: 500, color: 'var(--color-text-main)' }}>{student.name}</td>
                   <td>
-                    <span style={{ color: 'var(--color-purple)', fontWeight: 500 }}>{student.dep}</span>
+                    <span style={{ color: 'var(--color-purple)', fontWeight: 600 }}>{student.dep}</span>
                   </td>
                   <td>{student.course}</td>
                   <td>{student.year} ({student.semester})</td>
@@ -209,11 +213,13 @@ export default function StudentsDirectoryView({
                         }}
                         className="btn-secondary"
                         style={{ 
-                          padding: '8px 12px', 
-                          fontSize: '0.85rem',
-                          color: '#00f2fe', 
-                          borderColor: 'rgba(0,242,254,0.3)', 
-                          background: 'rgba(0,242,254,0.05)' 
+                          padding: '7px 12px', 
+                          fontSize: '0.82rem',
+                          color: 'var(--color-primary)', 
+                          borderColor: 'rgba(30, 64, 175, 0.25)', 
+                          background: 'rgba(30, 64, 175, 0.05)',
+                          borderRadius: '8px',
+                          fontWeight: 600
                         }}
                       >
                         <Camera size={13} />
@@ -226,11 +232,13 @@ export default function StudentsDirectoryView({
                         }}
                         className="btn-secondary"
                         style={{ 
-                          padding: '8px 12px', 
-                          fontSize: '0.85rem',
-                          color: '#a78bfa', 
-                          borderColor: 'rgba(167,139,250,0.3)', 
-                          background: 'rgba(167,139,250,0.05)' 
+                          padding: '7px 12px', 
+                          fontSize: '0.82rem',
+                          color: 'var(--color-purple)', 
+                          borderColor: 'rgba(124, 58, 237, 0.25)', 
+                          background: 'rgba(124, 58, 237, 0.05)',
+                          borderRadius: '8px',
+                          fontWeight: 600
                         }}
                       >
                         <Edit size={13} />
@@ -239,7 +247,7 @@ export default function StudentsDirectoryView({
                       <button 
                         onClick={() => handleDeleteStudent(student.id)}
                         className="btn-danger"
-                        style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                        style={{ padding: '7px 12px', fontSize: '0.82rem', borderRadius: '8px' }}
                       >
                         <Trash2 size={13} />
                         Delete

@@ -77,7 +77,7 @@ export default function AttendanceReportsView({
     <div className="reports-section mobile-tab-panel reports-panel" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       {/* Filter Bar */}
       <div className="glass-panel hide-on-print" style={{ padding: '24px' }}>
-        <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', color: '#9ca3af' }}>Select Report Parameters</h4>
+        <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', color: 'var(--color-text-main)' }}>Select Report Parameters</h4>
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px', textAlign: 'left' }}>
             <label className="form-label">Start Date</label>
@@ -86,10 +86,10 @@ export default function AttendanceReportsView({
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, -1, setReportStartDate); }}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: '#f8fafc',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '8px',
-                  color: '#94a3b8',
+                  color: 'var(--color-text-secondary)',
                   padding: '0',
                   width: '38px',
                   minWidth: '38px',
@@ -105,8 +105,6 @@ export default function AttendanceReportsView({
                   height: '42px',
                   boxSizing: 'border-box'
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
                 title="Previous Day"
               >
                 ◀
@@ -122,10 +120,10 @@ export default function AttendanceReportsView({
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, 1, setReportStartDate); }}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: '#f8fafc',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '8px',
-                  color: '#94a3b8',
+                  color: 'var(--color-text-secondary)',
                   padding: '0',
                   width: '38px',
                   minWidth: '38px',
@@ -141,8 +139,6 @@ export default function AttendanceReportsView({
                   height: '42px',
                   boxSizing: 'border-box'
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
                 title="Next Day"
               >
                 ▶
@@ -156,10 +152,10 @@ export default function AttendanceReportsView({
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, -1, setReportEndDate); }}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: '#f8fafc',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '8px',
-                  color: '#94a3b8',
+                  color: 'var(--color-text-secondary)',
                   padding: '0',
                   width: '38px',
                   minWidth: '38px',
@@ -175,8 +171,6 @@ export default function AttendanceReportsView({
                   height: '42px',
                   boxSizing: 'border-box'
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
                 title="Previous Day"
               >
                 ◀
@@ -192,10 +186,10 @@ export default function AttendanceReportsView({
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, 1, setReportEndDate); }}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: '#f8fafc',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '8px',
-                  color: '#94a3b8',
+                  color: 'var(--color-text-secondary)',
                   padding: '0',
                   width: '38px',
                   minWidth: '38px',
@@ -211,8 +205,6 @@ export default function AttendanceReportsView({
                   height: '42px',
                   boxSizing: 'border-box'
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
                 title="Next Day"
               >
                 ▶
@@ -269,8 +261,8 @@ export default function AttendanceReportsView({
           ) : null}
           <button 
             onClick={fetchReport} 
-            className="bg-gradient-btn" 
-            style={{ padding: '12px 24px', borderRadius: '8px', fontWeight: 600, height: '46px' }}
+            className="btn-primary"
+            style={{ padding: '12px 24px', borderRadius: '10px', fontWeight: 600, height: '46px', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff' }}
           >
             Regenerate
           </button>
@@ -278,7 +270,7 @@ export default function AttendanceReportsView({
             <button 
               onClick={() => printReport()} 
               className="btn-secondary" 
-              style={{ padding: '12px 24px', borderRadius: '8px', fontWeight: 600, height: '46px' }}
+              style={{ padding: '12px 24px', borderRadius: '10px', fontWeight: 600, height: '46px' }}
             >
               <FileDown size={18} /> Print Report
             </button>
@@ -317,7 +309,7 @@ export default function AttendanceReportsView({
             <h3>Scanned Students</h3>
             <p>{reportData.students.length}</p>
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(0, 242, 254, 0.1)', color: '#00f2fe' }}>
+          <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)' }}>
             <Users size={24} />
           </div>
         </div>
@@ -347,7 +339,7 @@ export default function AttendanceReportsView({
               }%
             </p>
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+          <div className="metric-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)' }}>
             <TrendingUp size={24} />
           </div>
         </div>
@@ -356,12 +348,12 @@ export default function AttendanceReportsView({
       {/* Report Table */}
       <div className="glass-panel print-container" style={{ padding: '28px' }}>
         {isLoadingReport ? (
-          <div className="flex-center" style={{ padding: '60px 0', flexDirection: 'column', gap: '16px', color: '#9ca3af' }}>
-            <div style={{ width: '40px', height: '40px', border: '3px solid rgba(0,242,254,0.1)', borderTopColor: '#00f2fe', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div className="flex-center" style={{ padding: '60px 0', flexDirection: 'column', gap: '16px', color: 'var(--color-text-muted)' }}>
+            <div style={{ width: '40px', height: '40px', border: '3px solid rgba(30, 64, 175, 0.1)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
             <span>Computing attendance records...</span>
           </div>
         ) : reportData.students.length === 0 ? (
-          <div className="flex-center" style={{ padding: '40px 0', color: '#9ca3af', flexDirection: 'column', gap: '16px' }}>
+          <div className="flex-center" style={{ padding: '40px 0', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '16px' }}>
             <BookOpen size={48} />
             <span>No student attendance logs found in this range.</span>
           </div>
@@ -387,9 +379,9 @@ export default function AttendanceReportsView({
                     color: student.low_attendance ? '#ef4444' : undefined 
                   }}>
                     <td>{student.id}</td>
-                    <td style={{ fontWeight: 600 }}>{student.roll}</td>
-                    <td style={{ fontWeight: 500 }}>{student.name}</td>
-                    <td>{student.dep}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{student.roll}</td>
+                    <td style={{ fontWeight: 500, color: 'var(--color-text-main)' }}>{student.name}</td>
+                    <td><span style={{ color: 'var(--color-purple)', fontWeight: 600 }}>{student.dep}</span></td>
                     <td style={{ textAlign: 'center' }}>{student.present_days}</td>
                     <td style={{ textAlign: 'center' }}>{student.total_days}</td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: student.low_attendance ? '#ef4444' : '#10b981' }}>
@@ -443,7 +435,7 @@ export default function AttendanceReportsView({
                   ) : (
                     reportData.students.filter(s => s.percentage < 75).sort((a, b) => a.percentage - b.percentage).map(student => (
                       <tr key={student.id}>
-                        <td style={{ fontWeight: 700, color: '#fff' }}>{student.roll}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{student.roll}</td>
                         <td>{student.name}</td>
                         <td><span style={{ color: 'var(--color-purple)' }}>{student.dep}</span></td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#ef4444' }}>{student.percentage}%</td>

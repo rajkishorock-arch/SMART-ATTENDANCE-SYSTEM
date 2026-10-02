@@ -80,9 +80,9 @@ export default function AttendanceRegistersView({
         <div className="glass-panel metric-card" style={{ padding: '16px 20px', borderLeft: '4px solid var(--color-primary)' }}>
           <div className="metric-info">
             <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-muted)' }}>Filtered Check-ins</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>{totalLogsCount}</p>
+            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)' }}>{totalLogsCount}</p>
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(0, 242, 254, 0.1)', color: '#00f2fe', width: '40px', height: '40px', borderRadius: '10px' }}>
+          <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)', width: '40px', height: '40px', borderRadius: '10px' }}>
             <FileSpreadsheet size={18} />
           </div>
         </div>
@@ -90,9 +90,9 @@ export default function AttendanceRegistersView({
         <div className="glass-panel metric-card" style={{ padding: '16px 20px', borderLeft: '4px solid var(--color-success)' }}>
           <div className="metric-info">
             <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-muted)' }}>Presence Rate</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>{presenceRateLogs}%</p>
+            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)' }}>{presenceRateLogs}%</p>
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', width: '40px', height: '40px', borderRadius: '10px' }}>
+          <div className="metric-icon" style={{ background: 'rgba(5, 150, 105, 0.08)', color: 'var(--color-success)', width: '40px', height: '40px', borderRadius: '10px' }}>
             <CheckCircle2 size={18} />
           </div>
         </div>
@@ -100,9 +100,9 @@ export default function AttendanceRegistersView({
         <div className="glass-panel metric-card" style={{ padding: '16px 20px', borderLeft: '4px solid var(--color-purple)' }}>
           <div className="metric-info">
             <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-muted)' }}>Peak Traffic Hour</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>{peakScanHour}</p>
+            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)' }}>{peakScanHour}</p>
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(167, 139, 250, 0.1)', color: '#a78bfa', width: '40px', height: '40px', borderRadius: '10px' }}>
+          <div className="metric-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)', width: '40px', height: '40px', borderRadius: '10px' }}>
             <Clock size={18} />
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function AttendanceRegistersView({
             <input 
               type="text" 
               className="form-input" 
-              style={{ paddingLeft: '44px', background: 'rgba(8, 12, 20, 0.4)' }}
+              style={{ paddingLeft: '44px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
               placeholder="Search by ID, Name or Roll..."
               value={logSearch}
               onChange={e => setLogSearch(e.target.value)}
@@ -126,7 +126,7 @@ export default function AttendanceRegistersView({
           {userRole === 'admin' ? (
             <select 
               className="form-input" 
-              style={{ width: '180px', background: 'rgba(8, 12, 20, 0.4)' }}
+              style={{ width: '180px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
               value={logDeptFilter}
               onChange={e => setLogDeptFilter(e.target.value)}
             >
@@ -137,11 +137,11 @@ export default function AttendanceRegistersView({
             </select>
           ) : userRole === 'teacher' ? (
             <div style={{ 
-              padding: '12px 16px', 
-              background: 'rgba(0, 242, 254, 0.08)', 
-              border: '1px solid rgba(0, 242, 254, 0.2)', 
-              borderRadius: '12px', 
-              color: '#00f2fe',
+              padding: '10px 16px', 
+              background: 'rgba(30, 64, 175, 0.08)', 
+              border: '1px solid rgba(30, 64, 175, 0.2)', 
+              borderRadius: '10px', 
+              color: 'var(--color-primary)',
               fontSize: '0.85rem',
               fontWeight: '600',
               display: 'flex',
@@ -158,10 +158,10 @@ export default function AttendanceRegistersView({
               type="button"
               onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, -1, setLogDateFilter); }}
               style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: '#f8fafc',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
-                color: '#94a3b8',
+                color: 'var(--color-text-secondary)',
                 padding: '0',
                 width: '38px',
                 minWidth: '38px',
@@ -177,8 +177,6 @@ export default function AttendanceRegistersView({
                 height: '42px',
                 boxSizing: 'border-box'
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
               title="Previous Day"
             >
               ◀
@@ -186,7 +184,7 @@ export default function AttendanceRegistersView({
             <input 
               type="date" 
               className="form-input flex-input"
-              style={{ width: '150px', minWidth: 0, background: 'rgba(8, 12, 20, 0.4)', height: '42px', margin: 0, boxSizing: 'border-box' }}
+              style={{ width: '150px', minWidth: 0, background: '#ffffff', border: '1px solid var(--border-subtle)', height: '42px', margin: 0, boxSizing: 'border-box' }}
               value={logDateFilter}
               onChange={e => setLogDateFilter(e.target.value)}
             />
@@ -194,10 +192,10 @@ export default function AttendanceRegistersView({
               type="button"
               onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, 1, setLogDateFilter); }}
               style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: '#f8fafc',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
-                color: '#94a3b8',
+                color: 'var(--color-text-secondary)',
                 padding: '0',
                 width: '38px',
                 minWidth: '38px',
@@ -213,8 +211,6 @@ export default function AttendanceRegistersView({
                 height: '42px',
                 boxSizing: 'border-box'
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 242, 254, 0.1)'; e.currentTarget.style.color = '#00f2fe'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#94a3b8'; }}
               title="Next Day"
             >
               ▶
@@ -225,7 +221,7 @@ export default function AttendanceRegistersView({
         {/* View Toggles & Status filters */}
         <div className="mobile-filter-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Status Chips */}
-          <div style={{ display: 'flex', background: 'rgba(8, 12, 20, 0.5)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             {['all', 'present', 'absent'].map(status => (
               <button
                 key={status}
@@ -237,7 +233,7 @@ export default function AttendanceRegistersView({
                   padding: '6px 12px',
                   fontSize: '0.75rem',
                   background: quickFilterStatus === status ? 'var(--color-primary)' : 'transparent',
-                  color: quickFilterStatus === status ? '#0d1323' : 'var(--color-text-muted)',
+                  color: quickFilterStatus === status ? '#ffffff' : 'var(--color-text-muted)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -252,7 +248,7 @@ export default function AttendanceRegistersView({
           </div>
 
           {/* Mode Toggles */}
-          <div style={{ display: 'flex', background: 'rgba(8, 12, 20, 0.5)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             <button
               onClick={() => {
                 playCyberSound('click');
@@ -262,7 +258,7 @@ export default function AttendanceRegistersView({
                 padding: '6px 12px',
                 fontSize: '0.75rem',
                 background: logsViewMode === 'grid' ? 'var(--color-primary)' : 'transparent',
-                color: logsViewMode === 'grid' ? '#0d1323' : 'var(--color-text-muted)',
+                color: logsViewMode === 'grid' ? '#ffffff' : 'var(--color-text-muted)',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -281,7 +277,7 @@ export default function AttendanceRegistersView({
                 padding: '6px 12px',
                 fontSize: '0.75rem',
                 background: logsViewMode === 'chrono' ? 'var(--color-primary)' : 'transparent',
-                color: logsViewMode === 'chrono' ? '#0d1323' : 'var(--color-text-muted)',
+                color: logsViewMode === 'chrono' ? '#ffffff' : 'var(--color-text-muted)',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -373,7 +369,7 @@ export default function AttendanceRegistersView({
                   }}
                   style={{ 
                     cursor: 'pointer',
-                    background: selectedLogIds.has(log.id) ? 'rgba(0,242,254,0.03)' : undefined 
+                    background: selectedLogIds.has(log.id) ? 'rgba(30, 64, 175, 0.04)' : undefined 
                   }}
                 >
                   <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
@@ -385,14 +381,14 @@ export default function AttendanceRegistersView({
                         if (e.target.checked) next.add(log.id); else next.delete(log.id);
                         setSelectedLogIds(next);
                       }}
-                      style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: '#00f2fe' }}
+                      style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: 'var(--color-primary)' }}
                     />
                   </td>
-                  <td style={{ color: '#00f2fe', fontWeight: 600 }}>#{log.id}</td>
-                  <td style={{ fontWeight: 700, color: '#fff' }}>{log.roll}</td>
-                  <td style={{ fontWeight: 500 }}>{log.name}</td>
+                  <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{log.id}</td>
+                  <td style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{log.roll}</td>
+                  <td style={{ fontWeight: 500, color: 'var(--color-text-main)' }}>{log.name}</td>
                   <td>
-                    <span style={{ color: 'var(--color-purple)', fontWeight: 500 }}>{log.department}</span>
+                    <span style={{ color: 'var(--color-purple)', fontWeight: 600 }}>{log.department}</span>
                   </td>
                   <td style={{ color: 'var(--color-text-muted)' }}>{log.time}</td>
                   <td>{log.date}</td>
@@ -403,8 +399,8 @@ export default function AttendanceRegistersView({
                   </td>
                   <td>
                     <button 
-                      className="action-btn"
-                      style={{ padding: '4px 10px', fontSize: '0.7rem', fontFamily: 'monospace' }}
+                      className="btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '6px' }}
                       onClick={(e) => {
                         e.stopPropagation();
                         playCyberSound('click');
@@ -436,7 +432,10 @@ export default function AttendanceRegistersView({
                   padding: '20px', 
                   position: 'relative', 
                   cursor: 'pointer',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid var(--border-subtle)',
+                  background: '#ffffff',
+                  boxShadow: 'var(--shadow-card)',
+                  borderRadius: '14px',
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
@@ -449,7 +448,7 @@ export default function AttendanceRegistersView({
                   e.currentTarget.style.transform = 'translateX(4px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-color)';
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
                   e.currentTarget.style.transform = 'translateX(0)';
                 }}
               >
@@ -479,18 +478,18 @@ export default function AttendanceRegistersView({
 
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>{log.name}</h4>
+                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text-main)', margin: 0 }}>{log.name}</h4>
                       <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>({log.roll})</span>
-                      <span style={{ fontSize: '0.75rem', background: 'rgba(167, 139, 250, 0.1)', color: '#a78bfa', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{log.department}</span>
+                      <span style={{ fontSize: '0.75rem', background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{log.department}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                       <span>📅 {log.date}</span>
                       <span>⏰ {log.time}</span>
-                      <span style={{ background: 'rgba(0, 242, 254, 0.1)', color: '#00f2fe', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem', border: '1px solid rgba(0, 242, 254, 0.25)' }}>
+                      <span style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem', border: '1px solid rgba(30, 64, 175, 0.2)' }}>
                         ⏱️ {getPeriodSlotLabel(log.period || log.time)}
                       </span>
                       {(log.subject_name || subjects.find(s => s.id === log.subject_id)?.name) && (
-                        <span style={{ background: 'rgba(167, 139, 250, 0.1)', color: '#c4b5fd', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem', border: '1px solid rgba(167, 139, 250, 0.25)' }}>
+                        <span style={{ background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem', border: '1px solid rgba(124, 58, 237, 0.2)' }}>
                           📚 {log.subject_name || subjects.find(s => s.id === log.subject_id)?.name}
                         </span>
                       )}

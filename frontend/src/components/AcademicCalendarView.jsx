@@ -9,14 +9,14 @@ import { calendarApi } from '../api/calendarApi';
 import { teacherApi } from '../api/teacherApi';
 
 const EVENT_TYPE_COLORS = {
-  HOLIDAY: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', text: '#f87171', label: 'Holiday' },
-  EXAM: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#fbbf24', label: 'Exam Session' },
-  CLASS_CANCELLED: { bg: 'rgba(225, 29, 72, 0.2)', border: 'rgba(225, 29, 72, 0.5)', text: '#fb7185', label: 'Class Cancelled' },
-  SUBSTITUTE_CLASS: { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#c084fc', label: 'Substitute Class' },
-  TEACHER_SUBSTITUTION: { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#c084fc', label: 'Teacher Substituted' },
-  INSTITUTION_CLOSED: { bg: 'rgba(156, 163, 175, 0.15)', border: 'rgba(156, 163, 175, 0.4)', text: '#9ca3af', label: 'Campus Closed' },
-  SPECIAL_CLASS: { bg: 'rgba(6, 182, 212, 0.15)', border: 'rgba(6, 182, 212, 0.4)', text: '#22d3ee', label: 'Special Lecture' },
-  EVENT: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)', text: '#60a5fa', label: 'Academic Event' }
+  HOLIDAY: { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Holiday' },
+  EXAM: { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Exam Session' },
+  CLASS_CANCELLED: { bg: '#fff1f2', border: '#fecdd3', text: '#e11d48', label: 'Class Cancelled' },
+  SUBSTITUTE_CLASS: { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', label: 'Substitute Class' },
+  TEACHER_SUBSTITUTION: { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', label: 'Teacher Substituted' },
+  INSTITUTION_CLOSED: { bg: '#f8fafc', border: '#e2e8f0', text: '#64748b', label: 'Campus Closed' },
+  SPECIAL_CLASS: { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', label: 'Special Lecture' },
+  EVENT: { bg: '#f0f9ff', border: '#bae6fd', text: '#0284c7', label: 'Academic Event' }
 };
 
 export default function AcademicCalendarView({
@@ -258,43 +258,43 @@ export default function AcademicCalendarView({
 
   return (
     <div className="academic-calendar-container" style={{
-      color: '#f8fafc',
+      color: 'var(--color-text-main)',
       padding: '24px',
       maxWidth: '1280px',
       margin: '0 auto',
       animation: 'fadeIn 0.3s ease-out'
     }}>
       {/* Modern, Clean Header */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
+      <div className="surface-card" style={{
         padding: '20px 24px',
         marginBottom: '24px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '16px'
+        gap: '16px',
+        background: '#ffffff',
+        border: '1px solid var(--border-subtle)',
+        boxShadow: 'var(--shadow-card)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(6, 182, 212, 0.2))',
-            border: '1px solid rgba(79, 70, 229, 0.3)',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
             borderRadius: '12px',
             padding: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#38bdf8'
+            color: 'var(--color-primary)'
           }}>
             <Calendar size={22} />
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-text-main)', letterSpacing: '-0.01em' }}>
               Academic Calendar
             </h2>
-            <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '0.88rem' }}>
+            <p style={{ margin: '4px 0 0 0', color: 'var(--color-text-secondary)', fontSize: '0.88rem' }}>
               Manage holidays, schedules, and class events across your institution.
             </p>
           </div>
@@ -305,9 +305,9 @@ export default function AcademicCalendarView({
             onClick={() => { playCyberSound('click'); fetchEvents(); fetchMetrics(selectedSubjectIdForMetrics); }}
             disabled={isLoading}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#cbd5e1',
+              background: '#ffffff',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--color-text-main)',
               padding: '9px 16px',
               borderRadius: '10px',
               cursor: 'pointer',
@@ -315,9 +315,11 @@ export default function AcademicCalendarView({
               alignItems: 'center',
               gap: '8px',
               fontSize: '0.86rem',
-              fontWeight: 500,
+              fontWeight: 600,
               transition: 'background 0.2s'
             }}
+            onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
+            onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
           >
             <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
             Refresh
@@ -326,20 +328,15 @@ export default function AcademicCalendarView({
           {isStaff && (
             <button
               onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
+              className="btn-primary"
               style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
-                border: 'none',
-                color: '#ffffff',
                 padding: '9px 18px',
                 borderRadius: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
                 fontSize: '0.86rem',
                 fontWeight: 600,
-                boxShadow: '0 2px 10px rgba(79, 70, 229, 0.3)',
-                transition: 'transform 0.15s, opacity 0.15s'
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
               <Plus size={16} strokeWidth={2.5} />
@@ -352,9 +349,9 @@ export default function AcademicCalendarView({
       {/* Notifications */}
       {successMsg && (
         <div style={{
-          background: 'rgba(16, 185, 129, 0.15)',
-          border: '1px solid rgba(16, 185, 129, 0.4)',
-          color: '#34d399',
+          background: '#ecfdf5',
+          border: '1px solid #a7f3d0',
+          color: '#059669',
           padding: '14px 18px',
           borderRadius: '12px',
           marginBottom: '20px',
@@ -370,9 +367,9 @@ export default function AcademicCalendarView({
 
       {errorMsg && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '1px solid rgba(239, 68, 68, 0.4)',
-          color: '#f87171',
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          color: '#dc2626',
           padding: '14px 18px',
           borderRadius: '12px',
           marginBottom: '20px',
@@ -389,26 +386,27 @@ export default function AcademicCalendarView({
       {/* Navigation Tabs */}
       <div style={{
         display: 'flex',
-        gap: '12px',
+        gap: '8px',
         marginBottom: '20px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        borderBottom: '1px solid var(--border-subtle)',
         paddingBottom: '12px',
         flexWrap: 'wrap'
       }}>
         <button
           onClick={() => { playCyberSound('click'); setActiveTab('events'); }}
           style={{
-            background: activeTab === 'events' ? 'rgba(0, 242, 254, 0.15)' : 'transparent',
-            border: activeTab === 'events' ? '1px solid rgba(0, 242, 254, 0.4)' : '1px solid transparent',
-            color: activeTab === 'events' ? '#00f2fe' : '#94a3b8',
+            background: activeTab === 'events' ? 'var(--color-primary)' : '#f1f5f9',
+            border: activeTab === 'events' ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+            color: activeTab === 'events' ? '#ffffff' : 'var(--color-text-secondary)',
             padding: '8px 18px',
-            borderRadius: '8px',
+            borderRadius: '20px',
             cursor: 'pointer',
-            fontSize: '0.9rem',
+            fontSize: '0.88rem',
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            transition: 'all 0.2s'
           }}
         >
           <Calendar size={16} />
@@ -418,17 +416,18 @@ export default function AcademicCalendarView({
         <button
           onClick={() => { playCyberSound('click'); setActiveTab('metrics'); }}
           style={{
-            background: activeTab === 'metrics' ? 'rgba(0, 242, 254, 0.15)' : 'transparent',
-            border: activeTab === 'metrics' ? '1px solid rgba(0, 242, 254, 0.4)' : '1px solid transparent',
-            color: activeTab === 'metrics' ? '#00f2fe' : '#94a3b8',
+            background: activeTab === 'metrics' ? 'var(--color-primary)' : '#f1f5f9',
+            border: activeTab === 'metrics' ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+            color: activeTab === 'metrics' ? '#ffffff' : 'var(--color-text-secondary)',
             padding: '8px 18px',
-            borderRadius: '8px',
+            borderRadius: '20px',
             cursor: 'pointer',
-            fontSize: '0.9rem',
+            fontSize: '0.88rem',
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            transition: 'all 0.2s'
           }}
         >
           <ShieldCheck size={16} />
@@ -440,17 +439,18 @@ export default function AcademicCalendarView({
             <button
               onClick={() => { playCyberSound('click'); setActiveTab('cancel'); }}
               style={{
-                background: activeTab === 'cancel' ? 'rgba(225, 29, 72, 0.15)' : 'transparent',
-                border: activeTab === 'cancel' ? '1px solid rgba(225, 29, 72, 0.4)' : '1px solid transparent',
-                color: activeTab === 'cancel' ? '#fb7185' : '#94a3b8',
+                background: activeTab === 'cancel' ? '#e11d48' : '#f1f5f9',
+                border: activeTab === 'cancel' ? '1px solid #e11d48' : '1px solid var(--border-subtle)',
+                color: activeTab === 'cancel' ? '#ffffff' : 'var(--color-text-secondary)',
                 padding: '8px 18px',
-                borderRadius: '8px',
+                borderRadius: '20px',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
+                fontSize: '0.88rem',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                transition: 'all 0.2s'
               }}
             >
               <UserX size={16} />
@@ -460,17 +460,18 @@ export default function AcademicCalendarView({
             <button
               onClick={() => { playCyberSound('click'); setActiveTab('substitute'); }}
               style={{
-                background: activeTab === 'substitute' ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
-                border: activeTab === 'substitute' ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid transparent',
-                color: activeTab === 'substitute' ? '#c084fc' : '#94a3b8',
+                background: activeTab === 'substitute' ? '#7c3aed' : '#f1f5f9',
+                border: activeTab === 'substitute' ? '1px solid #7c3aed' : '1px solid var(--border-subtle)',
+                color: activeTab === 'substitute' ? '#ffffff' : 'var(--color-text-secondary)',
                 padding: '8px 18px',
-                borderRadius: '8px',
+                borderRadius: '20px',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
+                fontSize: '0.88rem',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                transition: 'all 0.2s'
               }}
             >
               <UserCheck size={16} />
@@ -487,12 +488,12 @@ export default function AcademicCalendarView({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
             marginBottom: '20px',
             overflowX: 'auto',
             paddingBottom: '6px'
           }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Filter size={14} /> Filter:
             </span>
             {['ALL', 'HOLIDAY', 'EXAM', 'CLASS_CANCELLED', 'SPECIAL_CLASS', 'EVENT', 'SUBSTITUTE_CLASS'].map(type => (
@@ -500,15 +501,16 @@ export default function AcademicCalendarView({
                 key={type}
                 onClick={() => { playCyberSound('click'); setEventTypeFilter(type); }}
                 style={{
-                  background: eventTypeFilter === type ? 'rgba(0, 242, 254, 0.2)' : 'rgba(30, 41, 59, 0.5)',
-                  border: eventTypeFilter === type ? '1px solid rgba(0, 242, 254, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
-                  color: eventTypeFilter === type ? '#00f2fe' : '#94a3b8',
+                  background: eventTypeFilter === type ? 'var(--color-primary)' : '#f1f5f9',
+                  border: eventTypeFilter === type ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                  color: eventTypeFilter === type ? '#ffffff' : 'var(--color-text-secondary)',
                   padding: '6px 14px',
                   borderRadius: '20px',
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s'
                 }}
               >
                 {type === 'ALL' ? 'All Events' : (EVENT_TYPE_COLORS[type]?.label || type)}
@@ -519,8 +521,8 @@ export default function AcademicCalendarView({
           {/* Events Grid */}
           {events.length === 0 ? (
             <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px dashed rgba(255, 255, 255, 0.12)',
+              background: '#ffffff',
+              border: '1px dashed var(--border-subtle)',
               borderRadius: '16px',
               padding: '60px 24px',
               textAlign: 'center',
@@ -533,38 +535,34 @@ export default function AcademicCalendarView({
                 width: '56px',
                 height: '56px',
                 borderRadius: '16px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: '#f1f5f9',
+                border: '1px solid var(--border-subtle)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#94a3b8',
+                color: 'var(--color-text-muted)',
                 marginBottom: '16px'
               }}>
                 <Calendar size={28} />
               </div>
-              <h4 style={{ margin: '0 0 8px 0', color: '#f1f5f9', fontSize: '1.15rem', fontWeight: 600 }}>
+              <h4 style={{ margin: '0 0 8px 0', color: 'var(--color-text-main)', fontSize: '1.15rem', fontWeight: 700 }}>
                 No events scheduled
               </h4>
-              <p style={{ margin: '0 0 20px 0', fontSize: '0.9rem', color: '#94a3b8', maxWidth: '420px', lineHeight: 1.5 }}>
+              <p style={{ margin: '0 0 20px 0', fontSize: '0.9rem', color: 'var(--color-text-secondary)', maxWidth: '420px', lineHeight: 1.5 }}>
                 There are no calendar events or holidays matching this filter.
               </p>
               {isStaff && (
                 <button
                   onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
+                  className="btn-primary"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.16)',
-                    color: '#f8fafc',
                     padding: '8px 18px',
                     borderRadius: '8px',
-                    cursor: 'pointer',
                     fontSize: '0.88rem',
-                    fontWeight: 500,
+                    fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    transition: 'all 0.15s'
+                    gap: '8px'
                   }}
                 >
                   <Plus size={15} />
@@ -580,21 +578,22 @@ export default function AcademicCalendarView({
             }}>
               {events.map(event => {
                 const badge = EVENT_TYPE_COLORS[event.event_type] || {
-                  bg: 'rgba(148, 163, 184, 0.15)',
-                  border: 'rgba(148, 163, 184, 0.3)',
-                  text: '#cbd5e1',
+                  bg: '#f1f5f9',
+                  border: 'var(--border-subtle)',
+                  text: 'var(--color-text-secondary)',
                   label: event.event_type
                 };
 
                 return (
                   <div
                     key={event.id}
+                    className="surface-card"
                     style={{
-                      background: 'rgba(15, 23, 42, 0.65)',
+                      background: '#ffffff',
                       border: `1px solid ${badge.border}`,
                       borderRadius: '14px',
                       padding: '20px',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+                      boxShadow: 'var(--shadow-card)',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
@@ -625,7 +624,7 @@ export default function AcademicCalendarView({
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: '#64748b',
+                              color: 'var(--color-text-muted)',
                               cursor: 'pointer',
                               padding: '4px',
                               borderRadius: '6px',
@@ -634,7 +633,7 @@ export default function AcademicCalendarView({
                               transition: 'color 0.2s'
                             }}
                             onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                            onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
                           >
                             <Trash2 size={15} />
                           </button>
@@ -642,11 +641,11 @@ export default function AcademicCalendarView({
                       </div>
 
                       {/* Title & Description */}
-                      <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc' }}>
+                      <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-main)' }}>
                         {event.title}
                       </h3>
                       {event.description && (
-                        <p style={{ margin: '0 0 14px 0', color: '#94a3b8', fontSize: '0.85rem', lineHeight: 1.45 }}>
+                        <p style={{ margin: '0 0 14px 0', color: 'var(--color-text-secondary)', fontSize: '0.85rem', lineHeight: 1.45 }}>
                           {event.description}
                         </p>
                       )}
@@ -655,15 +654,16 @@ export default function AcademicCalendarView({
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
                         {event.subject_name && (
                           <span style={{
-                            background: 'rgba(0, 242, 254, 0.08)',
-                            border: '1px solid rgba(0, 242, 254, 0.2)',
-                            color: '#22d3ee',
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            color: 'var(--color-primary)',
                             fontSize: '0.75rem',
                             padding: '3px 8px',
                             borderRadius: '6px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '4px',
+                            fontWeight: 600
                           }}>
                             <BookOpen size={12} /> {event.subject_name} ({event.subject_code})
                           </span>
@@ -671,9 +671,9 @@ export default function AcademicCalendarView({
 
                         {event.department && (
                           <span style={{
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#cbd5e1',
+                            background: '#f1f5f9',
+                            border: '1px solid var(--border-subtle)',
+                            color: 'var(--color-text-secondary)',
                             fontSize: '0.75rem',
                             padding: '3px 8px',
                             borderRadius: '6px'
@@ -684,15 +684,16 @@ export default function AcademicCalendarView({
 
                         {event.substitute_teacher_name && (
                           <span style={{
-                            background: 'rgba(168, 85, 247, 0.12)',
-                            border: '1px solid rgba(168, 85, 247, 0.3)',
-                            color: '#c084fc',
+                            background: '#f5f3ff',
+                            border: '1px solid #ddd6fe',
+                            color: '#7c3aed',
                             fontSize: '0.75rem',
                             padding: '3px 8px',
                             borderRadius: '6px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '4px',
+                            fontWeight: 600
                           }}>
                             <UserCheck size={12} /> Substitute: {event.substitute_teacher_name}
                           </span>
@@ -702,22 +703,22 @@ export default function AcademicCalendarView({
 
                     {/* Card Footer: Date & Time */}
                     <div style={{
-                      borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                      borderTop: '1px solid var(--border-subtle)',
                       paddingTop: '12px',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       fontSize: '0.8rem',
-                      color: '#64748b'
+                      color: 'var(--color-text-secondary)'
                     }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#94a3b8' }}>
-                        <Calendar size={14} />
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-text-main)', fontWeight: 500 }}>
+                        <Calendar size={14} style={{ color: 'var(--color-primary)' }} />
                         {event.start_date}
                         {event.end_date && event.end_date !== event.start_date && ` → ${event.end_date}`}
                       </span>
 
                       {event.start_time && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-secondary)' }}>
                           <Clock size={13} /> {event.start_time}
                         </span>
                       )}
@@ -732,27 +733,27 @@ export default function AcademicCalendarView({
 
       {/* TAB 2: ATTENDANCE PROTECTION METRICS */}
       {activeTab === 'metrics' && (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px solid rgba(0, 242, 254, 0.2)',
+        <div className="surface-card" style={{
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '16px',
           padding: '24px',
-          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)'
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
             <div>
-              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ShieldCheck size={20} color="#00f2fe" />
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: 'var(--color-text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldCheck size={20} color="var(--color-primary)" />
                 Calendar-Aware Attendance Safety Engine
               </h3>
-              <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.88rem' }}>
+              <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.88rem' }}>
                 Conducted Classes = Scheduled Classes − Cancelled Classes. Students are never penalized for approved cancellations.
               </p>
             </div>
 
             {/* Subject Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Subject:</label>
+              <label style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Subject:</label>
               <select
                 value={selectedSubjectIdForMetrics}
                 onChange={e => {
@@ -760,9 +761,9 @@ export default function AcademicCalendarView({
                   fetchMetrics(e.target.value);
                 }}
                 style={{
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--color-text-main)',
                   padding: '8px 12px',
                   borderRadius: '8px',
                   fontSize: '0.85rem'
@@ -777,8 +778,8 @@ export default function AcademicCalendarView({
           </div>
 
           {isLoadingMetrics ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-              <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 12px' }} />
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-secondary)' }}>
+              <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 12px', color: 'var(--color-primary)' }} />
               <p>Computing calendar-adjusted metrics...</p>
             </div>
           ) : metrics ? (
@@ -790,64 +791,64 @@ export default function AcademicCalendarView({
                 marginBottom: '24px'
               }}>
                 <div style={{
-                  background: 'rgba(30, 41, 59, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: '#f8fafc',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '12px',
                   padding: '18px'
                 }}>
-                  <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Scheduled Classes</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#f8fafc', marginTop: '6px' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Scheduled Classes</span>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '6px' }}>
                     {metrics.scheduled_classes}
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Total sessions on timetable</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Total sessions on timetable</span>
                 </div>
 
                 <div style={{
-                  background: 'rgba(225, 29, 72, 0.1)',
-                  border: '1px solid rgba(225, 29, 72, 0.3)',
+                  background: '#fff1f2',
+                  border: '1px solid #fecdd3',
                   borderRadius: '12px',
                   padding: '18px'
                 }}>
-                  <span style={{ fontSize: '0.8rem', color: '#fb7185', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Cancelled / Exempted</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#fb7185', marginTop: '6px' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#e11d48', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Cancelled / Exempted</span>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#e11d48', marginTop: '6px' }}>
                     {metrics.cancelled_classes}
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Deducted from denominator</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Deducted from denominator</span>
                 </div>
 
                 <div style={{
-                  background: 'rgba(6, 182, 212, 0.1)',
-                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
                   borderRadius: '12px',
                   padding: '18px'
                 }}>
-                  <span style={{ fontSize: '0.8rem', color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Conducted Classes</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#22d3ee', marginTop: '6px' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Conducted Classes</span>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#2563eb', marginTop: '6px' }}>
                     {metrics.conducted_classes}
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Effective teaching sessions</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Effective teaching sessions</span>
                 </div>
 
                 <div style={{
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  background: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
                   borderRadius: '12px',
                   padding: '18px'
                 }}>
-                  <span style={{ fontSize: '0.8rem', color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Attended Classes</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#34d399', marginTop: '6px' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Attended Classes</span>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#059669', marginTop: '6px' }}>
                     {metrics.attended_classes}
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Present / Late / Excused</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Present / Late / Excused</span>
                 </div>
               </div>
 
               {/* Protection Shield Banner */}
               <div style={{
                 background: metrics.is_at_risk 
-                  ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.6) 100%)'
-                  : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.6) 100%)',
-                border: metrics.is_at_risk ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                  ? '#fff1f2'
+                  : '#ecfdf5',
+                border: metrics.is_at_risk ? '1px solid #fecdd3' : '1px solid #a7f3d0',
                 borderRadius: '14px',
                 padding: '20px 24px',
                 display: 'flex',
@@ -858,23 +859,23 @@ export default function AcademicCalendarView({
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                   <div style={{
-                    background: metrics.is_at_risk ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                    border: metrics.is_at_risk ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                    background: metrics.is_at_risk ? '#fef2f2' : '#ffffff',
+                    border: metrics.is_at_risk ? '1px solid #fecaca' : '1px solid #a7f3d0',
                     borderRadius: '50%',
                     width: '48px',
                     height: '48px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: metrics.is_at_risk ? '#f87171' : '#34d399'
+                    color: metrics.is_at_risk ? '#dc2626' : '#059669'
                   }}>
                     {metrics.is_at_risk ? <AlertTriangle size={24} /> : <ShieldCheck size={24} />}
                   </div>
                   <div>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', color: '#fff' }}>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', color: 'var(--color-text-main)', fontWeight: 700 }}>
                       Calendar-Adjusted Percentage: {metrics.attendance_percentage}%
                     </h4>
-                    <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem' }}>
+                    <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
                       {metrics.is_at_risk 
                         ? 'Warning: Attendance is currently below the 75% threshold. Take corrective action.' 
                         : 'Safe & Protected: Academic standing is in good compliance (≥ 75%).'}
@@ -884,46 +885,46 @@ export default function AcademicCalendarView({
 
                 <div style={{
                   fontSize: '0.85rem',
-                  background: 'rgba(255, 255, 255, 0.05)',
+                  background: '#ffffff',
                   padding: '8px 14px',
                   borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#cbd5e1'
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--color-text-main)'
                 }}>
                   Formula: ({metrics.attended_classes} ÷ {metrics.conducted_classes}) × 100 = <strong>{metrics.attendance_percentage}%</strong>
                 </div>
               </div>
             </div>
           ) : (
-            <p style={{ color: '#64748b' }}>No metrics available for the selected parameters.</p>
+            <p style={{ color: 'var(--color-text-muted)' }}>No metrics available for the selected parameters.</p>
           )}
         </div>
       )}
 
       {/* TAB 3: CANCEL CLASS FORM (STAFF ONLY) */}
       {activeTab === 'cancel' && isStaff && (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(225, 29, 72, 0.3)',
+        <div className="surface-card" style={{
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '16px',
           padding: '28px',
           maxWidth: '680px',
           margin: '0 auto',
-          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)'
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
             <div style={{
-              background: 'rgba(225, 29, 72, 0.15)',
-              border: '1px solid rgba(225, 29, 72, 0.4)',
+              background: '#fff1f2',
+              border: '1px solid #fecdd3',
               borderRadius: '10px',
               padding: '8px',
-              color: '#fb7185'
+              color: '#e11d48'
             }}>
               <UserX size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#fff' }}>Cancel Class Session</h3>
-              <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--color-text-main)', fontWeight: 700 }}>Cancel Class Session</h3>
+              <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
                 Session will be logged in the academic calendar and student absences will be safely purged.
               </p>
             </div>
@@ -931,13 +932,13 @@ export default function AcademicCalendarView({
 
           {/* Guarantee Warning */}
           <div style={{
-            background: 'rgba(0, 242, 254, 0.08)',
-            border: '1px solid rgba(0, 242, 254, 0.25)',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
             borderRadius: '10px',
             padding: '14px',
             marginBottom: '20px',
             fontSize: '0.85rem',
-            color: '#a5f3fc',
+            color: 'var(--color-primary)',
             lineHeight: 1.45
           }}>
             <strong>Automatic Protection Guarantee:</strong> Existing attendance records for this subject on this date 
@@ -947,7 +948,7 @@ export default function AcademicCalendarView({
 
           <form onSubmit={handleCancelClass}>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                 Subject / Course *
               </label>
               <select
@@ -956,9 +957,9 @@ export default function AcademicCalendarView({
                 onChange={e => setCancelFormData({ ...cancelFormData, subject_id: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--color-text-main)',
                   padding: '10px 14px',
                   borderRadius: '10px',
                   fontSize: '0.9rem'
@@ -972,7 +973,7 @@ export default function AcademicCalendarView({
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                   Session Date (DD/MM/YYYY) *
                 </label>
                 <input
@@ -983,9 +984,9 @@ export default function AcademicCalendarView({
                   onChange={e => setCancelFormData({ ...cancelFormData, date: e.target.value })}
                   style={{
                     width: '100%',
-                    background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--color-text-main)',
                     padding: '10px 14px',
                     borderRadius: '10px',
                     fontSize: '0.9rem'
@@ -994,7 +995,7 @@ export default function AcademicCalendarView({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                   Session Time
                 </label>
                 <input
@@ -1004,9 +1005,9 @@ export default function AcademicCalendarView({
                   onChange={e => setCancelFormData({ ...cancelFormData, session_time: e.target.value })}
                   style={{
                     width: '100%',
-                    background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--color-text-main)',
                     padding: '10px 14px',
                     borderRadius: '10px',
                     fontSize: '0.9rem'
@@ -1016,7 +1017,7 @@ export default function AcademicCalendarView({
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                 Reason for Cancellation (Audit Trail) *
               </label>
               <textarea
@@ -1027,9 +1028,9 @@ export default function AcademicCalendarView({
                 onChange={e => setCancelFormData({ ...cancelFormData, reason: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--color-text-main)',
                   padding: '10px 14px',
                   borderRadius: '10px',
                   fontSize: '0.9rem',
@@ -1043,7 +1044,7 @@ export default function AcademicCalendarView({
               disabled={isSubmittingCancel}
               style={{
                 width: '100%',
-                background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                background: '#e11d48',
                 border: 'none',
                 color: '#fff',
                 padding: '12px',
@@ -1055,7 +1056,7 @@ export default function AcademicCalendarView({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 16px rgba(225, 29, 72, 0.35)'
+                boxShadow: '0 4px 14px rgba(225, 29, 72, 0.25)'
               }}
             >
               {isSubmittingCancel ? (
@@ -1076,28 +1077,28 @@ export default function AcademicCalendarView({
 
       {/* TAB 4: SUBSTITUTE ASSIGNMENT (STAFF ONLY) */}
       {activeTab === 'substitute' && isStaff && (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(168, 85, 247, 0.3)',
+        <div className="surface-card" style={{
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '16px',
           padding: '28px',
           maxWidth: '680px',
           margin: '0 auto',
-          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)'
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
             <div style={{
-              background: 'rgba(168, 85, 247, 0.15)',
-              border: '1px solid rgba(168, 85, 247, 0.4)',
+              background: '#f5f3ff',
+              border: '1px solid #ddd6fe',
               borderRadius: '10px',
               padding: '8px',
-              color: '#c084fc'
+              color: '#7c3aed'
             }}>
               <UserCheck size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#fff' }}>Assign Substitute Faculty</h3>
-              <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--color-text-main)', fontWeight: 700 }}>Assign Substitute Faculty</h3>
+              <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
                 Delegate temporary teaching and attendance authority with institutional audit logs.
               </p>
             </div>
@@ -1105,7 +1106,7 @@ export default function AcademicCalendarView({
 
           <form onSubmit={handleAssignSubstitute}>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                 Subject / Class *
               </label>
               <select
@@ -1114,9 +1115,9 @@ export default function AcademicCalendarView({
                 onChange={e => setSubstituteFormData({ ...substituteFormData, subject_id: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--color-text-main)',
                   padding: '10px 14px',
                   borderRadius: '10px',
                   fontSize: '0.9rem'
@@ -1129,7 +1130,7 @@ export default function AcademicCalendarView({
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                 Substitute Teacher *
               </label>
               <select
@@ -1138,9 +1139,9 @@ export default function AcademicCalendarView({
                 onChange={e => setSubstituteFormData({ ...substituteFormData, substitute_teacher_id: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--color-text-main)',
                   padding: '10px 14px',
                   borderRadius: '10px',
                   fontSize: '0.9rem'
@@ -1153,7 +1154,7 @@ export default function AcademicCalendarView({
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                 Date (DD/MM/YYYY) *
               </label>
               <input
@@ -1164,9 +1165,9 @@ export default function AcademicCalendarView({
                 onChange={e => setSubstituteFormData({ ...substituteFormData, date: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--color-text-main)',
                   padding: '10px 14px',
                   borderRadius: '10px',
                   fontSize: '0.9rem'
@@ -1175,7 +1176,7 @@ export default function AcademicCalendarView({
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                 Reason for Substitution *
               </label>
               <textarea
@@ -1186,9 +1187,9 @@ export default function AcademicCalendarView({
                 onChange={e => setSubstituteFormData({ ...substituteFormData, reason: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--color-text-main)',
                   padding: '10px 14px',
                   borderRadius: '10px',
                   fontSize: '0.9rem'
@@ -1201,7 +1202,7 @@ export default function AcademicCalendarView({
               disabled={isSubmittingSubstitute}
               style={{
                 width: '100%',
-                background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                background: '#7c3aed',
                 border: 'none',
                 color: '#fff',
                 padding: '12px',
@@ -1213,7 +1214,7 @@ export default function AcademicCalendarView({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 16px rgba(168, 85, 247, 0.35)'
+                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.25)'
               }}
             >
               {isSubmittingSubstitute ? (
@@ -1240,22 +1241,22 @@ export default function AcademicCalendarView({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
           padding: '20px'
         }}>
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.95)',
-            border: '1px solid rgba(0, 242, 254, 0.3)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '16px',
             width: '100%',
             maxWidth: '560px',
             padding: '28px',
-            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
             position: 'relative'
           }}>
             <button
@@ -1266,7 +1267,7 @@ export default function AcademicCalendarView({
                 right: '20px',
                 background: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--color-text-muted)',
                 cursor: 'pointer',
                 padding: '4px'
               }}
@@ -1275,13 +1276,21 @@ export default function AcademicCalendarView({
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <Calendar size={22} color="#00f2fe" />
-              <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#fff' }}>Schedule Academic Event</h3>
+              <div style={{
+                background: '#eff6ff',
+                borderRadius: '8px',
+                padding: '6px',
+                color: 'var(--color-primary)',
+                display: 'flex'
+              }}>
+                <Calendar size={20} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--color-text-main)', fontWeight: 700 }}>Schedule Academic Event</h3>
             </div>
 
             <form onSubmit={handleCreateEvent}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
                   Event Title *
                 </label>
                 <input
@@ -1292,9 +1301,9 @@ export default function AcademicCalendarView({
                   onChange={e => setEventFormData({ ...eventFormData, title: e.target.value })}
                   style={{
                     width: '100%',
-                    background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--color-text-main)',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '0.9rem'
@@ -1304,7 +1313,7 @@ export default function AcademicCalendarView({
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
                     Event Type *
                   </label>
                   <select
@@ -1312,9 +1321,9 @@ export default function AcademicCalendarView({
                     onChange={e => setEventFormData({ ...eventFormData, event_type: e.target.value })}
                     style={{
                       width: '100%',
-                      background: 'rgba(30, 41, 59, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      color: '#fff',
+                      background: '#ffffff',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--color-text-main)',
                       padding: '10px 12px',
                       borderRadius: '8px',
                       fontSize: '0.88rem'
@@ -1329,7 +1338,7 @@ export default function AcademicCalendarView({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
                     Department (Optional)
                   </label>
                   <input
@@ -1339,9 +1348,9 @@ export default function AcademicCalendarView({
                     onChange={e => setEventFormData({ ...eventFormData, department: e.target.value })}
                     style={{
                       width: '100%',
-                      background: 'rgba(30, 41, 59, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      color: '#fff',
+                      background: '#ffffff',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--color-text-main)',
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '0.9rem'
@@ -1352,7 +1361,7 @@ export default function AcademicCalendarView({
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
                     Start Date (DD/MM/YYYY) *
                   </label>
                   <input
@@ -1363,9 +1372,9 @@ export default function AcademicCalendarView({
                     onChange={e => setEventFormData({ ...eventFormData, start_date: e.target.value })}
                     style={{
                       width: '100%',
-                      background: 'rgba(30, 41, 59, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      color: '#fff',
+                      background: '#ffffff',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--color-text-main)',
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '0.9rem'
@@ -1374,7 +1383,7 @@ export default function AcademicCalendarView({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
                     End Date (Optional)
                   </label>
                   <input
@@ -1384,9 +1393,9 @@ export default function AcademicCalendarView({
                     onChange={e => setEventFormData({ ...eventFormData, end_date: e.target.value })}
                     style={{
                       width: '100%',
-                      background: 'rgba(30, 41, 59, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      color: '#fff',
+                      background: '#ffffff',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--color-text-main)',
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '0.9rem'
@@ -1396,7 +1405,7 @@ export default function AcademicCalendarView({
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
                   Description / Remarks
                 </label>
                 <textarea
@@ -1406,9 +1415,9 @@ export default function AcademicCalendarView({
                   onChange={e => setEventFormData({ ...eventFormData, description: e.target.value })}
                   style={{
                     width: '100%',
-                    background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--color-text-main)',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '0.9rem',
@@ -1422,12 +1431,13 @@ export default function AcademicCalendarView({
                   type="button"
                   onClick={() => setShowCreateModal(false)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#cbd5e1',
+                    background: '#f1f5f9',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--color-text-secondary)',
                     padding: '10px 18px',
                     borderRadius: '8px',
                     fontSize: '0.88rem',
+                    fontWeight: 600,
                     cursor: 'pointer'
                   }}
                 >
@@ -1437,10 +1447,8 @@ export default function AcademicCalendarView({
                 <button
                   type="submit"
                   disabled={isLoading}
+                  className="btn-primary"
                   style={{
-                    background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)',
-                    border: 'none',
-                    color: '#031726',
                     padding: '10px 20px',
                     borderRadius: '8px',
                     fontSize: '0.88rem',

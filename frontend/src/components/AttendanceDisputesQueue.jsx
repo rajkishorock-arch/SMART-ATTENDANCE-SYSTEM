@@ -134,34 +134,34 @@ export default function AttendanceDisputesQueue({
   const getStatusBadge = (status) => {
     switch (status) {
       case 'APPROVED':
-        return { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', icon: <CheckCircle2 size={13} />, label: 'Approved' };
+        return { bg: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', icon: <CheckCircle2 size={13} />, label: 'Approved' };
       case 'REJECTED':
-        return { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', icon: <XCircle size={13} />, label: 'Rejected' };
+        return { bg: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', icon: <XCircle size={13} />, label: 'Rejected' };
       case 'UNDER_REVIEW':
-        return { bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', icon: <Clock size={13} />, label: 'Under Review' };
+        return { bg: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', icon: <Clock size={13} />, label: 'Under Review' };
       case 'NEEDS_INFORMATION':
-        return { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', icon: <HelpCircle size={13} />, label: 'Info Needed' };
+        return { bg: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', icon: <HelpCircle size={13} />, label: 'Info Needed' };
       default:
-        return { bg: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', icon: <Clock size={13} />, label: 'Submitted' };
+        return { bg: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', icon: <Clock size={13} />, label: 'Submitted' };
     }
   };
 
   const pendingCount = disputes.filter(d => ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFORMATION'].includes(d.status)).length;
 
   return (
-    <div className="glass-panel" style={{ padding: '28px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="surface-card" style={{ padding: '28px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
               Attendance Correction Requests & Disputes
             </h2>
             {pendingCount > 0 && (
               <span style={{
-                background: 'rgba(245, 158, 11, 0.2)',
-                color: '#f59e0b',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
+                background: '#fffbeb',
+                color: '#d97706',
+                border: '1px solid #fde68a',
                 padding: '2px 8px',
                 borderRadius: '12px',
                 fontSize: '0.75rem',
@@ -171,7 +171,7 @@ export default function AttendanceDisputesQueue({
               </span>
             )}
           </div>
-          <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '4px 0 0 0' }}>
             Official dispute queue — approve or correct student attendance with complete immutable audit logs
           </p>
         </div>
@@ -181,13 +181,16 @@ export default function AttendanceDisputesQueue({
           style={{
             padding: '8px 16px',
             borderRadius: '8px',
-            background: 'rgba(0, 242, 254, 0.1)',
-            border: '1px solid rgba(0, 242, 254, 0.25)',
-            color: '#00f2fe',
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--color-text-main)',
             fontSize: '0.82rem',
             fontWeight: 600,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'background 0.2s'
           }}
+          onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
+          onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
         >
           Refresh Queue
         </button>
@@ -197,9 +200,9 @@ export default function AttendanceDisputesQueue({
         <div style={{
           padding: '12px 16px',
           borderRadius: '10px',
-          background: 'rgba(16, 185, 129, 0.1)',
-          border: '1px solid rgba(16, 185, 129, 0.3)',
-          color: '#10b981',
+          background: '#ecfdf5',
+          border: '1px solid #a7f3d0',
+          color: '#059669',
           fontSize: '0.82rem',
           display: 'flex',
           alignItems: 'center',
@@ -231,9 +234,9 @@ export default function AttendanceDisputesQueue({
             style={{
               padding: '6px 14px',
               borderRadius: '20px',
-              border: statusFilter === tab.key ? '1px solid rgba(0, 242, 254, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
-              background: statusFilter === tab.key ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-              color: statusFilter === tab.key ? '#00f2fe' : '#9ca3af',
+              border: statusFilter === tab.key ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+              background: statusFilter === tab.key ? 'var(--color-primary)' : '#f1f5f9',
+              color: statusFilter === tab.key ? '#ffffff' : 'var(--color-text-secondary)',
               fontSize: '0.78rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -254,8 +257,8 @@ export default function AttendanceDisputesQueue({
               style={{
                 padding: '24px',
                 borderRadius: '12px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
+                background: '#ffffff',
+                border: '1px solid var(--border-subtle)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
@@ -263,11 +266,11 @@ export default function AttendanceDisputesQueue({
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <div style={{ width: '40%', height: '18px', background: 'rgba(255, 255, 255, 0.06)', borderRadius: '4px' }}></div>
-                <div style={{ width: '80px', height: '18px', background: 'rgba(0, 242, 254, 0.1)', borderRadius: '12px' }}></div>
+                <div style={{ width: '40%', height: '18px', background: '#f1f5f9', borderRadius: '4px' }}></div>
+                <div style={{ width: '80px', height: '18px', background: '#eff6ff', borderRadius: '12px' }}></div>
               </div>
-              <div style={{ width: '70%', height: '14px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '4px' }}></div>
-              <div style={{ width: '30%', height: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '4px' }}></div>
+              <div style={{ width: '70%', height: '14px', background: '#f1f5f9', borderRadius: '4px' }}></div>
+              <div style={{ width: '30%', height: '12px', background: '#f8fafc', borderRadius: '4px' }}></div>
             </div>
           ))}
         </div>
@@ -275,14 +278,14 @@ export default function AttendanceDisputesQueue({
         <div style={{
           textAlign: 'center',
           padding: '60px 20px',
-          color: '#9ca3af',
-          background: 'rgba(255, 255, 255, 0.02)',
+          color: 'var(--color-text-secondary)',
+          background: '#ffffff',
           borderRadius: '12px',
-          border: '1px dashed rgba(255, 255, 255, 0.08)'
+          border: '1px dashed var(--border-subtle)'
         }}>
           <ShieldCheck size={36} style={{ color: '#10b981', margin: '0 auto 12px auto' }} />
-          <h4 style={{ color: '#f8fafc', margin: 0, fontSize: '1rem' }}>No Disputes in Queue</h4>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0' }}>
+          <h4 style={{ color: 'var(--color-text-main)', margin: 0, fontSize: '1rem' }}>No Disputes in Queue</h4>
+          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: '4px 0 0' }}>
             All attendance correction requests for your assigned classes have been processed.
           </p>
         </div>
@@ -296,11 +299,13 @@ export default function AttendanceDisputesQueue({
             return (
               <div
                 key={d.id}
+                className="surface-card"
                 style={{
                   padding: '18px 22px',
                   borderRadius: '14px',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  boxShadow: 'var(--shadow-card)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px',
@@ -314,12 +319,12 @@ export default function AttendanceDisputesQueue({
                       width: '36px',
                       height: '36px',
                       borderRadius: '50%',
-                      background: 'rgba(0, 242, 254, 0.1)',
-                      border: '1px solid rgba(0, 242, 254, 0.3)',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#00f2fe',
+                      color: 'var(--color-primary)',
                       fontWeight: 700,
                       fontSize: '0.85rem'
                     }}>
@@ -327,18 +332,19 @@ export default function AttendanceDisputesQueue({
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-main)' }}>
                           {d.student_name || 'Student'}
                         </span>
-                        <span style={{ fontSize: '0.8rem', color: '#00f2fe', fontFamily: 'monospace' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontFamily: 'monospace', fontWeight: 600 }}>
                           [{d.student_roll || 'No Roll'}]
                         </span>
                         {d.escalated_to_hod && (
                           <span style={{
                             padding: '1px 6px',
                             borderRadius: '6px',
-                            background: 'rgba(139, 92, 246, 0.2)',
-                            color: '#a78bfa',
+                            background: '#f5f3ff',
+                            border: '1px solid #ddd6fe',
+                            color: '#7c3aed',
                             fontSize: '0.68rem',
                             fontWeight: 700
                           }}>
@@ -346,8 +352,8 @@ export default function AttendanceDisputesQueue({
                           </span>
                         )}
                       </div>
-                      <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '2px 0 0 0' }}>
-                        {d.subject_name ? `${d.subject_name} (${d.subject_code})` : 'General Class'} • Date: <strong style={{ color: '#f8fafc' }}>{d.date}</strong> {d.session_time ? `at ${d.session_time}` : ''}
+                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: '2px 0 0 0' }}>
+                        {d.subject_name ? `${d.subject_name} (${d.subject_code})` : 'General Class'} • Date: <strong style={{ color: 'var(--color-text-main)' }}>{d.date}</strong> {d.session_time ? `at ${d.session_time}` : ''}
                       </p>
                     </div>
                   </div>
@@ -358,6 +364,7 @@ export default function AttendanceDisputesQueue({
                       borderRadius: '12px',
                       background: badge.bg,
                       color: badge.color,
+                      border: badge.border,
                       fontSize: '0.75rem',
                       fontWeight: 700,
                       display: 'flex',
@@ -373,27 +380,27 @@ export default function AttendanceDisputesQueue({
                 <div style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  background: '#f8fafc',
+                  border: '1px solid var(--border-subtle)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '6px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                    <span style={{ color: '#9ca3af' }}>
-                      Reason: <strong style={{ color: '#f8fafc' }}>{d.reason}</strong>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>
+                      Reason: <strong style={{ color: 'var(--color-text-main)' }}>{d.reason}</strong>
                     </span>
                     <span>
-                      Adjustment: <span style={{ color: '#ef4444', fontWeight: 700 }}>{d.original_status}</span> → <span style={{ color: '#10b981', fontWeight: 700 }}>{d.requested_status}</span>
+                      Adjustment: <span style={{ color: '#dc2626', fontWeight: 700 }}>{d.original_status}</span> → <span style={{ color: '#059669', fontWeight: 700 }}>{d.requested_status}</span>
                     </span>
                   </div>
                   {d.description && (
-                    <p style={{ fontSize: '0.8rem', color: '#cbd5e1', margin: 0 }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-main)', margin: 0 }}>
                       {d.description}
                     </p>
                   )}
                   {d.reviewer_comments && (
-                    <div style={{ fontSize: '0.75rem', color: '#00f2fe', paddingTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', paddingTop: '4px', borderTop: '1px solid var(--border-subtle)' }}>
                       <strong>Review Note ({d.reviewed_by}):</strong> {d.reviewer_comments}
                     </div>
                   )}
@@ -421,9 +428,9 @@ export default function AttendanceDisputesQueue({
                         style={{
                           padding: '6px 12px',
                           borderRadius: '8px',
-                          background: 'rgba(0, 242, 254, 0.08)',
-                          border: '1px solid rgba(0, 242, 254, 0.25)',
-                          color: '#00f2fe',
+                          background: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          color: 'var(--color-primary)',
                           fontSize: '0.78rem',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -441,9 +448,9 @@ export default function AttendanceDisputesQueue({
                       style={{
                         padding: '6px 12px',
                         borderRadius: '8px',
-                        background: 'rgba(16, 185, 129, 0.1)',
-                        border: '1px solid rgba(16, 185, 129, 0.25)',
-                        color: '#10b981',
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        color: '#059669',
                         fontSize: '0.78rem',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -460,9 +467,9 @@ export default function AttendanceDisputesQueue({
                       style={{
                         padding: '6px 12px',
                         borderRadius: '8px',
-                        background: 'transparent',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#9ca3af',
+                        background: '#ffffff',
+                        border: '1px solid var(--border-subtle)',
+                        color: 'var(--color-text-secondary)',
                         fontSize: '0.78rem',
                         cursor: 'pointer',
                         display: 'flex',
@@ -488,9 +495,9 @@ export default function AttendanceDisputesQueue({
                         style={{
                           padding: '6px 14px',
                           borderRadius: '8px',
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          color: '#10b981',
+                          background: '#ecfdf5',
+                          border: '1px solid #a7f3d0',
+                          color: '#059669',
                           fontWeight: 700,
                           fontSize: '0.78rem',
                           cursor: 'pointer',
@@ -511,9 +518,9 @@ export default function AttendanceDisputesQueue({
                         style={{
                           padding: '6px 14px',
                           borderRadius: '8px',
-                          background: 'rgba(239, 68, 68, 0.15)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          color: '#ef4444',
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          color: '#dc2626',
                           fontWeight: 700,
                           fontSize: '0.78rem',
                           cursor: 'pointer',
@@ -530,9 +537,9 @@ export default function AttendanceDisputesQueue({
                         style={{
                           padding: '6px 12px',
                           borderRadius: '8px',
-                          background: 'rgba(139, 92, 246, 0.15)',
-                          border: '1px solid rgba(139, 92, 246, 0.3)',
-                          color: '#a78bfa',
+                          background: '#f5f3ff',
+                          border: '1px solid #ddd6fe',
+                          color: '#7c3aed',
                           fontWeight: 600,
                           fontSize: '0.78rem',
                           cursor: 'pointer',
@@ -553,10 +560,10 @@ export default function AttendanceDisputesQueue({
                     marginTop: '8px',
                     padding: '14px',
                     borderRadius: '10px',
-                    background: reviewAction === 'APPROVE' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)',
-                    border: `1px solid ${reviewAction === 'APPROVE' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`
+                    background: reviewAction === 'APPROVE' ? '#ecfdf5' : '#fef2f2',
+                    border: `1px solid ${reviewAction === 'APPROVE' ? '#a7f3d0' : '#fecaca'}`
                   }}>
-                    <h5 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: reviewAction === 'APPROVE' ? '#10b981' : '#ef4444' }}>
+                    <h5 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: reviewAction === 'APPROVE' ? '#059669' : '#dc2626' }}>
                       {reviewAction === 'APPROVE' ? 'Approve & Correct Attendance to Present' : 'Reject Correction Request'}
                     </h5>
                     <input
@@ -568,9 +575,9 @@ export default function AttendanceDisputesQueue({
                         width: '100%',
                         padding: '8px 12px',
                         borderRadius: '6px',
-                        background: 'rgba(0, 0, 0, 0.4)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#f8fafc',
+                        background: '#ffffff',
+                        border: '1px solid var(--border-subtle)',
+                        color: 'var(--color-text-main)',
                         fontSize: '0.82rem',
                         marginBottom: '10px'
                       }}
@@ -581,9 +588,9 @@ export default function AttendanceDisputesQueue({
                         style={{
                           padding: '6px 12px',
                           borderRadius: '6px',
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          color: '#9ca3af',
+                          background: '#ffffff',
+                          border: '1px solid var(--border-subtle)',
+                          color: 'var(--color-text-secondary)',
                           fontSize: '0.78rem',
                           cursor: 'pointer'
                         }}
@@ -596,7 +603,7 @@ export default function AttendanceDisputesQueue({
                         style={{
                           padding: '6px 16px',
                           borderRadius: '6px',
-                          background: reviewAction === 'APPROVE' ? '#10b981' : '#ef4444',
+                          background: reviewAction === 'APPROVE' ? '#059669' : '#dc2626',
                           border: 'none',
                           color: '#fff',
                           fontWeight: 700,
@@ -616,13 +623,13 @@ export default function AttendanceDisputesQueue({
                     marginTop: '8px',
                     padding: '14px',
                     borderRadius: '10px',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    background: '#f8fafc',
+                    border: '1px solid var(--border-subtle)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px'
                   }}>
-                    <h5 style={{ margin: 0, fontSize: '0.82rem', color: '#9ca3af' }}>
+                    <h5 style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
                       Dispute Discussion & Audit History
                     </h5>
                     {d.comments && d.comments.length > 0 ? (
@@ -631,23 +638,23 @@ export default function AttendanceDisputesQueue({
                           <div key={c.id} style={{
                             padding: '8px 12px',
                             borderRadius: '8px',
-                            background: c.author_role === 'student' ? 'rgba(0, 242, 254, 0.05)' : 'rgba(139, 92, 246, 0.05)',
-                            border: `1px solid ${c.author_role === 'student' ? 'rgba(0, 242, 254, 0.15)' : 'rgba(139, 92, 246, 0.15)'}`
+                            background: c.author_role === 'student' ? '#eff6ff' : '#f5f3ff',
+                            border: `1px solid ${c.author_role === 'student' ? '#bfdbfe' : '#ddd6fe'}`
                           }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#9ca3af' }}>
-                              <strong style={{ color: c.author_role === 'student' ? '#00f2fe' : '#a78bfa' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                              <strong style={{ color: c.author_role === 'student' ? 'var(--color-primary)' : '#7c3aed' }}>
                                 {c.author_name || c.author_email} ({c.author_role})
                               </strong>
                               <span>{new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
-                            <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#f8fafc' }}>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--color-text-main)' }}>
                               {c.message}
                             </p>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', margin: 0 }}>
                         No comments yet. Send a message to communicate with the student.
                       </p>
                     )}
@@ -662,9 +669,9 @@ export default function AttendanceDisputesQueue({
                           flex: 1,
                           padding: '8px 12px',
                           borderRadius: '6px',
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          color: '#f8fafc',
+                          background: '#ffffff',
+                          border: '1px solid var(--border-subtle)',
+                          color: 'var(--color-text-main)',
                           fontSize: '0.8rem'
                         }}
                         onKeyDown={(e) => {
@@ -677,9 +684,9 @@ export default function AttendanceDisputesQueue({
                         style={{
                           padding: '8px 14px',
                           borderRadius: '6px',
-                          background: 'rgba(0, 242, 254, 0.15)',
-                          border: '1px solid rgba(0, 242, 254, 0.3)',
-                          color: '#00f2fe',
+                          background: 'var(--color-primary)',
+                          border: 'none',
+                          color: '#ffffff',
                           fontSize: '0.78rem',
                           fontWeight: 600,
                           cursor: isPostingComment ? 'not-allowed' : 'pointer'

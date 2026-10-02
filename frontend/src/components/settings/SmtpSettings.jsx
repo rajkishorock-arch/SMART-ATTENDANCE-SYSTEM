@@ -32,21 +32,21 @@ export default function SmtpSettings({ token }) {
       display: 'flex', 
       flexDirection: 'column', 
       gap: '16px',
-      borderLeft: '1px solid rgba(255,255,255,0.08)',
+      borderLeft: '1px solid var(--border-subtle)',
       paddingLeft: '28px'
     }}>
       <div>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           ✉️ SMTP Mailer Diagnostics
         </h4>
-        <p style={{ color: '#9ca3af', fontSize: '0.78rem', margin: '4px 0 0 0', lineHeight: '1.4' }}>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.78rem', margin: '4px 0 0 0', lineHeight: '1.4' }}>
           Verify the live mail server connection by triggering a test transmission.
         </p>
       </div>
 
       <form onSubmit={handleSmtpTest} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label" style={{ fontSize: '0.75rem' }}>Recipient Test Email</label>
+          <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Recipient Test Email</label>
           <input
             type="email"
             className="form-input"
@@ -56,7 +56,9 @@ export default function SmtpSettings({ token }) {
             required
             style={{
               padding: '10px 14px',
-              background: 'rgba(8, 12, 20, 0.4)',
+              background: '#ffffff',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--color-text-main)',
               fontSize: '0.85rem'
             }}
           />
@@ -65,16 +67,15 @@ export default function SmtpSettings({ token }) {
         <button
           type="submit"
           disabled={smtpTestStatus.loading}
-          className="action-btn"
+          className="btn-primary"
           style={{
             padding: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            fontFamily: 'monospace',
-            fontSize: '0.8rem',
-            background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+            fontSize: '0.85rem',
+            fontWeight: 700,
             borderRadius: '8px',
             cursor: 'pointer'
           }}
@@ -86,12 +87,11 @@ export default function SmtpSettings({ token }) {
       {smtpTestStatus.success && (
         <div style={{
           padding: '12px',
-          background: 'rgba(16, 185, 129, 0.1)',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
+          background: '#ecfdf5',
+          border: '1px solid #a7f3d0',
           borderRadius: '8px',
-          color: '#10b981',
+          color: '#059669',
           fontSize: '0.78rem',
-          fontFamily: 'monospace',
           lineHeight: '1.4'
         }}>
           ✅ {smtpTestStatus.success}
@@ -101,12 +101,11 @@ export default function SmtpSettings({ token }) {
       {smtpTestStatus.error && (
         <div style={{
           padding: '12px',
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.25)',
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
           borderRadius: '8px',
-          color: '#ef4444',
+          color: '#dc2626',
           fontSize: '0.78rem',
-          fontFamily: 'monospace',
           lineHeight: '1.4',
           wordBreak: 'break-all'
         }}>

@@ -53,11 +53,12 @@ export default function TeachersDirectoryView({
             className={`btn-secondary ${timetableSubTab === 'directory' ? 'active' : ''}`}
             style={{ 
               padding: '10px 20px', 
-              borderRadius: '8px', 
+              borderRadius: '10px', 
               fontSize: '0.9rem',
-              border: timetableSubTab === 'directory' ? '1px solid var(--border-color-glow)' : '1px solid var(--border-color)',
+              fontWeight: 600,
+              border: timetableSubTab === 'directory' ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
               color: timetableSubTab === 'directory' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-              background: timetableSubTab === 'directory' ? 'rgba(0, 242, 254, 0.08)' : 'rgba(255, 255, 255, 0.02)'
+              background: timetableSubTab === 'directory' ? 'rgba(30, 64, 175, 0.08)' : '#ffffff'
             }}
           >
             🏫 Teacher Directory
@@ -67,11 +68,12 @@ export default function TeachersDirectoryView({
             className={`btn-secondary ${timetableSubTab === 'planner' ? 'active' : ''}`}
             style={{ 
               padding: '10px 20px', 
-              borderRadius: '8px', 
+              borderRadius: '10px', 
               fontSize: '0.9rem',
-              border: timetableSubTab === 'planner' ? '1px solid var(--border-color-glow)' : '1px solid var(--border-color)',
+              fontWeight: 600,
+              border: timetableSubTab === 'planner' ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
               color: timetableSubTab === 'planner' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-              background: timetableSubTab === 'planner' ? 'rgba(0, 242, 254, 0.08)' : 'rgba(255, 255, 255, 0.02)'
+              background: timetableSubTab === 'planner' ? 'rgba(30, 64, 175, 0.08)' : '#ffffff'
             }}
           >
             📅 Weekly Timetable Planner
@@ -83,9 +85,9 @@ export default function TeachersDirectoryView({
         <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1.2fr 1.8fr', gap: isMobileView ? '20px' : '32px', width: '100%', minWidth: 0, maxWidth: '100%' }}>
           {/* Form for manual registration / edit */}
           <div className="glass-panel" style={{ padding: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', marginBottom: '24px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px', marginBottom: '24px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', fontFamily: 'Outfit, sans-serif', margin: 0 }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
                   {editingTeacher ? 'Edit Teacher Details' : 'Register New Teacher'}
                 </h3>
                 <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
@@ -101,7 +103,7 @@ export default function TeachersDirectoryView({
                     setTeacherSuccess('');
                   }}
                   className="btn-secondary"
-                  style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', color: '#38bdf8', borderColor: 'rgba(14, 165, 233, 0.3)' }}
+                  style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', color: 'var(--color-primary)', borderColor: 'rgba(30, 64, 175, 0.3)' }}
                 >
                   + New Registration
                 </button>
@@ -250,8 +252,8 @@ export default function TeachersDirectoryView({
                 )}
                 <button 
                   type="submit" 
-                  className="bg-gradient-btn" 
-                  style={{ padding: '10px 24px', borderRadius: '12px' }}
+                  className="btn-primary" 
+                  style={{ padding: '10px 24px', borderRadius: '10px', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600 }}
                 >
                   {editingTeacher ? 'Save Changes' : 'Register Teacher'}
                 </button>
@@ -261,9 +263,9 @@ export default function TeachersDirectoryView({
 
           {/* Teacher Directory Table */}
           <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0, width: '100%', maxWidth: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', fontFamily: 'Outfit, sans-serif', margin: 0 }}>Teaching Staff Directory</h3>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>Teaching Staff Directory</h3>
                 <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: '4px 0 0' }}>Listing all registered teachers, mapped subjects, and timetable schedules</p>
               </div>
               {editingTeacher && (
@@ -274,7 +276,7 @@ export default function TeachersDirectoryView({
                     setTeacherSuccess('');
                   }}
                   className="btn-primary"
-                  style={{ padding: '6px 14px', fontSize: '0.78rem', minHeight: '34px' }}
+                  style={{ padding: '6px 14px', fontSize: '0.78rem', minHeight: '34px', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', borderRadius: '8px' }}
                 >
                   + Add New Teacher
                 </button>
@@ -294,8 +296,8 @@ export default function TeachersDirectoryView({
                 <button
                   onClick={() => setSelectedTeacherIds(new Set())}
                   style={{
-                    padding: '5px 12px', fontSize: '0.75rem', background: 'transparent',
-                    border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8',
+                    padding: '5px 12px', fontSize: '0.75rem', background: '#ffffff',
+                    border: '1px solid var(--border-subtle)', color: 'var(--color-text-muted)',
                     borderRadius: '6px', cursor: 'pointer'
                   }}
                 >Clear</button>
@@ -329,7 +331,7 @@ export default function TeachersDirectoryView({
                             setSelectedTeacherIds(new Set());
                           }
                         }}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#00f2fe' }}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
                       />
                     </th>
                     <th style={{ width: '60px' }}>ID</th>
@@ -349,7 +351,7 @@ export default function TeachersDirectoryView({
                       const tSubjects = subjects.filter(sub => sub.teacher_id === t.id);
                       
                       return (
-                        <tr key={t.id} style={{ background: selectedTeacherIds.has(t.id) ? 'rgba(0,242,254,0.03)' : undefined }}>
+                        <tr key={t.id} style={{ background: selectedTeacherIds.has(t.id) ? 'rgba(30, 64, 175, 0.04)' : undefined }}>
                           <td style={{ textAlign: 'center' }}>
                             <input
                               type="checkbox"
@@ -359,11 +361,11 @@ export default function TeachersDirectoryView({
                                 if (e.target.checked) next.add(t.id); else next.delete(t.id);
                                 setSelectedTeacherIds(next);
                               }}
-                              style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: '#00f2fe' }}
+                              style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: 'var(--color-primary)' }}
                             />
                           </td>
-                          <td style={{ color: '#00f2fe', fontWeight: 600 }}>#{t.id}</td>
-                          <td style={{ fontWeight: 700, color: '#fff' }}>{t.name}</td>
+                          <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{t.id}</td>
+                          <td style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{t.name}</td>
                           <td style={{ color: 'var(--color-text-muted)' }}>{t.email}</td>
                           <td>
                             {tSubjects.length === 0 ? (
@@ -371,7 +373,7 @@ export default function TeachersDirectoryView({
                             ) : (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 {tSubjects.map(sub => (
-                                  <span key={sub.id} style={{ fontSize: '0.8rem', color: '#00f2fe', fontWeight: 600 }}>
+                                  <span key={sub.id} style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 600 }}>
                                     {sub.code} ({sub.name})
                                   </span>
                                 ))}
@@ -390,9 +392,11 @@ export default function TeachersDirectoryView({
                                 style={{ 
                                   padding: '6px 12px', 
                                   fontSize: '0.8rem', 
-                                  color: '#a78bfa', 
-                                  borderColor: 'rgba(167,139,250,0.3)', 
-                                  background: 'rgba(167,139,250,0.05)' 
+                                  color: 'var(--color-purple)', 
+                                  borderColor: 'rgba(124, 58, 237, 0.25)', 
+                                  background: 'rgba(124, 58, 237, 0.05)',
+                                  borderRadius: '8px',
+                                  fontWeight: 600
                                 }}
                               >
                                 <Edit size={12} />
@@ -401,7 +405,7 @@ export default function TeachersDirectoryView({
                               <button 
                                 onClick={() => handleDeleteTeacher(t.id)}
                                 className="btn-danger"
-                                style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                                style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px' }}
                               >
                                 <Trash2 size={12} />
                                 Delete
@@ -422,10 +426,10 @@ export default function TeachersDirectoryView({
         <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '32px', width: '100%' }}>
           {/* Left: Timetable Grid */}
           <div className="glass-panel" style={{ padding: '28px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', marginBottom: '8px', fontFamily: 'Outfit, sans-serif' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-main)', marginBottom: '8px', margin: 0 }}>
               Weekly Class Schedule Grid
             </h3>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '24px', marginTop: '4px' }}>
               Click on any empty cell to pre-populate day and period details for creating a schedule rule.
             </p>
 
@@ -446,7 +450,7 @@ export default function TeachersDirectoryView({
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
                   <div key={day} style={{ display: 'grid', gridTemplateColumns: '100px repeat(6, 1fr)', gap: '10px', alignItems: 'stretch' }}>
                     {/* Day Name */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem', color: '#fff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-main)' }}>
                       {day.toUpperCase()}
                     </div>
 
@@ -472,8 +476,8 @@ export default function TeachersDirectoryView({
                           }}
                           style={{ 
                             minHeight: '80px', 
-                            background: slotSchedules.length > 0 ? 'rgba(0, 242, 254, 0.05)' : 'rgba(255,255,255,0.01)', 
-                            border: slotSchedules.length > 0 ? '1px solid rgba(0, 242, 254, 0.2)' : '1px solid rgba(255,255,255,0.03)', 
+                            background: slotSchedules.length > 0 ? 'rgba(30, 64, 175, 0.05)' : '#ffffff', 
+                            border: slotSchedules.length > 0 ? '1px solid rgba(30, 64, 175, 0.25)' : '1px solid var(--border-subtle)', 
                             borderRadius: '8px', 
                             padding: '8px', 
                             cursor: slotSchedules.length > 0 ? 'default' : 'pointer',
@@ -488,14 +492,14 @@ export default function TeachersDirectoryView({
                           }}
                           onMouseEnter={e => {
                             if (slotSchedules.length === 0) {
-                              e.currentTarget.style.background = 'rgba(0, 242, 254, 0.08)';
-                              e.currentTarget.style.borderColor = 'rgba(0, 242, 254, 0.3)';
+                              e.currentTarget.style.background = 'rgba(30, 64, 175, 0.08)';
+                              e.currentTarget.style.borderColor = 'rgba(30, 64, 175, 0.3)';
                             }
                           }}
                           onMouseLeave={e => {
                             if (slotSchedules.length === 0) {
-                              e.currentTarget.style.background = 'rgba(255,255,255,0.01)';
-                              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.03)';
+                              e.currentTarget.style.background = '#ffffff';
+                              e.currentTarget.style.borderColor = 'var(--border-subtle)';
                             }
                           }}
                         >
@@ -505,8 +509,8 @@ export default function TeachersDirectoryView({
                               const teacher = teachers.find(t => t.id === sub?.teacher_id);
                               return (
                                 <div key={sch.id} style={{ width: '100%' }}>
-                                  <div style={{ fontWeight: 'bold', color: '#00f2fe' }}>{sub ? sub.code : 'SUB'}</div>
-                                  <div style={{ fontSize: '0.65rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={sub ? sub.name : 'Unknown'}>
+                                  <div style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>{sub ? sub.code : 'SUB'}</div>
+                                  <div style={{ fontSize: '0.65rem', color: 'var(--color-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={sub ? sub.name : 'Unknown'}>
                                     {sub ? sub.name : 'Unknown'}
                                   </div>
                                   <div style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -516,7 +520,7 @@ export default function TeachersDirectoryView({
                               );
                             })
                           ) : (
-                            <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.65rem' }}>+ Empty</span>
+                            <span style={{ color: 'var(--color-text-dim)', fontSize: '0.65rem' }}>+ Empty</span>
                           )}
                         </div>
                       );
@@ -531,7 +535,7 @@ export default function TeachersDirectoryView({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Register Subject Card */}
             <div className="glass-panel" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-main)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 🏫 Register Subject
               </h3>
               {subjectError && <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{subjectError}</div>}
@@ -591,7 +595,7 @@ export default function TeachersDirectoryView({
                     ))}
                   </select>
                 </div>
-                <button type="submit" className="bg-gradient-btn" style={{ padding: '10px', borderRadius: '6px', fontSize: '0.8rem', marginTop: '4px', width: '100%' }}>
+                <button type="submit" className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600 }}>
                   Register Subject
                 </button>
               </form>
@@ -599,7 +603,7 @@ export default function TeachersDirectoryView({
 
             {/* Create Schedule Card */}
             <div className="glass-panel" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-main)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 📅 Create Schedule Rule
               </h3>
               {scheduleError && <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{scheduleError}</div>}
@@ -660,7 +664,7 @@ export default function TeachersDirectoryView({
                     />
                   </div>
                 </div>
-                <button type="submit" className="bg-gradient-btn" style={{ padding: '10px', borderRadius: '6px', fontSize: '0.8rem', marginTop: '4px', width: '100%' }}>
+                <button type="submit" className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600 }}>
                   Create Schedule
                 </button>
               </form>

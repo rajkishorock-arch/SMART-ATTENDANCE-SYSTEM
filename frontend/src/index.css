@@ -2111,13 +2111,13 @@ button:active,
     transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
     display: flex !important;
     flex-direction: column !important;
-    background: rgba(13, 18, 31, 0.98) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
-    box-shadow: 12px 0 45px rgba(0, 0, 0, 0.85) !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 8px 0 30px rgba(15, 23, 42, 0.12) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    border-right: 1px solid rgba(0, 242, 254, 0.25) !important;
+    border-right: 1px solid var(--border-subtle) !important;
   }
 
   .sidebar.open {
@@ -2130,9 +2130,9 @@ button:active,
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    color: #f1f5f9 !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    color: var(--color-text-main) !important;
+    background: #ffffff !important;
+    border: 1px solid var(--border-subtle) !important;
     border-radius: 10px !important;
     width: 38px !important;
     max-width: 38px !important;
@@ -2142,13 +2142,14 @@ button:active,
     flex-shrink: 0 !important;
     padding: 0 !important;
     box-sizing: border-box !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
     -webkit-tap-highlight-color: transparent !important;
   }
 
   .sidebar-backdrop {
     position: fixed !important;
     inset: 0 !important;
-    background: rgba(0, 0, 0, 0.75) !important;
+    background: rgba(15, 23, 42, 0.45) !important;
     backdrop-filter: blur(4px) !important;
     -webkit-backdrop-filter: blur(4px) !important;
     z-index: 9990 !important;
@@ -2192,7 +2193,8 @@ button:active,
     overflow: visible !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: rgba(13, 20, 35, 0.92) !important;
+    background: #ffffff !important;
+    border: 1px solid var(--border-subtle) !important;
     touch-action: auto !important;
   }
 
@@ -3477,10 +3479,10 @@ html {
   right: max(12px, env(safe-area-inset-right, 0px));
   width: min(360px, calc(100vw - 24px));
   max-height: min(480px, calc(100dvh - 100px));
-  background: rgba(13, 20, 35, 0.98);
-  border: 1px solid var(--border-color-glow);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-modal);
   z-index: 500;
   display: flex;
   flex-direction: column;
@@ -3493,12 +3495,13 @@ html {
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .notification-panel-header h4 {
   font-size: 0.95rem;
   font-weight: 700;
+  color: var(--color-text-main);
   margin: 0;
 }
 
@@ -3512,7 +3515,7 @@ html {
 }
 
 .notification-close-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: #f1f5f9;
   border: none;
   border-radius: 8px;
   color: var(--color-text-muted);
@@ -3534,12 +3537,12 @@ html {
   display: flex;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid #f1f5f9;
   transition: background 0.2s;
 }
 
 .notification-item.unread {
-  background: rgba(0, 242, 254, 0.04);
+  background: rgba(37, 99, 235, 0.04);
 }
 
 .notification-item-body {
