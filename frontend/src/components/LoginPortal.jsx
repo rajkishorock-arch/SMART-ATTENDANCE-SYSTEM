@@ -15,7 +15,8 @@ import {
   ArrowRight,
   ArrowLeft,
   Sparkles,
-  Check
+  Check,
+  Copy
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
@@ -97,6 +98,8 @@ export default function LoginPortal({
 
   const [regError, setRegError] = useState('');
   const [regSuccessMsg, setRegSuccessMsg] = useState('');
+  const [regSuccessData, setRegSuccessData] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(false);
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [showPostRegFaceEnroll, setShowPostRegFaceEnroll] = useState(false);
 
@@ -230,7 +233,12 @@ export default function LoginPortal({
         localStorage.setItem('override_tenant', data.institution_code || regInstSlug.trim().toLowerCase());
         setLoginEmail(regEmail.trim().toLowerCase());
         setLoginRole('admin');
-        setRegSuccessMsg(`🎉 Institution "${data.institution_name || regInstName}" registered! Code: ${data.institution_code || regInstSlug}. You can now log in.`);
+        setRegSuccessData({
+          institution_name: data.institution_name || regInstName,
+          institution_code: data.institution_code || regInstSlug,
+          admin_email: data.admin_email || regEmail,
+          master_key: data.master_key
+        });
         setIsRegister(false);
       } else {
         setShowPostRegFaceEnroll(true);
@@ -477,7 +485,101 @@ export default function LoginPortal({
           )}
 
           {/* Registration Success / Guided Post-Signup Step */}
-          {showPostRegFaceEnroll ? (
+          {regSuccessData ? (
+            <div style={{
+              padding: '24px',
+              borderRadius: '16px',
+              background: '#f8fafc',
+              border: '1.5px solid #cbd5e1',
+              boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 size={22} color="#059669" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                    Institution Workspace Provisioned!
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                    Your multi-tenant workspace is live and isolated.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.82rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Institution Name:</span>
+                  <span style={{ color: '#0f172a', fontWeight: 700 }}>{regSuccessData.institution_name}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Portal Code / Slug:</span>
+                  <span style={{ color: '#0284c7', fontWeight: 800, fontFamily: 'monospace' }}>{regSuccessData.institution_code}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Admin Login Email:</span>
+                  <span style={{ color: '#0f172a', fontWeight: 600 }}>{regSuccessData.admin_email}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '10px', padding: '10px 14px' }}>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '0.72rem', color: '#be123c', fontWeight: 700, textTransform: 'uppercase' }}>
+                      Workspace Master Key
+                    </span>
+                    <span style={{ fontFamily: 'Consolas, monospace', fontSize: '1.05rem', fontWeight: 800, color: '#9f1239', letterSpacing: '1px' }}>
+                      {regSuccessData.master_key}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(regSuccessData.master_key);
+                      setCopiedKey(true);
+                      setTimeout(() => setCopiedKey(false), 2000);
+                    }}
+                    style={{
+                      background: copiedKey ? '#059669' : '#e11d48',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 14px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    {copiedKey ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedKey ? 'Copied!' : 'Copy Key'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <p style={{ margin: '12px 0 16px', fontSize: '0.75rem', color: '#475569', lineHeight: 1.45 }}>
+                🔒 <strong>Please note down this Master Key!</strong> It is required to approve critical administrative actions (reset operations, student deletions, and master password modifications). A copy has also been sent to your email.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setRegSuccessData(null)}
+                style={{
+                  width: '100%',
+                  padding: '11px 16px',
+                  borderRadius: '10px',
+                  background: '#0284c7',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Proceed to Login
+              </button>
+            </div>
+          ) : showPostRegFaceEnroll ? (
             <div style={{ padding: '28px', borderRadius: '16px', background: '#ecfdf5', border: '1px solid #a7f3d0', textAlign: 'center' }}>
               <CheckCircle2 size={44} color="#059669" style={{ margin: '0 auto 12px auto' }} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46', margin: 0 }}>Account Created Successfully!</h3>

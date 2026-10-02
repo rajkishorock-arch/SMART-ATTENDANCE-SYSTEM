@@ -183,6 +183,31 @@ def delete_institution(
     db.commit()
     return {"message": "Institution deleted successfully."}
 
+@router.get("/my-master-key", status_code=status.HTTP_200_OK)
+def get_my_master_key(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """
+    Retrieve the current institution's Master Key.
+    Only accessible by authenticated institution administrators.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can view the institution master key."
+        )
+    inst = db.query(models.Institution).filter(models.Institution.id == current_user.institution_id).first()
+    if not inst:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Institution not found.")
+    
+    return {
+        "institution_id": inst.id,
+        "institution_name": inst.name,
+        "institution_slug": inst.slug,
+        "master_key": inst.master_key or "MK-DEFAULT"
+    }
+
 @router.put("/master-key", status_code=status.HTTP_200_OK)
 def update_college_master_key(
     payload: schemas.InstitutionMasterKeyUpdate,
