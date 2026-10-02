@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Search, BookOpen, Trash2, Camera, Edit, Plus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -84,6 +85,17 @@ export default function StudentsDirectoryView({
     setShowAddModal?.(true);
   };
 
+  const [deletingStudentId, setDeletingStudentId] = useState(null);
+
+  const handleDeleteStudentClick = async (id) => {
+    try {
+      setDeletingStudentId(id);
+      await handleDeleteStudent(id);
+    } finally {
+      setDeletingStudentId(null);
+    }
+  };
+
   return (
     <div className="glass-panel" style={{ padding: 'clamp(16px, 3.5vw, 32px)', animation: 'fadeInUp 0.6s ease both', position: 'relative' }}>
       {/* Filters bar & Actions */}
@@ -161,38 +173,6 @@ export default function StudentsDirectoryView({
         )}
       </div>
 
-      {/* Bulk Action Bar */}
-      {selectedStudentIds.size > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
-          background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)',
-          borderRadius: '12px', marginBottom: '16px', animation: 'fadeInUp 0.3s ease'
-        }}>
-          <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.85rem' }}>
-            {selectedStudentIds.size} student{selectedStudentIds.size > 1 ? 's' : ''} selected
-          </span>
-          <button
-            onClick={() => setSelectedStudentIds(new Set())}
-            style={{
-              padding: '5px 12px', fontSize: '0.75rem', background: '#ffffff',
-              border: '1px solid var(--border-subtle)', color: 'var(--color-text-muted)',
-              borderRadius: '6px', cursor: 'pointer'
-            }}
-          >Clear</button>
-          <button
-            onClick={handleBulkDeleteStudents}
-            style={{
-              padding: '5px 14px', fontSize: '0.75rem', background: 'rgba(239,68,68,0.15)',
-              border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444',
-              borderRadius: '6px', cursor: 'pointer', fontWeight: 700,
-              display: 'flex', alignItems: 'center', gap: '6px'
-            }}
-          >
-            <Trash2 size={12} /> Delete Selected
-          </button>
-        </div>
-      )}
-
       {/* List */}
       {filteredStudents.length === 0 ? (
         <div className="flex-center" style={{ padding: '60px 0', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '16px' }}>
@@ -204,20 +184,6 @@ export default function StudentsDirectoryView({
           <table className="custom-table">
             <thead>
               <tr>
-                <th style={{ width: '40px', textAlign: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.has(s.id))}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setSelectedStudentIds(new Set(filteredStudents.map(s => s.id)));
-                      } else {
-                        setSelectedStudentIds(new Set());
-                      }
-                    }}
-                    style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
-                  />
-                </th>
                 <th style={{ width: '80px' }}>ID</th>
                 <th>Roll Number</th>
                 <th>Name</th>
@@ -230,19 +196,7 @@ export default function StudentsDirectoryView({
             </thead>
             <tbody>
               {filteredStudents.map(student => (
-                <tr key={student.id} style={{ background: selectedStudentIds.has(student.id) ? 'rgba(30, 64, 175, 0.04)' : undefined }}>
-                  <td style={{ textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedStudentIds.has(student.id)}
-                      onChange={e => {
-                        const next = new Set(selectedStudentIds);
-                        if (e.target.checked) next.add(student.id); else next.delete(student.id);
-                        setSelectedStudentIds(next);
-                      }}
-                      style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: 'var(--color-primary)' }}
-                    />
-                  </td>
+                <tr key={student.id}>
                   <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{student.id}</td>
                   <td style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{student.roll}</td>
                   <td style={{ fontWeight: 500, color: 'var(--color-text-main)' }}>{student.name}</td>
@@ -259,18 +213,23 @@ export default function StudentsDirectoryView({
                           setCaptureStudent(student);
                           setShowWebcamModal(true);
                         }}
-                        className="btn-secondary"
                         style={{ 
                           padding: '7px 12px', 
                           fontSize: '0.82rem',
-                          color: 'var(--color-primary)', 
-                          borderColor: 'rgba(30, 64, 175, 0.25)', 
-                          background: 'rgba(30, 64, 175, 0.05)',
+                          color: '#1d4ed8', 
+                          border: '1.5px solid #3b82f6', 
+                          background: '#eff6ff',
                           borderRadius: '8px',
-                          fontWeight: 600
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
                         }}
+                        title="Capture Photo"
                       >
-                        <Camera size={13} />
+                        <Camera size={14} />
                         Capture
                       </button>
                       <button 
@@ -278,27 +237,47 @@ export default function StudentsDirectoryView({
                           setEditingStudent({ ...student, password: '' });
                           setShowEditStudentModal(true);
                         }}
-                        className="btn-secondary"
                         style={{ 
                           padding: '7px 12px', 
                           fontSize: '0.82rem',
-                          color: 'var(--color-purple)', 
-                          borderColor: 'rgba(124, 58, 237, 0.25)', 
-                          background: 'rgba(124, 58, 237, 0.05)',
+                          color: '#7c3aed', 
+                          border: '1.5px solid #8b5cf6', 
+                          background: '#f5f3ff',
                           borderRadius: '8px',
-                          fontWeight: 600
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
                         }}
+                        title="Edit Student"
                       >
-                        <Edit size={13} />
+                        <Edit size={14} />
                         Edit
                       </button>
                       <button 
-                        onClick={() => handleDeleteStudent(student.id)}
-                        className="btn-danger"
-                        style={{ padding: '7px 12px', fontSize: '0.82rem', borderRadius: '8px' }}
+                        onClick={() => handleDeleteStudentClick(student.id)}
+                        disabled={deletingStudentId === student.id}
+                        style={{ 
+                          padding: '7px 14px', 
+                          fontSize: '0.82rem', 
+                          borderRadius: '8px',
+                          background: '#fef2f2',
+                          color: '#dc2626',
+                          border: '1.5px solid #ef4444',
+                          fontWeight: 700,
+                          cursor: deletingStudentId === student.id ? 'not-allowed' : 'pointer',
+                          opacity: deletingStudentId === student.id ? 0.7 : 1,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        title="Delete Student"
                       >
-                        <Trash2 size={13} />
-                        Delete
+                        <Trash2 size={14} />
+                        {deletingStudentId === student.id ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </td>

@@ -75,6 +75,15 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('cached_user');
     localStorage.removeItem('onboarding_tour_done');
     localStorage.removeItem('onboarding_guide_done');
+    localStorage.removeItem('cached_students');
+    localStorage.removeItem('cached_students_timestamp');
+    localStorage.removeItem('cached_logs');
+    localStorage.removeItem('cached_logs_timestamp');
+    localStorage.removeItem('cached_departments');
+    localStorage.removeItem('cached_departmentsList');
+    localStorage.removeItem('cached_teachers');
+    localStorage.removeItem('cached_subjects');
+    localStorage.removeItem('cached_schedules');
     setToken('');
     setUserRole('');
     setCurrentUser(null);

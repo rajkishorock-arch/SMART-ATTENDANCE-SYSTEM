@@ -38,6 +38,53 @@ export default function TeachersDirectoryView({
   const { userRole } = useAuth();
   const { playCyberSound } = useUI();
   const [timetableSubTab, setTimetableSubTab] = useState('directory');
+  const [deletingTeacherId, setDeletingTeacherId] = useState(null);
+  const [isSubmittingTeacher, setIsSubmittingTeacher] = useState(false);
+  const [isSubmittingSubject, setIsSubmittingSubject] = useState(false);
+  const [isSubmittingSchedule, setIsSubmittingSchedule] = useState(false);
+
+  const handleDeleteTeacherClick = async (id) => {
+    try {
+      setDeletingTeacherId(id);
+      await handleDeleteTeacher(id);
+    } finally {
+      setDeletingTeacherId(null);
+    }
+  };
+
+  const onSubmitTeacher = async (e) => {
+    e.preventDefault();
+    try {
+      setIsSubmittingTeacher(true);
+      if (editingTeacher) {
+        await handleUpdateTeacher(e);
+      } else {
+        await handleAddTeacher(e);
+      }
+    } finally {
+      setIsSubmittingTeacher(false);
+    }
+  };
+
+  const onSubmitSubject = async (e) => {
+    e.preventDefault();
+    try {
+      setIsSubmittingSubject(true);
+      await handleAddSubject(e);
+    } finally {
+      setIsSubmittingSubject(false);
+    }
+  };
+
+  const onSubmitSchedule = async (e) => {
+    e.preventDefault();
+    try {
+      setIsSubmittingSchedule(true);
+      await handleAddSchedule(e);
+    } finally {
+      setIsSubmittingSchedule(false);
+    }
+  };
 
   if (userRole !== 'admin') {
     return null;
@@ -122,7 +169,7 @@ export default function TeachersDirectoryView({
               </div>
             )}
 
-            <form onSubmit={editingTeacher ? handleUpdateTeacher : handleAddTeacher}>
+            <form onSubmit={onSubmitTeacher}>
               <div className="form-group">
                 <label className="form-label">Full Name</label>
                 <input 
@@ -220,7 +267,7 @@ export default function TeachersDirectoryView({
                 <label className="form-label">Department / Branch</label>
                 <select 
                   className="form-input"
-                  value={editingTeacher ? (editingTeacher.subject_department || 'CSE(IOT)') : newTeacher.subject_department}
+                  value={editingTeacher ? (editingTeacher.subject_department || (departments[0] || 'Computer Science')) : (newTeacher.subject_department || (departments[0] || 'Computer Science'))}
                   onChange={e => {
                     if (editingTeacher) {
                       setEditingTeacher({ ...editingTeacher, subject_department: e.target.value });
@@ -252,10 +299,20 @@ export default function TeachersDirectoryView({
                 )}
                 <button 
                   type="submit" 
+                  disabled={isSubmittingTeacher}
                   className="btn-primary" 
-                  style={{ padding: '10px 24px', borderRadius: '10px', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600 }}
+                  style={{ 
+                    padding: '10px 24px', 
+                    borderRadius: '10px', 
+                    background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', 
+                    border: 'none', 
+                    color: '#ffffff', 
+                    fontWeight: 600,
+                    cursor: isSubmittingTeacher ? 'not-allowed' : 'pointer',
+                    opacity: isSubmittingTeacher ? 0.75 : 1
+                  }}
                 >
-                  {editingTeacher ? 'Save Changes' : 'Register Teacher'}
+                  {isSubmittingTeacher ? (editingTeacher ? '⏳ Saving Changes...' : '⏳ Registering Teacher...') : (editingTeacher ? 'Save Changes' : 'Register Teacher')}
                 </button>
               </div>
             </form>
@@ -283,57 +340,10 @@ export default function TeachersDirectoryView({
               )}
             </div>
 
-            {/* Bulk Action Bar */}
-            {selectedTeacherIds.size > 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
-                background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)',
-                borderRadius: '12px', marginBottom: '16px', animation: 'fadeInUp 0.3s ease'
-              }}>
-                <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.85rem' }}>
-                  {selectedTeacherIds.size} teacher{selectedTeacherIds.size > 1 ? 's' : ''} selected
-                </span>
-                <button
-                  onClick={() => setSelectedTeacherIds(new Set())}
-                  style={{
-                    padding: '5px 12px', fontSize: '0.75rem', background: '#ffffff',
-                    border: '1px solid var(--border-subtle)', color: 'var(--color-text-muted)',
-                    borderRadius: '6px', cursor: 'pointer'
-                  }}
-                >Clear</button>
-                <button
-                  onClick={handleBulkDeleteTeachers}
-                  style={{
-                    padding: '5px 14px', fontSize: '0.75rem', background: 'rgba(239,68,68,0.15)',
-                    border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444',
-                    borderRadius: '6px', cursor: 'pointer', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', gap: '6px'
-                  }}
-                >
-                  <Trash2 size={12} /> Delete Selected
-                </button>
-              </div>
-            )}
-
             <div className="table-container" style={{ maxHeight: '550px', overflowY: 'auto', overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '40px', textAlign: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={teachers.filter(t => t.role === 'teacher').length > 0 && teachers.filter(t => t.role === 'teacher').every(t => selectedTeacherIds.has(t.id))}
-                        onChange={e => {
-                          const filteredTeachers = teachers.filter(t => t.role === 'teacher');
-                          if (e.target.checked) {
-                            setSelectedTeacherIds(new Set(filteredTeachers.map(t => t.id)));
-                          } else {
-                            setSelectedTeacherIds(new Set());
-                          }
-                        }}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
-                      />
-                    </th>
                     <th style={{ width: '60px' }}>ID</th>
                     <th>Name</th>
                     <th>Email</th>
@@ -344,26 +354,14 @@ export default function TeachersDirectoryView({
                 <tbody>
                   {teachers.filter(t => t.role === 'teacher').length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>No teachers registered.</td>
+                      <td colSpan="5" style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>No teachers registered.</td>
                     </tr>
                   ) : (
                     teachers.filter(t => t.role === 'teacher').map(t => {
                       const tSubjects = subjects.filter(sub => sub.teacher_id === t.id);
                       
                       return (
-                        <tr key={t.id} style={{ background: selectedTeacherIds.has(t.id) ? 'rgba(30, 64, 175, 0.04)' : undefined }}>
-                          <td style={{ textAlign: 'center' }}>
-                            <input
-                              type="checkbox"
-                              checked={selectedTeacherIds.has(t.id)}
-                              onChange={e => {
-                                const next = new Set(selectedTeacherIds);
-                                if (e.target.checked) next.add(t.id); else next.delete(t.id);
-                                setSelectedTeacherIds(next);
-                              }}
-                              style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: 'var(--color-primary)' }}
-                            />
-                          </td>
+                        <tr key={t.id}>
                           <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{t.id}</td>
                           <td style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{t.name}</td>
                           <td style={{ color: 'var(--color-text-muted)' }}>{t.email}</td>
@@ -388,27 +386,47 @@ export default function TeachersDirectoryView({
                                   setTeacherError('');
                                   setTeacherSuccess('');
                                 }}
-                                className="btn-secondary"
                                 style={{ 
-                                  padding: '6px 12px', 
+                                  padding: '7px 12px', 
                                   fontSize: '0.8rem', 
-                                  color: 'var(--color-purple)', 
-                                  borderColor: 'rgba(124, 58, 237, 0.25)', 
-                                  background: 'rgba(124, 58, 237, 0.05)',
+                                  color: '#7c3aed', 
+                                  border: '1.5px solid #8b5cf6', 
+                                  background: '#f5f3ff',
                                   borderRadius: '8px',
-                                  fontWeight: 600
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  transition: 'all 0.2s ease'
                                 }}
+                                title="Edit Teacher"
                               >
-                                <Edit size={12} />
+                                <Edit size={13} />
                                 Edit
                               </button>
                               <button 
-                                onClick={() => handleDeleteTeacher(t.id)}
-                                className="btn-danger"
-                                style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px' }}
+                                onClick={() => handleDeleteTeacherClick(t.id)}
+                                disabled={deletingTeacherId === t.id}
+                                style={{ 
+                                  padding: '7px 12px', 
+                                  fontSize: '0.8rem', 
+                                  borderRadius: '8px',
+                                  background: '#fef2f2',
+                                  color: '#dc2626',
+                                  border: '1.5px solid #ef4444',
+                                  fontWeight: 700,
+                                  cursor: deletingTeacherId === t.id ? 'not-allowed' : 'pointer',
+                                  opacity: deletingTeacherId === t.id ? 0.7 : 1,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                title="Delete Teacher"
                               >
-                                <Trash2 size={12} />
-                                Delete
+                                <Trash2 size={13} />
+                                {deletingTeacherId === t.id ? 'Deleting...' : 'Delete'}
                               </button>
                             </div>
                           </td>
@@ -541,7 +559,7 @@ export default function TeachersDirectoryView({
               {subjectError && <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{subjectError}</div>}
               {subjectSuccess && <div style={{ padding: '8px 12px', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{subjectSuccess}</div>}
               
-              <form onSubmit={handleAddSubject} style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', textAlign: 'left' }}>
+              <form onSubmit={onSubmitSubject} style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', textAlign: 'left' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Subject Name</label>
@@ -595,8 +613,8 @@ export default function TeachersDirectoryView({
                     ))}
                   </select>
                 </div>
-                <button type="submit" className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600 }}>
-                  Register Subject
+                <button type="submit" disabled={isSubmittingSubject} className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600, cursor: isSubmittingSubject ? 'not-allowed' : 'pointer', opacity: isSubmittingSubject ? 0.75 : 1 }}>
+                  {isSubmittingSubject ? '⏳ Registering Subject...' : 'Register Subject'}
                 </button>
               </form>
             </div>
@@ -609,7 +627,7 @@ export default function TeachersDirectoryView({
               {scheduleError && <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{scheduleError}</div>}
               {scheduleSuccess && <div style={{ padding: '8px 12px', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{scheduleSuccess}</div>}
               
-              <form onSubmit={handleAddSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', textAlign: 'left' }}>
+              <form onSubmit={onSubmitSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', textAlign: 'left' }}>
                 <div>
                   <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Select Subject</label>
                   <select 
@@ -664,8 +682,8 @@ export default function TeachersDirectoryView({
                     />
                   </div>
                 </div>
-                <button type="submit" className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600 }}>
-                  Create Schedule
+                <button type="submit" disabled={isSubmittingSchedule} className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600, cursor: isSubmittingSchedule ? 'not-allowed' : 'pointer', opacity: isSubmittingSchedule ? 0.75 : 1 }}>
+                  {isSubmittingSchedule ? '⏳ Creating Schedule...' : 'Create Schedule'}
                 </button>
               </form>
             </div>

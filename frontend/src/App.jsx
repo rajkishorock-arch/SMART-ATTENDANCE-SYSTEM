@@ -1922,8 +1922,8 @@ export default function App() {
   const [departments, setDepartments] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_departments');
-      return cached ? JSON.parse(cached) : ['CSE(IOT)', 'ECE', 'Mechanical'];
-    } catch { return ['CSE(IOT)', 'ECE', 'Mechanical']; }
+      return cached ? JSON.parse(cached) : ['Computer Science', 'Information Technology', 'Electronics'];
+    } catch { return ['Computer Science', 'Information Technology', 'Electronics']; }
   });
   const [departmentsList, setDepartmentsList] = useState(() => {
     try {
@@ -1944,7 +1944,7 @@ export default function App() {
     id: '',
     name: '',
     roll: '',
-    dep: 'CSE(IOT)',
+    dep: '',
     course: 'B.Tech',
     year: '2026',
     semester: '1st',
@@ -2026,7 +2026,7 @@ export default function App() {
   const [selectedHistorySubjectId, setSelectedHistorySubjectId] = useState('');
   
   // Forms to create subjects/schedules
-  const [newSubject, setNewSubject] = useState({ name: '', code: '', department: 'CSE(IOT)', teacher_id: '' });
+  const [newSubject, setNewSubject] = useState({ name: '', code: '', department: '', teacher_id: '' });
   const [newSchedule, setNewSchedule] = useState({ subject_id: '', day_of_week: 'Monday', start_time: '', end_time: '' });
   const [subjectError, setSubjectError] = useState('');
   const [subjectSuccess, setSubjectSuccess] = useState('');
@@ -2041,11 +2041,12 @@ export default function App() {
     role: 'teacher',
     subject_name: '',
     subject_code: '',
-    subject_department: 'CSE(IOT)'
+    subject_department: ''
   });
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [teacherError, setTeacherError] = useState('');
   const [teacherSuccess, setTeacherSuccess] = useState('');
+  const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
 
   // Student Edit States
   const [editingStudent, setEditingStudent] = useState(null);
@@ -2149,7 +2150,7 @@ export default function App() {
           setDepartments(names);
           localStorage.setItem('cached_departments', JSON.stringify(names));
         } else {
-          setDepartments(['CSE(IOT)', 'ECE', 'Mechanical']);
+          setDepartments(['Computer Science', 'Information Technology', 'Electronics']);
         }
       }
     } catch (err) {
@@ -2167,6 +2168,40 @@ export default function App() {
     }
   }, [departments]);
 
+  // Whenever the active institution changes, wipe tenant-scoped state & caches and re-fetch fresh data
+  const prevInstIdRef = useRef(currentUser?.institution_id);
+  useEffect(() => {
+    if (currentUser?.institution_id !== undefined && prevInstIdRef.current !== undefined && prevInstIdRef.current !== currentUser?.institution_id) {
+      console.log(`Institution switched from ${prevInstIdRef.current} to ${currentUser.institution_id}. Purging tenant cache...`);
+      localStorage.removeItem('cached_students');
+      localStorage.removeItem('cached_students_timestamp');
+      localStorage.removeItem('cached_logs');
+      localStorage.removeItem('cached_logs_timestamp');
+      localStorage.removeItem('cached_departments');
+      localStorage.removeItem('cached_departmentsList');
+      localStorage.removeItem('cached_teachers');
+      localStorage.removeItem('cached_subjects');
+      localStorage.removeItem('cached_schedules');
+      
+      setStudents([]);
+      setLogs([]);
+      setDepartments([]);
+      setDepartmentsList([]);
+      setTeachers([]);
+      setSubjects([]);
+      setSchedules([]);
+
+      if (token) {
+        fetchDepartments(token);
+        fetchSubjects(token).then(() => fetchStudents(token));
+        fetchTeachers(token);
+        fetchStats(token);
+        fetchLogs(token);
+      }
+    }
+    prevInstIdRef.current = currentUser?.institution_id;
+  }, [currentUser?.institution_id, token]);
+
   // Fetch Registered Students
   const fetchStudents = async (authToken) => {
     if (isDemoMode) return;
@@ -2182,6 +2217,11 @@ export default function App() {
         setStudents(data);
         localStorage.setItem('cached_students', JSON.stringify(data));
         localStorage.setItem('cached_students_timestamp', Date.now().toString());
+      } else {
+        console.warn(`fetchStudents failed with status ${res.status}`);
+        setStudents([]);
+        localStorage.removeItem('cached_students');
+        localStorage.removeItem('cached_students_timestamp');
       }
     } catch (err) {
       console.error('Error fetching students:', err);
@@ -2934,7 +2974,7 @@ export default function App() {
         
         setTimeout(() => {
           const candidates = students.length > 0 ? students : [
-            { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)' }
+            { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'Computer Science' }
           ];
           const matched = candidates[Math.floor(Math.random() * candidates.length)];
           const confidenceVal = parseFloat((88.0 + Math.random() * 11.0).toFixed(1));
@@ -4920,7 +4960,7 @@ export default function App() {
           id: 101,
           name: 'Aarav Sharma',
           roll: '2023CSE01',
-          department: 'CSE(IOT)',
+          department: 'Computer Science',
           course: 'B.Tech',
           year: '2026',
           semester: '1st',
@@ -4941,7 +4981,7 @@ export default function App() {
           role: 'teacher',
           subject_name: 'Internet of Things',
           subject_code: 'IOT-301',
-          subject_department: 'CSE(IOT)'
+          subject_department: 'Computer Science'
         };
       }
 
@@ -4958,7 +4998,7 @@ export default function App() {
         total_present_today: 132,
         total_absent_today: 22,
         average_attendance_rate: 85.7,
-        department_stats: { 'CSE(IOT)': { total: 80, present: 72 }, 'ECE': { total: 40, present: 36 }, 'Mechanical': { total: 34, present: 24 } },
+        department_stats: { 'Computer Science': { total: 80, present: 72 }, 'ECE': { total: 40, present: 36 }, 'Mechanical': { total: 34, present: 24 } },
         weekly_trends: [
           { date: '15/06/2026', day: 'Mon', present: 124 },
           { date: '16/06/2026', day: 'Tue', present: 130 },
@@ -4969,29 +5009,29 @@ export default function App() {
       });
 
       setStudents([
-        { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543210', email: 'aarav@univ.edu', address: 'Delhi, India', teacher: 'Dr. R. K. Singh' },
-        { id: 102, name: 'Ishita Patel', roll: '2023CSE02', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543211', email: 'ishita@univ.edu', address: 'Mumbai, India', teacher: 'Dr. R. K. Singh' },
+        { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'Computer Science', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543210', email: 'aarav@univ.edu', address: 'Delhi, India', teacher: 'Dr. R. K. Singh' },
+        { id: 102, name: 'Ishita Patel', roll: '2023CSE02', dep: 'Computer Science', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543211', email: 'ishita@univ.edu', address: 'Mumbai, India', teacher: 'Dr. R. K. Singh' },
         { id: 103, name: 'Kabir Verma', roll: '2023ECE01', dep: 'ECE', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543212', email: 'kabir@univ.edu', address: 'Bangalore, India', teacher: 'Dr. Priya Sen' },
-        { id: 104, name: 'Riya Gupta', roll: '2023CSE08', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543213', email: 'riya@univ.edu', address: 'Kolkata, India', teacher: 'Dr. R. K. Singh' },
+        { id: 104, name: 'Riya Gupta', roll: '2023CSE08', dep: 'Computer Science', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543213', email: 'riya@univ.edu', address: 'Kolkata, India', teacher: 'Dr. R. K. Singh' },
         { id: 105, name: 'Aditya Rao', roll: '2023ME04', dep: 'Mechanical', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543214', email: 'aditya@univ.edu', address: 'Hyderabad, India', teacher: 'Dr. Anil Mehta' }
       ]);
 
       setTeachers([
-        { id: 1, name: 'Dr. R. K. Singh', email: 'rksingh@univ.edu', role: 'teacher', subject_name: 'Internet of Things', subject_code: 'IOT-301', subject_department: 'CSE(IOT)' },
+        { id: 1, name: 'Dr. R. K. Singh', email: 'rksingh@univ.edu', role: 'teacher', subject_name: 'Internet of Things', subject_code: 'IOT-301', subject_department: 'Computer Science' },
         { id: 2, name: 'Dr. Priya Sen', email: 'priyasen@univ.edu', role: 'teacher', subject_name: 'Signals & Systems', subject_code: 'ECE-202', subject_department: 'ECE' },
         { id: 3, name: 'Admin Master', email: 'admin@face.com', role: 'admin', subject_name: '', subject_code: '', subject_department: '' }
       ]);
 
       setSubjects([
-        { id: 1, name: 'Internet of Things', code: 'IOT-301', department: 'CSE(IOT)', teacher_id: 1 },
+        { id: 1, name: 'Internet of Things', code: 'IOT-301', department: 'Computer Science', teacher_id: 1 },
         { id: 2, name: 'Signals & Systems', code: 'ECE-202', department: 'ECE', teacher_id: 2 },
-        { id: 3, name: 'Data Structures', code: 'CSE-101', department: 'CSE(IOT)', teacher_id: 1 }
+        { id: 3, name: 'Data Structures', code: 'CSE-101', department: 'Computer Science', teacher_id: 1 }
       ]);
 
       setLogs([
-        { id: '1', roll: '2023CSE01', name: 'Aarav Sharma', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:05 AM', attendance: 'Present', subject_id: 1 },
-        { id: '2', roll: '2023CSE02', name: 'Ishita Patel', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:12 AM', attendance: 'Present', subject_id: 1 },
-        { id: '3', roll: '2023CSE08', name: 'Riya Gupta', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:18 AM', attendance: 'Late', subject_id: 1 },
+        { id: '1', roll: '2023CSE01', name: 'Aarav Sharma', department: 'Computer Science', date: getLocalDateString().split('-').reverse().join('/'), time: '09:05 AM', attendance: 'Present', subject_id: 1 },
+        { id: '2', roll: '2023CSE02', name: 'Ishita Patel', department: 'Computer Science', date: getLocalDateString().split('-').reverse().join('/'), time: '09:12 AM', attendance: 'Present', subject_id: 1 },
+        { id: '3', roll: '2023CSE08', name: 'Riya Gupta', department: 'Computer Science', date: getLocalDateString().split('-').reverse().join('/'), time: '09:18 AM', attendance: 'Late', subject_id: 1 },
         { id: '4', roll: '2023ECE01', name: 'Kabir Verma', department: 'ECE', date: getLocalDateString().split('-').reverse().join('/'), time: '10:02 AM', attendance: 'Present', subject_id: 2 }
       ]);
 
@@ -5517,7 +5557,7 @@ export default function App() {
         id: 101,
         name: 'Aarav Sharma',
         roll: '2023CSE01',
-        department: 'CSE(IOT)',
+        department: 'Computer Science',
         course: 'B.Tech',
         year: '2026',
         semester: '1st',
@@ -5538,7 +5578,7 @@ export default function App() {
         role: 'teacher',
         subject_name: 'Internet of Things',
         subject_code: 'IOT-301',
-        subject_department: 'CSE(IOT)'
+        subject_department: 'Computer Science'
       };
     }
 
@@ -5572,7 +5612,7 @@ export default function App() {
       total_present_today: 132,
       total_absent_today: 22,
       average_attendance_rate: 85.7,
-      department_stats: { 'CSE(IOT)': { total: 80, present: 72 }, 'ECE': { total: 40, present: 36 }, 'Mechanical': { total: 34, present: 24 } },
+      department_stats: { 'Computer Science': { total: 80, present: 72 }, 'ECE': { total: 40, present: 36 }, 'Mechanical': { total: 34, present: 24 } },
       weekly_trends: [
         { date: '15/06/2026', day: 'Mon', present: 124 },
         { date: '16/06/2026', day: 'Tue', present: 130 },
@@ -5583,29 +5623,29 @@ export default function App() {
     });
 
     setStudents([
-      { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543210', email: 'aarav@univ.edu', address: 'Delhi, India', teacher: 'Dr. R. K. Singh' },
-      { id: 102, name: 'Ishita Patel', roll: '2023CSE02', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543211', email: 'ishita@univ.edu', address: 'Mumbai, India', teacher: 'Dr. R. K. Singh' },
+      { id: 101, name: 'Aarav Sharma', roll: '2023CSE01', dep: 'Computer Science', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543210', email: 'aarav@univ.edu', address: 'Delhi, India', teacher: 'Dr. R. K. Singh' },
+      { id: 102, name: 'Ishita Patel', roll: '2023CSE02', dep: 'Computer Science', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543211', email: 'ishita@univ.edu', address: 'Mumbai, India', teacher: 'Dr. R. K. Singh' },
       { id: 103, name: 'Kabir Verma', roll: '2023ECE01', dep: 'ECE', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543212', email: 'kabir@univ.edu', address: 'Bangalore, India', teacher: 'Dr. Priya Sen' },
-      { id: 104, name: 'Riya Gupta', roll: '2023CSE08', dep: 'CSE(IOT)', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543213', email: 'riya@univ.edu', address: 'Kolkata, India', teacher: 'Dr. R. K. Singh' },
+      { id: 104, name: 'Riya Gupta', roll: '2023CSE08', dep: 'Computer Science', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Female', phone: '9876543213', email: 'riya@univ.edu', address: 'Kolkata, India', teacher: 'Dr. R. K. Singh' },
       { id: 105, name: 'Aditya Rao', roll: '2023ME04', dep: 'Mechanical', course: 'B.Tech', year: '2026', semester: '1st', gender: 'Male', phone: '9876543214', email: 'aditya@univ.edu', address: 'Hyderabad, India', teacher: 'Dr. Anil Mehta' }
     ]);
 
     setTeachers([
-      { id: 1, name: 'Dr. R. K. Singh', email: 'rksingh@univ.edu', role: 'teacher', subject_name: 'Internet of Things', subject_code: 'IOT-301', subject_department: 'CSE(IOT)' },
+      { id: 1, name: 'Dr. R. K. Singh', email: 'rksingh@univ.edu', role: 'teacher', subject_name: 'Internet of Things', subject_code: 'IOT-301', subject_department: 'Computer Science' },
       { id: 2, name: 'Dr. Priya Sen', email: 'priyasen@univ.edu', role: 'teacher', subject_name: 'Signals & Systems', subject_code: 'ECE-202', subject_department: 'ECE' },
       { id: 3, name: 'Admin Master', email: 'admin@face.com', role: 'admin', subject_name: '', subject_code: '', subject_department: '' }
     ]);
 
     setSubjects([
-      { id: 1, name: 'Internet of Things', code: 'IOT-301', department: 'CSE(IOT)', teacher_id: 1 },
+      { id: 1, name: 'Internet of Things', code: 'IOT-301', department: 'Computer Science', teacher_id: 1 },
       { id: 2, name: 'Signals & Systems', code: 'ECE-202', department: 'ECE', teacher_id: 2 },
-      { id: 3, name: 'Data Structures', code: 'CSE-101', department: 'CSE(IOT)', teacher_id: 1 }
+      { id: 3, name: 'Data Structures', code: 'CSE-101', department: 'Computer Science', teacher_id: 1 }
     ]);
 
     setLogs([
-      { id: '1', roll: '2023CSE01', name: 'Aarav Sharma', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:05 AM', attendance: 'Present', subject_id: 1 },
-      { id: '2', roll: '2023CSE02', name: 'Ishita Patel', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:12 AM', attendance: 'Present', subject_id: 1 },
-      { id: '3', roll: '2023CSE08', name: 'Riya Gupta', department: 'CSE(IOT)', date: getLocalDateString().split('-').reverse().join('/'), time: '09:18 AM', attendance: 'Late', subject_id: 1 },
+      { id: '1', roll: '2023CSE01', name: 'Aarav Sharma', department: 'Computer Science', date: getLocalDateString().split('-').reverse().join('/'), time: '09:05 AM', attendance: 'Present', subject_id: 1 },
+      { id: '2', roll: '2023CSE02', name: 'Ishita Patel', department: 'Computer Science', date: getLocalDateString().split('-').reverse().join('/'), time: '09:12 AM', attendance: 'Present', subject_id: 1 },
+      { id: '3', roll: '2023CSE08', name: 'Riya Gupta', department: 'Computer Science', date: getLocalDateString().split('-').reverse().join('/'), time: '09:18 AM', attendance: 'Late', subject_id: 1 },
       { id: '4', roll: '2023ECE01', name: 'Kabir Verma', department: 'ECE', date: getLocalDateString().split('-').reverse().join('/'), time: '10:02 AM', attendance: 'Present', subject_id: 2 }
     ]);
 
@@ -5796,6 +5836,8 @@ export default function App() {
       return;
     }
 
+    setIsSubmittingStudent(true);
+
     if (isDemoMode) {
       const added = { ...newStudent, id: parseInt(newStudent.id) };
       setStudents(prev => [...prev, added]);
@@ -5805,7 +5847,7 @@ export default function App() {
         id: '',
         name: '',
         roll: '',
-        dep: 'CSE(IOT)',
+        dep: departments[0] || 'Computer Science',
         course: 'B.Tech',
         year: '2026',
         semester: '1st',
@@ -5816,6 +5858,7 @@ export default function App() {
         address: '',
         teacher: ''
       });
+      setIsSubmittingStudent(false);
       alert('SIMULATOR ACTION: Student profile registered locally.');
       return;
     }
@@ -5844,7 +5887,7 @@ export default function App() {
         id: '',
         name: '',
         roll: '',
-        dep: 'CSE(IOT)',
+        dep: departments[0] || 'Computer Science',
         course: 'B.Tech',
         year: '2026',
         semester: '1st',
@@ -5860,6 +5903,8 @@ export default function App() {
       setFormError(errMsg);
       setStudentError(errMsg);
       alert(`⚠️ REGISTRATION REJECTED:\n\n${errMsg}`);
+    } finally {
+      setIsSubmittingStudent(false);
     }
   };
 
@@ -6004,7 +6049,7 @@ export default function App() {
         role: 'teacher',
         subject_name: '',
         subject_code: '',
-        subject_department: 'CSE(IOT)'
+        subject_department: departments[0] || 'Computer Science'
       });
       return;
     }
@@ -6048,7 +6093,7 @@ export default function App() {
           role: 'teacher',
           subject_name: '',
           subject_code: '',
-          subject_department: 'CSE(IOT)'
+          subject_department: departments[0] || 'Computer Science'
         });
       } else {
         playCyberSound('error');
@@ -6086,7 +6131,7 @@ export default function App() {
         role: editingTeacher.role,
         subject_name: editingTeacher.subject_name || '',
         subject_code: editingTeacher.subject_code || '',
-        subject_department: editingTeacher.subject_department || 'CSE(IOT)'
+        subject_department: editingTeacher.subject_department || (departments[0] || 'Computer Science')
       };
       await teacherApi.updateTeacher(token, editingTeacher.id, payload);
       setTeacherSuccess('Teacher details updated successfully!');
@@ -6204,7 +6249,7 @@ export default function App() {
       const added = { ...newSubject, id: Date.now(), teacher_id: newSubject.teacher_id ? parseInt(newSubject.teacher_id) : null };
       setSubjects(prev => [...prev, added]);
       setSubjectSuccess('SIMULATOR ACTION: Subject registered locally.');
-      setNewSubject({ name: '', code: '', department: 'CSE(IOT)', teacher_id: '' });
+      setNewSubject({ name: '', code: '', department: departments[0] || 'Computer Science', teacher_id: '' });
       return;
     }
 
@@ -6218,7 +6263,7 @@ export default function App() {
       await systemApi.createSubject(token, payload);
       setSubjectSuccess('Subject registered successfully!');
       fetchSubjects();
-      setNewSubject({ name: '', code: '', department: 'CSE(IOT)', teacher_id: '' });
+      setNewSubject({ name: '', code: '', department: departments[0] || 'Computer Science', teacher_id: '' });
     } catch (err) {
       setSubjectError(err.message || 'Failed to register subject.');
     }
@@ -8872,8 +8917,19 @@ export default function App() {
                 <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary" style={{ flex: 1 }}>
                   Cancel
                 </button>
-                <button type="submit" className="bg-gradient-btn" style={{ flex: 1, padding: '12px 20px', borderRadius: '8px' }}>
-                  Register
+                <button 
+                  type="submit" 
+                  disabled={isSubmittingStudent}
+                  className="bg-gradient-btn" 
+                  style={{ 
+                    flex: 1, 
+                    padding: '12px 20px', 
+                    borderRadius: '8px',
+                    cursor: isSubmittingStudent ? 'not-allowed' : 'pointer',
+                    opacity: isSubmittingStudent ? 0.75 : 1
+                  }}
+                >
+                  {isSubmittingStudent ? '⏳ Registering Student...' : 'Register'}
                 </button>
               </div>
             </form>

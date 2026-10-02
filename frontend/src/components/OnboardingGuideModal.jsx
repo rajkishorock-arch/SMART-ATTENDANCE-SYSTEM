@@ -85,64 +85,137 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 999999,
-      background: 'rgba(5, 8, 20, 0.9)', backdropFilter: 'blur(10px)',
+      background: 'rgba(5, 8, 20, 0.85)', backdropFilter: 'blur(12px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px',
+      padding: '16px',
       animation: 'fadeIn 0.25s ease'
     }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{
-        background: 'linear-gradient(135deg, #090c15 0%, #15182b 100%)',
-        border: `1.5px solid ${current.color}40`,
-        borderRadius: '24px', padding: '32px',
-        width: '100%', maxWidth: '480px',
-        boxShadow: `0 0 40px ${current.color}15, 0 10px 40px rgba(0,0,0,0.5)`,
-        position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(135deg, #0d121f 0%, #171c30 100%)',
+        border: `1.5px solid ${current.color}60`,
+        borderRadius: '24px', 
+        padding: 'clamp(20px, 4vw, 32px)',
+        width: '100%', 
+        maxWidth: '500px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        boxShadow: `0 0 50px ${current.color}20, 0 16px 48px rgba(0,0,0,0.6)`,
+        position: 'relative',
         transition: 'all 0.3s ease-out',
         animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}>
         {/* Glowing decorative indicator */}
         <div style={{
           position: 'absolute', top: '-60px', right: '-60px',
-          width: '160px', height: '160px',
-          background: `radial-gradient(circle, ${current.color}15 0%, transparent 70%)`,
+          width: '180px', height: '180px',
+          background: `radial-gradient(circle, ${current.color}25 0%, transparent 70%)`,
           borderRadius: '50%', pointerEvents: 'none'
         }} />
 
-        <button onClick={onClose} style={{ position: 'absolute', top: '18px', right: '18px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: '#9ca3af', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>✕</button>
+        {/* High-visibility prominent close button */}
+        <button 
+          onClick={onClose} 
+          aria-label="Close guide"
+          style={{ 
+            position: 'absolute', 
+            top: '16px', 
+            right: '16px', 
+            background: 'rgba(255,255,255,0.15)', 
+            border: '1.5px solid rgba(255,255,255,0.3)', 
+            borderRadius: '50%', 
+            width: '36px', 
+            height: '36px', 
+            color: '#ffffff', 
+            cursor: 'pointer', 
+            fontSize: '1.1rem', 
+            fontWeight: 800,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            transition: 'all 0.2s',
+            zIndex: 10
+          }} 
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.8)'; e.currentTarget.style.borderColor = '#ef4444'; }} 
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+        >
+          ✕
+        </button>
 
         {/* Slide Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${current.color}15`, border: `1px solid ${current.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px', paddingRight: '40px' }}>
+          <div style={{ width: '52px', height: '52px', minWidth: '52px', borderRadius: '14px', background: `${current.color}20`, border: `1.5px solid ${current.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>
             {current.icon}
           </div>
           <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>{current.title}</h2>
-            <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '4px 0 0' }}>{current.desc}</p>
+            <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.35rem)', fontWeight: 800, color: '#ffffff', margin: 0, lineHeight: 1.25 }}>{current.title}</h2>
+            <p style={{ color: '#cbd5e1', fontSize: '0.85rem', margin: '5px 0 0', lineHeight: 1.4 }}>{current.desc}</p>
           </div>
         </div>
 
         {/* Slide Content */}
-        <div className="glass-panel" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '20px', borderRadius: '16px', minHeight: '190px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', padding: '20px', borderRadius: '16px', minHeight: '180px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {current.content}
         </div>
 
         {/* Navigation Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           {/* Progress Indicators */}
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
             {slides.map((_, idx) => (
-              <div key={idx} style={{ width: idx === slide ? '24px' : '8px', height: '8px', borderRadius: '4px', background: idx === slide ? current.color : 'rgba(255,255,255,0.15)', transition: 'all 0.3s ease' }} />
+              <div 
+                key={idx} 
+                onClick={() => { if (playCyberSound) playCyberSound('click'); setSlide(idx); }}
+                style={{ 
+                  width: idx === slide ? '28px' : '9px', 
+                  height: '8px', 
+                  borderRadius: '4px', 
+                  background: idx === slide ? current.color : 'rgba(255,255,255,0.25)', 
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer'
+                }} 
+              />
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
             {slide > 0 && (
-              <button onClick={handlePrev} style={{ padding: '8px 18px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#d1d5db', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
+              <button 
+                onClick={handlePrev} 
+                style={{ 
+                  padding: '9px 18px', 
+                  borderRadius: '10px', 
+                  background: 'rgba(255,255,255,0.08)', 
+                  border: '1px solid rgba(255,255,255,0.2)', 
+                  color: '#f1f5f9', 
+                  fontSize: '0.85rem', 
+                  fontWeight: 700, 
+                  cursor: 'pointer', 
+                  transition: 'all 0.2s' 
+                }} 
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.16)'} 
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+              >
                 Back
               </button>
             )}
-            <button onClick={handleNext} style={{ padding: '10px 24px', borderRadius: '10px', background: current.color, border: 'none', color: '#000', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 15px ${current.color}30`, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-              {slide === slides.length - 1 ? "Start Exploring" : "Next Step"}
+            <button 
+              onClick={handleNext} 
+              style={{ 
+                padding: '10px 24px', 
+                borderRadius: '10px', 
+                background: current.color, 
+                border: 'none', 
+                color: '#090c15', 
+                fontSize: '0.88rem', 
+                fontWeight: 800, 
+                cursor: 'pointer', 
+                boxShadow: `0 4px 18px ${current.color}45`, 
+                transition: 'all 0.2s' 
+              }} 
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} 
+              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              {slide === slides.length - 1 ? "Start Exploring 🚀" : "Next Step →"}
             </button>
           </div>
         </div>

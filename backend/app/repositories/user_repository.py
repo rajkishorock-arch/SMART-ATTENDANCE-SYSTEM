@@ -74,6 +74,8 @@ class UserRepository:
                 )
             else:
                 query = query.filter(models.StudentModel.institution_id == institution_id)
+        else:
+            return []
         if department:
             from sqlalchemy import or_
             query = query.filter(
