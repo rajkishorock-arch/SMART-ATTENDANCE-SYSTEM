@@ -50,43 +50,43 @@ function BlueprintDayBreakdownModal({
   const absentCount = filteredLogs.filter(l => l.attendance === 'Absent').length;
 
   return (
-    <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '20px', border: '1px solid rgba(139,92,246,0.3)', padding: '28px', background: '#0b0f19' }}>
+    <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div style={{ width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '28px', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Calendar color="#8b5cf6" size={24} />
+            <Calendar color="#7c3aed" size={24} />
             <div>
-              <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.15rem', fontWeight: 800 }}>Attendance Details — {dateStr}</h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.15rem', fontWeight: 800 }}>Attendance Details — {dateStr}</h3>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
                 {activeSubject ? `Filter: ${activeSubject.subject_code || activeSubject.subject_name || 'General'}` : 'All Subjects'}
               </p>
             </div>
           </div>
-          <button onClick={() => { playCyberSound('click'); onClose(); }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
+          <button onClick={() => { playCyberSound('click'); onClose(); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
         </div>
 
         {/* Stats Pill Row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-          <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Presents / Late</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981' }}>{presentCount}</div>
+          <div style={{ background: '#d1fae5', border: '1px solid #a7f3d0', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.72rem', color: '#065f46', fontWeight: 600 }}>Presents / Late</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669' }}>{presentCount}</div>
           </div>
-          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Absents</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ef4444' }}>{absentCount}</div>
+          <div style={{ background: '#fee2e2', border: '1px solid #fecaca', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.72rem', color: '#991b1b', fontWeight: 600 }}>Absents</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#dc2626' }}>{absentCount}</div>
           </div>
-          <div style={{ background: 'rgba(0,242,254,0.08)', border: '1px solid rgba(0,242,254,0.2)', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Total Classes</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#00f2fe' }}>{filteredLogs.length}</div>
+          <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600 }}>Total Classes</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0284c7' }}>{filteredLogs.length}</div>
           </div>
         </div>
 
         {/* Detailed Class Cards */}
         {filteredLogs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '36px 16px', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px border-dashed rgba(255,255,255,0.08)' }}>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 12px' }}>
+          <div style={{ textAlign: 'center', padding: '36px 16px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 12px' }}>
               No attendance records found in real database for {dateStr}.
             </p>
             {onRequestDispute && (
@@ -95,7 +95,7 @@ function BlueprintDayBreakdownModal({
                   onClose();
                   onRequestDispute({ date: dateStr, attendance: 'Absent' });
                 }}
-                style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(0, 242, 254, 0.1)', border: '1px solid rgba(0, 242, 254, 0.25)', color: '#00f2fe', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
               >
                 ➕ Submit Correction Request for {dateStr}
               </button>
@@ -106,22 +106,22 @@ function BlueprintDayBreakdownModal({
             {filteredLogs.map((log, idx) => {
               const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
               return (
-                <div key={log.id || idx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div key={log.id || idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span>📚 {log.subject_name ? `${log.subject_name} (${log.subject_code || ''})` : (log.department || 'General Class')}</span>
                     </div>
-                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700, background: isPresent ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', color: isPresent ? '#10b981' : '#ef4444' }}>
+                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700, background: isPresent ? '#d1fae5' : '#fee2e2', color: isPresent ? '#065f46' : '#991b1b', border: isPresent ? '1px solid #a7f3d0' : '1px solid #fecaca' }}>
                       {log.attendance || 'Present'}
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
-                    <span>⏰ Period: <strong style={{ color: '#00f2fe' }}>{log.period_label || log.session_time || 'Regular Session'}</strong></span>
-                    <span>🕒 Time: <strong style={{ color: '#e2e8f0' }}>{log.time || 'N/A'}</strong></span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+                    <span>⏰ Period: <strong style={{ color: '#0f172a' }}>{log.period_label || log.session_time || 'Regular Session'}</strong></span>
+                    <span>🕒 Time: <strong style={{ color: '#0f172a' }}>{log.time || 'N/A'}</strong></span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.04)', fontSize: '0.75rem', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#64748b' }}>
                     <span>Method: {log.verification_method || 'AI Face Scan'}</span>
                     {!isPresent && onRequestDispute && (
                       <button
@@ -129,7 +129,7 @@ function BlueprintDayBreakdownModal({
                           onClose();
                           onRequestDispute(log);
                         }}
-                        style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer' }}
+                        style={{ padding: '4px 10px', borderRadius: '6px', background: '#fee2e2', border: '1px solid #fca5a5', color: '#dc2626', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer' }}
                       >
                         🚨 Submit Correction Request
                       </button>
@@ -536,21 +536,21 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
   };
 
   return (
-    <div className="glass-panel" style={{
-      padding: '24px', borderRadius: '20px',
-      border: `1px solid ${isSafe ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-      background: 'linear-gradient(135deg, rgba(9,12,21,0.98) 0%, rgba(22,22,44,0.98) 100%)',
-      boxShadow: `0 8px 32px rgba(0,0,0,0.3)`
+    <div style={{
+      padding: '24px', borderRadius: '16px',
+      border: `1px solid ${isSafe ? '#a7f3d0' : '#fecaca'}`,
+      background: '#ffffff',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
     }}>
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(0,242,254,0.1)', border: '1px solid rgba(0,242,254,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
             🤖
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc' }}>AI Attendance Forecaster & Bunk Simulator</h3>
-            <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>Select a subject to project future attendance and safety margins</p>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>AI Attendance Forecaster & Bunk Simulator</h3>
+            <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>Select a subject to project future attendance and safety margins</p>
           </div>
         </div>
 
@@ -558,7 +558,7 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
         <select value={activeSubId} onChange={e => {
           setSelectedSubId(e.target.value);
           if (playCyberSound) playCyberSound('click');
-        }} style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(30,30,45,0.98)', border: '1px solid rgba(255,255,255,0.1)', color: '#f3f4f6', fontSize: '0.8rem', outline: 'none' }}>
+        }} style={{ padding: '8px 14px', borderRadius: '8px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}>
           {blueprintData.map(sub => (
             <option key={sub.subject_id} value={sub.subject_id}>{sub.subject_name} ({sub.subject_code})</option>
           ))}
@@ -570,12 +570,12 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Toggle Type */}
           <div>
-            <label style={{ fontSize: '0.72rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>Simulation Scenario</label>
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '4px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <button onClick={() => { setSimType('attend'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'attend' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent', color: simType === 'attend' ? '#000' : '#9ca3af', transition: 'all 0.2s' }}>
+            <label style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px', fontWeight: 600 }}>Simulation Scenario</label>
+            <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '10px', padding: '4px', border: '1px solid #cbd5e1' }}>
+              <button onClick={() => { setSimType('attend'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'attend' ? '#10b981' : 'transparent', color: simType === 'attend' ? '#fff' : '#475569', transition: 'all 0.2s' }}>
                 🟢 Attend Lectures
               </button>
-              <button onClick={() => { setSimType('bunk'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'bunk' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent', color: simType === 'bunk' ? '#fff' : '#9ca3af', transition: 'all 0.2s' }}>
+              <button onClick={() => { setSimType('bunk'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'bunk' ? '#ef4444' : 'transparent', color: simType === 'bunk' ? '#fff' : '#475569', transition: 'all 0.2s' }}>
                 🔴 Bunk Lectures
               </button>
             </div>
@@ -584,32 +584,31 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
           {/* Slider Count */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <label style={{ fontSize: '0.72rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px' }}>Number of Classes</label>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: simType === 'attend' ? '#10b981' : '#ef4444' }}>{simCount} class{simCount !== 1 ? 'es' : ''}</span>
+              <label style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Number of Classes</label>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: simType === 'attend' ? '#059669' : '#dc2626' }}>{simCount} class{simCount !== 1 ? 'es' : ''}</span>
             </div>
             <input type="range" min="1" max="15" value={simCount} onChange={e => setSimCount(parseInt(e.target.value))}
-              style={{ width: '100%', accentColor: simType === 'attend' ? '#10b981' : '#ef4444', height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.1)', cursor: 'pointer' }} />
+              style={{ width: '100%', accentColor: simType === 'attend' ? '#10b981' : '#ef4444', height: '6px', borderRadius: '3px', background: '#e2e8f0', cursor: 'pointer' }} />
           </div>
         </div>
 
         {/* Right Side: Projections Output */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Current Attendance</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: currentRate >= 75 ? '#10b981' : '#ef4444' }}>{currentRate.toFixed(1)}%</span>
+            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>Current Attendance</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: currentRate >= 75 ? '#059669' : '#dc2626' }}>{currentRate.toFixed(1)}%</span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '10px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#d1d5db', fontWeight: 600 }}>Forecasted Attendance</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>
+            <span style={{ fontSize: '0.75rem', color: '#0f172a', fontWeight: 600 }}>Forecasted Attendance</span>
             <span style={{
               fontSize: '1.2rem', fontWeight: 800,
-              color: isSafe ? '#10b981' : '#ef4444',
-              textShadow: isSafe ? '0 0 10px rgba(16,185,129,0.3)' : '0 0 10px rgba(239,68,68,0.3)'
+              color: isSafe ? '#059669' : '#dc2626'
             }}>{simRate.toFixed(1)}%</span>
           </div>
 
           {/* Progress bar */}
-          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ width: `${Math.min(simRate, 100)}%`, height: '100%', background: isSafe ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #ef4444, #f87171)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
           </div>
 
@@ -617,9 +616,9 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <span style={{
               padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase',
-              background: isSafe ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-              color: isSafe ? '#10b981' : '#ef4444',
-              border: `1px solid ${isSafe ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`
+              background: isSafe ? '#d1fae5' : '#fee2e2',
+              color: isSafe ? '#065f46' : '#991b1b',
+              border: `1px solid ${isSafe ? '#a7f3d0' : '#fecaca'}`
             }}>
               {isSafe ? '🟢 SAFE BUFFER' : '🔴 WARNING: BELOW 75%'}
             </span>
@@ -630,11 +629,11 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
       {/* AI Recommendation Message */}
       <div style={{
         marginTop: '16px', padding: '12px 16px', borderRadius: '10px',
-        background: isSafe ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.04)',
+        background: isSafe ? '#f0fdf4' : '#fef2f2',
         borderLeft: `3px solid ${isSafe ? '#10b981' : '#ef4444'}`,
-        color: '#d1d5db', fontSize: '0.8rem', lineHeight: 1.45
+        color: '#334155', fontSize: '0.8rem', lineHeight: 1.45
       }}>
-        <strong>🤖 AI Coach:</strong> {getRecommendation()}
+        <strong style={{ color: '#0f172a' }}>🤖 AI Coach:</strong> {getRecommendation()}
       </div>
     </div>
   );
@@ -697,16 +696,16 @@ export default function StudentAttendanceDashboardView({
       {(() => {
         const geo = geofenceStatus;
         return (
-          <div className="glass-panel" style={{ padding: '20px 24px', borderRadius: '16px', border: `1px solid ${geo.checked ? (geo.inside ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)') : 'rgba(0,242,254,0.15)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: geo.checked ? (geo.inside ? 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(0,0,0,0))' : 'linear-gradient(135deg, rgba(239,68,68,0.06), rgba(0,0,0,0))') : 'transparent' }}>
+          <div style={{ padding: '20px 24px', borderRadius: '16px', border: `1px solid ${geo.checked ? (geo.inside ? '#a7f3d0' : '#fecaca') : '#e2e8f0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: geo.checked ? (geo.inside ? '#f0fdf4' : '#fef2f2') : '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: geo.checked ? (geo.inside ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)') : 'rgba(0,242,254,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: geo.checked ? (geo.inside ? '#d1fae5' : '#fee2e2') : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
                 {geo.checked ? (geo.inside ? '🟢' : '🔴') : '📡'}
               </div>
               <div>
-                <p style={{ fontWeight: 700, color: geo.checked ? (geo.inside ? '#10b981' : '#ef4444') : '#00f2fe', margin: 0, fontSize: '0.95rem' }}>
+                <p style={{ fontWeight: 700, color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#0284c7', margin: 0, fontSize: '0.95rem' }}>
                   {geo.checked ? (geo.inside ? '✅ Inside Campus Zone' : '⚠️ Outside Campus Zone') : '📡 Campus Location Check'}
                 </p>
-                <p style={{ color: '#9ca3af', fontSize: '0.78rem', margin: '2px 0 0' }}>
+                <p style={{ color: '#64748b', fontSize: '0.78rem', margin: '2px 0 0' }}>
                   {geo.checked
                     ? geo.distance !== null ? `Distance to campus center: ~${Math.round(geo.distance)}m` : 'Location determined.'
                     : 'Check if you are within the campus geofence boundary.'}
@@ -740,7 +739,7 @@ export default function StudentAttendanceDashboardView({
                   setGeofenceStatus({ checked: true, inside: false, distance: null });
                 });
               }}
-              style={{ padding: '9px 20px', borderRadius: '10px', border: '1px solid rgba(0,242,254,0.3)', background: 'rgba(0,242,254,0.06)', color: '#00f2fe', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+              style={{ padding: '9px 20px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0369a1', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
             >
               📍 Check My Location
             </button>
@@ -761,8 +760,8 @@ export default function StudentAttendanceDashboardView({
       {/* ===== ATTENDANCE FORECAST + VIRTUAL ID + LEAVE REQUEST ROW ===== */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
         {/* Attendance Forecast Card */}
-        <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(0,242,254,0.15)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.2rem' }}>📊</span> Attendance Forecast
           </h3>
           {(() => {
@@ -779,7 +778,7 @@ export default function StudentAttendanceDashboardView({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div style={{ position: 'relative', width: '80px', height: '80px', flexShrink: 0 }}>
                     <svg width="80" height="80" viewBox="0 0 80 80">
-                      <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+                      <circle cx="40" cy="40" r="34" fill="none" stroke="#e2e8f0" strokeWidth="8" />
                       <circle
                         cx="40" cy="40" r="34" fill="none"
                         stroke={rate >= 75 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#ef4444'}
@@ -790,32 +789,32 @@ export default function StudentAttendanceDashboardView({
                         style={{ transition: 'stroke-dashoffset 1s ease' }}
                       />
                     </svg>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 700, color: rate >= 75 ? '#10b981' : '#ef4444' }}>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 700, color: rate >= 75 ? '#059669' : '#dc2626' }}>
                       {rate.toFixed(0)}%
                     </div>
                   </div>
                   <div style={{ flex: 1 }}>
                     {rate >= 75 ? (
                       <>
-                        <p style={{ color: '#10b981', fontWeight: 700, fontSize: '0.9rem' }}>✅ You're Safe!</p>
-                        <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '4px' }}>
+                        <p style={{ color: '#059669', fontWeight: 700, fontSize: '0.9rem', margin: 0 }}>✅ You're Safe!</p>
+                        <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px', margin: 0 }}>
                           {canBunk > 0 ? `You can bunk up to ${canBunk} more class${canBunk !== 1 ? 'es' : ''} safely.` : 'Attend all upcoming classes to stay safe.'}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.9rem' }}>⚠️ Below 75%!</p>
-                        <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '4px' }}>
+                        <p style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.9rem', margin: 0 }}>⚠️ Below 75%!</p>
+                        <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px', margin: 0 }}>
                           {total === 0 ? 'No attendance records yet.' : `Attend the next ${needMore} class${needMore !== 1 ? 'es' : ''} to reach 75%.`}
                         </p>
                       </>
                     )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#9ca3af', borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '10px' }}>
-                  <span>Present: <strong style={{ color: '#f3f4f6' }}>{present}</strong></span>
-                  <span>Absent: <strong style={{ color: '#f3f4f6' }}>{total - present}</strong></span>
-                  <span>Total: <strong style={{ color: '#f3f4f6' }}>{total}</strong></span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+                  <span>Present: <strong style={{ color: '#0f172a' }}>{present}</strong></span>
+                  <span>Absent: <strong style={{ color: '#0f172a' }}>{total - present}</strong></span>
+                  <span>Total: <strong style={{ color: '#0f172a' }}>{total}</strong></span>
                 </div>
               </div>
             );
@@ -823,27 +822,27 @@ export default function StudentAttendanceDashboardView({
         </div>
 
         {/* Virtual ID Card Trigger */}
-        <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(139,92,246,0.2)', background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(0,242,254,0.05))', cursor: 'pointer' }}
+        <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', cursor: 'pointer' }}
           onClick={() => setShowVirtualId(true)}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.2rem' }}>🪪</span> Virtual ID & QR Check-in
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
-            <div style={{ width: '70px', height: '70px', borderRadius: '12px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', boxShadow: '0 0 20px rgba(139,92,246,0.4)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '12px', background: '#f3e8ff', border: '1px solid #d8b4fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
               🎫
             </div>
-            <p style={{ color: '#9ca3af', fontSize: '0.82rem', textAlign: 'center' }}>
-              Show your glowing ID card with a dynamic QR code for instant check-in.
+            <p style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', margin: 0 }}>
+              Show your official student ID card with dynamic QR code for instant check-in.
             </p>
-            <button className="btn btn-primary" style={{ width: '100%', padding: '10px', borderRadius: '10px', fontWeight: 600, fontSize: '0.85rem' }}>
+            <button className="btn btn-primary" style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }}>
               Open Virtual ID Card
             </button>
           </div>
         </div>
 
         {/* Apply Leave Request */}
-        <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(251,146,60,0.2)', background: 'linear-gradient(135deg, rgba(251,146,60,0.06), rgba(0,0,0,0))' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.2rem' }}>📝</span> Apply for Leave
           </h3>
           <LeaveApplicationForm
@@ -858,12 +857,12 @@ export default function StudentAttendanceDashboardView({
 
         {/* Attendance Disputes & Correction Trigger */}
         <div 
-          className="glass-panel" 
           style={{ 
             padding: '24px', 
             borderRadius: '16px', 
-            border: '1px solid rgba(239, 68, 68, 0.25)', 
-            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(0, 242, 254, 0.04))', 
+            border: '1px solid #e2e8f0', 
+            background: '#ffffff', 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
             cursor: 'pointer' 
           }}
           onClick={() => {
@@ -872,36 +871,36 @@ export default function StudentAttendanceDashboardView({
             setShowDisputeModal(true);
           }}
         >
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.2rem' }}>⚖️</span> Attendance Disputes
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
             <div style={{ 
-              width: '70px', 
-              height: '70px', 
+              width: '64px', 
+              height: '64px', 
               borderRadius: '12px', 
-              background: 'rgba(239, 68, 68, 0.1)', 
-              border: '1px solid rgba(239, 68, 68, 0.3)', 
+              background: '#fee2e2', 
+              border: '1px solid #fecaca', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center', 
-              fontSize: '2rem', 
-              boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)' 
+              fontSize: '2rem' 
             }}>
               🛡️
             </div>
-            <p style={{ color: '#9ca3af', fontSize: '0.82rem', textAlign: 'center' }}>
+            <p style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', margin: 0 }}>
               Marked absent unfairly or face scan failed? Submit an official correction request with evidence.
             </p>
             <button className="btn" style={{ 
               width: '100%', 
               padding: '10px', 
-              borderRadius: '10px', 
+              borderRadius: '8px', 
               fontWeight: 600, 
               fontSize: '0.85rem', 
-              background: 'rgba(239, 68, 68, 0.15)', 
-              border: '1px solid rgba(239, 68, 68, 0.3)', 
-              color: '#ef4444' 
+              background: '#fee2e2', 
+              border: '1px solid #fca5a5', 
+              color: '#dc2626',
+              cursor: 'pointer'
             }}>
               Dispute Attendance / Check Status
             </button>
@@ -918,24 +917,24 @@ export default function StudentAttendanceDashboardView({
       {/* My Leave Requests History */}
       {studentLeaveRequests.length > 0 && (
         <div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>📋</span> My Leave Requests
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {studentLeaveRequests.map(req => (
-              <div key={req.id} className="glass-panel" style={{ padding: '16px 20px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', border: `1px solid ${req.status === 'Approved' ? 'rgba(16,185,129,0.2)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
+              <div key={req.id} style={{ padding: '16px 20px', borderRadius: '12px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fed7aa'}` }}>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     {req.leave_type} {req.subject_name ? `(${req.subject_name} - ${req.subject_code})` : ' (General)'}
                   </span>
-                  <p style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f3f4f6', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
-                  <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{req.reason}</p>
+                  <p style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>{req.reason}</p>
                 </div>
                 <span style={{
                   padding: '5px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
-                  background: req.status === 'Approved' ? 'rgba(16,185,129,0.15)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                  color: req.status === 'Approved' ? '#10b981' : req.status === 'Rejected' ? '#ef4444' : '#f59e0b',
-                  border: `1px solid ${req.status === 'Approved' ? 'rgba(16,185,129,0.3)' : req.status === 'Rejected' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`
+                  background: req.status === 'Approved' ? '#d1fae5' : req.status === 'Rejected' ? '#fee2e2' : '#fef3c7',
+                  color: req.status === 'Approved' ? '#065f46' : req.status === 'Rejected' ? '#991b1b' : '#b45309',
+                  border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fde68a'}`
                 }}>
                   {req.status === 'Approved' ? '✅' : req.status === 'Rejected' ? '❌' : '⏳'} {req.status}
                 </span>
@@ -947,13 +946,13 @@ export default function StudentAttendanceDashboardView({
 
       {/* Subject-wise Attendance Cards */}
       <div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc' }}>
-          <BookOpen size={20} style={{ color: '#00f2fe' }} />
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
+          <BookOpen size={20} style={{ color: '#2563eb' }} />
           Subject-wise Attendance
         </h3>
         
         {Object.keys(studentSubjectStats).length === 0 ? (
-          <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             No subject records found for your department.
           </div>
         ) : (
@@ -965,34 +964,34 @@ export default function StudentAttendanceDashboardView({
               const safePct = Math.min(100.0, Math.max(0.0, Number(rawPct) || 0));
               const isWarning = safePct < 75.0 && tDays > 0;
               return (
-                <div key={idx} className="glass-panel metric-card" style={{ padding: '20px', flexDirection: 'column', alignItems: 'stretch', gap: '12px', height: 'auto', animationDelay: `${(idx + 1) * 100}ms` }}>
+                <div key={idx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
                   <div className="flex-between">
                     <div>
-                      <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>{subStat.subjectCode || subStat.subject_code}</span>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f3f4f6', margin: '2px 0 0 0' }}>{subStat.subjectName || subStat.subject_name}</h4>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{subStat.subjectCode || subStat.subject_code}</span>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', margin: '2px 0 0 0' }}>{subStat.subjectName || subStat.subject_name}</h4>
                     </div>
                     <span style={{
                       padding: '4px 8px',
                       borderRadius: '12px',
                       fontSize: '0.75rem',
                       fontWeight: 600,
-                      background: isWarning ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                      color: isWarning ? '#ef4444' : '#10b981',
-                      border: `1px solid ${isWarning ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
+                      background: isWarning ? '#fee2e2' : '#d1fae5',
+                      color: isWarning ? '#dc2626' : '#059669',
+                      border: `1px solid ${isWarning ? '#fca5a5' : '#a7f3d0'}`
                     }}>
                       {tDays === 0 ? 'No Classes' : isWarning ? 'Shortage' : 'Good'}
                     </span>
                   </div>
                   
                   <div className="flex-between" style={{ marginTop: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>Classes: {pDays} / {tDays}</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: isWarning ? '#ef4444' : '#10b981' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Classes: {pDays} / {tDays}</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: isWarning ? '#dc2626' : '#059669' }}>
                       {safePct.toFixed(1)}%
                     </span>
                   </div>
                   
                   {/* Progress Bar */}
-                  <div style={{ width: '100%', height: '6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
                     <div style={{
                       width: `${Math.min(100, safePct)}%`,
                       height: '100%',
@@ -1015,19 +1014,19 @@ export default function StudentAttendanceDashboardView({
         const rate = total > 0 ? Math.min(100.0, (present / total) * 100) : 0;
         if (total > 0 && rate < 75) {
           return (
-            <div className="glass-panel" style={{
+            <div style={{
               padding: '20px',
-              borderColor: 'rgba(239, 68, 68, 0.3)',
-              background: 'rgba(239, 68, 68, 0.05)',
+              border: '1px solid #fecaca',
+              background: '#fee2e2',
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               gap: '16px'
             }}>
-              <AlertCircle size={28} style={{ color: '#ef4444', flexShrink: 0 }} />
+              <AlertCircle size={28} style={{ color: '#dc2626', flexShrink: 0 }} />
               <div>
-                <h4 style={{ color: '#ef4444', fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Attendance Shortage Warning</h4>
-                <p style={{ color: '#d1d5db', fontSize: '0.875rem' }}>
+                <h4 style={{ color: '#991b1b', fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Attendance Shortage Warning</h4>
+                <p style={{ color: '#7f1d1d', fontSize: '0.875rem', margin: 0 }}>
                   Your attendance rate is currently at <strong>{rate.toFixed(1)}%</strong>, which is below the minimum required <strong>75%</strong> academic limit. Please attend upcoming lectures regularly.
                 </p>
               </div>
@@ -1060,21 +1059,20 @@ export default function StudentAttendanceDashboardView({
         const pct = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
 
         return (
-          <div className="glass-panel" style={{ padding: '28px', marginTop: '8px' }}>
+          <div style={{ padding: '28px', marginTop: '8px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>My Attendance Blueprint</h3>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>Subject-wise calendar — click any date cell to view real-time log details & submit disputes</p>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>My Attendance Blueprint</h3>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Subject-wise calendar — click any date cell to view real-time log details & submit disputes</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => fetchBlueprint(token)}
                 disabled={blueprintLoading}
-                className="btn-secondary"
-                style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: blueprintLoading ? 'not-allowed' : 'pointer', border: '1px solid rgba(0,242,254,0.25)', background: 'rgba(0,242,254,0.06)', color: '#00f2fe' }}
+                style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: blueprintLoading ? 'not-allowed' : 'pointer', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0369a1', fontWeight: 600 }}
               >
                 <span style={{ display: 'inline-block', animation: blueprintLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
                 {blueprintLoading ? 'Updating...' : 'Refresh'}
@@ -1082,20 +1080,19 @@ export default function StudentAttendanceDashboardView({
             </div>
 
             {blueprintLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#9ca3af', gap: '12px', alignItems: 'center' }}>
-                <div style={{ width: '28px', height: '28px', border: '3px solid rgba(0,242,254,0.1)', borderTopColor: '#00f2fe', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#64748b', gap: '12px', alignItems: 'center' }}>
+                <div style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 Loading blueprint...
               </div>
             ) : blueprintData.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px 20px', color: '#9ca3af' }}>
-                <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#cbd5e1' }}>
+              <div style={{ textAlign: 'center', padding: '36px 20px', color: '#64748b' }}>
+                <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#64748b' }}>
                   No attendance records found yet. Your blueprint will appear once attendance is marked.
                 </p>
                 <button
                   type="button"
                   onClick={() => fetchBlueprint(token)}
-                  className="btn-secondary"
-                  style={{ padding: '7px 18px', fontSize: '0.82rem', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.1)', color: '#c4b5fd', cursor: 'pointer' }}
+                  style={{ padding: '7px 18px', fontSize: '0.82rem', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}
                 >
                   🔄 Check Again
                 </button>
@@ -1116,12 +1113,12 @@ export default function StudentAttendanceDashboardView({
                         cursor: 'pointer',
                         transition: 'all 0.2s',
                         border: selectedBlueprintSubject === sub.subject_id
-                          ? '1px solid rgba(139, 92, 246, 0.6)'
-                          : '1px solid rgba(255,255,255,0.06)',
+                          ? '1px solid #3b82f6'
+                          : '1px solid #cbd5e1',
                         background: selectedBlueprintSubject === sub.subject_id
-                          ? 'rgba(139, 92, 246, 0.18)'
-                          : 'rgba(255,255,255,0.03)',
-                        color: selectedBlueprintSubject === sub.subject_id ? '#a78bfa' : '#9ca3af'
+                          ? '#eff6ff'
+                          : '#f8fafc',
+                        color: selectedBlueprintSubject === sub.subject_id ? '#1d4ed8' : '#64748b'
                       }}
                     >
                       {sub.subject_code} — {sub.subject_name}
@@ -1131,31 +1128,31 @@ export default function StudentAttendanceDashboardView({
 
                 {/* Stats Bar */}
                 {activeSubject && (
-                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px', padding: '14px 18px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px', padding: '14px 18px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: pct >= 75 ? '#10b981' : '#ef4444' }}>{pct}%</div>
-                      <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: '2px' }}>Attendance</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: pct >= 75 ? '#059669' : '#dc2626' }}>{pct}%</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>Attendance</div>
                     </div>
-                    <div style={{ width: '1px', background: 'rgba(255,255,255,0.06)' }} />
+                    <div style={{ width: '1px', background: '#cbd5e1' }} />
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#10b981' }}>{stats.present}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Present</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b' }}>{stats.late}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Late</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#059669' }}>{stats.present}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Present</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#ef4444' }}>{stats.absent}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Absent</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#d97706' }}>{stats.late}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Late</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#64748b' }}>{stats.total}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Total Days</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#dc2626' }}>{stats.absent}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Absent</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>{stats.total}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Total Days</div>
                     </div>
                     {pct < 75 && stats.total > 0 && (
-                      <div style={{ marginLeft: 'auto', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 700 }}>⚠ Below 75% — Shortage</span>
+                      <div style={{ marginLeft: 'auto', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#dc2626', fontSize: '0.75rem', fontWeight: 700 }}>⚠ Below 75% — Shortage</span>
                       </div>
                     )}
                   </div>
@@ -1165,14 +1162,12 @@ export default function StudentAttendanceDashboardView({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <button
                     onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev); d.setMonth(d.getMonth() - 1); return d; })}
-                    className="btn-secondary"
-                    style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px' }}
+                    style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
                   >◀ Prev</button>
-                  <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#e2e8f0' }}>{monthName}</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>{monthName}</span>
                   <button
                     onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev); d.setMonth(d.getMonth() + 1); return d; })}
-                    className="btn-secondary"
-                    style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px' }}
+                    style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
                   >Next ▶</button>
                 </div>
 
@@ -1195,34 +1190,34 @@ export default function StudentAttendanceDashboardView({
                     const today = new Date();
                     const isToday = today.getDate() === day && today.getMonth() === calMonth && today.getFullYear() === calYear;
 
-                    let bg = 'rgba(255,255,255,0.02)';
-                    let border = '1px solid rgba(255,255,255,0.05)';
-                    let color = '#475569';
+                    let bg = '#f8fafc';
+                    let border = '1px solid #e2e8f0';
+                    let color = '#64748b';
                     let dot = null;
                     let label = null;
 
                     if (status === 'Present') {
-                      bg = 'rgba(16,185,129,0.1)';
-                      border = '1px solid rgba(16,185,129,0.3)';
-                      color = '#10b981';
+                      bg = '#d1fae5';
+                      border = '1px solid #a7f3d0';
+                      color = '#065f46';
                       dot = '✓';
                       label = 'P';
                     } else if (status === 'Late') {
-                      bg = 'rgba(245,158,11,0.1)';
-                      border = '1px solid rgba(245,158,11,0.3)';
-                      color = '#f59e0b';
+                      bg = '#fef3c7';
+                      border = '1px solid #fde68a';
+                      color = '#b45309';
                       dot = '~';
                       label = 'L';
                     } else if (status === 'Absent') {
-                      bg = 'rgba(239,68,68,0.1)';
-                      border = '1px solid rgba(239,68,68,0.3)';
-                      color = '#ef4444';
+                      bg = '#fee2e2';
+                      border = '1px solid #fecaca';
+                      color = '#991b1b';
                       dot = '✗';
                       label = 'A';
                     }
 
                     if (isToday) {
-                      border = '2px solid rgba(0,242,254,0.5)';
+                      border = '2px solid #2563eb';
                     }
 
                     return (
@@ -1248,7 +1243,7 @@ export default function StudentAttendanceDashboardView({
                           transition: 'all 0.15s'
                         }}
                       >
-                        <span style={{ fontSize: '0.82rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#00f2fe' : color }}>{day}</span>
+                        <span style={{ fontSize: '0.82rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#2563eb' : color }}>{day}</span>
                         {dot && (
                           <span style={{ fontSize: '0.65rem', fontWeight: 700, color, marginTop: '2px' }}>{label}</span>
                         )}
@@ -1258,12 +1253,12 @@ export default function StudentAttendanceDashboardView({
                 </div>
 
                 {/* Legend */}
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '16px', fontSize: '0.73rem', color: '#9ca3af', alignItems: 'center' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.4)', display: 'inline-block' }}/>P = Present</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', display: 'inline-block' }}/>A = Absent</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', display: 'inline-block' }}/>L = Late</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', border: '2px solid rgba(0,242,254,0.5)', display: 'inline-block' }}/>Today</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto', color: '#00f2fe', fontWeight: 600 }}>💡 Click any date cell to view day breakdown & submit disputes</span>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '16px', fontSize: '0.73rem', color: '#64748b', alignItems: 'center' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#d1fae5', border: '1px solid #a7f3d0', display: 'inline-block' }}/>P = Present</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#fee2e2', border: '1px solid #fecaca', display: 'inline-block' }}/>A = Absent</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#fef3c7', border: '1px solid #fde68a', display: 'inline-block' }}/>L = Late</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', border: '2px solid #2563eb', display: 'inline-block' }}/>Today</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto', color: '#2563eb', fontWeight: 600 }}>💡 Click any date cell to view day breakdown & submit disputes</span>
                 </div>
 
                 {/* Daily Attendance Breakdown Modal */}
@@ -1287,7 +1282,6 @@ export default function StudentAttendanceDashboardView({
 
       {/* Sleek Bottom Feedback Section */}
       <div 
-        className="glass-panel" 
         style={{ 
           padding: '24px', 
           display: 'flex', 
@@ -1295,27 +1289,28 @@ export default function StudentAttendanceDashboardView({
           alignItems: 'center', 
           flexWrap: 'wrap', 
           gap: '16px',
-          borderLeft: '4px solid #00f2fe',
-          background: 'linear-gradient(135deg, rgba(9, 12, 21, 0.6) 0%, rgba(21, 24, 43, 0.6) 100%)',
-          boxShadow: '0 8px 32px 0 rgba(0, 242, 254, 0.05)'
+          borderLeft: '4px solid #2563eb',
+          background: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ 
-            background: 'rgba(0, 242, 254, 0.1)', 
-            color: '#00f2fe', 
+            background: '#eff6ff', 
+            color: '#2563eb', 
             borderRadius: '12px', 
             padding: '12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(0, 242, 254, 0.2)'
+            justifyContent: 'center'
           }}>
             <MessageSquare size={24} />
           </div>
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Help Us Improve the Platform</h3>
-            <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Help Us Improve the Platform</h3>
+            <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '4px 0 0' }}>
               Share your suggestions, report a bug, or rate your overall experience with our smart attendance tracker.
             </p>
           </div>
@@ -1331,24 +1326,11 @@ export default function StudentAttendanceDashboardView({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '12px 24px',
-            borderRadius: '10px',
+            padding: '10px 20px',
+            borderRadius: '8px',
             fontWeight: 600,
             fontSize: '0.88rem',
-            cursor: 'pointer',
-            border: 'none',
-            background: 'linear-gradient(90deg, #00f2fe 0%, #4facfe 100%)',
-            color: '#090c15',
-            boxShadow: '0 0 20px rgba(0, 242, 254, 0.3)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.boxShadow = '0 0 30px rgba(0, 242, 254, 0.5)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 242, 254, 0.3)';
-            e.currentTarget.style.transform = 'translateY(0)';
+            cursor: 'pointer'
           }}
         >
           <MessageSquare size={16} /> Share Feedback

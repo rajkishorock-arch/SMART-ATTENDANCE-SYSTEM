@@ -144,6 +144,104 @@ body {
   outline-offset: 2px;
 }
 
+/* Universal Typography & High-Contrast Readability Defaults */
+h1, h2, h3, h4, h5, h6,
+h1 *, h2 *, h3 *, h4 *, h5 *, h6 * {
+  color: #0f172a !important;
+  font-family: var(--font-family);
+  letter-spacing: -0.015em;
+}
+
+p, span, div, label, li, td, th {
+  color: var(--color-text-main);
+}
+
+.text-muted, .text-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Force dark text inside all cards, glass panels, tables, and settings */
+.glass-panel, .surface-card, .card, [class*="card"], [class*="panel"], [class*="box"], [class*="modal"] {
+  background: #ffffff !important;
+  color: #334155;
+  border-color: var(--border-subtle) !important;
+}
+
+.glass-panel h1, .glass-panel h2, .glass-panel h3, .glass-panel h4, .glass-panel h5, .glass-panel h6,
+.surface-card h1, .surface-card h2, .surface-card h3, .surface-card h4,
+[class*="card"] h1, [class*="card"] h2, [class*="card"] h3, [class*="card"] h4,
+[class*="modal"] h1, [class*="modal"] h2, [class*="modal"] h3, [class*="modal"] h4 {
+  color: #0f172a !important;
+}
+
+.glass-panel p, .surface-card p, [class*="card"] p, [class*="panel"] p, [class*="modal"] p {
+  color: #475569 !important;
+}
+
+/* Inputs, Textareas, Selects across the entire application */
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+select,
+textarea {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Global override for inline washed-out/white colors on light backgrounds */
+[style*="color: #f8fafc"], [style*="color:#f8fafc"],
+[style*="color: #cbd5e1"], [style*="color:#cbd5e1"],
+[style*="color: #94a3b8"], [style*="color:#94a3b8"],
+[style*="color: #9ca3af"], [style*="color:#9ca3af"],
+[style*="color: #e2e8f0"], [style*="color:#e2e8f0"],
+[style*="color: rgb(248, 250, 252)"],
+[style*="color: rgb(203, 213, 225)"],
+[style*="color: rgb(148, 163, 184)"],
+[style*="color: rgb(156, 163, 175)"],
+[style*="color: rgb(226, 232, 240)"] {
+  color: #334155 !important;
+}
+
+/* Headings with light inline colors must be bold dark slate */
+h1[style*="color"], h2[style*="color"], h3[style*="color"], h4[style*="color"], h5[style*="color"], h6[style*="color"] {
+  color: #0f172a !important;
+}
+
+/* Explicit exemption: Primary buttons, badges, chips with colored backgrounds */
+.btn-primary, .btn-primary *,
+.btn-danger, .btn-danger *,
+.btn-success, .btn-success *,
+button[class*="primary"], button[class*="primary"] *,
+.bg-gradient-btn, .bg-gradient-btn *,
+button[style*="background: linear-gradient"], button[style*="background: linear-gradient"] *,
+button[style*="background:linear-gradient"], button[style*="background:linear-gradient"] *,
+button[style*="background: #4f46e5"], button[style*="background: #4f46e5"] *,
+button[style*="background:#4f46e5"], button[style*="background:#4f46e5"] *,
+button[style*="background: #10b981"], button[style*="background: #10b981"] *,
+button[style*="background:#10b981"], button[style*="background:#10b981"] *,
+button[style*="background: #ef4444"], button[style*="background: #ef4444"] *,
+button[style*="background:#ef4444"], button[style*="background:#ef4444"] *,
+button[style*="background: #1e40af"], button[style*="background: #1e40af"] *,
+button[style*="background:#1e40af"], button[style*="background:#1e40af"] * {
+  color: #ffffff !important;
+}
+
+/* Modal overlays and cards */
+.modal-overlay, [class*="modal-overlay"] {
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.modal-content, .modal-card, [class*="modal-card"], [class*="modal-content"], .dialog-card {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.2) !important;
+}
+
 /* Reusable Standard Component Classes */
 .surface-card {
   background: var(--bg-card);
@@ -7429,9 +7527,9 @@ body.app-reduced-motion *::after {
 .dispute-modal-overlay {
   position: fixed !important;
   inset: 0 !important;
-  background: rgba(5, 7, 15, 0.88) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
   z-index: 9999 !important;
   display: flex !important;
   align-items: center !important;
@@ -7449,9 +7547,9 @@ body.app-reduced-motion *::after {
   max-height: 88dvh !important;
   overflow: hidden !important;
   border-radius: 20px !important;
-  border: 1px solid rgba(0, 242, 254, 0.25) !important;
-  background: linear-gradient(135deg, rgba(10, 14, 28, 0.98), rgba(15, 23, 42, 0.98)) !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 242, 254, 0.15) !important;
+  border: 1px solid var(--border-subtle) !important;
+  background: #ffffff !important;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15) !important;
   display: flex !important;
   flex-direction: column !important;
   position: relative !important;
@@ -7460,8 +7558,8 @@ body.app-reduced-motion *::after {
 
 .dispute-modal-header-wrap {
   flex-shrink: 0 !important;
-  background: rgba(10, 14, 28, 0.98) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
   z-index: 2 !important;
 }
 

@@ -1,18 +1,20 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Shield, Clock, CheckCircle2, Calendar,
-  Sparkles, X, Save, Trash2, VolumeX, Sliders
+  Sliders, 
+  X, 
+  CheckCircle2, 
+  Calendar, 
+  Clock, 
+  Shield, 
+  Sparkles, 
+  VolumeX, 
+  Trash2, 
+  Save 
 } from 'lucide-react';
-import { getApiBaseUrl } from '../utils/platform';
+import useUI from '../hooks/useUI';
 
-const API_BASE_URL = getApiBaseUrl();
-
-export default function NotificationSettingsModal({
-  isOpen,
-  onClose,
-  token,
-  playCyberSound = () => {}
-}) {
+export default function NotificationSettingsModal({ isOpen, onClose, token, API_BASE_URL, onPreferencesSaved, onHistoryCleared }) {
+  const { playCyberSound } = useUI();
   const [preferences, setPreferences] = useState({
     attendance_enabled: true,
     leave_dispute_enabled: true,
@@ -23,86 +25,95 @@ export default function NotificationSettingsModal({
     quiet_start_time: '22:00',
     quiet_end_time: '07:00'
   });
-  const [, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
 
   useEffect(() => {
-    if (!isOpen || !token) return;
-    const fetchPrefs = async () => {
-      setIsLoading(true);
+    if (!isOpen) return;
+
+    const fetchPreferences = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/notifications/preferences`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
           const data = await res.json();
-          setPreferences(data);
+          if (data && data.preferences) {
+            setPreferences(data.preferences);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch notification preferences:', err);
-      } finally {
-        setIsLoading(false);
+        console.error('Failed to load notification preferences:', err);
       }
     };
-    fetchPrefs();
-  }, [isOpen, token]);
+
+    fetchPreferences();
+  }, [isOpen, token, API_BASE_URL]);
+
+  if (!isOpen) return null;
 
   const handleToggle = (key) => {
     playCyberSound('click');
-    setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
+    setPreferences(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   const handleChangeTime = (key, val) => {
-    setPreferences(prev => ({ ...prev, [key]: val }));
+    setPreferences(prev => ({
+      ...prev,
+      [key]: val
+    }));
   };
 
   const handleSave = async () => {
-    if (!token) return;
-    playCyberSound('click');
     setIsSaving(true);
     setSaveStatus('');
     try {
       const res = await fetch(`${API_BASE_URL}/notifications/preferences`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(preferences)
       });
       if (res.ok) {
         playCyberSound('success');
-        setSaveStatus('Preferences saved!');
-        setTimeout(() => setSaveStatus(''), 3000);
+        setSaveStatus('Preferences saved successfully!');
+        if (onPreferencesSaved) onPreferencesSaved(preferences);
+        setTimeout(() => {
+          setSaveStatus('');
+          onClose();
+        }, 800);
+      } else {
+        throw new Error('Failed to save preferences');
       }
     } catch (err) {
       console.error(err);
-      setSaveStatus('Failed to save settings');
+      setSaveStatus('Failed to save preferences.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleClearAll = async () => {
-    if (!token) return;
-    if (!window.confirm('Are you sure you want to clear all notification history?')) return;
-    playCyberSound('click');
+    if (!window.confirm('Are you sure you want to permanently clear all your notification history?')) return;
     try {
       const res = await fetch(`${API_BASE_URL}/notifications/clear-all`, {
-        method: 'POST',
+        method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        playCyberSound('success');
-        alert('Notification history cleared.');
+        playCyberSound('click');
+        if (onHistoryCleared) onHistoryCleared();
+        onClose();
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to clear notifications:', err);
     }
   };
-
-  if (!isOpen) return null;
 
   return (
     <div 
@@ -110,12 +121,12 @@ export default function NotificationSettingsModal({
         position: 'fixed',
         inset: 0,
         zIndex: 10000,
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)',
+        background: 'rgba(15, 23, 42, 0.45)',
+        backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '16px'
+        padding: '20px'
       }}
       onClick={onClose}
     >
@@ -123,10 +134,10 @@ export default function NotificationSettingsModal({
         style={{
           width: '100%',
           maxWidth: '520px',
-          background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(10, 15, 30, 0.98))',
-          border: '1px solid rgba(0, 242, 254, 0.3)',
-          borderRadius: '20px',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          boxShadow: '0 20px 50px rgba(15, 23, 42, 0.15)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column'
@@ -136,7 +147,7 @@ export default function NotificationSettingsModal({
         {/* Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
@@ -145,20 +156,20 @@ export default function NotificationSettingsModal({
             <div style={{
               width: '40px',
               height: '40px',
-              borderRadius: '12px',
-              background: 'rgba(0, 242, 254, 0.1)',
-              border: '1px solid rgba(0, 242, 254, 0.3)',
+              borderRadius: '10px',
+              background: '#e0f2fe',
+              border: '1px solid #bae6fd',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <Sliders size={20} color="#00f2fe" />
+              <Sliders size={20} color="#0284c7" />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                 Notification Preferences
               </h3>
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '2px 0 0' }}>
+              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0' }}>
                 Role alert channels & quiet hours settings
               </p>
             </div>
@@ -167,10 +178,10 @@ export default function NotificationSettingsModal({
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
               borderRadius: '8px',
-              color: '#9ca3af',
+              color: '#64748b',
               padding: '6px',
               cursor: 'pointer'
             }}
@@ -184,25 +195,25 @@ export default function NotificationSettingsModal({
           
           {/* Category Toggles */}
           <div>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#00f2fe', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Notification Categories
             </h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
-                { key: 'attendance_enabled', label: 'Attendance Alerts', desc: 'Check-in, checkout, and absent status updates', icon: CheckCircle2, color: '#10b981' },
-                { key: 'leave_dispute_enabled', label: 'Leave & Dispute Updates', desc: 'Status approvals and dispute resolution notifications', icon: Calendar, color: '#f59e0b' },
-                { key: 'class_reminders_enabled', label: 'Class & Timetable Reminders', desc: 'Upcoming lectures and schedule updates', icon: Clock, color: '#8b5cf6' },
-                { key: 'security_enabled', label: 'Security & System Alerts', desc: 'Account login, device status, and proxy warnings', icon: Shield, color: '#ef4444' },
-                { key: 'promotional_enabled', label: 'Campus News & Announcements', desc: 'General non-critical campus notifications (Opt-in)', icon: Sparkles, color: '#ec4899' }
+                { key: 'attendance_enabled', label: 'Attendance Alerts', desc: 'Check-in, checkout, and absent status updates', icon: CheckCircle2, color: '#059669' },
+                { key: 'leave_dispute_enabled', label: 'Leave & Dispute Updates', desc: 'Status approvals and dispute resolution notifications', icon: Calendar, color: '#d97706' },
+                { key: 'class_reminders_enabled', label: 'Class & Timetable Reminders', desc: 'Upcoming lectures and schedule updates', icon: Clock, color: '#7c3aed' },
+                { key: 'security_enabled', label: 'Security & System Alerts', desc: 'Account login, device status, and proxy warnings', icon: Shield, color: '#dc2626' },
+                { key: 'promotional_enabled', label: 'Campus News & Announcements', desc: 'General non-critical campus notifications (Opt-in)', icon: Sparkles, color: '#db2777' }
               ].map(item => (
                 <div
                   key={item.key}
                   style={{
                     padding: '12px 16px',
-                    borderRadius: '12px',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: '10px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -212,10 +223,10 @@ export default function NotificationSettingsModal({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <item.icon size={18} color={item.color} />
                     <div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#f8fafc' }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#0f172a' }}>
                         {item.label}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                         {item.desc}
                       </div>
                     </div>
@@ -228,7 +239,7 @@ export default function NotificationSettingsModal({
                     style={{
                       width: '18px',
                       height: '18px',
-                      accentColor: '#00f2fe',
+                      accentColor: '#0284c7',
                       cursor: 'pointer'
                     }}
                   />
@@ -240,21 +251,21 @@ export default function NotificationSettingsModal({
           {/* Quiet Hours Section */}
           <div style={{
             padding: '16px',
-            borderRadius: '14px',
-            background: 'rgba(0, 242, 254, 0.03)',
-            border: '1px solid rgba(0, 242, 254, 0.15)',
+            borderRadius: '12px',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <VolumeX size={18} color="#00f2fe" />
+                <VolumeX size={18} color="#0284c7" />
                 <div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
                     Quiet Hours
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     Suppress push notifications during sleep hours
                   </div>
                 </div>
@@ -267,7 +278,7 @@ export default function NotificationSettingsModal({
                 style={{
                   width: '18px',
                   height: '18px',
-                  accentColor: '#00f2fe',
+                  accentColor: '#0284c7',
                   cursor: 'pointer'
                 }}
               />
@@ -276,7 +287,7 @@ export default function NotificationSettingsModal({
             {preferences.quiet_hours_enabled && (
               <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>Start Time</label>
+                  <label style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Start Time</label>
                   <input
                     type="time"
                     value={preferences.quiet_start_time}
@@ -285,15 +296,15 @@ export default function NotificationSettingsModal({
                       width: '100%',
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#f8fafc',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      color: '#0f172a',
                       fontSize: '0.85rem'
                     }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>End Time</label>
+                  <label style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>End Time</label>
                   <input
                     type="time"
                     value={preferences.quiet_end_time}
@@ -302,9 +313,9 @@ export default function NotificationSettingsModal({
                       width: '100%',
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#f8fafc',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      color: '#0f172a',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -318,11 +329,11 @@ export default function NotificationSettingsModal({
             <button
               onClick={handleClearAll}
               style={{
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#ef4444',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
                 padding: '8px 14px',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 fontSize: '0.78rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -335,7 +346,7 @@ export default function NotificationSettingsModal({
             </button>
 
             {saveStatus && (
-              <span style={{ fontSize: '0.78rem', color: saveStatus.includes('Failed') ? '#ef4444' : '#10b981', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.78rem', color: saveStatus.includes('Failed') ? '#dc2626' : '#059669', fontWeight: 600 }}>
                 {saveStatus}
               </span>
             )}
@@ -345,7 +356,7 @@ export default function NotificationSettingsModal({
         {/* Footer Actions */}
         <div style={{
           padding: '16px 24px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          borderTop: '1px solid #e2e8f0',
           display: 'flex',
           justifyContent: 'flex-end',
           gap: '12px'
@@ -354,10 +365,10 @@ export default function NotificationSettingsModal({
             onClick={onClose}
             style={{
               padding: '10px 18px',
-              borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#9ca3af',
+              borderRadius: '8px',
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              color: '#334155',
               fontSize: '0.85rem',
               fontWeight: 600,
               cursor: 'pointer'
@@ -371,10 +382,10 @@ export default function NotificationSettingsModal({
             disabled={isSaving}
             style={{
               padding: '10px 22px',
-              borderRadius: '10px',
-              background: 'linear-gradient(90deg, #00f2fe, #4facfe)',
+              borderRadius: '8px',
+              background: '#0284c7',
               border: 'none',
-              color: '#0f172a',
+              color: '#ffffff',
               fontSize: '0.85rem',
               fontWeight: 700,
               cursor: 'pointer',

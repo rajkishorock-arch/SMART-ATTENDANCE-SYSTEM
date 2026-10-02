@@ -506,27 +506,27 @@ export default function AdminTeacherDashboardView({
             {(activeDashboardSubTab === 'metrics' || activeDashboardSubTab === 'telemetry') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {/* Header */}
-                <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))', border: '1px solid rgba(0, 242, 254, 0.3)', borderRadius: '20px', padding: '24px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                <div style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, background: 'linear-gradient(90deg, #00f2fe, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        📊 Attendance Metrics & Live Telemetry Studio
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                        Attendance Metrics & Live Telemetry
                       </h3>
-                      <span style={{ background: 'rgba(0, 242, 254, 0.2)', border: '1px solid #00f2fe', color: '#00f2fe', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
-                        LIVE REALTIME ENGINE
+                      <span style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+                        REALTIME
                       </span>
                     </div>
-                    <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '4px 0 0' }}>
-                      Realtime student presence metrics, total active session connections, live attendance ticker feed, and live active role telemetry registry.
+                    <p style={{ color: '#475569', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                      Realtime student presence metrics, total active session connections, and active role telemetry.
                     </p>
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ padding: '4px 10px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                      🟢 Rate: {stats?.average_attendance_rate || 0}%
+                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #a7f3d0' }}>
+                      Attendance Rate: {stats?.average_attendance_rate || 0}%
                     </span>
-                    <span style={{ padding: '4px 10px', borderRadius: '8px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(0, 242, 254, 0.3)' }}>
-                      📡 Active Users: {activeTelemetry?.total_active || 1}
+                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#eff6ff', color: '#1e40af', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #bfdbfe' }}>
+                      Active Users: {activeTelemetry?.total_active || 1}
                     </span>
                   </div>
                 </div>
@@ -536,62 +536,62 @@ export default function AdminTeacherDashboardView({
 
                 {/* Section 2: Metric Summary Cards */}
                 <div className="dashboard-grid">
-                  <div className="glass-panel metric-card" style={{ 
+                  <div className="surface-card metric-card" style={{ 
                     animationDelay: '100ms',
-                    borderLeft: '4px solid #00f2fe',
+                    borderLeft: '4px solid #1e40af',
                     borderRadius: '16px',
-                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))'
+                    background: '#ffffff'
                   }}>
                     <div className="metric-info">
-                      <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Total Enrolled Students</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f8fafc', margin: '4px 0 0' }}>{stats?.total_students || 0}</p>
+                      <h3 style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Total Enrolled Students</h3>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: '4px 0 0' }}>{stats?.total_students || 0}</p>
                     </div>
-                    <div className="metric-icon" style={{ background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', borderRadius: '12px', padding: '12px' }}>
+                    <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: '#1e40af', borderRadius: '12px', padding: '12px' }}>
                       <Users size={24} />
                     </div>
                   </div>
 
-                  <div className="glass-panel metric-card" style={{ 
+                  <div className="surface-card metric-card" style={{ 
                     animationDelay: '200ms',
-                    borderLeft: '4px solid #10b981',
+                    borderLeft: '4px solid #059669',
                     borderRadius: '16px',
-                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))'
+                    background: '#ffffff'
                   }}>
                     <div className="metric-info">
-                      <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Present Today</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#34d399', margin: '4px 0 0' }}>{displayStats?.total_present_today || 0}</p>
+                      <h3 style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Present Today</h3>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#059669', margin: '4px 0 0' }}>{displayStats?.total_present_today || 0}</p>
                     </div>
-                    <div className="metric-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', borderRadius: '12px', padding: '12px' }}>
+                    <div className="metric-icon" style={{ background: 'rgba(5, 150, 105, 0.08)', color: '#059669', borderRadius: '12px', padding: '12px' }}>
                       <CheckCircle2 size={24} />
                     </div>
                   </div>
 
-                  <div className="glass-panel metric-card" style={{ 
+                  <div className="surface-card metric-card" style={{ 
                     animationDelay: '300ms',
-                    borderLeft: '4px solid #ef4444',
+                    borderLeft: '4px solid #dc2626',
                     borderRadius: '16px',
-                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))'
+                    background: '#ffffff'
                   }}>
                     <div className="metric-info">
-                      <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Absent Today</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f87171', margin: '4px 0 0' }}>{displayStats?.total_absent_today || 0}</p>
+                      <h3 style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Absent Today</h3>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#dc2626', margin: '4px 0 0' }}>{displayStats?.total_absent_today || 0}</p>
                     </div>
-                    <div className="metric-icon" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderRadius: '12px', padding: '12px' }}>
+                    <div className="metric-icon" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626', borderRadius: '12px', padding: '12px' }}>
                       <AlertCircle size={24} />
                     </div>
                   </div>
 
-                  <div className="glass-panel metric-card" style={{ 
+                  <div className="surface-card metric-card" style={{ 
                     animationDelay: '400ms',
-                    borderLeft: '4px solid #a78bfa',
+                    borderLeft: '4px solid #7c3aed',
                     borderRadius: '16px',
-                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))'
+                    background: '#ffffff'
                   }}>
                     <div className="metric-info">
-                      <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Presence Rate</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#c084fc', margin: '4px 0 0' }}>{stats?.average_attendance_rate || 0}%</p>
+                      <h3 style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Presence Rate</h3>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#7c3aed', margin: '4px 0 0' }}>{stats?.average_attendance_rate || 0}%</p>
                     </div>
-                    <div className="metric-icon" style={{ background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', borderRadius: '12px', padding: '12px' }}>
+                    <div className="metric-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: '#7c3aed', borderRadius: '12px', padding: '12px' }}>
                       <TrendingUp size={24} />
                     </div>
                   </div>
@@ -599,43 +599,43 @@ export default function AdminTeacherDashboardView({
 
                 {/* Section 3: Live Active Telemetry Session Monitor */}
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
-                  border: '1px solid rgba(167, 139, 250, 0.3)',
-                  borderRadius: '20px',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '16px',
                   padding: '24px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                  boxShadow: 'var(--shadow-card)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981', animation: 'pulse 1.5s infinite' }} />
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#f8fafc', letterSpacing: '0.04em' }}>
-                        📡 LIVE ROLE TELEMETRY & ACTIVE CONNECTIONS REGISTRY
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#059669', boxShadow: '0 0 10px rgba(5, 150, 105, 0.4)' }} />
+                      <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                        Active Role Telemetry & Connections
                       </h4>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'monospace' }}>
-                      SOCKET SYNC: 100% LATENCY: 24ms
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>
+                      SOCKET STATUS: CONNECTED (24ms)
                     </span>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
-                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(0, 242, 254, 0.2)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>TOTAL ACTIVE USERS</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#00f2fe' }}>{activeTelemetry?.total_active || (stats?.total_present_today > 0 ? stats.total_present_today + 1 : 1)}</span>
+                    <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>TOTAL ACTIVE USERS</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e40af' }}>{activeTelemetry?.total_active || (stats?.total_present_today > 0 ? stats.total_present_today + 1 : 1)}</span>
                     </div>
-                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>STUDENTS ONLINE</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#34d399' }}>{activeTelemetry?.students || stats?.total_present_today || 0}</span>
+                    <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>STUDENTS ONLINE</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669' }}>{activeTelemetry?.students || stats?.total_present_today || 0}</span>
                     </div>
-                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>TEACHERS ONLINE</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fbbf24' }}>{activeTelemetry?.teachers || 1}</span>
+                    <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>TEACHERS ONLINE</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#d97706' }}>{activeTelemetry?.teachers || 1}</span>
                     </div>
-                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(167, 139, 250, 0.2)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>ADMINISTRATORS</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#c084fc' }}>{activeTelemetry?.admins || 1}</span>
+                    <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>ADMINISTRATORS</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7c3aed' }}>{activeTelemetry?.admins || 1}</span>
                     </div>
                   </div>
                 </div>
@@ -646,27 +646,27 @@ export default function AdminTeacherDashboardView({
             {(activeDashboardSubTab === 'trends' || activeDashboardSubTab === 'radar') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {/* Header */}
-                <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))', border: '1px solid rgba(167, 139, 250, 0.3)', borderRadius: '20px', padding: '24px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                <div style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, background: 'linear-gradient(90deg, #a78bfa, #00f2fe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        📊 Trends, Analytics & Biometric Radar Studio
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                        Attendance Trends & Department Distribution
                       </h3>
-                      <span style={{ background: 'rgba(167, 139, 250, 0.2)', border: '1px solid #a78bfa', color: '#c084fc', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
-                        MERGED ANALYTICS & RADAR
+                      <span style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+                        ANALYTICS
                       </span>
                     </div>
-                    <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '4px 0 0' }}>
-                      Weekly attendance trends line area graphs, department presence distribution, perimeter biometric sonar sweeps, and neural mesh visualization map.
+                    <p style={{ color: '#475569', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                      Weekly attendance trends line area graphs and department presence distribution breakdown.
                     </p>
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ padding: '4px 10px', borderRadius: '8px', background: 'rgba(167, 139, 250, 0.15)', color: '#c084fc', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(167, 139, 250, 0.3)' }}>
-                      📊 Analytics: ONLINE
+                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#eff6ff', color: '#1e40af', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #bfdbfe' }}>
+                      Analytics: Active
                     </span>
-                    <span style={{ padding: '4px 10px', borderRadius: '8px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(0, 242, 254, 0.3)' }}>
-                      🛡️ Biometric Radar: ACTIVE
+                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #a7f3d0' }}>
+                      Status: Live
                     </span>
                   </div>
                 </div>
@@ -674,42 +674,42 @@ export default function AdminTeacherDashboardView({
                 {/* Row 1: Charts Grid */}
                 <div className="dashboard-charts-grid">
                   {/* Weekly Trend Line Area Chart */}
-                  <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Calendar size={20} style={{ color: '#00f2fe' }} /> 1. Weekly Attendance Trends (7 Days)
+                  <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Calendar size={18} style={{ color: '#1e40af' }} /> Weekly Attendance Trends (7 Days)
                     </h4>
                     <div ref={chartRef1} style={{ width: '100%', height: '230px', minWidth: 0, position: 'relative' }}>
                       <AreaChart width={chartWidth1} height={230} data={stats?.weekly_trends || []}>
                         <defs>
                           <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.35}/>
-                            <stop offset="95%" stopColor="#00f2fe" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                        <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="day" stroke="#64748b" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#64748b" fontSize={11} tickLine={false} allowDecimals={false} />
                         <Tooltip contentStyle={{ 
-                          background: '#0d1323', 
-                          border: '1px solid rgba(0, 242, 254, 0.3)', 
-                          borderRadius: '12px', 
-                          color: '#f1f5f9',
-                          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                          background: '#ffffff', 
+                          border: '1px solid var(--border-subtle)', 
+                          borderRadius: '8px', 
+                          color: '#0f172a',
+                          boxShadow: 'var(--shadow-card)'
                         }} />
-                        <Area type="monotone" dataKey="present" stroke="#00f2fe" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" />
+                        <Area type="monotone" dataKey="present" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#colorTrend)" />
                       </AreaChart>
                     </div>
                   </div>
 
                   {/* Department distribution Bar Chart */}
-                  <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Layers size={20} style={{ color: '#a78bfa' }} /> 2. Present Today by Department
+                  <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Layers size={18} style={{ color: '#7c3aed' }} /> Present Today by Department
                     </h4>
                     <div ref={chartRef2} style={{ width: '100%', height: '230px', minWidth: 0, position: 'relative' }}>
                       {!stats?.department_stats || Object.keys(stats.department_stats).length === 0 ? (
-                        <div className="flex-center" style={{ height: '100%', color: '#94a3b8', flexDirection: 'column', gap: '12px' }}>
-                          <AlertCircle size={32} style={{ color: '#ef4444' }} />
+                        <div className="flex-center" style={{ height: '100%', color: '#64748b', flexDirection: 'column', gap: '12px' }}>
+                          <AlertCircle size={32} style={{ color: '#dc2626' }} />
                           <span>No department attendance marked yet today.</span>
                         </div>
                       ) : (
@@ -720,19 +720,19 @@ export default function AdminTeacherDashboardView({
                         })}>
                           <defs>
                             <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.9}/>
-                              <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.6}/>
+                              <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.9}/>
+                              <stop offset="95%" stopColor="#6366f1" stopOpacity={0.7}/>
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                          <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                          <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} />
+                          <YAxis stroke="#64748b" fontSize={11} tickLine={false} allowDecimals={false} />
                           <Tooltip contentStyle={{ 
-                            background: '#0d1323', 
-                            border: '1px solid rgba(167, 139, 250, 0.3)', 
-                            borderRadius: '12px', 
-                            color: '#f1f5f9',
-                            boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                            background: '#ffffff', 
+                            border: '1px solid var(--border-subtle)', 
+                            borderRadius: '8px', 
+                            color: '#0f172a',
+                            boxShadow: 'var(--shadow-card)'
                           }} />
                           <Bar dataKey="count" fill="url(#colorBar)" radius={[6, 6, 0, 0]} barSize={35} />
                         </BarChart>
@@ -741,62 +741,29 @@ export default function AdminTeacherDashboardView({
                   </div>
                 </div>
 
-                {/* Row 2: Radar & Mesh Grid */}
+                {/* Row 2: Biometric Telemetry Grid */}
                 <div className="dashboard-charts-grid">
-                  {/* Sonar Radar Stats Card */}
-                  <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <TrendingUp size={20} style={{ color: '#00f2fe' }} /> 3. Perimeter Biometric Radar
+                  {/* Biometric Status Summary */}
+                  <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <TrendingUp size={18} style={{ color: '#1e40af' }} /> Biometric Scanner Health
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '20px' }}>
-                      <svg width="200" height="200" viewBox="0 0 200 200" style={{ filter: 'drop-shadow(0 0 10px rgba(0, 242, 254, 0.25))' }}>
-                        <defs>
-                          <radialGradient id="radarSweepGrad" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stopColor="#00f2fe" stopOpacity="0" />
-                            <stop offset="85%" stopColor="#00f2fe" stopOpacity="0.05" />
-                            <stop offset="100%" stopColor="#00f2fe" stopOpacity="0.3" />
-                          </radialGradient>
-                        </defs>
-                        <circle cx="100" cy="100" r="90" stroke="rgba(255,255,255,0.1)" strokeWidth="1" fill="none" opacity="0.4" />
-                        <circle cx="100" cy="100" r="70" stroke="rgba(255,255,255,0.1)" strokeWidth="1" fill="none" opacity="0.4" strokeDasharray="3 3" />
-                        <circle cx="100" cy="100" r="50" stroke="rgba(255,255,255,0.1)" strokeWidth="1" fill="none" opacity="0.5" />
-                        <circle cx="100" cy="100" r="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" fill="none" opacity="0.5" strokeDasharray="2 2" />
-                        <circle cx="100" cy="100" r="10" stroke="rgba(0, 242, 254, 0.5)" strokeWidth="1.5" fill="none" opacity="0.8" />
-                        
-                        <line x1="100" y1="5" x2="100" y2="195" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-                        <line x1="5" y1="100" x2="195" y2="100" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-                        
-                        <g style={{ transformOrigin: '100px 100px', animation: 'radarSweep 4s linear infinite' }}>
-                          <line x1="100" y1="100" x2="100" y2="10" stroke="#00f2fe" strokeWidth="1.5" opacity="0.8" />
-                          <polygon points="100,100 100,10 70,18" fill="url(#radarSweepGrad)" opacity="0.6" />
-                        </g>
-
-                        <g style={{ animation: 'radarPulse 3s infinite ease-in-out' }}>
-                          <circle cx="65" cy="75" r="4.5" fill="#10b981" filter="drop-shadow(0 0 4px #10b981)" />
-                        </g>
-                        <g style={{ animation: 'radarPulse 2.5s infinite ease-in-out', animationDelay: '0.8s' }}>
-                          <circle cx="145" cy="65" r="4" fill="#00f2fe" filter="drop-shadow(0 0 4px #00f2fe)" />
-                        </g>
-                        <g style={{ animation: 'radarPulse 3.5s infinite ease-in-out', animationDelay: '1.5s' }}>
-                          <circle cx="120" cy="135" r="3.5" fill="#f59e0b" filter="drop-shadow(0 0 4px #f59e0b)" />
-                        </g>
-                      </svg>
-                      
-                      <div style={{ width: '100%', background: 'rgba(8, 12, 20, 0.4)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.75rem', fontFamily: 'monospace' }}>
-                        <div>STATUS: <span style={{ color: '#10b981', fontWeight: 'bold' }}>SCANNING</span></div>
-                        <div>BEACONS: <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>4 ACTIVE</span></div>
-                        <div>LIVENESS: <span style={{ color: '#00f2fe', fontWeight: 'bold' }}>SECURE</span></div>
-                        <div>FPS RATE: <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{hudMetrics?.fps || 30} Hz</span></div>
+                      <div style={{ width: '100%', background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.84rem' }}>
+                        <div><span style={{ color: '#64748b' }}>STATUS:</span> <span style={{ color: '#059669', fontWeight: 700 }}>ACTIVE</span></div>
+                        <div><span style={{ color: '#64748b' }}>BEACONS:</span> <span style={{ color: '#0f172a', fontWeight: 700 }}>4 CONNECTED</span></div>
+                        <div><span style={{ color: '#64748b' }}>LIVENESS:</span> <span style={{ color: '#1e40af', fontWeight: 700 }}>VERIFIED</span></div>
+                        <div><span style={{ color: '#64748b' }}>FRAME RATE:</span> <span style={{ color: '#0f172a', fontWeight: 700 }}>{hudMetrics?.fps || 30} FPS</span></div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Neural Mesh Connectivity Map */}
-                  <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', minHeight: '340px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <ShieldCheck size={20} style={{ color: '#a78bfa' }} /> 4. Biometric Neural Mesh Map
+                  {/* Neural Mesh Verification Node Map */}
+                  <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', minHeight: '300px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <ShieldCheck size={18} style={{ color: '#7c3aed' }} /> Face Landmark Mesh Engine
                     </h4>
-                    <div style={{ position: 'relative', flex: 1, minHeight: '240px', width: '100%', overflow: 'hidden', borderRadius: '14px', background: 'rgba(8, 12, 20, 0.5)', border: '1px solid rgba(167, 139, 250, 0.2)' }}>
+                    <div style={{ position: 'relative', flex: 1, minHeight: '200px', width: '100%', overflow: 'hidden', borderRadius: '12px', background: '#f8fafc', border: '1px solid var(--border-subtle)' }}>
                       <canvas ref={neuralMeshCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                     </div>
                   </div>

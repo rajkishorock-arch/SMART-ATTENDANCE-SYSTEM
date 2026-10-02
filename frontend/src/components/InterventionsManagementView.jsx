@@ -193,105 +193,88 @@ export default function InterventionsManagementView({
 
   return (
     <div className="interventions-container" style={{
-      color: '#f8fafc',
+      color: 'var(--color-text-main)',
       padding: '24px',
       maxWidth: '1280px',
       margin: '0 auto',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Banner Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.75) 100%)',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
+      {/* Header */}
+      <div className="surface-card" style={{
+        background: '#ffffff',
+        border: '1px solid var(--border-subtle)',
         borderRadius: '16px',
-        padding: '24px 28px',
+        padding: '20px 24px',
         marginBottom: '24px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
-        backdropFilter: 'blur(12px)',
-        position: 'relative'
+        boxShadow: 'var(--shadow-card)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '16px'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                borderRadius: '10px',
-                padding: '8px',
-                color: '#f87171',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <AlertOctagon size={22} />
-              </div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>
-                Counselor & Parent Intervention System
-              </h2>
-              <span style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                color: '#f87171',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '16px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase'
-              }}>
-                Phase 8 Production
-              </span>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+            <div style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '10px',
+              padding: '8px',
+              color: '#dc2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <AlertOctagon size={22} />
             </div>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
-              Proactive multi-tier attendance escalation: Academic warnings (70-75%), automated parent communication (60-70%), 
-              and debarment prevention counseling meetings (&lt;60%).
-            </p>
+            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#0f172a' }}>
+              Counselor & Parent Intervention Center
+            </h2>
           </div>
+          <p style={{ margin: 0, color: '#475569', fontSize: '0.85rem', maxWidth: '750px' }}>
+            Proactive multi-tier attendance escalation: Academic warnings (70-75%), automated parent communication (60-70%), and debarment prevention counseling (&lt;60%).
+          </p>
+        </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => { playCyberSound('click'); fetchData(); }}
-              disabled={isLoading}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#cbd5e1',
-                padding: '10px 16px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '0.88rem',
-                fontWeight: 600
-              }}
-            >
-              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => { playCyberSound('click'); fetchData(); }}
+            disabled={isLoading}
+            className="btn-secondary"
+            style={{
+              padding: '9px 16px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 600
+            }}
+          >
+            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
 
-            <button
-              onClick={() => { playCyberSound('click'); handleRunEvaluation(); }}
-              disabled={isScanning}
-              style={{
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                border: 'none',
-                color: '#fff',
-                padding: '10px 18px',
-                borderRadius: '10px',
-                cursor: isScanning ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)'
-              }}
-            >
-              <ShieldAlert size={16} className={isScanning ? 'animate-spin' : ''} />
-              {isScanning ? 'Scanning...' : 'Scan Campus Attendance'}
-            </button>
-          </div>
+          <button
+            onClick={() => { playCyberSound('click'); handleRunEvaluation(); }}
+            disabled={isScanning}
+            className="btn-primary"
+            style={{
+              padding: '9px 18px',
+              borderRadius: '10px',
+              cursor: isScanning ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              background: '#dc2626'
+            }}
+          >
+            <ShieldAlert size={16} className={isScanning ? 'animate-spin' : ''} />
+            {isScanning ? 'Scanning...' : 'Scan Campus Attendance'}
+          </button>
         </div>
       </div>
 
@@ -340,64 +323,68 @@ export default function InterventionsManagementView({
           gap: '16px',
           marginBottom: '24px'
         }}>
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid #fecaca',
             borderRadius: '12px',
-            padding: '18px'
+            padding: '18px',
+            boxShadow: 'var(--shadow-card)'
           }}>
-            <span style={{ fontSize: '0.78rem', color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.78rem', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
               Tier 3: Debarment Risk (&lt;60%)
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f87171', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#dc2626', marginTop: '6px' }}>
               {summary.tier3_debarment_risk_count}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Mandatory HOD intervention</span>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Mandatory HOD intervention</span>
           </div>
 
-          <div style={{
-            background: 'rgba(249, 115, 22, 0.12)',
-            border: '1px solid rgba(249, 115, 22, 0.35)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid #fed7aa',
             borderRadius: '12px',
-            padding: '18px'
+            padding: '18px',
+            boxShadow: 'var(--shadow-card)'
           }}>
-            <span style={{ fontSize: '0.78rem', color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.78rem', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
               Tier 2: Parent Alert (60-70%)
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fb923c', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ea580c', marginTop: '6px' }}>
               {summary.tier2_parent_alert_count}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Parent notification required</span>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Parent notification required</span>
           </div>
 
-          <div style={{
-            background: 'rgba(245, 158, 11, 0.12)',
-            border: '1px solid rgba(245, 158, 11, 0.35)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid #fde68a',
             borderRadius: '12px',
-            padding: '18px'
+            padding: '18px',
+            boxShadow: 'var(--shadow-card)'
           }}>
-            <span style={{ fontSize: '0.78rem', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.78rem', color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
               Tier 1: Warning (70-75%)
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fbbf24', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#d97706', marginTop: '6px' }}>
               {summary.tier1_warning_count}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Near cutoff boundary</span>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Near cutoff boundary</span>
           </div>
 
-          <div style={{
-            background: 'rgba(16, 185, 129, 0.1)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid #a7f3d0',
             borderRadius: '12px',
-            padding: '18px'
+            padding: '18px',
+            boxShadow: 'var(--shadow-card)'
           }}>
-            <span style={{ fontSize: '0.78rem', color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.78rem', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
               Resolved Cases
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#34d399', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#059669', marginTop: '6px' }}>
               {summary.resolved_count}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Recovered attendance</span>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Recovered attendance</span>
           </div>
         </div>
       )}
@@ -405,9 +392,9 @@ export default function InterventionsManagementView({
       {/* Tier Filter Tabs */}
       <div style={{
         display: 'flex',
-        gap: '10px',
+        gap: '8px',
         marginBottom: '20px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        borderBottom: '1px solid var(--border-subtle)',
         paddingBottom: '12px',
         overflowX: 'auto'
       }}>
@@ -421,12 +408,12 @@ export default function InterventionsManagementView({
             key={tab.key}
             onClick={() => { playCyberSound('click'); setTierFilter(tab.key); }}
             style={{
-              background: tierFilter === tab.key ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
-              border: tierFilter === tab.key ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid transparent',
-              color: tierFilter === tab.key ? '#f87171' : '#94a3b8',
-              padding: '6px 16px',
+              background: tierFilter === tab.key ? 'var(--color-primary-light)' : '#ffffff',
+              border: tierFilter === tab.key ? '1px solid rgba(30, 64, 175, 0.25)' : '1px solid var(--border-subtle)',
+              color: tierFilter === tab.key ? 'var(--color-primary)' : '#475569',
+              padding: '6px 14px',
               borderRadius: '8px',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer',
               whiteSpace: 'nowrap'
@@ -439,19 +426,19 @@ export default function InterventionsManagementView({
 
       {/* Interventions List */}
       {interventions.length === 0 ? (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.4)',
-          border: '1px dashed rgba(255, 255, 255, 0.15)',
+        <div className="surface-card" style={{
+          background: '#ffffff',
+          border: '1px dashed var(--border-strong)',
           borderRadius: '16px',
           padding: '48px 24px',
           textAlign: 'center',
           color: '#64748b'
         }}>
-          <CheckCircle2 size={40} color="#34d399" style={{ opacity: 0.8, marginBottom: '12px' }} />
-          <h4 style={{ margin: '0 0 6px 0', color: '#94a3b8', fontSize: '1.1rem' }}>
+          <CheckCircle2 size={40} color="#059669" style={{ opacity: 0.8, marginBottom: '12px' }} />
+          <h4 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 700 }}>
             No Active Interventions Found
           </h4>
-          <p style={{ margin: 0, fontSize: '0.88rem' }}>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
             All students are currently meeting the 75% attendance threshold. Click "Scan Campus Attendance" to re-evaluate.
           </p>
         </div>
@@ -464,18 +451,21 @@ export default function InterventionsManagementView({
           {interventions.map(item => {
             const isCritical = item.tier === 'DEBARMENT_RISK';
             const isOrange = item.tier === 'PARENT_ALERT';
-            const badgeColor = isCritical ? '#f87171' : (isOrange ? '#fb923c' : '#fbbf24');
+            const badgeColor = isCritical ? '#dc2626' : (isOrange ? '#ea580c' : '#d97706');
+            const badgeBg = isCritical ? '#fef2f2' : (isOrange ? '#fff7ed' : '#fffbeb');
+            const badgeBorder = isCritical ? '#fecaca' : (isOrange ? '#fed7aa' : '#fde68a');
             const isNotifying = notifyingIds[item.id];
 
             return (
               <div
                 key={item.id}
+                className="surface-card"
                 style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: `1px solid ${isCritical ? 'rgba(239, 68, 68, 0.4)' : isOrange ? 'rgba(249, 115, 22, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
+                  background: '#ffffff',
+                  border: `1px solid ${badgeBorder}`,
                   borderRadius: '14px',
                   padding: '20px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+                  boxShadow: 'var(--shadow-card)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between'
@@ -485,17 +475,17 @@ export default function InterventionsManagementView({
                   {/* Top */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <div>
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.15rem', fontWeight: 700, color: '#fff' }}>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
                         {item.student_name}
                       </h3>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
                         Roll: {item.student_roll} • {item.department}
                       </span>
                     </div>
 
                     <span style={{
-                      background: `${badgeColor}20`,
-                      border: `1px solid ${badgeColor}60`,
+                      background: badgeBg,
+                      border: `1px solid ${badgeBorder}`,
                       color: badgeColor,
                       fontSize: '0.82rem',
                       fontWeight: 800,
@@ -509,7 +499,8 @@ export default function InterventionsManagementView({
                   {/* Tier & Status Badges */}
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                     <span style={{
-                      background: 'rgba(255, 255, 255, 0.06)',
+                      background: badgeBg,
+                      border: `1px solid ${badgeBorder}`,
                       fontSize: '0.75rem',
                       padding: '3px 8px',
                       borderRadius: '6px',
@@ -520,12 +511,13 @@ export default function InterventionsManagementView({
                     </span>
 
                     <span style={{
-                      background: item.status === 'RESOLVED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                      border: item.status === 'RESOLVED' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      background: item.status === 'RESOLVED' ? '#ecfdf5' : '#f1f5f9',
+                      border: item.status === 'RESOLVED' ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
                       fontSize: '0.75rem',
                       padding: '3px 8px',
                       borderRadius: '6px',
-                      color: item.status === 'RESOLVED' ? '#34d399' : '#cbd5e1'
+                      color: item.status === 'RESOLVED' ? '#059669' : '#475569',
+                      fontWeight: 600
                     }}>
                       Status: {item.status.replace(/_/g, ' ')}
                     </span>
@@ -534,17 +526,18 @@ export default function InterventionsManagementView({
                   {/* Counselor & Meeting Details */}
                   {item.counselor_name && (
                     <div style={{
-                      background: 'rgba(30, 41, 59, 0.5)',
+                      background: '#f8fafc',
+                      border: '1px solid var(--border-subtle)',
                       padding: '10px 12px',
                       borderRadius: '8px',
                       marginBottom: '14px',
                       fontSize: '0.8rem'
                     }}>
-                      <div style={{ color: '#00f2fe', fontWeight: 600, marginBottom: '2px' }}>
+                      <div style={{ color: 'var(--color-primary)', fontWeight: 600, marginBottom: '2px' }}>
                         Counselor: {item.counselor_name}
                       </div>
                       {item.meeting_date && (
-                        <div style={{ color: '#cbd5e1' }}>
+                        <div style={{ color: '#475569' }}>
                           📅 Meeting: {item.meeting_date}
                         </div>
                       )}
@@ -552,7 +545,7 @@ export default function InterventionsManagementView({
                   )}
 
                   {item.notes && (
-                    <p style={{ margin: '0 0 14px 0', fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                    <p style={{ margin: '0 0 14px 0', fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic' }}>
                       "{item.notes}"
                     </p>
                   )}
@@ -561,7 +554,7 @@ export default function InterventionsManagementView({
                 {/* Card Action Buttons */}
                 {item.status !== 'RESOLVED' && (
                   <div style={{
-                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderTop: '1px solid var(--border-subtle)',
                     paddingTop: '14px',
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr 1fr',
@@ -572,13 +565,13 @@ export default function InterventionsManagementView({
                       disabled={isNotifying}
                       onClick={() => handleNotifyParent(item)}
                       style={{
-                        background: 'rgba(249, 115, 22, 0.15)',
-                        border: '1px solid rgba(249, 115, 22, 0.4)',
-                        color: '#fb923c',
+                        background: '#ffffff',
+                        border: '1px solid var(--border-subtle)',
+                        color: '#ea580c',
                         padding: '8px 4px',
                         borderRadius: '8px',
                         fontSize: '0.75rem',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         cursor: isNotifying ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -599,13 +592,13 @@ export default function InterventionsManagementView({
                         setMeetingNotes('');
                       }}
                       style={{
-                        background: 'rgba(0, 242, 254, 0.15)',
-                        border: '1px solid rgba(0, 242, 254, 0.4)',
-                        color: '#00f2fe',
+                        background: '#ffffff',
+                        border: '1px solid var(--border-subtle)',
+                        color: 'var(--color-primary)',
                         padding: '8px 4px',
                         borderRadius: '8px',
                         fontSize: '0.75rem',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -625,13 +618,13 @@ export default function InterventionsManagementView({
                         setResolveNotes('');
                       }}
                       style={{
-                        background: 'rgba(16, 185, 129, 0.15)',
-                        border: '1px solid rgba(16, 185, 129, 0.4)',
-                        color: '#34d399',
+                        background: '#ffffff',
+                        border: '1px solid var(--border-subtle)',
+                        color: '#059669',
                         padding: '8px 4px',
                         borderRadius: '8px',
                         fontSize: '0.75rem',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -655,33 +648,34 @@ export default function InterventionsManagementView({
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(6px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999, padding: '20px'
         }}>
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.95)',
-            border: '1px solid rgba(0, 242, 254, 0.4)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '16px',
             width: '100%', maxWidth: '480px',
-            padding: '28px', position: 'relative'
+            padding: '28px', position: 'relative',
+            boxShadow: 'var(--shadow-modal)'
           }}>
             <button
               onClick={() => setMeetingModalItem(null)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
             >
               <X size={20} />
             </button>
 
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#fff' }}>Schedule Counseling Meeting</h3>
-            <p style={{ margin: '0 0 16px 0', color: '#94a3b8', fontSize: '0.85rem' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Schedule Counseling Meeting</h3>
+            <p style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '0.85rem' }}>
               Student: <strong>{meetingModalItem.student_name}</strong> ({meetingModalItem.student_roll}) • {meetingModalItem.attendance_percentage}%
             </p>
 
             <form onSubmit={handleScheduleMeeting}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                   Meeting Date & Time *
                 </label>
                 <input
@@ -690,15 +684,15 @@ export default function InterventionsManagementView({
                   value={meetingDate}
                   onChange={e => setMeetingDate(e.target.value)}
                   style={{
-                    width: '100%', background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff',
+                    width: '100%', background: '#ffffff',
+                    border: '1px solid var(--border-strong)', color: '#0f172a',
                     padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem'
                   }}
                 />
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                   Counselor Notes / Agenda
                 </label>
                 <textarea
@@ -707,8 +701,8 @@ export default function InterventionsManagementView({
                   value={meetingNotes}
                   onChange={e => setMeetingNotes(e.target.value)}
                   style={{
-                    width: '100%', background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff',
+                    width: '100%', background: '#ffffff',
+                    border: '1px solid var(--border-strong)', color: '#0f172a',
                     padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem', resize: 'none'
                   }}
                 />
@@ -718,14 +712,16 @@ export default function InterventionsManagementView({
                 <button
                   type="button"
                   onClick={() => setMeetingModalItem(null)}
-                  style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#cbd5e1', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                  className="btn-secondary"
+                  style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingMeeting}
-                  style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #0099ff 100%)', border: 'none', color: '#000', padding: '8px 18px', borderRadius: '8px', fontWeight: 700, cursor: isSubmittingMeeting ? 'not-allowed' : 'pointer' }}
+                  className="btn-primary"
+                  style={{ padding: '8px 18px', borderRadius: '8px', fontWeight: 700, cursor: isSubmittingMeeting ? 'not-allowed' : 'pointer' }}
                 >
                   Confirm Meeting
                 </button>
@@ -740,33 +736,34 @@ export default function InterventionsManagementView({
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(6px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999, padding: '20px'
         }}>
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.95)',
-            border: '1px solid rgba(16, 185, 129, 0.4)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '16px',
             width: '100%', maxWidth: '480px',
-            padding: '28px', position: 'relative'
+            padding: '28px', position: 'relative',
+            boxShadow: 'var(--shadow-modal)'
           }}>
             <button
               onClick={() => setResolveModalItem(null)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
             >
               <X size={20} />
             </button>
 
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#fff' }}>Resolve Intervention</h3>
-            <p style={{ margin: '0 0 16px 0', color: '#94a3b8', fontSize: '0.85rem' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Resolve Intervention</h3>
+            <p style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '0.85rem' }}>
               Student: <strong>{resolveModalItem.student_name}</strong> ({resolveModalItem.student_roll})
             </p>
 
             <form onSubmit={handleResolve}>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                   Resolution Summary *
                 </label>
                 <textarea
@@ -776,8 +773,8 @@ export default function InterventionsManagementView({
                   value={resolveNotes}
                   onChange={e => setResolveNotes(e.target.value)}
                   style={{
-                    width: '100%', background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff',
+                    width: '100%', background: '#ffffff',
+                    border: '1px solid var(--border-strong)', color: '#0f172a',
                     padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem', resize: 'none'
                   }}
                 />
@@ -787,14 +784,16 @@ export default function InterventionsManagementView({
                 <button
                   type="button"
                   onClick={() => setResolveModalItem(null)}
-                  style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#cbd5e1', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                  className="btn-secondary"
+                  style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingResolve}
-                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', color: '#fff', padding: '8px 18px', borderRadius: '8px', fontWeight: 700, cursor: isSubmittingResolve ? 'not-allowed' : 'pointer' }}
+                  className="btn-primary"
+                  style={{ padding: '8px 18px', borderRadius: '8px', fontWeight: 700, cursor: isSubmittingResolve ? 'not-allowed' : 'pointer' }}
                 >
                   Confirm Resolution
                 </button>

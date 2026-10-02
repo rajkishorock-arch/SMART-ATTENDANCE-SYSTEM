@@ -152,106 +152,89 @@ export default function LmsSyncIntegrationView({
 
   return (
     <div className="lms-container" style={{
-      color: '#f8fafc',
+      color: 'var(--color-text-main)',
       padding: '24px',
       maxWidth: '1280px',
       margin: '0 auto',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Banner Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.75) 100%)',
-        border: '1px solid rgba(139, 92, 246, 0.3)',
+      {/* Header */}
+      <div className="surface-card" style={{
+        background: '#ffffff',
+        border: '1px solid var(--border-subtle)',
         borderRadius: '16px',
-        padding: '24px 28px',
+        padding: '20px 24px',
         marginBottom: '24px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
-        backdropFilter: 'blur(12px)',
-        position: 'relative'
+        boxShadow: 'var(--shadow-card)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '16px'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{
-                background: 'rgba(139, 92, 246, 0.15)',
-                border: '1px solid rgba(139, 92, 246, 0.4)',
-                borderRadius: '10px',
-                padding: '8px',
-                color: '#a78bfa',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <Globe size={22} />
-              </div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>
-                SIS & Enterprise LMS Sync Engine
-              </h2>
-              <span style={{
-                background: 'rgba(139, 92, 246, 0.15)',
-                border: '1px solid rgba(139, 92, 246, 0.4)',
-                color: '#a78bfa',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '16px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase'
-              }}>
-                Phase 10 Production
-              </span>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+            <div style={{
+              background: '#f5f3ff',
+              border: '1px solid #ddd6fe',
+              borderRadius: '10px',
+              padding: '8px',
+              color: '#7c3aed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Globe size={22} />
             </div>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
-              Bidirectional integration with Canvas, Moodle, Blackboard, and custom ERP systems. 
-              Automatically push daily verified attendance registers and ingest student roster updates.
-            </p>
+            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#0f172a' }}>
+              SIS & Enterprise LMS Sync Engine
+            </h2>
           </div>
+          <p style={{ margin: 0, color: '#475569', fontSize: '0.85rem', maxWidth: '750px' }}>
+            Bidirectional integration with Canvas, Moodle, Blackboard, and custom ERP systems. Automatically push daily verified attendance registers and ingest student roster updates.
+          </p>
+        </div>
 
-          {/* Quick Actions */}
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => { playCyberSound('click'); handleSyncRoster(); }}
-              disabled={isSyncingRoster}
-              style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#cbd5e1',
-                padding: '10px 16px',
-                borderRadius: '10px',
-                cursor: isSyncingRoster ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px',
-                fontSize: '0.88rem', fontWeight: 600
-              }}
-            >
-              <DownloadCloud size={16} className={isSyncingRoster ? 'animate-spin' : ''} />
-              {isSyncingRoster ? 'Importing...' : 'Sync Roster'}
-            </button>
+        {/* Quick Actions */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => { playCyberSound('click'); handleSyncRoster(); }}
+            disabled={isSyncingRoster}
+            className="btn-secondary"
+            style={{
+              padding: '9px 16px',
+              borderRadius: '10px',
+              cursor: isSyncingRoster ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: '8px',
+              fontSize: '0.85rem', fontWeight: 600
+            }}
+          >
+            <DownloadCloud size={16} className={isSyncingRoster ? 'animate-spin' : ''} />
+            {isSyncingRoster ? 'Importing...' : 'Sync Roster'}
+          </button>
 
-            <button
-              onClick={() => { playCyberSound('click'); handleSyncAttendance(); }}
-              disabled={isSyncingAttendance}
-              style={{
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                border: 'none', color: '#fff',
-                padding: '10px 18px',
-                borderRadius: '10px',
-                cursor: isSyncingAttendance ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px',
-                fontSize: '0.88rem', fontWeight: 700,
-                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)'
-              }}
-            >
-              <UploadCloud size={16} className={isSyncingAttendance ? 'animate-spin' : ''} />
-              {isSyncingAttendance ? 'Syncing...' : 'Push Attendance Now'}
-            </button>
-          </div>
+          <button
+            onClick={() => { playCyberSound('click'); handleSyncAttendance(); }}
+            disabled={isSyncingAttendance}
+            className="btn-primary"
+            style={{
+              padding: '9px 18px',
+              borderRadius: '10px',
+              cursor: isSyncingAttendance ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: '8px',
+              fontSize: '0.85rem', fontWeight: 600
+            }}
+          >
+            <UploadCloud size={16} className={isSyncingAttendance ? 'animate-spin' : ''} />
+            {isSyncingAttendance ? 'Syncing...' : 'Push Attendance Now'}
+          </button>
         </div>
       </div>
 
       {/* Alerts */}
       {successMsg && (
         <div style={{
-          background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)',
-          color: '#34d399', padding: '12px 18px', borderRadius: '12px', marginBottom: '20px',
-          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem'
+          background: '#ecfdf5', border: '1px solid #a7f3d0',
+          color: '#059669', padding: '12px 18px', borderRadius: '12px', marginBottom: '20px',
+          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', fontWeight: 600
         }}>
           <CheckCircle2 size={18} />
           <span>{successMsg}</span>
@@ -260,9 +243,9 @@ export default function LmsSyncIntegrationView({
 
       {errorMsg && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)',
-          color: '#f87171', padding: '12px 18px', borderRadius: '12px', marginBottom: '20px',
-          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem'
+          background: '#fef2f2', border: '1px solid #fecaca',
+          color: '#dc2626', padding: '12px 18px', borderRadius: '12px', marginBottom: '20px',
+          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', fontWeight: 600
         }}>
           <AlertTriangle size={18} />
           <span>{errorMsg}</span>
@@ -271,22 +254,22 @@ export default function LmsSyncIntegrationView({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
         {/* Left: Configuration Form */}
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+        <div className="surface-card" style={{
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '16px',
           padding: '24px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+          boxShadow: 'var(--shadow-card)'
         }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.2rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Database size={18} color="#a78bfa" />
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Database size={18} color="var(--color-primary)" />
             LMS Provider Connection
           </h3>
 
           <form onSubmit={handleSaveConfig}>
             {/* Provider Selection */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                 LMS / SIS Platform
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -296,9 +279,9 @@ export default function LmsSyncIntegrationView({
                     type="button"
                     onClick={() => setProvider(p)}
                     style={{
-                      background: provider === p ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                      border: provider === p ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
-                      color: provider === p ? '#c4b5fd' : '#94a3b8',
+                      background: provider === p ? 'var(--color-primary-light)' : '#ffffff',
+                      border: provider === p ? '1px solid rgba(30, 64, 175, 0.3)' : '1px solid var(--border-subtle)',
+                      color: provider === p ? 'var(--color-primary)' : '#475569',
                       padding: '10px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700,
                       cursor: 'pointer'
                     }}
@@ -311,7 +294,7 @@ export default function LmsSyncIntegrationView({
 
             {/* API Endpoint URL */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                 REST API Base URL *
               </label>
               <input
@@ -321,8 +304,8 @@ export default function LmsSyncIntegrationView({
                 onChange={e => setApiEndpoint(e.target.value)}
                 placeholder="https://canvas.institution.edu/api/v1"
                 style={{
-                  width: '100%', background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff',
+                  width: '100%', background: '#ffffff',
+                  border: '1px solid var(--border-strong)', color: '#0f172a',
                   padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem'
                 }}
               />
@@ -330,7 +313,7 @@ export default function LmsSyncIntegrationView({
 
             {/* API Token */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                 API Bearer Token / Secret Key
               </label>
               <input
@@ -339,8 +322,8 @@ export default function LmsSyncIntegrationView({
                 onChange={e => setApiToken(e.target.value)}
                 placeholder="••••••••••••••••••••••••"
                 style={{
-                  width: '100%', background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff',
+                  width: '100%', background: '#ffffff',
+                  border: '1px solid var(--border-strong)', color: '#0f172a',
                   padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem'
                 }}
               />
@@ -348,7 +331,7 @@ export default function LmsSyncIntegrationView({
 
             {/* Sync Cron */}
             <div style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                 Auto-Sync Schedule (Cron Expression)
               </label>
               <input
@@ -357,8 +340,8 @@ export default function LmsSyncIntegrationView({
                 onChange={e => setSyncCron(e.target.value)}
                 placeholder="0 23 * * *"
                 style={{
-                  width: '100%', background: 'rgba(30, 41, 59, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff',
+                  width: '100%', background: '#ffffff',
+                  border: '1px solid var(--border-strong)', color: '#0f172a',
                   padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem',
                   fontFamily: 'monospace'
                 }}
@@ -371,28 +354,28 @@ export default function LmsSyncIntegrationView({
             {/* Toggle */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'rgba(255, 255, 255, 0.04)', padding: '12px 16px',
+              background: '#f8fafc', border: '1px solid var(--border-subtle)', padding: '12px 16px',
               borderRadius: '10px', marginBottom: '20px'
             }}>
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>Automated Sync Worker</div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Run cron jobs in the background</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>Automated Sync Worker</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Run cron jobs in the background</div>
               </div>
               <input
                 type="checkbox"
                 checked={autoSyncEnabled}
                 onChange={e => setAutoSyncEnabled(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: '#8b5cf6', cursor: 'pointer' }}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)', cursor: 'pointer' }}
               />
             </div>
 
             <button
               type="submit"
               disabled={isSaving}
+              className="btn-primary"
               style={{
                 width: '100%',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                border: 'none', color: '#fff', padding: '11px', borderRadius: '10px',
+                padding: '11px', borderRadius: '10px',
                 fontWeight: 700, fontSize: '0.9rem', cursor: isSaving ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
               }}
@@ -404,21 +387,21 @@ export default function LmsSyncIntegrationView({
         </div>
 
         {/* Right: Sync Job History */}
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+        <div className="surface-card" style={{
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '16px',
           padding: '24px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={18} color="#a78bfa" />
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Clock size={18} color="var(--color-primary)" />
               Sync Telemetry History
             </h3>
             <button
               onClick={() => { playCyberSound('click'); fetchData(); }}
-              style={{ background: 'transparent', border: 'none', color: '#a78bfa', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
               Refresh
@@ -427,13 +410,13 @@ export default function LmsSyncIntegrationView({
 
           {logs.length === 0 ? (
             <div style={{
-              background: 'rgba(30, 41, 59, 0.4)',
-              border: '1px dashed rgba(255, 255, 255, 0.15)',
+              background: '#f8fafc',
+              border: '1px dashed var(--border-strong)',
               borderRadius: '12px', padding: '36px 16px', textAlign: 'center', color: '#64748b'
             }}>
-              <CheckCircle2 size={32} color="#a78bfa" style={{ opacity: 0.6, marginBottom: '8px' }} />
-              <div style={{ fontSize: '0.9rem', color: '#94a3b8' }}>No sync cycles recorded yet</div>
-              <p style={{ margin: 0, fontSize: '0.78rem' }}>
+              <CheckCircle2 size={32} color="var(--color-primary)" style={{ opacity: 0.6, marginBottom: '8px' }} />
+              <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 600 }}>No sync cycles recorded yet</div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569' }}>
                 Click "Push Attendance Now" to trigger your first synchronization cycle.
               </p>
             </div>
@@ -443,8 +426,8 @@ export default function LmsSyncIntegrationView({
                 <div
                   key={log.id}
                   style={{
-                    background: 'rgba(30, 41, 59, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: '#f8fafc',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '10px',
                     padding: '12px 16px',
                     display: 'flex',
@@ -453,20 +436,20 @@ export default function LmsSyncIntegrationView({
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {log.job_type === 'OUTBOUND_ATTENDANCE' ? <UploadCloud size={14} color="#00f2fe" /> : <DownloadCloud size={14} color="#a78bfa" />}
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {log.job_type === 'OUTBOUND_ATTENDANCE' ? <UploadCloud size={14} color="#0284c7" /> : <DownloadCloud size={14} color="#7c3aed" />}
                       {log.job_type.replace('_', ' ')}
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                       {log.started_at ? new Date(log.started_at).toLocaleString() : 'Recent'}
                     </span>
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
                     <span style={{
-                      background: log.status === 'SUCCESS' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                      border: log.status === 'SUCCESS' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
-                      color: log.status === 'SUCCESS' ? '#34d399' : '#f87171',
+                      background: log.status === 'SUCCESS' ? '#ecfdf5' : '#fef2f2',
+                      border: log.status === 'SUCCESS' ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                      color: log.status === 'SUCCESS' ? '#059669' : '#dc2626',
                       fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px'
                     }}>
                       {log.status}

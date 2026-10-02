@@ -153,7 +153,7 @@ export default function StaffPayrollView({
 
   return (
     <div className="staff-payroll-container" style={{
-      color: '#f8fafc',
+      color: 'var(--color-text-main)',
       padding: '24px',
       maxWidth: '1280px',
       margin: '0 auto',
@@ -161,35 +161,34 @@ export default function StaffPayrollView({
     }}>
       {/* Banner Header */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.75) 100%)',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        background: '#ffffff',
+        border: '1px solid var(--border-subtle)',
         borderRadius: '16px',
         padding: '24px 28px',
         marginBottom: '24px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
-        backdropFilter: 'blur(12px)',
+        boxShadow: 'var(--shadow-card)',
         position: 'relative'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <div style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
+                background: 'rgba(5, 150, 105, 0.08)',
+                border: '1px solid #a7f3d0',
                 borderRadius: '10px',
                 padding: '8px',
-                color: '#34d399',
+                color: '#059669',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
                 <DollarSign size={22} />
               </div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>
-                Staff Attendance & Institutional Payroll Engine
+              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: '#0f172a' }}>
+                Staff Attendance & Payroll
               </h2>
               <span style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                color: '#34d399',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                color: '#059669',
                 fontSize: '0.72rem',
                 fontWeight: 700,
                 padding: '3px 10px',
@@ -197,12 +196,12 @@ export default function StaffPayrollView({
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase'
               }}>
-                Phase 11 Production
+                FACULTY & STAFF
               </span>
             </div>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
-              Biometric check-in / check-out telemetry, overtime auditing, half-day deductions, 
-              and automated monthly faculty salary disbursement calculations.
+            <p style={{ margin: 0, color: '#475569', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
+              Biometric check-in and check-out logs, overtime auditing, leave deductions, 
+              and monthly salary disbursement calculations.
             </p>
           </div>
 
@@ -346,35 +345,35 @@ export default function StaffPayrollView({
         <div>
           {payrollRecords.length === 0 ? (
             <div style={{
-              background: 'rgba(15, 23, 42, 0.4)', border: '1px dashed rgba(255, 255, 255, 0.15)',
+              background: '#ffffff', border: '1px dashed var(--border-subtle)',
               borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: '#64748b'
             }}>
-              <DollarSign size={40} color="#34d399" style={{ opacity: 0.6, marginBottom: '12px' }} />
-              <h4 style={{ margin: '0 0 6px 0', color: '#94a3b8', fontSize: '1.1rem' }}>
+              <DollarSign size={40} color="#059669" style={{ opacity: 0.6, marginBottom: '12px' }} />
+              <h4 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '1.1rem' }}>
                 No Payroll Computed for {selectedMonth}
               </h4>
-              <p style={{ margin: 0, fontSize: '0.88rem' }}>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
                 Click "Generate Payroll" above to automatically calculate attendance-based payouts.
               </p>
             </div>
           ) : (
             <div style={{
-              background: 'rgba(15, 23, 42, 0.75)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: '#ffffff',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '16px',
               overflowX: 'auto',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+              boxShadow: 'var(--shadow-card)'
             }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem', minWidth: '600px' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(30, 41, 59, 0.8)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                    <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600, position: 'sticky', left: 0, zIndex: 10, background: '#1e293b' }}>Staff Member</th>
-                    <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Attendance Breakdown</th>
-                    <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Gross Base</th>
-                    <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Deductions</th>
-                    <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Net Payout</th>
-                    <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>Status</th>
-                    {isAdmin && <th style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600, textAlign: 'right' }}>Actions</th>}
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-subtle)' }}>
+                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600, position: 'sticky', left: 0, zIndex: 10, background: '#f8fafc' }}>Staff Member</th>
+                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Attendance Breakdown</th>
+                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Gross Base</th>
+                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Deductions</th>
+                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Net Payout</th>
+                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Status</th>
+                    {isAdmin && <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -441,14 +440,14 @@ export default function StaffPayrollView({
         <div>
           {attendanceLogs.length === 0 ? (
             <div style={{
-              background: 'rgba(15, 23, 42, 0.4)', border: '1px dashed rgba(255, 255, 255, 0.15)',
+              background: '#ffffff', border: '1px dashed var(--border-subtle)',
               borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: '#64748b'
             }}>
-              <Clock size={40} color="#00f2fe" style={{ opacity: 0.6, marginBottom: '12px' }} />
-              <h4 style={{ margin: '0 0 6px 0', color: '#94a3b8', fontSize: '1.1rem' }}>
+              <Clock size={40} color="#1e40af" style={{ opacity: 0.6, marginBottom: '12px' }} />
+              <h4 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '1.1rem' }}>
                 No Staff Punches Found
               </h4>
-              <p style={{ margin: 0, fontSize: '0.88rem' }}>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
                 Staff members can record daily biometric check-in using the "Punch In" button.
               </p>
             </div>
@@ -460,16 +459,16 @@ export default function StaffPayrollView({
                 <div
                   key={log.id}
                   style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: '#ffffff',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '14px', padding: '18px',
-                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+                    boxShadow: 'var(--shadow-card)'
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                     <div>
-                      <h4 style={{ margin: '0 0 4px 0', color: '#fff', fontSize: '1.05rem' }}>{log.staff_name}</h4>
-                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>📅 {log.date}</span>
+                      <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1.05rem' }}>{log.staff_name}</h4>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>📅 {log.date}</span>
                     </div>
 
                     <span style={{
@@ -515,24 +514,25 @@ export default function StaffPayrollView({
           zIndex: 9999, padding: '20px'
         }}>
           <div style={{
-            background: 'rgba(15, 23, 42, 0.96)', border: '1px solid rgba(16, 185, 129, 0.4)',
-            borderRadius: '16px', width: '100%', maxWidth: '440px', padding: '28px', position: 'relative'
+            background: '#ffffff', border: '1px solid var(--border-subtle)',
+            borderRadius: '16px', width: '100%', maxWidth: '440px', padding: '28px', position: 'relative',
+            boxShadow: 'var(--shadow-modal)'
           }}>
             <button
               onClick={() => setShowCalcModal(false)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
             >
               <X size={20} />
             </button>
 
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#fff' }}>Generate Monthly Payroll</h3>
-            <p style={{ margin: '0 0 18px 0', color: '#94a3b8', fontSize: '0.85rem' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#0f172a' }}>Generate Monthly Payroll</h3>
+            <p style={{ margin: '0 0 18px 0', color: '#64748b', fontSize: '0.85rem' }}>
               Target Cycle: <strong>{selectedMonth}</strong>
             </p>
 
             <form onSubmit={handleCalculatePayroll}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                   Institutional Working Days *
                 </label>
                 <input
@@ -543,15 +543,15 @@ export default function StaffPayrollView({
                   value={workingDays}
                   onChange={e => setWorkingDays(e.target.value)}
                   style={{
-                    width: '100%', background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff',
+                    width: '100%', background: '#ffffff',
+                    border: '1px solid var(--border-subtle)', color: '#0f172a',
                     padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem'
                   }}
                 />
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
                   Default Base Monthly Salary (₹) *
                 </label>
                 <input
@@ -561,8 +561,8 @@ export default function StaffPayrollView({
                   value={baseSalary}
                   onChange={e => setBaseSalary(e.target.value)}
                   style={{
-                    width: '100%', background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)', color: '#34d399',
+                    width: '100%', background: '#ffffff',
+                    border: '1px solid var(--border-subtle)', color: '#059669',
                     padding: '10px 12px', borderRadius: '8px', fontSize: '1rem', fontWeight: 700
                   }}
                 />

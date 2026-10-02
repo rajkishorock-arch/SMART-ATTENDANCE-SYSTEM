@@ -110,69 +110,69 @@ export default function StudentProfileView({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {userRole === 'student' ? (
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Department</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.dep}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Department</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.dep}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Course</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.course}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Course</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.course}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Academic Year</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.year}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Academic Year</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.year}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Semester</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.semester}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Semester</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.semester}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Email Address</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.email}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Email Address</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.email}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Phone Number</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.phone}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Phone Number</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.phone}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>DOB</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.dob}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>DOB</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.dob}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Home Address</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.85rem', maxWidth: '180px', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={currentUser?.details?.address}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Home Address</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.85rem', maxWidth: '180px', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#0f172a' }} title={currentUser?.details?.address}>
                         {currentUser?.details?.address}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Mentor / Teacher</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.details?.teacher}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Mentor / Teacher</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.teacher}</span>
                     </div>
                   </>
                 ) : userRole === 'teacher' ? (
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Email Address</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.email}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Email Address</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.email}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Assigned Subject</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.subject_name || 'N/A'}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Assigned Subject</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.subject_name || 'N/A'}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Subject Code</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.subject_code || 'N/A'}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Subject Code</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.subject_code || 'N/A'}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Department</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.subject_department || 'N/A'}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Department</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.subject_department || 'N/A'}</span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '8px' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Email Address</span>
-                      <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{currentUser?.email}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Email Address</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.email}</span>
                     </div>
                   </>
                 )}
@@ -448,20 +448,20 @@ export default function StudentProfileView({
 
               {/* Student Personal Preferences & Privacy Consent Panel */}
               {userRole === 'student' && (
-                <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0, color: '#0f172a' }}>
                       <Sliders size={20} style={{ color: 'var(--color-primary)' }} /> Personal Preferences & Privacy
                     </h3>
-                    <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
                       Customize your active interface theme, interactive audio, and biometric consent.
                     </p>
                   </div>
 
-                  {/* Themes and CRT Toggle */}
+                  {/* Themes and Display Grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem' }}>Interface Theme</label>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a' }}>Interface Theme</label>
                       <select 
                         value={activeTheme} 
                         onChange={(e) => {
@@ -471,23 +471,24 @@ export default function StudentProfileView({
                         className="form-input"
                         style={{ 
                           width: '100%', 
-                          background: 'var(--bg-secondary)', 
-                          border: '1px solid var(--border-color)', 
-                          color: 'var(--color-text-main)',
+                          background: '#f8fafc', 
+                          border: '1px solid #cbd5e1', 
+                          color: '#0f172a',
                           fontSize: '0.85rem'
                         }}
                       >
-                        <option value="cyberpunk">Cyberpunk Neon</option>
-                        <option value="matrix">Matrix Green</option>
-                        <option value="obsidian">Obsidian Red</option>
+                        <option value="corporate">Light Enterprise Corporate</option>
+                        <option value="cyberpunk">High Contrast Slate</option>
+                        <option value="matrix">Minimalist Forest Emerald</option>
+                        <option value="obsidian">Modern Charcoal</option>
                         <option value="violet">Deep Space Violet</option>
                       </select>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '10px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
                       <div>
-                        <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#f8fafc' }}>CRT Terminal lines</span>
-                        <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Enable terminal scanlines</span>
+                        <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#0f172a' }}>High Focus Grid</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Alignment guides for scanners</span>
                       </div>
                       <div 
                         onClick={() => {
@@ -497,8 +498,8 @@ export default function StudentProfileView({
                         style={{
                           width: '42px',
                           height: '22px',
-                          backgroundColor: crtOverlayEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
-                          border: `1px solid ${crtOverlayEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
+                          backgroundColor: crtOverlayEnabled ? '#eff6ff' : '#e2e8f0',
+                          border: `1px solid ${crtOverlayEnabled ? '#3b82f6' : '#cbd5e1'}`,
                           borderRadius: '50px',
                           padding: '2px',
                           cursor: 'pointer',
@@ -511,7 +512,7 @@ export default function StudentProfileView({
                           width: '16px',
                           height: '16px',
                           borderRadius: '50%',
-                          backgroundColor: crtOverlayEnabled ? 'var(--color-primary)' : '#94a3b8',
+                          backgroundColor: crtOverlayEnabled ? '#1d4ed8' : '#64748b',
                           transform: crtOverlayEnabled ? 'translateX(20px)' : 'translateX(0px)',
                           transition: 'var(--transition)'
                         }} />
@@ -520,11 +521,11 @@ export default function StudentProfileView({
                   </div>
 
                   {/* Audio Controls */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#f8fafc' }}>Sound Cues</span>
-                        <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Enable cyber sounds</span>
+                        <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#0f172a' }}>Sound Cues</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Enable interactive audio</span>
                       </div>
                       <div 
                         onClick={() => {
@@ -538,8 +539,8 @@ export default function StudentProfileView({
                         style={{
                           width: '42px',
                           height: '22px',
-                          backgroundColor: soundEnabled ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255,255,255,0.05)',
-                          border: `1px solid ${soundEnabled ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`,
+                          backgroundColor: soundEnabled ? '#eff6ff' : '#e2e8f0',
+                          border: `1px solid ${soundEnabled ? '#3b82f6' : '#cbd5e1'}`,
                           borderRadius: '50px',
                           padding: '2px',
                           cursor: 'pointer',
@@ -552,7 +553,7 @@ export default function StudentProfileView({
                           width: '16px',
                           height: '16px',
                           borderRadius: '50%',
-                          backgroundColor: soundEnabled ? 'var(--color-primary)' : '#94a3b8',
+                          backgroundColor: soundEnabled ? '#1d4ed8' : '#64748b',
                           transform: soundEnabled ? 'translateX(20px)' : 'translateX(0px)',
                           transition: 'var(--transition)'
                         }} />
@@ -560,8 +561,8 @@ export default function StudentProfileView({
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />} Synth Volume: {Math.round(audioVolume * 100)}%
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />} Master Volume: {Math.round(audioVolume * 100)}%
                       </span>
                       <input 
                         type="range"
@@ -579,7 +580,7 @@ export default function StudentProfileView({
                         onTouchEnd={() => { if (soundEnabled) playCyberSound('click'); }}
                         style={{ 
                           width: '100%', 
-                          accentColor: 'var(--color-primary)', 
+                          accentColor: '#0284c7', 
                           height: '4px', 
                           borderRadius: '2px', 
                           cursor: soundEnabled ? 'pointer' : 'not-allowed',
@@ -590,15 +591,15 @@ export default function StudentProfileView({
                   </div>
 
                   {/* Biometric Privacy and Consent Revoke */}
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#f8fafc', textAlign: 'left' }}>Biometric Data Privacy (DPDP Act Compliance)</span>
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <span style={{ fontWeight: 600, display: 'block', fontSize: '0.8rem', color: '#0f172a', textAlign: 'left' }}>Biometric Data Privacy (DPDP Act Compliance)</span>
                     
                     {currentUser?.details?.photo === 'yes' ? (
-                      <div style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: '8px', padding: '12px', fontSize: '0.78rem', color: '#10b981', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                      <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '12px', fontSize: '0.78rem', color: '#065f46', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                           <CheckCircle2 size={14} /> Active Biometric Consent
                         </div>
-                        <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.75rem', lineHeight: '1.4' }}>
+                        <p style={{ margin: 0, color: '#334155', fontSize: '0.75rem', lineHeight: '1.4' }}>
                           Your 128D facial representation vector is securely stored. You have consented to biometric attendance logs.
                         </p>
                         <button

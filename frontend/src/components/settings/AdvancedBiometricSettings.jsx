@@ -1,3 +1,6 @@
+import React from 'react';
+import { Sliders, Eye, Shield, Cpu, FileText, Download } from 'lucide-react';
+
 export default function AdvancedBiometricSettings({
   biometricConfidenceFilterEnabled,
   setBiometricConfidenceFilterEnabled,
@@ -15,40 +18,43 @@ export default function AdvancedBiometricSettings({
   playCyberSound
 }) {
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '20px',
-      padding: '30px',
-      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
-      color: '#f8fafc',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '24px'
-    }}>
+    <div 
+      className="surface-card"
+      style={{
+        background: '#ffffff',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '16px',
+        padding: '30px',
+        boxShadow: 'var(--shadow-card)',
+        color: 'var(--color-text-main)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px'
+      }}
+    >
       {/* Console Header */}
-      <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, background: 'linear-gradient(90deg, #00f2fe, #4facfe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              🛡️ Extreme Biometric Security & Core Engine Parameters
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+              Face Recognition & Biometric Settings
             </h3>
-            <span style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid #10b981', color: '#34d399', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
-              SYSTEM HARDENED v1.0.16
+            <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#059669', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+              ACTIVE ENGINE
             </span>
           </div>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '6px 0 0' }}>
-            Fine-tune biometric match confidence thresholds, anti-spoofing liveness sensitivity, AI cognitive models, and system telemetry logs.
+          <p style={{ color: '#475569', fontSize: '0.85rem', margin: '4px 0 0' }}>
+            Configure facial recognition match threshold, anti-spoof liveness strictness, and system telemetry logging.
           </p>
         </div>
 
         {/* HUD Status Counters */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ background: 'rgba(0, 242, 254, 0.1)', border: '1px solid rgba(0, 242, 254, 0.3)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.75rem', color: '#00f2fe', fontWeight: 700 }}>
-            ⚡ MESH LOCK: 5ms
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', color: '#1e40af', fontWeight: 700 }}>
+            Similarity Threshold: {Math.round(biometricMatchThreshold * 100)}%
           </div>
-          <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.75rem', color: '#34d399', fontWeight: 700 }}>
-            🛡️ EAR STRICTNESS: {antiSpoofingThreshold.toFixed(2)}
+          <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+            EAR Strictness: {antiSpoofingThreshold.toFixed(2)}
           </div>
         </div>
       </div>
@@ -58,21 +64,20 @@ export default function AdvancedBiometricSettings({
         
         {/* 1. Biometric Match Confidence Filter */}
         <div style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: `1px solid ${biometricConfidenceFilterEnabled ? 'rgba(0, 242, 254, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
-          borderRadius: '16px',
+          background: '#f8fafc',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '14px',
           padding: '20px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          gap: '14px',
-          boxShadow: biometricConfidenceFilterEnabled ? '0 8px 25px rgba(0, 242, 254, 0.15)' : 'none'
+          gap: '14px'
         }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.2rem' }}>🎯</span>
-                <label style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.95rem' }}>Biometric Match Confidence Filter</label>
+                <Sliders size={18} style={{ color: '#1e40af' }} />
+                <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>Match Confidence Filter</label>
               </div>
               
               <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', cursor: 'pointer' }}>
@@ -88,32 +93,31 @@ export default function AdvancedBiometricSettings({
                 />
                 <span style={{
                   position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                  backgroundColor: biometricConfidenceFilterEnabled ? '#00f2fe' : 'rgba(255,255,255,0.1)',
-                  borderRadius: '22px', transition: '.3s',
-                  boxShadow: biometricConfidenceFilterEnabled ? '0 0 12px #00f2fe' : 'none'
+                  backgroundColor: biometricConfidenceFilterEnabled ? '#1e40af' : '#cbd5e1',
+                  borderRadius: '22px', transition: '.3s'
                 }}>
                   <span style={{
                     position: 'absolute', height: '16px', width: '16px',
                     left: biometricConfidenceFilterEnabled ? '24px' : '3px', bottom: '3px',
-                    backgroundColor: '#0f172a', borderRadius: '50%', transition: '.3s'
+                    backgroundColor: '#ffffff', borderRadius: '50%', transition: '.3s'
                   }} />
                 </span>
               </label>
             </div>
 
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+            <p style={{ color: '#475569', fontSize: '0.82rem', margin: 0, lineHeight: 1.4 }}>
               {biometricConfidenceFilterEnabled 
-                ? 'Only matches students whose facial feature embedding similarity meets or exceeds this required confidence percentage.'
-                : '⚡ Filter Disabled: Camera matches faces regardless of confidence score for high-speed multi-tenant check-in.'}
+                ? 'Only marks attendance when face similarity meets or exceeds the required confidence score.'
+                : 'Filter disabled: Matches faces regardless of confidence score for permissive testing.'}
             </p>
           </div>
 
           {biometricConfidenceFilterEnabled ? (
-            <div style={{ background: 'rgba(15, 23, 42, 0.8)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(0, 242, 254, 0.2)' }}>
+            <div style={{ background: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Strictness Level:</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#00f2fe' }}>
-                  {Math.round(biometricMatchThreshold * 100)}% Similarity Required
+                <span style={{ color: '#64748b', fontSize: '0.78rem' }}>Required Similarity:</span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e40af' }}>
+                  {Math.round(biometricMatchThreshold * 100)}%
                 </span>
               </div>
               <input 
@@ -124,26 +128,26 @@ export default function AdvancedBiometricSettings({
                 value={biometricMatchThreshold}
                 disabled={!biometricConfidenceFilterEnabled || (userRole !== 'admin' && userRole !== 'teacher')}
                 onChange={(e) => setBiometricMatchThreshold(parseFloat(e.target.value))}
-                style={{ width: '100%', accentColor: '#00f2fe', cursor: 'pointer' }}
+                style={{ width: '100%', accentColor: '#1e40af', cursor: 'pointer' }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '0.72rem', marginTop: '6px' }}>
                 <span>80% (Permissive)</span>
                 <span>90% (Recommended)</span>
-                <span>99% (Strict Bank-Grade)</span>
+                <span>99% (Strict)</span>
               </div>
             </div>
           ) : (
-            <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', color: '#fbbf24', padding: '10px 14px', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 600 }}>
-              ⚠️ Warning: Confidence Filter disabled. Unrecognized faces may be matched with nearest candidate.
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', padding: '10px 14px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600 }}>
+              ⚠️ Confidence filter disabled. Closest candidate will be matched.
             </div>
           )}
         </div>
 
-        {/* 2. Anti-Spoofing Blink EAR Strictness */}
+        {/* 2. Anti-Spoofing Blink Strictness */}
         <div style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(16, 185, 129, 0.3)',
-          borderRadius: '16px',
+          background: '#f8fafc',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '14px',
           padding: '20px',
           display: 'flex',
           flexDirection: 'column',
@@ -152,19 +156,19 @@ export default function AdvancedBiometricSettings({
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>👁️</span>
-              <label style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.95rem' }}>Anti-Spoofing Blink EAR Strictness</label>
+              <Eye size={18} style={{ color: '#059669' }} />
+              <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>Blink Liveness Strictness</label>
             </div>
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
-              Measures physical eye blink aspect ratio (EAR). Higher value requires deliberate physical eye closure to defeat 2D photos, screens, and video spoofs.
+            <p style={{ color: '#475569', fontSize: '0.82rem', margin: 0, lineHeight: 1.4 }}>
+              Measures eye blink aspect ratio (EAR). Requires deliberate eye blink to prevent photo and video playback spoofing.
             </p>
           </div>
 
-          <div style={{ background: 'rgba(15, 23, 42, 0.8)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+          <div style={{ background: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Sensitivity Ratio:</span>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#34d399' }}>
-                {antiSpoofingThreshold.toFixed(2)} EAR Threshold
+              <span style={{ color: '#64748b', fontSize: '0.78rem' }}>Sensitivity Ratio:</span>
+              <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#059669' }}>
+                {antiSpoofingThreshold.toFixed(2)} EAR
               </span>
             </div>
             <input 
@@ -175,7 +179,7 @@ export default function AdvancedBiometricSettings({
               value={antiSpoofingThreshold}
               disabled={userRole !== 'admin' && userRole !== 'teacher'}
               onChange={(e) => setAntiSpoofingThreshold(parseFloat(e.target.value))}
-              style={{ width: '100%', accentColor: '#10b981', cursor: 'pointer' }}
+              style={{ width: '100%', accentColor: '#059669', cursor: 'pointer' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '0.72rem', marginTop: '6px' }}>
               <span>0.15 (Fast Blink)</span>
@@ -187,9 +191,9 @@ export default function AdvancedBiometricSettings({
 
         {/* 3. Liveness Verification Mode Toggle */}
         <div style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: `1px solid ${livenessBypass ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
-          borderRadius: '16px',
+          background: '#f8fafc',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '14px',
           padding: '20px',
           display: 'flex',
           flexDirection: 'column',
@@ -199,8 +203,8 @@ export default function AdvancedBiometricSettings({
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.2rem' }}>🛡️</span>
-                <label style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.95rem' }}>Liveness Verification Mode</label>
+                <Shield size={18} style={{ color: '#7c3aed' }} />
+                <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>Liveness Verification</label>
               </div>
               <button
                 type="button"
@@ -211,48 +215,48 @@ export default function AdvancedBiometricSettings({
                 }}
                 style={{
                   padding: '6px 14px',
-                  background: livenessBypass ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                  border: `1px solid ${livenessBypass ? '#ef4444' : '#10b981'}`,
-                  borderRadius: '10px',
-                  color: livenessBypass ? '#f87171' : '#34d399',
-                  fontWeight: 800,
+                  background: livenessBypass ? '#fef2f2' : '#ecfdf5',
+                  border: `1px solid ${livenessBypass ? '#fecaca' : '#a7f3d0'}`,
+                  borderRadius: '8px',
+                  color: livenessBypass ? '#dc2626' : '#059669',
+                  fontWeight: 700,
                   fontSize: '0.75rem',
                   cursor: 'pointer'
                 }}
               >
-                {livenessBypass ? '⚡ BYPASSED (INSTANT)' : '🛡️ ACTIVE (BLINK)'}
+                {livenessBypass ? 'Bypassed (Instant)' : 'Active (Blink Required)'}
               </button>
             </div>
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+            <p style={{ color: '#475569', fontSize: '0.82rem', margin: 0, lineHeight: 1.4 }}>
               {livenessBypass 
-                ? '⚡ Bypassed Mode: Facial recognition runs immediately upon face detection in frame without waiting for eye blink.'
-                : '🛡️ Active Security Mode: Requires the student to perform a physical eye blink to verify real human presence before attendance is logged.'}
+                ? 'Bypassed mode: Marks attendance immediately upon facial detection without waiting for an eye blink.'
+                : 'Active security mode: Requires the student to physically blink to verify real human presence.'}
             </p>
           </div>
 
-          <div style={{ background: livenessBypass ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', border: `1px solid ${livenessBypass ? '#ef4444' : '#10b981'}`, padding: '10px 14px', borderRadius: '10px', fontSize: '0.78rem', color: livenessBypass ? '#f87171' : '#34d399', fontWeight: 600 }}>
-            {livenessBypass ? '⚠️ Warning: Photos or video playback will be accepted.' : '✓ Liveness Enforced: Screen & photo spoofing actively blocked.'}
+          <div style={{ background: livenessBypass ? '#fffbeb' : '#ecfdf5', border: `1px solid ${livenessBypass ? '#fde68a' : '#a7f3d0'}`, padding: '10px 14px', borderRadius: '8px', fontSize: '0.78rem', color: livenessBypass ? '#b45309' : '#059669', fontWeight: 600 }}>
+            {livenessBypass ? '⚡ Instant check-in mode active.' : '✓ Real human presence verified by physical blink.'}
           </div>
         </div>
 
         {/* 4. AI Assistant Cognitive Level */}
         <div style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(139, 92, 246, 0.3)',
-          borderRadius: '16px',
+          background: '#f8fafc',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '14px',
           padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           gap: '14px'
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>🧠</span>
-              <label style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.95rem' }}>AI Copilot Cognitive Brain Mode</label>
+              <Cpu size={18} style={{ color: '#d97706' }} />
+              <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>AI Copilot Analysis Mode</label>
             </div>
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
-              Controls intelligence depth for AI Assistant queries, student risk predictions, and automated system reports.
+            <p style={{ color: '#475569', fontSize: '0.82rem', margin: 0, lineHeight: 1.4 }}>
+              Controls depth of intelligence for student attendance shortfall alerts and automated report summaries.
             </p>
           </div>
 
@@ -267,43 +271,40 @@ export default function AdvancedBiometricSettings({
               style={{
                 width: '100%',
                 padding: '10px 14px',
-                borderRadius: '10px',
-                background: 'rgba(15, 23, 42, 0.9)',
-                border: '1px solid rgba(139, 92, 246, 0.4)',
-                color: '#ffffff',
+                borderRadius: '8px',
+                background: '#ffffff',
+                border: '1px solid var(--border-subtle)',
+                color: '#0f172a',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 outline: 'none',
                 cursor: 'pointer'
               }}
             >
-              <option value="standard" style={{ background: '#0f172a', color: '#fff' }}>Standard Copilot Mode (Fast Conversations)</option>
-              <option value="hyper" style={{ background: '#0f172a', color: '#fff' }}>Hyper-Processing Cognitive Mode (Deep Analytics)</option>
+              <option value="standard">Standard Mode (Fast Responses)</option>
+              <option value="hyper">Deep Analytics Mode (Statistical Reports)</option>
             </select>
-            <div style={{ color: '#a78bfa', fontSize: '0.75rem', marginTop: '6px' }}>
-              {aiCognitiveLevel === 'hyper' ? '⚡ Hyper Mode: Deep statistical analysis & automatic report generation active.' : '✓ Standard Mode: Balanced response speed & accuracy.'}
-            </div>
           </div>
         </div>
 
         {/* 5. Diagnostic Logging Level & Telemetry Exporter */}
         <div style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(245, 158, 11, 0.3)',
-          borderRadius: '16px',
+          background: '#f8fafc',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '14px',
           padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           gap: '14px'
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>📑</span>
-              <label style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.95rem' }}>Diagnostics Logging Verbosity</label>
+              <FileText size={18} style={{ color: '#2563eb' }} />
+              <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>Diagnostics Logging Verbosity</label>
             </div>
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
-              Set internal telemetry log level and export complete system diagnostics for audit or troubleshooting.
+            <p style={{ color: '#475569', fontSize: '0.82rem', margin: 0, lineHeight: 1.4 }}>
+              Select telemetry log level or download security diagnostics for technical auditing.
             </p>
           </div>
 
@@ -318,20 +319,20 @@ export default function AdvancedBiometricSettings({
               style={{
                 width: '100%',
                 padding: '10px 14px',
-                borderRadius: '10px',
-                background: 'rgba(15, 23, 42, 0.9)',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                color: '#ffffff',
+                borderRadius: '8px',
+                background: '#ffffff',
+                border: '1px solid var(--border-subtle)',
+                color: '#0f172a',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 outline: 'none',
                 cursor: 'pointer'
               }}
             >
-              <option value="NONE" style={{ background: '#0f172a', color: '#fff' }}>NONE (Mute Console Logs)</option>
-              <option value="INFO" style={{ background: '#0f172a', color: '#fff' }}>INFO (Important Events Only)</option>
-              <option value="DEBUG" style={{ background: '#0f172a', color: '#fff' }}>DEBUG (Standard Telemetry Logs)</option>
-              <option value="TRACE" style={{ background: '#0f172a', color: '#fff' }}>TRACE (Full Frame Vector & Audio Diagnostics)</option>
+              <option value="NONE">NONE (Minimal Logs)</option>
+              <option value="INFO">INFO (Important Events Only)</option>
+              <option value="DEBUG">DEBUG (Standard Logs)</option>
+              <option value="TRACE">TRACE (Full Diagnostic Telemetry)</option>
             </select>
 
             <button
@@ -359,22 +360,19 @@ export default function AdvancedBiometricSettings({
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
               }}
+              className="btn-secondary"
               style={{
-                background: 'linear-gradient(90deg, #f59e0b, #d97706)',
-                color: '#0f172a',
-                border: 'none',
                 padding: '10px',
-                borderRadius: '10px',
-                fontWeight: 800,
-                fontSize: '0.83rem',
-                cursor: 'pointer',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.82rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '6px'
               }}
             >
-              📥 Export Core Telemetry & Security Logs JSON
+              <Download size={15} /> Export Security Diagnostics JSON
             </button>
           </div>
         </div>

@@ -162,120 +162,103 @@ export default function DeviceHealthDashboard({
 
   return (
     <div className="device-dashboard-container" style={{
-      color: '#f8fafc',
+      color: 'var(--color-text-main)',
       padding: '24px',
       maxWidth: '1280px',
       margin: '0 auto',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Header Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.75) 100%)',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+      {/* Header */}
+      <div className="surface-card" style={{
+        background: '#ffffff',
+        border: '1px solid var(--border-subtle)',
         borderRadius: '16px',
-        padding: '24px 28px',
+        padding: '20px 24px',
         marginBottom: '24px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
-        backdropFilter: 'blur(12px)',
-        position: 'relative'
+        boxShadow: 'var(--shadow-card)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '16px'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                borderRadius: '10px',
-                padding: '8px',
-                color: '#34d399',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Monitor size={22} />
-              </div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>
-                Kiosk & Camera Device Health Telemetry
-              </h2>
-              <span style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                color: '#34d399',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '16px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase'
-              }}>
-                Phase 6 Production
-              </span>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+            <div style={{
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              borderRadius: '10px',
+              padding: '8px',
+              color: '#059669',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Monitor size={22} />
             </div>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
-              Continuous heartbeat monitoring, automatic offline kiosk detection, camera optical health verification, 
-              and edge sync backlog telemetry across your campus.
-            </p>
+            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#0f172a' }}>
+              Kiosk & Camera Device Fleet Telemetry
+            </h2>
           </div>
+          <p style={{ margin: 0, color: '#475569', fontSize: '0.85rem', maxWidth: '750px' }}>
+            Continuous heartbeat monitoring, automatic offline kiosk detection, camera optical health verification, and edge sync backlog telemetry.
+          </p>
+        </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => { playCyberSound('click'); fetchData(); }}
-              disabled={isLoading}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#cbd5e1',
-                padding: '10px 16px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '0.88rem',
-                fontWeight: 600
-              }}
-            >
-              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => { playCyberSound('click'); fetchData(); }}
+            disabled={isLoading}
+            className="btn-secondary"
+            style={{
+              padding: '9px 16px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 600
+            }}
+          >
+            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
 
-            <button
-              onClick={() => { playCyberSound('click'); setShowRegisterModal(true); }}
-              style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                border: 'none',
-                color: '#fff',
-                padding: '10px 18px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
-              }}
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Onboard Kiosk
-            </button>
-          </div>
+          <button
+            onClick={() => { playCyberSound('click'); setShowRegisterModal(true); }}
+            className="btn-primary"
+            style={{
+              padding: '9px 18px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 600
+            }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Onboard Kiosk
+          </button>
         </div>
       </div>
 
       {/* Toast Messages */}
       {successMsg && (
         <div style={{
-          background: 'rgba(16, 185, 129, 0.15)',
-          border: '1px solid rgba(16, 185, 129, 0.4)',
-          color: '#34d399',
+          background: '#ecfdf5',
+          border: '1px solid #a7f3d0',
+          color: '#059669',
           padding: '12px 18px',
           borderRadius: '12px',
           marginBottom: '20px',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          fontSize: '0.9rem'
+          fontSize: '0.9rem',
+          fontWeight: 600
         }}>
           <CheckCircle2 size={18} />
           <span>{successMsg}</span>
@@ -284,16 +267,17 @@ export default function DeviceHealthDashboard({
 
       {errorMsg && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '1px solid rgba(239, 68, 68, 0.4)',
-          color: '#f87171',
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          color: '#dc2626',
           padding: '12px 18px',
           borderRadius: '12px',
           marginBottom: '20px',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          fontSize: '0.9rem'
+          fontSize: '0.9rem',
+          fontWeight: 600
         }}>
           <AlertTriangle size={18} />
           <span>{errorMsg}</span>
@@ -308,64 +292,68 @@ export default function DeviceHealthDashboard({
           gap: '16px',
           marginBottom: '24px'
         }}>
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '12px',
-            padding: '18px'
+            padding: '18px',
+            boxShadow: 'var(--shadow-card)'
           }}>
-            <span style={{ fontSize: '0.78rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
               Total Deployed Fleet
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>
               {summary.total_devices}
             </div>
             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Scanners, kiosks, tablets</span>
           </div>
 
-          <div style={{
-            background: 'rgba(16, 185, 129, 0.1)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '12px',
-            padding: '18px'
+            padding: '18px',
+            boxShadow: 'var(--shadow-card)'
           }}>
-            <span style={{ fontSize: '0.78rem', color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.78rem', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
               Online & Active
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#34d399', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#059669', marginTop: '6px' }}>
               {summary.online_count}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Heartbeat &lt; 5m</span>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Heartbeat &lt; 5m</span>
           </div>
 
-          <div style={{
-            background: summary.offline_count > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(30, 41, 59, 0.5)',
-            border: summary.offline_count > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '12px',
-            padding: '18px'
+            padding: '18px',
+            boxShadow: 'var(--shadow-card)'
           }}>
-            <span style={{ fontSize: '0.78rem', color: summary.offline_count > 0 ? '#f87171' : '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.78rem', color: summary.offline_count > 0 ? '#dc2626' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
               Offline / Stalled
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: summary.offline_count > 0 ? '#f87171' : '#cbd5e1', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: summary.offline_count > 0 ? '#dc2626' : '#0f172a', marginTop: '6px' }}>
               {summary.offline_count}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Requires technician check</span>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Requires technician check</span>
           </div>
 
-          <div style={{
-            background: 'rgba(6, 182, 212, 0.1)',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '12px',
-            padding: '18px'
+            padding: '18px',
+            boxShadow: 'var(--shadow-card)'
           }}>
-            <span style={{ fontSize: '0.78rem', color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.78rem', color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
               Cameras Functional
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#22d3ee', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0284c7', marginTop: '6px' }}>
               {summary.healthy_cameras}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Clear optics & focus</span>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Clear optics & focus</span>
           </div>
         </div>
       )}
@@ -373,9 +361,9 @@ export default function DeviceHealthDashboard({
       {/* Status Filter Buttons */}
       <div style={{
         display: 'flex',
-        gap: '10px',
+        gap: '8px',
         marginBottom: '20px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        borderBottom: '1px solid var(--border-subtle)',
         paddingBottom: '12px'
       }}>
         {['ALL', 'ONLINE', 'OFFLINE', 'DEGRADED'].map(f => (
@@ -383,14 +371,15 @@ export default function DeviceHealthDashboard({
             key={f}
             onClick={() => { playCyberSound('click'); setStatusFilter(f); }}
             style={{
-              background: statusFilter === f ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-              border: statusFilter === f ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid transparent',
-              color: statusFilter === f ? '#34d399' : '#94a3b8',
-              padding: '6px 16px',
+              background: statusFilter === f ? 'var(--color-primary-light)' : '#ffffff',
+              border: statusFilter === f ? '1px solid rgba(30, 64, 175, 0.25)' : '1px solid var(--border-subtle)',
+              color: statusFilter === f ? 'var(--color-primary)' : '#475569',
+              padding: '6px 14px',
               borderRadius: '8px',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
               fontWeight: 600,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
           >
             {f === 'ALL' ? 'All Devices' : f}
@@ -400,17 +389,17 @@ export default function DeviceHealthDashboard({
 
       {/* Devices Fleet Grid */}
       {devices.length === 0 ? (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.4)',
-          border: '1px dashed rgba(255, 255, 255, 0.15)',
+        <div className="surface-card" style={{
+          background: '#ffffff',
+          border: '1px dashed var(--border-strong)',
           borderRadius: '16px',
           padding: '48px 24px',
           textAlign: 'center',
           color: '#64748b'
         }}>
           <Monitor size={40} style={{ opacity: 0.35, marginBottom: '12px' }} />
-          <h4 style={{ margin: '0 0 6px 0', color: '#94a3b8', fontSize: '1.1rem' }}>No Devices Found</h4>
-          <p style={{ margin: 0, fontSize: '0.88rem' }}>
+          <h4 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 700 }}>No Devices Found</h4>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
             Click "Onboard Kiosk" above to register your first scanning station or facial checkpoint.
           </p>
         </div>
@@ -427,12 +416,13 @@ export default function DeviceHealthDashboard({
             return (
               <div
                 key={d.id}
+                className="surface-card"
                 style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: isOnline ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.35)',
+                  background: '#ffffff',
+                  border: isOnline ? '1px solid #a7f3d0' : '1px solid #fecaca',
                   borderRadius: '14px',
                   padding: '20px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+                  boxShadow: 'var(--shadow-card)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between'
@@ -442,16 +432,16 @@ export default function DeviceHealthDashboard({
                   {/* Top: Name and Status */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                     <div>
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
                         {d.name}
                       </h3>
-                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>ID: {d.device_identifier}</span>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>ID: {d.device_identifier}</span>
                     </div>
 
                     <span style={{
-                      background: isOnline ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                      border: isOnline ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
-                      color: isOnline ? '#34d399' : '#f87171',
+                      background: isOnline ? '#ecfdf5' : '#fef2f2',
+                      border: isOnline ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                      color: isOnline ? '#059669' : '#dc2626',
                       fontSize: '0.72rem',
                       fontWeight: 700,
                       padding: '3px 10px',
@@ -466,7 +456,7 @@ export default function DeviceHealthDashboard({
                   </div>
 
                   {/* Location & Type */}
-                  <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                  <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: '#475569' }}>
                     📍 {d.location || 'Location not specified'} • <span style={{ color: '#64748b' }}>{d.device_type}</span>
                   </p>
 
@@ -475,36 +465,37 @@ export default function DeviceHealthDashboard({
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
                     gap: '10px',
-                    background: 'rgba(30, 41, 59, 0.5)',
+                    background: '#f8fafc',
+                    border: '1px solid var(--border-subtle)',
                     padding: '12px',
                     borderRadius: '10px',
                     marginBottom: '16px',
                     fontSize: '0.8rem'
                   }}>
                     <div>
-                      <span style={{ color: '#94a3b8' }}>Camera Sensor:</span>
-                      <div style={{ fontWeight: 600, color: d.camera_status === 'OK' ? '#34d399' : '#f87171' }}>
+                      <span style={{ color: '#64748b' }}>Camera Sensor:</span>
+                      <div style={{ fontWeight: 600, color: d.camera_status === 'OK' ? '#059669' : '#dc2626' }}>
                         {d.camera_status}
                       </div>
                     </div>
 
                     <div>
-                      <span style={{ color: '#94a3b8' }}>Latency:</span>
-                      <div style={{ fontWeight: 600, color: '#22d3ee' }}>
+                      <span style={{ color: '#64748b' }}>Latency:</span>
+                      <div style={{ fontWeight: 600, color: '#0284c7' }}>
                         {d.network_latency_ms ? `${d.network_latency_ms} ms` : 'N/A'}
                       </div>
                     </div>
 
                     <div>
-                      <span style={{ color: '#94a3b8' }}>Battery:</span>
-                      <div style={{ fontWeight: 600, color: '#fbbf24' }}>
+                      <span style={{ color: '#64748b' }}>Battery:</span>
+                      <div style={{ fontWeight: 600, color: '#d97706' }}>
                         {d.battery_level ? `${d.battery_level}%` : 'Mains Power'}
                       </div>
                     </div>
 
                     <div>
-                      <span style={{ color: '#94a3b8' }}>Sync Backlog:</span>
-                      <div style={{ fontWeight: 600, color: d.pending_sync_count > 0 ? '#fbbf24' : '#34d399' }}>
+                      <span style={{ color: '#64748b' }}>Sync Backlog:</span>
+                      <div style={{ fontWeight: 600, color: d.pending_sync_count > 0 ? '#d97706' : '#059669' }}>
                         {d.pending_sync_count} pending
                       </div>
                     </div>
@@ -513,7 +504,7 @@ export default function DeviceHealthDashboard({
 
                 {/* Footer: Heartbeat & Action */}
                 <div style={{
-                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderTop: '1px solid var(--border-subtle)',
                   paddingTop: '12px',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -527,9 +518,9 @@ export default function DeviceHealthDashboard({
                     disabled={isPinging}
                     onClick={() => handleSendPing(d)}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.06)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      color: '#cbd5e1',
+                      background: '#ffffff',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--color-primary)',
                       padding: '6px 12px',
                       borderRadius: '8px',
                       fontSize: '0.78rem',
@@ -558,22 +549,22 @@ export default function DeviceHealthDashboard({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
           padding: '20px'
         }}>
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.95)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+          <div className="surface-card" style={{
+            background: '#ffffff',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '16px',
             width: '100%',
             maxWidth: '480px',
             padding: '28px',
-            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
+            boxShadow: 'var(--shadow-modal)',
             position: 'relative'
           }}>
             <button
@@ -584,7 +575,7 @@ export default function DeviceHealthDashboard({
                 right: '20px',
                 background: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
+                color: '#64748b',
                 cursor: 'pointer'
               }}
             >
@@ -592,13 +583,24 @@ export default function DeviceHealthDashboard({
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <Monitor size={22} color="#34d399" />
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#fff' }}>Onboard Attendance Device</h3>
+              <div style={{
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                borderRadius: '8px',
+                padding: '6px',
+                color: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Monitor size={20} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Onboard Attendance Device</h3>
             </div>
 
             <form onSubmit={handleRegister}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '5px', fontWeight: 600 }}>
                   Unique Device Identifier *
                 </label>
                 <input
@@ -609,9 +611,9 @@ export default function DeviceHealthDashboard({
                   onChange={e => setRegisterFormData({ ...registerFormData, device_identifier: e.target.value })}
                   style={{
                     width: '100%',
-                    background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid var(--border-strong)',
+                    color: '#0f172a',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '0.9rem'
@@ -620,7 +622,7 @@ export default function DeviceHealthDashboard({
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '5px', fontWeight: 600 }}>
                   Device Friendly Name *
                 </label>
                 <input
@@ -631,9 +633,9 @@ export default function DeviceHealthDashboard({
                   onChange={e => setRegisterFormData({ ...registerFormData, name: e.target.value })}
                   style={{
                     width: '100%',
-                    background: 'rgba(30, 41, 59, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid var(--border-strong)',
+                    color: '#0f172a',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '0.9rem'
@@ -643,7 +645,7 @@ export default function DeviceHealthDashboard({
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '5px', fontWeight: 600 }}>
                     Device Type
                   </label>
                   <select
@@ -651,9 +653,9 @@ export default function DeviceHealthDashboard({
                     onChange={e => setRegisterFormData({ ...registerFormData, device_type: e.target.value })}
                     style={{
                       width: '100%',
-                      background: 'rgba(30, 41, 59, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      color: '#fff',
+                      background: '#ffffff',
+                      border: '1px solid var(--border-strong)',
+                      color: '#0f172a',
                       padding: '10px 12px',
                       borderRadius: '8px',
                       fontSize: '0.88rem'
@@ -667,7 +669,7 @@ export default function DeviceHealthDashboard({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '5px', fontWeight: 600 }}>
                     Campus Location
                   </label>
                   <input
@@ -677,9 +679,9 @@ export default function DeviceHealthDashboard({
                     onChange={e => setRegisterFormData({ ...registerFormData, location: e.target.value })}
                     style={{
                       width: '100%',
-                      background: 'rgba(30, 41, 59, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      color: '#fff',
+                      background: '#ffffff',
+                      border: '1px solid var(--border-strong)',
+                      color: '#0f172a',
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '0.9rem'
@@ -692,10 +694,8 @@ export default function DeviceHealthDashboard({
                 <button
                   type="button"
                   onClick={() => setShowRegisterModal(false)}
+                  className="btn-secondary"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#cbd5e1',
                     padding: '8px 16px',
                     borderRadius: '8px',
                     cursor: 'pointer'
@@ -707,10 +707,8 @@ export default function DeviceHealthDashboard({
                 <button
                   type="submit"
                   disabled={isRegistering}
+                  className="btn-primary"
                   style={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    border: 'none',
-                    color: '#fff',
                     padding: '8px 18px',
                     borderRadius: '8px',
                     fontWeight: 700,

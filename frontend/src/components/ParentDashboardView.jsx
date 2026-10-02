@@ -138,7 +138,7 @@ export default function ParentDashboardView({
       margin: '0 auto',
       padding: '24px 16px',
       fontFamily: 'Inter, system-ui, sans-serif',
-      color: '#f8fafc'
+      color: '#0f172a'
     }}>
       {/* HEADER SECTION */}
       <div style={{
@@ -149,45 +149,44 @@ export default function ParentDashboardView({
         gap: '16px',
         marginBottom: '24px',
         padding: '24px',
-        background: 'rgba(15, 23, 42, 0.75)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        background: '#ffffff',
+        border: '1px solid var(--border-subtle)',
         borderRadius: '16px',
-        backdropFilter: 'blur(12px)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+        boxShadow: 'var(--shadow-card)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{
             width: '48px',
             height: '48px',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(79, 70, 229, 0.3))',
-            border: '1px solid rgba(0, 242, 254, 0.4)',
+            background: 'rgba(30, 64, 175, 0.08)',
+            border: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <UserCheck size={24} color="#00f2fe" />
+            <UserCheck size={24} color="#1e40af" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                color: '#00f2fe',
-                background: 'rgba(0, 242, 254, 0.12)',
+                color: '#1e40af',
+                background: '#eff6ff',
                 padding: '2px 8px',
                 borderRadius: '6px',
-                border: '1px solid rgba(0, 242, 254, 0.3)'
+                border: '1px solid #bfdbfe'
               }}>
                 PARENT PORTAL
               </span>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{currentDateStr}</span>
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{currentDateStr}</span>
             </div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '4px 0 0 0', color: '#fff' }}>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '4px 0 0 0', color: '#0f172a' }}>
               {childName}
             </h1>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
-              Roll Number: <strong style={{ color: '#cbd5e1' }}>{childRoll}</strong> | Guardian: {parentName}
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>
+              Roll Number: <strong style={{ color: '#0f172a' }}>{childRoll}</strong> | Guardian: {parentName}
             </p>
           </div>
         </div>
@@ -196,19 +195,14 @@ export default function ParentDashboardView({
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="btn-secondary"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
               padding: '10px 18px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '10px',
-              color: '#f8fafc',
               fontSize: '0.85rem',
               fontWeight: 600,
-              cursor: isRefreshing ? 'wait' : 'pointer',
-              transition: 'all 0.2s ease',
               minHeight: '44px'
             }}
           >
@@ -246,16 +240,16 @@ export default function ParentDashboardView({
         {/* Attendance Rate */}
         <div style={{
           padding: '20px',
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '14px',
-          backdropFilter: 'blur(8px)'
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Attendance Percentage</span>
-            <TrendingUp size={18} color={overallPercentage != null && overallPercentage >= 75 ? '#10b981' : '#f59e0b'} />
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Attendance Percentage</span>
+            <TrendingUp size={18} color={overallPercentage != null && overallPercentage >= 75 ? '#059669' : '#d97706'} />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: overallPercentage != null && overallPercentage >= 75 ? '#10b981' : '#f59e0b' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: overallPercentage != null && overallPercentage >= 75 ? '#059669' : '#d97706' }}>
             {overallPercentage != null ? `${overallPercentage}%` : (isLoading ? '...' : 'N/A')}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
@@ -266,16 +260,16 @@ export default function ParentDashboardView({
         {/* Present Days */}
         <div style={{
           padding: '20px',
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '14px',
-          backdropFilter: 'blur(8px)'
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Attended Days</span>
-            <CheckCircle2 size={18} color="#3b82f6" />
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Attended Days</span>
+            <CheckCircle2 size={18} color="#2563eb" />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#3b82f6' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#2563eb' }}>
             {isLoading ? '...' : presentCount}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
@@ -286,16 +280,16 @@ export default function ParentDashboardView({
         {/* Absent Days */}
         <div style={{
           padding: '20px',
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '14px',
-          backdropFilter: 'blur(8px)'
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Absent Days</span>
-            <UserX size={18} color="#ef4444" />
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Absent Days</span>
+            <UserX size={18} color="#dc2626" />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ef4444' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#dc2626' }}>
             {isLoading ? '...' : absentCount}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
@@ -306,19 +300,19 @@ export default function ParentDashboardView({
         {/* Last Attendance Scan */}
         <div style={{
           padding: '20px',
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '14px',
-          backdropFilter: 'blur(8px)'
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Last Attendance Log</span>
-            <Clock size={18} color="#a855f7" />
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Last Attendance Log</span>
+            <Clock size={18} color="#7c3aed" />
           </div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {lastScanLog ? `${lastScanLog.date}` : (isLoading ? '...' : 'No logs yet')}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
             {lastScanLog ? `Time: ${lastScanLog.time || '--:--'} (${lastScanLog.status})` : 'Awaiting check-in'}
           </div>
         </div>
@@ -334,12 +328,13 @@ export default function ParentDashboardView({
         {/* Attendance Chart Widget */}
         <div style={{
           padding: '20px',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '16px'
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-card)'
         }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 16px 0', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TrendingUp size={18} color="#00f2fe" />
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 16px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={18} color="#1e40af" />
             Attendance Summary Chart
           </h3>
           <AttendanceChartsWidget stats={chartStats} />
@@ -348,22 +343,23 @@ export default function ParentDashboardView({
         {/* Recent Attendance Logs Table */}
         <div style={{
           padding: '20px',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '16px'
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={18} color="#3b82f6" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Clock size={18} color="#2563eb" />
               Recent Attendance Activity
             </h3>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
               {totalLogs} Records
             </span>
           </div>
 
           {attendanceLogs.length === 0 ? (
-            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#64748b', fontSize: '0.88rem' }}>
               <BookOpen size={32} color="#94a3b8" style={{ marginBottom: '8px', opacity: 0.5 }} />
               <div>No attendance records found for this student.</div>
             </div>
@@ -371,7 +367,7 @@ export default function ParentDashboardView({
             <div style={{ overflowX: 'auto', maxHeight: '300px', overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: '#64748b' }}>
                     <th style={{ padding: '10px' }}>Date</th>
                     <th style={{ padding: '10px' }}>Time</th>
                     <th style={{ padding: '10px' }}>Status</th>
@@ -379,25 +375,26 @@ export default function ParentDashboardView({
                 </thead>
                 <tbody>
                   {attendanceLogs.slice(0, 10).map((log, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                      <td style={{ padding: '10px', color: '#fff', fontWeight: 600 }}>{log.date}</td>
-                      <td style={{ padding: '10px', color: '#94a3b8' }}>{log.time || '--:--'}</td>
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: '10px', color: '#0f172a', fontWeight: 600 }}>{log.date}</td>
+                      <td style={{ padding: '10px', color: '#475569' }}>{log.time || '--:--'}</td>
                       <td style={{ padding: '10px' }}>
                         <span style={{
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.72rem',
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          fontSize: '0.75rem',
                           fontWeight: 700,
                           background: log.status === 'Present'
-                            ? 'rgba(16, 185, 129, 0.15)'
+                            ? '#ecfdf5'
                             : log.status === 'LATE'
-                              ? 'rgba(245, 158, 11, 0.15)'
-                              : 'rgba(239, 68, 68, 0.15)',
+                              ? '#fffbeb'
+                              : '#fef2f2',
                           color: log.status === 'Present'
-                            ? '#10b981'
+                            ? '#059669'
                             : log.status === 'LATE'
-                              ? '#f59e0b'
-                              : '#f87171'
+                              ? '#d97706'
+                              : '#dc2626',
+                          border: `1px solid ${log.status === 'Present' ? '#a7f3d0' : log.status === 'LATE' ? '#fde68a' : '#fecaca'}`
                         }}>
                           {log.status}
                         </span>
@@ -420,21 +417,23 @@ export default function ParentDashboardView({
         {/* Notifications Shortcut Card */}
         <div style={{
           padding: '20px',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '16px'
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-card)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Bell size={18} color="#f59e0b" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Bell size={18} color="#d97706" />
               Notifications & Alerts
             </h3>
             {unreadNotifsCount > 0 && (
               <span style={{
                 fontSize: '0.72rem',
                 fontWeight: 700,
-                color: '#fff',
-                background: '#ef4444',
+                color: '#dc2626',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
                 padding: '2px 8px',
                 borderRadius: '10px'
               }}>
@@ -443,7 +442,7 @@ export default function ParentDashboardView({
             )}
           </div>
 
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0 0 16px 0' }}>
+          <p style={{ fontSize: '0.85rem', color: '#475569', margin: '0 0 16px 0' }}>
             Stay updated with real-time absence warnings, daily summary dispatches, and campus announcements.
           </p>
 
@@ -452,6 +451,7 @@ export default function ParentDashboardView({
               playCyberSound('click');
               setShowNotificationDrawer(true);
             }}
+            className="btn-secondary"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -459,13 +459,8 @@ export default function ParentDashboardView({
               gap: '8px',
               width: '100%',
               padding: '12px 16px',
-              background: 'rgba(245, 158, 11, 0.12)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              borderRadius: '10px',
-              color: '#f59e0b',
               fontSize: '0.85rem',
               fontWeight: 600,
-              cursor: 'pointer',
               minHeight: '44px'
             }}
           >
@@ -476,12 +471,13 @@ export default function ParentDashboardView({
         {/* Quick Action Navigation Bar */}
         <div style={{
           padding: '20px',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '16px'
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-card)'
         }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 14px 0', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldCheck size={18} color="#10b981" />
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 14px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldCheck size={18} color="#059669" />
             Quick Navigation Shortcuts
           </h3>
 
@@ -496,10 +492,10 @@ export default function ParentDashboardView({
                 alignItems: 'center',
                 justify: 'space-between',
                 padding: '12px 16px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: '#f8fafc',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '10px',
-                color: '#f8fafc',
+                color: '#0f172a',
                 fontSize: '0.84rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -507,7 +503,7 @@ export default function ParentDashboardView({
               }}
             >
               <span>View Full Student Attendance Logs</span>
-              <ArrowRight size={14} color="#94a3b8" />
+              <ArrowRight size={14} color="#64748b" />
             </button>
 
             <button
@@ -520,10 +516,10 @@ export default function ParentDashboardView({
                 alignItems: 'center',
                 justify: 'space-between',
                 padding: '12px 16px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: '#f8fafc',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '10px',
-                color: '#f8fafc',
+                color: '#0f172a',
                 fontSize: '0.84rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -531,7 +527,7 @@ export default function ParentDashboardView({
               }}
             >
               <span>Account & Preference Settings</span>
-              <ArrowRight size={14} color="#94a3b8" />
+              <ArrowRight size={14} color="#64748b" />
             </button>
           </div>
         </div>

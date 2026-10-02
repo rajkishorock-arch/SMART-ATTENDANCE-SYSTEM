@@ -6739,12 +6739,7 @@ export default function App() {
         <OnboardingTour isMobile={isMobileView} onComplete={() => { setShowOnboardingTour(false); localStorage.setItem('onboarding_tour_done', 'true'); }} />
       )}
 
-      {crtOverlayEnabled && <div className="crt-overlay crt-active" />}
       <OfflineBanner />
-      {crtOverlayEnabled && <div className="crt-vignette" />}
-      <AppAmbientLayer activeTab={activeTab} isMobile={isMobileView} />
-      <ClickFxLayer activeTab={activeTab} enabled={explorationSettings.clickRipples !== false} />
-      <PageTransitionFlash activeTab={activeTab} enabled={explorationSettings.smoothPageTransitions !== false} />
 
       {/* ===== FULLSCREEN SCANNER MODAL ===== */}
       {showScannerModal && (
@@ -7366,7 +7361,7 @@ export default function App() {
                 {activeTab === 'settings' && 'Security & System Settings'}
                 {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
               </h1>
-              <p style={{ color: '#9ca3af', fontSize: '0.78rem', margin: '3px 0 0', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <p style={{ color: '#475569', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {activeTab === 'dashboard' && 'Visualizing attendance logs and statistics'}
                 {activeTab === 'students' && 'Manage registered students and profiles'}
                 {activeTab === 'teachers' && 'Manage registered teaching staff and weekly timetables'}
@@ -7435,8 +7430,8 @@ export default function App() {
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.8rem',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: '#ffffff',
+                border: '1px solid var(--border-subtle)',
                 color: 'var(--color-text-main)',
                 cursor: 'pointer',
                 minHeight: '38px',
@@ -7445,30 +7440,6 @@ export default function App() {
             >
               <Globe size={15} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{appLang === 'hi' ? 'हिन्दी' : 'EN'}</span>
-            </button>
-
-            {/* Privacy & Trust Center Transparency Trigger */}
-            <button 
-              className="header-action-desktop-only"
-              onClick={() => { playCyberSound('click'); setShowPrivacyCenterModal(true); }}
-              title="Privacy & Biometric Data Trust Center"
-              aria-label="Privacy & Biometric Data Trust Center"
-              style={{
-                padding: '8px 10px',
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '0.8rem',
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                color: '#10b981',
-                cursor: 'pointer',
-                minHeight: '38px'
-              }}
-            >
-              <ShieldCheck size={15} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Trust</span>
             </button>
             {userRole === 'student' && (
               <button 
@@ -9181,22 +9152,6 @@ export default function App() {
       {showPrivacyPolicy && <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />}
 
       {token && userRole && (
-        <QuickActionsDock
-          userRole={userRole}
-          onScan={() => { navigateToTab('attendance'); setShowScannerModal(true); playCyberSound('click'); }}
-          onManual={() => { navigateToTab('attendance'); setIsManualAttendanceOpen(true); playCyberSound('click'); }}
-          onReport={() => { navigateToTab('reports'); playCyberSound('click'); }}
-          onNotify={async () => {
-            playCyberSound('click');
-            try {
-              const d = await interactiveApi.notifyAbsentBatch(token, { notify_whatsapp: true });
-              alert(d.message || `Notified ${d.notified_count} parents`);
-            } catch { alert('Notify failed — check network'); }
-          }}
-        />
-      )}
-
-      {token && userRole && (
         <BottomNav
           userRole={userRole}
           activeTab={activeTab}
@@ -9729,9 +9684,6 @@ export default function App() {
 
       {/* Edge border flash overlay */}
       {showVoicePulseFlash && <div className="voice-pulse-flash-overlay" />}
-
-      {/* CyberBot AI Floating Widget & Drawer */}
-      {activeTab !== 'ai-assistant' && <CyberBotWidget activeTab={activeTab} />}
     </div>
   </div>
   );
