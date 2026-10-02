@@ -7655,6 +7655,11 @@ export default function App() {
             setShowWebcamModal={setShowWebcamModal}
             setEditingStudent={setEditingStudent}
             setShowEditStudentModal={setShowEditStudentModal}
+            serverWarmingUp={serverWarmingUp}
+            subjects={subjects}
+            setNewStudent={setNewStudent}
+            setShowAddModal={setShowAddModal}
+            isMobileView={isMobileView}
           />
         )}
 

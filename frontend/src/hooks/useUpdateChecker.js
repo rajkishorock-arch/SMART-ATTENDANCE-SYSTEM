@@ -35,7 +35,13 @@ export default function useUpdateChecker(currentUser) {
       setUpdateActiveFlag(!!data.update_active || !!data.update_beta_active);
 
       // Explicitly check if update is available on server and has not been acknowledged/dismissed
-      const hasNewUpdate = (data.update_available || isUpdateNewer(latestVersion, APP_VERSION)) && (isManual || !isVersionAcknowledged(latestVersion));
+      let isDismissed = false;
+      try {
+        isDismissed = sessionStorage.getItem('update_banner_dismissed') === 'true' ||
+          (latestVersion && localStorage.getItem('smart_attendance_dismissed_update_' + latestVersion) === 'true');
+      } catch { /* storage fallback */ }
+
+      const hasNewUpdate = (data.update_available || isUpdateNewer(latestVersion, APP_VERSION)) && (isManual || (!isVersionAcknowledged(latestVersion) && !isDismissed));
 
       if (hasNewUpdate) {
         const downloadUrl = data.update_download_url || `https://github.com/rajkishorock-arch/SMART-ATTENDANCE-SYSTEM/releases/download/v${latestVersion}/app-release.apk`;

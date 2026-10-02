@@ -41,41 +41,62 @@ export default function UpdateNotification({
           boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
           animation: isMobileView ? 'fadeInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'slideDown 0.4s ease-out',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.8rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between', width: '100%' }}>
+            <span style={{ fontSize: '0.82rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
               {updateAvailable.isOwnerBeta ? '🧪' : '🚀'} New update v{updateAvailable.version} is ready!
             </span>
-            {isMobileView && (
-              <button
-                onClick={() => {
+            <button
+              type="button"
+              onClick={() => {
+                try {
                   acknowledgeUpdateVersion(updateAvailable?.version);
-                  setUpdateDismissed(true);
-                  setUpdateAvailable(null);
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'rgba(255,255,255,0.6)',
-                  fontSize: '1.2rem',
-                  cursor: 'pointer',
-                  padding: '0 4px',
-                  lineHeight: 1,
-                }}
-                aria-label="Dismiss update"
-              >
-                ×
-              </button>
-            )}
+                  if (updateAvailable?.version) {
+                    localStorage.setItem('smart_attendance_dismissed_update_' + updateAvailable.version, 'true');
+                  }
+                  sessionStorage.setItem('update_banner_dismissed', 'true');
+                } catch { /* storage fallback */ }
+                setUpdateDismissed(true);
+                setUpdateAvailable(null);
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: '#ffffff',
+                fontSize: '1rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                width: '30px',
+                height: '30px',
+                minWidth: '30px',
+                minHeight: '30px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1,
+                padding: 0,
+                flexShrink: 0,
+                transition: 'background 0.2s ease',
+              }}
+              title="Close and dismiss update notification"
+              aria-label="Dismiss update"
+            >
+              ✕
+            </button>
           </div>
           
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', justifyContent: isMobileView ? 'space-between' : 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: isMobileView ? '100%' : 'auto', justifyContent: isMobileView ? 'stretch' : 'center' }}>
             <button
               type="button"
               onClick={() => {
                 if (updateAvailable?.downloadUrl) {
                   window.open(updateAvailable.downloadUrl, '_blank', 'noopener,noreferrer');
                 }
-                acknowledgeUpdateVersion(updateAvailable.version);
+                try {
+                  acknowledgeUpdateVersion(updateAvailable.version);
+                  localStorage.setItem('smart_attendance_dismissed_update_' + updateAvailable.version, 'true');
+                  sessionStorage.setItem('update_banner_dismissed', 'true');
+                } catch { /* storage fallback */ }
                 setUpdateAvailable(null);
                 setUpdateDismissed(true);
                 setUpdateDownloadedToast(true);
@@ -85,14 +106,14 @@ export default function UpdateNotification({
               style={{
                 background: 'linear-gradient(135deg, #00f2fe, #4facfe)',
                 color: '#0f172a',
-                padding: '6px 14px',
+                padding: '7px 16px',
                 borderRadius: '8px',
                 fontWeight: 700,
-                fontSize: '0.78rem',
+                fontSize: '0.8rem',
                 border: 'none',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                flexGrow: 1,
+                flex: isMobileView ? '1 1 auto' : 'initial',
                 textAlign: 'center',
                 boxShadow: '0 4px 12px rgba(0, 242, 254, 0.2)',
               }}
@@ -102,48 +123,31 @@ export default function UpdateNotification({
             <button
               type="button"
               onClick={() => {
-                acknowledgeUpdateVersion(updateAvailable.version);
+                try {
+                  acknowledgeUpdateVersion(updateAvailable.version);
+                  localStorage.setItem('smart_attendance_dismissed_update_' + updateAvailable.version, 'true');
+                  sessionStorage.setItem('update_banner_dismissed', 'true');
+                } catch { /* storage fallback */ }
                 setUpdateAvailable(null);
                 setUpdateDismissed(true);
               }}
               style={{
-                background: 'rgba(255,255,255,0.06)',
+                background: 'rgba(255,255,255,0.08)',
                 color: '#cbd5e1',
-                padding: '6px 12px',
+                padding: '7px 14px',
                 borderRadius: '8px',
                 fontWeight: 600,
-                fontSize: '0.75rem',
-                border: '1px solid rgba(255,255,255,0.1)',
+                fontSize: '0.78rem',
+                border: '1px solid rgba(255,255,255,0.15)',
                 cursor: 'pointer',
-                flexGrow: isMobileView ? 0 : 1,
+                flex: isMobileView ? '1 1 auto' : 'initial',
                 whiteSpace: 'nowrap',
+                textAlign: 'center',
               }}
             >
               Dismiss
             </button>
           </div>
-          
-          {!isMobileView && (
-            <button
-              onClick={() => {
-                acknowledgeUpdateVersion(updateAvailable?.version);
-                setUpdateDismissed(true);
-                setUpdateAvailable(null);
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'rgba(255,255,255,0.8)',
-                fontSize: '1.2rem',
-                cursor: 'pointer',
-                padding: '0 4px',
-                lineHeight: 1,
-              }}
-              aria-label="Dismiss update"
-            >
-              ×
-            </button>
-          )}
         </div>
       )}
 

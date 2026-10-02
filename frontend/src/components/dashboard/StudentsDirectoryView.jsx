@@ -63,18 +63,36 @@ export default function StudentsDirectoryView({
   setShowWebcamModal,
   setEditingStudent,
   setShowEditStudentModal,
+  serverWarmingUp,
+  subjects,
+  setNewStudent,
+  setShowAddModal,
+  isMobileView,
 }) {
   const { userRole, currentUser } = useAuth();
 
+  const handleOpenRegisterModal = () => {
+    if (serverWarmingUp) return;
+    if (userRole === 'teacher' && currentUser?.details) {
+      const teacherSubject = subjects?.find(s => s.teacher_id === currentUser.details.id);
+      setNewStudent?.(prev => ({
+        ...prev,
+        teacher: currentUser.details.name || '',
+        dep: teacherSubject?.department || prev.dep,
+      }));
+    }
+    setShowAddModal?.(true);
+  };
+
   return (
-    <div className="glass-panel" style={{ padding: '32px', animation: 'fadeInUp 0.6s ease both' }}>
-      {/* Filters bar */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
+    <div className="glass-panel" style={{ padding: 'clamp(16px, 3.5vw, 32px)', animation: 'fadeInUp 0.6s ease both', position: 'relative' }}>
+      {/* Filters bar & Actions */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '180px' }}>
           <input 
             type="text" 
             className="form-input" 
-            style={{ paddingLeft: '44px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
+            style={{ paddingLeft: '44px', background: '#ffffff', border: '1px solid var(--border-subtle)', width: '100%', boxSizing: 'border-box' }}
             placeholder="Search by ID, Name or Roll..."
             value={studentSearch}
             onChange={e => setStudentSearch(e.target.value)}
@@ -85,7 +103,7 @@ export default function StudentsDirectoryView({
         {userRole === 'admin' ? (
           <select 
             className="form-input" 
-            style={{ width: '220px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
+            style={{ width: 'auto', minWidth: '160px', flex: '0 1 auto', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
             value={studentDeptFilter}
             onChange={e => setStudentDeptFilter(e.target.value)}
           >
@@ -111,6 +129,36 @@ export default function StudentsDirectoryView({
             <span>Subject: {currentUser?.details?.subject_name || 'My Subject'} ({currentUser?.details?.subject_code || 'N/A'})</span>
           </div>
         ) : null}
+
+        {/* In-View Register Student Button (Visible on mobile & desktop) */}
+        {(userRole === 'admin' || userRole === 'teacher') && setShowAddModal && (
+          <button 
+            type="button"
+            onClick={handleOpenRegisterModal}
+            className="btn-primary"
+            style={{ 
+              padding: '10px 18px', 
+              borderRadius: '10px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+              border: 'none',
+              color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(30, 64, 175, 0.25)',
+              opacity: serverWarmingUp ? 0.6 : 1,
+              cursor: serverWarmingUp ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}
+            disabled={serverWarmingUp}
+          >
+            <Plus size={18} />
+            <span>{serverWarmingUp ? 'Connecting...' : 'Register Student'}</span>
+          </button>
+        )}
       </div>
 
       {/* Bulk Action Bar */}
@@ -259,6 +307,21 @@ export default function StudentsDirectoryView({
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Mobile Floating Action Button (FAB) for fast student registration */}
+      {(userRole === 'admin' || userRole === 'teacher') && setShowAddModal && (
+        <button
+          type="button"
+          className="mobile-student-fab"
+          onClick={handleOpenRegisterModal}
+          disabled={serverWarmingUp}
+          aria-label="Register Student"
+          title="Register Student"
+        >
+          <Plus size={22} color="#ffffff" />
+          <span className="fab-label">Register Student</span>
+        </button>
       )}
     </div>
   );

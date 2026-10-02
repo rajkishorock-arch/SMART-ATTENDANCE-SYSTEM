@@ -90,8 +90,40 @@ export function drawFaceBox(ctx, box, options = {}) {
   }
 
   if (label) {
+    ctx.save();
     ctx.fillStyle = color;
-    ctx.font = 'bold 13px system-ui, sans-serif';
-    ctx.fillText(label, box.x, Math.max(18, box.y - 12));
+    ctx.font = 'bold 12px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+    // Check if canvas is CSS mirrored with scaleX(-1) or explicitly set
+    let isMirrored = !!options.mirrored;
+    if (options.mirrored === undefined && ctx.canvas) {
+      const inlineTransform = ctx.canvas.style?.transform || '';
+      if (inlineTransform.includes('scaleX(-1)')) {
+        isMirrored = true;
+      } else {
+        try {
+          const comp = window.getComputedStyle(ctx.canvas).transform;
+          if (comp && comp !== 'none' && (comp.startsWith('matrix(-1,') || comp.startsWith('matrix3d(-1,'))) {
+            isMirrored = true;
+          }
+        } catch { /* ignore */ }
+      }
+    }
+
+    if (isMirrored) {
+      // Un-invert horizontally around center of face box so text reads normally
+      const cx = box.x + (box.w / 2);
+      const cy = Math.max(20, box.y - 12);
+      ctx.translate(cx, cy);
+      ctx.scale(-1, 1);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(label, 0, 0);
+    } else {
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(label, box.x, Math.max(18, box.y - 12));
+    }
+    ctx.restore();
   }
 }

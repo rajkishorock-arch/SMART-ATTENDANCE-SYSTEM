@@ -8,8 +8,6 @@ import {
   AlertCircle,
   GraduationCap,
   UserCog,
-  UserCheck,
-  Users,
   Crown,
   CheckCircle2,
   ArrowRight,
@@ -36,25 +34,11 @@ const ROLES = [
     description: 'Mark attendance, manage logs & sessions'
   },
   {
-    id: 'hod',
-    label: 'HOD',
-    icon: UserCheck,
-    color: '#f59e0b',
-    description: 'Department oversight, faculty & attendance'
-  },
-  {
     id: 'admin',
     label: 'Admin',
     icon: Crown,
     color: '#8b5cf6',
     description: 'Full institution administration & reports'
-  },
-  {
-    id: 'parent',
-    label: 'Parent',
-    icon: Users,
-    color: '#ec4899',
-    description: 'Track child attendance, alerts & progress'
   }
 ];
 
@@ -363,7 +347,15 @@ export default function LoginPortal({
         )}
 
         {/* Form Column */}
-        <div style={{ padding: window.innerWidth < 480 ? '24px 20px' : '40px 36px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          padding: 'clamp(20px, 4vw, 40px) clamp(14px, 3.5vw, 36px)',
+          display: 'flex',
+          flexDirection: 'column',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          overflowX: 'hidden'
+        }}>
           
           {/* Header Mobile Brand */}
           {(isRegister || window.innerWidth < 860) && (
@@ -611,15 +603,18 @@ export default function LoginPortal({
           ) : !isRegister ? (
             /* ================= LOGIN FORM ================= */
             <>
-              {/* Role Selection Tabs */}
+              {/* Role Selection Tabs (Student, Teacher, Admin) */}
               <div style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '6px',
                 padding: '4px',
                 borderRadius: '12px',
                 background: '#f1f5f9',
                 border: '1px solid #e2e8f0',
-                marginBottom: '20px'
+                marginBottom: '20px',
+                width: '100%',
+                boxSizing: 'border-box'
               }}>
                 {ROLES.map(role => (
                   <button
@@ -627,8 +622,8 @@ export default function LoginPortal({
                     type="button"
                     onClick={() => setLoginRole(role.id)}
                     style={{
-                      flex: 1,
-                      padding: '8px 12px',
+                      width: '100%',
+                      padding: '9px 4px',
                       borderRadius: '8px',
                       border: 'none',
                       background: loginRole === role.id ? '#ffffff' : 'transparent',
@@ -640,12 +635,14 @@ export default function LoginPortal({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
-                      transition: 'all 0.15s ease'
+                      gap: '5px',
+                      transition: 'all 0.15s ease',
+                      boxSizing: 'border-box',
+                      minWidth: 0
                     }}
                   >
-                    <role.icon size={15} color={loginRole === role.id ? role.color : '#64748b'} />
-                    <span>{role.label}</span>
+                    <role.icon size={15} color={loginRole === role.id ? role.color : '#64748b'} style={{ flexShrink: 0 }} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{role.label}</span>
                   </button>
                 ))}
               </div>
