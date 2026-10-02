@@ -84,16 +84,19 @@ export default function LoginPortal({
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [regInstitutionCode, setRegInstitutionCode] = useState('');
+  const [regInstName, setRegInstName] = useState('');
+  const [regInstSlug, setRegInstSlug] = useState('');
   const [regRoll, setRegRoll] = useState('');
   const [regDep, setRegDep] = useState('');
   const [regCourse] = useState('');
   const [regYear] = useState('1st Year');
   const [regSemester] = useState('Sem 1');
   const [regGender] = useState('Male');
-  const [regPhone] = useState('');
+  const [regPhone, setRegPhone] = useState('');
   const [regConsent, setRegConsent] = useState(true);
 
   const [regError, setRegError] = useState('');
+  const [regSuccessMsg, setRegSuccessMsg] = useState('');
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [showPostRegFaceEnroll, setShowPostRegFaceEnroll] = useState(false);
 
@@ -114,23 +117,34 @@ export default function LoginPortal({
   // Step 2 Validation
   const validateStep2 = () => {
     setRegError('');
-    if (!regInstitutionCode.trim()) {
-      setRegError('Please enter your institution code.');
-      return false;
-    }
-    if (loginRole === 'student') {
-      if (!regRoll.trim()) {
-        setRegError('Please enter your Student Roll Number.');
+    if (loginRole === 'admin') {
+      if (!regInstName.trim()) {
+        setRegError('Please enter your Institution / Organization Name.');
         return false;
       }
-      if (!regDep.trim()) {
-        setRegError('Please enter your Academic Department.');
+      if (!regInstSlug.trim()) {
+        setRegError('Please choose a short Institution Code or Identifier (e.g. dps-delhi).');
         return false;
       }
-    } else if (loginRole === 'teacher') {
-      if (!regDep.trim()) {
-        setRegError('Please enter your Teaching Department.');
+    } else {
+      if (!regInstitutionCode.trim()) {
+        setRegError('Please enter your institution code.');
         return false;
+      }
+      if (loginRole === 'student') {
+        if (!regRoll.trim()) {
+          setRegError('Please enter your Student Roll Number.');
+          return false;
+        }
+        if (!regDep.trim()) {
+          setRegError('Please enter your Academic Department.');
+          return false;
+        }
+      } else if (loginRole === 'teacher' || loginRole === 'hod') {
+        if (!regDep.trim()) {
+          setRegError('Please enter your Teaching Department.');
+          return false;
+        }
       }
     }
     return true;
@@ -156,28 +170,49 @@ export default function LoginPortal({
 
     setIsSubmittingReg(true);
     const apiBase = getApiBaseUrl();
+    const isInstitution = loginRole === 'admin';
     const isStudent = loginRole === 'student';
-    const endpoint = isStudent ? '/auth/register/student' : '/auth/register/teacher';
 
-    const payload = isStudent ? {
-      name: regName,
-      email: regEmail,
-      password: regPassword,
-      institution_code: regInstitutionCode,
-      roll: regRoll,
-      dep: regDep,
-      course: regCourse || 'General',
-      year: regYear,
-      semester: regSemester,
-      gender: regGender,
-      phone: regPhone || null
-    } : {
-      name: regName,
-      email: regEmail,
-      password: regPassword,
-      institution_code: regInstitutionCode,
-      department: regDep
-    };
+    let endpoint = '/auth/register/student';
+    let payload = {};
+
+    if (isInstitution) {
+      endpoint = '/auth/register/institution';
+      payload = {
+        name: regInstName.trim(),
+        slug: regInstSlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-'),
+        admin_name: regName.trim(),
+        admin_email: regEmail.trim().toLowerCase(),
+        admin_password: regPassword,
+        primary_color: '#0284c7',
+        secondary_color: '#0ea5e9',
+        subscription_plan: 'free'
+      };
+    } else if (isStudent) {
+      endpoint = '/auth/register/student';
+      payload = {
+        name: regName.trim(),
+        email: regEmail.trim().toLowerCase(),
+        password: regPassword,
+        institution_code: regInstitutionCode.trim(),
+        roll: regRoll.trim(),
+        dep: regDep.trim(),
+        course: regCourse || 'General',
+        year: regYear,
+        semester: regSemester,
+        gender: regGender,
+        phone: regPhone || null
+      };
+    } else {
+      endpoint = '/auth/register/teacher';
+      payload = {
+        name: regName.trim(),
+        email: regEmail.trim().toLowerCase(),
+        password: regPassword,
+        institution_code: regInstitutionCode.trim(),
+        department: regDep.trim()
+      };
+    }
 
     try {
       const res = await fetch(`${apiBase}${endpoint}`, {
@@ -191,7 +226,15 @@ export default function LoginPortal({
         throw new Error(data.detail || 'Registration failed. Please check credentials.');
       }
 
-      setShowPostRegFaceEnroll(true);
+      if (isInstitution) {
+        localStorage.setItem('override_tenant', data.institution_code || regInstSlug.trim().toLowerCase());
+        setLoginEmail(regEmail.trim().toLowerCase());
+        setLoginRole('admin');
+        setRegSuccessMsg(`🎉 Institution "${data.institution_name || regInstName}" registered! Code: ${data.institution_code || regInstSlug}. You can now log in.`);
+        setIsRegister(false);
+      } else {
+        setShowPostRegFaceEnroll(true);
+      }
     } catch (err) {
       setRegError(err.message || 'Registration failed');
     } finally {
@@ -410,13 +453,36 @@ export default function LoginPortal({
             </div>
           )}
 
+          {/* Registration Success Notification Banner */}
+          {regSuccessMsg && (
+            <div 
+              style={{
+                padding: '14px 18px',
+                borderRadius: '12px',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                color: '#065f46',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '0.84rem',
+                fontWeight: 600,
+                lineHeight: 1.4
+              }}
+            >
+              <CheckCircle2 size={18} color="#059669" style={{ flexShrink: 0 }} />
+              <span>{regSuccessMsg}</span>
+            </div>
+          )}
+
           {/* Registration Success / Guided Post-Signup Step */}
           {showPostRegFaceEnroll ? (
-            <div style={{ padding: '24px', borderRadius: '16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', textAlign: 'center' }}>
-              <CheckCircle2 size={44} color="#10b981" style={{ margin: '0 auto 12px auto' }} />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>Account Created Successfully!</h3>
-              <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '8px 0 20px 0', lineHeight: 1.4 }}>
-                You can now log in using your credentials. Face enrollment is recommended for biometric attendance scan.
+            <div style={{ padding: '28px', borderRadius: '16px', background: '#ecfdf5', border: '1px solid #a7f3d0', textAlign: 'center' }}>
+              <CheckCircle2 size={44} color="#059669" style={{ margin: '0 auto 12px auto' }} />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46', margin: 0 }}>Account Created Successfully!</h3>
+              <p style={{ fontSize: '0.84rem', color: '#334155', margin: '8px 0 20px 0', lineHeight: 1.5 }}>
+                You can now log in using your credentials. Face enrollment is recommended for biometric attendance scanning.
               </p>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button
@@ -426,12 +492,12 @@ export default function LoginPortal({
                     setIsRegister(false);
                   }}
                   style={{
-                    padding: '10px 20px',
+                    padding: '10px 22px',
                     borderRadius: '10px',
-                    background: 'linear-gradient(90deg, #10b981, #059669)',
+                    background: '#059669',
                     border: 'none',
                     color: '#ffffff',
-                    fontSize: '0.85rem',
+                    fontSize: '0.88rem',
                     fontWeight: 700,
                     cursor: 'pointer'
                   }}
@@ -642,22 +708,20 @@ export default function LoginPortal({
               </button>
 
               {/* Signup Link Footer */}
-              {loginRole !== 'admin' && (
-                <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
-                  Don't have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRegError('');
-                      setIsRegister(true);
-                      setRegStep(1);
-                    }}
-                    style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontWeight: 700, padding: 0 }}
-                  >
-                    Sign up now
-                  </button>
-                </div>
-              )}
+              <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
+                Don't have an account or onboarding a new school?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegError('');
+                    setIsRegister(true);
+                    setRegStep(1);
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontWeight: 700, padding: 0 }}
+                >
+                  Sign up now
+                </button>
+              </div>
             </>
           ) : (
             /* ================= 3-STEP SIGNUP WIZARD ================= */
@@ -666,7 +730,7 @@ export default function LoginPortal({
               <div style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#0284c7', marginBottom: '8px' }}>
                   <span>Step {regStep} of 3</span>
-                  <span>{regStep === 1 ? 'Personal Details' : regStep === 2 ? 'Academic Info' : 'Security & Consent'}</span>
+                  <span>{regStep === 1 ? 'Personal Details' : regStep === 2 ? (loginRole === 'admin' ? 'Institution Info' : 'Academic Info') : 'Security & Consent'}</span>
                 </div>
                 <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ width: `${(regStep / 3) * 100}%`, height: '100%', background: '#0284c7', transition: 'width 0.25s ease' }} />
@@ -680,42 +744,54 @@ export default function LoginPortal({
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
                       Registering As
                     </label>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      {ROLES.filter(r => r.id !== 'admin').map(role => (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                      {[
+                        { id: 'admin', label: 'New Institution', icon: Crown, color: '#8b5cf6' },
+                        { id: 'student', label: 'Student', icon: GraduationCap, color: '#10b981' },
+                        { id: 'teacher', label: 'Teacher', icon: UserCog, color: '#0284c7' }
+                      ].map(role => (
                         <button
                           key={role.id}
                           type="button"
                           onClick={() => setLoginRole(role.id)}
                           style={{
-                            flex: 1,
-                            padding: '10px 14px',
+                            padding: '10px 6px',
                             borderRadius: '10px',
-                            border: loginRole === role.id ? '1px solid #3b82f6' : '1px solid #cbd5e1',
-                            background: loginRole === role.id ? '#eff6ff' : '#f8fafc',
-                            color: loginRole === role.id ? '#1d4ed8' : '#64748b',
-                            fontSize: '0.85rem',
-                            fontWeight: 600,
+                            border: loginRole === role.id ? `2px solid ${role.color}` : '1px solid #cbd5e1',
+                            background: loginRole === role.id ? '#f8fafc' : '#ffffff',
+                            color: loginRole === role.id ? '#0f172a' : '#64748b',
+                            fontSize: '0.8rem',
+                            fontWeight: loginRole === role.id ? 700 : 500,
                             cursor: 'pointer',
                             display: 'flex',
+                            flexDirection: 'column',
                             alignItems: 'center',
-                            gap: '8px'
+                            justifyContent: 'center',
+                            gap: '6px',
+                            transition: 'all 0.15s ease',
+                            boxShadow: loginRole === role.id ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
                           }}
                         >
-                          <role.icon size={16} color={role.color} />
-                          <span>{role.label}</span>
+                          <role.icon size={18} color={role.color} />
+                          <span style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{role.label}</span>
                         </button>
                       ))}
                     </div>
+                    {loginRole === 'admin' && (
+                      <p style={{ margin: '8px 0 0', fontSize: '0.74rem', color: '#6d28d9', background: '#f5f3ff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd6fe', lineHeight: 1.4 }}>
+                        🏫 <strong>New School / College / Org:</strong> Automatically provisions an isolated multi-tenant organization database space and your primary Administrator account.
+                      </p>
+                    )}
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                      Full Name
+                      {loginRole === 'admin' ? 'Administrator Full Name' : 'Full Name'}
                     </label>
                     <input
                       type="text"
                       className="form-input-touch"
-                      placeholder="e.g. Rajkishor Rock"
+                      placeholder={loginRole === 'admin' ? 'e.g. Dr. Rajesh Sharma' : 'e.g. Rajkishor Rock'}
                       value={regName}
                       onChange={(e) => setRegName(e.target.value)}
                       style={{
@@ -734,12 +810,12 @@ export default function LoginPortal({
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                      Email Address
+                      {loginRole === 'admin' ? 'Administrator Work Email' : 'Email Address'}
                     </label>
                     <input
                       type="email"
                       className="form-input-touch"
-                      placeholder="name@institution.edu"
+                      placeholder={loginRole === 'admin' ? 'admin@institution.edu' : 'name@institution.edu'}
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
                       style={{
@@ -778,7 +854,7 @@ export default function LoginPortal({
                       gap: '8px'
                     }}
                   >
-                    <span>Continue to Academic Info</span>
+                    <span>{loginRole === 'admin' ? 'Continue to Institution Info' : 'Continue to Academic Info'}</span>
                     <ArrowRight size={16} />
                   </button>
                 </div>
@@ -787,42 +863,23 @@ export default function LoginPortal({
               {/* STEP 2: Academic & Institution Details */}
               {regStep === 2 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                      Institution Code
-                    </label>
-                    <input
-                      type="text"
-                      className="form-input-touch"
-                      placeholder="e.g. default"
-                      value={regInstitutionCode}
-                      onChange={(e) => setRegInstitutionCode(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
-                        fontSize: '0.88rem',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-
-                  {loginRole === 'student' ? (
+                  {loginRole === 'admin' ? (
                     <>
                       <div>
                         <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                          Student Roll Number / ID
+                          Institution / Organization Name
                         </label>
                         <input
                           type="text"
                           className="form-input-touch"
-                          placeholder="e.g. 2026CSE01"
-                          value={regRoll}
-                          onChange={(e) => setRegRoll(e.target.value)}
+                          placeholder="e.g. Delhi Public School or Apex Engineering"
+                          value={regInstName}
+                          onChange={(e) => {
+                            setRegInstName(e.target.value);
+                            if (!regInstSlug || regInstSlug === regInstName.toLowerCase().replace(/[^a-z0-9]/g, '-')) {
+                              setRegInstSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30));
+                            }
+                          }}
                           style={{
                             width: '100%',
                             padding: '12px 14px',
@@ -839,14 +896,41 @@ export default function LoginPortal({
 
                       <div>
                         <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                          Academic Department
+                          Unique Institution Code / Slug
                         </label>
                         <input
                           type="text"
                           className="form-input-touch"
-                          placeholder="e.g. Mechanical Engineering"
-                          value={regDep}
-                          onChange={(e) => setRegDep(e.target.value)}
+                          placeholder="e.g. dps-delhi"
+                          value={regInstSlug}
+                          onChange={(e) => setRegInstSlug(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                          style={{
+                            width: '100%',
+                            padding: '12px 14px',
+                            borderRadius: '10px',
+                            background: '#ffffff',
+                            border: '1px solid #cbd5e1',
+                            color: '#0f172a',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                          This unique identifier scopes your data and gives your staff and students a clean portal access code.
+                        </span>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                          Primary Contact Phone (Optional)
+                        </label>
+                        <input
+                          type="tel"
+                          className="form-input-touch"
+                          placeholder="e.g. +91 9876543210"
+                          value={regPhone}
+                          onChange={(e) => setRegPhone(e.target.value)}
                           style={{
                             width: '100%',
                             padding: '12px 14px',
@@ -862,29 +946,107 @@ export default function LoginPortal({
                       </div>
                     </>
                   ) : (
-                    <div>
-                      <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                        Teaching Department
-                      </label>
-                      <input
-                        type="text"
-                        className="form-input-touch"
-                        placeholder="e.g. Computer Science"
-                        value={regDep}
-                        onChange={(e) => setRegDep(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '12px 14px',
-                          borderRadius: '10px',
-                          background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          color: '#0f172a',
-                          fontSize: '0.88rem',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                          Institution Code
+                        </label>
+                        <input
+                          type="text"
+                          className="form-input-touch"
+                          placeholder="e.g. default or your school code"
+                          value={regInstitutionCode}
+                          onChange={(e) => setRegInstitutionCode(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 14px',
+                            borderRadius: '10px',
+                            background: '#ffffff',
+                            border: '1px solid #cbd5e1',
+                            color: '#0f172a',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+
+                      {loginRole === 'student' ? (
+                        <>
+                          <div>
+                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                              Student Roll Number / ID
+                            </label>
+                            <input
+                              type="text"
+                              className="form-input-touch"
+                              placeholder="e.g. 2026CSE01"
+                              value={regRoll}
+                              onChange={(e) => setRegRoll(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '12px 14px',
+                                borderRadius: '10px',
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                color: '#0f172a',
+                                fontSize: '0.88rem',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                              Academic Department
+                            </label>
+                            <input
+                              type="text"
+                              className="form-input-touch"
+                              placeholder="e.g. Mechanical Engineering"
+                              value={regDep}
+                              onChange={(e) => setRegDep(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '12px 14px',
+                                borderRadius: '10px',
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                color: '#0f172a',
+                                fontSize: '0.88rem',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                            Teaching Department
+                          </label>
+                          <input
+                            type="text"
+                            className="form-input-touch"
+                            placeholder="e.g. Computer Science"
+                            value={regDep}
+                            onChange={(e) => setRegDep(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 14px',
+                              borderRadius: '10px',
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              color: '#0f172a',
+                              fontSize: '0.88rem',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
 
                   <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
@@ -1015,7 +1177,11 @@ export default function LoginPortal({
                       onChange={(e) => setRegConsent(e.target.checked)}
                       style={{ accentColor: '#0284c7', width: '16px', height: '16px', marginTop: '2px' }}
                     />
-                    <span>I consent to biometric attendance verification and institutional data processing policies.</span>
+                    <span>
+                      {loginRole === 'admin'
+                        ? 'I agree to institutional administrative policies, secure workspace provisioning, and data governance terms.'
+                        : 'I consent to biometric attendance verification and institutional data processing policies.'}
+                    </span>
                   </label>
 
                   <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
@@ -1063,7 +1229,11 @@ export default function LoginPortal({
                         opacity: isSubmittingReg ? 0.7 : 1
                       }}
                     >
-                      <span>{isSubmittingReg ? 'Creating Account...' : 'Complete Registration'}</span>
+                      <span>
+                        {isSubmittingReg
+                          ? (loginRole === 'admin' ? 'Provisioning Workspace...' : 'Creating Account...')
+                          : (loginRole === 'admin' ? 'Register Institution & Admin' : 'Complete Registration')}
+                      </span>
                       <Check size={16} />
                     </button>
                   </div>

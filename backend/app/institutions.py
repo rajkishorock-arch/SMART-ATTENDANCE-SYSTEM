@@ -36,6 +36,20 @@ def get_branding(slug: str, db: Session = Depends(get_db)):
         )
     return inst
 
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+def register_institution_public(
+    payload: schemas.InstitutionCreate,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Public self-serve registration for schools, colleges, and organizations.
+    Allows administrators to sign up their organization directly without manual intervention.
+    """
+    from .auth import register_institution_public as auth_reg
+    return auth_reg(payload=payload, background_tasks=background_tasks, request=request, db=db)
+
 @router.post("/", response_model=schemas.InstitutionBrandingResponse, status_code=status.HTTP_201_CREATED)
 def create_institution(
     payload: schemas.InstitutionCreate,

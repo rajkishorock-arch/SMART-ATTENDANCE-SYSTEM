@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -101,6 +102,17 @@ def login_for_access_token(
 
             # 2. Try Admin/Teacher Login
             user = crud.get_user_by_email(db, email=form_data.username, institution_id=institution_id)
+            if not user and tenant_slug in ("default", ""):
+                # If not in default institution, check if email belongs to another active institution
+                candidate_users = db.query(models.User).filter(
+                    func.lower(models.User.email) == form_data.username.strip().lower(),
+                    models.User.is_active == True
+                ).all()
+                if len(candidate_users) == 1:
+                    user = candidate_users[0]
+                    institution_id = user.institution_id
+                    _is_default_inst = (institution_id == 1)
+
             if user:
                 # For default institution, only system owner can login as admin
                 if _is_default_inst and user.role in ("admin",) and user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
@@ -144,6 +156,13 @@ def login_for_access_token(
 
             # 3. Try Student Login
             student = crud.get_student_by_email(db, email=form_data.username, institution_id=institution_id)
+            if not student and tenant_slug in ("default", ""):
+                candidate_students = db.query(models.StudentModel).filter(
+                    func.lower(models.StudentModel.email) == form_data.username.strip().lower()
+                ).all()
+                if len(candidate_students) == 1:
+                    student = candidate_students[0]
+                    institution_id = student.institution_id
             if student:
                 is_valid = False
                 if not student.password_hash:
@@ -480,5 +499,173 @@ def register_teacher_self(
     )
     
     return {"message": "Registration successful! You can now log in.", "user_id": db_user.id}
+
+
+@router.post("/register/institution", status_code=status.HTTP_201_CREATED)
+def register_institution_public(
+    payload: schemas.InstitutionCreate,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Public self-serve registration for schools, colleges, and corporate organizations.
+    Generates a dedicated multi-tenant institution, master key, default departments,
+    system settings, and assigns the primary Administrator account.
+    """
+    import re
+    import secrets
+    import string
+
+    # 1. Clean and validate institution name
+    inst_name = payload.name.strip()
+    if len(inst_name) < 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Institution Name must be at least 3 characters long."
+        )
+
+    # 2. Clean and validate slug (subdomain identifier)
+    raw_slug = payload.slug.strip().lower() if payload.slug else inst_name.lower()
+    slug_clean = re.sub(r'[^a-z0-9_-]', '-', raw_slug).strip('-')
+    if len(slug_clean) < 2:
+        slug_clean = f"inst-{secrets.token_hex(3)}"
+
+    # 3. Check for uniqueness of slug
+    existing_slug = db.query(models.Institution).filter(models.Institution.slug == slug_clean).first()
+    if existing_slug:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"The institution identifier '{slug_clean}' is already in use. Please choose a different slug or code."
+        )
+
+    # 4. Check for uniqueness of institution name
+    existing_name = db.query(models.Institution).filter(
+        func.lower(models.Institution.name) == inst_name.lower()
+    ).first()
+    if existing_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"An institution named '{inst_name}' is already registered."
+        )
+
+    # 5. Validate Admin Credentials
+    admin_name_clean = payload.admin_name.strip()
+    if len(admin_name_clean) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide a valid Administrator Full Name."
+        )
+
+    admin_email_clean = str(payload.admin_email).strip().lower()
+    if len(payload.admin_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admin Password must be at least 6 characters long."
+        )
+
+    # Check if admin email already exists in the system under another admin role
+    existing_admin = db.query(models.User).filter(
+        func.lower(models.User.email) == admin_email_clean,
+        models.User.role == "admin"
+    ).first()
+    if existing_admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An administrator with this email is already registered. Please sign in or use another email."
+        )
+
+    # 6. Generate secure Institution Master Key / Join Code
+    alphabet = string.ascii_uppercase + string.digits
+    part1 = ''.join(secrets.choice(alphabet) for _ in range(4))
+    part2 = ''.join(secrets.choice(alphabet) for _ in range(4))
+    generated_master_key = f"MK-{part1}-{part2}"
+
+    # 7. Create the Institution record
+    new_inst = models.Institution(
+        name=inst_name,
+        slug=slug_clean,
+        primary_color=payload.primary_color or "#0284c7",
+        secondary_color=payload.secondary_color or "#0ea5e9",
+        logo_url=payload.logo_url or "",
+        app_name=payload.app_name or inst_name,
+        is_active=True,
+        master_key=generated_master_key,
+        subscription_plan=payload.subscription_plan or "free",
+        subscription_status="active",
+        student_limit=payload.student_limit or 500
+    )
+    db.add(new_inst)
+    db.commit()
+    db.refresh(new_inst)
+
+    # 8. Create the Primary Administrator Account
+    hashed_pw = security.get_password_hash(payload.admin_password)
+    new_admin = models.User(
+        institution_id=new_inst.id,
+        name=admin_name_clean,
+        email=admin_email_clean,
+        password_hash=hashed_pw,
+        role="admin",
+        is_active=True
+    )
+    db.add(new_admin)
+
+    # 9. Create Default System Settings for the institution
+    new_settings = models.SystemSettings(
+        institution_id=new_inst.id,
+        geofencing_enabled=False,
+        center_latitude=28.6139,
+        center_longitude=77.2090,
+        allowed_radius_meters=150.0,
+        ip_restriction_enabled=False,
+        allowed_ip_ranges="127.0.0.1,192.168.1.0/24"
+    )
+    db.add(new_settings)
+
+    # 10. Seed standard default departments
+    default_depts = [
+        models.Department(institution_id=new_inst.id, name="Computer Science", code="CS"),
+        models.Department(institution_id=new_inst.id, name="Information Technology", code="IT"),
+        models.Department(institution_id=new_inst.id, name="General Administration", code="ADMIN")
+    ]
+    db.add_all(default_depts)
+    db.commit()
+    db.refresh(new_admin)
+
+    # 11. Queue Welcome Email
+    try:
+        from . import email_service
+        background_tasks.add_task(
+            email_service.send_welcome_email,
+            admin_email=admin_email_clean,
+            admin_name=admin_name_clean,
+            institution_name=inst_name,
+            slug=slug_clean,
+            raw_password=payload.admin_password,
+            master_key=generated_master_key
+        )
+    except Exception:
+        pass
+
+    # 12. Audit Trail
+    crud.create_audit_log(
+        db,
+        log=schemas.AuditLogCreate(
+            user_email=admin_email_clean,
+            action=f"Self-registered organization '{inst_name}' (Slug: {slug_clean}, Code: {generated_master_key})"
+        ),
+        institution_id=new_inst.id
+    )
+
+    return {
+        "message": "Institution registered successfully! You can now log in as Administrator.",
+        "institution_id": new_inst.id,
+        "institution_name": new_inst.name,
+        "institution_code": slug_clean,
+        "master_key": generated_master_key,
+        "admin_email": admin_email_clean
+    }
+
 
 
