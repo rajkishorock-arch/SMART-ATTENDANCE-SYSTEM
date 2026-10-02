@@ -4455,9 +4455,14 @@ export default function App() {
         department: userRole === 'admin' ? reportDeptFilter : null,
         subject_id: queryParams.get('subject_id')
       });
-      setReportData(data);
+      if (data && Array.isArray(data.students)) {
+        setReportData(data);
+      } else {
+        setReportData({ total_working_days: (data && data.total_working_days) || 0, students: [] });
+      }
     } catch (err) {
       console.error('Error fetching report:', err);
+      setReportData({ total_working_days: 0, students: [] });
     } finally {
       setIsLoadingReport(false);
     }
@@ -4498,8 +4503,9 @@ export default function App() {
   const exportReportToCSV = () => {
     const headers = ['Student ID', 'Roll Number', 'Name', 'Department', 'Attended Days', 'Total Days', 'Attendance Rate (%)', 'Status'];
     const csvRows = [headers.join(',')];
+    const students = Array.isArray(reportData?.students) ? reportData.students : [];
 
-    reportData.students.forEach(student => {
+    students.forEach(student => {
       const statusText = student.low_attendance ? 'Warning (Low)' : 'Good';
       const row = [
         `"${student.id}"`,

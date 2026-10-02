@@ -10,13 +10,16 @@ export function AttendanceReportsHeaderAction({
   reportData,
   isSendingAlerts,
 }) {
+  const students = Array.isArray(reportData?.students) ? reportData.students : [];
+  const hasStudents = students.length > 0;
+
   return (
     <>
       <button 
         onClick={printReport}
         className="btn-secondary"
         style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}
-        disabled={reportData.students.length === 0}
+        disabled={!hasStudents}
       >
         <BookOpen size={18} />
         Print Report
@@ -25,7 +28,7 @@ export function AttendanceReportsHeaderAction({
         onClick={exportReportToCSV}
         className="bg-gradient-btn"
         style={{ padding: '10px 18px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}
-        disabled={reportData.students.length === 0}
+        disabled={!hasStudents}
       >
         <FileSpreadsheet size={18} />
         Export CSV
@@ -34,7 +37,7 @@ export function AttendanceReportsHeaderAction({
         onClick={downloadReportPDF}
         className="bg-gradient-btn"
         style={{ padding: '10px 18px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', borderColor: '#0284c7' }}
-        disabled={reportData.students.length === 0}
+        disabled={!hasStudents}
       >
         <FileDown size={18} />
         Download PDF
@@ -43,7 +46,7 @@ export function AttendanceReportsHeaderAction({
         onClick={handleSendAbsenteeAlerts}
         className="btn-danger"
         style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', padding: '10px 18px', borderRadius: '8px' }}
-        disabled={isSendingAlerts}
+        disabled={isSendingAlerts || !hasStudents}
       >
         <Mail size={18} />
         {isSendingAlerts ? 'Sending Alerts...' : 'Send Absentee Alerts'}
@@ -72,6 +75,9 @@ export default function AttendanceReportsView({
 }) {
   const { userRole, currentUser } = useAuth();
   const { playCyberSound } = useUI();
+
+  const students = Array.isArray(reportData?.students) ? reportData.students : [];
+  const totalWorkingDays = (reportData && reportData.total_working_days) || 0;
 
   return (
     <div className="reports-section mobile-tab-panel reports-panel" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -266,7 +272,7 @@ export default function AttendanceReportsView({
           >
             Regenerate
           </button>
-          {reportData.students.length > 0 && (
+          {students.length > 0 && (
             <button 
               onClick={() => printReport()} 
               className="btn-secondary" 
@@ -297,7 +303,7 @@ export default function AttendanceReportsView({
           </p>
         )}
         <p style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '8px' }}>
-          Total System Academic Days: {reportData.total_working_days} | Generated on {new Date().toLocaleDateString()}
+          Total System Academic Days: {totalWorkingDays} | Generated on {new Date().toLocaleDateString()}
         </p>
         <hr style={{ border: 'none', borderTop: '2px solid #000', marginTop: '20px' }} />
       </div>
@@ -307,23 +313,23 @@ export default function AttendanceReportsView({
         <div className="glass-panel metric-card" style={{ animationDelay: '100ms' }}>
           <div className="metric-info">
             <h3>Scanned Students</h3>
-            <p>{reportData.students.length}</p>
+            <p>{students.length}</p>
           </div>
           <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)' }}>
             <Users size={24} />
           </div>
         </div>
 
-        <div className="glass-panel metric-card" style={{ borderColor: reportData.students.filter(s => s.low_attendance).length > 0 ? 'rgba(239,68,68,0.2)' : undefined, animationDelay: '200ms' }}>
+        <div className="glass-panel metric-card" style={{ borderColor: students.filter(s => s.low_attendance).length > 0 ? 'rgba(239,68,68,0.2)' : undefined, animationDelay: '200ms' }}>
           <div className="metric-info">
             <h3>Low Attendance Alerts</h3>
-            <p style={{ color: reportData.students.filter(s => s.low_attendance).length > 0 ? '#ef4444' : undefined }}>
-              {reportData.students.filter(s => s.low_attendance).length}
+            <p style={{ color: students.filter(s => s.low_attendance).length > 0 ? '#ef4444' : undefined }}>
+              {students.filter(s => s.low_attendance).length}
             </p>
           </div>
           <div className="metric-icon" style={{ 
-            background: reportData.students.filter(s => s.low_attendance).length > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.05)', 
-            color: reportData.students.filter(s => s.low_attendance).length > 0 ? '#ef4444' : '#9ca3af' 
+            background: students.filter(s => s.low_attendance).length > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.05)', 
+            color: students.filter(s => s.low_attendance).length > 0 ? '#ef4444' : '#9ca3af' 
           }}>
             <AlertCircle size={24} />
           </div>
@@ -333,8 +339,8 @@ export default function AttendanceReportsView({
           <div className="metric-info">
             <h3>Avg Presence Rate</h3>
             <p>
-              {reportData.students.length > 0 
-                ? (reportData.students.reduce((acc, s) => acc + s.percentage, 0) / reportData.students.length).toFixed(1)
+              {students.length > 0 
+                ? (students.reduce((acc, s) => acc + s.percentage, 0) / students.length).toFixed(1)
                 : '0.0'
               }%
             </p>
@@ -352,7 +358,7 @@ export default function AttendanceReportsView({
             <div style={{ width: '40px', height: '40px', border: '3px solid rgba(30, 64, 175, 0.1)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
             <span>Computing attendance records...</span>
           </div>
-        ) : reportData.students.length === 0 ? (
+        ) : students.length === 0 ? (
           <div className="flex-center" style={{ padding: '40px 0', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '16px' }}>
             <BookOpen size={48} />
             <span>No student attendance logs found in this range.</span>
@@ -373,7 +379,7 @@ export default function AttendanceReportsView({
                 </tr>
               </thead>
               <tbody>
-                {reportData.students.map(student => (
+                {students.map(student => (
                   <tr key={student.id} style={{ 
                     background: student.low_attendance ? 'rgba(239,68,68,0.02)' : undefined,
                     color: student.low_attendance ? '#ef4444' : undefined 
@@ -407,7 +413,7 @@ export default function AttendanceReportsView({
       </div>
 
       {/* Dynamic At-Risk Leaderboard & Insights */}
-      {reportData && reportData.students && reportData.students.length > 0 && (
+      {students.length > 0 && (
         <div className="hide-on-print reports-insights-grid" style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '32px', marginTop: '32px' }}>
           {/* At-Risk Leaderboard */}
           <div className="glass-panel" style={{ padding: '28px' }}>
@@ -426,14 +432,14 @@ export default function AttendanceReportsView({
                   </tr>
                 </thead>
                 <tbody>
-                  {reportData.students.filter(s => s.percentage < 75).length === 0 ? (
+                  {students.filter(s => s.percentage < 75).length === 0 ? (
                     <tr>
                       <td colSpan="5" style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '20px' }}>
                         No students currently at risk. Good job!
                       </td>
                     </tr>
                   ) : (
-                    reportData.students.filter(s => s.percentage < 75).sort((a, b) => a.percentage - b.percentage).map(student => (
+                    students.filter(s => s.percentage < 75).sort((a, b) => a.percentage - b.percentage).map(student => (
                       <tr key={student.id}>
                         <td style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{student.roll}</td>
                         <td>{student.name}</td>

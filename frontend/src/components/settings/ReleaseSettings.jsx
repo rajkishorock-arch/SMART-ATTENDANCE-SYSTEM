@@ -230,13 +230,13 @@ export default function ReleaseSettings({
   return (
     <>
       {/* ═══ SYSTEM RELEASE UPDATE CONTROL ═══ */}
-      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="surface-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               🚀 System Release & APK Control
             </h3>
-            <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
               Trigger automated GitHub Actions APK compilation or manually deploy new version releases.
             </p>
           </div>
@@ -468,11 +468,11 @@ export default function ReleaseSettings({
 
         {/* ═══ AUTO BUILD / MANUAL RELEASE FORM ═══ */}
         {!showManualReleaseForm ? (
-          <form onSubmit={handleTriggerBuild} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <form onSubmit={handleTriggerBuild} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               🚀 Auto-Build & Release APK via GitHub Actions
             </h4>
-            <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '0', lineHeight: 1.5 }}>
+            <p style={{ color: '#475569', fontSize: '0.85rem', margin: '0', lineHeight: 1.5 }}>
               Specify the new release version and enter your master password. The system will automatically build the signed APK and publish it without any manual Android Studio compiling.
             </p>
 
@@ -534,11 +534,11 @@ export default function ReleaseSettings({
             </div>
           </form>
         ) : (
-          <form onSubmit={handlePublishReleaseUpdate} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <form onSubmit={handlePublishReleaseUpdate} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               💾 Configure Version & Download URL Manually
             </h4>
-            <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '0', lineHeight: 1.5 }}>
+            <p style={{ color: '#475569', fontSize: '0.85rem', margin: '0', lineHeight: 1.5 }}>
               Directly save the version number and custom .apk download link.
             </p>
 
@@ -603,13 +603,13 @@ export default function ReleaseSettings({
           </form>
         )}
 
-        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>ℹ️ How It Works (Automated Release)</h4>
-          <ul style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '4px 0 0 20px', padding: 0, lineHeight: 1.8 }}>
-            <li><strong style={{ color: '#e2e8f0' }}>Step 1:</strong> Enter the target release version and your master key, then click "Trigger Auto-Build".</li>
-            <li><strong style={{ color: '#e2e8f0' }}>Step 2:</strong> GitHub Actions compiles, signs, uploads the APK to GitHub Releases, and calls back this backend.</li>
-            <li><strong style={{ color: '#e2e8f0' }}>Step 3:</strong> Once compiled, the download link updates automatically, and the update is made LIVE for all users.</li>
-            <li><strong style={{ color: '#e2e8f0' }}>Step 4:</strong> To stop displaying the update banner, simply toggle the master active switch above to OFF.</li>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>ℹ️ How It Works (Automated Release)</h4>
+          <ul style={{ color: '#475569', fontSize: '0.82rem', margin: '4px 0 0 20px', padding: 0, lineHeight: 1.8 }}>
+            <li><strong style={{ color: '#0f172a' }}>Step 1:</strong> Enter the target release version and your master key, then click "Trigger Auto-Build".</li>
+            <li><strong style={{ color: '#0f172a' }}>Step 2:</strong> GitHub Actions compiles, signs, uploads the APK to GitHub Releases, and calls back this backend.</li>
+            <li><strong style={{ color: '#0f172a' }}>Step 3:</strong> Once compiled, the download link updates automatically, and the update is made LIVE for all users.</li>
+            <li><strong style={{ color: '#0f172a' }}>Step 4:</strong> To stop displaying the update banner, simply toggle the master active switch above to OFF.</li>
           </ul>
         </div>
       </div>
@@ -618,13 +618,16 @@ export default function ReleaseSettings({
       {showToggleMasterKeyModal && (
         <div
           className="flex-center modal-overlay"
-          style={{ position: 'fixed', inset: 0, zIndex: 100050, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 100050, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(6px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowToggleMasterKeyModal(false); }}
         >
-          <div className="glass-panel" style={{
+          <div className="surface-card" style={{
             width: '100%', maxWidth: '420px', margin: '16px',
             padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px',
-            border: pendingToggleValue ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)',
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: pendingToggleValue ? '1px solid #86efac' : '1px solid #fca5a5',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
             animation: 'fadeInUp 0.3s ease',
           }}>
             {/* Modal Header */}
@@ -638,10 +641,10 @@ export default function ReleaseSettings({
                 {pendingToggleValue ? '🚀' : '🔕'}
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>
                   {pendingToggleValue ? 'Activate Update for All Users?' : 'Deactivate Update Banner?'}
                 </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.4 }}>
+                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.4 }}>
                   {pendingToggleValue
                     ? 'All users will see the update download banner immediately.'
                     : 'The update banner will be hidden from all users.'}
