@@ -4302,8 +4302,8 @@ html {
     max-width: 100% !important;
   }
 
-  /* Form submit buttons full-width for comfortable touch on mobile */
-  form button[type="submit"] {
+  /* Form submit buttons full-width for comfortable touch on mobile (excluding inline chat buttons) */
+  form:not(.ai-chat-input-bar form) button[type="submit"]:not(.ai-send-btn) {
     width: 100% !important;
     justify-content: center !important;
   }
@@ -5807,8 +5807,18 @@ html {
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .ai-assistant-wrapper {
-    height: calc(100vh - 100px);
+    height: calc(100vh - 85px) !important;
+    height: calc(100dvh - 85px) !important;
     border-radius: 12px;
+    margin: 0 !important;
+  }
+  .ai-header-desktop-tools,
+  .ai-header-desktop-title {
+    display: none !important;
+  }
+  .ai-chat-header {
+    padding: 8px 12px !important;
+    min-height: 44px !important;
   }
   .ai-message-bubble.user {
     padding-left: 10%;
@@ -5822,7 +5832,50 @@ html {
     max-width: 88%;
   }
   .ai-chat-input-bar {
-    padding: 8px 3% 14px;
+    padding: 6px 8px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .ai-chat-input-bar form,
+  .ai-chat-input-bar > form {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 6px !important;
+    padding: 4px 6px 4px 10px !important;
+    box-sizing: border-box !important;
+  }
+  .ai-chat-input-bar button[type="submit"],
+  .ai-chat-input-bar .ai-send-btn {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  .ai-chat-input-bar .ai-icon-btn,
+  .ai-chat-input-bar label.ai-icon-btn,
+  .ai-chat-input-bar button.ai-icon-btn {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  .ai-chat-input-bar .ai-chat-input-text {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 6px 4px !important;
+    font-size: 0.9rem !important;
   }
 }
 

@@ -166,82 +166,81 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
         {/* Left Pane: Chat */}
         <div className="ai-chat-pane" style={{ position: 'relative' }}>
           <div className="ai-chat-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div className="ai-message-avatar">
-                <Bot size={20} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Smart Attendance AI 
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' }}>
-                    {botPersonality.toUpperCase()}
-                  </span>
-                </h3>
-                <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                padding: '4px 10px',
+                borderRadius: '20px'
+              }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 700, letterSpacing: '0.03em' }}>
                   ONLINE & READY
                 </span>
               </div>
+              <span className="ai-header-desktop-title" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#334155' }}>
+                • Smart Attendance AI
+              </span>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               {isListeningSpeech && (
-                <div style={{ fontSize: '0.8rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginRight: '12px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
-                  LISTENING VOICE...
+                <div style={{ fontSize: '0.75rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                  LISTENING...
                 </div>
               )}
-              <button 
-                type="button" 
-                className="ai-icon-btn" 
-                onClick={() => {
-                  const enabled = !botWakeWordEnabled;
-                  if (playCyberSound) playCyberSound('click'); 
-                  setBotWakeWordEnabled(enabled); 
-                  localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
-                }} 
-                title={botWakeWordEnabled ? "Wake Word Listening Active. Click to turn OFF mic background listening." : "Wake Word Off. Click to enable background 'Hey Raj' mic listener."}
-                style={{ 
-                  width: 'auto', 
-                  height: '32px', 
-                  borderRadius: '6px', 
-                  fontSize: '0.72rem', 
-                  fontWeight: 700, 
-                  padding: '0 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  border: botWakeWordEnabled ? '1px solid #86efac' : '1px solid #e2e8f0',
-                  background: botWakeWordEnabled ? '#f0fdf4' : '#f8fafc',
-                  color: botWakeWordEnabled ? '#15803d' : '#64748b'
-                }}
-              >
-                <span style={{ 
-                  width: '6px', 
-                  height: '6px', 
-                  borderRadius: '50%', 
-                  background: botWakeWordEnabled ? '#16a34a' : '#94a3b8',
-                  animation: botWakeWordEnabled ? 'pulse 1.5s infinite' : 'none'
-                }} />
-                <span>WAKE WORD: {botWakeWordEnabled ? 'ON' : 'OFF'}</span>
-              </button>
-              <button 
-                type="button" 
-                className="ai-icon-btn" 
-                onClick={startVoiceAssistantMode} 
-                title="Start Live Voice Assistant Call"
-                style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#2563eb', borderColor: '#e2e8f0', background: '#f8fafc' }}
-              >
-                <Phone size={14} />
-              </button>
-              <button 
-                type="button" 
-                className="ai-icon-btn" 
-                onClick={exportChatHistory} 
-                title="Export Chat History to Text File"
-                style={{ width: '32px', height: '32px', borderRadius: '6px' }}
-              >
-                <FileDown size={14} />
-              </button>
+
+              {/* Tools hidden on mobile to keep header clean */}
+              <div className="ai-header-desktop-tools" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <button 
+                  type="button" 
+                  className="ai-icon-btn" 
+                  onClick={() => {
+                    const enabled = !botWakeWordEnabled;
+                    if (playCyberSound) playCyberSound('click'); 
+                    setBotWakeWordEnabled(enabled); 
+                    localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
+                  }} 
+                  title={botWakeWordEnabled ? "Wake Word Listening Active" : "Wake Word Off"}
+                  style={{ 
+                    width: 'auto', 
+                    height: '32px', 
+                    borderRadius: '6px', 
+                    fontSize: '0.72rem', 
+                    fontWeight: 700, 
+                    padding: '0 8px',
+                    border: botWakeWordEnabled ? '1px solid #86efac' : '1px solid #e2e8f0',
+                    background: botWakeWordEnabled ? '#f0fdf4' : '#f8fafc',
+                    color: botWakeWordEnabled ? '#15803d' : '#64748b'
+                  }}
+                >
+                  WAKE: {botWakeWordEnabled ? 'ON' : 'OFF'}
+                </button>
+                <button 
+                  type="button" 
+                  className="ai-icon-btn" 
+                  onClick={startVoiceAssistantMode} 
+                  title="Voice Call"
+                  style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#2563eb' }}
+                >
+                  <Phone size={14} />
+                </button>
+                <button 
+                  type="button" 
+                  className="ai-icon-btn" 
+                  onClick={exportChatHistory} 
+                  title="Export Chat History"
+                  style={{ width: '32px', height: '32px', borderRadius: '6px' }}
+                >
+                  <FileDown size={14} />
+                </button>
+              </div>
+
+              {/* Clear chat icon (always accessible) */}
               <button 
                 type="button" 
                 className="ai-icon-btn" 
@@ -251,7 +250,7 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                   }
                 }} 
                 title="Clear Conversation History"
-                style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.15)' }}
+                style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2' }}
               >
                 <Trash2 size={14} />
               </button>
@@ -370,15 +369,6 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
             <div ref={chatBottomRef} />
           </div>
 
-          {/* Suggestion Chips */}
-          <div className="ai-chat-suggestions">
-            {getSuggestions().map((s, idx) => (
-              <button key={idx} type="button" className="ai-suggestion-chip" onClick={() => handleSendChatMessage(s)}>
-                {s}
-              </button>
-            ))}
-          </div>
-
           {/* Attachment Preview Bar */}
           {botAttachedImage && (
             <div className="ai-attachment-preview-bar">
@@ -392,12 +382,27 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
             </div>
           )}
 
-          {/* Input Form Bar */}
+          {/* Input Form Bar - Strictly Horizontal Single Row */}
           <div className="ai-chat-input-bar">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSendChatMessage();
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'nowrap',
+                alignItems: 'center',
+                width: '100%',
+                maxWidth: '800px',
+                gap: '8px',
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: '24px',
+                padding: '4px 6px 4px 12px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                boxSizing: 'border-box'
               }}
             >
               <input
@@ -407,7 +412,28 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                 style={{ display: 'none' }}
                 id="bot-file-upload-panel"
               />
-              <label htmlFor="bot-file-upload-panel" className="ai-icon-btn" title="Attach file or image">
+              <label
+                htmlFor="bot-file-upload-panel"
+                className="ai-icon-btn"
+                title="Attach file or image"
+                style={{
+                  width: '34px',
+                  minWidth: '34px',
+                  maxWidth: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  margin: 0,
+                  padding: 0,
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  color: '#475569'
+                }}
+              >
                 <Paperclip size={16} />
               </label>
 
@@ -416,6 +442,23 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                 onClick={handleSpeechToText}
                 className={`ai-icon-btn ${isListeningSpeech ? 'recording' : ''}`}
                 title={isListeningSpeech ? "Stop voice listening" : "Ask using your voice"}
+                style={{
+                  width: '34px',
+                  minWidth: '34px',
+                  maxWidth: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  margin: 0,
+                  padding: 0,
+                  background: isListeningSpeech ? '#fee2e2' : '#f8fafc',
+                  border: isListeningSpeech ? '1px solid #f87171' : '1px solid #e2e8f0',
+                  color: isListeningSpeech ? '#ef4444' : '#475569'
+                }}
               >
                 <Mic size={16} />
               </button>
@@ -423,18 +466,48 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
               <input
                 type="text"
                 className="ai-chat-input-text"
-                placeholder="Message Smart Attendance AI..."
+                placeholder="Ask anything (doubts, code, attendance)..."
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 disabled={isChatLoading}
+                style={{
+                  flex: '1 1 auto',
+                  minWidth: 0,
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#0f172a',
+                  fontSize: '0.92rem',
+                  padding: '8px 4px',
+                  margin: 0
+                }}
               />
 
               <button
                 type="submit"
                 className="ai-send-btn"
                 disabled={isChatLoading || !chatInput.trim()}
+                style={{
+                  width: '36px',
+                  minWidth: '36px',
+                  maxWidth: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: !chatInput.trim() ? 'not-allowed' : 'pointer',
+                  flexShrink: 0,
+                  margin: 0,
+                  padding: 0,
+                  border: 'none',
+                  background: !chatInput.trim() ? '#e2e8f0' : '#2563eb',
+                  color: !chatInput.trim() ? '#94a3b8' : '#ffffff',
+                  boxShadow: !chatInput.trim() ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.3)'
+                }}
               >
-                <Send size={16} />
+                <Send size={15} />
               </button>
             </form>
           </div>

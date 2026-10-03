@@ -3,17 +3,31 @@ import re
 import json
 import os
 
-def update_version(version_str):
+def update_version(version_str=None):
+    package_path = 'package.json'
+    current_pkg_version = '1.0.0'
+    if os.path.exists(package_path):
+        try:
+            with open(package_path, 'r', encoding='utf-8') as f:
+                pkg = json.load(f)
+            current_pkg_version = pkg.get('version', '1.0.0')
+        except Exception as e:
+            print(f"Error reading package.json: {e}")
+
+    # Fallback to current package.json version if version_str is omitted or empty
+    if not version_str or version_str.strip() == '' or version_str.strip().lower() == 'auto':
+        version_str = current_pkg_version
+
+    version_str = version_str.strip().lstrip('vV')
     print(f"Updating application version to: {version_str}")
     
     # 1. Update package.json
-    package_path = 'package.json'
     if os.path.exists(package_path):
         try:
-            with open(package_path, 'r') as f:
+            with open(package_path, 'r', encoding='utf-8') as f:
                 pkg = json.load(f)
             pkg['version'] = version_str
-            with open(package_path, 'w') as f:
+            with open(package_path, 'w', encoding='utf-8') as f:
                 json.dump(pkg, f, indent=2)
             print("Successfully updated package.json version field.")
         except Exception as e:
@@ -25,7 +39,7 @@ def update_version(version_str):
     gradle_path = 'android/app/build.gradle'
     if os.path.exists(gradle_path):
         try:
-            with open(gradle_path, 'r') as f:
+            with open(gradle_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
             # Find versionName "1.0.2" -> versionName "{version_str}"
@@ -34,7 +48,7 @@ def update_version(version_str):
                 print(f"Found old versionName: {old_version_name.group(1)}")
             content = re.sub(r'versionName\s+"[^"]+"', f'versionName "{version_str}"', content)
 
-            # Find versionCode 3 and increment it by 1
+            # Find versionCode and increment it by 1
             version_code_match = re.search(r'versionCode\s+(\d+)', content)
             if version_code_match:
                 old_code = int(version_code_match.group(1))
@@ -44,7 +58,7 @@ def update_version(version_str):
             else:
                 print("versionCode not found in build.gradle.")
 
-            with open(gradle_path, 'w') as f:
+            with open(gradle_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             print("Successfully updated android/app/build.gradle version info.")
         except Exception as e:
@@ -52,8 +66,9 @@ def update_version(version_str):
     else:
         print(f"build.gradle not found at {gradle_path}.")
 
+    return version_str
+
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Usage: python update_version.py <version_string>")
-        sys.exit(1)
-    update_version(sys.argv[1])
+    arg = sys.argv[1] if len(sys.argv) > 1 else None
+    update_version(arg)
+

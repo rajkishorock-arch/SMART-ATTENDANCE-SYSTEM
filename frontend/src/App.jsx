@@ -7550,9 +7550,9 @@ export default function App() {
       <main className="main-content">
         <Suspense fallback={<div style={{ padding: "40px 20px", textAlign: "center", color: "#94a3b8" }}>Loading...</div>}>
         {/* Header */}
-        <header className={`flex-between header-container ${activeTab === 'settings' && activeSubSetting !== null ? 'hide-on-mobile' : ''}`} style={{ marginBottom: '16px' }}>
+        <header className={`flex-between header-container ${activeTab === 'settings' && activeSubSetting !== null ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className={activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''} style={{ flex: 1, minWidth: 0 }}>
               <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
                 {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
                 {activeTab === 'students' && 'Student Directory'}

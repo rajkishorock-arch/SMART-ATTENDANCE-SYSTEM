@@ -7,17 +7,28 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to build (e.g. 1.0.3)'
-        required: true
+        description: 'Version to build (e.g. 1.0.3 - leave blank to use package.json version)'
+        required: false
         type: string
-      # callback_url:
-      #   description: 'URL to notify when the build is finished'
-      #   required: true
-      #   type: string
-      # callback_token:
-      #   description: 'Secure token for callback authorization'
-      #   required: true
-      #   type: string
+        default: ''
+      callback_url:
+        description: 'URL to notify when the build is finished'
+        required: false
+        type: string
+        default: ''
+      callback_token:
+        description: 'Secure token for callback authorization'
+        required: false
+        type: string
+        default: ''
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'frontend/package.json'
+    tags:
+      - 'v*.*.*'
 
 jobs:
   build:
@@ -41,7 +52,15 @@ jobs:
       - name: Update Application Version Name and Code
         run: |
           cd frontend
-          python update_version.py ${{ github.event.inputs.version }}
+          INPUT_VER="${{ github.event.inputs.version }}"
+          if [ -n "$INPUT_VER" ]; then
+            python update_version.py "$INPUT_VER"
+          else
+            python update_version.py
+          fi
+          RESOLVED_VER=$(node -p "require('./package.json').version")
+          echo "build_version=$RESOLVED_VER" >> $GITHUB_ENV
+          echo "Resolved application version: $RESOLVED_VER"
 
       - name: Install Frontend Dependencies
         run: |
@@ -92,7 +111,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           apk_path="frontend/android/app/build/outputs/apk/release/app-release.apk"
-          version_tag="v${{ github.event.inputs.version }}"
+          version_tag="v${{ env.build_version }}"
           
           echo "Processing Release for $version_tag"
           if gh release view "$version_tag" >/dev/null 2>&1; then
@@ -108,26 +127,27 @@ jobs:
           download_url="https://github.com/${{ github.repository }}/releases/download/${version_tag}/app-release.apk"
           echo "download_url=$download_url" >> $GITHUB_ENV
 
-      # - name: Send Success Callback to Backend
-      #   if: success()
-      #   run: |
-      #     curl -X POST "${{ github.event.inputs.callback_url }}" \
-      #       -H "Content-Type: application/json" \
-      #       -d '{
-      #         "status": "success",
-      #         "version": "${{ github.event.inputs.version }}",
-      #         "download_url": "${{ env.download_url }}",
-      #         "token": "${{ github.event.inputs.callback_token }}"
-      #       }'
+      - name: Send Success Callback to Backend
+        if: success() && github.event.inputs.callback_url != ''
+        run: |
+          curl -X POST "${{ github.event.inputs.callback_url }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"status\": \"success\",
+              \"version\": \"${{ env.build_version }}\",
+              \"download_url\": \"${{ env.download_url }}\",
+              \"token\": \"${{ github.event.inputs.callback_token }}\"
+            }" || true
 
-      # - name: Send Failure Callback to Backend
-      #   if: failure()
-      #   run: |
-      #     curl -X POST "${{ github.event.inputs.callback_url }}" \
-      #       -H "Content-Type: application/json" \
-      #       -d '{
-      #         "status": "failed",
-      #         "version": "${{ github.event.inputs.version }}",
-      #         "error": "GitHub Actions build pipeline failed. Please check build logs for error details.",
-      #         "token": "${{ github.event.inputs.callback_token }}"
-      #       }'
+      - name: Send Failure Callback to Backend
+        if: failure() && github.event.inputs.callback_url != ''
+        run: |
+          curl -X POST "${{ github.event.inputs.callback_url }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"status\": \"failed\",
+              \"version\": \"${{ env.build_version }}\",
+              \"error\": \"GitHub Actions build pipeline failed. Please check build logs for error details.\",
+              \"token\": \"${{ github.event.inputs.callback_token }}\"
+            }" || true
+
