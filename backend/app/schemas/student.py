@@ -19,6 +19,7 @@ class StudentBase(BaseModel):
     address: Optional[str] = None
     teacher: Optional[str] = None
     photo: Optional[str] = None
+    institution_id: Optional[int] = None
 
 
 class StudentCreate(StudentBase):

@@ -4,33 +4,36 @@ export default function ConsentModal({ open, onAccept, onDecline }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 99999,
-      background: 'rgba(8,12,20,0.9)', backdropFilter: 'blur(8px)',
+      background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
     }}>
       <div style={{
-        maxWidth: '480px', width: '100%', background: 'rgba(15,23,42,0.95)',
-        border: '1px solid rgba(0,242,254,0.3)', borderRadius: '16px', padding: '28px',
+        maxWidth: '480px', width: '100%', background: '#ffffff',
+        border: '1px solid #e2e8f0', borderRadius: '18px', padding: '28px',
+        boxShadow: '0 20px 60px rgba(15, 23, 42, 0.15)'
       }}>
-        <h2 style={{ color: '#00f2fe', fontSize: '1.2rem', marginBottom: '12px' }}>Biometric Data Consent</h2>
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '16px' }}>
+        <h2 style={{ color: '#0f172a', fontSize: '1.25rem', fontWeight: 700, marginBottom: '12px' }}>Biometric Data Consent</h2>
+        <p style={{ color: '#334155', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '16px' }}>
           This app collects facial biometric data for attendance verification. Your face embeddings are stored securely
           and used only within your institution. You may request deletion of your data at any time from your profile.
         </p>
-        <ul style={{ color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '20px', paddingLeft: '20px' }}>
+        <ul style={{ color: '#475569', fontSize: '0.84rem', lineHeight: 1.6, marginBottom: '22px', paddingLeft: '20px' }}>
           <li>Camera access is required for face scanning</li>
           <li>Location may be used for geofencing (if enabled by admin)</li>
           <li>Data is processed per DPDP Act 2023 guidelines</li>
         </ul>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button type="button" onClick={onAccept} style={{
-            flex: 1, padding: '12px', background: 'linear-gradient(135deg,#00f2fe,#4f46e5)',
-            border: 'none', borderRadius: '8px', color: '#fff', fontWeight: 'bold', cursor: 'pointer',
+            flex: 1, padding: '12px', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            border: 'none', borderRadius: '10px', color: '#fff', fontWeight: 700, cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(30, 64, 175, 0.25)', fontSize: '0.9rem'
           }}>
             I Agree
           </button>
           <button type="button" onClick={onDecline} style={{
-            flex: 1, padding: '12px', background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#94a3b8', cursor: 'pointer',
+            flex: 1, padding: '12px', background: '#f8fafc',
+            border: '1px solid #cbd5e1', borderRadius: '10px', color: '#475569', fontWeight: 600, cursor: 'pointer',
+            fontSize: '0.9rem'
           }}>
             Decline
           </button>

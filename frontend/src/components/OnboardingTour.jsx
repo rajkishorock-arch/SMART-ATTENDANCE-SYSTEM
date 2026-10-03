@@ -42,12 +42,12 @@ export default function OnboardingTour({ isMobile, onComplete }) {
           <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 700 }}>
             Step {step + 1} / {steps.length} {isMobile ? '📱' : '💻'}
           </span>
-          <button type="button" onClick={finish} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+          <button type="button" onClick={finish} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
             <X size={18} />
           </button>
         </div>
-        <h3 style={{ color: '#f8fafc', margin: '0 0 8px', fontSize: '1.1rem' }}>{current.title}</h3>
-        <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '0 0 20px' }}>{current.desc}</p>
+        <h3 style={{ color: '#0f172a', margin: '0 0 8px', fontSize: '1.1rem', fontWeight: 700 }}>{current.title}</h3>
+        <p style={{ color: '#475569', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>{current.desc}</p>
         <div style={{ display: 'flex', gap: '10px' }}>
           {step > 0 && (
             <button type="button" className="btn-secondary" onClick={() => setStep((s) => s - 1)} style={{ flex: 1, padding: '10px', borderRadius: '8px' }}>

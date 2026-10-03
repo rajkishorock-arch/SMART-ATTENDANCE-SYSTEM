@@ -287,21 +287,6 @@ export default function StudentsDirectoryView({
           </table>
         </div>
       )}
-
-      {/* Mobile Floating Action Button (FAB) for fast student registration */}
-      {(userRole === 'admin' || userRole === 'teacher') && setShowAddModal && (
-        <button
-          type="button"
-          className="mobile-student-fab"
-          onClick={handleOpenRegisterModal}
-          disabled={serverWarmingUp}
-          aria-label="Register Student"
-          title="Register Student"
-        >
-          <Plus size={22} color="#ffffff" />
-          <span className="fab-label">Register Student</span>
-        </button>
-      )}
     </div>
   );
 }

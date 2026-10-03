@@ -6,15 +6,15 @@ import { useState } from 'react';
 export default function OnboardingGuideModal({ onClose, playCyberSound }) {
   const [slide, setSlide] = useState(0);
 
-  const pStyle = { color: '#f1f5f9', margin: '0 0 10px 0', lineHeight: 1.55, fontSize: '0.88rem' };
-  const strongStyle = { color: '#ffffff', fontWeight: 700 };
+  const pStyle = { color: '#334155', margin: '0 0 10px 0', lineHeight: 1.55, fontSize: '0.88rem' };
+  const strongStyle = { color: '#0f172a', fontWeight: 700 };
 
   const slides = [
     {
       title: "🧭 Welcome to Smart Attendance!",
       desc: "Let's take a quick 1-minute tour to understand how to use and navigate the system easily.",
       icon: "✨",
-      color: "#00f2fe",
+      color: "#1e40af",
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={pStyle}><strong style={strongStyle}>1. Main Navigation Sidebar:</strong> Switch between logs, reports, profiles, leaves, and configurations on the left panel (bottom menu on mobile).</p>
@@ -27,7 +27,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       title: "🎓 Student Dashboard Walkthrough",
       desc: "Here is how students can track their status and register presence dynamically.",
       icon: "🎓",
-      color: "#fb923c",
+      color: "#ea580c",
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={pStyle}><strong style={strongStyle}>📊 Attendance Forecast:</strong> Real-time indicator displaying your presence rate. Shows if you are safe or how many classes you must attend to cross the 75% limit.</p>
@@ -40,7 +40,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       title: "🏫 Teacher & Admin Control Panel",
       desc: "Manage classes, schedules, and record student attendance smoothly.",
       icon: "🏫",
-      color: "#a78bfa",
+      color: "#7c3aed",
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={pStyle}><strong style={strongStyle}>⚡ Start Session:</strong> Set the subject and date, then initialize the class session to open scanning checks.</p>
@@ -53,14 +53,14 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       title: "🤖 AI Assistant & Speech Commands",
       desc: "Leverage advanced voice features and virtual support directly.",
       icon: "🤖",
-      color: "#10b981",
+      color: "#059669",
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={pStyle}><strong style={strongStyle}>💬 AI Chatbot Counselor:</strong> Talk to the smart assistant for instant help on leaves, system stats, or profile details.</p>
           <p style={pStyle}><strong style={strongStyle}>🗣️ Voice Speech Commands:</strong> Click the microphone and say commands to control the app automatically:
-            <br /><span style={{ color: '#94a3b8' }}>•</span> <em style={{ color: '#38bdf8' }}>"start scanner"</em> — launches face recognition modal.
-            <br /><span style={{ color: '#94a3b8' }}>•</span> <em style={{ color: '#38bdf8' }}>"open profile"</em> / <em style={{ color: '#38bdf8' }}>"open leaves"</em> — navigates tabs.
-            <br /><span style={{ color: '#94a3b8' }}>•</span> <em style={{ color: '#38bdf8' }}>"logout"</em> — logs out of the app.
+            <br /><span style={{ color: '#64748b' }}>•</span> <em style={{ color: '#1e40af', fontStyle: 'normal', fontWeight: 600 }}>"start scanner"</em> — launches face recognition modal.
+            <br /><span style={{ color: '#64748b' }}>•</span> <em style={{ color: '#1e40af', fontStyle: 'normal', fontWeight: 600 }}>"open profile"</em> / <em style={{ color: '#1e40af', fontStyle: 'normal', fontWeight: 600 }}>"open leaves"</em> — navigates tabs.
+            <br /><span style={{ color: '#64748b' }}>•</span> <em style={{ color: '#1e40af', fontStyle: 'normal', fontWeight: 600 }}>"logout"</em> — logs out of the app.
           </p>
         </div>
       )
@@ -88,7 +88,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 999999,
-      background: 'rgba(5, 8, 20, 0.85)', backdropFilter: 'blur(12px)',
+      background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '16px',
       animation: 'fadeIn 0.25s ease'
@@ -96,15 +96,15 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       <div 
         className="onboarding-guide-card"
         style={{
-        background: 'linear-gradient(135deg, #0d121f 0%, #171c30 100%)',
-        border: `1.5px solid ${current.color}60`,
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
         borderRadius: '24px', 
         padding: 'clamp(20px, 4vw, 32px)',
         width: '100%', 
         maxWidth: '500px',
         maxHeight: '90vh',
         overflowY: 'auto',
-        boxShadow: `0 0 50px ${current.color}20, 0 16px 48px rgba(0,0,0,0.6)`,
+        boxShadow: '0 20px 60px rgba(15, 23, 42, 0.15)',
         position: 'relative',
         transition: 'all 0.3s ease-out',
         animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
@@ -113,7 +113,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
         <div style={{
           position: 'absolute', top: '-60px', right: '-60px',
           width: '180px', height: '180px',
-          background: `radial-gradient(circle, ${current.color}25 0%, transparent 70%)`,
+          background: `radial-gradient(circle, ${current.color}15 0%, transparent 70%)`,
           borderRadius: '50%', pointerEvents: 'none'
         }} />
 
@@ -125,14 +125,14 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
             position: 'absolute', 
             top: '16px', 
             right: '16px', 
-            background: 'rgba(255,255,255,0.15)', 
-            border: '1.5px solid rgba(255,255,255,0.3)', 
+            background: '#f1f5f9', 
+            border: '1px solid #cbd5e1', 
             borderRadius: '50%', 
             width: '36px', 
             height: '36px', 
-            color: '#ffffff', 
+            color: '#475569', 
             cursor: 'pointer', 
-            fontSize: '1.1rem', 
+            fontSize: '1rem', 
             fontWeight: 800,
             display: 'flex', 
             alignItems: 'center', 
@@ -140,25 +140,25 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
             transition: 'all 0.2s',
             zIndex: 10
           }} 
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.8)'; e.currentTarget.style.borderColor = '#ef4444'; }} 
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444'; }} 
+          onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#475569'; }}
         >
           ✕
         </button>
 
         {/* Slide Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px', paddingRight: '40px' }}>
-          <div style={{ width: '52px', height: '52px', minWidth: '52px', borderRadius: '14px', background: `${current.color}20`, border: `1.5px solid ${current.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>
+          <div style={{ width: '52px', height: '52px', minWidth: '52px', borderRadius: '14px', background: `${current.color}15`, border: `1.5px solid ${current.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>
             {current.icon}
           </div>
           <div>
-            <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.35rem)', fontWeight: 800, color: '#ffffff', margin: 0, lineHeight: 1.25 }}>{current.title}</h2>
-            <p style={{ color: '#cbd5e1', fontSize: '0.85rem', margin: '5px 0 0', lineHeight: 1.4 }}>{current.desc}</p>
+            <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.35rem)', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.25 }}>{current.title}</h2>
+            <p style={{ color: '#475569', fontSize: '0.85rem', margin: '5px 0 0', lineHeight: 1.4, fontWeight: 500 }}>{current.desc}</p>
           </div>
         </div>
 
         {/* Slide Content */}
-        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', padding: '20px', borderRadius: '16px', minHeight: '180px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '16px', minHeight: '180px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {current.content}
         </div>
 
@@ -174,7 +174,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
                   width: idx === slide ? '28px' : '9px', 
                   height: '8px', 
                   borderRadius: '4px', 
-                  background: idx === slide ? current.color : 'rgba(255,255,255,0.25)', 
+                  background: idx === slide ? current.color : '#cbd5e1', 
                   transition: 'all 0.3s ease',
                   cursor: 'pointer'
                 }} 
@@ -189,16 +189,16 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
                 style={{ 
                   padding: '9px 18px', 
                   borderRadius: '10px', 
-                  background: 'rgba(255,255,255,0.08)', 
-                  border: '1px solid rgba(255,255,255,0.2)', 
-                  color: '#f1f5f9', 
+                  background: '#f1f5f9', 
+                  border: '1px solid #cbd5e1', 
+                  color: '#334155', 
                   fontSize: '0.85rem', 
                   fontWeight: 700, 
                   cursor: 'pointer', 
                   transition: 'all 0.2s' 
                 }} 
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.16)'} 
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'} 
+                onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
               >
                 Back
               </button>
@@ -208,13 +208,13 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
               style={{ 
                 padding: '10px 24px', 
                 borderRadius: '10px', 
-                background: current.color, 
+                background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', 
                 border: 'none', 
-                color: '#090c15', 
+                color: '#ffffff', 
                 fontSize: '0.88rem', 
-                fontWeight: 800, 
+                fontWeight: 700, 
                 cursor: 'pointer', 
-                boxShadow: `0 4px 18px ${current.color}45`, 
+                boxShadow: '0 4px 14px rgba(30, 64, 175, 0.25)', 
                 transition: 'all 0.2s' 
               }} 
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} 

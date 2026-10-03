@@ -1850,9 +1850,13 @@ export default function App() {
   const [stats, setStats] = React.useState(() => {
     try {
       const cached = localStorage.getItem('cached_stats');
+      const cachedInst = localStorage.getItem('cached_stats_inst_id');
       const cachedDate = localStorage.getItem('cached_stats_date');
+      const savedUser = localStorage.getItem('cached_user') || localStorage.getItem('currentUser');
+      const userObj = savedUser ? JSON.parse(savedUser) : null;
+      const expectedInst = userObj?.institution_id;
       const todayStr = getLocalDateString();
-      if (cached && cachedDate === todayStr) {
+      if (cached && cachedDate === todayStr && (!expectedInst || !cachedInst || String(cachedInst) === String(expectedInst))) {
         return JSON.parse(cached);
       }
       return {
@@ -2089,6 +2093,7 @@ export default function App() {
         const data = await res.json();
         setStats(data);
         localStorage.setItem('cached_stats', JSON.stringify(data));
+        localStorage.setItem('cached_stats_inst_id', String(currentUser?.institution_id || ''));
         localStorage.setItem('cached_stats_timestamp', Date.now().toString());
         localStorage.setItem('cached_stats_date', getLocalDateString());
         setServerWarmingUp(false);
@@ -2182,6 +2187,10 @@ export default function App() {
       console.log(`Institution switched from ${prevInstIdRef.current} to ${currentUser.institution_id}. Purging tenant cache...`);
       localStorage.removeItem('cached_students');
       localStorage.removeItem('cached_students_timestamp');
+      localStorage.removeItem('cached_stats');
+      localStorage.removeItem('cached_stats_inst_id');
+      localStorage.removeItem('cached_stats_timestamp');
+      localStorage.removeItem('cached_stats_date');
       localStorage.removeItem('cached_logs');
       localStorage.removeItem('cached_logs_timestamp');
       localStorage.removeItem('cached_departments');
@@ -2241,13 +2250,18 @@ export default function App() {
         const userInst = Number(currentUser?.institution_id || 1);
         const safeData = Array.isArray(data)
           ? data.filter(s => {
-              const studentInst = Number(s.institution_id || 1);
-              return studentInst === userInst;
+              if (s.institution_id === undefined || s.institution_id === null) return true;
+              return Number(s.institution_id) === userInst;
             })
           : [];
         setStudents(safeData);
+        // Instant sync with dashboard stats so enrolled count updates with 0ms lag!
+        setStats(prev => ({
+          ...prev,
+          total_students: safeData.length
+        }));
         localStorage.setItem('cached_students', JSON.stringify(safeData));
-        localStorage.setItem('cached_students_inst_id', String(currentUser?.institution_id || ''));
+        localStorage.setItem('cached_students_inst_id', String(userInst));
         localStorage.setItem('cached_students_timestamp', Date.now().toString());
       } else {
         console.warn(`fetchStudents failed with status ${res.status}`);
@@ -5336,9 +5350,10 @@ export default function App() {
             fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
           }
         } else {
-          // P1 Target: Fetch ONLY stats and recent 10 logs on initial login
+          // Fetch stats, recent logs, AND registered students immediately on initial load
           fetchStats(token);
           fetchLogs(token, { limit: 10 });
+          fetchStudents(token);
         }
       } else {
         if (!isMounted) return;
@@ -5358,6 +5373,7 @@ export default function App() {
             } else {
               fetchStats(token);
               fetchLogs(token, { limit: 10 });
+              fetchStudents(token);
             }
           }
         }, 5000);

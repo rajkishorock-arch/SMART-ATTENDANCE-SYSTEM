@@ -3,8 +3,15 @@ import { createContext, useState, useEffect, useCallback } from 'react';
 const UIContext = createContext(null);
 
 export function UIProvider({ children }) {
-  // Theme & Audio Preferences State
-  const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem('theme') || 'cyberpunk');
+  // Theme & Audio Preferences State - Ensure clean corporate light theme
+  const [activeTheme, setActiveTheme] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (!saved || ['cyberpunk', 'matrix', 'obsidian', 'amoled', 'violet'].includes(saved)) {
+      localStorage.setItem('theme', 'corporate');
+      return 'corporate';
+    }
+    return saved;
+  });
   const [audioVolume, setAudioVolume] = useState(() => parseFloat(localStorage.getItem('audioVolume') || '0.5'));
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('soundEnabled') === 'true');
   const [synthModulator, setSynthModulator] = useState(() => localStorage.getItem('synthModulator') || 'classic');
@@ -14,6 +21,7 @@ export function UIProvider({ children }) {
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', activeTheme);
+      document.body.setAttribute('data-theme', activeTheme);
     }
   }, [activeTheme]);
 

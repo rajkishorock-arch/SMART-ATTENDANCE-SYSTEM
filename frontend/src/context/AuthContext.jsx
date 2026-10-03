@@ -77,6 +77,10 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('onboarding_guide_done');
     localStorage.removeItem('cached_students');
     localStorage.removeItem('cached_students_timestamp');
+    localStorage.removeItem('cached_stats');
+    localStorage.removeItem('cached_stats_inst_id');
+    localStorage.removeItem('cached_stats_timestamp');
+    localStorage.removeItem('cached_stats_date');
     localStorage.removeItem('cached_logs');
     localStorage.removeItem('cached_logs_timestamp');
     localStorage.removeItem('cached_departments');
