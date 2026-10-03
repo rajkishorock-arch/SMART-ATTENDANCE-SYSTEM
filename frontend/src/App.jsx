@@ -507,6 +507,14 @@ export default function App() {
   // App Navigation & Modal State
   const [activeTab, setActiveTab] = useState(() => {
     try {
+      const hashTab = window.location.hash.replace(/^#\/?/, '').trim();
+      if (hashTab && !['login', 'signup', ''].includes(hashTab)) {
+        return hashTab;
+      }
+      const savedTab = localStorage.getItem('last_active_tab');
+      if (savedTab && !['login', 'signup'].includes(savedTab)) {
+        return savedTab;
+      }
       const savedRole = localStorage.getItem('userRole');
       if (savedRole === 'student') return 'student-attendance';
     } catch { /* ignore fallback error */ }
@@ -516,6 +524,11 @@ export default function App() {
   const [activeDashboardSubTab, setActiveDashboardSubTab] = useState(null);
 
   useEffect(() => {
+    if (activeTab && !['login', 'signup'].includes(activeTab)) {
+      try {
+        localStorage.setItem('last_active_tab', activeTab);
+      } catch { /* ignore */ }
+    }
     setActiveSubSetting(null);
     setActiveDashboardSubTab(null);
   }, [activeTab]);
@@ -4724,7 +4737,7 @@ export default function App() {
           const currentHash = window.location.hash.replace(/^#\/?/, '');
           const isTabValid = (tabId, role) => {
             if (role === 'student') {
-              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings'].includes(tabId);
+              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave'].includes(tabId);
             } else if (role === 'teacher') {
               return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
             } else if (role === 'admin') {
@@ -4733,8 +4746,9 @@ export default function App() {
             return false;
           };
 
-          if (currentHash && isTabValid(currentHash, data.role)) {
-            setActiveTab(currentHash);
+          const candidateTab = currentHash || localStorage.getItem('last_active_tab');
+          if (candidateTab && isTabValid(candidateTab, data.role)) {
+            setActiveTab(candidateTab);
           } else {
             if (data.role === 'student') {
               setActiveTab('student-attendance');
@@ -5207,7 +5221,7 @@ export default function App() {
   useEffect(() => {
     const isTabValidForRole = (tabId, role) => {
       if (role === 'student') {
-        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings'].includes(tabId);
+        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave'].includes(tabId);
       } else if (role === 'parent') {
         return ['dashboard', 'student-attendance', 'settings'].includes(tabId);
       } else if (role === 'teacher') {
@@ -6896,16 +6910,7 @@ export default function App() {
         isMobileView={isMobileView}
       />
 
-      {/* ===== ONBOARDING GUIDE MODAL ===== */}
-      {showOnboardingGuide && (
-        <OnboardingGuideModal
-          onClose={() => setShowOnboardingGuide(false)}
-          playCyberSound={playCyberSound}
-        />
-      )}
-      {showOnboardingTour && (
-        <OnboardingTour isMobile={isMobileView} onComplete={() => { setShowOnboardingTour(false); localStorage.setItem('onboarding_tour_done', 'true'); }} />
-      )}
+      {/* Welcome & Onboarding modals permanently disabled */}
 
       <OfflineBanner />
 
@@ -9387,107 +9392,234 @@ export default function App() {
         />
       )}
 
-      {/* Futuristic 'About' Modal */}
+      {/* Enterprise 'About System' Modal — Clean White UI */}
       {isAboutModalOpen && (
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(8, 12, 20, 0.75)',
-          backdropFilter: 'blur(10px)',
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 10000,
-          animation: 'fadeIn 0.3s ease'
+          animation: 'fadeIn 0.25s ease'
         }}>
           <div style={{
-            maxWidth: '520px',
-            width: '90%',
-            background: 'rgba(15, 23, 42, 0.85)',
-            border: '1.5px solid var(--border-color)',
-            borderRadius: '16px',
-            padding: '32px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
-            fontFamily: 'monospace',
+            maxWidth: '560px',
+            width: '92%',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '20px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
           }}>
-            {/* Holographic scanning line */}
+            {/* Modal Header */}
             <div style={{
-              position: 'absolute',
-              top: 0, left: 0, right: 0, height: '3px',
-              background: 'linear-gradient(90deg, transparent, #00f2fe, transparent)',
-              animation: 'scannerPulse 3s infinite'
-            }} />
-            
-            <h2 style={{
-              color: '#00f2fe',
-              fontSize: '1.3rem',
-              fontWeight: 'bold',
-              marginBottom: '20px',
-              borderBottom: '1px solid var(--border-color)',
-              paddingBottom: '12px',
-              letterSpacing: '1px',
+              padding: '20px 24px',
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              justifyContent: 'space-between'
             }}>
-              <ShieldCheck size={22} style={{ color: '#00f2fe' }} /> SYSTEM SPECIFICATIONS
-            </h2>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.8rem', color: '#cbd5e1' }}>
-              <div>
-                <span style={{ color: 'var(--color-text-muted)' }}>PROJECT:</span>{' '}
-                <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{tenantBranding ? `${tenantBranding.name.toUpperCase()} (ENTERPRISE EDITION v2.5)` : "SMART ATTENDANCE SYSTEM (ENTERPRISE EDITION v2.5)"}</span>
-              </div>
-              
-              <div>
-                <span style={{ color: 'var(--color-text-muted)' }}>BIOMETRIC CORE:</span>{' '}
-                <span style={{ color: '#f1f5f9' }}>FaceNet Deep Neural Network + MTCNN Facial Landmark Aligner + Real-time EAR (Eye Aspect Ratio) Liveness Auditor.</span>
-              </div>
-              
-              <div>
-                <span style={{ color: 'var(--color-text-muted)' }}>TECH STACK:</span>{' '}
-                <span style={{ color: '#f1f5f9' }}>React 18 client, HTML5 Canvas 2D WebGL layer, Recharts Engine, Python FastAPI Backend, PostgreSQL/SQLite DB with SQLAlchemy ORM.</span>
-              </div>
-              
-              <div>
-                <span style={{ color: 'var(--color-text-muted)' }}>SECURITY PROTOCOLS:</span>{' '}
-                <span style={{ color: '#f1f5f9' }}>Dynamic GPS Geofencing (100m Allowed Radius), IP range restriction protocol, Cyber Perimeter Sonar Beacons, and Security Lockdown Override.</span>
-              </div>
-              
-              <div style={{ marginTop: '12px', borderTop: '1px dashed var(--border-color)', paddingTop: '12px' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>DEVELOPED BY:</span>{' '}
-                <span style={{ 
-                  color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe',
-                  textShadow: `0 0 10px ${activeTheme === 'matrix' ? 'rgba(0, 255, 70, 0.6)' : activeTheme === 'obsidian' ? 'rgba(255, 62, 62, 0.6)' : activeTheme === 'violet' ? 'rgba(168, 85, 247, 0.6)' : 'rgba(0, 242, 254, 0.6)'}`, 
-                  fontWeight: 'bold',
-                  fontSize: '0.9rem',
-                  letterSpacing: '1.5px'
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #2563eb, #6366f1)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
                 }}>
-                  RAJKISHOR
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h2 style={{
+                    fontSize: '1.15rem',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                    margin: 0,
+                    letterSpacing: '-0.02em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    {tenantBranding ? tenantBranding.name : "Smart Attendance"}
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: '#eff6ff',
+                      color: '#2563eb',
+                      border: '1px solid #bfdbfe'
+                    }}>
+                      v2.5 Enterprise
+                    </span>
+                  </h2>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                    Next-Gen AI Biometric & Geofencing Platform
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { playCyberSound('click'); setIsAboutModalOpen(false); }}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  color: '#64748b',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Content Body */}
+            <div style={{
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              maxHeight: '62vh',
+              overflowY: 'auto'
+            }}>
+              {/* Feature Cards Grid */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 16px'
+              }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ScanFace size={14} /> Biometric AI Architecture
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.55 }}>
+                  Powered by <strong>FaceNet Deep Neural Networks</strong> with 512-dimensional facial embeddings, <strong>MTCNN landmark alignment</strong>, and active <strong>Eye Aspect Ratio (EAR)</strong> anti-spoofing liveness verification.
+                </div>
+              </div>
+
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 16px'
+              }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Globe size={14} /> Perimeter & Security Protocols
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.55 }}>
+                  Enforced <strong>GPS Geofencing</strong> (100m campus boundary radius), campus Wi-Fi IP subnet whitelisting, hardware device signature binding, and tamper-proof attendance registers.
+                </div>
+              </div>
+
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 16px'
+              }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Bot size={14} /> Neural Assistant Intelligence
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.55 }}>
+                  Integrated <strong>ChatGPT & Gemini Pro</strong> multi-tier intelligence providing instant assistance for academic inquiries, coding, mathematics, leave management, and automated schedule tracking.
+                </div>
+              </div>
+
+              {/* Technical Specifications Spec-Sheet */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '10px',
+                fontSize: '0.8rem'
+              }}>
+                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>FRONTEND ENGINE</div>
+                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>React 18 • WebGL • PWA / APK</div>
+                </div>
+                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>BACKEND RUNTIME</div>
+                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>FastAPI • SQLAlchemy • Python 3.12</div>
+                </div>
+                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>ACTIVE DEPLOYMENT</div>
+                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>v{APP_VERSION} Stable Build</div>
+                </div>
+                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>DATA PERSISTENCE</div>
+                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>SQLite / PostgreSQL DB</div>
+                </div>
+              </div>
+
+              {/* Developer & Credits Banner */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                background: 'linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%)',
+                border: '1px solid #dbeafe',
+                borderRadius: '12px'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>ENGINEERED & DEVELOPED BY</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e40af', letterSpacing: '0.02em', marginTop: '1px' }}>RAJKISHOR</div>
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2563eb', background: '#ffffff', padding: '4px 10px', borderRadius: '20px', border: '1px solid #bfdbfe' }}>
+                  Lead Architect
                 </span>
               </div>
             </div>
-            
-            <button 
-              onClick={() => { playCyberSound('click'); setIsAboutModalOpen(false); }}
-              className="action-btn"
-              style={{
-                marginTop: '28px',
-                width: '100%',
-                padding: '12px',
-                background: 'linear-gradient(135deg, #00f2fe, #a78bfa)',
-                color: '#080c14',
-                fontWeight: 'bold',
-                letterSpacing: '1px',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              DISMISS SPECIFICATIONS
-            </button>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '14px 24px',
+              background: '#f8fafc',
+              borderTop: '1px solid #f1f5f9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                © 2026 Smart Attendance System
+              </span>
+              <button
+                type="button"
+                onClick={() => { playCyberSound('click'); setIsAboutModalOpen(false); }}
+                style={{
+                  padding: '8px 22px',
+                  borderRadius: '10px',
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
+                  transition: 'background 0.15s'
+                }}
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

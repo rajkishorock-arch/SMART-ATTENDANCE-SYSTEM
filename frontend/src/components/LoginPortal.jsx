@@ -692,6 +692,7 @@ export default function LoginPortal({
                       placeholder={loginRole === 'student' ? 'e.g. 7 or student@institution.edu' : 'e.g. user@institution.edu'}
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
+                      onFocus={() => { if (typeof onWakeServer === 'function') onWakeServer(); }}
                       required
                       style={{
                         width: '100%',
@@ -722,6 +723,7 @@ export default function LoginPortal({
                       placeholder="••••••••"
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
+                      onFocus={() => { if (typeof onWakeServer === 'function') onWakeServer(); }}
                       required
                       style={{
                         width: '100%',

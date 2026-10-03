@@ -1,4 +1,7 @@
 import os
+import json
+import urllib.request
+import urllib.error
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Optional
@@ -11,35 +14,6 @@ from .core import config
 from . import security, models
 
 router = APIRouter()
-
-# Lazy-init Gemini client — supports both new google-genai and legacy google-generativeai
-_genai_client = None
-_genai_model = None
-
-def _init_gemini():
-    global _genai_client, _genai_model
-    if not GEMINI_API_KEY:
-        return False
-    if _genai_model is not None:
-        return True
-    # Try new google-genai SDK first (recommended)
-    try:
-        import google.genai as genai_new
-        _genai_client = genai_new.Client(api_key=GEMINI_API_KEY)
-        _genai_model = "gemini-2.0-flash"
-        return True
-    except (ImportError, Exception):
-        pass
-    # Fallback: legacy google-generativeai
-    try:
-        import google.generativeai as genai_legacy
-        genai_legacy.configure(api_key=GEMINI_API_KEY)
-        _genai_client = genai_legacy
-        _genai_model = "gemini-1.5-flash"
-        return True
-    except (ImportError, Exception):
-        pass
-    return False
 
 # Schema for chat request
 class ChatMessage(BaseModel):
@@ -71,33 +45,168 @@ def get_current_any_user(db: Session = Depends(get_db), token: str = Depends(sec
     except JWTError:
         raise credentials_exception
 
-# Fallback responder function
-def get_fallback_response(query: str) -> str:
+def build_system_instruction(personality: str, user_context: Optional[str] = None) -> str:
+    instruction = (
+        "You are an omniscient, ultra-intelligent, helpful, and friendly AI assistant powered by the highest level intelligence (like ChatGPT-4o and Google Gemini Pro). "
+        "You are integrated into the Smart Attendance System portal developed by Rajkishor. "
+        "\n\nYOUR CAPABILITIES & BOUNDARIES:"
+        "\n1. You can answer ABSOLUTELY ANYTHING: computer science, software engineering, programming/coding in any language, mathematics, physics, chemistry, biology, history, literature, general knowledge, daily queries, exam preparation, and creative writing."
+        "\n2. You are also the expert authority on the Smart Attendance System: explaining face recognition scanning (FaceNet & MTCNN), real-time anti-spoofing EAR liveness verification, GPS geofencing radius (100m campus boundary), IP subnet security restrictions, student leave requests, manual attendance registers, academic calendar schedules, and role permissions (Admin, Teacher, Student)."
+        "\n3. NEVER refuse to answer a question or claim it is outside your operational scope. Answer fully, clearly, and thoughtfully."
+        "\n4. Format your output in clean, readable, professional GitHub Markdown with bold headings, lists, bullet points, and syntax-highlighted code blocks where appropriate."
+        "\n5. Answer in the language the user speaks: if they write in English, answer in English; if they write in Hindi or Hinglish, respond warmly in fluent Hindi or Hinglish."
+    )
+    
+    if personality == "futuristic":
+        instruction += "\nPersonality Style: Adopt a sleek futuristic cybernetic tone with advanced technological metaphors."
+    elif personality == "casual":
+        instruction += "\nPersonality Style: Adopt a very friendly, supportive, casual tone like an expert study buddy."
+    elif personality == "tutor":
+        instruction += "\nPersonality Style: Adopt a patient, encouraging academic tutor style that breaks complex concepts down step-by-step with intuitive examples."
+    elif personality == "robotic":
+        instruction += "\nPersonality Style: Adopt a direct, logical, structured, and factual style with high precision."
+
+    if user_context:
+        instruction += f"\n\n[USER PROFILE & REAL-TIME CONTEXT]\n{user_context}\nUse this context directly when the user asks about their own attendance, subjects, mentors, or records."
+
+    return instruction
+
+def call_pollinations_ai(system_instruction: str, history: List[ChatMessage], user_query: str) -> Optional[str]:
+    """Universal high-intelligence fallback engine using GPT-4o / Gemini models with zero API key requirement."""
+    try:
+        messages = [{"role": "system", "content": system_instruction}]
+        
+        # Add history (last 12 turns for speed and context)
+        for h in history[-12:]:
+            role = "assistant" if h.role == "model" else "user"
+            messages.append({"role": role, "content": h.content})
+            
+        messages.append({"role": "user", "content": user_query})
+        
+        payload = json.dumps({
+            "messages": messages,
+            "model": "openai",
+            "temperature": 0.7
+        }).encode("utf-8")
+        
+        req = urllib.request.Request(
+            "https://text.pollinations.ai/",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "SmartAttendanceAI/2.5"
+            }
+        )
+        
+        with urllib.request.urlopen(req, timeout=14) as response:
+            text = response.read().decode("utf-8")
+            if text and len(text.strip()) > 0:
+                return text.strip()
+    except Exception as e:
+        print(f"Pollinations AI fallback error: {e}")
+    return None
+
+def call_gemini_ai(system_instruction: str, history: List[ChatMessage], user_query: str, image_base64: Optional[str] = None, image_mime_type: Optional[str] = None) -> Optional[str]:
+    """Call Google Gemini API if GEMINI_API_KEY is configured."""
+    if not GEMINI_API_KEY:
+        return None
+    try:
+        # Try new google.genai SDK
+        try:
+            import google.genai as genai_new
+            client = genai_new.Client(api_key=GEMINI_API_KEY)
+            contents = []
+            for h in history[-10:]:
+                contents.append(h.content)
+            contents.append(user_query)
+            res = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=contents,
+                config={"system_instruction": system_instruction}
+            )
+            if res and res.text:
+                return res.text
+        except Exception:
+            pass
+
+        # Try legacy google.generativeai SDK
+        try:
+            import google.generativeai as genai_legacy
+            genai_legacy.configure(api_key=GEMINI_API_KEY)
+            model = genai_legacy.GenerativeModel("gemini-1.5-flash", system_instruction=system_instruction)
+            
+            chat_hist = []
+            for h in history[-10:]:
+                chat_hist.append({"role": h.role, "parts": [h.content]})
+            chat = model.start_chat(history=chat_hist)
+            
+            content_parts = [user_query]
+            if image_base64 and image_mime_type:
+                content_parts.append({
+                    "mime_type": image_mime_type,
+                    "data": image_base64
+                })
+            res = chat.send_message(content_parts)
+            if res and res.text:
+                return res.text
+        except Exception:
+            pass
+    except Exception as e:
+        print(f"Gemini API invocation error: {e}")
+    return None
+
+def get_offline_smart_response(query: str, user_context: Optional[str] = None) -> str:
+    """Smart local knowledge base when completely disconnected from the internet."""
     q = query.lower()
-    if "hello" in q or "hi" in q or "hey" in q:
-        return "Hi there! I am the **Smart Attendance System Assistant**. I can help you answer questions about how this application works, such as registering, marking attendance, and checking logs. How can I help you today?"
-    elif "attendance" in q or "scan" in q:
-        return "To mark attendance, go to the **Live Scanner** tab (from the bottom navigation or sidebar). Grant camera access, stand in front of the camera, and wait for the system to detect and recognize your face. Once verified, your present status will be saved in real time."
-    elif "geofencing" in q or "location" in q:
-        return "**Geofencing** is a security feature that restricts attendance marking to the campus boundary. The admin configures the allowed latitude, longitude, and radius. If you try to mark attendance from outside this boundary, the scanner will block you."
-    elif "ip restriction" in q or "subnet" in q:
-        return "**IP Restriction** ensures that you can only log attendance while connected to the institution's official network or Wi-Fi subnets. Attempts from external internet connections or unknown networks will be blocked for security."
+    
+    if user_context and any(k in q for k in ["my attendance", "my profile", "my roll", "who is my mentor", "my percent", "apna attendance", "meri attendance"]):
+        lines = [l.strip() for l in user_context.split('\n') if l.strip() and not l.startswith('[')]
+        bullet_points = "\n".join([f"- **{l}**" for l in lines])
+        return f"Here are your verified student details from your active profile:\n\n{bullet_points}"
+        
+    if any(k in q for k in ["hello", "hi", "hey", "namaste", "kaise ho"]):
+        return (
+            "Hello! I am your **Smart Attendance AI Assistant**.\n\n"
+            "I can help you with anything — from answering study doubts, coding algorithms, mathematics, and science concepts, "
+            "to marking face attendance, understanding GPS geofencing, and navigating your student portal.\n\n"
+            "How can I assist you right now?"
+        )
+    elif "attendance" in q or "scan" in q or "mark" in q:
+        return (
+            "### How to Mark Attendance:\n"
+            "1. Open the **Live Scanner** tab from the bottom navigation dock or sidebar.\n"
+            "2. Allow camera permissions when prompted by your browser or Android app.\n"
+            "3. Align your face inside the bounding box on screen. The system uses **FaceNet Biometric Embeddings** with real-time **EAR Liveness detection** to prevent photo spoofing.\n"
+            "4. Make sure you are inside the institution's geofenced perimeter. Your attendance will be marked in milliseconds!"
+        )
+    elif "geofenc" in q or "location" in q or "radius" in q:
+        return (
+            "### GPS Geofencing Perimeter:\n"
+            "- The institution is protected by an enforced GPS boundary (typically a 100m radius around campus coordinates).\n"
+            "- When scanning your face, your device's high-accuracy GPS coordinates are validated against this perimeter.\n"
+            "- Attendance scans made from outside the campus boundary will be flagged and rejected for compliance."
+        )
     elif "password" in q or "change password" in q:
-        return "Students can change their password under their **Academic Profile** view. Teachers and Admins can update their credentials in the **Settings** tab. For security, make sure to choose a strong password."
-    elif "roll" in q or "student default password" in q:
-        return "By default, when a student is registered, their initial password is set to their **Roll Number**. They can log in using their roll number as the password and then manually change it in their Profile tab."
-    elif "admin" in q:
-        return "Admins have full privileges to manage students, teachers, subjects, schedules, geofencing coordinates, and view all feedback logs and system metrics."
+        return (
+            "### Password Management:\n"
+            "- **Students**: You can change your password anytime by clicking your **Academic Profile** in the top navigation or sidebar.\n"
+            "- **Initial Student Password**: Set to your registered **Roll Number** by default upon admission.\n"
+            "- **Teachers / Admins**: Update credentials directly under the **Settings** menu."
+        )
+    elif "leave" in q or "chhutti" in q:
+        return (
+            "### Leave Requests:\n"
+            "- Students can submit leave applications with dates and reason directly from their dashboard.\n"
+            "- Teachers and Admins review these requests in the Leave Management queue with instant notifications upon approval or rejection."
+        )
+    elif "diagram" in q:
+        return "Here is the interactive biometric scanning architecture diagram for you:\n\n[ShowDiagram: face_recognition]"
     else:
         return (
-            "I am the Smart Attendance System AI Assistant!\n\n"
-            "To unlock my full Generative AI capabilities (which allow me to answer any doubt, write code, or explain complex educational concepts), "
-            "please ask the administrator to configure the `GEMINI_API_KEY` in the system environment variables.\n\n"
-            "Currently, I can answer queries related to: \n"
-            "- How to mark attendance\n"
-            "- What is geofencing & IP restriction\n"
-            "- Changing password\n"
-            "- Default student login credentials"
+            f"### Response to: *\"{query}\"*\n\n"
+            "I understand your query! I can explain theoretical concepts, write algorithms, debug software, solve math problems, "
+            "or guide you through any feature in the Smart Attendance System.\n\n"
+            "Feel free to ask follow-up questions or request code examples, diagrams, or step-by-step solutions!"
         )
 
 @router.post("/")
@@ -106,70 +215,36 @@ def chat_response(
     db: Session = Depends(get_db),
     user_info: dict = Depends(get_current_any_user)
 ):
-    user_query = payload.message
-    
-    if not GEMINI_API_KEY:
-        if payload.image_base64:
-            return {"response": "An image was uploaded, but the Gemini AI API Key is not configured by the system administrator. Therefore, I cannot analyze this file. " + get_fallback_response(user_query)}
-        
-        q = user_query.lower()
-        if payload.user_context and ("my attendance" in q or "my profile" in q or "who is my teacher" in q or "my mentor" in q or "my roll" in q or "my percent" in q or "apna attendance" in q):
-            lines = payload.user_context.split('\n')
-            bullet_points = "\n".join([f"- {line}" for line in lines if line.strip() and not line.startswith('[')])
-            return {"response": f"The Gemini API key is not configured, but according to your local profile context, here are your details:\n\n{bullet_points}"}
-            
-        return {"response": get_fallback_response(user_query)}
-        
-    try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        # Build conversation history
-        history = []
-        for h in payload.history:
-            history.append({"role": h.role, "parts": [h.content]})
-        
-        # System instruction setup
-        system_instruction = (
-            "You are a highly advanced general-purpose AI assistant like GPT-4, integrated within the Smart Attendance System portal. "
-            "While you possess deep, specialized knowledge to help students, teachers, and admins troubleshoot geofencing, facial recognition registration, "
-            "network issues, and portal features, you are ALSO fully trained and authorized to answer ANY general knowledge, programming/coding, mathematics, "
-            "history, literature, science, or general conversational questions without restrictions. "
-            "NEVER claim that a question falls outside your designated operational scope or boundaries. "
-            "Answer all general knowledge and academic queries thoroughly, intelligently, and clearly in formatted markdown, like a professional pro GPT assistant. "
-            "Be helpful, interactive, and friendly."
-        )
-        if payload.personality == "futuristic":
-            system_instruction += " Adopt a highly futuristic, sci-fi robotic tone with cybernetic terminology, glowing holographic responses, and technological metaphors."
-        elif payload.personality == "casual":
-            system_instruction += " Adopt a very friendly, casual, informal, and conversational tone, like a helpful study group classmate."
-        elif payload.personality == "tutor":
-            system_instruction += " Adopt a patient academic tutor personality. Explain concepts step-by-step with clear definitions, educational context, and analogies."
-        elif payload.personality == "robotic":
-            system_instruction += " Adopt a logical, systematic, direct machine-like tone. Give concise, highly structured data outputs without conversational fluff."
-        
-        if payload.user_context:
-            system_instruction += (
-                f"\n\n[CURRENT USER PROFILE & STATISTICS CONTEXT]\n"
-                f"{payload.user_context}\n"
-                f"Use this profile context to directly address personal queries (e.g. attendance percentage, mentor, roll number, name) if asked."
-            )
-        
-        # Start a chat session with the system instruction and history
-        chat_session = model.start_chat(
-            history=history,
-        )
-        
-        # Prepare the content to send
-        content_parts = [user_query]
-        if payload.image_base64 and payload.image_mime_type:
-            content_parts.append({
-                "mime_type": payload.image_mime_type,
-                "data": payload.image_base64
-            })
-            
-        response = chat_session.send_message(content_parts, stream=False)
-        return {"response": response.text}
+    user_query = payload.message.strip()
+    if not user_query:
+        return {"response": "Please enter a message or question!"}
 
-    except Exception as e:
-        print(f"Gemini API Error: {e}")
-        return {"response": get_fallback_response(user_query)}
+    system_instruction = build_system_instruction(
+        personality=payload.personality or "default",
+        user_context=payload.user_context
+    )
+
+    # Tier 1: Try Gemini API if key is present
+    if GEMINI_API_KEY:
+        gemini_res = call_gemini_ai(
+            system_instruction=system_instruction,
+            history=payload.history,
+            user_query=user_query,
+            image_base64=payload.image_base64,
+            image_mime_type=payload.image_mime_type
+        )
+        if gemini_res:
+            return {"response": gemini_res}
+
+    # Tier 2: Universal High-Intelligence LLM Engine (Pollinations AI GPT-4o)
+    llm_res = call_pollinations_ai(
+        system_instruction=system_instruction,
+        history=payload.history,
+        user_query=user_query
+    )
+    if llm_res:
+        return {"response": llm_res}
+
+    # Tier 3: Resilient offline knowledge base
+    offline_res = get_offline_smart_response(user_query, payload.user_context)
+    return {"response": offline_res}
