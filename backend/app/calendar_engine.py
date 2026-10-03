@@ -104,6 +104,35 @@ def create_calendar_event(
         institution_id=inst_id
     )
 
+    # Real-time Broadcast: Notify all students and parents in this institution
+    try:
+        from .notifications import create_notification
+        event_label = "🏖️ Holiday" if new_event.event_type in ["HOLIDAY", "INSTITUTION_CLOSED"] else (
+            "📝 Exam Session" if new_event.event_type == "EXAM" else f"📢 {new_event.event_type.replace('_', ' ').title()}"
+        )
+        notif_title = f"{event_label}: {new_event.title} ({new_event.start_date})"
+        notif_msg = new_event.description or f"Official academic notice announced for {new_event.start_date}."
+        create_notification(
+            db=db,
+            institution_id=inst_id,
+            recipient_role="student",
+            title=notif_title,
+            message=notif_msg,
+            category="ACADEMIC_CALENDAR",
+            action_url="/#/calendar"
+        )
+        create_notification(
+            db=db,
+            institution_id=inst_id,
+            recipient_role="parent",
+            title=notif_title,
+            message=notif_msg,
+            category="ACADEMIC_CALENDAR",
+            action_url="/#/calendar"
+        )
+    except Exception as notif_err:
+        pass
+
     return _format_event(new_event, db)
 
 
@@ -304,6 +333,32 @@ def cancel_class_session(
         ),
         institution_id=current_user.institution_id
     )
+
+    # Real-time Broadcast: Notify all students and parents about class cancellation
+    try:
+        from .notifications import create_notification
+        cancel_title = f"🚫 Class Cancelled: {subject.name} ({clean_date})"
+        cancel_msg = f"Session at {payload.session_time} was cancelled by {current_user.name}. Reason: {payload.reason or 'Faculty schedule update'}. Attendance is automatically safeguarded."
+        create_notification(
+            db=db,
+            institution_id=current_user.institution_id,
+            recipient_role="student",
+            title=cancel_title,
+            message=cancel_msg,
+            category="ACADEMIC_CALENDAR",
+            action_url="/#/calendar"
+        )
+        create_notification(
+            db=db,
+            institution_id=current_user.institution_id,
+            recipient_role="parent",
+            title=cancel_title,
+            message=cancel_msg,
+            category="ACADEMIC_CALENDAR",
+            action_url="/#/calendar"
+        )
+    except Exception:
+        pass
 
     return _format_event(event, db)
 

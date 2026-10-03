@@ -8,6 +8,7 @@ import AttendancePlannerWidget from '../AttendancePlannerWidget';
 import GamificationHub from '../GamificationHub';
 import LeaveApplicationForm from '../LeaveApplicationForm';
 import StudentAcademicCalendarWidget from './StudentAcademicCalendarWidget';
+import StudentAttendanceRecoveryWidget from './StudentAttendanceRecoveryWidget';
 
 function BlueprintDayBreakdownModal({ 
   isOpen, 
@@ -697,6 +698,14 @@ export default function StudentAttendanceDashboardView({
         onNavigateToCalendar={onNavigateToCalendar}
         playCyberSound={playCyberSound}
       />
+
+      {/* Low-Attendance Intervention & Counselor Action Plan Widget */}
+      <StudentAttendanceRecoveryWidget
+        token={token}
+        currentUser={currentUser}
+        playCyberSound={playCyberSound}
+      />
+
 
       <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} />
       <AttendancePlannerWidget token={token} currentUser={currentUser} playCyberSound={playCyberSound} />

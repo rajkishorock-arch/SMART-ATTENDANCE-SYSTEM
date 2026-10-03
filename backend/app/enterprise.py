@@ -72,6 +72,8 @@ class VoiceMarkPayload(BaseModel):
 class RfidMarkPayload(BaseModel):
     card_id: str
     roll: Optional[str] = None
+    subject_id: Optional[int] = None
+    custom_date: Optional[str] = None
 
 
 class CopilotQuery(BaseModel):
@@ -495,36 +497,68 @@ def voice_mark_attendance(payload: VoiceMarkPayload, db: Session = Depends(get_d
 
 
 @router.post("/rfid/mark")
-def rfid_mark_attendance(payload: RfidMarkPayload, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    _staff_only(current_user)
+def rfid_mark_attendance(
+    payload: RfidMarkPayload,
+    db: Session = Depends(get_db),
+    identity: security.AuthIdentity = Depends(security.get_current_identity)
+):
     roll = (payload.roll or payload.card_id).strip()
+
+    if identity.role == "student":
+        student_roll = getattr(identity.model, "roll", "")
+        if student_roll and roll != student_roll:
+            raise HTTPException(status_code=403, detail="Student credentials can only record their own student card.")
+
     student = db.query(models.StudentModel).filter(
-        models.StudentModel.institution_id == current_user.institution_id,
-        models.StudentModel.roll == roll,
+        models.StudentModel.institution_id == identity.institution_id,
+        (models.StudentModel.roll == roll) | (models.StudentModel.phone == roll) | (models.StudentModel.email == roll)
     ).first()
+
     if not student:
-        raise HTTPException(status_code=404, detail="Card/roll not mapped to student")
-    _, newly = crud.mark_student_attendance(
-        db, student_id=student.id, name=student.name, roll=student.roll, dep=student.dep,
-        institution_id=current_user.institution_id,
+        raise HTTPException(status_code=404, detail=f"Card or Roll '{roll}' not registered in this institution.")
+
+    att, newly = crud.mark_student_attendance(
+        db,
+        student_id=student.id,
+        name=student.name,
+        roll=student.roll,
+        dep=student.dep,
+        subject_id=payload.subject_id,
+        custom_date=payload.custom_date,
+        institution_id=identity.institution_id,
     )
-    return {"status": "marked", "method": "rfid_nfc", "name": student.name, "newly_marked": newly}
+
+    return {
+        "status": "marked",
+        "method": "rfid_nfc",
+        "name": student.name,
+        "roll": student.roll,
+        "department": student.dep,
+        "newly_marked": newly,
+        "time": att.time if att else None,
+        "date": att.date if att else None,
+        "streak_days": student.streak_days or 0,
+        "photo": student.photo or student.profile_pic,
+        "subject_id": payload.subject_id
+    }
 
 
 # ─── Kiosk & SLA ───────────────────────────────────────────────────────────────
 
 @router.get("/kiosk/config")
-def kiosk_mode_config(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    inst = db.query(models.Institution).filter(models.Institution.id == current_user.institution_id).first()
+def kiosk_mode_config(db: Session = Depends(get_db), identity: security.AuthIdentity = Depends(security.get_current_identity)):
+    inst = db.query(models.Institution).filter(models.Institution.id == identity.institution_id).first()
     return {
         "mode": "kiosk",
         "app_name": inst.app_name if inst else "Smart Attendance",
-        "primary_color": inst.primary_color if inst else "#00f2fe",
+        "institution_name": inst.name if inst else "Academic Campus",
+        "primary_color": inst.primary_color if inst else "#1e40af",
         "logo_url": inst.logo_url if inst else None,
         "fullscreen": True,
         "auto_scan": True,
-        "instructions": "Stand in frame — attendance marks automatically",
+        "instructions": "Align face within optical guide or tap RFID/NFC card",
     }
+
 
 
 @router.get("/sla/status")

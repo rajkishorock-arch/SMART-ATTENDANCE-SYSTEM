@@ -23,6 +23,8 @@ export default function LiveScannerSessionHubView({
   subjects,
   setShowScannerModal,
   setShowQrScannerModal,
+  setShowKioskModal,
+  setShowSmartCardModal,
   setIsManualAttendanceOpen,
   setManualSubjectId,
   setManualDate,
@@ -312,6 +314,73 @@ export default function LiveScannerSessionHubView({
               >
                 <span style={{ fontSize: '1.1rem' }}>🪪</span> Scan Virtual ID Card (Mobile & Laptop)
               </button>
+
+              {/* Classroom Kiosk Mode Launcher */}
+              <button
+                onClick={() => {
+                  if (userRole === 'admin' && !selectedSubjectId) {
+                    alert('Please select a subject first to launch Classroom Kiosk Mode.');
+                    return;
+                  }
+                  if (setShowKioskModal) {
+                    setShowKioskModal(true);
+                    playCyberSound('click');
+                  }
+                }}
+                type="button"
+                className="btn-secondary active-haptic"
+                style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  border: '1px solid rgba(2, 132, 199, 0.35)',
+                  color: '#0284c7',
+                  background: 'rgba(2, 132, 199, 0.06)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <span style={{ fontSize: '1.1rem' }}>🖥️</span> Launch Classroom Kiosk Mode (Wall Tablet / Gate)
+              </button>
+
+              {/* Smart NFC / RFID Card Reader */}
+              <button
+                onClick={() => {
+                  if (userRole === 'admin' && !selectedSubjectId) {
+                    alert('Please select a subject first to scan Smart Cards.');
+                    return;
+                  }
+                  if (setShowSmartCardModal) {
+                    setShowSmartCardModal(true);
+                    playCyberSound('click');
+                  }
+                }}
+                type="button"
+                className="btn-secondary active-haptic"
+                style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  color: '#059669',
+                  background: 'rgba(16, 185, 129, 0.06)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <span style={{ fontSize: '1.1rem' }}>💳</span> Smart NFC & RFID Card Tap Scanner
+              </button>
+
             </div>
           </div>
         </div>
@@ -495,8 +564,47 @@ export default function LiveScannerSessionHubView({
                       </svg>
                       Scan Student QR
                     </button>
+
+                    <button
+                      onClick={() => {
+                        playCyberSound('click');
+                        if (setShowKioskModal) setShowKioskModal(true);
+                      }}
+                      className="btn-secondary active-haptic"
+                      style={{
+                        flex: 1, minWidth: '160px', padding: '14px 20px',
+                        background: '#f0f9ff',
+                        border: '1px solid #bae6fd',
+                        borderRadius: '12px',
+                        color: '#0284c7', fontWeight: 700, fontSize: '0.92rem',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      }}
+                    >
+                      🖥️ Autonomous Kiosk
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        playCyberSound('click');
+                        if (setShowSmartCardModal) setShowSmartCardModal(true);
+                      }}
+                      className="btn-secondary active-haptic"
+                      style={{
+                        flex: 1, minWidth: '160px', padding: '14px 20px',
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '12px',
+                        color: '#059669', fontWeight: 700, fontSize: '0.92rem',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      }}
+                    >
+                      💳 Tap Smart Card
+                    </button>
                   </div>
                 </div>
+
 
                 {/* Live Logs List */}
                 <div className="glass-panel" style={{ padding: '28px', minHeight: '350px', maxHeight: '500px', display: 'flex', flexDirection: 'column' }}>

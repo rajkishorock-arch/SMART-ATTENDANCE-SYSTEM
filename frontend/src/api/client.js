@@ -22,9 +22,10 @@ export function buildApiUrl(path) {
  */
 export function buildHeaders(token = null, customHeaders = {}, isFormData = false) {
   const headers = { ...customHeaders };
+  const effectiveToken = token || (typeof localStorage !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('access_token')) : null);
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (effectiveToken) {
+    headers['Authorization'] = `Bearer ${effectiveToken}`;
   }
 
   if (!isFormData && !headers['Content-Type'] && !headers['content-type']) {

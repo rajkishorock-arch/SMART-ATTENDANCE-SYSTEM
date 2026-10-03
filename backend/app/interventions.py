@@ -263,3 +263,231 @@ def resolve_intervention(
     db.commit()
     db.refresh(item)
     return _format_intervention(item, db)
+
+
+import math
+from pydantic import BaseModel
+
+class CounselorRequestPayload(BaseModel):
+    reason: Optional[str] = "Student requested attendance recovery counseling."
+    preferred_date: Optional[str] = None
+
+
+@router.get("/my-status")
+def get_my_intervention_status(
+    db: Session = Depends(get_db),
+    identity: security.AuthIdentity = Depends(security.get_current_identity)
+):
+    """
+    Returns real-time attendance intervention status, threshold analytics,
+    and assigned counselor data for the authenticated student or parent.
+    """
+    student_id = None
+    if identity.role == "student":
+        student_id = identity.id
+    elif identity.role == "parent":
+        student_id = getattr(identity.model, "id", None)
+
+    if not student_id:
+        first_s = db.query(models.StudentModel).filter(
+            models.StudentModel.institution_id == identity.institution_id
+        ).first()
+        if not first_s:
+            return {
+                "has_intervention": False,
+                "attendance_percentage": 100.0,
+                "tier": "GOOD_STANDING",
+                "status": "NORMAL",
+                "total_classes": 0,
+                "attended_classes": 0,
+                "needed_classes_to_75": 0,
+                "buffer_classes_above_75": 0,
+                "action_plan": ["No attendance data found."]
+            }
+        student_id = first_s.id
+
+    student = db.query(models.StudentModel).filter(
+        models.StudentModel.id == student_id,
+        models.StudentModel.institution_id == identity.institution_id
+    ).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student record not found.")
+
+    logs = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.institution_id == identity.institution_id,
+        models.AttendanceModel.roll == student.roll
+    ).all()
+
+    conducted = len([l for l in logs if l.attendance != "CLASS_CANCELLED"])
+    attended = len([l for l in logs if l.attendance in ["Present", "LATE"]])
+    pct = round((attended / conducted * 100.0), 1) if conducted > 0 else 100.0
+
+    if pct < 60.0:
+        tier = "DEBARMENT_RISK"
+    elif pct < 70.0:
+        tier = "PARENT_ALERT"
+    elif pct < 75.0:
+        tier = "WARNING"
+    else:
+        tier = "GOOD_STANDING"
+
+    needed_classes = 0
+    buffer_classes = 0
+    if pct < 75.0 and conducted > 0:
+        needed_classes = max(1, math.ceil((0.75 * conducted - attended) / 0.25))
+    elif conducted > 0:
+        buffer_classes = max(0, math.floor((attended - 0.75 * conducted) / 0.75))
+
+    intervention = db.query(models.AttendanceIntervention).filter(
+        models.AttendanceIntervention.institution_id == identity.institution_id,
+        models.AttendanceIntervention.student_id == student.id,
+        models.AttendanceIntervention.status != "RESOLVED"
+    ).order_by(models.AttendanceIntervention.id.desc()).first()
+
+    if pct < 75.0 and not intervention and conducted > 0:
+        intervention = models.AttendanceIntervention(
+            institution_id=identity.institution_id,
+            student_id=student.id,
+            tier=tier,
+            attendance_percentage=pct,
+            status="TRIGGERED"
+        )
+        db.add(intervention)
+        db.commit()
+        db.refresh(intervention)
+
+    counselor = None
+    if intervention and intervention.counselor_id:
+        counselor = db.query(models.User).filter(models.User.id == intervention.counselor_id).first()
+
+    action_plan = []
+    if tier == "GOOD_STANDING":
+        action_plan.append("Your attendance is within the safe regulatory threshold (>= 75%).")
+        if buffer_classes > 0:
+            action_plan.append(f"Safe buffer: You can miss up to {buffer_classes} lecture(s) without dropping below 75%.")
+        else:
+            action_plan.append("Maintain consistent daily attendance to preserve your academic standing.")
+    elif tier == "WARNING":
+        action_plan.append(f"Crucial Recovery: Attend the next {needed_classes} consecutive classes to cross 75%.")
+        action_plan.append("Verify all past attendance disputes or medical leaves with your department.")
+        action_plan.append("Consult your subject teacher for syllabus alignment and make-up assignments.")
+    elif tier == "PARENT_ALERT":
+        action_plan.append(f"Formal Notice: Attend the next {needed_classes} consecutive classes to restore safe standing.")
+        action_plan.append("Official parent notification has been generated per university bylaws.")
+        action_plan.append("Schedule an academic counseling session to formulate an attendance recovery contract.")
+    elif tier == "DEBARMENT_RISK":
+        action_plan.append("CRITICAL: Severe risk of semester exam debarment (< 60%).")
+        action_plan.append(f"Mandatory requirement: Attend at least {needed_classes} consecutive classes immediately.")
+        action_plan.append("Urgent Dean/HOD counseling appointment required to review medical or extenuating appeals.")
+
+    return {
+        "student_name": student.name,
+        "student_roll": student.roll,
+        "department": student.dep,
+        "has_intervention": pct < 75.0,
+        "attendance_percentage": pct,
+        "tier": tier,
+        "status": intervention.status if intervention else ("GOOD_STANDING" if pct >= 75.0 else "TRIGGERED"),
+        "total_classes": conducted,
+        "attended_classes": attended,
+        "needed_classes_to_75": needed_classes,
+        "buffer_classes_above_75": buffer_classes,
+        "counselor_name": counselor.name if counselor else None,
+        "counselor_email": counselor.email if counselor else None,
+        "meeting_date": intervention.meeting_date if intervention else None,
+        "notes": intervention.notes if intervention else None,
+        "intervention_id": intervention.id if intervention else None,
+        "parent_contacted_at": intervention.parent_contacted_at if intervention else None,
+        "action_plan": action_plan
+    }
+
+
+@router.post("/request-counselor")
+def request_counseling_session(
+    payload: CounselorRequestPayload,
+    db: Session = Depends(get_db),
+    identity: security.AuthIdentity = Depends(security.get_current_identity)
+):
+    """
+    Enables a student to proactively request an academic counseling meeting
+    with their department counselor or teacher to recover attendance.
+    """
+    student_id = None
+    if identity.role == "student":
+        student_id = identity.id
+    elif identity.role == "parent":
+        student_id = getattr(identity.model, "id", None)
+
+    if not student_id:
+        raise HTTPException(status_code=400, detail="Only students or parents can request counseling.")
+
+    student = db.query(models.StudentModel).filter(
+        models.StudentModel.id == student_id,
+        models.StudentModel.institution_id == identity.institution_id
+    ).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found.")
+
+    intervention = db.query(models.AttendanceIntervention).filter(
+        models.AttendanceIntervention.institution_id == identity.institution_id,
+        models.AttendanceIntervention.student_id == student.id,
+        models.AttendanceIntervention.status != "RESOLVED"
+    ).order_by(models.AttendanceIntervention.id.desc()).first()
+
+    logs = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.institution_id == identity.institution_id,
+        models.AttendanceModel.roll == student.roll
+    ).all()
+    conducted = len([l for l in logs if l.attendance != "CLASS_CANCELLED"])
+    attended = len([l for l in logs if l.attendance in ["Present", "LATE"]])
+    pct = round((attended / conducted * 100.0), 1) if conducted > 0 else 100.0
+
+    note_text = f"Student Request ({datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}): {payload.reason or 'Assistance requested.'}"
+    if payload.preferred_date:
+        note_text += f" | Preferred time: {payload.preferred_date}"
+
+    if not intervention:
+        intervention = models.AttendanceIntervention(
+            institution_id=identity.institution_id,
+            student_id=student.id,
+            tier="WARNING" if pct < 75.0 else "ACADEMIC_GUIDANCE",
+            attendance_percentage=pct,
+            status="COUNSELOR_REQUESTED",
+            notes=note_text
+        )
+        db.add(intervention)
+    else:
+        intervention.status = "COUNSELOR_REQUESTED"
+        intervention.notes = f"{intervention.notes or ''}\n{note_text}".strip()
+
+    db.commit()
+    db.refresh(intervention)
+
+    try:
+        from .notifications import create_notification
+        create_notification(
+            db=db,
+            institution_id=identity.institution_id,
+            recipient_role="teacher",
+            title="Counseling Meeting Requested",
+            message=f"Student {student.name} ({student.roll}) has requested an attendance counseling session. (Attendance: {pct}%).",
+            category="INTERVENTION",
+            action_url="/interventions"
+        )
+        create_notification(
+            db=db,
+            institution_id=identity.institution_id,
+            recipient_role="admin",
+            title="Counseling Meeting Requested",
+            message=f"Student {student.name} ({student.roll}) requested attendance counseling.",
+            category="INTERVENTION",
+            action_url="/interventions"
+        )
+    except Exception:
+        pass
+
+    return {
+        "message": "Counseling session request dispatched successfully. Your department mentors have been notified.",
+        "status": "COUNSELOR_REQUESTED",
+        "intervention_id": intervention.id
+    }

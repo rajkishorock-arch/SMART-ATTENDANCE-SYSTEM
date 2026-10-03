@@ -22,6 +22,8 @@ import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync, useNotifi
 import PrivacyPolicy from './components/PrivacyPolicy';
 import VirtualIdCardModal from './components/VirtualIdCardModal';
 import QrScannerModal from './components/QrScannerModal';
+import ClassroomKioskModal from './components/ClassroomKioskModal';
+import SmartCardNfcModal from './components/SmartCardNfcModal';
 import { addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
 import AppAmbientLayer from './components/animations/AppAmbientLayer';
 import ClickFxLayer from './components/animations/ClickFxLayer';
@@ -470,6 +472,8 @@ export default function App() {
   const [liveFaceGrid, setLiveFaceGrid] = useState([]);
   const konamiRef = useRef([]);
   const [showQrScannerModal, setShowQrScannerModal] = useState(false);
+  const [showKioskModal, setShowKioskModal] = useState(false);
+  const [showSmartCardModal, setShowSmartCardModal] = useState(false);
   
   useEffect(() => {
     initKeepAliveEngine();
@@ -6875,6 +6879,67 @@ export default function App() {
           addDiagnosticLog={addDiagnosticLog}
         />
       )}
+      {showKioskModal && (
+        <ClassroomKioskModal
+          isOpen={showKioskModal}
+          onClose={() => setShowKioskModal(false)}
+          token={token}
+          currentUser={currentUser}
+          selectedSubjectId={selectedSubjectId}
+          sessionDate={sessionDate}
+          sessionPeriod={sessionPeriod}
+          onStudentCheckedIn={(student) => {
+            const timeStr = sessionActive ? sessionPeriod : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${new Date().getFullYear()}`;
+            setRecognizedStudents((prev) => {
+              if (prev.some((s) => s.id === student.id || s.roll === student.roll)) return prev;
+              return [{
+                id: student.id,
+                name: student.name,
+                roll: student.roll,
+                dep: student.dep || student.department,
+                time: timeStr,
+                date: dateStr,
+                status: 'Present',
+              }, ...prev];
+            });
+            fetchStats();
+            fetchLogs();
+          }}
+          playCyberSound={playCyberSound}
+          addDiagnosticLog={addDiagnosticLog}
+        />
+      )}
+      {showSmartCardModal && (
+        <SmartCardNfcModal
+          isOpen={showSmartCardModal}
+          onClose={() => setShowSmartCardModal(false)}
+          token={token}
+          selectedSubjectId={selectedSubjectId}
+          sessionDate={sessionDate}
+          sessionPeriod={sessionPeriod}
+          onStudentCheckedIn={(student) => {
+            const timeStr = sessionActive ? sessionPeriod : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${new Date().getFullYear()}`;
+            setRecognizedStudents((prev) => {
+              if (prev.some((s) => s.id === student.id || s.roll === student.roll)) return prev;
+              return [{
+                id: student.id,
+                name: student.name,
+                roll: student.roll,
+                dep: student.dep || student.department,
+                time: timeStr,
+                date: dateStr,
+                status: 'Present',
+              }, ...prev];
+            });
+            fetchStats();
+            fetchLogs();
+          }}
+          playCyberSound={playCyberSound}
+          addDiagnosticLog={addDiagnosticLog}
+        />
+      )}
       {isDemoMode && (
         <div style={{
           background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
@@ -7910,6 +7975,8 @@ export default function App() {
             subjects={subjects}
             setShowScannerModal={setShowScannerModal}
             setShowQrScannerModal={setShowQrScannerModal}
+            setShowKioskModal={setShowKioskModal}
+            setShowSmartCardModal={setShowSmartCardModal}
             setIsManualAttendanceOpen={setIsManualAttendanceOpen}
             setManualSubjectId={setManualSubjectId}
             setManualDate={setManualDate}
