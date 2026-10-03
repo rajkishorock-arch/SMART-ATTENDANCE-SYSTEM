@@ -339,6 +339,29 @@ export default function App() {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const livenessTokenRef = useRef(null);
   const [autoSessionInfo, setAutoSessionInfo] = useState(null);
+  const cardDismissTimerRef = useRef(null);
+
+  const showScannedStudentWithTimeout = useCallback((studentData, durationMs = 4000) => {
+    if (cardDismissTimerRef.current) {
+      clearTimeout(cardDismissTimerRef.current);
+      cardDismissTimerRef.current = null;
+    }
+    setScannedStudent(studentData);
+    if (studentData) {
+      cardDismissTimerRef.current = setTimeout(() => {
+        setScannedStudent(null);
+        cardDismissTimerRef.current = null;
+      }, durationMs);
+    }
+  }, []);
+
+  const dismissScannedStudent = useCallback(() => {
+    if (cardDismissTimerRef.current) {
+      clearTimeout(cardDismissTimerRef.current);
+      cardDismissTimerRef.current = null;
+    }
+    setScannedStudent(null);
+  }, []);
 
   const addDiagnosticLog = (msg) => {
     const time = new Date().toLocaleTimeString();
@@ -2945,7 +2968,7 @@ export default function App() {
       }
       setScannerBootActive(false);
       setAttendanceActive(false);
-      setScannedStudent(null);
+      dismissScannedStudent();
       setUserCoords(null);
       setGeoTrackingError('');
       setScanStatus('Camera Offline');
@@ -3086,7 +3109,7 @@ export default function App() {
           
           const matchedSubject = subjects.find(s => String(s.id) === String(effectiveSubId));
           const demoPhoto = matched.photo || matched.profile_pic || matched.details?.profile_pic || (matched.id ? `${API_BASE_URL}/students/${matched.id}/photo` : null);
-          setScannedStudent({
+          showScannedStudentWithTimeout({
             id: matched.id,
             name: matched.name,
             roll: matched.roll,
@@ -3256,7 +3279,7 @@ export default function App() {
               resolvedPhoto = `${API_BASE_URL}/students/${primary.user_id}/photo`;
             }
 
-            setScannedStudent({
+            showScannedStudentWithTimeout({
               id: primary.user_id,
               name: primary.name,
               roll: primary.roll,
@@ -3389,7 +3412,7 @@ export default function App() {
           offlineAttendanceQueue.enqueue(queuedRecord);
           matchSuccess = true;
           
-          setScannedStudent({
+          showScannedStudentWithTimeout({
             name: matchedStudent.name,
             roll: matchedStudent.roll || 'N/A',
             dep: matchedStudent.dep || matchedStudent.course || 'CSE',
@@ -4185,108 +4208,6 @@ export default function App() {
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
           const landmarks = results.multiFaceLandmarks[0];
           lastLandmarksRef.current = landmarks;
-          
-          const isMobile = window.innerWidth <= 768;
-          if (!isMobile) {
-            // Render mesh grid / Thermal Heatmap
-            if (thermalHudEnabled) {
-              const nose = landmarks[1];
-              const noseX = nose.x * canvas.width;
-              const noseY = nose.y * canvas.height;
-              
-              // Faux thermal signature gradient around nose
-              const grad = ctx.createRadialGradient(noseX, noseY, 15, noseX, noseY, 150);
-              grad.addColorStop(0, 'rgba(255, 0, 0, 0.45)');
-              grad.addColorStop(0.25, 'rgba(245, 158, 11, 0.35)');
-              grad.addColorStop(0.55, 'rgba(16, 185, 129, 0.25)');
-              grad.addColorStop(0.85, 'rgba(59, 130, 246, 0.15)');
-              grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-              
-              ctx.fillStyle = grad;
-              ctx.beginPath();
-              ctx.arc(noseX, noseY, 150, 0, Math.PI * 2);
-              ctx.fill();
-              
-              // Draw points color-coded by distance from nose tip center
-              for (let i = 0; i < landmarks.length; i += 3) {
-                const pt = landmarks[i];
-                const x = pt.x * canvas.width;
-                const y = pt.y * canvas.height;
-                const dx = x - noseX;
-                const dy = y - noseY;
-                const dist = Math.hypot(dx, dy);
-                
-                let dotColor = 'rgba(59, 130, 246, 0.7)';
-                if (dist < 40) dotColor = 'rgba(255, 0, 0, 0.9)';
-                else if (dist < 80) dotColor = 'rgba(245, 158, 11, 0.8)';
-                else if (dist < 120) dotColor = 'rgba(234, 179, 8, 0.8)';
-                else if (dist < 160) dotColor = 'rgba(16, 185, 129, 0.7)';
-                
-                ctx.fillStyle = dotColor;
-                ctx.beginPath();
-                ctx.arc(x, y, 1.5, 0, 2 * Math.PI);
-                ctx.fill();
-              }
-              
-              const drawIndicesThermal = (indices, strokeColor) => {
-                ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                for (let i = 0; i < indices.length; i++) {
-                  const pt = landmarks[indices[i]];
-                  if (!pt) continue;
-                  const x = pt.x * canvas.width;
-                  const y = pt.y * canvas.height;
-                  if (i === 0) ctx.moveTo(x, y);
-                  else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
-                ctx.stroke();
-              };
-              
-              drawIndicesThermal(LEFT_EYE_INDICES, 'rgba(255, 62, 62, 0.4)');
-              drawIndicesThermal(RIGHT_EYE_INDICES, 'rgba(255, 62, 62, 0.4)');
-              drawIndicesThermal([61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95, 78], 'rgba(245, 158, 11, 0.4)');
-              drawIndicesThermal([10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109], 'rgba(59, 130, 246, 0.35)');
-            } else {
-              ctx.fillStyle = activeTheme === 'matrix' ? 'rgba(0, 255, 70, 0.65)' : 
-                              activeTheme === 'obsidian' ? 'rgba(255, 62, 62, 0.65)' : 
-                              activeTheme === 'violet' ? 'rgba(168, 85, 247, 0.65)' : 'rgba(0, 242, 254, 0.65)';
-              ctx.strokeStyle = activeTheme === 'matrix' ? 'rgba(0, 255, 70, 0.2)' : 
-                                activeTheme === 'obsidian' ? 'rgba(255, 62, 62, 0.2)' : 
-                                activeTheme === 'violet' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(0, 242, 254, 0.2)';
-              ctx.lineWidth = 1;
-
-              // Draw all mesh dots
-              for (let i = 0; i < landmarks.length; i += 3) {
-                const pt = landmarks[i];
-                const x = pt.x * canvas.width;
-                const y = pt.y * canvas.height;
-                ctx.beginPath();
-                ctx.arc(x, y, 1, 0, 2 * Math.PI);
-                ctx.fill();
-              }
-
-              const drawIndices = (indices) => {
-                ctx.beginPath();
-                for (let i = 0; i < indices.length; i++) {
-                  const pt = landmarks[indices[i]];
-                  if (!pt) continue;
-                  const x = pt.x * canvas.width;
-                  const y = pt.y * canvas.height;
-                  if (i === 0) ctx.moveTo(x, y);
-                  else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
-                ctx.stroke();
-              };
-
-              drawIndices(LEFT_EYE_INDICES);
-              drawIndices(RIGHT_EYE_INDICES);
-              drawIndices([61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95, 78]);
-              drawIndices([10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]);
-            }
-          }
 
           // Calculate average brightness from video frame
           let avgBrightness = 100;
@@ -4368,38 +4289,7 @@ export default function App() {
           faceLockStartRef.current = null;
         }
 
-        // ===== Draw named face boxes LAST so they appear on top of mesh =====
-        const isMobile = window.innerWidth <= 768;
-        if (!isMobile) {
-          const srvFaces = serverRecognizedFacesRef.current;
-          if (srvFaces && srvFaces.faces && srvFaces.faces.length > 0) {
-            srvFaces.faces.forEach((face) => {
-              if (face.box) {
-                const scaledBox = {
-                  x: face.box[0] * (canvas.width / srvFaces.captureWidth),
-                  y: face.box[1] * (canvas.height / srvFaces.captureHeight),
-                  w: face.box[2] * (canvas.width / srvFaces.captureWidth),
-                  h: face.box[3] * (canvas.height / srvFaces.captureHeight),
-                };
-                // Only draw green box if newly marked, do not draw yellow box for already marked faces
-                if (face.newly_marked) {
-                  drawFaceBox(ctx, scaledBox, {
-                    color: '#10b981',
-                    label: `${face.name.toUpperCase()} (${face.confidence}%) - PRESENT`,
-                  });
-                }
-              }
-            });
-          } else if (cameraScanSettings.autoFocusBox !== false && lastFaceBoxesRef.current?.length) {
-            lastFaceBoxesRef.current.forEach((box, index) => {
-              drawFaceBox(ctx, box, {
-                color: livenessStatusRef.current === 'verified' ? '#10b981' : '#00f2fe',
-                label: index === 0 ? 'SCANNING IDENTITY' : `FACE #${index + 1}`,
-              });
-            });
-          }
-        }
-        // =====================================================================
+        // Video feed kept 100% clean and natural - no dots or box overlay on face
       }
     });
 
@@ -7266,7 +7156,7 @@ export default function App() {
               <ScannerSuccessReceipt
                 student={scannedStudent}
                 lang={appLang}
-                onDismiss={() => setScannedStudent(null)}
+                onDismiss={dismissScannedStudent}
               />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', alignItems: 'center' }}>

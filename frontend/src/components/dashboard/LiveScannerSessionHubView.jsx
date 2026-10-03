@@ -348,38 +348,7 @@ export default function LiveScannerSessionHubView({
                 <span style={{ fontSize: '1.1rem' }}>🖥️</span> Launch Classroom Kiosk Mode (Wall Tablet / Gate)
               </button>
 
-              {/* Smart NFC / RFID Card Reader */}
-              <button
-                onClick={() => {
-                  if (userRole === 'admin' && !selectedSubjectId) {
-                    alert('Please select a subject first to scan Smart Cards.');
-                    return;
-                  }
-                  if (setShowSmartCardModal) {
-                    setShowSmartCardModal(true);
-                    playCyberSound('click');
-                  }
-                }}
-                type="button"
-                className="btn-secondary active-haptic"
-                style={{
-                  padding: '12px',
-                  borderRadius: '12px',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  border: '1px solid rgba(16, 185, 129, 0.35)',
-                  color: '#059669',
-                  background: 'rgba(16, 185, 129, 0.06)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <span style={{ fontSize: '1.1rem' }}>💳</span> Smart NFC & RFID Card Tap Scanner
-              </button>
+
 
             </div>
           </div>
