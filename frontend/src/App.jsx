@@ -386,6 +386,8 @@ export default function App() {
     setLoginPassword,
     loginRole,
     setLoginRole,
+    loginWorkspaceSlug,
+    setLoginWorkspaceSlug,
     authError,
     setAuthError,
     isLoading,
@@ -5346,6 +5348,7 @@ export default function App() {
         if (userRole === 'student') {
           fetchStudentLogs(token);
           fetchStudentLeaves();
+          fetchBlueprint(token);
           if (currentUser?.details) {
             fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
           }
@@ -5367,6 +5370,7 @@ export default function App() {
             if (userRole === 'student') {
               fetchStudentLogs(token);
               fetchStudentLeaves();
+              fetchBlueprint(token);
               if (currentUser?.details) {
                 fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
               }
@@ -6773,6 +6777,8 @@ export default function App() {
         setLoginEmail={setLoginEmail}
         loginPassword={loginPassword}
         setLoginPassword={setLoginPassword}
+        loginWorkspaceSlug={loginWorkspaceSlug}
+        setLoginWorkspaceSlug={setLoginWorkspaceSlug}
         authError={authError}
         isLoading={isLoading}
         serverWarmingUp={serverWarmingUp}

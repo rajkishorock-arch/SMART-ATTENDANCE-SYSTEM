@@ -187,11 +187,23 @@ def login_for_access_token(
                 crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=user.email, action="Admin/User logged in."))
                 return {"access_token": access_token, "token_type": "bearer"}
 
-            # 3. Try Student Login
-            student = crud.get_student_by_email(db, email=clean_username, institution_id=institution_id)
+            # 3. Try Student Login (Supports Email, Roll Number, or Student ID)
+            from sqlalchemy import or_
+            student = db.query(models.StudentModel).filter(
+                models.StudentModel.institution_id == institution_id,
+                or_(
+                    func.lower(models.StudentModel.email) == clean_username,
+                    func.lower(models.StudentModel.roll) == clean_username,
+                    models.StudentModel.id == clean_username
+                )
+            ).first()
             if not student:
                 candidate_students = db.query(models.StudentModel).filter(
-                    func.lower(models.StudentModel.email) == clean_username
+                    or_(
+                        func.lower(models.StudentModel.email) == clean_username,
+                        func.lower(models.StudentModel.roll) == clean_username,
+                        models.StudentModel.id == clean_username
+                    )
                 ).all()
                 if len(candidate_students) == 1:
                     student = candidate_students[0]
@@ -203,7 +215,9 @@ def login_for_access_token(
                             institution_id = student.institution_id
                             break
                     if not student:
-                        student = candidate_students[0]
+                        # Prioritize non-default institution over default
+                        non_default = [c for c in candidate_students if c.institution_id != 1]
+                        student = non_default[0] if non_default else candidate_students[0]
                         institution_id = student.institution_id
             if student:
                 is_valid = False

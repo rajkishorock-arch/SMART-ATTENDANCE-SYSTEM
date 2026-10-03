@@ -945,67 +945,101 @@ export default function StudentAttendanceDashboardView({
       )}
 
       {/* Subject-wise Attendance Cards */}
-      <div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
-          <BookOpen size={20} style={{ color: '#2563eb' }} />
-          Subject-wise Attendance
-        </h3>
-        
-        {Object.keys(studentSubjectStats).length === 0 ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            No subject records found for your department.
-          </div>
-        ) : (
-          <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-            {Object.values(studentSubjectStats).map((subStat, idx) => {
-              const pDays = subStat.presentDays || subStat.present_count || 0;
-              const tDays = Math.max(subStat.totalDays || subStat.total_classes || 0, pDays);
-              const rawPct = (subStat.percentage !== undefined ? subStat.percentage : (tDays > 0 ? (pDays / tDays) * 100 : 0));
-              const safePct = Math.min(100.0, Math.max(0.0, Number(rawPct) || 0));
-              const isWarning = safePct < 75.0 && tDays > 0;
-              return (
-                <div key={idx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-                  <div className="flex-between">
-                    <div>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{subStat.subjectCode || subStat.subject_code}</span>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', margin: '2px 0 0 0' }}>{subStat.subjectName || subStat.subject_name}</h4>
+      {(() => {
+        const hasDirectStats = studentSubjectStats && (Array.isArray(studentSubjectStats) ? studentSubjectStats.length > 0 : Object.keys(studentSubjectStats).length > 0);
+        let displayStats = hasDirectStats ? studentSubjectStats : null;
+
+        if (!displayStats && safeStudentLogs.length > 0) {
+          const derived = {};
+          safeStudentLogs.forEach(log => {
+            const subKey = log.subject_id ? String(log.subject_id) : (log.subject_name || 'General');
+            if (!derived[subKey]) {
+              derived[subKey] = {
+                subject_id: log.subject_id || 0,
+                subjectCode: log.subject_code || (log.subject_id ? `SUB-${log.subject_id}` : 'GEN'),
+                subjectName: log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance'),
+                presentDays: 0,
+                totalDays: 0,
+                percentage: 0
+              };
+            }
+            derived[subKey].totalDays += 1;
+            if (log.attendance === 'Present' || log.attendance === 'Late') {
+              derived[subKey].presentDays += 1;
+            }
+          });
+          Object.values(derived).forEach(s => {
+            s.percentage = s.totalDays > 0 ? (s.presentDays / s.totalDays) * 100 : 0;
+          });
+          displayStats = derived;
+        }
+
+        const statsList = displayStats ? (Array.isArray(displayStats) ? displayStats : Object.values(displayStats)) : [];
+
+        return (
+          <div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
+              <BookOpen size={20} style={{ color: '#2563eb' }} />
+              Subject-wise Attendance
+            </h3>
+            
+            {statsList.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                No subject records found for your department.
+              </div>
+            ) : (
+              <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+                {statsList.map((subStat, idx) => {
+                  const pDays = subStat.presentDays || subStat.present_count || 0;
+                  const tDays = Math.max(subStat.totalDays || subStat.total_classes || 0, pDays);
+                  const rawPct = (subStat.percentage !== undefined ? subStat.percentage : (tDays > 0 ? (pDays / tDays) * 100 : 0));
+                  const safePct = Math.min(100.0, Math.max(0.0, Number(rawPct) || 0));
+                  const isWarning = safePct < 75.0 && tDays > 0;
+                  return (
+                    <div key={idx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+                      <div className="flex-between">
+                        <div>
+                          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{subStat.subjectCode || subStat.subject_code}</span>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', margin: '2px 0 0 0' }}>{subStat.subjectName || subStat.subject_name}</h4>
+                        </div>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          background: isWarning ? '#fee2e2' : '#d1fae5',
+                          color: isWarning ? '#dc2626' : '#059669',
+                          border: `1px solid ${isWarning ? '#fca5a5' : '#a7f3d0'}`
+                        }}>
+                          {tDays === 0 ? 'No Classes' : isWarning ? 'Shortage' : 'Good'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex-between" style={{ marginTop: '8px' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Classes: {pDays} / {tDays}</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: isWarning ? '#dc2626' : '#059669' }}>
+                          {safePct.toFixed(1)}%
+                        </span>
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${Math.min(100, safePct)}%`,
+                          height: '100%',
+                          background: isWarning ? 'linear-gradient(90deg, #f87171, #ef4444)' : 'linear-gradient(90deg, #34d399, #10b981)',
+                          borderRadius: '3px',
+                          transition: 'width 1s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }} />
+                      </div>
                     </div>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      background: isWarning ? '#fee2e2' : '#d1fae5',
-                      color: isWarning ? '#dc2626' : '#059669',
-                      border: `1px solid ${isWarning ? '#fca5a5' : '#a7f3d0'}`
-                    }}>
-                      {tDays === 0 ? 'No Classes' : isWarning ? 'Shortage' : 'Good'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex-between" style={{ marginTop: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Classes: {pDays} / {tDays}</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: isWarning ? '#dc2626' : '#059669' }}>
-                      {safePct.toFixed(1)}%
-                    </span>
-                  </div>
-                  
-                  {/* Progress Bar */}
-                  <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{
-                      width: `${Math.min(100, safePct)}%`,
-                      height: '100%',
-                      background: isWarning ? 'linear-gradient(90deg, #f87171, #ef4444)' : 'linear-gradient(90deg, #34d399, #10b981)',
-                      borderRadius: '3px',
-                      transition: 'width 1s cubic-bezier(0.16, 1, 0.3, 1)'
-                    }} />
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Attendance Shortage Warning */}
       {(() => {
@@ -1038,12 +1072,49 @@ export default function StudentAttendanceDashboardView({
 
       {/* ===== SUBJECT-WISE ATTENDANCE BLUEPRINT CALENDAR ===== */}
       {(() => {
-        const activeSubject = blueprintData.find(s => s.subject_id === selectedBlueprintSubject) || blueprintData[0];
-        const calYear = blueprintCalendarDate.getFullYear();
-        const calMonth = blueprintCalendarDate.getMonth();
+        const safeBlueprintRaw = Array.isArray(blueprintData) ? blueprintData : [];
+        let effectiveBlueprintData = safeBlueprintRaw;
+
+        // If safeBlueprintRaw is empty but safeStudentLogs has records, construct synthetic blueprint from real records!
+        if (effectiveBlueprintData.length === 0 && safeStudentLogs.length > 0) {
+          const subMap = {};
+          safeStudentLogs.forEach(log => {
+            const subId = log.subject_id !== undefined && log.subject_id !== null ? log.subject_id : 0;
+            if (!subMap[subId]) {
+              subMap[subId] = {
+                subject_id: subId,
+                subject_name: log.subject_name || (subId ? `Subject #${subId}` : 'General Attendance'),
+                subject_code: log.subject_code || (subId ? `SUB-${subId}` : 'GEN'),
+                department: log.department || '',
+                calendar: {}
+              };
+            }
+            if (log.date) {
+              const d = String(log.date).trim();
+              const statusVal = log.attendance || 'Present';
+              subMap[subId].calendar[d] = statusVal;
+              if (d.includes('-') && d.length === 10) {
+                const [y, m, day] = d.split('-');
+                subMap[subId].calendar[`${day}/${m}/${y}`] = statusVal;
+              } else if (d.includes('/')) {
+                const parts = d.split('/');
+                if (parts.length === 3) {
+                  const [day, m, y] = parts;
+                  subMap[subId].calendar[`${y}-${m.padStart(2,'0')}-${day.padStart(2,'0')}`] = statusVal;
+                  subMap[subId].calendar[`${day.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`] = statusVal;
+                }
+              }
+            }
+          });
+          effectiveBlueprintData = Object.values(subMap);
+        }
+
+        const activeSubject = effectiveBlueprintData.find(s => s.subject_id === selectedBlueprintSubject) || effectiveBlueprintData[0] || null;
+        const calYear = blueprintCalendarDate ? blueprintCalendarDate.getFullYear() : new Date().getFullYear();
+        const calMonth = blueprintCalendarDate ? blueprintCalendarDate.getMonth() : new Date().getMonth();
         const startDay = new Date(calYear, calMonth, 1).getDay();
         const numDays = new Date(calYear, calMonth + 1, 0).getDate();
-        const monthName = blueprintCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        const monthName = (blueprintCalendarDate || new Date()).toLocaleString('default', { month: 'long', year: 'numeric' });
 
         const getStats = (subject) => {
           if (!subject) return { present: 0, absent: 0, late: 0, total: 0 };
@@ -1084,7 +1155,7 @@ export default function StudentAttendanceDashboardView({
                 <div style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 Loading blueprint...
               </div>
-            ) : blueprintData.length === 0 ? (
+            ) : effectiveBlueprintData.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '36px 20px', color: '#64748b' }}>
                 <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#64748b' }}>
                   No attendance records found yet. Your blueprint will appear once attendance is marked.
@@ -1101,7 +1172,7 @@ export default function StudentAttendanceDashboardView({
               <>
                 {/* Subject Tabs */}
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                  {blueprintData.map(sub => (
+                  {effectiveBlueprintData.map(sub => (
                     <button
                       key={sub.subject_id}
                       onClick={() => setSelectedBlueprintSubject(sub.subject_id)}
@@ -1112,13 +1183,13 @@ export default function StudentAttendanceDashboardView({
                         fontWeight: 600,
                         cursor: 'pointer',
                         transition: 'all 0.2s',
-                        border: selectedBlueprintSubject === sub.subject_id
+                        border: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
                           ? '1px solid #3b82f6'
                           : '1px solid #cbd5e1',
-                        background: selectedBlueprintSubject === sub.subject_id
+                        background: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
                           ? '#eff6ff'
                           : '#f8fafc',
-                        color: selectedBlueprintSubject === sub.subject_id ? '#1d4ed8' : '#64748b'
+                        color: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id)) ? '#1d4ed8' : '#64748b'
                       }}
                     >
                       {sub.subject_code} — {sub.subject_name}
@@ -1161,12 +1232,12 @@ export default function StudentAttendanceDashboardView({
                 {/* Calendar Navigation */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <button
-                    onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev); d.setMonth(d.getMonth() - 1); return d; })}
+                    onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() - 1); return d; })}
                     style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
                   >◀ Prev</button>
                   <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>{monthName}</span>
                   <button
-                    onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev); d.setMonth(d.getMonth() + 1); return d; })}
+                    onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() + 1); return d; })}
                     style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
                   >Next ▶</button>
                 </div>
@@ -1185,8 +1256,28 @@ export default function StudentAttendanceDashboardView({
                   {/* Day cells */}
                   {Array.from({ length: numDays }, (_, i) => {
                     const day = i + 1;
-                    const dateStr = `${String(day).padStart(2,'0')}/${String(calMonth+1).padStart(2,'0')}/${calYear}`;
-                    const status = activeSubject?.calendar?.[dateStr];
+                    const padDay = String(day).padStart(2, '0');
+                    const padMonth = String(calMonth + 1).padStart(2, '0');
+                    const dateStr = `${padDay}/${padMonth}/${calYear}`;
+                    const isoDateStr = `${calYear}-${padMonth}-${padDay}`;
+                    const shortSlash = `${day}/${calMonth + 1}/${calYear}`;
+
+                    let status = activeSubject?.calendar?.[dateStr] || 
+                                 activeSubject?.calendar?.[isoDateStr] || 
+                                 activeSubject?.calendar?.[shortSlash];
+
+                    if (!status && safeStudentLogs.length > 0) {
+                      const match = safeStudentLogs.find(l => {
+                        if (activeSubject && activeSubject.subject_id !== 0 && l.subject_id && String(l.subject_id) !== String(activeSubject.subject_id)) {
+                          return false;
+                        }
+                        const lDate = (l.date || '').trim();
+                        return lDate === dateStr || lDate === isoDateStr || lDate === shortSlash;
+                      });
+                      if (match) {
+                        status = match.attendance || 'Present';
+                      }
+                    }
                     const today = new Date();
                     const isToday = today.getDate() === day && today.getMonth() === calMonth && today.getFullYear() === calYear;
 

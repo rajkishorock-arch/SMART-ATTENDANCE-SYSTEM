@@ -30,6 +30,7 @@ export function AuthProvider({ children }) {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginRole, setLoginRole] = useState('admin');
+  const [loginWorkspaceSlug, setLoginWorkspaceSlug] = useState(() => localStorage.getItem('active_tenant_slug') || '');
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [serverWarmingUp, setServerWarmingUp] = useState(false);
@@ -91,6 +92,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('override_tenant');
     localStorage.removeItem('active_tenant_slug');
     localStorage.removeItem('cached_students_inst_id');
+    localStorage.removeItem('cached_student_logs');
     setToken('');
     setUserRole('');
     setCurrentUser(null);
@@ -149,9 +151,10 @@ export function AuthProvider({ children }) {
 
     const isParentLogin = loginRole === 'parent';
     const loginEndpoint = isParentLogin ? `${API_BASE_URL}/parents/login` : `${API_BASE_URL}/auth/token`;
+    const targetSlug = (loginWorkspaceSlug || '').trim().toLowerCase() || getActiveTenantSlug() || 'default';
     const loginHeaders = isParentLogin
-      ? { 'Content-Type': 'application/json', 'X-Tenant-Slug': getActiveTenantSlug() }
-      : { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Tenant-Slug': getActiveTenantSlug() };
+      ? { 'Content-Type': 'application/json', 'X-Tenant-Slug': targetSlug }
+      : { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Tenant-Slug': targetSlug };
     const loginBody = isParentLogin
       ? JSON.stringify({ email: loginEmail.trim().toLowerCase(), password: loginPassword })
       : (() => {
@@ -335,6 +338,8 @@ export function AuthProvider({ children }) {
     setLoginPassword,
     loginRole,
     setLoginRole,
+    loginWorkspaceSlug,
+    setLoginWorkspaceSlug,
     authError,
     setAuthError,
     isLoading,

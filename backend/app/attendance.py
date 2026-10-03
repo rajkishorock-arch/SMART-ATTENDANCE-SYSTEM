@@ -712,6 +712,9 @@ def get_student_attendance_calendar(
                 models.AttendanceModel.id == roll_str,
                 models.AttendanceModel.id.like(f"{roll_str}_%"),
             ])
+        if current_student.name:
+            student_matches.append(models.AttendanceModel.name == current_student.name)
+            student_matches.append(models.AttendanceModel.name.ilike(current_student.name.strip()))
 
         logs = db.query(models.AttendanceModel).filter(
             models.AttendanceModel.institution_id == current_student.institution_id,
@@ -742,6 +745,7 @@ def get_student_attendance_calendar(
 
         # Build response
         result = []
+        found_sub_ids = set()
         for subject in subjects:
             # Only include subjects for student's department or subjects that have logs
             if subject.department and current_student.dep and subject.department.strip().lower() != current_student.dep.strip().lower():
@@ -755,6 +759,18 @@ def get_student_attendance_calendar(
                 "department": subject.department or "",
                 "calendar": cal  # { "25/06/2026": "Present", "24/06/2026": "Absent", ... }
             })
+            found_sub_ids.add(subject.id)
+
+        # Include any logged subjects that weren't in institution subjects list
+        for sub_id, cal in subject_calendar.items():
+            if sub_id != 0 and sub_id not in found_sub_ids and cal:
+                result.append({
+                    "subject_id": sub_id,
+                    "subject_name": f"Subject #{sub_id}",
+                    "subject_code": f"SUB{sub_id}",
+                    "department": current_student.dep or "",
+                    "calendar": cal
+                })
 
         # If general logs exist (subject_id == 0) and not already covered
         if 0 in subject_calendar and subject_calendar[0]:

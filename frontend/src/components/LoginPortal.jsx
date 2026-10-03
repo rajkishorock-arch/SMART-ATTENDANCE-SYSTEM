@@ -14,7 +14,8 @@ import {
   ArrowLeft,
   Sparkles,
   Check,
-  Copy
+  Copy,
+  Building2
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
@@ -49,6 +50,8 @@ export default function LoginPortal({
   setLoginEmail,
   loginPassword,
   setLoginPassword,
+  loginWorkspaceSlug,
+  setLoginWorkspaceSlug,
   authError,
   isLoading,
   onSubmit,
@@ -648,16 +651,45 @@ export default function LoginPortal({
               </div>
 
               <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Email / Username */}
+                {/* Institution / Workspace Code (Optional) */}
                 <div>
                   <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    Email or Username
+                    Institution Code <span style={{ color: '#94a3b8', fontWeight: 400 }}>(e.g. rit — leave blank for default)</span>
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="text"
                       className="form-input-touch"
-                      placeholder="e.g. student@institution.edu"
+                      placeholder="e.g. rit"
+                      value={loginWorkspaceSlug || ''}
+                      onChange={(e) => setLoginWorkspaceSlug?.(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px 12px 40px',
+                        borderRadius: '10px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: '#0f172a',
+                        fontSize: '0.88rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.15s ease'
+                      }}
+                    />
+                    <Building2 size={16} color="#64748b" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                  </div>
+                </div>
+
+                {/* Email / Roll / Username */}
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    {loginRole === 'student' ? 'Student Roll No. or Email' : 'Email or Username'}
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      className="form-input-touch"
+                      placeholder={loginRole === 'student' ? 'e.g. 7 or student@institution.edu' : 'e.g. user@institution.edu'}
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
