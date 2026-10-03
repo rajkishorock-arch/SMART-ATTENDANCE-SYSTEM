@@ -1,4 +1,15 @@
 export const getActiveTenantSlug = () => {
+  // 1. Highest Priority: Logged in user's verified institution slug
+  try {
+    const rawUser = localStorage.getItem('cached_user');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      if (u && u.institution_slug) {
+        return u.institution_slug.toLowerCase().trim();
+      }
+    }
+  } catch { /* ignore parse error */ }
+
   const hostname = window.location.hostname; // e.g. "du.attendance.io" or "localhost"
   const parts = hostname.split('.');
   
@@ -13,7 +24,7 @@ export const getActiveTenantSlug = () => {
   
   if (isCapacitor) {
     // Mobile app: user selects institution from dropdown → saved in localStorage
-    return localStorage.getItem('override_tenant') || 'default';
+    return localStorage.getItem('override_tenant') || localStorage.getItem('active_tenant_slug') || 'default';
   }
   
   // Vercel and Render deploy to subdomains like project.vercel.app or project.onrender.com
@@ -31,7 +42,7 @@ export const getActiveTenantSlug = () => {
   }
   
   // Fallback to localStorage override (useful for testing multi-tenancy locally) or 'default'
-  return localStorage.getItem('override_tenant') || 'default';
+  return localStorage.getItem('override_tenant') || localStorage.getItem('active_tenant_slug') || 'default';
 };
 
 // Dynamic helper to construct headers including the X-Tenant-Slug

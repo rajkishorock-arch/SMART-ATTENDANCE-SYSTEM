@@ -104,14 +104,23 @@ def login_for_access_token(
             clean_username = form_data.username.strip().lower()
             is_system_owner = (clean_username == config.SYSTEM_OWNER_EMAIL.lower())
 
-            # If user is system owner, prioritize their root admin account (institution 1)
+            # If user is system owner, prioritize requested institution or root admin account (institution 1)
             if is_system_owner:
-                user = db.query(models.User).filter(
-                    func.lower(models.User.email) == clean_username,
-                    models.User.institution_id == 1,
-                    models.User.role == "admin",
-                    models.User.is_active == True
-                ).first()
+                user = None
+                if institution_id != 1:
+                    user = db.query(models.User).filter(
+                        func.lower(models.User.email) == clean_username,
+                        models.User.institution_id == institution_id,
+                        models.User.role == "admin",
+                        models.User.is_active == True
+                    ).first()
+                if not user:
+                    user = db.query(models.User).filter(
+                        func.lower(models.User.email) == clean_username,
+                        models.User.institution_id == 1,
+                        models.User.role == "admin",
+                        models.User.is_active == True
+                    ).first()
                 if not user:
                     user = db.query(models.User).filter(
                         func.lower(models.User.email) == clean_username,

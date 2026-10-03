@@ -6719,7 +6719,7 @@ export default function App() {
             animation: 'shineText 4s linear infinite',
             textShadow: '0 0 15px rgba(0, 242, 254, 0.4)'
           }}>
-            {tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE SYSTEM"}
+            {((currentUser?.institution_name || tenantBranding?.name || "SMART ATTENDANCE SYSTEM")).toUpperCase()}
           </h2>
           <p style={{ 
             fontSize: '0.72rem', 
@@ -7273,9 +7273,10 @@ export default function App() {
               </defs>
             </svg>
           </div>
-          <span className="text-gradient" style={{ fontWeight: 800, background: 'linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 50%, #94A3B8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tenantBranding ? tenantBranding.name.toUpperCase() : "SMART ATTENDANCE"}</span>
+          <span className="text-gradient" style={{ fontWeight: 800, background: 'linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 50%, #94A3B8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {((currentUser?.institution_name || tenantBranding?.name || "SMART ATTENDANCE")).toUpperCase()}
+          </span>
           <button 
-            type="button"
             className="mobile-sidebar-close hide-on-desktop" 
             onClick={(e) => { e.stopPropagation(); setMobileSidebarOpen(false); playCyberSound('click'); }}
             aria-label="Close Sidebar"
@@ -9452,7 +9453,7 @@ export default function App() {
                     alignItems: 'center',
                     gap: '8px'
                   }}>
-                    {tenantBranding ? tenantBranding.name : "Smart Attendance"}
+                    {currentUser?.institution_name || (tenantBranding ? tenantBranding.name : "Smart Attendance")}
                     <span style={{
                       fontSize: '0.7rem',
                       fontWeight: 700,
