@@ -16,14 +16,15 @@ class LivenessStepReport(BaseModel):
 
 @router.post("/challenge")
 def start_liveness_challenge(
-    current_user: models.User = Depends(security.get_current_user),
+    identity: security.AuthIdentity = Depends(security.get_current_identity),
 ):
-    return create_liveness_challenge(current_user.email)
+    return create_liveness_challenge(identity.email)
 
 
 @router.post("/step")
 def report_step(
     payload: LivenessStepReport,
-    current_user: models.User = Depends(security.get_current_user),
+    identity: security.AuthIdentity = Depends(security.get_current_identity),
 ):
     return report_liveness_step(payload.challenge_id, payload.step, payload.ear_value)
+

@@ -357,6 +357,17 @@ def cancel_class_session(
             category="ACADEMIC_CALENDAR",
             action_url="/#/calendar"
         )
+
+        # Broadcast WhatsApp alert to enrolled parents and students
+        from .notification_service import send_whatsapp
+        target_students = db.query(models.StudentModel).filter(
+            models.StudentModel.institution_id == current_user.institution_id
+        ).limit(50).all()
+        for s in target_students:
+            dest_phone = s.parent_phone or s.phone
+            if dest_phone:
+                wa_text = f"📢 *Class Cancellation - {subject.name}*\nDear Parent/Student, lecture on {clean_date} ({payload.session_time}) has been cancelled by Prof. {current_user.name}.\nReason: {payload.reason or 'Faculty schedule update'}.\n✅ Attendance is safely protected."
+                send_whatsapp(dest_phone, wa_text)
     except Exception:
         pass
 

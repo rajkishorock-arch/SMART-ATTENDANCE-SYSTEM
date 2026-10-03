@@ -61,3 +61,23 @@ def notify_parent_absent(
     if notify_whatsapp and parent_phone:
         result["whatsapp"] = send_whatsapp(parent_phone, message)
     return result
+
+
+def notify_parent_checkin(
+    parent_phone: Optional[str],
+    parent_email: Optional[str],
+    student_name: str,
+    time_str: str,
+    gate_name: str = "Campus Main Gate",
+    notify_sms: bool = False,
+    notify_whatsapp: bool = True,
+) -> dict:
+    """Dispatches real-time student check-in/gate arrival notification to parents via WhatsApp/SMS."""
+    message = f"🟢 Campus Gate Alert: {student_name} has arrived safely and checked in at {gate_name} at {time_str}. - Smart Attendance System"
+    result = {"sms": False, "whatsapp": False}
+    if notify_sms and parent_phone:
+        result["sms"] = send_sms(parent_phone, message)
+    if notify_whatsapp and parent_phone:
+        result["whatsapp"] = send_whatsapp(parent_phone, message)
+    return result
+

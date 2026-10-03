@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, ShieldCheck, Lock, Maximize2, Minimize2, CheckCircle2, User, RefreshCw, X, Radio, Volume2 } from 'lucide-react';
+import { Camera, ShieldCheck, Lock, Maximize2, Minimize2, CheckCircle2, User, RefreshCw, X, Radio, Volume2, WifiOff } from 'lucide-react';
 import { enterpriseApi } from '../api/enterpriseApi';
+import { addToOfflineQueue, syncOfflineQueue } from '../utils/offlineQueue';
+
 
 export default function ClassroomKioskModal({
   isOpen,
@@ -207,6 +209,28 @@ export default function ClassroomKioskModal({
 
     try {
       setIsProcessing(true);
+
+      if (!navigator.onLine) {
+        addToOfflineQueue({
+          roll: clean,
+          subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : null,
+          method: 'OFFLINE_KIOSK_RFID',
+          timestamp: new Date().toISOString()
+        });
+        setRfidInput('');
+        handleStudentVerified({
+          name: `Roll ${clean}`,
+          roll: clean,
+          department: 'Queued Offline (Local)',
+          time: new Date().toLocaleTimeString(),
+          photo: null,
+          streak_days: 1,
+          newly_marked: true
+        });
+        addDiagnosticLog?.(`OFFLINE QUEUE: Roll ${clean} saved to local storage. Auto-sync will run upon reconnect.`);
+        return;
+      }
+
       const res = await enterpriseApi.markRfidAttendance(token, {
         card_id: clean,
         roll: clean,
@@ -225,6 +249,25 @@ export default function ClassroomKioskModal({
         newly_marked: res.newly_marked
       });
     } catch (err) {
+      if (!navigator.onLine || err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
+        addToOfflineQueue({
+          roll: clean,
+          subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : null,
+          method: 'OFFLINE_KIOSK_RFID',
+          timestamp: new Date().toISOString()
+        });
+        setRfidInput('');
+        handleStudentVerified({
+          name: `Roll ${clean}`,
+          roll: clean,
+          department: 'Queued Offline (Network Drop)',
+          time: new Date().toLocaleTimeString(),
+          photo: null,
+          streak_days: 1,
+          newly_marked: true
+        });
+        return;
+      }
       playCyberSound('error');
       setScanStatus(`Card not recognized: ${clean}`);
       setRfidInput('');

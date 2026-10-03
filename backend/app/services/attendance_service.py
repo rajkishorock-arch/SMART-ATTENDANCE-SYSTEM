@@ -143,4 +143,30 @@ class AttendanceService:
         except Exception as csv_err:
             print(f"Failed to write attendance to CSV: {csv_err}")
 
+        # 4. Real-time Parent Arrival & Campus Check-in Broadcast
+        try:
+            student = db.query(models.StudentModel).filter(models.StudentModel.id == student_id).first()
+            if student and (student.parent_phone or student.parent_email):
+                from app.notification_service import notify_parent_checkin
+                notify_parent_checkin(
+                    parent_phone=student.parent_phone,
+                    parent_email=student.parent_email,
+                    student_name=student.name,
+                    time_str=actual_clock_time,
+                    gate_name="Campus Academic Gate",
+                    notify_whatsapp=True
+                )
+                from app.notifications import create_notification
+                create_notification(
+                    db=db,
+                    institution_id=institution_id or 1,
+                    recipient_role="parent",
+                    title=f"🟢 Check-in Alert: {student.name}",
+                    message=f"{student.name} arrived and marked present at {actual_clock_time} on {today_str}.",
+                    category="ATTENDANCE",
+                    action_url="/#/student-attendance"
+                )
+        except Exception:
+            pass
+
         return db_attendance, True
