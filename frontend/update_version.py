@@ -4,7 +4,8 @@ import json
 import os
 
 def update_version(version_str=None):
-    package_path = 'package.json'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    package_path = os.path.join(script_dir, 'package.json')
     current_pkg_version = '1.0.0'
     if os.path.exists(package_path):
         try:
@@ -14,9 +15,14 @@ def update_version(version_str=None):
         except Exception as e:
             print(f"Error reading package.json: {e}")
 
-    # Fallback to current package.json version if version_str is omitted or empty
+    # Auto-bump patch version (e.g. 1.0.16 -> 1.0.17) if version_str is omitted, empty, or 'auto'
     if not version_str or version_str.strip() == '' or version_str.strip().lower() == 'auto':
-        version_str = current_pkg_version
+        parts = current_pkg_version.lstrip('vV').split('.')
+        if len(parts) == 3 and parts[2].isdigit():
+            parts[2] = str(int(parts[2]) + 1)
+            version_str = '.'.join(parts)
+        else:
+            version_str = current_pkg_version
 
     version_str = version_str.strip().lstrip('vV')
     print(f"Updating application version to: {version_str}")
@@ -33,10 +39,10 @@ def update_version(version_str=None):
         except Exception as e:
             print(f"Error updating package.json: {e}")
     else:
-        print("package.json not found in current directory.")
+        print("package.json not found in frontend directory.")
 
     # 2. Update android/app/build.gradle
-    gradle_path = 'android/app/build.gradle'
+    gradle_path = os.path.join(script_dir, 'android', 'app', 'build.gradle')
     if os.path.exists(gradle_path):
         try:
             with open(gradle_path, 'r', encoding='utf-8') as f:
