@@ -2,6 +2,7 @@
 Leave Service: domain and helper logic for leave management with multi-tenant isolation.
 """
 from typing import List, Dict, Any, Optional
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
@@ -45,6 +46,15 @@ class LeaveService:
             sub.id: sub for sub in db.query(models.Subject).filter(models.Subject.id.in_(subject_ids)).all()
         } if subject_ids else {}
 
+        def _format_iso(dt):
+            if not dt:
+                return None
+            if isinstance(dt, str):
+                return dt if (dt.endswith('Z') or '+' in dt or '-' in dt[10:]) else f"{dt.replace(' ', 'T')}Z"
+            if getattr(dt, "tzinfo", None) is None:
+                return dt.replace(tzinfo=timezone.utc).isoformat()
+            return dt.astimezone(timezone.utc).isoformat()
+
         enriched = []
         for leave in leaves:
             s = students_map.get(leave.student_id)
@@ -65,8 +75,8 @@ class LeaveService:
                 "reason": leave.reason,
                 "status": leave.status,
                 "reviewed_by": leave.reviewed_by,
-                "reviewed_at": leave.reviewed_at,
-                "created_at": leave.created_at,
+                "reviewed_at": _format_iso(leave.reviewed_at),
+                "created_at": _format_iso(leave.created_at),
                 "user_email": leave.user_email,
                 "role": leave.role,
                 "document_url": leave.document_url,

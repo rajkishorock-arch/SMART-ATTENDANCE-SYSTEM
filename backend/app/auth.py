@@ -184,8 +184,22 @@ def login_for_access_token(
                 access_token = security.create_access_token(
                     data={"sub": user.email, "role": user.role, "institution_id": user.institution_id}
                 )
-                crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=user.email, action="Admin/User logged in."))
-                return {"access_token": access_token, "token_type": "bearer"}
+                inst = db.query(models.Institution).filter(models.Institution.id == user.institution_id).first()
+                inst_name = inst.name if inst else "Smart Attendance System"
+                inst_slug = inst.slug if inst else "default"
+                user_info = {
+                    "role": user.role,
+                    "email": user.email,
+                    "name": user.name,
+                    "institution_id": user.institution_id,
+                    "institution_name": inst_name,
+                    "institution_slug": inst_slug,
+                    "profile_pic": getattr(user, "profile_pic", None),
+                    "department": getattr(user, "department", None),
+                    "phone": getattr(user, "phone", None),
+                    "bio": getattr(user, "bio", None),
+                }
+                return {"access_token": access_token, "token_type": "bearer", "user": user_info}
 
             # 3. Try Student Login (Supports Email, Roll Number, or Student ID)
             from sqlalchemy import or_
@@ -251,8 +265,40 @@ def login_for_access_token(
                 access_token = security.create_access_token(
                     data={"sub": student.email, "role": "student", "institution_id": student.institution_id}
                 )
-                crud.create_audit_log(db, log=schemas.AuditLogCreate(user_email=student.email, action="Student logged in."))
-                return {"access_token": access_token, "token_type": "bearer"}
+                inst = db.query(models.Institution).filter(models.Institution.id == student.institution_id).first()
+                inst_name = inst.name if inst else "Smart Attendance System"
+                inst_slug = inst.slug if inst else "default"
+                student_info = {
+                    "role": "student",
+                    "email": student.email,
+                    "name": student.name,
+                    "institution_id": student.institution_id,
+                    "institution_name": inst_name,
+                    "institution_slug": inst_slug,
+                    "profile_pic": getattr(student, "profile_pic", None),
+                    "phone": getattr(student, "phone", None),
+                    "bio": getattr(student, "bio", None),
+                    "details": {
+                        "id": student.id,
+                        "roll": student.roll,
+                        "dep": student.dep,
+                        "course": student.course,
+                        "year": student.year,
+                        "semester": student.semester,
+                        "gender": student.gender,
+                        "dob": student.dob,
+                        "phone": student.phone,
+                        "address": student.address,
+                        "teacher": student.teacher,
+                        "photo": student.photo,
+                        "profile_pic": getattr(student, "profile_pic", None),
+                        "bio": getattr(student, "bio", None),
+                        "institution_name": inst_name,
+                        "institution_slug": inst_slug,
+                        "face_enrolled_at": student.face_enrolled_at.isoformat() if student.face_enrolled_at else None
+                    }
+                }
+                return {"access_token": access_token, "token_type": "bearer", "user": student_info}
 
             _record_failed_login(rate_key, client_ip=client_ip)
             raise HTTPException(

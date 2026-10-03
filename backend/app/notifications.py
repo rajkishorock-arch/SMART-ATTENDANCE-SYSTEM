@@ -191,6 +191,15 @@ def get_my_notifications(
 
     output = []
     for n in notifications:
+        dt = n.created_at
+        iso_str = None
+        if dt:
+            if isinstance(dt, str):
+                iso_str = dt if (dt.endswith('Z') or '+' in dt or '-' in dt[10:]) else f"{dt.replace(' ', 'T')}Z"
+            elif dt.tzinfo is None:
+                iso_str = dt.replace(tzinfo=timezone.utc).isoformat()
+            else:
+                iso_str = dt.astimezone(timezone.utc).isoformat()
         output.append({
             "id": n.id,
             "category": n.category,
@@ -198,7 +207,7 @@ def get_my_notifications(
             "message": n.message,
             "action_url": n.action_url,
             "is_read": bool(n.is_read),
-            "created_at": n.created_at.isoformat() if n.created_at else None
+            "created_at": iso_str
         })
 
     return output

@@ -10,6 +10,7 @@ class _OrmBase(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user: Optional[Dict[str, Any]] = None
 
 
 class TokenData(BaseModel):

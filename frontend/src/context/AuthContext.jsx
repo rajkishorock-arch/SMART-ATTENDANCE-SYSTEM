@@ -139,6 +139,14 @@ export function AuthProvider({ children }) {
     }
   }, [handleLogout]);
 
+  // Pre-warm backend when on login screen so requests resolve in milliseconds
+  useEffect(() => {
+    if (!token) {
+      const API_BASE_URL = getApiBaseUrl();
+      wakeBackend(API_BASE_URL, 6000).catch(() => {});
+    }
+  }, [token]);
+
   // Handle Login submission with Render cold-start retry logic
   const handleLogin = useCallback(async (e, onSuccess) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -195,14 +203,17 @@ export function AuthProvider({ children }) {
         }
 
         if (res.ok && data.access_token) {
-          const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: { Authorization: `Bearer ${data.access_token}` },
-          });
+          let meData = data.user;
+          if (!meData) {
+            const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
+              headers: { Authorization: `Bearer ${data.access_token}` },
+            });
 
-          if (!meRes.ok) {
-            throw new Error('Session validation failed');
+            if (!meRes.ok) {
+              throw new Error('Session validation failed');
+            }
+            meData = await meRes.json();
           }
-          const meData = await meRes.json();
           if (meData.role !== loginRole) {
             playSound('error');
             setAuthError(getRoleMismatchMessage(loginRole, meData.role));

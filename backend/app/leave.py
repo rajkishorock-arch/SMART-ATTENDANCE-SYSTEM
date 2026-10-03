@@ -55,6 +55,7 @@ def apply_for_leave(
             reason=payload.reason,
             subject_id=payload.subject_id,
             status="Pending",
+            created_at=datetime.now(timezone.utc),
         )
         db.add(leave)
         db.commit()
@@ -70,6 +71,7 @@ def apply_for_leave(
             reason=payload.reason,
             subject_id=payload.subject_id,
             status="Pending",
+            created_at=datetime.now(timezone.utc),
         )
         db.add(leave)
         db.commit()
@@ -249,7 +251,7 @@ def review_leave_request(
     leave.status = payload.status
     leave.reviewed_by = current_user.id
     leave.approved_by = current_user.email
-    leave.reviewed_at = datetime.now(IST)
+    leave.reviewed_at = datetime.now(timezone.utc)
     db.commit()
 
     # On approval: auto-mark attendance as "Absent" for the leave period

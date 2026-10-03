@@ -80,9 +80,11 @@ export default function AcademicCalendarView({
     setErrorMsg('');
     try {
       const data = await calendarApi.fetchEvents(token, eventTypeFilter);
-      setEvents(data);
+      const safeList = Array.isArray(data) ? data : (data?.events && Array.isArray(data.events) ? data.events : []);
+      setEvents(safeList);
     } catch (err) {
       setErrorMsg(err.message || 'Error connecting to academic calendar engine.');
+      setEvents([]);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +96,12 @@ export default function AcademicCalendarView({
     setIsLoadingMetrics(true);
     try {
       const data = await calendarApi.fetchAttendanceMetrics(token, subjectId);
-      if (data) setMetrics(data);
+      if (data && typeof data.json === 'function') {
+        const parsed = await data.json();
+        setMetrics(parsed);
+      } else if (data) {
+        setMetrics(data);
+      }
     } catch (err) {
       console.warn('Metrics fetch skipped or unavailable:', err);
     } finally {
@@ -107,7 +114,8 @@ export default function AcademicCalendarView({
     if (!token) return;
     // Fetch subjects
     systemApi.fetchSubjects(token)
-      .then(data => {
+      .then(async res => {
+        const data = res && typeof res.json === 'function' ? (res.ok ? await res.json() : []) : res;
         if (Array.isArray(data)) {
           setSubjectsList(data);
           if (data.length > 0) {
@@ -121,7 +129,8 @@ export default function AcademicCalendarView({
     // If staff, fetch teachers
     if (isStaff) {
       teacherApi.listTeachers(token, 'teacher')
-        .then(data => {
+        .then(async res => {
+          const data = res && typeof res.json === 'function' ? (res.ok ? await res.json() : []) : res;
           if (Array.isArray(data)) {
             setTeachersList(data);
             if (data.length > 0) {
@@ -519,7 +528,7 @@ export default function AcademicCalendarView({
           </div>
 
           {/* Events Grid */}
-          {events.length === 0 ? (
+          {(!Array.isArray(events) || events.length === 0) ? (
             <div style={{
               background: '#ffffff',
               border: '1px dashed var(--border-subtle)',
@@ -576,7 +585,7 @@ export default function AcademicCalendarView({
               gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
               gap: '16px'
             }}>
-              {events.map(event => {
+              {(Array.isArray(events) ? events : []).map(event => {
                 const badge = EVENT_TYPE_COLORS[event.event_type] || {
                   bg: '#f1f5f9',
                   border: 'var(--border-subtle)',
@@ -770,7 +779,7 @@ export default function AcademicCalendarView({
                 }}
               >
                 <option value="">All Subjects Aggregate</option>
-                {subjectsList.map(s => (
+                {(Array.isArray(subjectsList) ? subjectsList : []).map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
                 ))}
               </select>
@@ -965,7 +974,7 @@ export default function AcademicCalendarView({
                   fontSize: '0.9rem'
                 }}
               >
-                {subjectsList.map(s => (
+                {(Array.isArray(subjectsList) ? subjectsList : []).map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.code}) — {s.department}</option>
                 ))}
               </select>
@@ -1123,7 +1132,7 @@ export default function AcademicCalendarView({
                   fontSize: '0.9rem'
                 }}
               >
-                {subjectsList.map(s => (
+                {(Array.isArray(subjectsList) ? subjectsList : []).map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
                 ))}
               </select>
@@ -1147,7 +1156,7 @@ export default function AcademicCalendarView({
                   fontSize: '0.9rem'
                 }}
               >
-                {teachersList.map(t => (
+                {(Array.isArray(teachersList) ? teachersList : []).map(t => (
                   <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
                 ))}
               </select>

@@ -128,18 +128,48 @@ export default function NotificationDrawerModal({
     }
   };
 
+  const parseSafeUtcDate = (dateStr) => {
+    if (!dateStr) return null;
+    if (dateStr instanceof Date) return dateStr;
+    let s = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      return new Date(`${s}T00:00:00`);
+    }
+    if (!s.endsWith('Z') && !s.includes('+') && !s.slice(10).includes('-')) {
+      s = s.replace(' ', 'T') + 'Z';
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? new Date(dateStr) : d;
+  };
+
   const formatTimeAgo = (dateStr) => {
     if (!dateStr) return '';
     try {
-      const dt = new Date(dateStr);
-      const diffMs = new Date() - dt;
+      const dt = parseSafeUtcDate(dateStr);
+      if (!dt || isNaN(dt.getTime())) return '';
+      const diffMs = Date.now() - dt.getTime();
+      if (diffMs < 60000) return 'Just now';
       const diffMins = Math.floor(diffMs / (1000 * 60));
-      if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins}m ago`;
       const diffHours = Math.floor(diffMins / 60);
       if (diffHours < 24) return `${diffHours}h ago`;
       const diffDays = Math.floor(diffHours / 24);
       return `${diffDays}d ago`;
+    } catch {
+      return '';
+    }
+  };
+
+  const formatRealTime = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const dt = parseSafeUtcDate(dateStr);
+      if (!dt || isNaN(dt.getTime())) return '';
+      return dt.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
     } catch {
       return '';
     }
@@ -415,9 +445,16 @@ export default function NotificationDrawerModal({
                       <p style={{ fontSize: '0.78rem', color: '#475569', margin: '4px 0 6px 0', lineHeight: 1.35 }}>
                         {n.message}
                       </p>
-                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                        {formatTimeAgo(n.created_at)}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 600 }}>
+                          {formatTimeAgo(n.created_at)}
+                        </span>
+                        {n.created_at && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                            • {formatRealTime(n.created_at)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

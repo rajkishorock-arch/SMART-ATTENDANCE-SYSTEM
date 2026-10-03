@@ -12,7 +12,16 @@ export const calendarApi = {
     if (eventType && eventType !== 'ALL') {
       url += `?event_type=${encodeURIComponent(eventType)}`;
     }
-    return apiGet(url, { token });
+    const res = await apiGet(url, { token });
+    if (res && typeof res.json === 'function') {
+      if (res.ok) {
+        const data = await res.json();
+        return Array.isArray(data) ? data : (data?.events || []);
+      }
+      return [];
+    }
+    if (Array.isArray(res)) return res;
+    return [];
   },
 
   /**
@@ -23,35 +32,66 @@ export const calendarApi = {
     if (subjectId) {
       url += `?subject_id=${encodeURIComponent(subjectId)}`;
     }
-    return apiGet(url, { token });
+    const res = await apiGet(url, { token });
+    if (res && typeof res.json === 'function') {
+      if (res.ok) {
+        return res.json();
+      }
+      return null;
+    }
+    return res || null;
   },
 
   /**
    * Schedule new calendar event (/calendar/events)
    */
   async createEvent(token, eventData) {
-    return apiPost('/calendar/events', eventData, { token });
+    const res = await apiPost('/calendar/events', eventData, { token });
+    if (res && typeof res.json === 'function') {
+      if (res.ok) return res.json();
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to schedule calendar event');
+    }
+    return res;
   },
 
   /**
    * Record class cancellation (/calendar/cancel-class)
    */
   async cancelClass(token, cancelData) {
-    return apiPost('/calendar/cancel-class', cancelData, { token });
+    const res = await apiPost('/calendar/cancel-class', cancelData, { token });
+    if (res && typeof res.json === 'function') {
+      if (res.ok) return res.json();
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to record class cancellation');
+    }
+    return res;
   },
 
   /**
    * Record teacher substitution (/calendar/substitute)
    */
   async substituteClass(token, substituteData) {
-    return apiPost('/calendar/substitute', substituteData, { token });
+    const res = await apiPost('/calendar/substitute', substituteData, { token });
+    if (res && typeof res.json === 'function') {
+      if (res.ok) return res.json();
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to assign substitute faculty');
+    }
+    return res;
   },
 
   /**
    * Delete calendar event (/calendar/events/{id})
    */
   async deleteEvent(token, eventId) {
-    return apiDelete(`/calendar/events/${eventId}`, { token });
+    const res = await apiDelete(`/calendar/events/${eventId}`, { token });
+    if (res && typeof res.json === 'function') {
+      if (res.ok) return res.json().catch(() => ({}));
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to remove calendar event');
+    }
+    return res;
   }
 };
 

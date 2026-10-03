@@ -522,8 +522,11 @@ export default function App() {
 
 
   // Real-Time Role Notification System
-  const handleNotificationNavigate = useCallback(({ targetTab, openScanner }) => {
+  const handleNotificationNavigate = useCallback(({ targetTab, targetSubSetting, openScanner }) => {
     if (targetTab) setActiveTab(targetTab);
+    if (targetSubSetting !== undefined && targetSubSetting !== null) {
+      setActiveSubSetting(targetSubSetting);
+    }
     if (openScanner) setShowScannerModal(true);
   }, []);
 
@@ -532,7 +535,7 @@ export default function App() {
     setShowNotificationDrawer,
     unreadCount: realtimeUnreadCount,
     handleNotificationClick,
-  } = useNotifications(token, currentUser, handleNotificationNavigate);
+  } = useNotifications(token, currentUser, userRole, handleNotificationNavigate);
 
 
   // Attendance Dispute & Correction Modal States (Phase 2)
@@ -2537,17 +2540,22 @@ export default function App() {
     }
   };
 
-  const fetchStudentSubjectStats = async (studentDept, studentId) => {
+  const fetchStudentSubjectStats = async (studentDept, studentId, authToken = null) => {
     if (isDemoMode) return;
     if (!studentDept || !studentId) return;
+    const activeToken = authToken || token;
+    if (!activeToken) return;
     try {
-      const subjectsList = await systemApi.fetchSubjects(token);
-      if (!Array.isArray(subjectsList)) return;
+      let subjectsList = await systemApi.fetchSubjects(activeToken);
+      if (subjectsList && typeof subjectsList.json === 'function') {
+        subjectsList = subjectsList.ok ? await subjectsList.json() : [];
+      }
+      if (!Array.isArray(subjectsList) || subjectsList.length === 0) return;
       
       const statsMap = {};
       await Promise.all(subjectsList.map(async (sub) => {
         try {
-          const res = await attendanceApi.fetchMyReport(token, sub.id);
+          const res = await attendanceApi.fetchMyReport(activeToken, sub.id);
           if (res.ok) {
             const data = await res.json();
             const myRecord = data.students.find(s => s.id === studentId);
@@ -5473,10 +5481,15 @@ export default function App() {
         break;
       case 'student-attendance':
         fetchStudentLogs(token);
-        fetchSubjects();
+        fetchSubjects(token);
         fetchBlueprint(token);
-        if (currentUser?.details) {
-          fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
+        fetchStudentLeaves(token);
+        {
+          const sDept = currentUser?.details?.dep || currentUser?.department || currentUser?.dep;
+          const sId = currentUser?.details?.id || currentUser?.id;
+          if (sDept && sId) {
+            fetchStudentSubjectStats(sDept, sId, token);
+          }
         }
         break;
       default:
@@ -5754,22 +5767,26 @@ export default function App() {
       loginJustCompletedRef.current = true;
       loginBootstrapDoneRef.current = true;
       if (meData.role === 'student') {
-        fetchStudentLogs(newToken);
-        fetchStudentLeaves(newToken);
-        fetchBlueprint(newToken);
+        const studentDept = meData.details?.dep || meData.department || meData.dep;
+        const studentId = meData.details?.id || meData.id;
+        Promise.allSettled([
+          fetchStudentLogs(newToken),
+          fetchStudentLeaves(newToken),
+          fetchBlueprint(newToken),
+          fetchSubjects(newToken),
+          ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
+        ]);
       } else {
-        Promise.all([
+        Promise.allSettled([
           fetchDepartments(newToken),
           fetchStats(newToken),
           fetchLogs(newToken),
           fetchSchedules(newToken),
           fetchAdminLeaves(newToken),
+          fetchSubjects(newToken),
+          fetchStudents(newToken),
+          ...(meData.role === 'admin' ? [fetchTeachers(newToken), fetchFeedbacks(newToken, meData.role)] : [])
         ]);
-        fetchSubjects(newToken).then(() => fetchStudents(newToken));
-        if (meData.role === 'admin') {
-          fetchTeachers(newToken);
-          fetchFeedbacks(newToken, meData.role);
-        }
       }
     });
   };
@@ -5786,22 +5803,26 @@ export default function App() {
       }
 
       if (meData.role === 'student') {
-        fetchStudentLogs(newToken);
-        fetchStudentLeaves(newToken);
-        fetchBlueprint(newToken);
+        const studentDept = meData.details?.dep || meData.department || meData.dep;
+        const studentId = meData.details?.id || meData.id;
+        Promise.allSettled([
+          fetchStudentLogs(newToken),
+          fetchStudentLeaves(newToken),
+          fetchBlueprint(newToken),
+          fetchSubjects(newToken),
+          ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
+        ]);
       } else {
-        Promise.all([
+        Promise.allSettled([
           fetchDepartments(newToken),
           fetchStats(newToken),
           fetchLogs(newToken),
           fetchSchedules(newToken),
           fetchAdminLeaves(newToken),
+          fetchSubjects(newToken),
+          fetchStudents(newToken),
+          ...(meData.role === 'admin' ? [fetchTeachers(newToken), fetchFeedbacks(newToken, meData.role)] : [])
         ]);
-        fetchSubjects(newToken).then(() => fetchStudents(newToken));
-        if (meData.role === 'admin') {
-          fetchTeachers(newToken);
-          fetchFeedbacks(newToken, meData.role);
-        }
       }
     });
   };

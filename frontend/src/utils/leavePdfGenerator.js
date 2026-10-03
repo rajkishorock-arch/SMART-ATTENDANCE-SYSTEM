@@ -1,5 +1,33 @@
 import { jsPDF } from 'jspdf';
 
+export function parseSafeUtcDate(dateStr) {
+  if (!dateStr) return null;
+  if (dateStr instanceof Date) return dateStr;
+  let s = String(dateStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return new Date(`${s}T00:00:00`);
+  }
+  if (!s.endsWith('Z') && !s.includes('+') && !s.slice(10).includes('-')) {
+    s = s.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? new Date(dateStr) : d;
+}
+
+export function formatDateTimeIST(dateStr) {
+  const d = parseSafeUtcDate(dateStr);
+  if (!d || isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
+
 /**
  * Generate an official, structured Leave Application & Review Summary PDF Document.
  * @param {Object} req Leave request object
@@ -42,7 +70,7 @@ export function generateLeavePdf(req, instName = 'SMART ATTENDANCE SYSTEM') {
   doc.text(`REF ID: #LEAVE-${req.id || 'N/A'}`, pageWidth - 14, 16, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(148, 163, 184);
-  doc.text(`Issued: ${new Date().toLocaleDateString('en-GB')}`, pageWidth - 14, 24, { align: 'right' });
+  doc.text(`Issued: ${formatDateTimeIST(new Date())}`, pageWidth - 14, 24, { align: 'right' });
 
   // Divider Line
   doc.setDrawColor(...primaryColor);
@@ -90,7 +118,7 @@ export function generateLeavePdf(req, instName = 'SMART ATTENDANCE SYSTEM') {
   doc.text(`Applied On: `, 110, y + 22);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...textDark);
-  const formattedCreated = req.created_at ? new Date(req.created_at).toLocaleString() : 'N/A';
+  const formattedCreated = req.created_at ? formatDateTimeIST(req.created_at) : 'N/A';
   doc.text(`${formattedCreated}`, 132, y + 22);
 
   y += 36;
@@ -186,7 +214,7 @@ export function generateLeavePdf(req, instName = 'SMART ATTENDANCE SYSTEM') {
   
   if (status === 'APPROVED' || status === 'REJECTED') {
     const revBy = req.reviewed_by ? `Reviewed by Staff ID #${req.reviewed_by}` : 'Reviewed by Institutional Admin';
-    const revAt = req.reviewed_at ? ` on ${new Date(req.reviewed_at).toLocaleString()}` : '';
+    const revAt = req.reviewed_at ? ` on ${formatDateTimeIST(req.reviewed_at)}` : '';
     doc.text(`${revBy}${revAt}`, 20, y + 18);
   } else {
     doc.text('This leave application is currently under review by class teacher / administration.', 20, y + 18);
