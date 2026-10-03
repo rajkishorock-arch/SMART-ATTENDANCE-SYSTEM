@@ -94,10 +94,16 @@ jobs:
           apk_path="frontend/android/app/build/outputs/apk/release/app-release.apk"
           version_tag="v${{ github.event.inputs.version }}"
           
-          echo "Creating Release $version_tag"
-          gh release create "$version_tag" "$apk_path" \
-            --title "Release $version_tag" \
-            --notes "Automated build of version $version_tag."
+          echo "Processing Release for $version_tag"
+          if gh release view "$version_tag" >/dev/null 2>&1; then
+            echo "Release $version_tag already exists. Uploading new APK asset with --clobber..."
+            gh release upload "$version_tag" "$apk_path" --clobber
+          else
+            echo "Creating Release $version_tag and uploading APK..."
+            gh release create "$version_tag" "$apk_path" \
+              --title "Release $version_tag" \
+              --notes "Automated build of version $version_tag."
+          fi
             
           download_url="https://github.com/${{ github.repository }}/releases/download/${version_tag}/app-release.apk"
           echo "download_url=$download_url" >> $GITHUB_ENV
