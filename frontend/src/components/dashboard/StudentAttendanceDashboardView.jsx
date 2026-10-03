@@ -7,6 +7,7 @@ import StudentAttendanceWallet from '../StudentAttendanceWallet';
 import AttendancePlannerWidget from '../AttendancePlannerWidget';
 import GamificationHub from '../GamificationHub';
 import LeaveApplicationForm from '../LeaveApplicationForm';
+import StudentAcademicCalendarWidget from './StudentAcademicCalendarWidget';
 
 function BlueprintDayBreakdownModal({ 
   isOpen, 
@@ -667,6 +668,7 @@ export default function StudentAttendanceDashboardView({
   blueprintDayModalDate,
   setBlueprintDayModalDate,
   appLang,
+  onNavigateToCalendar = () => {},
 }) {
   const { currentUser } = useAuth();
   const { playCyberSound } = useUI();
@@ -686,6 +688,14 @@ export default function StudentAttendanceDashboardView({
         }}
         onExportSummary={exportToCSV}
         lang={appLang}
+      />
+
+      {/* Official Institutional Academic Calendar, Holidays & Schedule Alerts */}
+      <StudentAcademicCalendarWidget
+        token={token}
+        currentUser={currentUser}
+        onNavigateToCalendar={onNavigateToCalendar}
+        playCyberSound={playCyberSound}
       />
 
       <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} />

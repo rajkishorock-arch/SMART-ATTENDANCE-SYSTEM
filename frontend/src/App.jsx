@@ -7303,8 +7303,18 @@ export default function App() {
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
                   onClick={() => { setActiveTab('student-attendance'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
-                  <Calendar size={18} />
+                  <TrendingUp size={18} />
                   My Attendance
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  onClick={() => { setActiveTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                >
+                  <Calendar size={18} />
+                  Academic Calendar
                 </button>
               </li>
               <li>
@@ -8361,6 +8371,7 @@ export default function App() {
             blueprintDayModalDate={blueprintDayModalDate}
             setBlueprintDayModalDate={setBlueprintDayModalDate}
             appLang={appLang}
+            onNavigateToCalendar={() => { setActiveTab('calendar'); playCyberSound('click'); }}
           />
         )}
 
