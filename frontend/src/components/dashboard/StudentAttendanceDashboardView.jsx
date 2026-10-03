@@ -1197,32 +1197,48 @@ export default function StudentAttendanceDashboardView({
                   ))}
                 </div>
 
-                {/* Stats Bar */}
+                {/* Stats Bar (Always Horizontal Grid on Mobile & Desktop) */}
                 {activeSubject && (
-                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px', padding: '14px 18px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: pct >= 75 ? '#059669' : '#dc2626' }}>{pct}%</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>Attendance</div>
-                    </div>
-                    <div style={{ width: '1px', background: '#cbd5e1' }} />
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#059669' }}>{stats.present}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Present</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#d97706' }}>{stats.late}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Late</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#dc2626' }}>{stats.absent}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Absent</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>{stats.total}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Total Days</div>
+                  <div>
+                    <div
+                      className="blueprint-stats-row"
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(5, 1fr)',
+                        gap: '6px',
+                        alignItems: 'center',
+                        marginBottom: (pct < 75 && stats.total > 0) ? '10px' : '20px',
+                        padding: '12px 8px',
+                        background: '#f8fafc',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        textAlign: 'center',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <div style={{ minWidth: 0, padding: '2px 4px' }}>
+                        <div style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.35rem)', fontWeight: 800, color: pct >= 75 ? '#059669' : '#dc2626', lineHeight: 1.1 }}>{pct}%</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Attendance</div>
+                      </div>
+                      <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', fontWeight: 700, color: '#059669', lineHeight: 1.1 }}>{stats.present}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Present</div>
+                      </div>
+                      <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', fontWeight: 700, color: '#d97706', lineHeight: 1.1 }}>{stats.late}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Late</div>
+                      </div>
+                      <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', fontWeight: 700, color: '#dc2626', lineHeight: 1.1 }}>{stats.absent}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Absent</div>
+                      </div>
+                      <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', fontWeight: 700, color: '#0f172a', lineHeight: 1.1 }}>{stats.total}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total Days</div>
+                      </div>
                     </div>
                     {pct < 75 && stats.total > 0 && (
-                      <div style={{ marginLeft: 'auto', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ marginBottom: '18px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ color: '#dc2626', fontSize: '0.75rem', fontWeight: 700 }}>⚠ Below 75% — Shortage</span>
                       </div>
                     )}

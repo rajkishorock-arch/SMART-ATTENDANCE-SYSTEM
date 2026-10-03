@@ -3,11 +3,52 @@ import { useState } from 'react';
 // =====================================================================
 // INTERACTIVE ONBOARDING GUIDE MODAL
 // =====================================================================
+function StepCard({ num, icon, title, desc, tag }) {
+  return (
+    <div style={{
+      display: 'flex',
+      gap: '12px',
+      alignItems: 'flex-start',
+      background: '#ffffff',
+      border: '1px solid #cbd5e1',
+      borderRadius: '12px',
+      padding: '12px 14px',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{
+        width: '30px',
+        height: '30px',
+        borderRadius: '8px',
+        background: '#eff6ff',
+        border: '1px solid #bfdbfe',
+        color: '#1d4ed8',
+        fontWeight: 800,
+        fontSize: '0.88rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0
+      }}>
+        {icon || num}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
+          <span style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.88rem' }}>{title}</span>
+          {tag && (
+            <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#475569', fontWeight: 600 }}>{tag}</span>
+          )}
+        </div>
+        <div style={{ color: '#1e293b', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: 500 }}>
+          {desc}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function OnboardingGuideModal({ onClose, playCyberSound }) {
   const [slide, setSlide] = useState(0);
-
-  const pStyle = { color: '#334155', margin: '0 0 10px 0', lineHeight: 1.55, fontSize: '0.88rem' };
-  const strongStyle = { color: '#0f172a', fontWeight: 700 };
 
   const slides = [
     {
@@ -16,10 +57,22 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       icon: "✨",
       color: "#1e40af",
       content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <p style={pStyle}><strong style={strongStyle}>1. Main Navigation Sidebar:</strong> Switch between logs, reports, profiles, leaves, and configurations on the left panel (bottom menu on mobile).</p>
-          <p style={pStyle}><strong style={strongStyle}>2. Profile & Status Check:</strong> Click on "My Profile" at any time to view your enrolled credentials, department mapping, and settings details.</p>
-          <p style={pStyle}><strong style={strongStyle}>3. Institution Customization:</strong> Admins can manage themes, lock down access subnet IPs, and establish geofencing parameters.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <StepCard 
+            num="1" 
+            title="Main Navigation Sidebar" 
+            desc="Switch between logs, reports, profiles, leaves, and configurations on the left panel (bottom menu on mobile)."
+          />
+          <StepCard 
+            num="2" 
+            title="Profile & Status Check" 
+            desc="Click on 'My Profile' at any time to view your enrolled credentials, department mapping, and settings details."
+          />
+          <StepCard 
+            num="3" 
+            title="Institution Customization" 
+            desc="Admins can manage themes, lock down access subnet IPs, and establish geofencing parameters."
+          />
         </div>
       )
     },
@@ -29,10 +82,25 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       icon: "🎓",
       color: "#ea580c",
       content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <p style={pStyle}><strong style={strongStyle}>📊 Attendance Forecast:</strong> Real-time indicator displaying your presence rate. Shows if you are safe or how many classes you must attend to cross the 75% limit.</p>
-          <p style={pStyle}><strong style={strongStyle}>🪪 Virtual ID Check-in:</strong> Open your Virtual ID card to generate a dynamic check-in QR code that rotates every 30 seconds for security. Present it to the teacher's scanner.</p>
-          <p style={pStyle}><strong style={strongStyle}>📝 Subject-wise Leaves:</strong> Apply for medical/personal leaves select-wise. These route directly to the respective subject teacher.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <StepCard 
+            num="1" 
+            icon="📊"
+            title="Attendance Forecast" 
+            desc="Real-time indicator displaying your presence rate. Shows if you are safe or how many classes you must attend to cross the 75% limit."
+          />
+          <StepCard 
+            num="2" 
+            icon="🪪"
+            title="Virtual ID Check-in" 
+            desc="Open your Virtual ID card to generate a dynamic check-in QR code that rotates every 30 seconds for secure scanning."
+          />
+          <StepCard 
+            num="3" 
+            icon="📝"
+            title="Subject-wise Leaves" 
+            desc="Apply for medical or personal leaves for specific subjects. These route directly to your respective subject teacher."
+          />
         </div>
       )
     },
@@ -42,10 +110,25 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       icon: "🏫",
       color: "#7c3aed",
       content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <p style={pStyle}><strong style={strongStyle}>⚡ Start Session:</strong> Set the subject and date, then initialize the class session to open scanning checks.</p>
-          <p style={pStyle}><strong style={strongStyle}>📸 Dual Scan Options:</strong> Use high-precision <strong style={strongStyle}>Face Scanner</strong> to verify registered biometric faces, or <strong style={strongStyle}>Scan Student QR</strong> to verify dynamic check-in tokens.</p>
-          <p style={pStyle}><strong style={strongStyle}>📋 Review Leaves:</strong> Teachers review leaves for their respective subjects. Admins oversee the entire system logs centrally.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <StepCard 
+            num="1" 
+            icon="⚡"
+            title="Start Class Session" 
+            desc="Set the subject and date, then initialize the class session to open scanning checks."
+          />
+          <StepCard 
+            num="2" 
+            icon="📸"
+            title="Dual Scan Options" 
+            desc="Use high-precision Face Scanner to verify registered biometric faces, or Scan Student QR to verify dynamic check-in tokens."
+          />
+          <StepCard 
+            num="3" 
+            icon="📋"
+            title="Review Leaves & Disputes" 
+            desc="Teachers review leaves for their respective subjects. Admins oversee the entire system logs centrally."
+          />
         </div>
       )
     },
@@ -55,13 +138,23 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       icon: "🤖",
       color: "#059669",
       content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <p style={pStyle}><strong style={strongStyle}>💬 AI Chatbot Counselor:</strong> Talk to the smart assistant for instant help on leaves, system stats, or profile details.</p>
-          <p style={pStyle}><strong style={strongStyle}>🗣️ Voice Speech Commands:</strong> Click the microphone and say commands to control the app automatically:
-            <br /><span style={{ color: '#64748b' }}>•</span> <em style={{ color: '#1e40af', fontStyle: 'normal', fontWeight: 600 }}>"start scanner"</em> — launches face recognition modal.
-            <br /><span style={{ color: '#64748b' }}>•</span> <em style={{ color: '#1e40af', fontStyle: 'normal', fontWeight: 600 }}>"open profile"</em> / <em style={{ color: '#1e40af', fontStyle: 'normal', fontWeight: 600 }}>"open leaves"</em> — navigates tabs.
-            <br /><span style={{ color: '#64748b' }}>•</span> <em style={{ color: '#1e40af', fontStyle: 'normal', fontWeight: 600 }}>"logout"</em> — logs out of the app.
-          </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <StepCard 
+            num="1" 
+            icon="💬"
+            title="AI Chatbot Counselor" 
+            desc="Talk to the smart assistant for instant help on leaves, system stats, attendance queries, or profile details."
+          />
+          <StepCard 
+            num="2" 
+            icon="🗣️"
+            title="Voice Speech Commands" 
+            desc={
+              <span>
+                Click the microphone to control the app: <strong style={{ color: '#1d4ed8' }}>"start scanner"</strong> launches face scanner, <strong style={{ color: '#1d4ed8' }}>"open profile"</strong> navigates to profile, or <strong style={{ color: '#1d4ed8' }}>"logout"</strong> signs out.
+              </span>
+            }
+          />
         </div>
       )
     }
@@ -153,12 +246,12 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
           </div>
           <div>
             <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.35rem)', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.25 }}>{current.title}</h2>
-            <p style={{ color: '#475569', fontSize: '0.85rem', margin: '5px 0 0', lineHeight: 1.4, fontWeight: 500 }}>{current.desc}</p>
+            <p style={{ color: '#334155', fontSize: '0.85rem', margin: '5px 0 0', lineHeight: 1.4, fontWeight: 600 }}>{current.desc}</p>
           </div>
         </div>
 
         {/* Slide Content */}
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '16px', minHeight: '180px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '14px', borderRadius: '16px', minHeight: '180px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {current.content}
         </div>
 

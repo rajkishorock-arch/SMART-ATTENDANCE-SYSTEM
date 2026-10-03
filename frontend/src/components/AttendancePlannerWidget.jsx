@@ -195,50 +195,60 @@ export default function AttendancePlannerWidget({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             {/* Target Threshold Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.82rem', color: '#64748b' }}>Target:</span>
-              {[75, 80, 85].map(t => (
-                <button
-                  key={t}
-                  onClick={() => {
-                    playCyberSound('click');
-                    setTargetPct(t);
-                    fetchPlanner(t);
-                  }}
-                  style={{
-                    background: targetPct === t ? '#eff6ff' : '#f8fafc',
-                    border: targetPct === t ? '1px solid #3b82f6' : '1px solid #cbd5e1',
-                    color: targetPct === t ? '#1d4ed8' : '#64748b',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {t}%
-                </button>
-              ))}
+            <div className="planner-target-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
+              <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600, flexShrink: 0 }}>Target:</span>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                {[75, 80, 85].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    className="target-pct-btn"
+                    onClick={() => {
+                      playCyberSound('click');
+                      setTargetPct(t);
+                      fetchPlanner(t);
+                    }}
+                    style={{
+                      background: targetPct === t ? '#eff6ff' : '#f8fafc',
+                      border: targetPct === t ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                      color: targetPct === t ? '#1d4ed8' : '#64748b',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      width: 'auto',
+                      minWidth: '50px',
+                      textAlign: 'center',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {t}%
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* What-If Simulator Toggle */}
             <button
+              type="button"
               onClick={() => {
                 playCyberSound('click');
                 setShowWhatIf(!showWhatIf);
               }}
               style={{
-                background: showWhatIf ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                border: showWhatIf ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
-                color: showWhatIf ? '#c084fc' : '#cbd5e1',
-                padding: '7px 14px',
+                background: showWhatIf ? '#f3e8ff' : '#f8fafc',
+                border: showWhatIf ? '1px solid #a855f7' : '1px solid #cbd5e1',
+                color: showWhatIf ? '#7e22ce' : '#475569',
+                padding: '6px 14px',
                 borderRadius: '8px',
                 fontSize: '0.82rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '6px',
+                width: 'auto'
               }}
             >
               <Sliders size={14} />
@@ -247,6 +257,7 @@ export default function AttendancePlannerWidget({
 
             {/* Refresh */}
             <button
+              type="button"
               onClick={() => { playCyberSound('click'); fetchPlanner(targetPct); }}
               disabled={isLoading}
               style={{
@@ -254,7 +265,8 @@ export default function AttendancePlannerWidget({
                 border: 'none',
                 color: '#64748b',
                 cursor: 'pointer',
-                padding: '4px'
+                padding: '4px',
+                width: 'auto'
               }}
               title="Refresh Planner"
             >

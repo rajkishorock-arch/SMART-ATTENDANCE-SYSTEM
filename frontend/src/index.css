@@ -1467,25 +1467,55 @@ button:active,
     gap: 20px !important;
   }
 
-  /* Force stack filters and flex elements that would overlap */
-  .reports-section div[style*="display: flex"][style*="gap:"],
-  .student-dashboard div[style*="display: flex"][style*="gap:"],
-  div[style*="display: flex"][style*="gap: 16px"],
-  div[style*="display: flex"][style*="gap: 20px"] {
+  /* Force stack filters and flex elements that would overlap (scoped strictly to reports/admin filter bars) */
+  .reports-section > div[style*="display: flex"][style*="gap:"],
+  .session-history-filters[style*="display: flex"] {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 12px !important;
     width: 100% !important;
   }
 
-  /* Reset sub-tab navigation and buttons inside flex wrappers */
-  div[style*="display: flex"][style*="gap: 16px"] button,
-  div[style*="display: flex"][style*="gap: 16px"] a,
-  div[style*="display: flex"][style*="gap: 20px"] button {
+  /* Specific horizontal helpers for student dashboard */
+  .blueprint-stats-row {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 6px !important;
+    align-items: center !important;
     width: 100% !important;
+  }
+
+  .planner-target-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .planner-target-row button,
+  .target-pct-btn {
+    width: auto !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 6px 10px !important;
     justify-content: center !important;
-    text-align: center !important;
-    padding: 12px 20px !important;
+  }
+
+  /* Onboarding modal high-contrast text guarantee */
+  .onboarding-guide-card {
+    background: #ffffff !important;
+    color: #1e293b !important;
+  }
+  .onboarding-guide-card p,
+  .onboarding-guide-card span,
+  .onboarding-guide-card div {
+    color: #1e293b;
+  }
+  .onboarding-guide-card strong,
+  .onboarding-guide-card h2,
+  .onboarding-guide-card h3 {
+    color: #0f172a !important;
   }
 
   /* Ensure all forms take full width */

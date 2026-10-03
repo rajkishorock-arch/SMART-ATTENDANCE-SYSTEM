@@ -126,148 +126,177 @@ export default function StudentTodayView({
         </button>
       </div>
 
-      {/* ── Attendance Gauge Card ── */}
-      <div className="surface-card" style={{ padding: '22px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TrendingUp size={18} color={isSafe ? '#10b981' : '#ef4444'} />
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#fff' }}>
-              {t('my_attendance_rate', lang)}
-            </h3>
-          </div>
+      {/* ── Desktop 2-Column Responsive Grid (My Attendance Rate + Today's Recent Check-in History) ── */}
+      <div className="student-today-cards-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+        gap: '20px',
+        alignItems: 'stretch'
+      }}>
+        {/* ── Attendance Gauge Card ── */}
+        <div className="surface-card" style={{
+          padding: '22px',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          boxSizing: 'border-box',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrendingUp size={18} color={isSafe ? '#10b981' : '#ef4444'} />
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                {t('my_attendance_rate', lang)}
+              </h3>
+            </div>
 
-          <span
-            className={`status-pill ${isSafe ? 'status-pill-success' : 'status-pill-danger'}`}
-            style={{ fontSize: '0.72rem', padding: '4px 10px' }}
-          >
-            {isSafe ? t('safe_zone', lang) : t('deficit_warning', lang)}
-          </span>
-        </div>
-
-        {/* Big percentage & progress bar */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '2.4rem', fontWeight: 900, color: isSafe ? '#10b981' : '#ef4444' }}>
-            {attendanceRate}%
-          </span>
-          <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-            ({attendedClasses} / {totalClasses} {lang === 'hi' ? 'क्लासेज' : 'classes'})
-          </span>
-        </div>
-
-        {/* Visual Progress Bar */}
-        <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden', marginBottom: '14px' }}>
-          <div
-            style={{
-              width: `${Math.min(100, attendanceRate)}%`,
-              height: '100%',
-              background: isSafe ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #ef4444, #f87171)',
-              borderRadius: '4px',
-              transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}
-          />
-        </div>
-
-        {/* Actionable Advice Pill */}
-        {statusAdvice && (
-          <div style={{
-            background: statusAdvice.safe ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            border: `1px solid ${statusAdvice.safe ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
-            borderRadius: 'var(--radius-md)',
-            padding: '10px 14px',
-            fontSize: '0.8rem',
-            color: statusAdvice.safe ? '#34d399' : '#f87171',
-            lineHeight: 1.4
-          }}>
-            {statusAdvice.text}
-          </div>
-        )}
-      </div>
-
-      {/* ── Today's Attendance History (Last 5 scans today) ── */}
-      <div className="surface-card" style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={18} color="var(--color-primary)" />
-            <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#fff' }}>
-              {lang === 'hi' ? 'आज की उपस्थिति रिकॉर्ड' : "Today's Recent Check-in History"}
-            </h3>
-          </div>
-
-          {onExportSummary && (
-            <button
-              onClick={onExportSummary}
-              className="btn-ghost"
-              style={{ minHeight: '32px', padding: '4px 10px', fontSize: '0.74rem' }}
+            <span
+              className={`status-pill ${isSafe ? 'status-pill-success' : 'status-pill-danger'}`}
+              style={{ fontSize: '0.72rem', padding: '4px 10px' }}
             >
-              <Download size={12} />
-              <span>{lang === 'hi' ? 'डाउनलोड' : 'Download'}</span>
-            </button>
+              {isSafe ? t('safe_zone', lang) : t('deficit_warning', lang)}
+            </span>
+          </div>
+
+          {/* Big percentage & progress bar */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '2.4rem', fontWeight: 900, color: isSafe ? '#10b981' : '#ef4444' }}>
+              {attendanceRate}%
+            </span>
+            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+              ({attendedClasses} / {totalClasses} {lang === 'hi' ? 'क्लासेज' : 'classes'})
+            </span>
+          </div>
+
+          {/* Visual Progress Bar */}
+          <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '14px' }}>
+            <div
+              style={{
+                width: `${Math.min(100, attendanceRate)}%`,
+                height: '100%',
+                background: isSafe ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #ef4444, #f87171)',
+                borderRadius: '4px',
+                transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            />
+          </div>
+
+          {/* Actionable Advice Pill */}
+          {statusAdvice && (
+            <div style={{
+              background: statusAdvice.safe ? '#eff6ff' : '#fef2f2',
+              border: `1px solid ${statusAdvice.safe ? '#bfdbfe' : '#fecaca'}`,
+              borderRadius: '10px',
+              padding: '10px 14px',
+              fontSize: '0.8rem',
+              color: statusAdvice.safe ? '#1d4ed8' : '#dc2626',
+              lineHeight: 1.4,
+              marginTop: 'auto'
+            }}>
+              {statusAdvice.text}
+            </div>
           )}
         </div>
 
-        {todayStudentLogs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '24px 10px', color: 'var(--color-text-muted)', fontSize: '0.84rem' }}>
-            {lang === 'hi' ? 'आज का कोई उपस्थिति रिकॉर्ड उपलब्ध नहीं है।' : 'No attendance recorded for today yet.'}
+        {/* ── Today's Attendance History (Last 5 scans today) ── */}
+        <div className="surface-card" style={{
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          boxSizing: 'border-box',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={18} color="#2563eb" />
+              <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                {lang === 'hi' ? 'आज की उपस्थिति रिकॉर्ड' : "Today's Recent Check-in History"}
+              </h3>
+            </div>
+
+            {onExportSummary && (
+              <button
+                onClick={onExportSummary}
+                className="btn-ghost"
+                style={{ minHeight: '30px', padding: '4px 10px', fontSize: '0.74rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', color: '#334155' }}
+              >
+                <Download size={12} />
+                <span>{lang === 'hi' ? 'डाउनलोड' : 'Download'}</span>
+              </button>
+            )}
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {todayStudentLogs.slice(0, 5).map((log, idx) => {
-              const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
-              return (
-                <div
-                  key={log.id || idx}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-subtle)'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span>📅 {log.date || 'Today'}</span>
-                      {log.period_label && (
-                        <span style={{ fontSize: '0.7rem', color: '#00f2fe', background: 'rgba(0, 242, 254, 0.12)', border: '1px solid rgba(0, 242, 254, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                          ⏰ {log.period_label}
+
+          {todayStudentLogs.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px 10px', color: '#64748b', fontSize: '0.84rem', margin: 'auto' }}>
+              {lang === 'hi' ? 'आज का कोई उपस्थिति रिकॉर्ड उपलब्ध नहीं है।' : 'No attendance recorded for today yet.'}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+              {todayStudentLogs.slice(0, 5).map((log, idx) => {
+                const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
+                return (
+                  <div
+                    key={log.id || idx}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span>📅 {log.date || 'Today'}</span>
+                        {log.period_label && (
+                          <span style={{ fontSize: '0.7rem', color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                            ⏰ {log.period_label}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ color: '#334155', fontWeight: 600 }}>
+                          📚 {log.subject_name ? log.subject_name : (log.subject_code ? `${log.subject_code}` : (log.department || 'General Attendance'))}
                         </span>
+                        {log.time && <span style={{ color: '#64748b' }}>· 🕒 {log.time}</span>}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className={`status-pill ${isPresent ? 'status-pill-success' : 'status-pill-danger'}`} style={{ fontSize: '0.7rem' }}>
+                        {log.attendance || 'Present'}
+                      </span>
+                      {!isPresent && onRequestDispute && (
+                        <button
+                          onClick={() => onRequestDispute(log)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#0ea5e9',
+                            fontSize: '0.72rem',
+                            cursor: 'pointer',
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          {t('dispute', lang)}
+                        </button>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
-                        📚 {log.subject_name ? log.subject_name : (log.subject_code ? `${log.subject_code}` : (log.department || 'General Attendance'))}
-                      </span>
-                      {log.time && <span style={{ color: '#94a3b8' }}>· 🕒 {log.time}</span>}
-                    </div>
                   </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className={`status-pill ${isPresent ? 'status-pill-success' : 'status-pill-danger'}`} style={{ fontSize: '0.7rem' }}>
-                      {log.attendance || 'Present'}
-                    </span>
-                    {!isPresent && onRequestDispute && (
-                      <button
-                        onClick={() => onRequestDispute(log)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#0ea5e9',
-                          fontSize: '0.72rem',
-                          cursor: 'pointer',
-                          textDecoration: 'underline'
-                        }}
-                      >
-                        {lang === 'hi' ? 'आपत्ति दर्ज करें' : 'Dispute'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
