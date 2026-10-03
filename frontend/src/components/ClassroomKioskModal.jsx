@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, ShieldCheck, Lock, Maximize2, Minimize2, CheckCircle2, User, RefreshCw, X, Radio, Volume2, WifiOff } from 'lucide-react';
+import { Camera, ShieldCheck, Lock, CheckCircle2, User, RefreshCw, X, Radio, Volume2, WifiOff } from 'lucide-react';
 import { enterpriseApi } from '../api/enterpriseApi';
 import { addToOfflineQueue, syncOfflineQueue } from '../utils/offlineQueue';
-
 
 export default function ClassroomKioskModal({
   isOpen,
@@ -20,7 +19,6 @@ export default function ClassroomKioskModal({
   const [kioskConfig, setKioskConfig] = useState(null);
   const [scanStatus, setScanStatus] = useState('Looking for student faces...');
   const [activeStudent, setActiveStudent] = useState(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [rfidInput, setRfidInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -35,6 +33,7 @@ export default function ClassroomKioskModal({
   const animFrameRef = useRef(null);
   const rfidInputRef = useRef(null);
   const lastCaptureTimeRef = useRef(0);
+  const isProcessingRef = useRef(false);
 
   // Live Digital Clock
   useEffect(() => {
@@ -61,7 +60,7 @@ export default function ClassroomKioskModal({
     if (isOpen) {
       try {
         if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-          document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+          document.documentElement.requestFullscreen().catch(() => {});
         }
       } catch (err) {}
     }
@@ -81,16 +80,21 @@ export default function ClassroomKioskModal({
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
         });
         activeStream = stream;
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
         }
       } catch (err) {
         console.error('Kiosk camera init error:', err);
-        setScanStatus('Camera unavailable. Tap RFID / Smart Card to check-in.');
+        setScanStatus('Camera access denied. Please allow camera permissions or tap RFID card.');
       }
     };
 
@@ -106,7 +110,7 @@ export default function ClassroomKioskModal({
     };
   }, [isOpen]);
 
-  // Voice Speech Synthesizer Greeting
+  // Voice Greeting Synthesizer
   const speakGreeting = useCallback((studentName) => {
     if ('speechSynthesis' in window && studentName) {
       try {
@@ -116,12 +120,12 @@ export default function ClassroomKioskModal({
         utterance.pitch = 1.0;
         window.speechSynthesis.speak(utterance);
       } catch (e) {
-        console.error('Speech synthesis error:', e);
+        console.error('Speech error:', e);
       }
     }
   }, []);
 
-  // Handle Successful Identification
+  // Successful Student Recognition
   const handleStudentVerified = useCallback((studentData) => {
     setActiveStudent(studentData);
     setScanStatus(`Verified: ${studentData.name}`);
@@ -132,9 +136,9 @@ export default function ClassroomKioskModal({
     if (onStudentCheckedIn) {
       onStudentCheckedIn(studentData);
     }
-    addDiagnosticLog?.(`KIOSK RECOGNIZED: ${studentData.name} (${studentData.roll}) marked Present.`);
+    addDiagnosticLog?.(`KIOSK VERIFIED: ${studentData.name} (${studentData.roll}) marked Present.`);
 
-    // Keep splash for 2.8 seconds, then resume scanning
+    // Show splash for 2.8 seconds, then resume scanning
     setTimeout(() => {
       setActiveStudent(null);
       setScanStatus('Looking for student faces...');
@@ -142,19 +146,20 @@ export default function ClassroomKioskModal({
     }, 2800);
   }, [onStudentCheckedIn, playCyberSound, speakGreeting, addDiagnosticLog]);
 
-  // Frame Capture / Face Recognition Tick
+  // Facial Recognition Loop (Captures Blob via FormData)
   useEffect(() => {
     if (!isOpen) return;
 
-    const tick = async (timestamp) => {
+    const tick = (timestamp) => {
       if (
-        !isProcessing &&
+        !isProcessingRef.current &&
         !activeStudent &&
         videoRef.current &&
-        videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA
+        videoRef.current.readyState >= 2 &&
+        videoRef.current.videoWidth > 0
       ) {
-        // Run recognition every 900ms
-        if (timestamp - lastCaptureTimeRef.current >= 900) {
+        // Run recognition tick every 1000ms
+        if (timestamp - lastCaptureTimeRef.current >= 1000) {
           lastCaptureTimeRef.current = timestamp;
 
           try {
@@ -162,32 +167,50 @@ export default function ClassroomKioskModal({
             const canvas = canvasRef.current;
             if (canvas) {
               const ctx = canvas.getContext('2d');
-              canvas.width = 480;
-              canvas.height = 360;
-              ctx.drawImage(video, 0, 0, 480, 360);
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+              const targetW = 640;
+              const targetH = Math.round((video.videoHeight / video.videoWidth) * targetW) || 480;
+              canvas.width = targetW;
+              canvas.height = targetH;
+              ctx.drawImage(video, 0, 0, targetW, targetH);
 
-              setIsProcessing(true);
-              const res = await enterpriseApi.recognizeFrame(token, {
-                image: dataUrl,
-                subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : null,
-              });
+              canvas.toBlob(async (blob) => {
+                if (!blob || isProcessingRef.current) return;
+                isProcessingRef.current = true;
+                setIsProcessing(true);
 
-              if (res && res.recognized && res.student) {
-                handleStudentVerified({
-                  name: res.student.name,
-                  roll: res.student.roll,
-                  department: res.student.dep || res.student.department,
-                  time: res.time || new Date().toLocaleTimeString(),
-                  photo: res.student.photo || res.student.profile_pic,
-                  streak_days: res.student.streak_days || 0,
-                  newly_marked: res.newly_marked
-                });
-              }
+                try {
+                  const formData = new FormData();
+                  formData.append('file', blob, 'kiosk_frame.jpg');
+
+                  const data = await enterpriseApi.recognizeFrame(token, formData, {
+                    subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : undefined,
+                    custom_date: sessionDate || undefined,
+                    custom_time: sessionPeriod || undefined,
+                  });
+
+                  if (data && data.results && data.results.length > 0) {
+                    const match = data.results[0];
+                    handleStudentVerified({
+                      id: match.user_id || match.student_id,
+                      name: match.name,
+                      roll: match.roll,
+                      department: match.department || match.dep || 'Registered Student',
+                      time: match.time || new Date().toLocaleTimeString(),
+                      photo: match.photo || match.profile_pic || null,
+                      streak_days: match.streak_days || 1,
+                      newly_marked: match.newly_marked !== false,
+                    });
+                  }
+                } catch (apiErr) {
+                  // Network or frame error - continue gracefully
+                } finally {
+                  isProcessingRef.current = false;
+                  setIsProcessing(false);
+                }
+              }, 'image/jpeg', 0.82);
             }
-          } catch (err) {
-            // Silently continue scanning loop
-          } finally {
+          } catch (frameErr) {
+            isProcessingRef.current = false;
             setIsProcessing(false);
           }
         }
@@ -199,9 +222,9 @@ export default function ClassroomKioskModal({
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [isOpen, isProcessing, activeStudent, selectedSubjectId, handleStudentVerified]);
+  }, [isOpen, activeStudent, selectedSubjectId, sessionDate, sessionPeriod, token, handleStudentVerified]);
 
-  // Process RFID / Barcode Card Tap inside Kiosk
+  // RFID / Card Tap Handler (Supports Offline Queue)
   const handleRfidSubmit = async (e) => {
     e.preventDefault();
     const clean = rfidInput.trim();
@@ -227,7 +250,7 @@ export default function ClassroomKioskModal({
           streak_days: 1,
           newly_marked: true
         });
-        addDiagnosticLog?.(`OFFLINE QUEUE: Roll ${clean} saved to local storage. Auto-sync will run upon reconnect.`);
+        addDiagnosticLog?.(`OFFLINE QUEUE: Roll ${clean} saved to local storage.`);
         return;
       }
 
@@ -269,7 +292,7 @@ export default function ClassroomKioskModal({
         return;
       }
       playCyberSound('error');
-      setScanStatus(`Card not recognized: ${clean}`);
+      setScanStatus(`Card not mapped: ${clean}`);
       setRfidInput('');
       setTimeout(() => setScanStatus('Looking for student faces...'), 2500);
     } finally {
@@ -277,10 +300,9 @@ export default function ClassroomKioskModal({
     }
   };
 
-  // Exit Verification
+  // Staff Exit PIN Verification
   const handleVerifyExitPin = (e) => {
     e.preventDefault();
-    // Default PIN: 1234 or "admin" or institutional PIN
     if (exitPin === '1234' || exitPin.toLowerCase() === 'admin' || exitPin === '9999') {
       setShowExitPinModal(false);
       if (document.fullscreenElement && document.exitFullscreen) {
@@ -310,7 +332,7 @@ export default function ClassroomKioskModal({
       {/* Hidden processing canvas */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      {/* Hidden RFID Input Wedge to keep focus active */}
+      {/* Hidden RFID Input Wedge */}
       <form onSubmit={handleRfidSubmit} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
         <input
           ref={rfidInputRef}
@@ -321,121 +343,145 @@ export default function ClassroomKioskModal({
         />
       </form>
 
-      {/* Top Kiosk Bar */}
-      <div style={{
-        padding: '16px 28px',
+      {/* Top Kiosk Bar (Responsive for Mobile & Desktop) */}
+      <header style={{
+        padding: '12px 16px',
         background: 'rgba(15, 23, 42, 0.95)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         display: 'flex',
+        flexWrap: 'wrap',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backdropFilter: 'blur(10px)'
+        gap: '8px 12px',
+        backdropFilter: 'blur(10px)',
+        zIndex: 10
       }}>
-        {/* Institution Branding */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {/* Institution Info */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.2rem',
-            fontWeight: 900
+            fontSize: '1.1rem',
+            fontWeight: 900,
+            flexShrink: 0
           }}>
             🏛️
           </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.02em', color: '#ffffff' }}>
-              {kioskConfig?.institution_name || 'Academic Institution'} — Autonomous Kiosk
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{
+              margin: 0,
+              fontSize: '0.95rem',
+              fontWeight: 800,
+              letterSpacing: '0.01em',
+              color: '#ffffff',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '220px'
+            }}>
+              {kioskConfig?.institution_name || 'Academic Institution'}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.8rem', color: '#94a3b8' }}>
-              <span>{sessionPeriod || 'Standard Period'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+              <span>{sessionPeriod || 'Active Slot'}</span>
               <span>•</span>
-              <span style={{ color: '#38bdf8' }}>AI Facial Recognition + NFC Ready</span>
+              <span style={{ color: '#38bdf8', fontWeight: 600 }}>AI Kiosk Mode</span>
             </div>
           </div>
         </div>
 
-        {/* Live Digital Clock & Exit Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        {/* Digital Clock & Exit Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <div style={{
-            background: 'rgba(255, 255, 255, 0.06)',
-            padding: '8px 18px',
-            borderRadius: '12px',
+            background: 'rgba(255, 255, 255, 0.08)',
+            padding: '6px 12px',
+            borderRadius: '8px',
             border: '1px solid rgba(255, 255, 255, 0.15)',
-            fontSize: '1.2rem',
+            fontSize: '0.9rem',
             fontWeight: 800,
             fontFamily: 'monospace',
-            letterSpacing: '0.08em',
-            color: '#38bdf8'
+            letterSpacing: '0.04em',
+            color: '#38bdf8',
+            whiteSpace: 'nowrap'
           }}>
             {clock}
           </div>
 
           <button
+            type="button"
             onClick={() => setShowExitPinModal(true)}
             style={{
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
-              color: '#f87171',
-              padding: '10px 16px',
-              borderRadius: '10px',
+              background: 'rgba(239, 68, 68, 0.2)',
+              border: '1px solid rgba(239, 68, 68, 0.5)',
+              color: '#fca5a5',
+              padding: '6px 12px',
+              borderRadius: '8px',
               fontWeight: 700,
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
+              gap: '5px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
-            <Lock size={15} /> Exit Kiosk
+            <Lock size={13} /> Exit
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Kiosk Viewport */}
-      <div style={{
+      {/* Main Kiosk Viewport (Full Coverage on Mobile & Desktop) */}
+      <main style={{
         flex: 1,
         position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+        minHeight: 0,
+        overflow: 'hidden',
         background: '#030712'
       }}>
-        {/* Fullscreen Video Element */}
+        {/* Full Viewport Video */}
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
           style={{
+            position: 'absolute',
+            inset: 0,
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            transform: 'scaleX(-1)' // Mirror for intuitive alignment
+            transform: 'scaleX(-1)' // Mirror image for natural user interaction
           }}
         />
 
-        {/* Holographic Face Alignment Guide (Optical Oval) */}
+        {/* Holographic Face Guide (Centered & Responsively Sized) */}
         {!activeStudent && (
           <div style={{
             position: 'absolute',
-            width: '320px',
-            height: '420px',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 'min(280px, 72vw)',
+            height: 'min(380px, 50vh)',
             borderRadius: '50%',
-            border: '3px solid rgba(56, 189, 248, 0.7)',
-            boxShadow: '0 0 35px rgba(56, 189, 248, 0.3), inset 0 0 25px rgba(56, 189, 248, 0.2)',
+            border: '3px solid rgba(56, 189, 248, 0.75)',
+            boxShadow: '0 0 35px rgba(56, 189, 248, 0.35), inset 0 0 25px rgba(56, 189, 248, 0.2)',
             pointerEvents: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {/* Animated Laser Scan Line */}
+            {/* Animated Laser Scanning Beam */}
             <div style={{
               position: 'absolute',
-              top: '15%',
+              top: '20%',
               width: '80%',
               height: '3px',
               background: 'linear-gradient(to right, transparent, #38bdf8, transparent)',
@@ -445,65 +491,79 @@ export default function ClassroomKioskModal({
           </div>
         )}
 
-        {/* Status Pill on Bottom of Stream */}
+        {/* Bottom Status Notification Pill */}
         <div style={{
           position: 'absolute',
-          bottom: '36px',
-          background: 'rgba(15, 23, 42, 0.85)',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'max-content',
+          maxWidth: '92vw',
+          background: 'rgba(15, 23, 42, 0.9)',
           backdropFilter: 'blur(12px)',
           border: '1px solid rgba(255, 255, 255, 0.2)',
-          padding: '12px 28px',
+          padding: '10px 20px',
           borderRadius: '999px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)'
+          gap: '10px',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
+          zIndex: 5,
+          boxSizing: 'border-box'
         }}>
           <div style={{
-            width: '12px',
-            height: '12px',
+            width: '10px',
+            height: '100%',
+            minWidth: '10px',
+            minHeight: '10px',
             borderRadius: '50%',
-            background: activeStudent ? '#10b981' : '#38bdf8',
-            boxShadow: `0 0 10px ${activeStudent ? '#10b981' : '#38bdf8'}`
+            background: activeStudent ? '#10b981' : (isProcessing ? '#eab308' : '#38bdf8'),
+            boxShadow: `0 0 10px ${activeStudent ? '#10b981' : (isProcessing ? '#eab308' : '#38bdf8')}`,
+            flexShrink: 0
           }} />
-          <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '0.02em' }}>
-            {scanStatus}
-          </span>
-          <span style={{ color: '#64748b' }}>|</span>
-          <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-            Hold face in guide OR tap Smart NFC / RFID card
+          <span style={{
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            color: '#f8fafc',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {isProcessing ? 'Verifying facial signature...' : scanStatus}
           </span>
         </div>
 
-        {/* Student Verified Splash Card (Pop-up on Identification) */}
+        {/* Student Verification Splash Modal (Full Pop-up on match) */}
         {activeStudent && (
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.85)',
+            background: 'rgba(15, 23, 42, 0.88)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            zIndex: 20,
+            padding: '16px',
             animation: 'fadeInUp 0.3s ease'
           }}>
             <div style={{
               background: '#ffffff',
               borderRadius: '24px',
-              padding: '40px',
-              maxWidth: '480px',
-              width: '90%',
+              padding: '32px 24px',
+              maxWidth: '440px',
+              width: '100%',
               textAlign: 'center',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.4)',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
               border: '2px solid #86efac'
             }}>
               <div style={{
-                width: '90px',
-                height: '90px',
+                width: '84px',
+                height: '84px',
                 borderRadius: '50%',
                 background: '#f0fdf4',
                 border: '4px solid #10b981',
-                margin: '0 auto 16px',
+                margin: '0 auto 14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -512,7 +572,7 @@ export default function ClassroomKioskModal({
                 {activeStudent.photo ? (
                   <img src={activeStudent.photo} alt={activeStudent.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <User size={48} color="#059669" />
+                  <User size={44} color="#059669" />
                 )}
               </div>
 
@@ -524,18 +584,18 @@ export default function ClassroomKioskModal({
                 color: '#15803d',
                 padding: '4px 14px',
                 borderRadius: '999px',
-                fontSize: '0.8rem',
+                fontSize: '0.78rem',
                 fontWeight: 800,
                 marginBottom: '10px'
               }}>
-                <CheckCircle2 size={16} /> ATTENDANCE VERIFIED
+                <CheckCircle2 size={15} /> ATTENDANCE RECORDED
               </div>
 
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#064e3b', margin: '0 0 6px' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#064e3b', margin: '0 0 6px' }}>
                 {activeStudent.name}
               </h2>
 
-              <p style={{ color: '#047857', fontSize: '1rem', fontWeight: 600, margin: '0 0 16px' }}>
+              <p style={{ color: '#047857', fontSize: '0.92rem', fontWeight: 600, margin: '0 0 16px' }}>
                 Roll: {activeStudent.roll} • {activeStudent.department}
               </p>
 
@@ -555,14 +615,14 @@ export default function ClassroomKioskModal({
             </div>
           </div>
         )}
-      </div>
+      </main>
 
       {/* Staff Exit Passcode PIN Modal */}
       {showExitPinModal && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
+          background: 'rgba(0, 0, 0, 0.82)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
@@ -573,21 +633,22 @@ export default function ClassroomKioskModal({
           <div style={{
             background: '#ffffff',
             borderRadius: '20px',
-            maxWidth: '420px',
+            maxWidth: '380px',
             width: '100%',
-            padding: '28px',
-            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
+            padding: '24px',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.4)',
             border: '1px solid #e2e8f0',
             color: '#0f172a'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ padding: '8px', borderRadius: '10px', background: '#fee2e2', color: '#ef4444' }}>
-                  <Lock size={22} />
+                  <Lock size={20} />
                 </div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Exit Kiosk Mode</h3>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Exit Kiosk Mode</h3>
               </div>
               <button
+                type="button"
                 onClick={() => { setShowExitPinModal(false); setPinError(''); setExitPin(''); }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}
               >
@@ -595,30 +656,30 @@ export default function ClassroomKioskModal({
               </button>
             </div>
 
-            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 16px', lineHeight: '1.5' }}>
-              Enter staff passcode to unlock the tablet and terminate the autonomous session.
+            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 16px', lineHeight: '1.4' }}>
+              Enter staff passcode to exit kiosk mode. (Default PIN: <strong>1234</strong>)
             </p>
 
-            <form onSubmit={handleVerifyExitPin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleVerifyExitPin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <input
                 type="password"
                 value={exitPin}
                 onChange={(e) => { setExitPin(e.target.value); setPinError(''); }}
-                placeholder="Enter Staff Passcode (Default: 1234)..."
+                placeholder="Enter Staff PIN..."
                 autoFocus
                 style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
                   border: '2px solid #cbd5e1',
-                  fontSize: '1rem',
+                  fontSize: '1.1rem',
                   outline: 'none',
                   textAlign: 'center',
-                  letterSpacing: '0.1em'
+                  letterSpacing: '0.2em'
                 }}
               />
 
               {pinError && (
-                <span style={{ color: '#ef4444', fontSize: '0.82rem', fontWeight: 600, textAlign: 'center' }}>
+                <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center' }}>
                   {pinError}
                 </span>
               )}
@@ -661,11 +722,11 @@ export default function ClassroomKioskModal({
         </div>
       )}
 
-      {/* Embedded CSS for Kiosk Scanning Animation */}
+      {/* Embedded CSS for Laser Scanning Animation */}
       <style>{`
         @keyframes kioskLaser {
           0% { top: 18%; opacity: 0.3; }
-          50% { top: 78%; opacity: 0.9; }
+          50% { top: 78%; opacity: 0.95; }
           100% { top: 18%; opacity: 0.3; }
         }
       `}</style>
