@@ -331,21 +331,32 @@ async def recognize_and_mark_attendance(
         )
 
         
+        student = crud.get_student_by_id(db, student_id=user_id, institution_id=current_user.institution_id)
         # If student's attendance is newly marked today, send an asynchronous confirmation email
-        if newly_marked:
-            student = crud.get_student_by_id(db, student_id=user_id, institution_id=current_user.institution_id)
-            if student and student.email:
-                background_tasks.add_task(
-                    send_presence_email,
-                    student_email=student.email,
-                    student_name=name,
-                    roll_no=roll,
-                    time_str=db_attendance.time,
-                    date_str=db_attendance.date
-                )
+        if newly_marked and student and student.email:
+            background_tasks.add_task(
+                send_presence_email,
+                student_email=student.email,
+                student_name=name,
+                roll_no=roll,
+                time_str=db_attendance.time,
+                date_str=db_attendance.date
+            )
         
         face_details = face.copy()
         face_details["newly_marked"] = newly_marked
+        if student:
+            face_photo = student.profile_pic if (student.profile_pic and student.profile_pic != "no") else None
+            if not face_photo:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                disk_img = os.path.join(base_dir, "data", f"tenant_{current_user.institution_id}", f"user.{user_id}.1.jpg")
+                if os.path.exists(disk_img):
+                    face_photo = f"/api/v1/students/{user_id}/photo"
+            face_details["photo"] = face_photo
+            face_details["streak_days"] = getattr(student, "streak_days", 0) or 1
+            face_details["course"] = getattr(student, "course", None)
+            face_details["semester"] = getattr(student, "semester", None)
+            face_details["email"] = getattr(student, "email", None)
         marked_students.append(face_details)
 
     if marked_students:

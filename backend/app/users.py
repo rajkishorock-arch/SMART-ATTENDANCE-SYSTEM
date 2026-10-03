@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Request
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -6,6 +7,7 @@ from datetime import datetime, timezone
 import cv2
 import numpy as np
 import os
+import base64
 
 from . import crud, models, schemas, security, security_utils, cache_service
 from .database import get_db
@@ -1182,6 +1184,44 @@ async def upload_student_face_sample(
         institution_id=current_user.institution_id
     )
     return {"message": "Face registered successfully.", "filename": f"user.{id}.1.jpg"}
+
+@router.get("/students/{id}/photo")
+def get_student_photo(
+    id: int,
+    token: Optional[str] = Query(None),
+    request: Request = None,
+    db: Session = Depends(get_db)
+):
+    """Returns the registered biometric face photo or profile picture of the student."""
+    student = db.query(models.StudentModel).filter(models.StudentModel.id == id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found.")
+
+    # 1. Base64 profile_pic
+    if student.profile_pic and student.profile_pic.startswith("data:image"):
+        try:
+            header, encoded = student.profile_pic.split(",", 1)
+            mime = header.split(";")[0].split(":")[1]
+            data = base64.b64decode(encoded)
+            return Response(content=data, media_type=mime)
+        except Exception:
+            pass
+
+    # 2. Check disk file for registered face crop
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    inst_id = student.institution_id or 1
+    photo_path = os.path.join(base_dir, "data", f"tenant_{inst_id}", f"user.{id}.1.jpg")
+    if os.path.exists(photo_path):
+        return FileResponse(photo_path, media_type="image/jpeg")
+
+    # 3. Fallback scan in all tenant directories
+    data_dir = os.path.join(base_dir, "data")
+    if os.path.exists(data_dir):
+        for root, dirs, files in os.walk(data_dir):
+            if f"user.{id}.1.jpg" in files:
+                return FileResponse(os.path.join(root, f"user.{id}.1.jpg"), media_type="image/jpeg")
+
+    raise HTTPException(status_code=404, detail="Student photo not found.")
 
 @router.post("/students/train", status_code=status.HTTP_200_OK)
 def trigger_training(

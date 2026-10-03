@@ -2945,6 +2945,7 @@ export default function App() {
       }
       setScannerBootActive(false);
       setAttendanceActive(false);
+      setScannedStudent(null);
       setUserCoords(null);
       setGeoTrackingError('');
       setScanStatus('Camera Offline');
@@ -3084,15 +3085,21 @@ export default function App() {
           const dateStr = sessionActive ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
           
           const matchedSubject = subjects.find(s => String(s.id) === String(effectiveSubId));
+          const demoPhoto = matched.photo || matched.profile_pic || matched.details?.profile_pic || (matched.id ? `${API_BASE_URL}/students/${matched.id}/photo` : null);
           setScannedStudent({
+            id: matched.id,
             name: matched.name,
             roll: matched.roll,
             dep: matched.dep,
+            course: matched.course || null,
+            photo: demoPhoto,
             time: timeStr,
             clockTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            date: dateStr,
             period: sessionActive ? sessionPeriod : (effectivePeriod || null),
             subject_name: matchedSubject ? `${matchedSubject.name} (${matchedSubject.code})` : (effectiveSubId ? `Subject #${effectiveSubId}` : null),
             confidence: confidence,
+            streak_days: matched.streak_days || 1,
             status: newly_marked ? 'Present' : 'Already Marked'
           });
           addDiagnosticLog(`MATCH FOUND: ${matched.name} (Accuracy: ${confidence}%)`);
@@ -3144,7 +3151,7 @@ export default function App() {
           recognitionBusyRef.current = false;
           
           setTimeout(() => {
-            setScannedStudent(null);
+            // Note: Keep scannedStudent visible on screen until next scan or dismissal!
             updateServerRecognizedFaces(null);
             eyeStateRef.current = 'open';
             livenessStatusRef.current = 'verifying';
@@ -3233,16 +3240,38 @@ export default function App() {
 
             const primary = validMatches[0];
             const matchedSubject = subjects.find(s => String(s.id) === String(effectiveSubId));
+            const matchedRecord = students.find(s => 
+              (primary.user_id && (s.id === primary.user_id || String(s.id) === String(primary.user_id))) ||
+              (primary.roll && s.roll === primary.roll) ||
+              (primary.name && s.name && s.name.toLowerCase() === primary.name.toLowerCase())
+            );
+
+            // Resolve student photo from API payload, matched student cache, or backend endpoint
+            let resolvedPhoto = primary.photo || 
+              matchedRecord?.profile_pic || 
+              matchedRecord?.details?.profile_pic || 
+              null;
+            
+            if (!resolvedPhoto && primary.user_id) {
+              resolvedPhoto = `${API_BASE_URL}/students/${primary.user_id}/photo`;
+            }
+
             setScannedStudent({
+              id: primary.user_id,
               name: primary.name,
               roll: primary.roll,
-              dep: primary.dep,
+              dep: primary.dep || matchedRecord?.dep || 'Academic',
+              course: primary.course || matchedRecord?.course || null,
+              semester: primary.semester || matchedRecord?.semester || null,
+              photo: resolvedPhoto,
               time: timeStr,
               clockTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              date: dateStr,
               period: effectivePeriod,
               period_label: getPeriodSlotLabel(effectivePeriod),
               subject_name: matchedSubject ? `${matchedSubject.name} (${matchedSubject.code})` : 'Class Session',
               confidence: primary.confidence,
+              streak_days: primary.streak_days || matchedRecord?.streak_days || 1,
               status: primary.newly_marked ? 'Present' : 'Already Marked',
               isOffline: false,
               sync_status: 'SYNCED'
@@ -3410,7 +3439,7 @@ export default function App() {
         const cooldownTime = matchSuccess ? 900 : 250;
         
         setTimeout(() => {
-          setScannedStudent(null);
+          // Note: Keep scannedStudent visible on screen until next scan or manual dismissal!
           updateServerRecognizedFaces(null);
           eyeStateRef.current = 'open';
           livenessStatusRef.current = 'verifying';
