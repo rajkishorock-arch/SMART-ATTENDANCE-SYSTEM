@@ -5,10 +5,10 @@ export default function QuickActionsDock({ onScan, onManual, onReport, onNotify 
   const [open, setOpen] = useState(false);
 
   const actions = [
-    { id: 'scan', label: 'Face Scanner', icon: Camera, onClick: onScan, color: '#00f2fe', bg: 'rgba(0, 242, 254, 0.15)', border: 'rgba(0, 242, 254, 0.35)' },
-    { id: 'manual', label: 'Manual Check-in', icon: Plus, onClick: onManual, color: '#34d399', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.35)' },
-    { id: 'report', label: 'Export Analytics', icon: FileSpreadsheet, onClick: onReport, color: '#c084fc', bg: 'rgba(167, 139, 250, 0.15)', border: 'rgba(167, 139, 250, 0.35)' },
-    { id: 'notify', label: 'Broadcast Alert', icon: Bell, onClick: onNotify, color: '#fbbf24', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.35)' },
+    { id: 'scan', label: 'Face Scanner', icon: Camera, onClick: onScan, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    { id: 'manual', label: 'Manual Check-in', icon: Plus, onClick: onManual, color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+    { id: 'report', label: 'Export Analytics', icon: FileSpreadsheet, onClick: onReport, color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    { id: 'notify', label: 'Broadcast Alert', icon: Bell, onClick: onNotify, color: '#d97706', bg: '#fffbeb', border: '#fcd34d' },
   ];
 
   return (
@@ -32,16 +32,15 @@ export default function QuickActionsDock({ onScan, onManual, onReport, onNotify 
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '10px',
-                padding: '8px 14px',
-                background: 'rgba(15, 23, 42, 0.9)',
-                backdropFilter: 'blur(16px)',
+                padding: '8px 16px',
+                background: '#ffffff',
                 border: `1px solid ${a.border}`,
                 borderRadius: '30px',
-                color: '#f1f5f9',
-                fontSize: '0.8rem',
+                color: '#0f172a',
+                fontSize: '0.82rem',
                 fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: `0 8px 20px rgba(0, 0, 0, 0.4), 0 0 12px ${a.bg}`,
+                boxShadow: '0 8px 24px rgba(15, 23, 42, 0.1)',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -72,14 +71,14 @@ export default function QuickActionsDock({ onScan, onManual, onReport, onNotify 
           width: '52px',
           height: '52px',
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)',
-          border: '2px solid rgba(255, 255, 255, 0.3)',
-          color: '#080c14',
+          background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+          border: '2px solid #ffffff',
+          color: '#ffffff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          boxShadow: '0 8px 25px rgba(0, 242, 254, 0.45)',
+          boxShadow: '0 8px 20px rgba(37, 99, 235, 0.35)',
           transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           transform: open ? 'rotate(90deg)' : 'none'
         }}
