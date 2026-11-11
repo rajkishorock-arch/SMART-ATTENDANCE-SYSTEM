@@ -55,6 +55,7 @@ import {
   ArrowLeft,
   Bot,
   Megaphone,
+  LayoutGrid,
   X,
 } from 'lucide-react';
 import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
@@ -100,6 +101,7 @@ const BiometricFallbackModal = safeLazy(() => import('./components/BiometricFall
 const LmsSyncIntegrationView = safeLazy(() => import('./components/LmsSyncIntegrationView'));
 const StaffPayrollView = safeLazy(() => import('./components/StaffPayrollView'));
 const InstitutionBroadcastModal = safeLazy(() => import('./components/InstitutionBroadcastModal'));
+const ControlCenterView = safeLazy(() => import('./components/ControlCenterView'));
 import QuickActionsDock from './components/QuickActionsDock';
 import OnboardingTour from './components/OnboardingTour';
 import OfflineBanner from './components/OfflineBanner';
@@ -4671,15 +4673,15 @@ export default function App() {
           const currentHash = window.location.hash.replace(/^#\/?/, '').trim();
           const isTabValid = (tabId, role) => {
             if (role === 'student') {
-              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave'].includes(tabId);
+              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features'].includes(tabId);
             } else if (role === 'parent') {
-              return ['dashboard', 'student-attendance', 'settings'].includes(tabId);
+              return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features'].includes(tabId);
             } else if (role === 'teacher') {
-              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
+              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
             } else if (role === 'hod') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
             } else if (role === 'admin') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
             }
             return false;
           };
@@ -5165,15 +5167,15 @@ export default function App() {
   useEffect(() => {
     const isTabValidForRole = (tabId, role) => {
       if (role === 'student') {
-        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave'].includes(tabId);
+        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features'].includes(tabId);
       } else if (role === 'parent') {
-        return ['dashboard', 'student-attendance', 'settings'].includes(tabId);
+        return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
       } else if (role === 'hod') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
       }
       return false;
     };
@@ -7480,6 +7482,18 @@ export default function App() {
 
               {/* SYSTEM SECTION */}
               <div className="nav-section-title">System & Settings</div>
+              {(userRole === 'admin' || userRole === 'teacher') && (
+                <li>
+                  <button 
+                    className={`nav-item ${activeTab === 'control' || activeTab === 'all-features' ? 'active' : ''}`}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                    onClick={() => { navigateToTab('control'); }}
+                  >
+                    <LayoutGrid size={18} />
+                    Control Center
+                  </button>
+                </li>
+              )}
               {(userRole === 'admin' || userRole === 'teacher' || userRole === 'student') && (
                 <li>
                   <button 
@@ -7627,6 +7641,7 @@ export default function App() {
                 {activeTab === 'student-profile' && 'My Profile'}
                 {activeTab === 'settings' && (activeSubSetting ? 'System Settings' : 'Settings Directory')}
                 {activeTab === 'ai-assistant' && 'AI Assistant'}
+                {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
               </h1>
               <p style={{ color: '#64748b', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {activeTab === 'dashboard' && 'Real-time attendance overview and telemetry'}
@@ -7647,6 +7662,7 @@ export default function App() {
                 {activeTab === 'student-profile' && 'Personal profile and account credentials'}
                 {activeTab === 'settings' && (activeSubSetting ? 'Configure security, perimeter, and preferences' : 'Security, biometrics, and administration')}
                 {activeTab === 'ai-assistant' && 'Campus AI assistant for queries and actions'}
+                {(activeTab === 'control' || activeTab === 'all-features') && 'All campus operations, services, and system utilities'}
               </p>
             </div>
 
@@ -8490,6 +8506,18 @@ export default function App() {
 
         {activeTab === 'ai-assistant' && (
           <CyberBotWidget activeTab={activeTab} />
+        )}
+
+        {(activeTab === 'control' || activeTab === 'all-features') && (
+          <ControlCenterView
+            userRole={userRole}
+            currentUser={currentUser}
+            onNavigate={navigateToTab}
+            onLogout={handleLogout}
+            playCyberSound={playCyberSound}
+            triggerHaptic={triggerHaptic}
+            appVersion={APP_VERSION}
+          />
         )}
               </Suspense>
       </main>
@@ -9471,8 +9499,7 @@ export default function App() {
           onNavigate={navigateToTab}
           onScanPress={handleBottomScan}
           onMorePress={() => {
-            playCyberSound('click');
-            setMobileControlOpen(true);
+            navigateToTab('control');
           }}
         />
       )}

@@ -81,7 +81,7 @@ export default function BottomNav({
     );
   }
 
-  const isMoreActive = ['reports', 'session-history', 'teachers'].includes(activeTab);
+  const isControlActive = activeTab === 'control' || activeTab === 'all-features' || ['reports', 'session-history', 'teachers'].includes(activeTab);
   
   // Calculate active index for admin/teacher bottom nav (5 columns)
   // Index 0: Home, 1: Students, 2: Scan (button), 3: Settings, 4: Control
@@ -89,7 +89,7 @@ export default function BottomNav({
   if (activeTab === 'dashboard') activeIndex = 0;
   else if (activeTab === 'students') activeIndex = 1;
   else if (activeTab === 'settings') activeIndex = 3;
-  else if (isMoreActive) activeIndex = 4;
+  else if (isControlActive) activeIndex = 4;
 
   return (
     <nav className="bottom-nav" style={{ display: 'flex' }} aria-label="Main navigation">
@@ -149,10 +149,10 @@ export default function BottomNav({
       
       <button
         type="button"
-        className={`bottom-nav-item active-haptic ${isMoreActive ? 'active' : ''}`}
-        onClick={onMorePress}
+        className={`bottom-nav-item active-haptic ${isControlActive ? 'active' : ''}`}
+        onClick={() => onNavigate('control')}
         style={{ position: 'relative', zIndex: 2, minHeight: '44px', minWidth: '44px' }}
-        aria-label="Control Panel"
+        aria-label="Control Center"
       >
         <LayoutGrid size={20} />
         <span>Control</span>
