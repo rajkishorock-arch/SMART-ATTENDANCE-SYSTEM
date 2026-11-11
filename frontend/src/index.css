@@ -2922,7 +2922,7 @@ button:active,
     padding: 16px !important;
   }
 
-  .reports-section .hide-on-print[style*="grid"] {
+  .reports-section .hide-on-print[style*="grid"]:not(.reports-metric-strip):not(.reports-filter-grid) {
     display: flex !important;
     flex-direction: column !important;
     gap: 20px !important;
@@ -2933,13 +2933,39 @@ button:active,
     gap: 20px !important;
   }
 
-  .reports-section .form-group {
-    min-width: 0 !important;
+  .reports-section .date-picker-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
     width: 100% !important;
   }
 
-  .reports-section button {
-    width: 100%;
+  .reports-section .date-picker-row button {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    flex: 0 0 34px !important;
+    height: 40px !important;
+  }
+
+  .reports-section .date-picker-row input[type="date"] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    height: 40px !important;
+  }
+
+  .reports-section .reports-pill-btn {
+    width: auto !important;
+  }
+
+  .reports-mobile-cards {
+    display: flex !important;
+  }
+
+  .reports-table-desktop {
+    display: none !important;
   }
 
   .chrono-feed {

@@ -56,6 +56,7 @@ import {
   Bot,
   Megaphone,
   LayoutGrid,
+  ChevronRight,
   X,
 } from 'lucide-react';
 import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
@@ -7274,9 +7275,9 @@ export default function App() {
         />
       )}
 
-      {/* Sidebar navigation (Desktop rail) */}
+      {/* Sidebar navigation (Desktop rail + Mobile slide-over drawer) */}
       <aside 
-        className={`sidebar ${isMobileView ? 'hide-on-mobile' : ''} ${mobileSidebarOpen ? 'open' : ''}`}
+        className={`sidebar ${mobileSidebarOpen ? 'open' : ''}`}
         style={{
           overflowY: 'auto',
           overflowX: 'hidden',
@@ -7290,56 +7291,115 @@ export default function App() {
           }
         }}
       >
-        <div className="sidebar-logo">
+        <div className="sidebar-logo" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '16px 16px 12px',
+          borderBottom: '1px solid #f1f5f9'
+        }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(226, 232, 240, 0.15) 0%, rgba(148, 163, 184, 0.15) 100%)',
-            border: '1px solid rgba(226, 232, 240, 0.4)',
-            borderRadius: '10px',
-            padding: '4px',
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            borderRadius: '12px',
+            padding: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '36px',
-            height: '36px'
+            width: '38px',
+            height: '38px',
+            color: '#ffffff',
+            boxShadow: '0 2px 6px rgba(30, 64, 175, 0.25)',
+            flexShrink: 0
           }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 48 48">
-              <path fill="url(#side-plat-glow)" d="M24 2C13.5 5.5 8 13.5 8 23c0 10.5 7.5 17.5 16 21 8.5-3.5 16-10.5 16-21 0-9.5-5.5-17.5-16-21z" opacity="0.25" />
-              <path fill="url(#side-plat-metallic)" stroke="url(#side-plat-stroke)" stroke-width="2.5" d="M38 18C34 10 27 6 24 6c-8 0-14 6-17 14 0 0 10-6 17-6 6 0 10.5 4.5 10.5 9.5S30 33 24 33c-4.5 0-8.5-2.5-10.5-6.5C15.5 32 20.5 35 25 35c7.5 0 13-5 13-12 0-2 0-3.5 0-5z" />
-              <circle cx="20" cy="22" r="2" fill="#00f2fe" />
-              <circle cx="28" cy="25" r="2" fill="#00f2fe" />
-              <circle cx="24" cy="16" r="1.5" fill="#00f2fe" />
-              <path stroke="#00f2fe" stroke-width="0.8" stroke-dasharray="1 1" d="M20 22l4-6M28 25l-4-9M20 22l8 3" />
-              <defs>
-                <linearGradient id="side-plat-metallic" x1="10" y1="6" x2="38" y2="35" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#FFFFFF" />
-                  <stop offset="40%" stop-color="#E2E8F0" />
-                  <stop offset="75%" stop-color="#94A3B8" />
-                  <stop offset="100%" stop-color="#CBD5E1" />
-                </linearGradient>
-                <linearGradient id="side-plat-stroke" x1="10" y1="6" x2="38" y2="35" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#FFFFFF" />
-                  <stop offset="100%" stop-color="#475569" />
-                </linearGradient>
-                <radialGradient id="side-plat-glow" cx="24" cy="23" r="20" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.5" />
-                  <stop offset="100%" stop-color="#00f2fe" stop-opacity="0" />
-                </radialGradient>
-              </defs>
-            </svg>
+            <ScanFace size={22} />
           </div>
-          <span className="text-gradient" style={{ fontWeight: 800, background: 'linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 50%, #94A3B8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            {(displayInstitutionName || "SMART ATTENDANCE").toUpperCase()}
-          </span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <span style={{
+              fontWeight: 800,
+              fontSize: '0.92rem',
+              color: '#0f172a',
+              letterSpacing: '-0.01em',
+              display: 'block',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {(displayInstitutionName || "SMART ATTENDANCE").toUpperCase()}
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'block' }}>
+              Campus System Hub
+            </span>
+          </div>
           <button 
+            type="button"
             className="mobile-sidebar-close hide-on-desktop" 
             onClick={(e) => { e.stopPropagation(); setMobileSidebarOpen(false); playCyberSound('click'); }}
             aria-label="Close Sidebar"
-            style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.06)', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{
+              marginLeft: 'auto',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#64748b',
+              borderRadius: '10px',
+              width: '34px',
+              height: '34px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'all 0.15s ease'
+            }}
           >
             <X size={18} />
           </button>
         </div>
-        <div style={{ padding: '0 16px 12px', display: 'flex', justifyContent: 'center' }}>
+
+        {/* User Profile Card */}
+        {currentUser && (
+          <div 
+            onClick={() => { setActiveTab('student-profile'); playCyberSound('click'); setMobileSidebarOpen(false); }}
+            style={{
+              margin: '12px 14px 4px',
+              padding: '10px 12px',
+              borderRadius: '12px',
+              background: activeTab === 'student-profile' ? '#eff6ff' : '#f8fafc',
+              border: activeTab === 'student-profile' ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              textAlign: 'left'
+            }}
+            title="Open My Profile"
+          >
+            {currentUser.profile_pic ? (
+              <img 
+                src={currentUser.profile_pic} 
+                alt={currentUser.name} 
+                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', flexShrink: 0 }} 
+              />
+            ) : (
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.88rem', flexShrink: 0 }}>
+                {(currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ color: '#0f172a', fontSize: '0.86rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentUser.name || currentUser.email}
+              </div>
+              <div style={{ color: '#16a34a', fontSize: '0.72rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }}></span>
+                <span style={{ textTransform: 'capitalize' }}>{currentUser.role || 'Member'}</span>
+                <span style={{ color: '#94a3b8' }}>• Online</span>
+              </div>
+            </div>
+            <ChevronRight size={15} style={{ color: '#94a3b8', flexShrink: 0 }} />
+          </div>
+        )}
+
+        <div style={{ padding: '6px 16px 8px', display: 'flex', justifyContent: 'center' }}>
           <VersionBadge
             compact
             serverLatest={serverLatestVersion}
@@ -7348,70 +7408,76 @@ export default function App() {
           />
         </div>
 
-        <ul className="nav-links" style={{ flex: 1 }}>
+        <ul className="nav-links" style={{ flex: 1, padding: '4px 8px' }}>
           {userRole === 'student' ? (
             <>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'student-attendance' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
                   onClick={() => { setActiveTab('student-attendance'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <TrendingUp size={18} />
-                  My Attendance
+                  <span>My Attendance</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
                   onClick={() => { setActiveTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Calendar size={18} />
-                  Academic Calendar
+                  <span>Academic Calendar</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
                   onClick={() => { setActiveTab('student-profile'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Users size={18} />
-                  My Profile
+                  <span>My Profile</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
                   onClick={() => { setActiveTab('ai-assistant'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Bot size={18} />
-                  AI Assistant
+                  <span>AI Assistant</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
             </>
           ) : (
             <>
               {/* CORE SECTION */}
-              <div className="nav-section-title">Core</div>
+              <div className="nav-section-title" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '10px 14px 4px' }}>Core</div>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('dashboard'); playCyberSound('click'); }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { setActiveTab('dashboard'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <TrendingUp size={18} />
-                  Dashboard
+                  <span>Dashboard</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
                   onClick={() => {
                     setActiveTab('attendance');
+                    setMobileSidebarOpen(false);
                     playCyberSound('click');
                     if (sessionActive) {
                       setShowScannerModal(true);
@@ -7419,88 +7485,96 @@ export default function App() {
                   }}
                 >
                   <Video size={18} />
-                  Face Attendance
+                  <span>Face Attendance</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'logs' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('logs'); playCyberSound('click'); }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { setActiveTab('logs'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <FileSpreadsheet size={18} />
-                  Attendance Logs
+                  <span>Attendance Logs</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'students' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('students'); playCyberSound('click'); }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { setActiveTab('students'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Users size={18} />
-                  Students
+                  <span>Students</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               {userRole === 'admin' && (
                 <li>
                   <button 
                     className={`nav-item ${activeTab === 'teachers' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('teachers'); playCyberSound('click'); }}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                    onClick={() => { setActiveTab('teachers'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                   >
                     <Users size={18} />
-                    Teachers
+                    <span>Teachers</span>
+                    <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                   </button>
                 </li>
               )}
 
               {/* MANAGEMENT SECTION */}
-              <div className="nav-section-title">Management</div>
+              <div className="nav-section-title" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '14px 14px 4px' }}>Management</div>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('calendar'); playCyberSound('click'); }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { setActiveTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Calendar size={18} />
-                  Academic Calendar
+                  <span>Academic Calendar</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('reports'); playCyberSound('click'); }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { setActiveTab('reports'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <BookOpen size={18} />
-                  Reports & Alerts
+                  <span>Reports & Alerts</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               {(userRole === 'admin' || userRole === 'teacher') && (
                 <li>
                   <button 
                     className={`nav-item ${activeTab === 'disputes' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { setActiveTab('disputes'); playCyberSound('click'); }}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                    onClick={() => { setActiveTab('disputes'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                   >
                     <ShieldAlert size={18} />
-                    Disputes & Requests
+                    <span>Disputes & Requests</span>
+                    <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                   </button>
                 </li>
               )}
 
               {/* SYSTEM SECTION */}
-              <div className="nav-section-title">System & Settings</div>
+              <div className="nav-section-title" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '14px 14px 4px' }}>System & Settings</div>
               {(userRole === 'admin' || userRole === 'teacher') && (
                 <li>
                   <button 
                     className={`nav-item ${activeTab === 'control' || activeTab === 'all-features' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { navigateToTab('control'); }}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                    onClick={() => { navigateToTab('control'); setMobileSidebarOpen(false); }}
                   >
                     <LayoutGrid size={18} />
-                    Control Center
+                    <span>Control Center</span>
+                    <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                   </button>
                 </li>
               )}
@@ -7508,121 +7582,85 @@ export default function App() {
                 <li>
                   <button 
                     className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                    onClick={() => { navigateToTab('settings'); }}
+                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                    onClick={() => { navigateToTab('settings'); setMobileSidebarOpen(false); }}
                   >
                     <ShieldCheck size={18} />
-                    {userRole === 'student' ? 'Settings & Status' : 'System Settings'}
+                    <span>{userRole === 'student' ? 'Settings & Status' : 'System Settings'}</span>
+                    <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                   </button>
                 </li>
               )}
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('student-profile'); playCyberSound('click'); }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { setActiveTab('student-profile'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Users size={18} />
-                  My Profile
+                  <span>My Profile</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
               <li>
                 <button 
                   className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left' }}
-                  onClick={() => { setActiveTab('ai-assistant'); playCyberSound('click'); }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { setActiveTab('ai-assistant'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Bot size={18} />
-                  AI Assistant
+                  <span>AI Assistant</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
             </>
           )}
         </ul>
 
-        {currentUser && (
-          <div 
-            onClick={() => { setActiveTab('student-profile'); playCyberSound('click'); }}
-            style={{
-              padding: '10px 14px',
+        {/* Footer Actions */}
+        <div style={{ padding: '12px 14px calc(20px + env(safe-area-inset-bottom, 0px))', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button 
+            onClick={() => { playCyberSound('click'); setIsAboutModalOpen(true); setMobileSidebarOpen(false); }}
+            className="nav-item" 
+            style={{ 
+              width: '100%', 
+              border: '1px solid #e2e8f0', 
+              background: '#f8fafc', 
+              color: '#475569', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px', 
               borderRadius: '12px',
-              background: activeTab === 'student-profile' ? '#eff6ff' : '#f8fafc',
-              border: activeTab === 'student-profile' ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              cursor: 'pointer',
-              marginTop: 'auto',
-              marginBottom: '10px',
-              transition: 'all 0.2s',
-              textAlign: 'left'
+              padding: '11px 14px',
+              fontWeight: 600,
+              fontSize: '0.85rem'
             }}
-            title="Open My Profile & Account Settings"
           >
-            {currentUser.profile_pic ? (
-              <img 
-                src={currentUser.profile_pic} 
-                alt={currentUser.name} 
-                style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', flexShrink: 0 }} 
-              />
-            ) : (
-              <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>
-                {(currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: '#0f172a', fontSize: '0.84rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {currentUser.name || currentUser.email}
-              </div>
-              <div style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {currentUser.role || 'Member'} • {displayInstitutionName}
-              </div>
-            </div>
-          </div>
-        )}
+            <Info size={17} style={{ color: '#2563eb' }} />
+            <span>About System</span>
+          </button>
 
-        <button 
-          onClick={() => { playCyberSound('click'); setIsAboutModalOpen(true); }}
-          className="nav-item" 
-          style={{ 
-            width: '100%', 
-            border: '1px solid #e2e8f0', 
-            background: '#f8fafc', 
-            color: '#475569', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '12px', 
-            marginBottom: '10px',
-            borderRadius: '12px',
-            padding: '11px 16px',
-            fontWeight: 600,
-            fontSize: '0.85rem'
-          }}
-        >
-          <Info size={18} style={{ color: '#2563eb' }} />
-          About System
-        </button>
-
-        <button 
-          onClick={handleLogout}
-          className="nav-item" 
-          style={{ 
-            width: '100%', 
-            border: '1px solid #fecaca', 
-            background: '#fef2f2', 
-            color: '#dc2626', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '12px', 
-            borderRadius: '12px',
-            padding: '11px 16px',
-            fontWeight: 700,
-            fontSize: '0.85rem'
-          }}
-        >
-          <LogOut size={18} />
-          Sign Out
-        </button>
+          <button 
+            onClick={() => { setMobileSidebarOpen(false); handleLogout(); }}
+            className="nav-item" 
+            style={{ 
+              width: '100%', 
+              border: '1px solid #fecaca', 
+              background: '#fef2f2', 
+              color: '#dc2626', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px', 
+              borderRadius: '12px',
+              padding: '11px 14px',
+              fontWeight: 700,
+              fontSize: '0.85rem'
+            }}
+          >
+            <LogOut size={17} />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </aside>
 
       {/* Main Panel */}
@@ -7688,16 +7726,12 @@ export default function App() {
               onClick={() => {
                 playCyberSound('click');
                 triggerHaptic();
-                if (activeTab === 'control' || activeTab === 'all-features') {
-                  navigateToTab(userRole === 'student' ? 'student-attendance' : 'dashboard');
-                } else {
-                  navigateToTab('control');
-                }
+                setMobileSidebarOpen(prev => !prev);
               }}
-              aria-label={activeTab === 'control' || activeTab === 'all-features' ? 'Close Control Center' : 'Open Control Center'}
-              title={activeTab === 'control' || activeTab === 'all-features' ? 'Close Control Center' : 'Open Control Center'}
+              aria-label={mobileSidebarOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+              title={mobileSidebarOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
             >
-              {activeTab === 'control' || activeTab === 'all-features' ? (
+              {mobileSidebarOpen ? (
                 <X size={20} />
               ) : (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

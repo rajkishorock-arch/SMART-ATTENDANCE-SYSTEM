@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, FileSpreadsheet, FileDown, Mail, Users, AlertCircle, TrendingUp } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, FileDown, Mail, Users, AlertCircle, TrendingUp, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
 
@@ -125,33 +125,54 @@ export default function AttendanceReportsView({
       )}
 
       {/* Filter Bar */}
-      <div className="glass-panel hide-on-print" style={{ padding: '24px' }}>
-        <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', color: 'var(--color-text-main)' }}>Select Report Parameters</h4>
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px', textAlign: 'left' }}>
-            <label className="form-label">Start Date</label>
-            <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+      <div className="glass-panel hide-on-print" style={{ padding: '20px 18px', borderRadius: '16px', background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              Report Parameters & Filters
+            </h4>
+            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+              Select timeframe, academic branch, and course
+            </p>
+          </div>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+            Official Records
+          </span>
+        </div>
+
+        {/* 2x2 Responsive Parameter Grid */}
+        <div className="reports-filter-grid" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '12px',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          {/* Start Date */}
+          <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
+            <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>
+              Start Date
+            </label>
+            <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%', boxSizing: 'border-box' }}>
               <button
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, -1, setReportStartDate); }}
                 style={{
                   background: '#f8fafc',
-                  border: '1px solid var(--border-subtle)',
+                  border: '1px solid #cbd5e1',
                   borderRadius: '8px',
-                  color: 'var(--color-text-secondary)',
+                  color: '#475569',
                   padding: '0',
-                  width: '38px',
-                  minWidth: '38px',
-                  maxWidth: '38px',
-                  flex: '0 0 38px',
-                  flexShrink: 0,
+                  width: '36px',
+                  minWidth: '36px',
+                  maxWidth: '36px',
+                  flex: '0 0 36px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.85rem',
-                  transition: 'all 0.2s',
-                  height: '42px',
+                  height: '40px',
                   boxSizing: 'border-box'
                 }}
                 title="Previous Day"
@@ -163,29 +184,27 @@ export default function AttendanceReportsView({
                 className="form-input flex-input" 
                 value={reportStartDate} 
                 onChange={e => setReportStartDate(e.target.value)} 
-                style={{ height: '42px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box' }}
+                style={{ height: '40px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.84rem' }}
               />
               <button
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, 1, setReportStartDate); }}
                 style={{
                   background: '#f8fafc',
-                  border: '1px solid var(--border-subtle)',
+                  border: '1px solid #cbd5e1',
                   borderRadius: '8px',
-                  color: 'var(--color-text-secondary)',
+                  color: '#475569',
                   padding: '0',
-                  width: '38px',
-                  minWidth: '38px',
-                  maxWidth: '38px',
-                  flex: '0 0 38px',
-                  flexShrink: 0,
+                  width: '36px',
+                  minWidth: '36px',
+                  maxWidth: '36px',
+                  flex: '0 0 36px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.85rem',
-                  transition: 'all 0.2s',
-                  height: '42px',
+                  height: '40px',
                   boxSizing: 'border-box'
                 }}
                 title="Next Day"
@@ -194,30 +213,32 @@ export default function AttendanceReportsView({
               </button>
             </div>
           </div>
-          <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px', textAlign: 'left' }}>
-            <label className="form-label">End Date</label>
-            <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+
+          {/* End Date */}
+          <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
+            <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>
+              End Date
+            </label>
+            <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%', boxSizing: 'border-box' }}>
               <button
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, -1, setReportEndDate); }}
                 style={{
                   background: '#f8fafc',
-                  border: '1px solid var(--border-subtle)',
+                  border: '1px solid #cbd5e1',
                   borderRadius: '8px',
-                  color: 'var(--color-text-secondary)',
+                  color: '#475569',
                   padding: '0',
-                  width: '38px',
-                  minWidth: '38px',
-                  maxWidth: '38px',
-                  flex: '0 0 38px',
-                  flexShrink: 0,
+                  width: '36px',
+                  minWidth: '36px',
+                  maxWidth: '36px',
+                  flex: '0 0 36px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.85rem',
-                  transition: 'all 0.2s',
-                  height: '42px',
+                  height: '40px',
                   boxSizing: 'border-box'
                 }}
                 title="Previous Day"
@@ -229,29 +250,27 @@ export default function AttendanceReportsView({
                 className="form-input flex-input" 
                 value={reportEndDate} 
                 onChange={e => setReportEndDate(e.target.value)} 
-                style={{ height: '42px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box' }}
+                style={{ height: '40px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.84rem' }}
               />
               <button
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, 1, setReportEndDate); }}
                 style={{
                   background: '#f8fafc',
-                  border: '1px solid var(--border-subtle)',
+                  border: '1px solid #cbd5e1',
                   borderRadius: '8px',
-                  color: 'var(--color-text-secondary)',
+                  color: '#475569',
                   padding: '0',
-                  width: '38px',
-                  minWidth: '38px',
-                  maxWidth: '38px',
-                  flex: '0 0 38px',
-                  flexShrink: 0,
+                  width: '36px',
+                  minWidth: '36px',
+                  maxWidth: '36px',
+                  flex: '0 0 36px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.85rem',
-                  transition: 'all 0.2s',
-                  height: '42px',
+                  height: '40px',
                   boxSizing: 'border-box'
                 }}
                 title="Next Day"
@@ -260,14 +279,17 @@ export default function AttendanceReportsView({
               </button>
             </div>
           </div>
+
+          {/* Department */}
           {userRole === 'admin' ? (
             <>
-              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '200px' }}>
-                <label className="form-label">Department</label>
+              <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
+                <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>Department</label>
                 <select 
                   className="form-input" 
                   value={reportDeptFilter} 
                   onChange={e => { setReportDeptFilter(e.target.value); setSelectedReportSubjectId(''); }}
+                  style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
                 >
                   <option value="">All Departments</option>
                   {departments.map(dept => (
@@ -275,12 +297,15 @@ export default function AttendanceReportsView({
                   ))}
                 </select>
               </div>
-              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '220px' }}>
-                <label className="form-label">Subject</label>
+
+              {/* Subject */}
+              <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
+                <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>Subject</label>
                 <select 
                   className="form-input" 
                   value={selectedReportSubjectId} 
                   onChange={e => setSelectedReportSubjectId(e.target.value)}
+                  style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
                 >
                   <option value="">All Subjects</option>
                   {(reportDeptFilter 
@@ -293,13 +318,13 @@ export default function AttendanceReportsView({
               </div>
             </>
           ) : userRole === 'teacher' ? (
-            <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '220px' }}>
-              <label className="form-label">Subject</label>
+            <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
+              <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>Subject</label>
               <select 
                 className="form-input" 
                 value={selectedReportSubjectId} 
                 onChange={e => setSelectedReportSubjectId(e.target.value)}
-                style={{ cursor: 'default' }}
+                style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem', cursor: 'default' }}
                 disabled={true}
               >
                 {subjects.filter(s => s.teacher_id === currentUser?.details?.id).map(s => (
@@ -308,22 +333,66 @@ export default function AttendanceReportsView({
               </select>
             </div>
           ) : null}
-          <button 
-            onClick={fetchReport} 
-            className="btn-primary"
-            style={{ padding: '12px 24px', borderRadius: '10px', fontWeight: 600, height: '46px', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff' }}
-          >
-            Regenerate
-          </button>
-          {students.length > 0 && (
+
+          {/* Action Buttons Row */}
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            width: '100%',
+            gridColumn: '1 / -1',
+            marginTop: '4px',
+            flexWrap: 'wrap'
+          }}>
             <button 
-              onClick={() => printReport()} 
-              className="btn-secondary" 
-              style={{ padding: '12px 24px', borderRadius: '10px', fontWeight: 600, height: '46px' }}
+              onClick={fetchReport} 
+              className="btn-primary"
+              style={{
+                flex: 1,
+                minWidth: '160px',
+                padding: '10px 18px',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                height: '42px',
+                background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                border: 'none',
+                color: '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
+              }}
             >
-              <FileDown size={18} /> Print Report
+              <RefreshCw size={16} /> Regenerate Report
             </button>
-          )}
+            {students.length > 0 && (
+              <button 
+                onClick={() => printReport()} 
+                className="btn-secondary" 
+                style={{
+                  flex: 1,
+                  minWidth: '140px',
+                  padding: '10px 18px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  height: '42px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  color: '#1e293b',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                <FileDown size={16} /> Print Report
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -351,45 +420,96 @@ export default function AttendanceReportsView({
         <hr style={{ border: 'none', borderTop: '2px solid #000', marginTop: '20px' }} />
       </div>
 
-      {/* Summary Analytics Cards */}
-      <div className="dashboard-grid hide-on-print">
-        <div className="glass-panel metric-card" style={{ animationDelay: '100ms' }}>
-          <div className="metric-info">
-            <h3>Scanned Students</h3>
-            <p>{students.length}</p>
+      {/* Summary Analytics Cards — Sleek 3-Card Strip */}
+      <div className="reports-metric-strip hide-on-print" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '10px',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '14px',
+          padding: '12px 8px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+          gap: '4px'
+        }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Users size={17} />
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)' }}>
-            <Users size={24} />
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+            {students.length}
+          </div>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Scanned Students
           </div>
         </div>
 
-        <div className="glass-panel metric-card" style={{ borderColor: students.filter(s => s.low_attendance).length > 0 ? 'rgba(239,68,68,0.2)' : undefined, animationDelay: '200ms' }}>
-          <div className="metric-info">
-            <h3>Low Attendance Alerts</h3>
-            <p style={{ color: students.filter(s => s.low_attendance).length > 0 ? '#ef4444' : undefined }}>
-              {students.filter(s => s.low_attendance).length}
-            </p>
-          </div>
-          <div className="metric-icon" style={{ 
-            background: students.filter(s => s.low_attendance).length > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.05)', 
-            color: students.filter(s => s.low_attendance).length > 0 ? '#ef4444' : '#9ca3af' 
+        <div style={{
+          background: students.filter(s => s.low_attendance).length > 0 ? '#fef2f2' : '#ffffff',
+          border: students.filter(s => s.low_attendance).length > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
+          borderRadius: '14px',
+          padding: '12px 8px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+          gap: '4px'
+        }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '8px',
+            background: students.filter(s => s.low_attendance).length > 0 ? '#fee2e2' : '#f1f5f9',
+            color: students.filter(s => s.low_attendance).length > 0 ? '#dc2626' : '#94a3b8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            <AlertCircle size={24} />
+            <AlertCircle size={17} />
+          </div>
+          <div style={{
+            fontSize: '1.35rem',
+            fontWeight: 800,
+            color: students.filter(s => s.low_attendance).length > 0 ? '#dc2626' : '#0f172a',
+            lineHeight: 1.1
+          }}>
+            {students.filter(s => s.low_attendance).length}
+          </div>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Low Attendance
           </div>
         </div>
 
-        <div className="glass-panel metric-card" style={{ animationDelay: '300ms' }}>
-          <div className="metric-info">
-            <h3>Avg Presence Rate</h3>
-            <p>
-              {students.length > 0 
-                ? (students.reduce((acc, s) => acc + s.percentage, 0) / students.length).toFixed(1)
-                : '0.0'
-              }%
-            </p>
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '14px',
+          padding: '12px 8px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+          gap: '4px'
+        }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <TrendingUp size={17} />
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)' }}>
-            <TrendingUp size={24} />
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+            {students.length > 0 
+              ? (students.reduce((acc, s) => acc + s.percentage, 0) / students.length).toFixed(1)
+              : '0.0'}%
+          </div>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Avg Presence
           </div>
         </div>
       </div>
@@ -468,7 +588,74 @@ export default function AttendanceReportsView({
               </span>
             </div>
 
-            <div className="table-container">
+            {/* Mobile-Friendly Student Cards View */}
+            <div className="reports-mobile-cards hide-on-desktop" style={{ display: 'none', flexDirection: 'column', gap: '10px' }}>
+              {displayedStudents.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '0.85rem' }}>
+                  No students match the selected filter.
+                </div>
+              ) : (
+                displayedStudents.map(student => (
+                  <div 
+                    key={student.id}
+                    style={{
+                      background: '#ffffff',
+                      border: student.low_attendance ? '1.5px solid #fecaca' : '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {student.name}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          Roll #{student.roll} • <span style={{ color: '#7c3aed', fontWeight: 600 }}>{student.dep}</span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <span style={{
+                          fontSize: '0.9rem',
+                          fontWeight: 800,
+                          color: student.low_attendance ? '#ef4444' : '#10b981'
+                        }}>
+                          {student.percentage}%
+                        </span>
+                        <div>
+                          {student.low_attendance ? (
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#fee2e2', color: '#dc2626' }}>
+                              Shortage
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#dcfce7', color: '#16a34a' }}>
+                              Good
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', paddingTop: '4px', borderTop: '1px solid #f1f5f9' }}>
+                      <span>Attended: <strong>{student.present_days} / {student.total_days}</strong> days</span>
+                      <div style={{ width: '80px', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${Math.min(student.percentage, 100)}%`,
+                          height: '100%',
+                          background: student.low_attendance ? '#ef4444' : '#10b981',
+                          borderRadius: '3px'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="table-container reports-table-desktop">
               <table className="custom-table print-table">
                 <thead>
                   <tr>

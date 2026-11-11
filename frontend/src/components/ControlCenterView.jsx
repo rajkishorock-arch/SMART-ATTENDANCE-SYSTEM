@@ -706,20 +706,6 @@ export default function ControlCenterView({
                           </span>
                         )}
                       </div>
-                      <p
-                        style={{
-                          fontSize: '0.75rem',
-                          color: '#64748b',
-                          margin: '2px 0 0',
-                          lineHeight: 1.35,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          maxWidth: '100%',
-                        }}
-                      >
-                        {item.desc}
-                      </p>
                     </div>
 
                     {/* Right Chevron */}
