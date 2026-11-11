@@ -2241,6 +2241,8 @@ button:active,
   .dashboard-charts-grid,
   .settings-section,
   .telemetry-widget-card,
+  .control-center-dedicated-view,
+  .control-center-card-item,
   div[class*="glass-panel"],
   div[class*="settings-section"] {
     padding-left: 8px !important;

@@ -18,7 +18,6 @@ import {
   Search,
   ChevronRight,
   LogOut,
-  LayoutGrid,
   Sparkles,
 } from 'lucide-react';
 
@@ -32,259 +31,265 @@ export default function ControlCenterView({
   appVersion = '1.0.18',
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState('ALL');
 
-  const sections = useMemo(() => {
-    const rawSections = [
-      {
-        id: 'academic',
-        title: 'Academic & Attendance Operations',
-        items: [
-          {
-            id: 'disputes',
-            label: 'Disputes & Corrections',
-            icon: ShieldAlert,
-            iconColor: '#dc2626',
-            iconBg: '#fef2f2',
-            iconBorder: '#fecaca',
-            badge: 'Review',
-            badgeBg: '#fffbeb',
-            badgeColor: '#b45309',
-            badgeBorder: '#fde68a',
-            desc: 'Review student dispute proof & attendance corrections',
-            roles: ['admin', 'teacher'],
-          },
-          {
-            id: 'face-review',
-            label: 'Face Match QA Queue',
-            icon: ScanFace,
-            iconColor: '#7c3aed',
-            iconBg: '#f5f3ff',
-            iconBorder: '#ddd6fe',
-            badge: 'AI QA',
-            badgeBg: '#f5f3ff',
-            badgeColor: '#7c3aed',
-            badgeBorder: '#ddd6fe',
-            desc: 'Review borderline face detections & reassign attendance',
-            roles: ['admin', 'teacher'],
-          },
-          {
-            id: 'calendar',
-            label: 'Academic Calendar & Schedules',
-            icon: Calendar,
-            iconColor: '#2563eb',
-            iconBg: '#eff6ff',
-            iconBorder: '#bfdbfe',
-            desc: 'Campus timetable, holiday list & exam schedules',
-            roles: ['admin', 'teacher', 'student'],
-          },
-          {
-            id: 'session-history',
-            label: 'Class Session History',
-            icon: History,
-            iconColor: '#059669',
-            iconBg: '#ecfdf5',
-            iconBorder: '#a7f3d0',
-            desc: 'Class-wise daily session registers & student presence',
-            roles: ['admin', 'teacher'],
-          },
-          {
-            id: 'logs',
-            label: 'Attendance Logs & Registers',
-            icon: FileSpreadsheet,
-            iconColor: '#16a34a',
-            iconBg: '#f0fdf4',
-            iconBorder: '#bbf7d0',
-            desc: 'Live scan records, daily registers & CSV export',
-            roles: ['admin', 'teacher'],
-          },
-          {
-            id: 'reports',
-            label: 'Reports & Shortage Analytics',
-            icon: BarChart3,
-            iconColor: '#0284c7',
-            iconBg: '#f0f9ff',
-            iconBorder: '#bae6fd',
-            badge: '<75% Alert',
-            badgeBg: '#fef2f2',
-            badgeColor: '#dc2626',
-            badgeBorder: '#fecaca',
-            desc: 'Defaulter student lists (<75%), reports & notices',
-            roles: ['admin', 'teacher'],
-          },
-        ],
-      },
-      {
-        id: 'fleet',
-        title: 'Hardware & Campus Integrations',
-        items: [
-          {
-            id: 'devices',
-            label: 'Kiosk & Sensor Fleet',
-            icon: Monitor,
-            iconColor: '#0284c7',
-            iconBg: '#f0f9ff',
-            iconBorder: '#bae6fd',
-            badge: 'Hardware',
-            badgeBg: '#eff6ff',
-            badgeColor: '#1d4ed8',
-            badgeBorder: '#bfdbfe',
-            desc: 'Monitor scanning kiosks, sensors & battery telemetry',
-            roles: ['admin'],
-          },
-          {
-            id: 'interventions',
-            label: 'Attendance Interventions',
-            icon: AlertOctagon,
-            iconColor: '#d97706',
-            iconBg: '#fffbeb',
-            iconBorder: '#fde68a',
-            badge: 'Alerts',
-            badgeBg: '#fffbeb',
-            badgeColor: '#b45309',
-            badgeBorder: '#fde68a',
-            desc: 'Shortfall attendance warnings & counseling workflows',
-            roles: ['admin', 'teacher'],
-          },
-          {
-            id: 'lms',
-            label: 'SIS & Enterprise LMS Sync',
-            icon: Globe,
-            iconColor: '#8b5cf6',
-            iconBg: '#f5f3ff',
-            iconBorder: '#ddd6fe',
-            badge: 'Sync',
-            badgeBg: '#f5f3ff',
-            badgeColor: '#7c3aed',
-            badgeBorder: '#ddd6fe',
-            desc: 'Canvas, Moodle, and ERP roster synchronization',
-            roles: ['admin'],
-          },
-          {
-            id: 'payroll',
-            label: 'Staff Attendance & Payroll',
-            icon: DollarSign,
-            iconColor: '#059669',
-            iconBg: '#ecfdf5',
-            iconBorder: '#a7f3d0',
-            badge: 'Finance',
-            badgeBg: '#ecfdf5',
-            badgeColor: '#059669',
-            badgeBorder: '#a7f3d0',
-            desc: 'Daily punch telemetry, work hours & salary calculations',
-            roles: ['admin', 'teacher'],
-          },
-        ],
-      },
-      {
-        id: 'directories',
-        title: 'Directories & Campus People',
-        items: [
-          {
-            id: 'students',
-            label: 'Students Directory',
-            icon: Users,
-            iconColor: '#2563eb',
-            iconBg: '#eff6ff',
-            iconBorder: '#bfdbfe',
-            desc: 'Registered student profiles & biometric face models',
-            roles: ['admin', 'teacher'],
-          },
-          {
-            id: 'teachers',
-            label: 'Teachers & Faculty Directory',
-            icon: Users,
-            iconColor: '#db2777',
-            iconBg: '#fdf2f8',
-            iconBorder: '#fbcfe8',
-            desc: 'Teaching staff directory & assigned weekly timetables',
-            roles: ['admin'],
-          },
-          {
-            id: 'attendance',
-            label: 'Face Attendance Scanner',
-            icon: Camera,
-            iconColor: '#2563eb',
-            iconBg: '#eff6ff',
-            iconBorder: '#bfdbfe',
-            badge: 'Live',
-            badgeBg: '#eff6ff',
-            badgeColor: '#1e40af',
-            badgeBorder: '#bfdbfe',
-            desc: 'Launch real-time AI face scanner or manual register',
-            roles: ['admin', 'teacher'],
-          },
-          {
-            id: 'student-profile',
-            label: 'My Profile & Account',
-            icon: UserCircle,
-            iconColor: '#7c3aed',
-            iconBg: '#f5f3ff',
-            iconBorder: '#ddd6fe',
-            desc: 'Personal account details, login email & credentials',
-            roles: ['admin', 'teacher', 'student'],
-          },
-          {
-            id: 'ai-assistant',
-            label: 'Campus AI Assistant',
-            icon: Bot,
-            iconColor: '#2563eb',
-            iconBg: '#eff6ff',
-            iconBorder: '#bfdbfe',
-            badge: 'Smart AI',
-            badgeBg: '#eff6ff',
-            badgeColor: '#1d4ed8',
-            badgeBorder: '#bfdbfe',
-            desc: 'Interactive voice assistant, file analysis & questions',
-            roles: ['admin', 'teacher', 'student'],
-          },
-        ],
-      },
-      {
-        id: 'system',
-        title: 'System & Security Settings',
-        items: [
-          {
-            id: 'settings',
-            label: 'Security & System Settings Hub',
-            icon: ShieldCheck,
-            iconColor: '#1d4ed8',
-            iconBg: '#eff6ff',
-            iconBorder: '#bfdbfe',
-            badge: 'Settings',
-            badgeBg: '#eff6ff',
-            badgeColor: '#1d4ed8',
-            badgeBorder: '#bfdbfe',
-            desc: 'GPS perimeter, Wi-Fi zones, biometrics & permissions',
-            roles: ['admin', 'teacher', 'student'],
-          },
-        ],
-      },
-    ];
+  const rawSections = useMemo(() => [
+    {
+      id: 'academic',
+      title: 'Academic & Attendance Operations',
+      items: [
+        {
+          id: 'disputes',
+          label: 'Disputes & Corrections',
+          icon: ShieldAlert,
+          iconColor: '#dc2626',
+          iconBg: '#fef2f2',
+          iconBorder: '#fecaca',
+          badge: 'Review',
+          badgeBg: '#fffbeb',
+          badgeColor: '#b45309',
+          badgeBorder: '#fde68a',
+          desc: 'Review student dispute proof & attendance corrections',
+          roles: ['admin', 'teacher'],
+        },
+        {
+          id: 'face-review',
+          label: 'Face Match QA Queue',
+          icon: ScanFace,
+          iconColor: '#7c3aed',
+          iconBg: '#f5f3ff',
+          iconBorder: '#ddd6fe',
+          badge: 'AI QA',
+          badgeBg: '#f5f3ff',
+          badgeColor: '#7c3aed',
+          badgeBorder: '#ddd6fe',
+          desc: 'Review borderline face detections & reassign attendance',
+          roles: ['admin', 'teacher'],
+        },
+        {
+          id: 'calendar',
+          label: 'Academic Calendar & Schedules',
+          icon: Calendar,
+          iconColor: '#2563eb',
+          iconBg: '#eff6ff',
+          iconBorder: '#bfdbfe',
+          desc: 'Campus timetable, holiday list & exam schedules',
+          roles: ['admin', 'teacher', 'student'],
+        },
+        {
+          id: 'session-history',
+          label: 'Class Session History',
+          icon: History,
+          iconColor: '#059669',
+          iconBg: '#ecfdf5',
+          iconBorder: '#a7f3d0',
+          desc: 'Class-wise daily session registers & student presence',
+          roles: ['admin', 'teacher'],
+        },
+        {
+          id: 'logs',
+          label: 'Attendance Logs & Registers',
+          icon: FileSpreadsheet,
+          iconColor: '#16a34a',
+          iconBg: '#f0fdf4',
+          iconBorder: '#bbf7d0',
+          desc: 'Live scan records, daily registers & CSV export',
+          roles: ['admin', 'teacher'],
+        },
+        {
+          id: 'reports',
+          label: 'Reports & Shortage Analytics',
+          icon: BarChart3,
+          iconColor: '#0284c7',
+          iconBg: '#f0f9ff',
+          iconBorder: '#bae6fd',
+          badge: '<75% Alert',
+          badgeBg: '#fef2f2',
+          badgeColor: '#dc2626',
+          badgeBorder: '#fecaca',
+          desc: 'Defaulter student lists (<75%), reports & notices',
+          roles: ['admin', 'teacher'],
+        },
+      ],
+    },
+    {
+      id: 'fleet',
+      title: 'Hardware & Campus Integrations',
+      items: [
+        {
+          id: 'devices',
+          label: 'Kiosk & Sensor Fleet',
+          icon: Monitor,
+          iconColor: '#0284c7',
+          iconBg: '#f0f9ff',
+          iconBorder: '#bae6fd',
+          badge: 'Hardware',
+          badgeBg: '#eff6ff',
+          badgeColor: '#1d4ed8',
+          badgeBorder: '#bfdbfe',
+          desc: 'Monitor scanning kiosks, sensors & battery telemetry',
+          roles: ['admin'],
+        },
+        {
+          id: 'interventions',
+          label: 'Attendance Interventions',
+          icon: AlertOctagon,
+          iconColor: '#d97706',
+          iconBg: '#fffbeb',
+          iconBorder: '#fde68a',
+          badge: 'Alerts',
+          badgeBg: '#fffbeb',
+          badgeColor: '#b45309',
+          badgeBorder: '#fde68a',
+          desc: 'Shortfall attendance warnings & counseling workflows',
+          roles: ['admin', 'teacher'],
+        },
+        {
+          id: 'lms',
+          label: 'SIS & Enterprise LMS Sync',
+          icon: Globe,
+          iconColor: '#8b5cf6',
+          iconBg: '#f5f3ff',
+          iconBorder: '#ddd6fe',
+          badge: 'Sync',
+          badgeBg: '#f5f3ff',
+          badgeColor: '#7c3aed',
+          badgeBorder: '#ddd6fe',
+          desc: 'Canvas, Moodle, and ERP roster synchronization',
+          roles: ['admin'],
+        },
+        {
+          id: 'payroll',
+          label: 'Staff Attendance & Payroll',
+          icon: DollarSign,
+          iconColor: '#059669',
+          iconBg: '#ecfdf5',
+          iconBorder: '#a7f3d0',
+          badge: 'Finance',
+          badgeBg: '#ecfdf5',
+          badgeColor: '#059669',
+          badgeBorder: '#a7f3d0',
+          desc: 'Daily punch telemetry, work hours & salary calculations',
+          roles: ['admin', 'teacher'],
+        },
+      ],
+    },
+    {
+      id: 'directories',
+      title: 'Directories & Campus People',
+      items: [
+        {
+          id: 'students',
+          label: 'Students Directory',
+          icon: Users,
+          iconColor: '#2563eb',
+          iconBg: '#eff6ff',
+          iconBorder: '#bfdbfe',
+          desc: 'Registered student profiles & biometric face models',
+          roles: ['admin', 'teacher'],
+        },
+        {
+          id: 'teachers',
+          label: 'Teachers & Faculty Directory',
+          icon: Users,
+          iconColor: '#db2777',
+          iconBg: '#fdf2f8',
+          iconBorder: '#fbcfe8',
+          desc: 'Teaching staff directory & assigned weekly timetables',
+          roles: ['admin'],
+        },
+        {
+          id: 'attendance',
+          label: 'Face Attendance Scanner',
+          icon: Camera,
+          iconColor: '#2563eb',
+          iconBg: '#eff6ff',
+          iconBorder: '#bfdbfe',
+          badge: 'Live',
+          badgeBg: '#eff6ff',
+          badgeColor: '#1e40af',
+          badgeBorder: '#bfdbfe',
+          desc: 'Launch real-time AI face scanner or manual register',
+          roles: ['admin', 'teacher'],
+        },
+        {
+          id: 'student-profile',
+          label: 'My Profile & Account',
+          icon: UserCircle,
+          iconColor: '#7c3aed',
+          iconBg: '#f5f3ff',
+          iconBorder: '#ddd6fe',
+          desc: 'Personal account details, login email & credentials',
+          roles: ['admin', 'teacher', 'student'],
+        },
+        {
+          id: 'ai-assistant',
+          label: 'Campus AI Assistant',
+          icon: Bot,
+          iconColor: '#2563eb',
+          iconBg: '#eff6ff',
+          iconBorder: '#bfdbfe',
+          badge: 'Smart AI',
+          badgeBg: '#eff6ff',
+          badgeColor: '#1d4ed8',
+          badgeBorder: '#bfdbfe',
+          desc: 'Interactive voice assistant, file analysis & questions',
+          roles: ['admin', 'teacher', 'student'],
+        },
+      ],
+    },
+    {
+      id: 'system',
+      title: 'System & Security Settings',
+      items: [
+        {
+          id: 'settings',
+          label: 'Security & System Settings Hub',
+          icon: ShieldCheck,
+          iconColor: '#1d4ed8',
+          iconBg: '#eff6ff',
+          iconBorder: '#bfdbfe',
+          badge: 'Settings',
+          badgeBg: '#eff6ff',
+          badgeColor: '#1d4ed8',
+          badgeBorder: '#bfdbfe',
+          desc: 'GPS perimeter, Wi-Fi zones, biometrics & permissions',
+          roles: ['admin', 'teacher', 'student'],
+        },
+      ],
+    },
+  ], []);
 
-    // Filter by role
-    const filtered = rawSections
-      .map((section) => ({
-        ...section,
-        items: section.items.filter((item) => item.roles.includes(userRole)),
+  // Filter sections by role, category filter, and search query
+  const filteredSections = useMemo(() => {
+    let sections = rawSections
+      .map((sec) => ({
+        ...sec,
+        items: sec.items.filter((item) => item.roles.includes(userRole)),
       }))
-      .filter((section) => section.items.length > 0);
+      .filter((sec) => sec.items.length > 0);
+
+    // Apply category pill filter
+    if (activeCategoryFilter !== 'ALL') {
+      sections = sections.filter((sec) => sec.id === activeCategoryFilter);
+    }
 
     // Apply search query filter
-    if (!searchQuery.trim()) return filtered;
+    if (!searchQuery.trim()) return sections;
     const q = searchQuery.toLowerCase().trim();
 
-    return filtered
-      .map((section) => ({
-        ...section,
-        items: section.items.filter(
+    return sections
+      .map((sec) => ({
+        ...sec,
+        items: sec.items.filter(
           (item) =>
             item.label.toLowerCase().includes(q) ||
             item.desc.toLowerCase().includes(q) ||
             (item.badge && item.badge.toLowerCase().includes(q))
         ),
       }))
-      .filter((section) => section.items.length > 0);
-  }, [userRole, searchQuery]);
+      .filter((sec) => sec.items.length > 0);
+  }, [rawSections, userRole, activeCategoryFilter, searchQuery]);
 
   const handleItemClick = (id) => {
     playCyberSound('click');
@@ -293,79 +298,43 @@ export default function ControlCenterView({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const categories = [
+    { id: 'ALL', label: 'All Modules' },
+    { id: 'academic', label: 'Academic' },
+    { id: 'fleet', label: 'Hardware' },
+    { id: 'directories', label: 'People' },
+    { id: 'system', label: 'System' },
+  ];
+
   return (
     <div
       className="control-center-dedicated-view"
       style={{
         width: '100%',
-        maxWidth: '720px',
+        maxWidth: '100%',
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: '24px',
-        padding: '8px 12px 90px 12px',
-        animation: 'fadeInUp 0.3s ease both',
+        gap: '14px',
+        padding: '0 0 110px 0',
         boxSizing: 'border-box',
+        minWidth: 0,
+        overflowX: 'hidden',
+        animation: 'fadeInUp 0.25s ease both',
       }}
     >
-      {/* Top Hero Card (Inspired by Chhath Vibes Clean UI) */}
+      {/* Search Input Bar (No duplicate header, ultra clean) */}
       <div
         style={{
-          background: '#ffffff',
-          borderRadius: '18px',
-          border: '1px solid #e2e8f0',
-          padding: '20px 22px',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px',
+          gap: '10px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#1d4ed8',
-              }}
-            >
-              <LayoutGrid size={22} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>
-                Control Center
-              </h2>
-              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '3px 0 0', fontWeight: 500 }}>
-                All campus modules, operations, and system utilities
-              </p>
-            </div>
-          </div>
-          <span
-            style={{
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              padding: '4px 10px',
-              borderRadius: '20px',
-              background: '#f1f5f9',
-              color: '#475569',
-              border: '1px solid #e2e8f0',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}
-          >
-            {userRole}
-          </span>
-        </div>
-
-        {/* Live Search Filter Input */}
-        <div style={{ position: 'relative', width: '100%' }}>
+        <div style={{ position: 'relative', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           <Search
             size={16}
             style={{
@@ -381,87 +350,149 @@ export default function ControlCenterView({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search modules, registers, or settings..."
+            placeholder="Search modules, registers, or tools..."
             style={{
               width: '100%',
-              padding: '10px 14px 10px 38px',
+              maxWidth: '100%',
+              padding: '11px 36px 11px 38px',
               borderRadius: '12px',
               border: '1px solid #e2e8f0',
-              background: '#f8fafc',
+              background: '#ffffff',
               fontSize: '0.86rem',
               color: '#0f172a',
               outline: 'none',
               boxSizing: 'border-box',
+              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
               transition: 'all 0.2s ease',
-            }}
-            onFocus={(e) => {
-              e.target.style.background = '#ffffff';
-              e.target.style.borderColor = '#2563eb';
-              e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.1)';
-            }}
-            onBlur={(e) => {
-              e.target.style.background = '#f8fafc';
-              e.target.style.borderColor = '#e2e8f0';
-              e.target.style.boxShadow = 'none';
             }}
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery('')}
               style={{
                 position: 'absolute',
-                right: '12px',
+                right: '10px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                background: 'none',
+                background: '#f1f5f9',
                 border: 'none',
-                color: '#94a3b8',
+                color: '#64748b',
+                borderRadius: '50%',
+                width: '22px',
+                height: '22px',
                 cursor: 'pointer',
-                fontSize: '0.8rem',
+                fontSize: '0.75rem',
                 fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
               }}
             >
               ✕
             </button>
           )}
         </div>
+
+        {/* Category Filter Pills (Horizontal Scroll on Mobile) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            overflowX: 'auto',
+            paddingBottom: '2px',
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+          }}
+        >
+          {categories.map((cat) => {
+            const isSelected = activeCategoryFilter === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  playCyberSound('click');
+                  setActiveCategoryFilter(cat.id);
+                }}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  border: isSelected ? '1px solid #2563eb' : '1px solid #e2e8f0',
+                  background: isSelected ? '#eff6ff' : '#ffffff',
+                  color: isSelected ? '#1d4ed8' : '#64748b',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                  boxShadow: isSelected ? '0 1px 3px rgba(37, 99, 235, 0.1)' : 'none',
+                }}
+              >
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Sections List (Chhath Vibes Inspired Clean Card Deck) */}
-      {sections.length === 0 ? (
+      {/* Sections List */}
+      {filteredSections.length === 0 ? (
         <div
           style={{
             background: '#ffffff',
-            borderRadius: '16px',
+            borderRadius: '14px',
             border: '1px dashed #cbd5e1',
-            padding: '40px 20px',
+            padding: '36px 16px',
             textAlign: 'center',
             color: '#64748b',
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
-          <p style={{ margin: '0 0 8px 0', fontSize: '0.95rem', fontWeight: 600 }}>
+          <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontWeight: 600 }}>
             No modules match &quot;{searchQuery}&quot;
           </p>
           <button
             type="button"
-            onClick={() => setSearchQuery('')}
+            onClick={() => {
+              setSearchQuery('');
+              setActiveCategoryFilter('ALL');
+            }}
             style={{
               background: '#eff6ff',
               border: '1px solid #bfdbfe',
               color: '#1d4ed8',
               padding: '6px 14px',
               borderRadius: '8px',
-              fontSize: '0.8rem',
+              fontSize: '0.78rem',
               fontWeight: 600,
               cursor: 'pointer',
             }}
           >
-            Clear Search
+            Reset Filters
           </button>
         </div>
       ) : (
-        sections.map((section) => (
-          <div key={section.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        filteredSections.map((section) => (
+          <div
+            key={section.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              minWidth: 0,
+            }}
+          >
             {/* Section Header */}
             <div
               style={{
@@ -469,26 +500,36 @@ export default function ControlCenterView({
                 fontWeight: 800,
                 color: '#64748b',
                 textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                paddingLeft: '6px',
+                letterSpacing: '0.06em',
+                paddingLeft: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
               }}
             >
-              <Sparkles size={12} style={{ color: '#94a3b8' }} />
+              <Sparkles size={12} style={{ color: '#94a3b8', flexShrink: 0 }} />
               <span>{section.title}</span>
             </div>
 
             {/* Section Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                minWidth: 0,
+              }}
+            >
               {section.items.map((item) => {
                 const Icon = item.icon;
                 return (
                   <div
                     key={item.id}
                     onClick={() => handleItemClick(item.id)}
-                    className="surface-card hover-card hover-elevate"
+                    className="control-center-card-item surface-card hover-elevate"
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
@@ -500,23 +541,30 @@ export default function ControlCenterView({
                     style={{
                       background: '#ffffff',
                       border: '1px solid #e2e8f0',
-                      borderRadius: '16px',
-                      padding: '14px 18px',
+                      borderRadius: '14px',
+                      padding: '12px 14px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '14px',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                      gap: '12px',
+                      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                       cursor: 'pointer',
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      minWidth: 0,
+                      overflow: 'hidden',
                       transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
                     {/* Left Icon */}
                     <div
                       style={{
-                        width: '42px',
-                        height: '42px',
-                        minWidth: '42px',
-                        borderRadius: '12px',
+                        width: '38px',
+                        height: '38px',
+                        minWidth: '38px',
+                        maxWidth: '38px',
+                        flexShrink: 0,
+                        borderRadius: '10px',
                         background: item.iconBg,
                         border: `1px solid ${item.iconBorder}`,
                         color: item.iconColor,
@@ -525,26 +573,27 @@ export default function ControlCenterView({
                         justifyContent: 'center',
                       }}
                     >
-                      <Icon size={20} />
+                      <Icon size={18} />
                     </div>
 
                     {/* Middle Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.25 }}>
+                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.25 }}>
                           {item.label}
                         </span>
                         {item.badge && (
                           <span
                             style={{
-                              fontSize: '0.66rem',
+                              fontSize: '0.62rem',
                               fontWeight: 700,
-                              padding: '2px 7px',
-                              borderRadius: '8px',
+                              padding: '2px 6px',
+                              borderRadius: '6px',
                               background: item.badgeBg || '#eff6ff',
                               color: item.badgeColor || '#1d4ed8',
                               border: `1px solid ${item.badgeBorder || '#bfdbfe'}`,
-                              lineHeight: 1.2,
+                              lineHeight: 1.1,
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             {item.badge}
@@ -553,13 +602,14 @@ export default function ControlCenterView({
                       </div>
                       <p
                         style={{
-                          fontSize: '0.78rem',
+                          fontSize: '0.75rem',
                           color: '#64748b',
-                          margin: '3px 0 0',
+                          margin: '2px 0 0',
                           lineHeight: 1.35,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
+                          maxWidth: '100%',
                         }}
                       >
                         {item.desc}
@@ -567,8 +617,16 @@ export default function ControlCenterView({
                     </div>
 
                     {/* Right Chevron */}
-                    <div style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
-                      <ChevronRight size={18} />
+                    <div
+                      style={{
+                        color: '#94a3b8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexShrink: 0,
+                        marginLeft: 'auto',
+                      }}
+                    >
+                      <ChevronRight size={17} />
                     </div>
                   </div>
                 );
@@ -578,14 +636,18 @@ export default function ControlCenterView({
         ))
       )}
 
-      {/* Footer Sign Out Action (Inspired by Clean Account Utilities) */}
+      {/* Footer Sign Out Action */}
       <div
         style={{
-          marginTop: '8px',
+          marginTop: '6px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '10px',
           alignItems: 'center',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          minWidth: 0,
         }}
       >
         <button
@@ -598,19 +660,21 @@ export default function ControlCenterView({
           className="hover-elevate active-haptic"
           style={{
             width: '100%',
-            padding: '13px 20px',
-            borderRadius: '14px',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+            padding: '12px 18px',
+            borderRadius: '12px',
             background: '#ffffff',
             border: '1.5px solid #fecaca',
             color: '#dc2626',
-            fontSize: '0.88rem',
+            fontSize: '0.86rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
             cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(220, 38, 38, 0.06)',
+            boxShadow: '0 1px 3px rgba(220, 38, 38, 0.05)',
             transition: 'all 0.18s ease',
           }}
         >
@@ -618,7 +682,7 @@ export default function ControlCenterView({
           <span>Sign Out from Campus Session</span>
         </button>
 
-        <div style={{ textAlign: 'center', fontSize: '0.74rem', color: '#94a3b8', fontWeight: 500 }}>
+        <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
           SMART ATTENDANCE SYSTEM • v{appVersion} • Cloud Synchronized
         </div>
       </div>

@@ -10169,7 +10169,7 @@ export default function App() {
       />
 
       {/* Quick Actions Dock for Staff & Admin */}
-      {token && userRole !== 'student' && (
+      {token && userRole !== 'student' && activeTab !== 'control' && activeTab !== 'all-features' && (
         <QuickActionsDock
           onScan={() => { setActiveTab('attendance'); playCyberSound('click'); }}
           onManual={() => { setShowManualAttendanceModal(true); playCyberSound('click'); }}
