@@ -271,15 +271,16 @@ export default function ReleaseSettings({
 
         {/* ═══ OWNER BETA CHANNEL — test on your phone first ═══ */}
         <div style={{
-          background: currentBetaActive ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.02)',
-          border: currentBetaActive ? '1px solid rgba(251,191,36,0.35)' : '1px solid rgba(255,255,255,0.06)',
+          background: currentBetaActive ? '#fffbeb' : '#ffffff',
+          border: currentBetaActive ? '1px solid #fcd34d' : '1px solid #e2e8f0',
           borderRadius: '16px', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
         }}>
           <div style={{ flex: 1 }}>
-            <h4 style={{ margin: '0 0 6px', color: currentBetaActive ? '#fbbf24' : '#f8fafc' }}>
+            <h4 style={{ margin: '0 0 6px', color: currentBetaActive ? '#d97706' : '#0f172a' }}>
               🧪 Step 1: Owner Beta Test (Your Phone Only)
             </h4>
-            <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.82rem' }}>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.82rem' }}>
               {currentBetaActive
                 ? 'Update banner shows ONLY on your device. Test the APK, then use Step 2 to release to everyone.'
                 : 'Enable beta to receive the update on your phone first before all users.'}
@@ -304,11 +305,11 @@ export default function ReleaseSettings({
         {/* ═══ MASTER TOGGLE — ONE CLICK RELEASE ═══ */}
         <div style={{
           background: currentUpdateActive
-            ? 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(8,145,178,0.06))'
-            : 'rgba(255,255,255,0.02)',
+            ? 'linear-gradient(135deg, #f0fdf4, #ecfeff)'
+            : '#ffffff',
           border: currentUpdateActive
-            ? '1px solid rgba(16,185,129,0.3)'
-            : '1px solid rgba(255,255,255,0.06)',
+            ? '1px solid #86efac'
+            : '1px solid #e2e8f0',
           borderRadius: '16px',
           padding: '24px',
           display: 'flex',
@@ -317,15 +318,16 @@ export default function ReleaseSettings({
           gap: '20px',
           flexWrap: 'wrap',
           transition: 'all 0.3s ease',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
               <span style={{ fontSize: '1.4rem' }}>{currentUpdateActive ? '🟢' : '⚫'}</span>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: currentUpdateActive ? '#10b981' : '#f8fafc' }}>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: currentUpdateActive ? '#059669' : '#0f172a' }}>
                 {currentUpdateActive ? 'Step 2: LIVE for ALL Users' : 'Step 2: Public Release (All Users)'}
               </h4>
             </div>
-            <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
               {currentUpdateActive
                 ? `🚀 Version update is currently active. All users will see the download banner. Turn OFF to hide it.`
                 : '💤 Toggle ON to instantly release the update banner to ALL users (requires Master Key).'}
@@ -349,8 +351,8 @@ export default function ReleaseSettings({
               borderRadius: '17px',
               background: currentUpdateActive
                 ? 'linear-gradient(135deg, #10b981, #0891b2)'
-                : 'rgba(255,255,255,0.1)',
-              border: currentUpdateActive ? '2px solid rgba(16,185,129,0.5)' : '2px solid rgba(255,255,255,0.15)',
+                : '#e2e8f0',
+              border: currentUpdateActive ? '2px solid rgba(16,185,129,0.5)' : '2px solid #cbd5e1',
               cursor: 'pointer',
               position: 'relative',
               transition: 'all 0.3s ease',
@@ -395,19 +397,19 @@ export default function ReleaseSettings({
         )}
 
         {/* Current Active Release Info */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <div>
-            <span style={{ fontSize: '0.8rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>CURRENT PUBLISHED VERSION</span>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>CURRENT PUBLISHED VERSION</span>
             <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>{activeReleaseVersion ? `v${activeReleaseVersion}` : 'None'}</span>
           </div>
           <div>
-            <span style={{ fontSize: '0.8rem', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>APK DOWNLOAD LINK</span>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>APK DOWNLOAD LINK</span>
             {activeReleaseUrl ? (
               <a href={activeReleaseUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#3b82f6', textDecoration: 'underline', wordBreak: 'break-all', display: 'block' }}>
                 {activeReleaseUrl}
               </a>
             ) : (
-              <span style={{ fontSize: '0.85rem', color: '#6b7280', display: 'block' }}>Not configured</span>
+              <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'block' }}>Not configured</span>
             )}
           </div>
         </div>
@@ -447,19 +449,19 @@ export default function ReleaseSettings({
                     setBuildStatus('idle');
                     setBuildError('');
                   }}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e5e7eb', padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer' }}
+                  style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer' }}
                 >
                   Dismiss Status
                 </button>
               )}
             </div>
-            <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
               {buildStatus === 'building' && `React code is compiling, assets are syncing, and Android APK v${buildVersion} is being signed and packaged on GitHub Actions. Usually takes ~3 mins. The update goes live automatically when complete.`}
               {buildStatus === 'success' && `Automated release build of APK v${buildVersion} finished successfully. The version is live and download link is set.`}
               {buildStatus === 'failed' && `Auto-build pipeline failed. Error: ${buildError}`}
             </p>
             {buildStatus === 'building' && (
-              <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginTop: '6px', position: 'relative' }}>
+              <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden', marginTop: '6px', position: 'relative' }}>
                 <div className="progress-bar-loading" style={{ height: '100%', background: '#3b82f6', borderRadius: '2px', width: '35%', position: 'absolute' }} />
               </div>
             )}

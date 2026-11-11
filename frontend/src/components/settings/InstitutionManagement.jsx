@@ -294,13 +294,13 @@ export default function InstitutionManagement({
 
   return (
     <>
-      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+        <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
               <span>🏫</span> Multi-Tenant Institution Registry & Management
             </h3>
-            <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
               Register, monitor, and manage institution domains, custom color palettes, and default admins.
             </p>
           </div>
@@ -309,9 +309,9 @@ export default function InstitutionManagement({
             borderRadius: '20px',
             fontSize: '0.8rem',
             fontWeight: 700,
-            background: 'rgba(0, 242, 254, 0.1)',
-            color: '#00f2fe',
-            border: '1px solid rgba(0, 242, 254, 0.25)',
+            background: '#eff6ff',
+            color: '#2563eb',
+            border: '1px solid #bfdbfe',
             letterSpacing: '0.5px'
           }}>
             TOTAL TENANTS: {institutionsList.length}
@@ -330,8 +330,8 @@ export default function InstitutionManagement({
         )}
 
         {/* Form to Add New Institution */}
-        <form onSubmit={handleCreateInstitution} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <form onSubmit={handleCreateInstitution} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             ➕ Register New Institution
           </h4>
 
@@ -454,8 +454,8 @@ export default function InstitutionManagement({
           </button>
         </form>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
             🏫 Registered Institution Directory
           </h4>
           <span className="telemetry-stat-pill admin" style={{
@@ -463,9 +463,9 @@ export default function InstitutionManagement({
             borderRadius: '20px',
             fontSize: '0.8rem',
             fontWeight: 700,
-            background: 'rgba(0, 242, 254, 0.12)',
-            color: '#00f2fe',
-            border: '1px solid rgba(0, 242, 254, 0.25)',
+            background: 'rgba(37, 99, 235, 0.08)',
+            color: '#2563eb',
+            border: '1px solid rgba(37, 99, 235, 0.25)',
             letterSpacing: '0.5px'
           }}>
             TOTAL: {institutionsList.length}
@@ -477,7 +477,7 @@ export default function InstitutionManagement({
           <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.85rem' }}>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>SLUG (SUBDOMAIN)</th>
@@ -488,29 +488,29 @@ export default function InstitutionManagement({
               </thead>
               <tbody>
                 {institutionsList.map((inst) => (
-                  <tr key={inst.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
-                    <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>#{inst.id}</td>
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#f1f5f9' }}>{inst.name}</td>
-                    <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)' }}>
-                      <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', fontSize: '0.78rem', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <tr key={inst.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+                    <td style={{ padding: '14px 16px', color: '#64748b', fontFamily: 'monospace' }}>#{inst.id}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0f172a' }}>{inst.name}</td>
+                    <td style={{ padding: '14px 16px', color: '#64748b' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#f8fafc', fontSize: '0.78rem', color: '#0f172a', border: '1px solid #e2e8f0' }}>
                         {inst.slug}
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#4F46E5', border: '1px solid rgba(255,255,255,0.1)' }} />
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{inst.primary_color || '#4F46E5'}</span>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#4F46E5', border: '1px solid #cbd5e1' }} />
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#334155' }}>{inst.primary_color || '#4F46E5'}</span>
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid rgba(255,255,255,0.1)' }} />
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{inst.secondary_color || '#06B6D4'}</span>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid #cbd5e1' }} />
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#334155' }}>{inst.secondary_color || '#06B6D4'}</span>
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                       {inst.id === 1 ? (
-                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem', fontStyle: 'italic', paddingRight: '12px' }}>System Default</span>
+                        <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic', paddingRight: '12px' }}>System Default</span>
                       ) : (
                         <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
                           <button
@@ -519,9 +519,9 @@ export default function InstitutionManagement({
                             style={{
                               padding: '5px 12px',
                               fontSize: '0.75rem',
-                              background: 'rgba(0, 242, 254, 0.15)',
-                              border: '1px solid rgba(0, 242, 254, 0.3)',
-                              color: '#00f2fe',
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              color: '#2563eb',
                               borderRadius: '6px',
                               cursor: 'pointer'
                             }}
@@ -534,9 +534,9 @@ export default function InstitutionManagement({
                             style={{
                               padding: '5px 12px',
                               fontSize: '0.75rem',
-                              background: 'rgba(239, 68, 68, 0.15)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              color: '#ef4444',
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              color: '#dc2626',
                               borderRadius: '6px',
                               cursor: 'pointer'
                             }}
@@ -559,30 +559,30 @@ export default function InstitutionManagement({
             <div
               key={inst.id}
               style={{
-                background: 'rgba(15, 23, 42, 0.75)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
                 borderRadius: '14px',
                 padding: '16px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                 width: '100%',
                 boxSizing: 'border-box'
               }}
             >
               {/* Name & ID */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '1rem' }}>{inst.name}</span>
-                <span style={{ color: '#94a3b8', fontFamily: 'monospace', fontSize: '0.78rem', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem' }}>{inst.name}</span>
+                <span style={{ color: '#475569', fontFamily: 'monospace', fontSize: '0.78rem', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                   #{inst.id}
                 </span>
               </div>
 
               {/* Slug */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>Subdomain:</span>
-                <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', fontSize: '0.8rem', color: '#00f2fe', border: '1px solid rgba(0, 242, 254, 0.2)', fontFamily: 'monospace' }}>
+                <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Subdomain:</span>
+                <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#f8fafc', fontSize: '0.8rem', color: '#0284c7', border: '1px solid #bae6fd', fontFamily: 'monospace' }}>
                   {inst.slug}
                 </span>
               </div>
@@ -590,21 +590,21 @@ export default function InstitutionManagement({
               {/* Colors */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>Primary:</span>
-                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#4F46E5', border: '1px solid rgba(255,255,255,0.2)' }} />
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#cbd5e1' }}>{inst.primary_color || '#4F46E5'}</span>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Primary:</span>
+                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#4F46E5', border: '1px solid #cbd5e1' }} />
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#334155' }}>{inst.primary_color || '#4F46E5'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>Secondary:</span>
-                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid rgba(255,255,255,0.2)' }} />
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#cbd5e1' }}>{inst.secondary_color || '#06B6D4'}</span>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Secondary:</span>
+                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid #cbd5e1' }} />
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#334155' }}>{inst.secondary_color || '#06B6D4'}</span>
                 </div>
               </div>
 
               {/* Actions */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '2px' }}>
+              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px', marginTop: '2px' }}>
                 {inst.id === 1 ? (
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem', fontStyle: 'italic', display: 'block', textAlign: 'center' }}>
+                  <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic', display: 'block', textAlign: 'center' }}>
                     🔒 System Default Institution
                   </span>
                 ) : (
@@ -616,9 +616,9 @@ export default function InstitutionManagement({
                         flex: 1,
                         padding: '8px 12px',
                         fontSize: '0.82rem',
-                        background: 'rgba(0, 242, 254, 0.15)',
-                        border: '1px solid rgba(0, 242, 254, 0.3)',
-                        color: '#00f2fe',
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        color: '#2563eb',
                         borderRadius: '8px',
                         cursor: 'pointer'
                       }}
@@ -632,9 +632,9 @@ export default function InstitutionManagement({
                         flex: 1,
                         padding: '8px 12px',
                         fontSize: '0.82rem',
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        color: '#ef4444',
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        color: '#dc2626',
                         borderRadius: '8px',
                         cursor: 'pointer'
                       }}
@@ -654,8 +654,8 @@ export default function InstitutionManagement({
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(5, 8, 16, 0.8)',
-          backdropFilter: 'blur(10px)',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -663,22 +663,24 @@ export default function InstitutionManagement({
           padding: '20px',
           boxSizing: 'border-box'
         }}>
-          <div className="glass-panel" style={{
+          <div className="surface-card" style={{
             maxWidth: '500px',
             width: '100%',
             padding: '32px',
             display: 'flex',
             flexDirection: 'column',
             gap: '24px',
-            border: '1.5px solid var(--border-color)',
-            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.6)',
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
             animation: 'fadeInUp 0.3s ease'
           }}>
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 🏫 Edit Institution Branding
               </h3>
-              <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+              <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
                 Modify colors, name, and access domain for this workspace tenant.
               </p>
             </div>

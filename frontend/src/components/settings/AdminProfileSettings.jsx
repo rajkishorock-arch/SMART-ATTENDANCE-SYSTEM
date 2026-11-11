@@ -88,20 +88,20 @@ export default function AdminProfileSettings({
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <UserCheck size={22} style={{ color: '#a78bfa' }} /> Admin Profile Settings
+    <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <UserCheck size={22} style={{ color: '#7c3aed' }} /> Admin Profile Settings
         </h3>
-        <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '4px' }}>
+        <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '4px' }}>
           Update your name, email credentials, or change your password.
         </p>
       </div>
 
       {/* UPDATE OWN PROFILE */}
-      <div style={{ background: 'rgba(167,139,250,0.02)', border: '1px solid rgba(167,139,250,0.1)', borderRadius: '12px', padding: '20px' }}>
-        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Edit size={16} style={{ color: '#a78bfa' }} /> Update My Admin Profile
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
+        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Edit size={16} style={{ color: '#7c3aed' }} /> Update My Admin Profile
         </h4>
 
         {adminProfileMsg && (
