@@ -248,9 +248,9 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
           <div className="metric-info">
             <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
               <span>Last Attendance Log</span>
-              <span style={{ fontSize: '0.68rem', color: '#8b5cf6', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>⏰ Log Details</span>
+              <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>⏰ Log Details</span>
             </h3>
-            <p style={{ fontSize: '0.92rem', fontWeight: 600, marginTop: '8px', color: '#f8fafc' }}>
+            <p style={{ fontSize: '0.92rem', fontWeight: 700, marginTop: '8px', color: '#0f172a' }}>
               {latestLog ? `${latestLog.date} ${latestLog.time || ''}` : 'No Logs Found'}
             </p>
           </div>
@@ -262,54 +262,54 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
 
       {/* ── MODAL 1: MY ATTENDANCE RATE BREAKDOWN MODAL ── */}
       {showRateModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '20px', border: '1px solid rgba(16,185,129,0.3)', padding: '28px', background: '#0b0f19' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ width: '100%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <TrendingUp color="#10b981" size={24} />
-                <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.2rem', fontWeight: 800 }}>Attendance Rate & Subject Breakdown</h3>
+                <TrendingUp color="#059669" size={24} />
+                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Attendance Rate & Subject Breakdown</h3>
               </div>
-              <button onClick={() => setShowRateModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
+              <button onClick={() => setShowRateModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
             {/* Top Overview Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '14px', borderRadius: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Overall Rate</div>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: attendanceRate >= 75 ? '#10b981' : '#ef4444', marginTop: '2px' }}>{attendanceRate.toFixed(1)}%</div>
+              <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '14px', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 600 }}>Overall Rate</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: attendanceRate >= 75 ? '#059669' : '#dc2626', marginTop: '2px' }}>{attendanceRate.toFixed(1)}%</div>
               </div>
-              <div style={{ background: 'rgba(0,242,254,0.08)', border: '1px solid rgba(0,242,254,0.2)', padding: '14px', borderRadius: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Attended / Total</div>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#00f2fe', marginTop: '2px' }}>{presentCount} / {totalLogs}</div>
+              <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', padding: '14px', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#115e59', fontWeight: 600 }}>Attended / Total</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0d9488', marginTop: '2px' }}>{presentCount} / {totalLogs}</div>
               </div>
-              <div style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', padding: '14px', borderRadius: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Status Zone</div>
-                <div style={{ fontSize: '1rem', fontWeight: 800, color: attendanceRate >= 75 ? '#10b981' : '#ef4444', marginTop: '8px' }}>
+              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '14px', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#5b21b6', fontWeight: 600 }}>Status Zone</div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: attendanceRate >= 75 ? '#059669' : '#dc2626', marginTop: '8px' }}>
                   {attendanceRate >= 75 ? '✅ Safe Zone' : '⚠️ Deficit Alert'}
                 </div>
               </div>
             </div>
 
             {/* Subject Breakdown Section */}
-            <h4 style={{ color: '#f8fafc', margin: '0 0 12px 0', fontSize: '0.95rem' }}>📚 Subject-wise Attendance Performance (Real DB Logs)</h4>
+            <h4 style={{ color: '#0f172a', margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 700 }}>📚 Subject-wise Attendance Performance (Real DB Logs)</h4>
             {subjectBreakdown.length === 0 ? (
-              <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No subject records available yet in real database.</p>
+              <p style={{ color: '#64748b', fontSize: '0.85rem' }}>No subject records available yet in real database.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {subjectBreakdown.map((sub, i) => {
                   const rate = sub.total > 0 ? (sub.present / sub.total) * 100 : 0;
                   return (
-                    <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', padding: '14px 18px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '14px 18px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.9rem' }}>{sub.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
-                          Attended <strong style={{ color: '#e2e8f0' }}>{sub.present}</strong> out of <strong style={{ color: '#e2e8f0' }}>{sub.total}</strong> classes
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>{sub.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                          Attended <strong style={{ color: '#0f172a' }}>{sub.present}</strong> out of <strong style={{ color: '#0f172a' }}>{sub.total}</strong> classes
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: rate >= 75 ? '#10b981' : '#ef4444' }}>{rate.toFixed(1)}%</span>
-                        <div style={{ width: '80px', height: '5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
-                          <div style={{ width: `${Math.min(100, rate)}%`, height: '100%', background: rate >= 75 ? '#10b981' : '#ef4444' }} />
+                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: rate >= 75 ? '#059669' : '#dc2626' }}>{rate.toFixed(1)}%</span>
+                        <div style={{ width: '80px', height: '6px', background: '#e2e8f0', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.min(100, rate)}%`, height: '100%', background: rate >= 75 ? '#059669' : '#dc2626' }} />
                         </div>
                       </div>
                     </div>
@@ -323,14 +323,14 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
 
       {/* ── MODAL 2: PRESENTS & TOTAL DAYS BREAKDOWN MODAL ── */}
       {showPresentDaysModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '750px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '20px', border: '1px solid rgba(0,242,254,0.3)', padding: '28px', background: '#0b0f19' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ width: '100%', maxWidth: '750px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <CheckCircle2 color="#00f2fe" size={24} />
-                <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.2rem', fontWeight: 800 }}>Complete Attendance Logs & Days Summary</h3>
+                <CheckCircle2 color="#0284c7" size={24} />
+                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Complete Attendance Logs & Days Summary</h3>
               </div>
-              <button onClick={() => setShowPresentDaysModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
+              <button onClick={() => setShowPresentDaysModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
             {/* Filter Tabs */}
@@ -349,9 +349,9 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
                     borderRadius: '20px',
                     fontSize: '0.78rem',
                     fontWeight: 600,
-                    border: logFilter === f.key ? '1px solid rgba(0,242,254,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                    background: logFilter === f.key ? 'rgba(0,242,254,0.15)' : 'rgba(255,255,255,0.03)',
-                    color: logFilter === f.key ? '#00f2fe' : '#94a3b8',
+                    border: logFilter === f.key ? '1px solid #93c5fd' : '1px solid #e2e8f0',
+                    background: logFilter === f.key ? '#eff6ff' : '#f8fafc',
+                    color: logFilter === f.key ? '#1d4ed8' : '#64748b',
                     cursor: 'pointer'
                   }}
                 >
@@ -362,25 +362,25 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
 
             {/* Log List */}
             {filteredLogs.length === 0 ? (
-              <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '30px' }}>No matching attendance records found in real database.</p>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center', padding: '30px' }}>No matching attendance records found in real database.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {filteredLogs.map((log, idx) => {
                   const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
                   return (
-                    <div key={log.id || idx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={log.id || idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span>📅 {log.date}</span>
-                          {log.time && <span style={{ color: '#00f2fe', fontSize: '0.78rem' }}>🕒 {log.time}</span>}
-                          {log.period_label && <span style={{ background: 'rgba(0,242,254,0.1)', color: '#00f2fe', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>{log.period_label}</span>}
+                          {log.time && <span style={{ color: '#0284c7', fontSize: '0.78rem', fontWeight: 600 }}>🕒 {log.time}</span>}
+                          {log.period_label && <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '1px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 600 }}>{log.period_label}</span>}
                         </div>
-                        <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '3px' }}>
+                        <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '3px' }}>
                           📚 {log.subject_name ? `${log.subject_name} (${log.subject_code || ''})` : (log.department || 'General Class')} • Method: {log.verification_method || 'AI Face Scan'}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700, background: isPresent ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', color: isPresent ? '#10b981' : '#ef4444' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700, background: isPresent ? '#ecfdf5' : '#fef2f2', color: isPresent ? '#059669' : '#dc2626', border: isPresent ? '1px solid #a7f3d0' : '1px solid #fecaca' }}>
                           {log.attendance || 'Present'}
                         </span>
                         {!isPresent && onRequestDispute && (
@@ -389,7 +389,7 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
                               setShowPresentDaysModal(false);
                               onRequestDispute(log);
                             }}
-                            style={{ background: 'none', border: 'none', color: '#0ea5e9', fontSize: '0.72rem', textDecoration: 'underline', cursor: 'pointer' }}
+                            style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.72rem', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
                           >
                             Dispute
                           </button>
@@ -406,52 +406,52 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
 
       {/* ── MODAL 3: LAST ATTENDANCE LOG DETAILS MODAL ── */}
       {showLastLogModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '550px', borderRadius: '20px', border: '1px solid rgba(139,92,246,0.3)', padding: '28px', background: '#0b0f19' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ width: '100%', maxWidth: '550px', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Calendar color="#8b5cf6" size={24} />
-                <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.2rem', fontWeight: 800 }}>Latest Check-in Log Details</h3>
+                <Calendar color="#7c3aed" size={24} />
+                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Latest Check-in Log Details</h3>
               </div>
-              <button onClick={() => setShowLastLogModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
+              <button onClick={() => setShowLastLogModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
             {!latestLog ? (
-              <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No attendance log recorded yet in real database.</p>
+              <p style={{ color: '#64748b', fontSize: '0.85rem' }}>No attendance log recorded yet in real database.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', padding: '16px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Check-in Timestamp</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#8b5cf6', marginTop: '2px' }}>
+                <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#5b21b6', fontWeight: 600 }}>Check-in Timestamp</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#6d28d9', marginTop: '2px' }}>
                     📅 {latestLog.date} 🕒 {latestLog.time || 'N/A'}
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', padding: '12px 14px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Subject / Class</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc', marginTop: '3px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 14px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Subject / Class</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginTop: '3px' }}>
                       {latestLog.subject_name ? `${latestLog.subject_name} (${latestLog.subject_code || ''})` : 'General Class'}
                     </div>
                   </div>
 
-                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', padding: '12px 14px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Status</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: latestLog.attendance === 'Present' || latestLog.attendance === 'Late' ? '#10b981' : '#ef4444', marginTop: '3px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 14px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Status</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: latestLog.attendance === 'Present' || latestLog.attendance === 'Late' ? '#059669' : '#dc2626', marginTop: '3px' }}>
                       {latestLog.attendance || 'Present'}
                     </div>
                   </div>
 
-                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', padding: '12px 14px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Session / Period</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#00f2fe', marginTop: '3px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 14px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Session / Period</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0284c7', marginTop: '3px' }}>
                       {latestLog.period_label || latestLog.session_time || 'Regular Session'}
                     </div>
                   </div>
 
-                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', padding: '12px 14px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Verification Method</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc', marginTop: '3px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 14px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Verification Method</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginTop: '3px' }}>
                       {latestLog.verification_method || 'AI Face Scan'}
                     </div>
                   </div>
@@ -463,7 +463,7 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
                       setShowLastLogModal(false);
                       onRequestDispute(latestLog);
                     }}
-                    style={{ marginTop: '10px', padding: '12px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}
+                    style={{ marginTop: '10px', padding: '12px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}
                   >
                     🚨 Dispute This Check-in
                   </button>
