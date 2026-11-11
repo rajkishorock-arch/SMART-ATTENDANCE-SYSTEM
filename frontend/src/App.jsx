@@ -8097,7 +8097,7 @@ export default function App() {
             ) : (
               <div>
                 {/* ===== MERGED SECURITY PERIMETER, GEOFENCING & EMERGENCY LOCKDOWN CONSOLE ===== */}
-                {(activeSubSetting === 'geofencing' || activeSubSetting === 'ip' || activeSubSetting === 'lockdown') && (
+                {(activeSubSetting === 'geofencing' || activeSubSetting === 'ip' || activeSubSetting === 'lockdown') && userRole === 'admin' && (
                   <GeofenceSettings
                     userRole={userRole}
                     settingsGeoEnabled={settingsGeoEnabled}
@@ -8316,7 +8316,7 @@ export default function App() {
             )}
 
             {/* ===== ADMIN ACCOUNT REGISTRATION SECTION ===== */}
-            {activeSubSetting === 'admins' && (
+            {activeSubSetting === 'admins' && userRole === 'admin' && (
               <AdminUserManagement
                 token={token}
                 currentUser={currentUser}
@@ -8329,7 +8329,7 @@ export default function App() {
             )}
 
             {/* DEPARTMENTS MANAGEMENT VIEW */}
-            {activeSubSetting === 'departments' && (
+            {activeSubSetting === 'departments' && userRole === 'admin' && (
               <DepartmentSettings
                 token={token}
                 isDemoMode={isDemoMode}

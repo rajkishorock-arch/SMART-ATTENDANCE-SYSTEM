@@ -526,15 +526,25 @@ export default function TodaySessionHub({
             )}
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 onClick={() => onSendAbsenteeAlerts && onSendAbsenteeAlerts(lastEndedSummary?.absentList || absentStudents)}
                 className="btn-secondary"
-                style={{ flex: 1, minHeight: '42px', fontSize: '0.85rem' }}
+                style={{ flex: 1, minHeight: '42px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
                 <Bell size={14} />
                 <span>{t('notify_absentees', lang)}</span>
               </button>
+              {onExportCsv && (
+                <button
+                  onClick={onExportCsv}
+                  className="btn-secondary"
+                  style={{ flex: 1, minHeight: '42px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <FileSpreadsheet size={14} />
+                  <span>{lang === 'hi' ? 'रजिस्टर' : 'Export Register'}</span>
+                </button>
+              )}
               <button
                 onClick={() => setShowSummaryModal(false)}
                 className="btn-primary"

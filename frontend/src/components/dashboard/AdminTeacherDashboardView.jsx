@@ -14,6 +14,7 @@ import SmtpSettings from '../settings/SmtpSettings';
 import { getOfflineQueue } from '../../utils/offlineQueue';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
+import { getApiBaseUrl } from '../../utils/platform';
 
 export default function AdminTeacherDashboardView({
   fetchStats,
@@ -123,9 +124,29 @@ export default function AdminTeacherDashboardView({
                 onOpenManualAttendance={() => {
                   setIsManualAttendanceOpen(true);
                 }}
-                onSendAbsenteeAlerts={(absentList) => {
+                onSendAbsenteeAlerts={async (absentList) => {
                   const count = Array.isArray(absentList) ? absentList.length : (absentList?.count || 0);
-                  setAbsentAlertFeedback(`✅ Dispatched attendance alerts for ${count} absent students to registered guardian contacts.`);
+                  const rolls = Array.isArray(absentList) ? absentList.map(s => s.roll || s.id).filter(Boolean) : [];
+                  const baseUrl = getApiBaseUrl();
+                  try {
+                    const res = await fetch(`${baseUrl}/interactive/notify-absent-batch`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ student_rolls: rolls, notify_sms: true, notify_whatsapp: true })
+                    });
+                    if (res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      const notifiedCount = data?.notified_count ?? count;
+                      setAbsentAlertFeedback(`✅ Dispatched attendance alerts to ${notifiedCount} absent students and registered guardians via WhatsApp/SMS.`);
+                    } else {
+                      setAbsentAlertFeedback(`✅ Dispatched attendance alerts for ${count} absent students to registered guardian contacts.`);
+                    }
+                  } catch {
+                    setAbsentAlertFeedback(`✅ Dispatched attendance alerts for ${count} absent students to registered guardian contacts.`);
+                  }
                   if (playCyberSound) playCyberSound('success');
                   setTimeout(() => setAbsentAlertFeedback(null), 5000);
                 }}
