@@ -19,6 +19,9 @@ import {
   ChevronRight,
   LogOut,
   Sparkles,
+  TrendingUp,
+  ArrowLeft,
+  Building2,
 } from 'lucide-react';
 
 export default function ControlCenterView({
@@ -38,6 +41,34 @@ export default function ControlCenterView({
       id: 'academic',
       title: 'Academic & Attendance Operations',
       items: [
+        {
+          id: 'dashboard',
+          label: 'Home Dashboard',
+          icon: TrendingUp,
+          iconColor: '#2563eb',
+          iconBg: '#eff6ff',
+          iconBorder: '#bfdbfe',
+          badge: 'Main',
+          badgeBg: '#eff6ff',
+          badgeColor: '#1d4ed8',
+          badgeBorder: '#bfdbfe',
+          desc: 'Real-time attendance overview, live telemetry & charts',
+          roles: ['admin', 'teacher'],
+        },
+        {
+          id: 'student-attendance',
+          label: 'My Attendance & Logs',
+          icon: TrendingUp,
+          iconColor: '#2563eb',
+          iconBg: '#eff6ff',
+          iconBorder: '#bfdbfe',
+          badge: 'Live Status',
+          badgeBg: '#eff6ff',
+          badgeColor: '#1d4ed8',
+          badgeBorder: '#bfdbfe',
+          desc: 'Personal attendance rate, subject breakdown & leave status',
+          roles: ['student'],
+        },
         {
           id: 'disputes',
           label: 'Disputes & Corrections',
@@ -323,6 +354,81 @@ export default function ControlCenterView({
         animation: 'fadeInUp 0.25s ease both',
       }}
     >
+      {/* Top Profile & Fast Back Bar */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          padding: '12px 16px',
+          borderRadius: '14px',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            playCyberSound('click');
+            triggerHaptic();
+            onNavigate(userRole === 'student' ? 'student-attendance' : 'dashboard');
+          }}
+          className="hover-elevate active-haptic"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '7px 14px',
+            borderRadius: '10px',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            color: '#1d4ed8',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <ArrowLeft size={16} />
+          <span>Home</span>
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ textAlign: 'right', minWidth: 0 }}>
+            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {currentUser?.name || (userRole === 'admin' ? 'Administrator' : userRole === 'teacher' ? 'Faculty Member' : 'Student')}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {currentUser?.institution_name || (currentUser?.institution_slug ? currentUser.institution_slug.toUpperCase() : 'SMART CAMPUS')}
+            </div>
+          </div>
+          <div
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              flexShrink: 0,
+              boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
+            }}
+          >
+            {(currentUser?.name || userRole || 'U')[0].toUpperCase()}
+          </div>
+        </div>
+      </div>
+
       {/* Search Input Bar (No duplicate header, ultra clean) */}
       <div
         style={{

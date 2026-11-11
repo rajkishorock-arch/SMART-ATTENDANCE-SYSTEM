@@ -7274,9 +7274,9 @@ export default function App() {
         />
       )}
 
-      {/* Sidebar navigation */}
+      {/* Sidebar navigation (Desktop rail) */}
       <aside 
-        className={`sidebar ${mobileSidebarOpen ? 'open' : ''}`}
+        className={`sidebar ${isMobileView ? 'hide-on-mobile' : ''} ${mobileSidebarOpen ? 'open' : ''}`}
         style={{
           overflowY: 'auto',
           overflowX: 'hidden',
@@ -7685,15 +7685,27 @@ export default function App() {
             <button 
               type="button"
               className="hamburger-btn" 
-              onClick={() => { setMobileSidebarOpen(true); playCyberSound('click'); }}
-              aria-label="Open Navigation Menu"
-              title="Open Navigation Menu"
+              onClick={() => {
+                playCyberSound('click');
+                triggerHaptic();
+                if (activeTab === 'control' || activeTab === 'all-features') {
+                  navigateToTab(userRole === 'student' ? 'student-attendance' : 'dashboard');
+                } else {
+                  navigateToTab('control');
+                }
+              }}
+              aria-label={activeTab === 'control' || activeTab === 'all-features' ? 'Close Control Center' : 'Open Control Center'}
+              title={activeTab === 'control' || activeTab === 'all-features' ? 'Close Control Center' : 'Open Control Center'}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
+              {activeTab === 'control' || activeTab === 'all-features' ? (
+                <X size={20} />
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+              )}
             </button>
           </div>
           
