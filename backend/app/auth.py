@@ -475,7 +475,7 @@ def user_heartbeat(
     return {"status": "ok"}
 
 
-@router.get("/active-users")
+@router.api_route("/active-users", methods=["GET", "POST"])
 def get_active_users_count(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)

@@ -28,8 +28,8 @@ export const authApi = {
   /**
    * Fetch Active Online Users (/auth/active-users)
    */
-  async fetchActiveUsers(token, userIds = []) {
-    return apiPost('/auth/active-users', { active_user_ids: userIds }, { token });
+  async fetchActiveUsers(token) {
+    return apiGet('/auth/active-users', { token });
   },
 
   /**

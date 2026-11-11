@@ -90,18 +90,18 @@ const ExtremeLevelHub = safeLazy(() => import('./components/ExtremeLevelHub'));
 const Ideas150Hub = safeLazy(() => import('./components/Ideas150Hub'));
 const Enterprise7FeaturesHub = safeLazy(() => import('./components/Enterprise7FeaturesHub'));
 import UniversalSearch from './components/UniversalSearch';
-const AttendanceDisputeModal = safeLazy(() => import('./components/AttendanceDisputeModal'));
+import AttendanceDisputeModal from './components/AttendanceDisputeModal';
 import AttendanceDisputesQueue from './components/AttendanceDisputesQueue';
-const AcademicCalendarView = safeLazy(() => import('./components/AcademicCalendarView'));
-const LowConfidenceReviewQueue = safeLazy(() => import('./components/LowConfidenceReviewQueue'));
-const DeviceHealthDashboard = safeLazy(() => import('./components/DeviceHealthDashboard'));
-const FaceEnrollmentModal = safeLazy(() => import('./components/FaceEnrollmentModal'));
-const InterventionsManagementView = safeLazy(() => import('./components/InterventionsManagementView'));
-const BiometricFallbackModal = safeLazy(() => import('./components/BiometricFallbackModal'));
-const LmsSyncIntegrationView = safeLazy(() => import('./components/LmsSyncIntegrationView'));
-const StaffPayrollView = safeLazy(() => import('./components/StaffPayrollView'));
-const InstitutionBroadcastModal = safeLazy(() => import('./components/InstitutionBroadcastModal'));
-const ControlCenterView = safeLazy(() => import('./components/ControlCenterView'));
+import AcademicCalendarView from './components/AcademicCalendarView';
+import LowConfidenceReviewQueue from './components/LowConfidenceReviewQueue';
+import DeviceHealthDashboard from './components/DeviceHealthDashboard';
+import FaceEnrollmentModal from './components/FaceEnrollmentModal';
+import InterventionsManagementView from './components/InterventionsManagementView';
+import BiometricFallbackModal from './components/BiometricFallbackModal';
+import LmsSyncIntegrationView from './components/LmsSyncIntegrationView';
+import StaffPayrollView from './components/StaffPayrollView';
+import InstitutionBroadcastModal from './components/InstitutionBroadcastModal';
+import ControlCenterView from './components/ControlCenterView';
 import QuickActionsDock from './components/QuickActionsDock';
 import OnboardingTour from './components/OnboardingTour';
 import OfflineBanner from './components/OfflineBanner';
@@ -114,21 +114,21 @@ const ARGamificationPortal = safeLazy(() => import('./components/ARGamificationP
 import { getStoredLanguage } from './utils/i18n';
 import SyncStatusPill from './components/SyncStatusPill';
 import { ScannerSuccessReceipt, ScannerFallbackOptions } from './components/ScannerSuccessReceipt';
-const AccessibilitySettingsModal = safeLazy(() => import('./components/AccessibilitySettingsModal'));
-const PrivacyTrustCenter = safeLazy(() => import('./components/PrivacyTrustCenter'));
-const NotificationDrawerModal = safeLazy(() => import('./components/NotificationDrawerModal'));
-const GeofenceSettings = safeLazy(() => import('./components/settings/GeofenceSettings'));
-const ReleaseSettings = safeLazy(() => import('./components/settings/ReleaseSettings'));
-const InstitutionManagement = safeLazy(() => import('./components/settings/InstitutionManagement'));
-const AdminProfileSettings = safeLazy(() => import('./components/settings/AdminProfileSettings'));
-const LeaveManagementSettings = safeLazy(() => import('./components/settings/LeaveManagementSettings'));
-const AppVersionSettings = safeLazy(() => import('./components/settings/AppVersionSettings'));
-const DepartmentSettings = safeLazy(() => import('./components/settings/DepartmentSettings'));
-const AdminUserManagement = safeLazy(() => import('./components/settings/AdminUserManagement'));
-const ThemeEqualizerSettings = safeLazy(() => import('./components/settings/ThemeEqualizerSettings'));
-const SettingsDirectoryHub = safeLazy(() => import('./components/settings/SettingsDirectoryHub'));
-const FeaturesDirectoryHub = safeLazy(() => import('./components/settings/FeaturesDirectoryHub'));
-const AdvancedBiometricSettings = safeLazy(() => import('./components/settings/AdvancedBiometricSettings'));
+import AccessibilitySettingsModal from './components/AccessibilitySettingsModal';
+import PrivacyTrustCenter from './components/PrivacyTrustCenter';
+import NotificationDrawerModal from './components/NotificationDrawerModal';
+import GeofenceSettings from './components/settings/GeofenceSettings';
+import ReleaseSettings from './components/settings/ReleaseSettings';
+import InstitutionManagement from './components/settings/InstitutionManagement';
+import AdminProfileSettings from './components/settings/AdminProfileSettings';
+import LeaveManagementSettings from './components/settings/LeaveManagementSettings';
+import AppVersionSettings from './components/settings/AppVersionSettings';
+import DepartmentSettings from './components/settings/DepartmentSettings';
+import AdminUserManagement from './components/settings/AdminUserManagement';
+import ThemeEqualizerSettings from './components/settings/ThemeEqualizerSettings';
+import SettingsDirectoryHub from './components/settings/SettingsDirectoryHub';
+import FeaturesDirectoryHub from './components/settings/FeaturesDirectoryHub';
+import AdvancedBiometricSettings from './components/settings/AdvancedBiometricSettings';
 import AdminTeacherDashboardView from './components/dashboard/AdminTeacherDashboardView';
 import StudentsDirectoryView, { StudentsDirectoryHeaderAction } from './components/dashboard/StudentsDirectoryView';
 import TeachersDirectoryView from './components/dashboard/TeachersDirectoryView';
@@ -296,8 +296,6 @@ export default function App() {
   };
 
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-
-  const { addNotification } = useNotifications();
   const [botWakeWordEnabled, setBotWakeWordEnabled] = useState(false);
   const [isListeningSpeech, setIsListeningSpeech] = useState(false);
   const [isVoiceAssistantMode, setIsVoiceAssistantMode] = useState(false);
@@ -2539,8 +2537,14 @@ export default function App() {
   };
 
   // Fetch teachers
-  const fetchTeachers = async (authToken) => {
+  const lastTeachersFetchTimeRef = useRef(0);
+  const fetchTeachers = async (authToken, force = false) => {
     if (isDemoMode) return;
+    const now = Date.now();
+    if (!force && !authToken && teachers.length > 0 && now - lastTeachersFetchTimeRef.current < 60000) {
+      return;
+    }
+    lastTeachersFetchTimeRef.current = now;
     const usedToken = authToken || token;
     try {
       const res = await teacherApi.listTeachers(usedToken);
@@ -2715,8 +2719,14 @@ export default function App() {
     };
   }, [token, userRole, currentUser, voiceEnabled]);
 
-  const fetchSystemSettings = async () => {
+  const lastSettingsFetchTimeRef = useRef(0);
+  const fetchSystemSettings = async (force = false) => {
     if (isDemoMode) return;
+    const now = Date.now();
+    if (!force && now - lastSettingsFetchTimeRef.current < 60000) {
+      return;
+    }
+    lastSettingsFetchTimeRef.current = now;
     try {
       const data = await systemApi.fetchSettings(token);
       if (data) {
@@ -7617,7 +7627,6 @@ export default function App() {
 
       {/* Main Panel */}
       <main className="main-content">
-        <Suspense fallback={<div style={{ padding: "40px 20px", textAlign: "center", color: "#94a3b8" }}>Loading...</div>}>
         {/* Header */}
         <header className={`flex-between header-container ${(activeTab === 'settings' && activeSubSetting !== null) || activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
@@ -8189,7 +8198,8 @@ export default function App() {
               />
             )}
 
-            {/* ===== PRODUCTIVITY & ENTERPRISE HUB ===== */}
+            {/* ===== PRODUCTIVITY & ENTERPRISE HUB (Lazy Loaded Modules) ===== */}
+            <Suspense fallback={<div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}><span style={{ display: 'inline-block', width: '18px', height: '18px', border: '2px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 0.6s linear infinite', marginRight: '8px', verticalAlign: 'middle' }}></span>Loading module...</div>}>
             {activeSubSetting === 'productivity' && (
               <>
                 <AdvancedFeaturesHub
@@ -8307,7 +8317,7 @@ export default function App() {
                 token={token}
                 userRole={userRole}
                 students={students}
-                onMsg={(msg) => addNotification && addNotification(msg)}
+                onMsg={(msg) => console.log('[EnterpriseHub Msg]', msg)}
               />
             )}
 
@@ -8324,6 +8334,7 @@ export default function App() {
                 </p>
               </div>
             )}
+            </Suspense>
 
             {activeSubSetting === 'app_version' && (
               <AppVersionSettings
@@ -8519,7 +8530,6 @@ export default function App() {
             appVersion={APP_VERSION}
           />
         )}
-              </Suspense>
       </main>
 
       {/* Add Student Modal */}

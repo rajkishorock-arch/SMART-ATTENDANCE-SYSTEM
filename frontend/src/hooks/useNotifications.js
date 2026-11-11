@@ -77,21 +77,28 @@ export default function useNotifications(token, currentUser, userRole, onNavigat
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const inFlightRef = { current: false };
+
   const fetchUnreadNotificationCount = useCallback(async () => {
-    if (!token) return;
+    if (!token || inFlightRef.current) return;
+    inFlightRef.current = true;
     try {
       const res = await notificationApi.fetchUnreadCount(token);
-      if (res.ok) {
+      if (res && res.ok) {
         const data = await res.json();
         setUnreadCount(data.unread_count || 0);
       }
     } catch {
       // Ignore network errors on background poll
+    } finally {
+      inFlightRef.current = false;
     }
   }, [token]);
 
+  const userKey = currentUser ? (currentUser.id || currentUser.email || 'user') : null;
+
   useEffect(() => {
-    if (!token || !currentUser) return undefined;
+    if (!token || !userKey) return undefined;
 
     initializePushNotifications(token, currentUser, (data) => {
       const nav = resolveNotificationNavigation(data, effectiveRole || currentUser?.role);
@@ -107,16 +114,16 @@ export default function useNotifications(token, currentUser, userRole, onNavigat
     runInitialFetch();
 
     const interval = setInterval(() => {
-      if (isMounted) {
+      if (isMounted && typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchUnreadNotificationCount();
       }
-    }, 15000);
+    }, 45000);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [token, currentUser, effectiveRole, fetchUnreadNotificationCount, actualOnNavigate]);
+  }, [token, userKey, effectiveRole, fetchUnreadNotificationCount, actualOnNavigate]);
 
   const handleNotificationClick = useCallback((notif) => {
     fetchUnreadNotificationCount();

@@ -566,11 +566,14 @@ def read_all_users(
         raise HTTPException(status_code=403, detail="Only admins can list users.")
     
     users = db.query(models.User).filter(models.User.institution_id == current_user.institution_id).all()
+    user_ids = [u.id for u in users]
+    subjects = db.query(models.Subject).filter(
+        models.Subject.teacher_id.in_(user_ids),
+        models.Subject.institution_id == current_user.institution_id
+    ).all() if user_ids else []
+    subject_map = {s.teacher_id: s for s in subjects}
     for u in users:
-        subject = db.query(models.Subject).filter(
-            models.Subject.teacher_id == u.id,
-            models.Subject.institution_id == current_user.institution_id
-        ).first()
+        subject = subject_map.get(u.id)
         u.subject_name = subject.name if subject else None
         u.subject_code = subject.code if subject else None
         u.subject_department = subject.department if subject else None
@@ -1582,9 +1585,15 @@ def list_student_my_leaves(
         models.LeaveRequest.institution_id == current_student.institution_id
     ).order_by(models.LeaveRequest.created_at.desc()).all()
     
+    subject_ids = [l.subject_id for l in leaves if l.subject_id]
+    subjects = db.query(models.Subject).filter(
+        models.Subject.id.in_(subject_ids)
+    ).all() if subject_ids else []
+    subject_map = {s.id: s for s in subjects}
+
     res = []
     for l in leaves:
-        subject = db.query(models.Subject).filter(models.Subject.id == l.subject_id).first() if l.subject_id else None
+        subject = subject_map.get(l.subject_id) if l.subject_id else None
         res.append(schemas.LeaveRequestResponse(
             id=l.id,
             student_id=l.student_id,
