@@ -4,6 +4,7 @@ Handles role-filtered in-app notifications, device token registration,
 notification category preferences, quiet hours, and FCM push notifications.
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Body
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import Optional, List, Dict, Any
@@ -450,3 +451,52 @@ def update_notification_preferences(
 
     db.commit()
     return {"status": "ok", "message": "Notification preferences updated successfully."}
+
+
+class BroadcastPayload(BaseModel):
+    title: str
+    message: str
+    target_roles: Optional[List[str]] = ["student", "teacher", "parent"]
+    category: Optional[str] = "ANNOUNCEMENT"
+    action_url: Optional[str] = None
+
+
+@router.post("/broadcast")
+def broadcast_announcement(
+    payload: BroadcastPayload,
+    db: Session = Depends(get_db),
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
+):
+    """Dispatches institution-wide broadcast announcement across selected roles (students, teachers, parents)."""
+    if current_identity.role.lower() not in ("admin", "principal"):
+        raise HTTPException(status_code=403, detail="Administrators only can broadcast announcements.")
+
+    title = payload.title.strip()
+    msg = payload.message.strip()
+    if not title or not msg:
+        raise HTTPException(status_code=400, detail="Title and message cannot be empty.")
+
+    inst_id = current_identity.institution_id
+    created_count = 0
+    roles = payload.target_roles or ["student", "teacher", "parent"]
+
+    for r in roles:
+        r_clean = r.strip().lower()
+        if not r_clean:
+            continue
+        create_notification(
+            db=db,
+            institution_id=inst_id,
+            recipient_role=r_clean,
+            title=title,
+            message=msg,
+            category=payload.category or "ANNOUNCEMENT",
+            action_url=payload.action_url
+        )
+        created_count += 1
+
+    return {
+        "status": "ok",
+        "message": f"Broadcast announcement successfully dispatched across {created_count} role channels.",
+        "target_roles": roles
+    }

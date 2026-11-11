@@ -70,8 +70,8 @@ export default function SettingsDirectoryHub({
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               Security Perimeter & Geofence
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-              Configure GPS campus boundaries, authorized Wi-Fi subnet gates, and security disarm controls.
+            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+              GPS boundaries, authorized Wi-Fi, and perimeter rules.
             </p>
           </div>
         )}
@@ -114,8 +114,8 @@ export default function SettingsDirectoryHub({
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               Face Recognition & Biometrics
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-              Biometric match confidence threshold, anti-spoof strictness, and face recognition model diagnostics.
+            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+              Confidence thresholds, anti-spoof rules, and AI models.
             </p>
           </div>
         )}
@@ -158,8 +158,8 @@ export default function SettingsDirectoryHub({
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               My Profile & Credentials
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-              Modify profile name, login email address, or update account security credentials.
+            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+              Profile details, login email, and security password.
             </p>
           </div>
         )}
@@ -202,8 +202,8 @@ export default function SettingsDirectoryHub({
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               Staff & Administrator Accounts
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-              Create, configure roles, and manage institutional staff or auxiliary administrator access accounts.
+            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+              Staff roles, permissions, and administrator accounts.
             </p>
           </div>
         )}
@@ -246,8 +246,8 @@ export default function SettingsDirectoryHub({
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               Departments & Branches
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-              Configure active college departments, branches, and class sections for dynamic dropdowns.
+            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+              Academic departments, branches, and class sections.
             </p>
           </div>
         )}
@@ -294,8 +294,8 @@ export default function SettingsDirectoryHub({
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               Leave Management
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-              Review, approve, or reject student leave requests with complete historical records.
+            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+              Review and approve student leave applications.
             </p>
             {pendingLeavesCount > 0 && (
               <span style={{ alignSelf: 'flex-start', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
@@ -346,8 +346,8 @@ export default function SettingsDirectoryHub({
           <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
             System Version & Build
           </h3>
-          <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-            Verify deployed application build status, cloud connectivity, and check for software updates.
+          <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+            Build status, cloud connectivity, and version updates.
           </p>
         </div>
 
@@ -389,8 +389,8 @@ export default function SettingsDirectoryHub({
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               Campus & Institution Registry
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.5 }}>
-              Register and manage college tenants, institution color schemes, and root administrator credentials.
+            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
+              Multi-tenant campus registry and root configuration.
             </p>
           </div>
         )}

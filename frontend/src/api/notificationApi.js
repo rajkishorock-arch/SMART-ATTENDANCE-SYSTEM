@@ -39,6 +39,13 @@ export const notificationApi = {
    */
   async markNotificationRead(token, id) {
     return apiPost(`/notifications/mark-read/${encodeURIComponent(id)}`, null, { token });
+  },
+
+  /**
+   * Broadcast institution announcement across target roles (/notifications/broadcast)
+   */
+  async broadcastAnnouncement(token, payload) {
+    return apiPost('/notifications/broadcast', payload, { token });
   }
 };
 

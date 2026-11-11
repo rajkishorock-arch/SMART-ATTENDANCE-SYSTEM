@@ -509,7 +509,7 @@ export default function AdminTeacherDashboardView({
                 <div>
                   <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-text-main)', margin: 0 }}>System Feedback & Support</h4>
                   <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
-                    Report issues, request facial enrollment audits, or send feedback to administrator.
+                    Report issues, request audits, or share feedback.
                   </p>
                 </div>
               </div>
@@ -542,8 +542,8 @@ export default function AdminTeacherDashboardView({
                         REALTIME
                       </span>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '0.85rem', margin: '4px 0 0' }}>
-                      Realtime student presence metrics, total active session connections, and active role telemetry.
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                      Real-time student attendance and live telemetry.
                     </p>
                   </div>
 
@@ -682,8 +682,8 @@ export default function AdminTeacherDashboardView({
                         ANALYTICS
                       </span>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '0.85rem', margin: '4px 0 0' }}>
-                      Weekly attendance trends line area graphs and department presence distribution breakdown.
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                      Weekly attendance trends and department distribution.
                     </p>
                   </div>
 

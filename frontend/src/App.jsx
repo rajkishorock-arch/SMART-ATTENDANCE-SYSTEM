@@ -54,6 +54,7 @@ import {
   History,
   ArrowLeft,
   Bot,
+  Megaphone,
   X,
 } from 'lucide-react';
 import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
@@ -98,6 +99,7 @@ const InterventionsManagementView = safeLazy(() => import('./components/Interven
 const BiometricFallbackModal = safeLazy(() => import('./components/BiometricFallbackModal'));
 const LmsSyncIntegrationView = safeLazy(() => import('./components/LmsSyncIntegrationView'));
 const StaffPayrollView = safeLazy(() => import('./components/StaffPayrollView'));
+const InstitutionBroadcastModal = safeLazy(() => import('./components/InstitutionBroadcastModal'));
 import QuickActionsDock from './components/QuickActionsDock';
 import OnboardingTour from './components/OnboardingTour';
 import OfflineBanner from './components/OfflineBanner';
@@ -619,6 +621,9 @@ export default function App() {
 
   // Biometric Fallback System Modal States (Phase 9)
   const [showFallbackModal, setShowFallbackModal] = useState(false);
+
+  // Institution Broadcast Announcement Modal State (Part 3)
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
 
   // Feedback Form System
   const feedbackState = useFeedback();
@@ -7607,41 +7612,41 @@ export default function App() {
                 {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
                 {activeTab === 'students' && 'Student Directory'}
                 {activeTab === 'teachers' && 'Teacher Directory'}
-                {activeTab === 'logs' && 'Real-time Logs'}
-                {activeTab === 'attendance' && 'Live Scanner'}
-                {activeTab === 'reports' && 'Attendance Reports & Alerts'}
-                {activeTab === 'session-history' && 'Session-wise History'}
-                {activeTab === 'disputes' && 'Attendance Disputes & Correction Queue'}
-                {activeTab === 'face-review' && 'Low-Confidence Face Match Review Queue'}
-                {activeTab === 'calendar' && 'Academic Calendar & Schedule Engine'}
-                {activeTab === 'devices' && 'Kiosk & Scanner Device Fleet Telemetry'}
-                {activeTab === 'interventions' && 'Counselor & Parent Intervention Center'}
-                {activeTab === 'lms' && 'SIS & Enterprise LMS Sync Engine'}
-                {activeTab === 'payroll' && 'Staff Attendance & Institutional Payroll'}
-                {activeTab === 'student-attendance' && 'Student Attendance Dashboard'}
+                {activeTab === 'logs' && 'Attendance Logs'}
+                {activeTab === 'attendance' && 'Face Scanner'}
+                {activeTab === 'reports' && 'Reports & Analytics'}
+                {activeTab === 'session-history' && 'Session History'}
+                {activeTab === 'disputes' && 'Attendance Disputes'}
+                {activeTab === 'face-review' && 'Face Match Review'}
+                {activeTab === 'calendar' && 'Academic Calendar'}
+                {activeTab === 'devices' && 'Kiosks & Sensors'}
+                {activeTab === 'interventions' && 'Student Interventions'}
+                {activeTab === 'lms' && 'LMS Integration'}
+                {activeTab === 'payroll' && 'Staff & Payroll'}
+                {activeTab === 'student-attendance' && 'My Attendance'}
                 {activeTab === 'student-profile' && 'My Profile'}
-                {activeTab === 'settings' && 'Security & System Settings'}
-                {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
+                {activeTab === 'settings' && (activeSubSetting ? 'System Settings' : 'Settings Directory')}
+                {activeTab === 'ai-assistant' && 'AI Assistant'}
               </h1>
-              <p style={{ color: '#475569', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {activeTab === 'dashboard' && 'Visualizing attendance logs and statistics'}
-                {activeTab === 'students' && 'Manage registered students and profiles'}
-                {activeTab === 'teachers' && 'Manage registered teaching staff and weekly timetables'}
-                {activeTab === 'logs' && 'View and download student attendance registers'}
-                {activeTab === 'attendance' && 'Log attendance using live facial recognition scanner'}
-                {activeTab === 'reports' && 'Generate academic reports, analytics, and attendance alerts'}
-                {activeTab === 'session-history' && 'Track day-by-day session registers and student present/absent statuses'}
-                {activeTab === 'disputes' && 'Review student disputes, view proof, and issue auditable corrections'}
-                {activeTab === 'face-review' && 'Review borderline facial detections, verify candidate images, and confirm or reassign attendance'}
-                {activeTab === 'calendar' && 'Institutional schedule, holiday management, substitute faculty, and attendance safety protection'}
-                {activeTab === 'devices' && 'Monitor deployed scanning kiosks, camera sensors, battery levels, and live heartbeats'}
-                {activeTab === 'interventions' && 'Proactive attendance shortfall alerts, parent notifications, and counseling workflows'}
-                {activeTab === 'lms' && 'Bidirectional attendance transmission and student roster synchronization with Canvas, Moodle, and ERPs'}
-                {activeTab === 'payroll' && 'Daily punch telemetry, overtime tracking, and monthly salary disbursement calculations'}
-                {activeTab === 'student-attendance' && 'Track your attendance history and metrics'}
-                {activeTab === 'student-profile' && 'View and manage your personal profile and credentials'}
-                {activeTab === 'settings' && 'Manage campus geofencing and IP subnet restriction boundaries'}
-                {activeTab === 'ai-assistant' && 'Interact using voice or upload files. Customise bot settings and suggestion filters.'}
+              <p style={{ color: '#64748b', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {activeTab === 'dashboard' && 'Real-time attendance overview and telemetry'}
+                {activeTab === 'students' && 'Registered students and face enrollments'}
+                {activeTab === 'teachers' && 'Faculty directory and subject timetables'}
+                {activeTab === 'logs' && 'Daily scan registers and export logs'}
+                {activeTab === 'attendance' && 'Face recognition and kiosk check-in'}
+                {activeTab === 'reports' && 'Shortage defaulters, exports, and alerts'}
+                {activeTab === 'session-history' && 'Class-wise daily session registers'}
+                {activeTab === 'disputes' && 'Student disputes and attendance corrections'}
+                {activeTab === 'face-review' && 'Low-confidence face detection review'}
+                {activeTab === 'calendar' && 'Campus schedule, holidays, and events'}
+                {activeTab === 'devices' && 'Hardware kiosks and camera sensors'}
+                {activeTab === 'interventions' && 'Shortage alerts and counseling workflows'}
+                {activeTab === 'lms' && 'Canvas, Moodle, and ERP roster sync'}
+                {activeTab === 'payroll' && 'Staff punches, hours, and disbursements'}
+                {activeTab === 'student-attendance' && 'Attendance progress and subject breakdown'}
+                {activeTab === 'student-profile' && 'Personal profile and account credentials'}
+                {activeTab === 'settings' && (activeSubSetting ? 'Configure security, perimeter, and preferences' : 'Security, biometrics, and administration')}
+                {activeTab === 'ai-assistant' && 'Campus AI assistant for queries and actions'}
               </p>
             </div>
 
@@ -7678,6 +7683,35 @@ export default function App() {
                 lang={appLang}
               />
             </div>
+
+            {/* Campus Broadcast Button for Admin */}
+            {userRole === 'admin' && (
+              <button 
+                type="button"
+                className="header-action-desktop-only hover-elevate"
+                onClick={() => { playCyberSound('click'); setShowBroadcastModal(true); }}
+                title="Dispatch Campus Broadcast Notice"
+                aria-label="Dispatch Campus Broadcast Notice"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  color: '#b45309',
+                  cursor: 'pointer',
+                  minHeight: '38px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Megaphone size={15} />
+                <span>Broadcast</span>
+              </button>
+            )}
 
             {/* Accessibility & Language Modal Trigger */}
             <button 
@@ -10094,6 +10128,35 @@ export default function App() {
         currentUser={currentUser}
         lang={appLang}
       />
+
+      {/* Institution Broadcast Announcement Modal */}
+      <InstitutionBroadcastModal
+        isOpen={showBroadcastModal}
+        onClose={() => setShowBroadcastModal(false)}
+        token={token}
+        onBroadcastSuccess={() => {
+          triggerHaptic();
+          setSuccessMessage('Broadcast announcement dispatched to all channels successfully.');
+          setTimeout(() => setSuccessMessage(''), 5000);
+        }}
+      />
+
+      {/* Quick Actions Dock for Staff & Admin */}
+      {token && userRole !== 'student' && (
+        <QuickActionsDock
+          onScan={() => { setActiveTab('attendance'); playCyberSound('click'); }}
+          onManual={() => { setShowManualAttendanceModal(true); playCyberSound('click'); }}
+          onReport={() => { setActiveTab('reports'); playCyberSound('click'); }}
+          onNotify={() => {
+            if (userRole === 'admin') {
+              setShowBroadcastModal(true);
+            } else {
+              setShowNotificationDrawer(true);
+            }
+            playCyberSound('click');
+          }}
+        />
+      )}
 
       {/* Edge border flash overlay */}
       {showVoicePulseFlash && <div className="voice-pulse-flash-overlay" />}

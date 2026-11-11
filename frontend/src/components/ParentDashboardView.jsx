@@ -494,8 +494,8 @@ export default function ParentDashboardView({
             </span>
           </div>
 
-          <p style={{ fontSize: '0.84rem', color: '#475569', margin: '0 0 14px 0' }}>
-            Receive real-time alerts when your child enters the campus gate or is marked absent in class.
+          <p style={{ fontSize: '0.84rem', color: '#64748b', margin: '0 0 14px 0' }}>
+            Real-time alerts for gate check-in and class attendance.
           </p>
 
           <form onSubmit={handleSavePreferences} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -615,8 +615,8 @@ export default function ParentDashboardView({
             )}
           </div>
 
-          <p style={{ fontSize: '0.85rem', color: '#475569', margin: '0 0 16px 0' }}>
-            Stay updated with real-time absence warnings, daily summary dispatches, and campus announcements.
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 16px 0' }}>
+            Absence warnings and campus announcements.
           </p>
 
           <button

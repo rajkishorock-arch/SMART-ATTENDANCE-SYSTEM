@@ -59,8 +59,8 @@ export default function LiveScannerSessionHubView({
               <h3 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>
                 Initialize Attendance Session
               </h3>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginTop: '6px', margin: 0 }}>
-                Set up class parameters and period slots to unlock the live facial recognition scanner.
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.88rem', marginTop: '6px', margin: 0 }}>
+                Select class details and period to start scanning.
               </p>
             </div>
 
@@ -276,7 +276,7 @@ export default function LiveScannerSessionHubView({
                   boxShadow: '0 4px 14px rgba(30, 64, 175, 0.25)'
                 }}
               >
-                📸 Start AI Face Check-in Session
+                📸 Start Face Scanner
               </button>
 
               {/* Manual Attendance Button */}
@@ -314,7 +314,7 @@ export default function LiveScannerSessionHubView({
                   background: 'rgba(124, 58, 237, 0.05)'
                 }}
               >
-                ✋ Manual Register (No Face Auth)
+                ✋ Manual Register
               </button>
 
               {/* Scan Virtual ID Card Button (Phone & Laptop) */}
@@ -346,7 +346,7 @@ export default function LiveScannerSessionHubView({
                   transition: 'all 0.2s ease'
                 }}
               >
-                <span style={{ fontSize: '1.1rem' }}>🪪</span> Scan Virtual ID Card (Mobile & Laptop)
+                <span style={{ fontSize: '1.1rem' }}>🪪</span> Scan Virtual ID Card
               </button>
 
               {/* Classroom Kiosk Mode Launcher */}
@@ -380,7 +380,7 @@ export default function LiveScannerSessionHubView({
                   transition: 'all 0.2s ease'
                 }}
               >
-                <span style={{ fontSize: '1.1rem' }}>🖥️</span> Launch Classroom Kiosk Mode (Wall Tablet / Gate)
+                <span style={{ fontSize: '1.1rem' }}>🖥️</span> Launch Kiosk Mode
               </button>
 
 

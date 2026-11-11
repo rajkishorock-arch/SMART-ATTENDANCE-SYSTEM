@@ -879,7 +879,7 @@ export default function StudentAttendanceDashboardView({
               🎫
             </div>
             <p style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', margin: 0 }}>
-              Show your official student ID card with dynamic QR code for instant check-in.
+              Dynamic QR code for contactless scanning.
             </p>
             <button className="btn btn-primary" style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }}>
               Open Virtual ID Card
@@ -936,7 +936,7 @@ export default function StudentAttendanceDashboardView({
               🛡️
             </div>
             <p style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', margin: 0 }}>
-              Marked absent unfairly or face scan failed? Submit an official correction request with evidence.
+              Submit attendance correction request with proof.
             </p>
             <button className="btn" style={{ 
               width: '100%', 
