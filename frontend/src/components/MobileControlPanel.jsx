@@ -77,16 +77,16 @@ export default function MobileControlPanel({
               style={{ position: 'relative' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                <Icon size={22} style={{ color: activeTab === id ? '#00f2fe' : '#38bdf8' }} />
+                <Icon size={22} style={{ color: activeTab === id ? '#1d4ed8' : '#2563eb' }} />
                 {badge && (
                   <span style={{
                     fontSize: '0.62rem',
                     fontWeight: 700,
                     padding: '2px 6px',
                     borderRadius: '6px',
-                    background: 'rgba(0, 242, 254, 0.12)',
-                    color: '#00f2fe',
-                    border: '1px solid rgba(0, 242, 254, 0.25)'
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe'
                   }}>
                     {badge}
                   </span>
