@@ -1,13 +1,14 @@
+import React from 'react';
 import { 
   ShieldCheck, 
-  Lock, 
   UserCheck, 
   UserPlus, 
   BookOpen, 
   ArrowUpCircle,
   FileCheck2,
   Building2,
-  Sliders
+  Sliders,
+  ChevronRight
 } from 'lucide-react';
 import { getActiveTenantSlug as getTenantSlugUtil } from '../../utils/tenantConfig';
 
@@ -20,381 +21,265 @@ export default function SettingsDirectoryHub({
   handleManualCheck,
   fetchAdminLeaves,
   adminLeaveRequests = [],
-  appVersion
+  appVersion = '1.0.18'
 }) {
   const activeTenantSlug = getActiveTenantSlug ? getActiveTenantSlug() : getTenantSlugUtil();
   const pendingLeavesCount = (adminLeaveRequests || []).filter(r => r?.status === 'Pending').length;
 
+  const items = [
+    // 1. Security Perimeter
+    {
+      id: 'geofencing',
+      label: 'Security Perimeter & Geofence',
+      icon: ShieldCheck,
+      iconColor: '#1d4ed8',
+      iconBg: '#eff6ff',
+      iconBorder: '#bfdbfe',
+      badge: 'Security',
+      badgeBg: '#eff6ff',
+      badgeColor: '#1e40af',
+      badgeBorder: '#bfdbfe',
+      visible: userRole === 'admin',
+      onClick: () => {
+        setActiveSubSetting('geofencing');
+        if (playCyberSound) playCyberSound('click');
+      }
+    },
+    // 2. Biometric Security
+    {
+      id: 'advanced',
+      label: 'Face Recognition & Biometrics',
+      icon: Sliders,
+      iconColor: '#059669',
+      iconBg: '#ecfdf5',
+      iconBorder: '#a7f3d0',
+      badge: 'Biometrics',
+      badgeBg: '#ecfdf5',
+      badgeColor: '#059669',
+      badgeBorder: '#a7f3d0',
+      visible: userRole !== 'student',
+      onClick: () => {
+        setActiveSubSetting('advanced');
+        if (playCyberSound) playCyberSound('click');
+      }
+    },
+    // 3. Admin Profile
+    {
+      id: 'profile',
+      label: 'My Profile & Credentials',
+      icon: UserCheck,
+      iconColor: '#7c3aed',
+      iconBg: '#f5f3ff',
+      iconBorder: '#ddd6fe',
+      badge: 'Account',
+      badgeBg: '#f5f3ff',
+      badgeColor: '#7c3aed',
+      badgeBorder: '#ddd6fe',
+      visible: userRole !== 'student',
+      onClick: () => {
+        setActiveSubSetting('profile');
+        if (playCyberSound) playCyberSound('click');
+      }
+    },
+    // 4. Staff & Admin Accounts
+    {
+      id: 'admins',
+      label: 'Staff & Administrator Accounts',
+      icon: UserPlus,
+      iconColor: '#2563eb',
+      iconBg: '#eff6ff',
+      iconBorder: '#bfdbfe',
+      badge: 'Administrators',
+      badgeBg: '#eff6ff',
+      badgeColor: '#2563eb',
+      badgeBorder: '#bfdbfe',
+      visible: userRole === 'admin',
+      onClick: () => {
+        setActiveSubSetting('admins');
+        if (playCyberSound) playCyberSound('click');
+      }
+    },
+    // 5. Departments & Branches
+    {
+      id: 'departments',
+      label: 'Departments & Branches',
+      icon: BookOpen,
+      iconColor: '#d97706',
+      iconBg: '#fffbeb',
+      iconBorder: '#fde68a',
+      badge: 'Academics',
+      badgeBg: '#fffbeb',
+      badgeColor: '#d97706',
+      badgeBorder: '#fde68a',
+      visible: userRole === 'admin',
+      onClick: () => {
+        setActiveSubSetting('departments');
+        if (playCyberSound) playCyberSound('click');
+      }
+    },
+    // 6. Leave Management
+    {
+      id: 'leave_management',
+      label: 'Leave Management',
+      icon: FileCheck2,
+      iconColor: '#059669',
+      iconBg: '#ecfdf5',
+      iconBorder: '#a7f3d0',
+      badge: pendingLeavesCount > 0 ? `${pendingLeavesCount} Pending` : 'Approvals',
+      badgeBg: pendingLeavesCount > 0 ? '#fef2f2' : '#ecfdf5',
+      badgeColor: pendingLeavesCount > 0 ? '#dc2626' : '#059669',
+      badgeBorder: pendingLeavesCount > 0 ? '#fecaca' : '#a7f3d0',
+      visible: userRole !== 'student',
+      onClick: () => {
+        setActiveSubSetting('leave_management');
+        if (fetchAdminLeaves) fetchAdminLeaves();
+        if (playCyberSound) playCyberSound('click');
+      }
+    },
+    // 7. System Version & Updates
+    {
+      id: 'app_version',
+      label: 'System Version & Build',
+      icon: ArrowUpCircle,
+      iconColor: '#1d4ed8',
+      iconBg: '#eff6ff',
+      iconBorder: '#bfdbfe',
+      badge: `v${appVersion}`,
+      badgeBg: '#eff6ff',
+      badgeColor: '#1d4ed8',
+      badgeBorder: '#bfdbfe',
+      visible: true,
+      onClick: () => {
+        setActiveSubSetting('app_version');
+        if (playCyberSound) playCyberSound('click');
+        if (handleManualCheck) handleManualCheck();
+      }
+    },
+    // 8. Multi-Tenant Registry
+    {
+      id: 'multitenant',
+      label: 'Campus & Institution Registry',
+      icon: Building2,
+      iconColor: '#7c3aed',
+      iconBg: '#f5f3ff',
+      iconBorder: '#ddd6fe',
+      badge: 'Multi-Tenant',
+      badgeBg: '#f5f3ff',
+      badgeColor: '#7c3aed',
+      badgeBorder: '#ddd6fe',
+      visible: userRole === 'admin' && activeTenantSlug === 'default' && Number(currentUser?.institution_id) === 1,
+      onClick: () => {
+        setActiveSubSetting('multitenant');
+        if (playCyberSound) playCyberSound('click');
+      }
+    }
+  ].filter(i => i.visible);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '20px'
-      }}>
-        {/* Category Card 1: GPS & Security Perimeter */}
-        {userRole === 'admin' && (
-          <div 
-            onClick={() => { setActiveSubSetting('geofencing'); if (playCyberSound) playCyberSound('click'); }}
-            className="surface-card hover-card" 
-            style={{ 
-              padding: '24px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '12px', 
-              minHeight: '150px', 
-              borderRadius: '14px', 
-              border: '1px solid var(--border-subtle)',
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
+      }}
+    >
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <div
+            key={item.id}
+            onClick={item.onClick}
+            className="surface-card hover-elevate"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                item.onClick();
+              }
+            }}
+            style={{
               background: '#ffffff',
-              boxShadow: 'var(--shadow-card)'
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+              cursor: 'pointer',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              minWidth: 0,
+              overflow: 'hidden',
+              transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ 
-                width: '42px', 
-                height: '42px', 
-                borderRadius: '10px', 
-                background: 'rgba(30, 64, 175, 0.08)', 
-                color: 'var(--color-primary)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <ShieldCheck size={22} />
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#eff6ff', color: '#1e40af' }}>
-                Security
-              </span>
+            {/* Left Icon Box */}
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                minWidth: '38px',
+                maxWidth: '38px',
+                flexShrink: 0,
+                borderRadius: '10px',
+                background: item.iconBg,
+                border: `1px solid ${item.iconBorder}`,
+                color: item.iconColor,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Icon size={18} />
             </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-              Security Perimeter & Geofence
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-              GPS boundaries, authorized Wi-Fi, and perimeter rules.
-            </p>
-          </div>
-        )}
 
-        {/* Category Card 2: Biometric Security */}
-        {userRole !== 'student' && (
-          <div 
-            onClick={() => { setActiveSubSetting('advanced'); if (playCyberSound) playCyberSound('click'); }}
-            className="surface-card hover-card" 
-            style={{ 
-              padding: '24px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '12px', 
-              minHeight: '150px', 
-              borderRadius: '14px', 
-              border: '1px solid var(--border-subtle)',
-              background: '#ffffff',
-              boxShadow: 'var(--shadow-card)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ 
-                width: '42px', 
-                height: '42px', 
-                borderRadius: '10px', 
-                background: 'rgba(5, 150, 105, 0.08)', 
-                color: '#059669', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <Sliders size={22} />
+            {/* Middle Label & Badge */}
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.25 }}>
+                  {item.label}
+                </span>
+                {item.badge && (
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: '6px',
+                      background: item.badgeBg || '#eff6ff',
+                      color: item.badgeColor || '#1d4ed8',
+                      border: `1px solid ${item.badgeBorder || '#bfdbfe'}`,
+                      lineHeight: 1.1,
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#ecfdf5', color: '#059669' }}>
-                Biometrics
-              </span>
             </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-              Face Recognition & Biometrics
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-              Confidence thresholds, anti-spoof rules, and AI models.
-            </p>
-          </div>
-        )}
 
-        {/* Category Card 3: Admin Profile Settings */}
-        {userRole !== 'student' && (
-          <div 
-            onClick={() => { setActiveSubSetting('profile'); if (playCyberSound) playCyberSound('click'); }}
-            className="surface-card hover-card" 
-            style={{ 
-              padding: '24px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '12px', 
-              minHeight: '150px', 
-              borderRadius: '14px', 
-              border: '1px solid var(--border-subtle)',
-              background: '#ffffff',
-              boxShadow: 'var(--shadow-card)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ 
-                width: '42px', 
-                height: '42px', 
-                borderRadius: '10px', 
-                background: 'rgba(124, 58, 237, 0.08)', 
-                color: '#7c3aed', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <UserCheck size={22} />
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#f5f3ff', color: '#7c3aed' }}>
-                Account
-              </span>
+            {/* Right Chevron */}
+            <div
+              style={{
+                color: '#94a3b8',
+                display: 'flex',
+                alignItems: 'center',
+                flexShrink: 0,
+                marginLeft: 'auto'
+              }}
+            >
+              <ChevronRight size={17} />
             </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-              My Profile & Credentials
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-              Profile details, login email, and security password.
-            </p>
           </div>
-        )}
-
-        {/* Category Card 4: Admin Account Registry */}
-        {userRole === 'admin' && (
-          <div 
-            onClick={() => { setActiveSubSetting('admins'); if (playCyberSound) playCyberSound('click'); }}
-            className="surface-card hover-card" 
-            style={{ 
-              padding: '24px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '12px', 
-              minHeight: '150px', 
-              borderRadius: '14px', 
-              border: '1px solid var(--border-subtle)',
-              background: '#ffffff',
-              boxShadow: 'var(--shadow-card)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ 
-                width: '42px', 
-                height: '42px', 
-                borderRadius: '10px', 
-                background: 'rgba(37, 99, 235, 0.08)', 
-                color: '#2563eb', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <UserPlus size={22} />
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#eff6ff', color: '#2563eb' }}>
-                Administrators
-              </span>
-            </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-              Staff & Administrator Accounts
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-              Staff roles, permissions, and administrator accounts.
-            </p>
-          </div>
-        )}
-
-        {/* Category Card 5: Manage Departments */}
-        {userRole === 'admin' && (
-          <div 
-            onClick={() => { setActiveSubSetting('departments'); if (playCyberSound) playCyberSound('click'); }}
-            className="surface-card hover-card" 
-            style={{ 
-              padding: '24px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '12px', 
-              minHeight: '150px', 
-              borderRadius: '14px', 
-              border: '1px solid var(--border-subtle)',
-              background: '#ffffff',
-              boxShadow: 'var(--shadow-card)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ 
-                width: '42px', 
-                height: '42px', 
-                borderRadius: '10px', 
-                background: 'rgba(217, 119, 6, 0.08)', 
-                color: '#d97706', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <BookOpen size={22} />
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#fffbeb', color: '#d97706' }}>
-                Academics
-              </span>
-            </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-              Departments & Branches
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-              Academic departments, branches, and class sections.
-            </p>
-          </div>
-        )}
-
-        {/* Category Card 6: Leave Management */}
-        {userRole !== 'student' && (
-          <div 
-            onClick={() => { 
-              setActiveSubSetting('leave_management'); 
-              if (fetchAdminLeaves) fetchAdminLeaves(); 
-              if (playCyberSound) playCyberSound('click'); 
-            }}
-            className="surface-card hover-card" 
-            style={{ 
-              padding: '24px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '12px', 
-              minHeight: '150px', 
-              borderRadius: '14px', 
-              border: '1px solid var(--border-subtle)',
-              background: '#ffffff',
-              boxShadow: 'var(--shadow-card)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ 
-                width: '42px', 
-                height: '42px', 
-                borderRadius: '10px', 
-                background: 'rgba(5, 150, 105, 0.08)', 
-                color: '#059669', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <FileCheck2 size={22} />
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#ecfdf5', color: '#059669' }}>
-                Approvals
-              </span>
-            </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-              Leave Management
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-              Review and approve student leave applications.
-            </p>
-            {pendingLeavesCount > 0 && (
-              <span style={{ alignSelf: 'flex-start', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
-                {pendingLeavesCount} Pending
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Category Card 7: App Version & Updates */}
-        <div
-          onClick={() => { 
-            setActiveSubSetting('app_version'); 
-            if (playCyberSound) playCyberSound('click'); 
-            if (handleManualCheck) handleManualCheck(); 
-          }}
-          className="surface-card hover-card"
-          style={{ 
-            padding: '24px', 
-            cursor: 'pointer', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '12px', 
-            minHeight: '150px', 
-            borderRadius: '14px', 
-            border: '1px solid var(--border-subtle)',
-            background: '#ffffff',
-            boxShadow: 'var(--shadow-card)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ 
-              width: '42px', 
-              height: '42px', 
-              borderRadius: '10px', 
-              background: 'rgba(30, 64, 175, 0.08)', 
-              color: 'var(--color-primary)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <ArrowUpCircle size={22} />
-            </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#eff6ff', color: 'var(--color-primary)' }}>
-              v{appVersion}
-            </span>
-          </div>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-            System Version & Build
-          </h3>
-          <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-            Build status, cloud connectivity, and version updates.
-          </p>
-        </div>
-
-        {/* Category Card 8: Multi-Tenant Registry & Management */}
-        {userRole === 'admin' && activeTenantSlug === 'default' && Number(currentUser?.institution_id) === 1 && (
-          <div 
-            onClick={() => { setActiveSubSetting('multitenant'); if (playCyberSound) playCyberSound('click'); }}
-            className="surface-card hover-card" 
-            style={{ 
-              padding: '24px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '12px', 
-              minHeight: '150px', 
-              borderRadius: '14px', 
-              border: '1px solid var(--border-subtle)',
-              background: '#ffffff',
-              boxShadow: 'var(--shadow-card)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ 
-                width: '42px', 
-                height: '42px', 
-                borderRadius: '10px', 
-                background: 'rgba(124, 58, 237, 0.08)', 
-                color: '#7c3aed', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <Building2 size={22} />
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: '#f5f3ff', color: '#7c3aed' }}>
-                Multi-Tenant
-              </span>
-            </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-              Campus & Institution Registry
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.84rem', margin: 0, flexGrow: 1, lineHeight: 1.4 }}>
-              Multi-tenant campus registry and root configuration.
-            </p>
-          </div>
-        )}
-      </div>
+        );
+      })}
     </div>
   );
 }

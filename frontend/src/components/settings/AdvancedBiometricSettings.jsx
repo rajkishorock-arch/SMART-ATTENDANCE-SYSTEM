@@ -24,26 +24,26 @@ export default function AdvancedBiometricSettings({
         background: '#ffffff',
         border: '1px solid var(--border-subtle)',
         borderRadius: '16px',
-        padding: '30px',
+        padding: 'clamp(14px, 3vw, 24px)',
         boxShadow: 'var(--shadow-card)',
         color: 'var(--color-text-main)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '24px'
+        gap: '20px'
       }}
     >
       {/* Console Header */}
-      <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
               Face Recognition & Biometric Settings
             </h3>
-            <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#059669', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
-              ACTIVE ENGINE
+            <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#059669', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+              Active
             </span>
           </div>
-          <p style={{ color: '#475569', fontSize: '0.85rem', margin: '4px 0 0' }}>
+          <p style={{ color: '#64748b', fontSize: '0.84rem', margin: '4px 0 0' }}>
             Configure facial recognition match threshold, anti-spoof liveness strictness, and system telemetry logging.
           </p>
         </div>

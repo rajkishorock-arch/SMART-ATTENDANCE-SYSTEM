@@ -85,16 +85,16 @@ export default function ControlCenterView({
         },
         {
           id: 'face-review',
-          label: 'Face Match QA Queue',
+          label: 'Face Match Verification Queue',
           icon: ScanFace,
           iconColor: '#7c3aed',
           iconBg: '#f5f3ff',
           iconBorder: '#ddd6fe',
-          badge: 'AI QA',
+          badge: 'Verification',
           badgeBg: '#f5f3ff',
           badgeColor: '#7c3aed',
           badgeBorder: '#ddd6fe',
-          desc: 'Review borderline face detections & reassign attendance',
+          desc: 'Review borderline face detections & verify attendance',
           roles: ['admin', 'teacher'],
         },
         {
@@ -255,16 +255,16 @@ export default function ControlCenterView({
         },
         {
           id: 'ai-assistant',
-          label: 'Campus AI Assistant',
+          label: 'Campus Help Assistant',
           icon: Bot,
           iconColor: '#2563eb',
           iconBg: '#eff6ff',
           iconBorder: '#bfdbfe',
-          badge: 'Smart AI',
+          badge: 'Support',
           badgeBg: '#eff6ff',
           badgeColor: '#1d4ed8',
           badgeBorder: '#bfdbfe',
-          desc: 'Interactive voice assistant, file analysis & questions',
+          desc: 'Interactive help assistant, campus guide & questions',
           roles: ['admin', 'teacher', 'student'],
         },
       ],
@@ -346,173 +346,26 @@ export default function ControlCenterView({
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px',
-        padding: '0 0 110px 0',
+        gap: '12px',
+        padding: '0 0 12px 0',
         boxSizing: 'border-box',
         minWidth: 0,
         overflowX: 'hidden',
         animation: 'fadeInUp 0.25s ease both',
       }}
     >
-      {/* Top Profile & Fast Back Bar */}
+      {/* Category Filter Pills (Horizontal Scroll on Mobile) */}
       <div
         style={{
-          width: '100%',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          padding: '12px 16px',
-          borderRadius: '14px',
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => {
-            playCyberSound('click');
-            triggerHaptic();
-            onNavigate(userRole === 'student' ? 'student-attendance' : 'dashboard');
-          }}
-          className="hover-elevate active-haptic"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '7px 14px',
-            borderRadius: '10px',
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            color: '#1d4ed8',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            flexShrink: 0,
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <ArrowLeft size={16} />
-          <span>Home</span>
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
-          <div style={{ textAlign: 'right', minWidth: 0 }}>
-            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {currentUser?.name || (userRole === 'admin' ? 'Administrator' : userRole === 'teacher' ? 'Faculty Member' : 'Student')}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {currentUser?.institution_name || (currentUser?.institution_slug ? currentUser.institution_slug.toUpperCase() : 'SMART CAMPUS')}
-            </div>
-          </div>
-          <div
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.84rem',
-              fontWeight: 700,
-              flexShrink: 0,
-              boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
-            }}
-          >
-            {(currentUser?.name || userRole || 'U')[0].toUpperCase()}
-          </div>
-        </div>
-      </div>
-
-      {/* Search Input Bar (No duplicate header, ultra clean) */}
-      <div
-        style={{
+          gap: '6px',
+          overflowX: 'auto',
+          paddingBottom: '2px',
           width: '100%',
           maxWidth: '100%',
           boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-        }}
-      >
-        <div style={{ position: 'relative', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-          <Search
-            size={16}
-            style={{
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#94a3b8',
-              pointerEvents: 'none',
-            }}
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search modules, registers, or tools..."
-            style={{
-              width: '100%',
-              maxWidth: '100%',
-              padding: '11px 36px 11px 38px',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              background: '#ffffff',
-              fontSize: '0.86rem',
-              color: '#0f172a',
-              outline: 'none',
-              boxSizing: 'border-box',
-              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
-              transition: 'all 0.2s ease',
-            }}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: '#f1f5f9',
-                border: 'none',
-                color: '#64748b',
-                borderRadius: '50%',
-                width: '22px',
-                height: '22px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* Category Filter Pills (Horizontal Scroll on Mobile) */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            overflowX: 'auto',
-            paddingBottom: '2px',
-            width: '100%',
-            maxWidth: '100%',
-            boxSizing: 'border-box',
-            WebkitOverflowScrolling: 'touch',
+          WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
           }}
         >
@@ -546,7 +399,6 @@ export default function ControlCenterView({
             );
           })}
         </div>
-      </div>
 
       {/* Sections List */}
       {filteredSections.length === 0 ? (
@@ -613,7 +465,6 @@ export default function ControlCenterView({
                 gap: '6px',
               }}
             >
-              <Sparkles size={12} style={{ color: '#94a3b8', flexShrink: 0 }} />
               <span>{section.title}</span>
             </div>
 

@@ -509,6 +509,7 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e) => {
+      if (!e || typeof e.key !== 'string') return;
       konamiRef.current = [...konamiRef.current, e.key].slice(-12);
       if (checkKonamiCode(konamiRef.current)) {
         playCyberSound('success');
@@ -8174,7 +8175,7 @@ export default function App() {
         {activeTab === 'settings' && (
           <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '24px', boxSizing: 'border-box' }}>
             {activeSubSetting !== null && (
-              <div className="settings-sub-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div className="settings-sub-nav" style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
                 <button 
                   onClick={() => { 
                     const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
@@ -8183,13 +8184,10 @@ export default function App() {
                     playCyberSound('click'); 
                   }}
                   className="btn-secondary active-haptic"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontWeight: 600, fontSize: '0.86rem', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
                 >
-                  <ArrowLeft size={16} /> {['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'].includes(activeSubSetting) ? 'Back to Features Hub Folder' : 'Back to Settings Hub'}
+                  <ArrowLeft size={16} /> {['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'].includes(activeSubSetting) ? 'Back to Features' : 'Back to Settings'}
                 </button>
-                <span style={{ fontSize: '0.82rem', color: '#64748b', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Settings Hub &gt; {activeSubSetting}
-                </span>
               </div>
             )}
 

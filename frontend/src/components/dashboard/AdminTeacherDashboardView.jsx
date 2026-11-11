@@ -68,17 +68,14 @@ export default function AdminTeacherDashboardView({
     <PullToRefresh onRefresh={async () => { await fetchStats(); await fetchLogs(); }}>
       <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
         {activeDashboardSubTab !== null && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
             <button 
               onClick={() => { setActiveDashboardSubTab(null); if (playCyberSound) playCyberSound('click'); }}
-              className="btn-secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}
+              className="btn-secondary active-haptic"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontWeight: 600, fontSize: '0.86rem', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
             >
-              <ArrowLeft size={16} /> Back to Dashboard Hub
+              <ArrowLeft size={16} /> Back to Dashboard
             </button>
-            <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Dashboard Hub &gt; {activeDashboardSubTab}
-            </span>
           </div>
         )}
 

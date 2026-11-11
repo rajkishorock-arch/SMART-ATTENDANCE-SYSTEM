@@ -142,10 +142,11 @@ export function bumpEasterEgg() {
 }
 
 export function checkKonamiCode(sequence) {
+  if (!Array.isArray(sequence)) return false;
   const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
   if (sequence.length >= KONAMI.length) {
     const tail = sequence.slice(-KONAMI.length);
-    if (tail.every((k, i) => k.toLowerCase() === KONAMI[i].toLowerCase())) {
+    if (tail.every((k, i) => typeof k === 'string' && KONAMI[i] && k.toLowerCase() === KONAMI[i].toLowerCase())) {
       const s = loadFuturisticSettings();
       saveFuturisticSettings({ ...s, easterEggUnlocked: true });
       applyTheme('matrix');
