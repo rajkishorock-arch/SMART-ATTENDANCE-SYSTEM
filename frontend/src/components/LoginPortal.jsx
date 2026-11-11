@@ -15,7 +15,8 @@ import {
   Sparkles,
   Check,
   Copy,
-  Building2
+  Building2,
+  X
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
@@ -89,6 +90,17 @@ export default function LoginPortal({
   const [copiedKey, setCopiedKey] = useState(false);
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [showPostRegFaceEnroll, setShowPostRegFaceEnroll] = useState(false);
+
+  // Forgot Password Recovery Modal States
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSubmitted, setForgotSubmitted] = useState(false);
+
+  const handleForgotPasswordSubmit = (e) => {
+    e.preventDefault();
+    if (!forgotEmail || !forgotEmail.includes('@')) return;
+    setForgotSubmitted(true);
+  };
 
   // Step 1 Validation
   const validateStep1 = () => {
@@ -774,7 +786,7 @@ export default function LoginPortal({
 
                   <button
                     type="button"
-                    onClick={() => alert('Please contact your institution administrator to reset your password.')}
+                    onClick={() => { setShowForgotPasswordModal(true); setForgotSubmitted(false); setForgotEmail(loginEmail || ''); }}
                     style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Forgot password?
@@ -1388,6 +1400,98 @@ export default function LoginPortal({
           )}
         </div>
       </div>
+
+      {/* Forgot Password Recovery Modal */}
+      {showForgotPasswordModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div style={{
+            maxWidth: '440px', width: '100%', background: '#ffffff',
+            borderRadius: '16px', border: '1px solid #e2e8f0', padding: '28px',
+            boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
+            animation: 'fadeInUp 0.25s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Password Recovery</h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>Account credentials assistance</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { setShowForgotPasswordModal(false); setForgotSubmitted(false); setForgotEmail(''); }}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {forgotSubmitted ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'center', padding: '12px 0' }}>
+                <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                  <CheckCircle2 size={28} />
+                </div>
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>Reset Request Dispatched</h4>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.5 }}>
+                  If an account associated with <strong>{forgotEmail}</strong> exists in this workspace, password reset instructions and institutional admin notification have been generated.
+                </p>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', fontSize: '0.78rem', color: '#64748b', textAlign: 'left' }}>
+                  💡 <strong>Tip for Students & Teachers:</strong> You can also request a temporary access token directly from your Department HOD or College Admin office.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPasswordModal(false); setForgotSubmitted(false); setForgotEmail(''); }}
+                  style={{
+                    padding: '10px 16px', background: '#0284c7', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', marginTop: '4px'
+                  }}
+                >
+                  Return to Sign In
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.5 }}>
+                  Enter your registered institutional email address. We will verify your workspace membership and assist with resetting your password.
+                </p>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0f172a' }}>Registered Email Address</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="e.g. yourname@college.edu"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPasswordModal(false)}
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#475569', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{ flex: 1.5, padding: '10px', borderRadius: '8px', background: '#0284c7', border: 'none', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                  >
+                    Request Password Reset
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

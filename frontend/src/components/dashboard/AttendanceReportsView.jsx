@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BookOpen, FileSpreadsheet, FileDown, Mail, Users, AlertCircle, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
@@ -78,6 +79,14 @@ export default function AttendanceReportsView({
 
   const students = Array.isArray(reportData?.students) ? reportData.students : [];
   const totalWorkingDays = (reportData && reportData.total_working_days) || 0;
+
+  const [attendanceFilterPill, setAttendanceFilterPill] = useState('ALL'); // 'ALL' | 'SHORTAGE' | 'SATISFACTORY'
+
+  const displayedStudents = students.filter(s => {
+    if (attendanceFilterPill === 'SHORTAGE') return s.percentage < 75 || s.low_attendance;
+    if (attendanceFilterPill === 'SATISFACTORY') return s.percentage >= 75 && !s.low_attendance;
+    return true;
+  });
 
   return (
     <div className="reports-section mobile-tab-panel reports-panel" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -364,50 +373,120 @@ export default function AttendanceReportsView({
             <span>No student attendance logs found in this range.</span>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="custom-table print-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Roll Number</th>
-                  <th>Name</th>
-                  <th>Department</th>
-                  <th style={{ textAlign: 'center' }}>Attended Days</th>
-                  <th style={{ textAlign: 'center' }}>Total Days</th>
-                  <th style={{ textAlign: 'right' }}>Attendance Rate</th>
-                  <th className="hide-on-print" style={{ textAlign: 'center' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map(student => (
-                  <tr key={student.id} style={{ 
-                    background: student.low_attendance ? 'rgba(239,68,68,0.02)' : undefined,
-                    color: student.low_attendance ? '#ef4444' : undefined 
-                  }}>
-                    <td>{student.id}</td>
-                    <td style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{student.roll}</td>
-                    <td style={{ fontWeight: 500, color: 'var(--color-text-main)' }}>{student.name}</td>
-                    <td><span style={{ color: 'var(--color-purple)', fontWeight: 600 }}>{student.dep}</span></td>
-                    <td style={{ textAlign: 'center' }}>{student.present_days}</td>
-                    <td style={{ textAlign: 'center' }}>{student.total_days}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: student.low_attendance ? '#ef4444' : '#10b981' }}>
-                      {student.percentage}%
-                    </td>
-                    <td className="hide-on-print" style={{ textAlign: 'center' }}>
-                      {student.low_attendance ? (
-                        <span className="badge badge-danger" style={{ padding: '4px 8px', fontSize: '0.7rem' }}>
-                          Shortage
-                        </span>
-                      ) : (
-                        <span className="badge badge-success" style={{ padding: '4px 8px', fontSize: '0.7rem' }}>
-                          Good
-                        </span>
-                      )}
-                    </td>
+          <div>
+            {/* Quick Shortage Defaulters & Status Filter Bar */}
+            <div className="hide-on-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => { if (playCyberSound) playCyberSound('click'); setAttendanceFilterPill('ALL'); }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: attendanceFilterPill === 'ALL' ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                    background: attendanceFilterPill === 'ALL' ? '#eff6ff' : '#ffffff',
+                    color: attendanceFilterPill === 'ALL' ? '#1d4ed8' : '#64748b',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  All Students ({students.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (playCyberSound) playCyberSound('click'); setAttendanceFilterPill('SHORTAGE'); }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: attendanceFilterPill === 'SHORTAGE' ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                    background: attendanceFilterPill === 'SHORTAGE' ? '#fef2f2' : '#ffffff',
+                    color: attendanceFilterPill === 'SHORTAGE' ? '#dc2626' : '#64748b',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ⚠️ Shortage Defaulters (&lt;75%) ({students.filter(s => s.percentage < 75 || s.low_attendance).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (playCyberSound) playCyberSound('click'); setAttendanceFilterPill('SATISFACTORY'); }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: attendanceFilterPill === 'SATISFACTORY' ? '1.5px solid #10b981' : '1px solid #cbd5e1',
+                    background: attendanceFilterPill === 'SATISFACTORY' ? '#ecfdf5' : '#ffffff',
+                    color: attendanceFilterPill === 'SATISFACTORY' ? '#059669' : '#64748b',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ✅ Satisfactory (≥75%) ({students.filter(s => s.percentage >= 75 && !s.low_attendance).length})
+                </button>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>
+                Showing <strong>{displayedStudents.length}</strong> of {students.length} students
+              </span>
+            </div>
+
+            <div className="table-container">
+              <table className="custom-table print-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Roll Number</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th style={{ textAlign: 'center' }}>Attended Days</th>
+                    <th style={{ textAlign: 'center' }}>Total Days</th>
+                    <th style={{ textAlign: 'right' }}>Attendance Rate</th>
+                    <th className="hide-on-print" style={{ textAlign: 'center' }}>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {displayedStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '28px', color: '#64748b' }}>
+                        No students match the selected filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedStudents.map(student => (
+                      <tr key={student.id} style={{ 
+                        background: student.low_attendance ? 'rgba(239,68,68,0.02)' : undefined,
+                        color: student.low_attendance ? '#ef4444' : undefined 
+                      }}>
+                        <td>{student.id}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{student.roll}</td>
+                        <td style={{ fontWeight: 500, color: 'var(--color-text-main)' }}>{student.name}</td>
+                        <td><span style={{ color: 'var(--color-purple)', fontWeight: 600 }}>{student.dep}</span></td>
+                        <td style={{ textAlign: 'center' }}>{student.present_days}</td>
+                        <td style={{ textAlign: 'center' }}>{student.total_days}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: student.low_attendance ? '#ef4444' : '#10b981' }}>
+                          {student.percentage}%
+                        </td>
+                        <td className="hide-on-print" style={{ textAlign: 'center' }}>
+                          {student.low_attendance ? (
+                            <span className="badge badge-danger" style={{ padding: '4px 8px', fontSize: '0.7rem' }}>
+                              Shortage
+                            </span>
+                          ) : (
+                            <span className="badge badge-success" style={{ padding: '4px 8px', fontSize: '0.7rem' }}>
+                              Good
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
