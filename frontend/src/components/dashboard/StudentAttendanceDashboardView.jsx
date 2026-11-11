@@ -892,45 +892,50 @@ export default function StudentAttendanceDashboardView({
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: '4px 0 2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>📑</span> Student Services & Portals
             </h3>
-            {hubSections.map(sec => {
-              const Icon = sec.icon;
-              return (
-                <div
-                  key={sec.id}
-                  onClick={() => {
-                    if (playCyberSound) playCyberSound('click');
-                    setActiveSection(sec.id);
-                  }}
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    padding: '12px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                    <div style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '10px',
-                      background: sec.iconBg,
-                      color: sec.iconColor,
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '8px'
+            }}>
+              {hubSections.map(sec => {
+                const Icon = sec.icon;
+                return (
+                  <div
+                    key={sec.id}
+                    onClick={() => {
+                      if (playCyberSound) playCyberSound('click');
+                      setActiveSection(sec.id);
+                    }}
+                    className="hover-elevate active-haptic"
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '12px 14px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <Icon size={18} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                      <div style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '10px',
+                        background: sec.iconBg,
+                        color: sec.iconColor,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <Icon size={18} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{sec.title}</h4>
                         {sec.badge && (
                           <span style={{
@@ -945,15 +950,12 @@ export default function StudentAttendanceDashboardView({
                           </span>
                         )}
                       </div>
-                      <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {sec.subtitle}
-                      </p>
                     </div>
+                    <ChevronRight size={18} style={{ color: '#94a3b8', flexShrink: 0 }} />
                   </div>
-                  <ChevronRight size={18} style={{ color: '#94a3b8', flexShrink: 0 }} />
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </>
       )}
@@ -1646,9 +1648,6 @@ export default function StudentAttendanceDashboardView({
           </div>
           <div>
             <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Help Us Improve the Platform</h4>
-            <p style={{ color: '#64748b', fontSize: '0.76rem', margin: '2px 0 0' }}>
-              Share your suggestions or report any discrepancy directly to the admin desk.
-            </p>
           </div>
         </div>
         <button

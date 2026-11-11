@@ -1250,9 +1250,13 @@ html, body {
 }
 
 /* Responsive Mobile & Tablet Layouts */
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   .hamburger-btn {
     display: inline-flex !important;
+  }
+
+  .bottom-nav {
+    display: flex !important;
   }
 
   .sidebar {
@@ -1306,7 +1310,7 @@ html, body {
 
   .main-content {
     margin-left: 0 !important;
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px calc(72px + env(safe-area-inset-bottom, 0px)) 12px !important;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px calc(76px + env(safe-area-inset-bottom, 0px)) 16px !important;
     width: 100% !important;
     max-width: 100% !important;
   }
@@ -2021,7 +2025,7 @@ button:active,
 
 /* ===== Professional Mobile Bottom Navigation (Clean White Theme) ===== */
 .bottom-nav {
-  display: none;
+  display: none !important;
   position: fixed;
   left: 0;
   right: 0;
@@ -2273,14 +2277,14 @@ button:active,
   to { transform: translateY(0); opacity: 1; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .bottom-nav {
-    display: flex;
+    display: flex !important;
   }
 
   .main-content {
     margin-left: 0 !important;
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 5px calc(72px + env(safe-area-inset-bottom, 0px)) 5px !important;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px calc(76px + env(safe-area-inset-bottom, 0px)) 16px !important;
     min-height: auto !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -6351,7 +6355,7 @@ html {
 /* ==========================================================================
    MOBILE & TABLET SCROLL ENHANCEMENTS AND FIXES (CRITICAL WEBVIEW & APK FIX)
    ========================================================================== */
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   html, 
   body {
     height: auto !important;
@@ -7678,7 +7682,7 @@ body,
   background: #f8fafc !important;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   html,
   body,
   #root,

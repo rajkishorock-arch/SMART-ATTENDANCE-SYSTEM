@@ -110,11 +110,11 @@ export default function StudentTodayView({
                 {todayCheckIn ? 'Present' : 'Pending'}
               </span>
             </div>
-            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              {todayCheckIn
-                ? `${t('checked_in_at', lang, { time: todayCheckIn.time || 'Morning' })} · ${todayCheckIn.department || 'Campus'}`
-                : (lang === 'hi' ? 'क्लासरूम कियोस्क या शिक्षक के स्कैनर से स्कैन कराएं।' : 'Scan your face at classroom scanner or teacher kiosk.')}
-            </p>
+            {todayCheckIn && (
+              <div style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#16a34a', fontWeight: 600 }}>
+                {t('checked_in_at', lang, { time: todayCheckIn.time || 'Morning' })} · {todayCheckIn.department || 'Campus'}
+              </div>
+            )}
           </div>
         </div>
 
@@ -131,8 +131,8 @@ export default function StudentTodayView({
       {/* ── Desktop 2-Column Responsive Grid (My Attendance Rate + Today's Recent Check-in History) ── */}
       <div className="student-today-cards-grid" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-        gap: '20px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '16px',
         alignItems: 'stretch'
       }}>
         {/* ── Attendance Gauge Card ── */}

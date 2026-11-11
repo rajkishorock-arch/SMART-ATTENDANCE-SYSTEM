@@ -26,7 +26,7 @@ export default function BottomNav({
     const activeIndex = studentTabs.indexOf(activeTab);
 
     return (
-      <nav className="bottom-nav" style={{ display: 'flex' }} aria-label="Main navigation">
+      <nav className="bottom-nav" aria-label="Main navigation">
         {/* Sliding Pill */}
         {activeIndex !== -1 && (
           <div
@@ -92,7 +92,7 @@ export default function BottomNav({
   else if (isControlActive) activeIndex = 4;
 
   return (
-    <nav className="bottom-nav" style={{ display: 'flex' }} aria-label="Main navigation">
+    <nav className="bottom-nav" aria-label="Main navigation">
       {/* Sliding Pill */}
       {activeIndex !== -1 && (
         <div

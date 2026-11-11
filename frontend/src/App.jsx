@@ -5144,7 +5144,7 @@ export default function App() {
 
   useEffect(() => {
     const updateViewport = () => {
-      const isMobile = window.innerWidth <= 768;
+      const isMobile = window.innerWidth <= 1024;
       setIsMobileView(isMobile);
       if (!isMobile) {
         setMobileSidebarOpen(false);
