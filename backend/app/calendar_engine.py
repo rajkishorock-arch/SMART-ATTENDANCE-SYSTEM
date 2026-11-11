@@ -60,7 +60,7 @@ def create_calendar_event(
     if current_user.role not in ["admin", "teacher", "hod"]:
         raise HTTPException(status_code=403, detail="Staff access only.")
 
-    inst_id = current_user.institution_id
+    inst_id = current_user.institution_id or 1
 
     # If teacher is creating, associate teacher_id if unassigned
     teacher_id = event_in.teacher_id
@@ -148,24 +148,38 @@ def list_calendar_events(
     identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """List calendar events for the active institution with optional filters."""
+    inst_ids = set()
+    if identity.institution_id:
+        inst_ids.add(identity.institution_id)
+    # Universal fallback: Always include default institution 1
+    inst_ids.add(1)
+
+    # If identity is in default institution (1) or unassigned, include all active institutions
+    if not identity.institution_id or identity.institution_id == 1:
+        try:
+            active_inst_ids = [r[0] for r in db.query(models.Institution.id).filter(models.Institution.is_active == True).all()]
+            inst_ids.update(active_inst_ids)
+        except Exception:
+            pass
+
     query = db.query(models.CalendarEvent).filter(
-        models.CalendarEvent.institution_id == identity.institution_id
+        models.CalendarEvent.institution_id.in_(list(inst_ids))
     )
 
     if status and status != "ALL":
         query = query.filter(models.CalendarEvent.status == status.upper())
-    if event_type:
+    if event_type and event_type != "ALL":
         query = query.filter(models.CalendarEvent.event_type == event_type.upper())
-    if start_date:
-        query = query.filter(models.CalendarEvent.start_date >= start_date.strip())
-    if end_date:
-        query = query.filter(models.CalendarEvent.start_date <= end_date.strip())
     if department:
-        query = query.filter(models.CalendarEvent.department == department)
+        query = query.filter(
+            (models.CalendarEvent.department == department) | 
+            (models.CalendarEvent.department == None) | 
+            (models.CalendarEvent.department == "")
+        )
     if subject_id:
         query = query.filter(models.CalendarEvent.subject_id == subject_id)
 
-    events = query.order_by(models.CalendarEvent.start_date.asc()).all()
+    events = query.order_by(models.CalendarEvent.id.desc()).all()
     return [_format_event(e, db) for e in events]
 
 
@@ -176,9 +190,19 @@ def get_calendar_event(
     identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """Retrieve single calendar event details."""
+    inst_ids = {1}
+    if identity.institution_id:
+        inst_ids.add(identity.institution_id)
+    if not identity.institution_id or identity.institution_id == 1:
+        try:
+            active_ids = [r[0] for r in db.query(models.Institution.id).filter(models.Institution.is_active == True).all()]
+            inst_ids.update(active_ids)
+        except Exception:
+            pass
+
     event = db.query(models.CalendarEvent).filter(
         models.CalendarEvent.id == event_id,
-        models.CalendarEvent.institution_id == identity.institution_id
+        models.CalendarEvent.institution_id.in_(list(inst_ids))
     ).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -196,9 +220,19 @@ def update_calendar_event(
     if current_user.role not in ["admin", "teacher", "hod"]:
         raise HTTPException(status_code=403, detail="Staff access only.")
 
+    inst_ids = {1}
+    if current_user.institution_id:
+        inst_ids.add(current_user.institution_id)
+    if not current_user.institution_id or current_user.institution_id == 1:
+        try:
+            active_ids = [r[0] for r in db.query(models.Institution.id).filter(models.Institution.is_active == True).all()]
+            inst_ids.update(active_ids)
+        except Exception:
+            pass
+
     event = db.query(models.CalendarEvent).filter(
         models.CalendarEvent.id == event_id,
-        models.CalendarEvent.institution_id == current_user.institution_id
+        models.CalendarEvent.institution_id.in_(list(inst_ids))
     ).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -207,6 +241,8 @@ def update_calendar_event(
     for k, v in update_data.items():
         if k == "event_type" and v:
             setattr(event, k, v.upper())
+        elif k in ["start_date", "end_date"] and v:
+            setattr(event, k, v.strip())
         else:
             setattr(event, k, v)
 
@@ -222,7 +258,7 @@ def update_calendar_event(
             entity_type="calendar_event",
             entity_id=str(event.id)
         ),
-        institution_id=current_user.institution_id
+        institution_id=event.institution_id
     )
 
     return _format_event(event, db)
@@ -238,9 +274,19 @@ def delete_calendar_event(
     if current_user.role not in ["admin", "teacher", "hod"]:
         raise HTTPException(status_code=403, detail="Staff access only.")
 
+    inst_ids = {1}
+    if current_user.institution_id:
+        inst_ids.add(current_user.institution_id)
+    if not current_user.institution_id or current_user.institution_id == 1:
+        try:
+            active_ids = [r[0] for r in db.query(models.Institution.id).filter(models.Institution.is_active == True).all()]
+            inst_ids.update(active_ids)
+        except Exception:
+            pass
+
     event = db.query(models.CalendarEvent).filter(
         models.CalendarEvent.id == event_id,
-        models.CalendarEvent.institution_id == current_user.institution_id
+        models.CalendarEvent.institution_id.in_(list(inst_ids))
     ).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -258,7 +304,7 @@ def delete_calendar_event(
             entity_type="calendar_event",
             entity_id=str(event_id)
         ),
-        institution_id=current_user.institution_id
+        institution_id=event.institution_id
     )
 
     return {"message": f"Calendar event '{title}' deleted successfully."}
@@ -468,19 +514,41 @@ def get_calendar_attendance_metrics(
     Students are never penalized for approved cancelled classes!
     """
     target_student_id = student_id if (identity.role != "student") else identity.id
-    if not target_student_id:
+    if not target_student_id and identity.role == "student":
         target_student_id = identity.id
+
+    if not target_student_id:
+        return schemas.CalendarAttendanceMetrics(
+            scheduled_classes=0,
+            cancelled_classes=0,
+            conducted_classes=0,
+            attended_classes=0,
+            attendance_percentage=100.0,
+            is_at_risk=False
+        )
+
+    inst_ids = {1}
+    if identity.institution_id:
+        inst_ids.add(identity.institution_id)
+    if not identity.institution_id or identity.institution_id == 1:
+        try:
+            active_ids = [r[0] for r in db.query(models.Institution.id).filter(models.Institution.is_active == True).all()]
+            inst_ids.update(active_ids)
+        except Exception:
+            pass
 
     student = db.query(models.StudentModel).filter(
         models.StudentModel.id == target_student_id,
-        models.StudentModel.institution_id == identity.institution_id
+        models.StudentModel.institution_id.in_(list(inst_ids))
     ).first()
+    if not student:
+        student = db.query(models.StudentModel).filter(models.StudentModel.id == target_student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found.")
 
     # 1. Fetch attendance records
     att_query = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.institution_id == identity.institution_id,
+        models.AttendanceModel.institution_id.in_(list(inst_ids)),
         models.AttendanceModel.roll == student.roll
     )
     if subject_id:
@@ -489,7 +557,7 @@ def get_calendar_attendance_metrics(
 
     # 2. Query cancelled classes from Academic Calendar for student's department / subject
     cal_query = db.query(models.CalendarEvent).filter(
-        models.CalendarEvent.institution_id == identity.institution_id,
+        models.CalendarEvent.institution_id.in_(list(inst_ids)),
         models.CalendarEvent.event_type == "CLASS_CANCELLED",
         models.CalendarEvent.status == "ACTIVE"
     )
@@ -497,7 +565,7 @@ def get_calendar_attendance_metrics(
         cal_query = cal_query.filter(models.CalendarEvent.subject_id == subject_id)
     elif student.dep:
         cal_query = cal_query.filter(
-            (models.CalendarEvent.department == student.dep) | (models.CalendarEvent.department == None)
+            (models.CalendarEvent.department == student.dep) | (models.CalendarEvent.department == None) | (models.CalendarEvent.department == "")
         )
     cancelled_events = cal_query.all()
     cancelled_dates = {e.start_date for e in cancelled_events}

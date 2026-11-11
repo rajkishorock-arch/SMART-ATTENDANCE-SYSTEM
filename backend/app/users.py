@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 import cv2
 import numpy as np

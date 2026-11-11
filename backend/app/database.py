@@ -47,7 +47,7 @@ if _is_mysql(db_url):
         connect_args = {
             "ssl_verify_cert": False,
             "ssl_verify_identity": False,
-            "connect_timeout": 5,
+            "connect_timeout": 20,
         }
 elif _is_sqlite(db_url):
     connect_args = {"check_same_thread": False, "timeout": 15}

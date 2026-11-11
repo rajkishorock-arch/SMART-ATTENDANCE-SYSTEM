@@ -72,18 +72,41 @@ const EVENT_TYPE_CONFIG = {
   }
 };
 
-function getDaysUntil(dateStr) {
+function parseDateFlexible(dateStr) {
   if (!dateStr) return null;
-  let target;
-  if (dateStr.includes('/')) {
-    const [d, m, y] = dateStr.split('/');
-    target = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
-  } else if (dateStr.includes('-')) {
-    const [y, m, d] = dateStr.split('-');
-    target = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
-  } else {
-    return null;
+  const str = String(dateStr).trim();
+  let day, month, year;
+
+  if (str.includes('/')) {
+    const parts = str.split('/').map(p => parseInt(p, 10));
+    if (parts.length === 3) {
+      if (parts[0] > 1000) {
+        [year, month, day] = parts;
+      } else {
+        [day, month, year] = parts;
+      }
+    }
+  } else if (str.includes('-')) {
+    const parts = str.split('-').map(p => parseInt(p, 10));
+    if (parts.length === 3) {
+      if (parts[0] > 1000) {
+        [year, month, day] = parts;
+      } else {
+        [day, month, year] = parts;
+      }
+    }
   }
+
+  if (year && month && day && !isNaN(year) && !isNaN(month) && !isNaN(day)) {
+    return new Date(year, month - 1, day);
+  }
+  const fallback = new Date(str);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function getDaysUntil(dateStr) {
+  const target = parseDateFlexible(dateStr);
+  if (!target) return null;
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const diffTime = target.getTime() - today.getTime();
@@ -125,6 +148,18 @@ export default function StudentAcademicCalendarWidget({
 
   useEffect(() => {
     loadCalendarEvents();
+
+    const handleCalendarUpdate = () => {
+      loadCalendarEvents();
+    };
+
+    window.addEventListener('academic_calendar_updated', handleCalendarUpdate);
+    const interval = setInterval(loadCalendarEvents, 30000);
+
+    return () => {
+      window.removeEventListener('academic_calendar_updated', handleCalendarUpdate);
+      clearInterval(interval);
+    };
   }, [loadCalendarEvents]);
 
   // Filter events based on active category

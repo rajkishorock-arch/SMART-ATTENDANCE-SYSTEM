@@ -179,6 +179,9 @@ export default function AcademicCalendarView({
         department: currentUser?.department || ''
       });
       fetchEvents();
+      try {
+        window.dispatchEvent(new CustomEvent('academic_calendar_updated', { detail: { timestamp: Date.now() } }));
+      } catch {}
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       setErrorMsg(err.message);
@@ -210,6 +213,9 @@ export default function AcademicCalendarView({
       setCancelFormData(prev => ({ ...prev, reason: '' }));
       fetchEvents();
       fetchMetrics(selectedSubjectIdForMetrics);
+      try {
+        window.dispatchEvent(new CustomEvent('academic_calendar_updated', { detail: { timestamp: Date.now() } }));
+      } catch {}
       setActiveTab('events');
       setTimeout(() => setSuccessMsg(''), 5000);
     } catch (err) {
@@ -241,6 +247,9 @@ export default function AcademicCalendarView({
       setSuccessMsg('Substitute faculty assigned successfully.');
       setSubstituteFormData(prev => ({ ...prev, reason: '' }));
       fetchEvents();
+      try {
+        window.dispatchEvent(new CustomEvent('academic_calendar_updated', { detail: { timestamp: Date.now() } }));
+      } catch {}
       setActiveTab('events');
       setTimeout(() => setSuccessMsg(''), 5000);
     } catch (err) {
@@ -259,6 +268,9 @@ export default function AcademicCalendarView({
       playCyberSound('click');
       setSuccessMsg(`Event "${title}" removed.`);
       fetchEvents();
+      try {
+        window.dispatchEvent(new CustomEvent('academic_calendar_updated', { detail: { timestamp: Date.now() } }));
+      } catch {}
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       setErrorMsg(err.message);

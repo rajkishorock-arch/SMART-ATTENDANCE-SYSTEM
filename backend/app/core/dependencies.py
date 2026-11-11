@@ -97,13 +97,17 @@ def get_current_identity(db: Session = Depends(get_db), token: str = Depends(oau
         email: str = payload.get("sub")
         role: str = payload.get("role")
         institution_id: Optional[int] = payload.get("institution_id")
-        if email is None or not role or institution_id is None:
+        if email is None or not role:
             raise credentials_exception
+        if institution_id is None:
+            institution_id = 1
     except JWTError:
         raise credentials_exception
 
     if role == "student":
         student = crud.get_student_by_email(db, email=email, institution_id=institution_id)
+        if not student:
+            student = crud.get_student_by_email(db, email=email, institution_id=None)
         if not student:
             raise credentials_exception
         return AuthIdentity(
@@ -111,7 +115,7 @@ def get_current_identity(db: Session = Depends(get_db), token: str = Depends(oau
             email=student.email,
             role="student",
             name=student.name or "Student",
-            institution_id=student.institution_id,
+            institution_id=student.institution_id or 1,
             model_instance=student
         )
     elif role == "parent":

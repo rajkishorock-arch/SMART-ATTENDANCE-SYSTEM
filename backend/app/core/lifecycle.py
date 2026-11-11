@@ -263,6 +263,8 @@ def update_schema():
         safe_execute("UPDATE system_settings SET geofencing_enabled = FALSE WHERE geofencing_enabled IS NOT FALSE", "Ensured geofencing_enabled is OFF by default")
         safe_add_column('users', 'sso_provider', 'VARCHAR(50) NULL')
         safe_add_column('users', 'sso_subject', 'VARCHAR(200) NULL')
+        safe_add_column('device_push_tokens', 'is_active', 'BOOLEAN DEFAULT TRUE')
+        safe_add_column('device_push_tokens', 'device_platform', "VARCHAR(30) DEFAULT 'android'")
         safe_add_column('student', 'face_enrolled_at', 'TIMESTAMP NULL')
         safe_add_column('student', 'parent_name', 'VARCHAR(100) NULL')
         safe_add_column('student', 'parent_email', 'VARCHAR(100) NULL')
