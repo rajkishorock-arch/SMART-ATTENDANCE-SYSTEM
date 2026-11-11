@@ -691,39 +691,12 @@ export default function App() {
   useEffect(() => { showQrScannerModalRef.current = showQrScannerModal; }, [showQrScannerModal]);
   useEffect(() => { userRoleRef.current = userRole; }, [userRole]);
 
-  // Synchronize activeSubSetting with HTML5 History API for phone back button & gesture navigation
-  useEffect(() => {
-    if (isPopStateNavRef.current) {
-      isPopStateNavRef.current = false;
-      return;
-    }
-    if (activeSubSetting !== null) {
-      window.history.pushState({ appNav: 'settings-sub', sub: activeSubSetting }, '');
-    }
-  }, [activeSubSetting]);
-
   // Handle Mobile Browser Back Button (popstate) & Android Native Hardware Back Button
   useEffect(() => {
     const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
 
-    // 1. Mobile Web Browser Back Button / Gesture (popstate)
+    // 1. Mobile Web Browser Back Button / Gesture (popstate) for Modals
     const handlePopState = () => {
-      const currentSub = activeSubSettingRef.current;
-
-      // If a settings sub-panel is open, step back to parent folder or Settings Hub
-      if (currentSub !== null) {
-        isPopStateNavRef.current = true;
-        if (folderItems.includes(currentSub)) {
-          setActiveSubSetting('features_folder');
-        } else {
-          setActiveSubSetting(null);
-        }
-        playCyberSound('click');
-        return;
-      }
-
-
-
       // If QR scanner modal is open, close it
       if (showQrScannerModalRef.current) {
         setShowQrScannerModal(false);
@@ -765,7 +738,7 @@ export default function App() {
         setActiveDashboardSubTab(null);
         return;
       }
-      // Note: tab transitions via browser back/forward are handled by window.onhashchange
+      // Note: tab & sub-setting navigation via browser back/forward is handled by window.onhashchange
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -5205,18 +5178,21 @@ export default function App() {
       const subHash = currentHash.includes('/') ? currentHash.split('/')[1].split('?')[0].trim() : null;
 
       if (baseHash && isTabValidForRole(baseHash, userRole)) {
-        if (baseHash !== activeTab) {
+        if (baseHash !== activeTabRef.current) {
           setActiveTab(baseHash);
         }
-        if (baseHash === 'settings' && subHash && subHash !== activeSubSetting) {
-          setActiveSubSetting(subHash);
+        if (baseHash === 'settings') {
+          const targetSub = subHash || null;
+          if (targetSub !== activeSubSettingRef.current) {
+            setActiveSubSetting(targetSub);
+          }
         }
       }
     };
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [activeTab, activeSubSetting, token, userRole]);
+  }, [token, userRole]);
 
   // Synchronize React activeTab and activeSubSetting state change to window location hash
   useEffect(() => {
@@ -5225,7 +5201,7 @@ export default function App() {
         ? `#/${activeTab}/${activeSubSetting}`
         : `#/${activeTab}`;
       if (window.location.hash !== expectedHash) {
-        window.location.hash = expectedHash;
+        window.history.pushState(null, '', expectedHash);
       }
     } else if (!token && !localStorage.getItem('token')) {
       // Only clear hash if the user is truly logged out
@@ -8079,24 +8055,20 @@ export default function App() {
         {activeTab === 'settings' && (
           <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '24px', boxSizing: 'border-box' }}>
             {activeSubSetting !== null && (
-              <div className="settings-sub-nav hide-on-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="settings-sub-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <button 
                   onClick={() => { 
                     const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
                     const targetSub = folderItems.includes(activeSubSetting) ? 'features_folder' : null;
-                    if (window.history.state && window.history.state.appNav === 'settings-sub') {
-                      window.history.back();
-                    } else {
-                      setActiveSubSetting(targetSub);
-                    }
+                    setActiveSubSetting(targetSub);
                     playCyberSound('click'); 
                   }}
                   className="btn-secondary active-haptic"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
                 >
                   <ArrowLeft size={16} /> {['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'].includes(activeSubSetting) ? 'Back to Features Hub Folder' : 'Back to Settings Hub'}
                 </button>
-                <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <span style={{ fontSize: '0.82rem', color: '#64748b', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Settings Hub &gt; {activeSubSetting}
                 </span>
               </div>
