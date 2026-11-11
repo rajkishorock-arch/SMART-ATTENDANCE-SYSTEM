@@ -73,6 +73,8 @@ export default function AttendanceReportsView({
   fetchReport,
   printReport,
   shiftDate,
+  reportAlertMsg,
+  setReportAlertMsg,
 }) {
   const { userRole, currentUser } = useAuth();
   const { playCyberSound } = useUI();
@@ -90,6 +92,38 @@ export default function AttendanceReportsView({
 
   return (
     <div className="reports-section mobile-tab-panel reports-panel" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      {/* Alert Notification Toast / Banner */}
+      {reportAlertMsg && (
+        <div style={{
+          padding: '14px 20px',
+          borderRadius: '12px',
+          background: reportAlertMsg.type === 'success' ? '#ecfdf5' : '#fef2f2',
+          border: `1px solid ${reportAlertMsg.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+          color: reportAlertMsg.type === 'success' ? '#065f46' : '#dc2626',
+          fontSize: '0.88rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '10px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+          animation: 'fadeInUp 0.3s ease'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>{reportAlertMsg.type === 'success' ? '✅' : '⚠️'}</span>
+            <span>{reportAlertMsg.text}</span>
+          </div>
+          {setReportAlertMsg && (
+            <button
+              onClick={() => setReportAlertMsg(null)}
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 800, padding: '0 4px' }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Filter Bar */}
       <div className="glass-panel hide-on-print" style={{ padding: '24px' }}>
         <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', color: 'var(--color-text-main)' }}>Select Report Parameters</h4>

@@ -112,6 +112,92 @@ def get_child_attendance(
     return [{"date": l.date, "time": l.time, "status": l.attendance} for l in logs]
 
 
+class ParentPreferencesPayload(BaseModel):
+    notify_email: Optional[bool] = None
+    notify_sms: Optional[bool] = None
+    notify_whatsapp: Optional[bool] = None
+    phone: Optional[str] = None
+
+
+@router.get("/preferences")
+def get_parent_preferences(
+    db: Session = Depends(get_db),
+    token: str = Depends(security.oauth2_scheme),
+):
+    from jose import jwt, JWTError
+    from .core import config
+    try:
+        payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
+        if payload.get("role") != "parent":
+            raise HTTPException(status_code=403, detail="Parent access only")
+        email = payload.get("sub")
+        institution_id = payload.get("institution_id")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    parent = db.query(models.ParentAccount).filter(
+        models.ParentAccount.email == email,
+        models.ParentAccount.institution_id == institution_id,
+    ).first()
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent account not found")
+
+    return {
+        "notify_email": bool(parent.notify_email),
+        "notify_sms": bool(parent.notify_sms),
+        "notify_whatsapp": bool(parent.notify_whatsapp),
+        "phone": parent.phone or "",
+        "email": parent.email,
+        "name": parent.name,
+    }
+
+
+@router.post("/preferences")
+def update_parent_preferences(
+    payload: ParentPreferencesPayload,
+    db: Session = Depends(get_db),
+    token: str = Depends(security.oauth2_scheme),
+):
+    from jose import jwt, JWTError
+    from .core import config
+    try:
+        payload_data = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.ALGORITHM])
+        if payload_data.get("role") != "parent":
+            raise HTTPException(status_code=403, detail="Parent access only")
+        email = payload_data.get("sub")
+        institution_id = payload_data.get("institution_id")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    parent = db.query(models.ParentAccount).filter(
+        models.ParentAccount.email == email,
+        models.ParentAccount.institution_id == institution_id,
+    ).first()
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent account not found")
+
+    if payload.notify_email is not None:
+        parent.notify_email = payload.notify_email
+    if payload.notify_sms is not None:
+        parent.notify_sms = payload.notify_sms
+    if payload.notify_whatsapp is not None:
+        parent.notify_whatsapp = payload.notify_whatsapp
+    if payload.phone is not None:
+        parent.phone = payload.phone.strip()
+
+    db.commit()
+    db.refresh(parent)
+    return {
+        "message": "Parent alert preferences updated successfully",
+        "preferences": {
+            "notify_email": bool(parent.notify_email),
+            "notify_sms": bool(parent.notify_sms),
+            "notify_whatsapp": bool(parent.notify_whatsapp),
+            "phone": parent.phone or "",
+        }
+    }
+
+
 class ParentNotifyPayload(BaseModel):
     parent_email: Optional[str] = None
     parent_phone: Optional[str] = None

@@ -10,9 +10,13 @@ import {
   ArrowRight,
   ShieldCheck,
   Clock,
-  BookOpen
+  BookOpen,
+  MessageSquare,
+  Phone,
+  Mail,
+  Save
 } from 'lucide-react';
-import { apiGet } from '../api/client.js';
+import { apiGet, apiPost } from '../api/client.js';
 import AttendanceChartsWidget from './AttendanceChartsWidget';
 
 export default function ParentDashboardView({
@@ -28,6 +32,16 @@ export default function ParentDashboardView({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState('');
 
+  // Parent WhatsApp & Communication Preferences
+  const [prefData, setPrefData] = useState({
+    notify_whatsapp: true,
+    notify_sms: false,
+    notify_email: true,
+    phone: currentUser?.phone || ''
+  });
+  const [isSavingPref, setIsSavingPref] = useState(false);
+  const [prefSaveSuccess, setPrefSaveSuccess] = useState('');
+
   // Extract linked child identity from token claims or currentUser context
   const childName = currentUser?.details?.student_name || currentUser?.student_name || 'Linked Student';
   const childRoll = currentUser?.details?.student_roll || currentUser?.student_roll || 'N/A';
@@ -39,9 +53,10 @@ export default function ParentDashboardView({
     setFetchError('');
 
     try {
-      const [attnRes, notifRes] = await Promise.allSettled([
+      const [attnRes, notifRes, prefRes] = await Promise.allSettled([
         apiGet('/parents/child-attendance', { token }),
-        apiGet('/notifications/my', { token })
+        apiGet('/notifications/my-notifications', { token }),
+        apiGet('/parents/preferences', { token })
       ]);
 
       if (attnRes.status === 'fulfilled' && attnRes.value?.ok) {
@@ -52,6 +67,18 @@ export default function ParentDashboardView({
       if (notifRes.status === 'fulfilled' && notifRes.value?.ok) {
         const data = await notifRes.value.json();
         setNotifications(Array.isArray(data) ? data : (data?.notifications || []));
+      }
+
+      if (prefRes.status === 'fulfilled' && prefRes.value?.ok) {
+        const pData = await prefRes.value.json();
+        if (pData) {
+          setPrefData({
+            notify_whatsapp: pData.notify_whatsapp ?? true,
+            notify_sms: pData.notify_sms ?? false,
+            notify_email: pData.notify_email ?? true,
+            phone: pData.phone || currentUser?.phone || ''
+          });
+        }
       }
     } catch (err) {
       setFetchError(err.message || 'Unable to connect to parent portal services.');
@@ -67,9 +94,10 @@ export default function ParentDashboardView({
 
     const runFetch = async () => {
       try {
-        const [attnRes, notifRes] = await Promise.allSettled([
+        const [attnRes, notifRes, prefRes] = await Promise.allSettled([
           apiGet('/parents/child-attendance', { token }),
-          apiGet('/notifications/my', { token })
+          apiGet('/notifications/my-notifications', { token }),
+          apiGet('/parents/preferences', { token })
         ]);
 
         if (!isMounted) return;
@@ -82,6 +110,18 @@ export default function ParentDashboardView({
         if (notifRes.status === 'fulfilled' && notifRes.value?.ok) {
           const data = await notifRes.value.json();
           setNotifications(Array.isArray(data) ? data : (data?.notifications || []));
+        }
+
+        if (prefRes.status === 'fulfilled' && prefRes.value?.ok) {
+          const pData = await prefRes.value.json();
+          if (pData) {
+            setPrefData({
+              notify_whatsapp: pData.notify_whatsapp ?? true,
+              notify_sms: pData.notify_sms ?? false,
+              notify_email: pData.notify_email ?? true,
+              phone: pData.phone || currentUser?.phone || ''
+            });
+          }
         }
       } catch (err) {
         if (isMounted) setFetchError(err.message || 'Unable to connect to parent portal services.');
@@ -99,6 +139,28 @@ export default function ParentDashboardView({
       isMounted = false;
     };
   }, [token]);
+
+  const handleSavePreferences = async (e) => {
+    if (e) e.preventDefault();
+    if (!token) return;
+    setIsSavingPref(true);
+    setPrefSaveSuccess('');
+    if (playCyberSound) playCyberSound('click');
+    try {
+      const res = await apiPost('/parents/preferences', prefData, { token });
+      if (res.ok) {
+        setPrefSaveSuccess('✅ WhatsApp & SMS communication preferences saved!');
+        if (playCyberSound) playCyberSound('success');
+        setTimeout(() => setPrefSaveSuccess(''), 4000);
+      } else {
+        setPrefSaveSuccess('⚠️ Could not update preferences. Please retry.');
+      }
+    } catch {
+      setPrefSaveSuccess('⚠️ Network error while saving preferences.');
+    } finally {
+      setIsSavingPref(false);
+    }
+  };
 
   const handleRefresh = () => {
     playCyberSound('click');
@@ -414,6 +476,117 @@ export default function ParentDashboardView({
         gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
         gap: '20px'
       }}>
+        {/* WhatsApp & SMS Communication Channels Card */}
+        <div style={{
+          padding: '20px',
+          background: '#ffffff',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-card)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MessageSquare size={18} color="#25d366" />
+              WhatsApp & Alert Channels
+            </h3>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '2px 8px', borderRadius: '10px', border: '1px solid #a7f3d0' }}>
+              Instant Delivery
+            </span>
+          </div>
+
+          <p style={{ fontSize: '0.84rem', color: '#475569', margin: '0 0 14px 0' }}>
+            Receive real-time alerts when your child enters the campus gate or is marked absent in class.
+          </p>
+
+          <form onSubmit={handleSavePreferences} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.84rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: 600 }}>
+                  <span style={{ color: '#25d366', fontWeight: 700 }}>💬</span> WhatsApp Gate & Absent Alerts
+                </span>
+                <input
+                  type="checkbox"
+                  checked={prefData.notify_whatsapp}
+                  onChange={e => setPrefData(p => ({ ...p, notify_whatsapp: e.target.checked }))}
+                  style={{ width: '17px', height: '17px', accentColor: '#25d366', cursor: 'pointer' }}
+                />
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.84rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: 600 }}>
+                  <Phone size={15} color="#0284c7" /> SMS Text Notifications
+                </span>
+                <input
+                  type="checkbox"
+                  checked={prefData.notify_sms}
+                  onChange={e => setPrefData(p => ({ ...p, notify_sms: e.target.checked }))}
+                  style={{ width: '17px', height: '17px', accentColor: '#0284c7', cursor: 'pointer' }}
+                />
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.84rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: 600 }}>
+                  <Mail size={15} color="#7c3aed" /> Daily 5:01 PM Email Summary
+                </span>
+                <input
+                  type="checkbox"
+                  checked={prefData.notify_email}
+                  onChange={e => setPrefData(p => ({ ...p, notify_email: e.target.checked }))}
+                  style={{ width: '17px', height: '17px', accentColor: '#7c3aed', cursor: 'pointer' }}
+                />
+              </label>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                Guardian WhatsApp / Mobile Number:
+              </label>
+              <input
+                type="tel"
+                value={prefData.phone}
+                onChange={e => setPrefData(p => ({ ...p, phone: e.target.value }))}
+                placeholder="+91 98765 43210"
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #e2e8f0',
+                  background: '#ffffff',
+                  fontSize: '0.85rem',
+                  color: '#0f172a',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {prefSaveSuccess && (
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#059669', background: '#ecfdf5', padding: '6px 12px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                {prefSaveSuccess}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSavingPref}
+              className="btn-primary"
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <Save size={15} />
+              <span>{isSavingPref ? 'Saving...' : 'Save Communication Preferences'}</span>
+            </button>
+          </form>
+        </div>
+
         {/* Notifications Shortcut Card */}
         <div style={{
           padding: '20px',

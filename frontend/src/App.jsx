@@ -1848,6 +1848,7 @@ export default function App() {
   const [reportData, setReportData] = useState({ total_working_days: 0, students: [] });
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isSendingAlerts, setIsSendingAlerts] = useState(false);
+  const [reportAlertMsg, setReportAlertMsg] = useState(null);
   const [cameraScanSettings, setCameraScanSettings] = useState(() => loadCameraSettings());
   const meshFrameSkipRef = useRef(0);
   const lastLandmarksRef = useRef(null);
@@ -4513,11 +4514,8 @@ export default function App() {
   };
 
   const handleSendAbsenteeAlerts = async () => {
-    if (!window.confirm("Are you sure you want to send email alerts to all students who are absent today?")) {
-      return;
-    }
-    
     setIsSendingAlerts(true);
+    setReportAlertMsg(null);
     try {
       const queryParams = new URLSearchParams();
       if (userRole === 'admin') {
@@ -4535,9 +4533,13 @@ export default function App() {
         }
       }
       const data = await attendanceApi.sendAbsenteeAlerts(token, queryParams.get('subject_id'));
-      alert(data.message || "Absentee warning emails queued successfully!");
+      setReportAlertMsg({ type: 'success', text: data.message || "Absentee warning notification alerts queued successfully!" });
+      playCyberSound('success');
+      setTimeout(() => setReportAlertMsg(null), 5000);
     } catch (err) {
-      alert(err.message || "Connection failed. Make sure the backend server is running.");
+      setReportAlertMsg({ type: 'error', text: err.message || "Connection failed. Make sure the backend server is running." });
+      playCyberSound('error');
+      setTimeout(() => setReportAlertMsg(null), 5000);
     } finally {
       setIsSendingAlerts(false);
     }
@@ -7997,6 +7999,8 @@ export default function App() {
             fetchReport={fetchReport}
             printReport={printReport}
             shiftDate={shiftDate}
+            reportAlertMsg={reportAlertMsg}
+            setReportAlertMsg={setReportAlertMsg}
           />
         )}
 
