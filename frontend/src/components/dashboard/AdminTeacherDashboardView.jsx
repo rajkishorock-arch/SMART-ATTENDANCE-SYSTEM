@@ -68,13 +68,30 @@ export default function AdminTeacherDashboardView({
     <PullToRefresh onRefresh={async () => { await fetchStats(); await fetchLogs(); }}>
       <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
         {activeDashboardSubTab !== null && (
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
             <button 
+              type="button"
               onClick={() => { setActiveDashboardSubTab(null); if (playCyberSound) playCyberSound('click'); }}
-              className="btn-secondary active-haptic"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontWeight: 600, fontSize: '0.86rem', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+              className="back-icon-btn active-haptic"
+              aria-label="Go Back"
+              title="Go Back"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                color: '#0f172a',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                padding: 0,
+                flexShrink: 0
+              }}
             >
-              <ArrowLeft size={16} /> Back to Dashboard
+              <ArrowLeft size={18} />
             </button>
           </div>
         )}

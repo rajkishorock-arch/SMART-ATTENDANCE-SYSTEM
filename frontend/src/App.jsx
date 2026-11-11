@@ -7676,7 +7676,7 @@ export default function App() {
         <header className={`flex-between header-container ${(activeTab === 'settings' && activeSubSetting !== null) || activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div className={activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''} style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, wordBreak: 'normal' }}>
                 {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
                 {activeTab === 'students' && 'Student Directory'}
                 {activeTab === 'teachers' && 'Teacher Directory'}
@@ -8175,18 +8175,35 @@ export default function App() {
         {activeTab === 'settings' && (
           <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '24px', boxSizing: 'border-box' }}>
             {activeSubSetting !== null && (
-              <div className="settings-sub-nav" style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <div className="settings-sub-nav" style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                 <button 
+                  type="button"
                   onClick={() => { 
                     const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
                     const targetSub = folderItems.includes(activeSubSetting) ? 'features_folder' : null;
                     setActiveSubSetting(targetSub);
                     playCyberSound('click'); 
                   }}
-                  className="btn-secondary active-haptic"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontWeight: 600, fontSize: '0.86rem', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                  className="back-icon-btn active-haptic"
+                  aria-label="Go Back"
+                  title="Go Back"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    color: '#0f172a',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                    padding: 0,
+                    flexShrink: 0
+                  }}
                 >
-                  <ArrowLeft size={16} /> {['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'].includes(activeSubSetting) ? 'Back to Features' : 'Back to Settings'}
+                  <ArrowLeft size={18} />
                 </button>
               </div>
             )}

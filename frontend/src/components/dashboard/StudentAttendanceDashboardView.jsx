@@ -842,30 +842,33 @@ export default function StudentAttendanceDashboardView({
     <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeInUp 0.3s ease' }}>
       {/* Back Button when inside a dedicated sub-section */}
       {activeSection !== null && (
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
           <button
             type="button"
             onClick={() => {
               if (playCyberSound) playCyberSound('click');
               setActiveSection(null);
             }}
-            className="btn-secondary"
+            className="back-icon-btn active-haptic"
+            aria-label="Go Back"
+            title="Go Back"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 14px',
+              width: '36px',
+              height: '36px',
               borderRadius: '10px',
               background: '#ffffff',
               border: '1px solid #cbd5e1',
               color: '#0f172a',
-              fontWeight: 600,
-              fontSize: '0.86rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+              padding: 0,
+              flexShrink: 0
             }}
           >
-            <ArrowLeft size={16} /> Back to Student Dashboard
+            <ArrowLeft size={18} />
           </button>
         </div>
       )}
