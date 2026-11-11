@@ -101,13 +101,39 @@ export default function NotificationDrawerModal({
     onClose();
   };
 
-  const filteredNotifications = notifications.filter(n => {
-    if (activeCategory === 'ALL') return true;
-    if (activeCategory === 'UNREAD') return !n.is_read;
-    if (activeCategory === 'SECURITY') return n.category === 'SECURITY' || n.category === 'SYSTEM';
-    if (activeCategory === 'CLASSES') return n.category === 'CLASS_REMINDER' || n.category === 'CLASSES';
-    return n.category === activeCategory;
-  });
+  const isFutureScheduledNotice = (n) => {
+    if (!n) return false;
+    const isCalendar = n.category === 'ACADEMIC_CALENDAR' || (n.action_url && n.action_url.includes('calendar'));
+    const text = `${n.title || ''} ${n.message || ''}`;
+    if (!isCalendar && !text.toLowerCase().includes('holiday') && !text.toLowerCase().includes('exam')) {
+      return false;
+    }
+    const match = text.match(/(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})/);
+    if (!match) return false;
+    const rawDate = match[1].replace(/\//g, '-');
+    const parts = rawDate.split('-');
+    let evtDate;
+    if (parts[0].length === 4) {
+      evtDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    } else {
+      evtDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+    }
+    if (isNaN(evtDate.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((evtDate - today) / (1000 * 60 * 60 * 24));
+    return diffDays > 1; // Suppress from notification drawer if more than 1 day in the future
+  };
+
+  const filteredNotifications = notifications
+    .filter(n => !isFutureScheduledNotice(n))
+    .filter(n => {
+      if (activeCategory === 'ALL') return true;
+      if (activeCategory === 'UNREAD') return !n.is_read;
+      if (activeCategory === 'SECURITY') return n.category === 'SECURITY' || n.category === 'SYSTEM';
+      if (activeCategory === 'CLASSES') return n.category === 'CLASS_REMINDER' || n.category === 'CLASSES';
+      return n.category === activeCategory;
+    });
 
   const getCategoryIcon = (cat) => {
     switch (cat) {
@@ -177,7 +203,7 @@ export default function NotificationDrawerModal({
 
   if (!isOpen) return null;
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = filteredNotifications.filter(n => !n.is_read).length;
 
   return (
     <>

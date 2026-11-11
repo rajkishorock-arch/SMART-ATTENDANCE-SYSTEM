@@ -200,16 +200,13 @@ export default function StudentAttendanceRecoveryWidget({ token, currentUser, pl
         </div>
       </div>
 
-      {/* Action Plan & Bylaws Advice */}
-      {data.action_plan && data.action_plan.length > 0 && (
-        <div style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '18px 20px' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', display: 'block', marginBottom: '10px' }}>
-            📋 Institutional Guidance & Recovery Directives:
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* Action Plan Guidance: Render only when low attendance requires corrective action */}
+      {isLowAttendance && data.action_plan && data.action_plan.length > 0 && (
+        <div style={{ background: '#f8fafc', borderRadius: '12px', border: `1px solid ${badgeBorder}`, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {data.action_plan.map((item, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.86rem', color: '#334155', lineHeight: '1.45' }}>
-                <span style={{ color: badgeColor, fontWeight: 800, marginTop: '2px' }}>•</span>
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#334155' }}>
+                <span style={{ color: badgeColor, fontWeight: 800 }}>•</span>
                 <span>{item}</span>
               </div>
             ))}

@@ -2,17 +2,57 @@
  * Production API Client Utility
  * Provides:
  * 1. Request deduplication (reuses in-flight GET promises for duplicate URLs)
- * 2. Automatic AbortController signal handling
- * 3. Client-side performance timing logs ([PERF FETCH])
+ * 2. In-memory short-lived read caching (0ms instant page loads, prevents backend saturation)
+ * 3. Automatic AbortController signal handling
+ * 4. Client-side performance timing logs ([PERF FETCH])
  */
 
 const activeRequestsMap = new Map();
 const abortControllersMap = new Map();
+const memoryCacheMap = new Map();
+
+function getEndpointTtl(url, options = {}) {
+  if (options.noCache || options.skipCache) return 0;
+  if (url.includes('/auth/token') || url.includes('/auth/heartbeat') || url.includes('/ws')) return 0;
+
+  // Frequently queried setting/metadata endpoints
+  if (url.includes('/departments') || url.includes('/institutions') || url.includes('/settings') || url.includes('/premium/status')) {
+    return 45000; // 45 seconds
+  }
+  if (url.includes('/health')) {
+    return 15000; // 15 seconds
+  }
+  return 0;
+}
+
+export function clearApiClientCache() {
+  memoryCacheMap.clear();
+}
 
 export async function fetchWithDedupe(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
   const requestKey = `${method}:${url}`;
+
+  // Invalidate read cache on write mutations
+  if (!isGet) {
+    memoryCacheMap.clear();
+  }
+
+  // Check read cache for eligible GET requests
+  const ttl = isGet ? getEndpointTtl(url, options) : 0;
+  if (ttl > 0 && memoryCacheMap.has(requestKey)) {
+    const cached = memoryCacheMap.get(requestKey);
+    if (Date.now() - cached.timestamp < ttl) {
+      return new Response(cached.body, {
+        status: cached.status,
+        statusText: cached.statusText,
+        headers: new Headers(cached.headers),
+      });
+    } else {
+      memoryCacheMap.delete(requestKey);
+    }
+  }
 
   // For non-GET requests or explicit skipDedupe, execute directly
   if (!isGet || options.skipDedupe) {
@@ -58,6 +98,23 @@ export async function fetchWithDedupe(url, options = {}) {
       const response = await fetch(url, options);
       const duration = (performance.now() - startTime).toFixed(1);
       console.log(`[PERF FETCH] ${method} ${url} took ${duration}ms (status ${response.status})`);
+
+      // Cache successful response in memory if eligible
+      if (ttl > 0 && response.ok) {
+        try {
+          const bodyClone = await response.clone().text();
+          const headersObj = {};
+          response.headers.forEach((v, k) => { headersObj[k] = v; });
+          memoryCacheMap.set(requestKey, {
+            body: bodyClone,
+            status: response.status,
+            statusText: response.statusText,
+            headers: headersObj,
+            timestamp: Date.now(),
+          });
+        } catch { /* ignore cache cloning errors */ }
+      }
+
       return response;
     } catch (err) {
       const duration = (performance.now() - startTime).toFixed(1);

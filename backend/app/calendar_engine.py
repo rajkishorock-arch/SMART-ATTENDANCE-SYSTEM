@@ -15,6 +15,18 @@ router = APIRouter()
 IST = timezone(timedelta(hours=5, minutes=30))
 
 
+def _parse_flexible_event_date(date_str: Optional[str]):
+    if not date_str:
+        return None
+    s = str(date_str).strip()
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            pass
+    return None
+
+
 def _format_event(e: models.CalendarEvent, db: Session) -> schemas.CalendarEventResponse:
     subject = db.query(models.Subject).filter(models.Subject.id == e.subject_id).first() if e.subject_id else None
     teacher = db.query(models.User).filter(models.User.id == e.teacher_id).first() if e.teacher_id else None
@@ -104,32 +116,54 @@ def create_calendar_event(
         institution_id=inst_id
     )
 
-    # Real-time Broadcast: Notify all students and parents in this institution
+    # Real-time Broadcast: Notify all students and parents in this institution only if the event is today or tomorrow!
+    # Future events (> 1 day away) live in the Academic Calendar and should not trigger premature real-time alerts.
     try:
         from .notifications import create_notification
-        event_label = "🏖️ Holiday" if new_event.event_type in ["HOLIDAY", "INSTITUTION_CLOSED"] else (
-            "📝 Exam Session" if new_event.event_type == "EXAM" else f"📢 {new_event.event_type.replace('_', ' ').title()}"
-        )
-        notif_title = f"{event_label}: {new_event.title} ({new_event.start_date})"
-        notif_msg = new_event.description or f"Official academic notice announced for {new_event.start_date}."
-        create_notification(
-            db=db,
-            institution_id=inst_id,
-            recipient_role="student",
-            title=notif_title,
-            message=notif_msg,
-            category="ACADEMIC_CALENDAR",
-            action_url="/#/calendar"
-        )
-        create_notification(
-            db=db,
-            institution_id=inst_id,
-            recipient_role="parent",
-            title=notif_title,
-            message=notif_msg,
-            category="ACADEMIC_CALENDAR",
-            action_url="/#/calendar"
-        )
+        today = datetime.now().date()
+        evt_date = _parse_flexible_event_date(new_event.start_date)
+
+        should_notify = False
+        prefix = ""
+        if evt_date:
+            diff_days = (evt_date - today).days
+            if diff_days == 0:
+                should_notify = True
+                prefix = "Today's Notice: "
+            elif diff_days == 1:
+                should_notify = True
+                prefix = "Tomorrow's Notice: "
+            else:
+                # Event is scheduled for a future day (> 1 day away) or in the past: do not dispatch premature notification!
+                should_notify = False
+        else:
+            should_notify = True
+            prefix = "Academic Notice: "
+
+        if should_notify:
+            event_label = "Holiday" if new_event.event_type in ["HOLIDAY", "INSTITUTION_CLOSED"] else (
+                "Exam Session" if new_event.event_type == "EXAM" else new_event.event_type.replace('_', ' ').title()
+            )
+            notif_title = f"{prefix}{event_label} - {new_event.title} ({new_event.start_date})"
+            notif_msg = new_event.description or f"Official academic notice for {new_event.start_date}."
+            create_notification(
+                db=db,
+                institution_id=inst_id,
+                recipient_role="student",
+                title=notif_title,
+                message=notif_msg,
+                category="ACADEMIC_CALENDAR",
+                action_url="/#/calendar"
+            )
+            create_notification(
+                db=db,
+                institution_id=inst_id,
+                recipient_role="parent",
+                title=notif_title,
+                message=notif_msg,
+                category="ACADEMIC_CALENDAR",
+                action_url="/#/calendar"
+            )
     except Exception as notif_err:
         pass
 

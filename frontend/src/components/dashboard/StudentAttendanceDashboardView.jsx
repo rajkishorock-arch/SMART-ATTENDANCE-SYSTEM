@@ -1,5 +1,8 @@
 import React from 'react';
-import { BookOpen, AlertCircle, MessageSquare, Calendar, CheckCircle2, TrendingUp, X, MapPin } from 'lucide-react';
+import { 
+  BookOpen, AlertCircle, MessageSquare, Calendar, CheckCircle2, TrendingUp, 
+  X, MapPin, ArrowLeft, ChevronRight, Target, Award, ShieldCheck, FileText, Bell 
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
 import StudentTodayView from '../StudentTodayView';
@@ -706,56 +709,726 @@ export default function StudentAttendanceDashboardView({
     return () => { ignore = true; };
   }, [token]);
 
+  const [activeSection, setActiveSection] = React.useState(null);
+
+  // Compute subject-wise attendance stats
+  const hasDirectStats = studentSubjectStats && (Array.isArray(studentSubjectStats) ? studentSubjectStats.length > 0 : Object.keys(studentSubjectStats).length > 0);
+  let displayStats = hasDirectStats ? studentSubjectStats : null;
+
+  if (!displayStats && safeStudentLogs.length > 0) {
+    const derived = {};
+    safeStudentLogs.forEach(log => {
+      const subKey = log.subject_id ? String(log.subject_id) : (log.subject_name || 'General');
+      if (!derived[subKey]) {
+        derived[subKey] = {
+          subject_id: log.subject_id || 0,
+          subjectCode: log.subject_code || (log.subject_id ? `SUB-${log.subject_id}` : 'GEN'),
+          subjectName: log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance'),
+          presentDays: 0,
+          totalDays: 0,
+          percentage: 0
+        };
+      }
+      derived[subKey].totalDays += 1;
+      if (log.attendance === 'Present' || log.attendance === 'Late') {
+        derived[subKey].presentDays += 1;
+      }
+    });
+    Object.values(derived).forEach(s => {
+      s.percentage = s.totalDays > 0 ? (s.presentDays / s.totalDays) * 100 : 0;
+    });
+    displayStats = derived;
+  }
+  const statsList = displayStats ? (Array.isArray(displayStats) ? displayStats : Object.values(displayStats)) : [];
+
+  const totalClasses = safeStudentLogs.length;
+  const presentClasses = safeStudentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+  const overallRate = totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : '0.0';
+  const hasShortage = Number(overallRate) < 75.0 && totalClasses > 0;
+
+  // Navigation Hub items
+  const hubSections = [
+    {
+      id: 'subjects',
+      title: 'Subject-wise Attendance',
+      subtitle: `${statsList.length} subjects registered • ${overallRate}% average`,
+      icon: BookOpen,
+      iconColor: '#2563eb',
+      iconBg: '#eff6ff',
+      badge: statsList.some(s => (s.percentage || 0) < 75) ? 'Alert' : 'Good',
+      badgeColor: statsList.some(s => (s.percentage || 0) < 75) ? '#dc2626' : '#059669',
+      badgeBg: statsList.some(s => (s.percentage || 0) < 75) ? '#fee2e2' : '#ecfdf5',
+    },
+    {
+      id: 'blueprint',
+      title: 'Attendance Blueprint Calendar',
+      subtitle: 'Monthly attendance matrix & daily log details',
+      icon: Calendar,
+      iconColor: '#7c3aed',
+      iconBg: '#f5f3ff',
+      badge: `${totalClasses} records`,
+      badgeColor: '#7c3aed',
+      badgeBg: '#f5f3ff',
+    },
+    {
+      id: 'calendar',
+      title: 'Academic Calendar & Notices',
+      subtitle: 'Official holidays, exam sessions, and schedule alerts',
+      icon: Bell,
+      iconColor: '#0284c7',
+      iconBg: '#f0f9ff',
+      badge: 'Notices',
+      badgeColor: '#0284c7',
+      badgeBg: '#f0f9ff',
+    },
+    {
+      id: 'compliance',
+      title: 'Attendance Compliance Status',
+      subtitle: 'Regulatory safety buffer & mentor guidance',
+      icon: ShieldCheck,
+      iconColor: '#10b981',
+      iconBg: '#ecfdf5',
+      badge: Number(overallRate) >= 75 ? 'Safe' : 'Review',
+      badgeColor: Number(overallRate) >= 75 ? '#059669' : '#dc2626',
+      badgeBg: Number(overallRate) >= 75 ? '#ecfdf5' : '#fee2e2',
+    },
+    {
+      id: 'planner',
+      title: 'Attendance Planner & Target 75%',
+      subtitle: 'Calculate upcoming classes needed to hit 75%',
+      icon: Target,
+      iconColor: '#f59e0b',
+      iconBg: '#fffbeb',
+      badge: 'Simulator',
+      badgeColor: '#d97706',
+      badgeBg: '#fffbeb',
+    },
+    {
+      id: 'wallet',
+      title: 'Attendance Wallet & Streaks',
+      subtitle: 'Earn credits, track attendance streaks, and rewards',
+      icon: Award,
+      iconColor: '#ec4899',
+      iconBg: '#fdf2f8',
+      badge: 'Credits',
+      badgeColor: '#db2777',
+      badgeBg: '#fdf2f8',
+    },
+    {
+      id: 'geofence',
+      title: 'Campus Geofence Location',
+      subtitle: geofenceStatus.checked ? (geofenceStatus.inside ? 'Inside authorized zone' : 'Outside authorized zone') : 'Tap to check location',
+      icon: MapPin,
+      iconColor: geofenceStatus.checked ? (geofenceStatus.inside ? '#059669' : '#dc2626') : '#64748b',
+      iconBg: geofenceStatus.checked ? (geofenceStatus.inside ? '#ecfdf5' : '#fef2f2') : '#f1f5f9',
+      badge: geofenceStatus.checked ? (geofenceStatus.inside ? 'Verified' : 'Outside') : 'Check',
+      badgeColor: geofenceStatus.checked ? (geofenceStatus.inside ? '#059669' : '#dc2626') : '#64748b',
+      badgeBg: geofenceStatus.checked ? (geofenceStatus.inside ? '#ecfdf5' : '#fee2e2') : '#f1f5f9',
+    },
+    {
+      id: 'disputes',
+      title: 'Leave Applications & Disputes',
+      subtitle: `${safeLeaveRequests.length} leave requests • ${myDisputes.length} disputes`,
+      icon: FileText,
+      iconColor: '#6366f1',
+      iconBg: '#eef2ff',
+      badge: 'Requests',
+      badgeColor: '#4f46e5',
+      badgeBg: '#eef2ff',
+    },
+  ];
+
   return (
-    <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeInUp 0.3s ease' }}>
-      {/* Student Daily Driver Today Status & 75% Rule Card */}
-      <StudentTodayView
-        studentLogs={studentLogs}
-        onRequestDispute={(log) => {
-          setDisputePrefillSession(log);
-          setShowDisputeModal(true);
-        }}
-        onExportSummary={exportToCSV}
-        lang={appLang}
-      />
+    <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeInUp 0.3s ease' }}>
+      {/* Back Button when inside a dedicated sub-section */}
+      {activeSection !== null && (
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (playCyberSound) playCyberSound('click');
+              setActiveSection(null);
+            }}
+            className="btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              color: '#0f172a',
+              fontWeight: 600,
+              fontSize: '0.86rem',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+            }}
+          >
+            <ArrowLeft size={16} /> Back to Student Dashboard
+          </button>
+        </div>
+      )}
 
-      {/* Official Institutional Academic Calendar, Holidays & Schedule Alerts */}
-      <StudentAcademicCalendarWidget
-        token={token}
-        currentUser={currentUser}
-        onNavigateToCalendar={onNavigateToCalendar}
-        playCyberSound={playCyberSound}
-      />
+      {/* ===== 1. ROOT HUB VIEW (Organized Directory) ===== */}
+      {activeSection === null && (
+        <>
+          {/* Student Daily Driver Today Status & 75% Rule Card */}
+          <StudentTodayView
+            studentLogs={studentLogs}
+            onRequestDispute={(log) => {
+              setDisputePrefillSession(log);
+              setShowDisputeModal(true);
+            }}
+            onExportSummary={exportToCSV}
+            lang={appLang}
+          />
 
-      {/* Low-Attendance Intervention & Counselor Action Plan Widget */}
-      <StudentAttendanceRecoveryWidget
-        token={token}
-        currentUser={currentUser}
-        playCyberSound={playCyberSound}
-      />
+          {/* Clean Portal Hub Sections */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: '4px 0 2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>📑</span> Student Services & Portals
+            </h3>
+            {hubSections.map(sec => {
+              const Icon = sec.icon;
+              return (
+                <div
+                  key={sec.id}
+                  onClick={() => {
+                    if (playCyberSound) playCyberSound('click');
+                    setActiveSection(sec.id);
+                  }}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      background: sec.iconBg,
+                      color: sec.iconColor,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Icon size={18} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{sec.title}</h4>
+                        {sec.badge && (
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '1px 7px',
+                            borderRadius: '6px',
+                            background: sec.badgeBg,
+                            color: sec.badgeColor
+                          }}>
+                            {sec.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {sec.subtitle}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
+      {/* ===== 2. DEDICATED SECTION: SUBJECT-WISE ATTENDANCE ===== */}
+      {activeSection === 'subjects' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BookOpen size={20} style={{ color: '#2563eb' }} /> Subject-wise Attendance
+            </h3>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+              {statsList.length} Registered Subjects
+            </span>
+          </div>
 
-      <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} />
-      <AttendancePlannerWidget token={token} currentUser={currentUser} playCyberSound={playCyberSound} />
-      <GamificationHub logs={studentLogs} />
+          {hasShortage && (
+            <div style={{
+              padding: '12px 14px',
+              border: '1px solid #fecaca',
+              background: '#fee2e2',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <AlertCircle size={20} style={{ color: '#dc2626', flexShrink: 0 }} />
+              <div>
+                <h4 style={{ color: '#991b1b', fontSize: '0.88rem', fontWeight: 700, margin: 0 }}>Attendance Shortage Alert</h4>
+                <p style={{ color: '#7f1d1d', fontSize: '0.78rem', margin: '2px 0 0' }}>
+                  Your overall attendance rate ({overallRate}%) is below the required 75% limit. Please attend upcoming lectures regularly.
+                </p>
+              </div>
+            </div>
+          )}
 
-      {/* ===== CAMPUS GEOFENCE LIVE INDICATOR ===== */}
-      {(() => {
+          {statsList.length === 0 ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              No subject records found for your department.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {statsList.map((subStat, idx) => {
+                const pDays = subStat.presentDays || subStat.present_count || 0;
+                const tDays = Math.max(subStat.totalDays || subStat.total_classes || 0, pDays);
+                const rawPct = (subStat.percentage !== undefined ? subStat.percentage : (tDays > 0 ? (pDays / tDays) * 100 : 0));
+                const safePct = Math.min(100.0, Math.max(0.0, Number(rawPct) || 0));
+                const isWarning = safePct < 75.0 && tDays > 0;
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      background: '#ffffff',
+                      border: `1px solid ${isWarning ? '#fca5a5' : '#e2e8f0'}`,
+                      borderRadius: '12px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', padding: '1px 6px', borderRadius: '4px' }}>
+                            {subStat.subjectCode || subStat.subject_code || 'SUB'}
+                          </span>
+                          <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {subStat.subjectName || subStat.subject_name || 'Subject'}
+                          </h4>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                          Attended: {pDays} / {tDays} lectures
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: isWarning ? '#dc2626' : '#059669' }}>
+                          {safePct.toFixed(1)}%
+                        </span>
+                        <span style={{
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          background: isWarning ? '#fee2e2' : '#d1fae5',
+                          color: isWarning ? '#dc2626' : '#059669'
+                        }}>
+                          {tDays === 0 ? 'No Classes' : isWarning ? 'Shortage' : 'Good'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 4px slim progress bar */}
+                    <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${Math.min(100, safePct)}%`,
+                        height: '100%',
+                        background: isWarning ? '#ef4444' : '#10b981',
+                        borderRadius: '2px',
+                        transition: 'width 0.4s ease'
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===== 3. DEDICATED SECTION: ATTENDANCE BLUEPRINT CALENDAR ===== */}
+      {activeSection === 'blueprint' && (
+        <div>
+          {(() => {
+            const safeBlueprintRaw = Array.isArray(blueprintData) ? blueprintData : [];
+            let effectiveBlueprintData = safeBlueprintRaw;
+
+            if (effectiveBlueprintData.length === 0 && safeStudentLogs.length > 0) {
+              const subMap = {};
+              safeStudentLogs.forEach(log => {
+                const subId = log.subject_id !== undefined && log.subject_id !== null ? log.subject_id : 0;
+                if (!subMap[subId]) {
+                  subMap[subId] = {
+                    subject_id: subId,
+                    subject_name: log.subject_name || (subId ? `Subject #${subId}` : 'General Attendance'),
+                    subject_code: log.subject_code || (subId ? `SUB-${subId}` : 'GEN'),
+                    department: log.department || '',
+                    calendar: {}
+                  };
+                }
+                if (log.date) {
+                  const d = String(log.date).trim();
+                  const statusVal = log.attendance || 'Present';
+                  subMap[subId].calendar[d] = statusVal;
+                  if (d.includes('-') && d.length === 10) {
+                    const [y, m, day] = d.split('-');
+                    subMap[subId].calendar[`${day}/${m}/${y}`] = statusVal;
+                  } else if (d.includes('/')) {
+                    const parts = d.split('/');
+                    if (parts.length === 3) {
+                      const [day, m, y] = parts;
+                      subMap[subId].calendar[`${y}-${m.padStart(2,'0')}-${day.padStart(2,'0')}`] = statusVal;
+                      subMap[subId].calendar[`${day.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`] = statusVal;
+                    }
+                  }
+                }
+              });
+              effectiveBlueprintData = Object.values(subMap);
+            }
+
+            const activeSubject = effectiveBlueprintData.find(s => s.subject_id === selectedBlueprintSubject) || effectiveBlueprintData[0] || null;
+            const calYear = blueprintCalendarDate ? blueprintCalendarDate.getFullYear() : new Date().getFullYear();
+            const calMonth = blueprintCalendarDate ? blueprintCalendarDate.getMonth() : new Date().getMonth();
+            const startDay = new Date(calYear, calMonth, 1).getDay();
+            const numDays = new Date(calYear, calMonth + 1, 0).getDate();
+            const monthName = (blueprintCalendarDate || new Date()).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            const getStats = (subject) => {
+              if (!subject) return { present: 0, absent: 0, late: 0, total: 0 };
+              const vals = Object.values(subject.calendar || {});
+              return {
+                present: vals.filter(v => v === 'Present').length,
+                late: vals.filter(v => v === 'Late').length,
+                absent: vals.filter(v => v === 'Absent').length,
+                total: vals.length
+              };
+            };
+            const stats = getStats(activeSubject);
+            const pct = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
+
+            return (
+              <div style={{ padding: 'clamp(14px, 3vw, 24px)', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>My Attendance Blueprint</h3>
+                      <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b' }}>Click any date cell to view real-time log details & submit disputes</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fetchBlueprint(token)}
+                    disabled={blueprintLoading}
+                    style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: blueprintLoading ? 'not-allowed' : 'pointer', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0369a1', fontWeight: 600 }}
+                  >
+                    <span style={{ display: 'inline-block', animation: blueprintLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                    {blueprintLoading ? 'Updating...' : 'Refresh'}
+                  </button>
+                </div>
+
+                {blueprintLoading ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#64748b', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    Loading blueprint...
+                  </div>
+                ) : effectiveBlueprintData.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '36px 20px', color: '#64748b' }}>
+                    <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#64748b' }}>
+                      No attendance records found yet. Your blueprint will appear once attendance is marked.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => fetchBlueprint(token)}
+                      style={{ padding: '7px 18px', fontSize: '0.82rem', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      🔄 Check Again
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Subject Tabs */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                      {effectiveBlueprintData.map(sub => (
+                        <button
+                          key={sub.subject_id}
+                          onClick={() => setSelectedBlueprintSubject(sub.subject_id)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            fontSize: '0.76rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            border: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
+                              ? '1px solid #3b82f6'
+                              : '1px solid #cbd5e1',
+                            background: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
+                              ? '#eff6ff'
+                              : '#f8fafc',
+                            color: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id)) ? '#1d4ed8' : '#64748b'
+                          }}
+                        >
+                          {sub.subject_code} — {sub.subject_name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Stats Bar */}
+                    {activeSubject && (
+                      <div>
+                        <div
+                          className="blueprint-stats-row"
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(5, 1fr)',
+                            gap: '6px',
+                            alignItems: 'center',
+                            marginBottom: (pct < 75 && stats.total > 0) ? '10px' : '16px',
+                            padding: '10px 6px',
+                            background: '#f8fafc',
+                            borderRadius: '12px',
+                            border: '1px solid #e2e8f0',
+                            textAlign: 'center',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <div style={{ minWidth: 0, padding: '2px 4px' }}>
+                            <div style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)', fontWeight: 800, color: pct >= 75 ? '#059669' : '#dc2626', lineHeight: 1.1 }}>{pct}%</div>
+                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Attendance</div>
+                          </div>
+                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#059669', lineHeight: 1.1 }}>{stats.present}</div>
+                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Present</div>
+                          </div>
+                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#d97706', lineHeight: 1.1 }}>{stats.late}</div>
+                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Late</div>
+                          </div>
+                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#dc2626', lineHeight: 1.1 }}>{stats.absent}</div>
+                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Absent</div>
+                          </div>
+                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#0f172a', lineHeight: 1.1 }}>{stats.total}</div>
+                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total Days</div>
+                          </div>
+                        </div>
+                        {pct < 75 && stats.total > 0 && (
+                          <div style={{ marginBottom: '14px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: '#dc2626', fontSize: '0.74rem', fontWeight: 700 }}>⚠ Below 75% — Shortage</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Calendar Navigation */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <button
+                        onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() - 1); return d; })}
+                        style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
+                      >◀ Prev</button>
+                      <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a' }}>{monthName}</span>
+                      <button
+                        onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() + 1); return d; })}
+                        style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
+                      >Next ▶</button>
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '6px' }}>
+                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                        <div key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', padding: '4px 0' }}>{d}</div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                      {Array.from({ length: startDay }, (_, i) => (
+                        <div key={`e${i}`} />
+                      ))}
+                      {Array.from({ length: numDays }, (_, i) => {
+                        const day = i + 1;
+                        const padDay = String(day).padStart(2, '0');
+                        const padMonth = String(calMonth + 1).padStart(2, '0');
+                        const dateStr = `${padDay}/${padMonth}/${calYear}`;
+                        const isoDateStr = `${calYear}-${padMonth}-${padDay}`;
+                        const shortSlash = `${day}/${calMonth + 1}/${calYear}`;
+
+                        let status = activeSubject?.calendar?.[dateStr] || 
+                                     activeSubject?.calendar?.[isoDateStr] || 
+                                     activeSubject?.calendar?.[shortSlash];
+
+                        if (!status && safeStudentLogs.length > 0) {
+                          const match = safeStudentLogs.find(l => {
+                            if (activeSubject && activeSubject.subject_id !== 0 && l.subject_id && String(l.subject_id) !== String(activeSubject.subject_id)) {
+                              return false;
+                            }
+                            const lDate = (l.date || '').trim();
+                            return lDate === dateStr || lDate === isoDateStr || lDate === shortSlash;
+                          });
+                          if (match) {
+                            status = match.attendance || 'Present';
+                          }
+                        }
+                        const today = new Date();
+                        const isToday = today.getDate() === day && today.getMonth() === calMonth && today.getFullYear() === calYear;
+
+                        let bg = '#f8fafc';
+                        let border = '1px solid #e2e8f0';
+                        let color = '#64748b';
+                        let dot = null;
+                        let label = null;
+
+                        if (status === 'Present') {
+                          bg = '#d1fae5';
+                          border = '1px solid #a7f3d0';
+                          color = '#065f46';
+                          dot = '✓';
+                          label = 'P';
+                        } else if (status === 'Late') {
+                          bg = '#fef3c7';
+                          border = '1px solid #fde68a';
+                          color = '#b45309';
+                          dot = '~';
+                          label = 'L';
+                        } else if (status === 'Absent') {
+                          bg = '#fee2e2';
+                          border = '1px solid #fecaca';
+                          color = '#991b1b';
+                          dot = '✗';
+                          label = 'A';
+                        }
+
+                        if (isToday) {
+                          border = '2px solid #2563eb';
+                        }
+
+                        return (
+                          <div
+                            key={day}
+                            title={status ? `${dateStr}: ${status} (Click for Details)` : `${dateStr} (Click for Details)`}
+                            onClick={() => {
+                              setBlueprintDayModalDate(dateStr);
+                              setShowBlueprintDayModal(true);
+                              if (typeof playCyberSound === 'function') playCyberSound('click');
+                            }}
+                            style={{
+                              background: bg,
+                              border,
+                              borderRadius: '8px',
+                              padding: '5px 2px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minHeight: '48px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#2563eb' : color }}>{day}</span>
+                            {dot && (
+                              <span style={{ fontSize: '0.64rem', fontWeight: 700, color, marginTop: '1px' }}>{label}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Legend */}
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '14px', fontSize: '0.72rem', color: '#64748b', alignItems: 'center' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#d1fae5', border: '1px solid #a7f3d0', display: 'inline-block' }}/>P = Present</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#fee2e2', border: '1px solid #fecaca', display: 'inline-block' }}/>A = Absent</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#fef3c7', border: '1px solid #fde68a', display: 'inline-block' }}/>L = Late</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', border: '2px solid #2563eb', display: 'inline-block' }}/>Today</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto', color: '#2563eb', fontWeight: 600 }}>💡 Click date cell for details</span>
+                    </div>
+
+                    <BlueprintDayBreakdownModal
+                      isOpen={showBlueprintDayModal}
+                      onClose={() => setShowBlueprintDayModal(false)}
+                      dateStr={blueprintDayModalDate}
+                      studentLogs={studentLogs}
+                      activeSubject={activeSubject}
+                      playCyberSound={playCyberSound}
+                      onRequestDispute={(log) => {
+                        setDisputePrefillSession(log);
+                        setShowDisputeModal(true);
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ===== 4. DEDICATED SECTION: ACADEMIC CALENDAR & NOTICES ===== */}
+      {activeSection === 'calendar' && (
+        <StudentAcademicCalendarWidget
+          token={token}
+          currentUser={currentUser}
+          onNavigateToCalendar={onNavigateToCalendar}
+          playCyberSound={playCyberSound}
+        />
+      )}
+
+      {/* ===== 5. DEDICATED SECTION: ATTENDANCE COMPLIANCE & STATUS ===== */}
+      {activeSection === 'compliance' && (
+        <StudentAttendanceRecoveryWidget
+          token={token}
+          currentUser={currentUser}
+          playCyberSound={playCyberSound}
+        />
+      )}
+
+      {/* ===== 6. DEDICATED SECTION: ATTENDANCE PLANNER & SIMULATOR ===== */}
+      {activeSection === 'planner' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <AttendancePlannerWidget token={token} currentUser={currentUser} playCyberSound={playCyberSound} />
+          <AiAttendanceForecaster blueprintData={blueprintData} playCyberSound={playCyberSound} />
+        </div>
+      )}
+
+      {/* ===== 7. DEDICATED SECTION: WALLET & GAMIFICATION ===== */}
+      {activeSection === 'wallet' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} />
+          <GamificationHub logs={studentLogs} />
+        </div>
+      )}
+
+      {/* ===== 8. DEDICATED SECTION: CAMPUS GEOFENCE LOCATION ===== */}
+      {activeSection === 'geofence' && (() => {
         const geo = geofenceStatus;
         return (
-          <div style={{ padding: '14px 16px', borderRadius: '14px', border: `1px solid ${geo.checked ? (geo.inside ? '#a7f3d0' : '#fecaca') : '#e2e8f0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: geo.checked ? (geo.inside ? '#f0fdf4' : '#fef2f2') : '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: geo.checked ? (geo.inside ? '#d1fae5' : '#fee2e2') : '#eff6ff', color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <MapPin size={18} />
+          <div style={{ padding: '20px', borderRadius: '16px', border: `1px solid ${geo.checked ? (geo.inside ? '#a7f3d0' : '#fecaca') : '#e2e8f0'}`, display: 'flex', flexDirection: 'column', gap: '14px', background: geo.checked ? (geo.inside ? '#f0fdf4' : '#fef2f2') : '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: geo.checked ? (geo.inside ? '#d1fae5' : '#fee2e2') : '#eff6ff', color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <MapPin size={20} />
               </div>
               <div>
-                <p style={{ fontWeight: 700, color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#0f172a', margin: 0, fontSize: '0.9rem' }}>
+                <p style={{ fontWeight: 700, color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#0f172a', margin: 0, fontSize: '0.98rem' }}>
                   {geo.checked ? (geo.inside ? 'Inside Campus Zone' : 'Outside Campus Zone') : 'Campus Location Verification'}
                 </p>
-                <p style={{ color: '#64748b', fontSize: '0.76rem', margin: '2px 0 0' }}>
+                <p style={{ color: '#64748b', fontSize: '0.78rem', margin: '2px 0 0' }}>
                   {geo.checked
                     ? geo.distance !== null ? `Distance to campus center: ~${Math.round(geo.distance)}m` : 'Location verified.'
-                    : 'Verify whether you are inside the authorized campus geofence.'}
+                    : 'Verify whether your device is within the designated college GPS perimeter.'}
                 </p>
               </div>
             </div>
@@ -767,7 +1440,6 @@ export default function StudentAttendanceDashboardView({
                 }
                 navigator.geolocation.getCurrentPosition(pos => {
                   const { latitude, longitude } = pos.coords;
-                  // Use the campus center from geofence settings or fallback default
                   const campusLat = parseFloat(localStorage.getItem('geo_lat') || '0');
                   const campusLng = parseFloat(localStorage.getItem('geo_lng') || '0');
                   const radiusM = parseFloat(localStorage.getItem('geo_radius') || '200');
@@ -775,7 +1447,6 @@ export default function StudentAttendanceDashboardView({
                     setGeofenceStatus({ checked: true, inside: true, distance: null });
                     return;
                   }
-                  // Haversine distance
                   const R = 6371000;
                   const dLat = (latitude - campusLat) * Math.PI / 180;
                   const dLng = (longitude - campusLng) * Math.PI / 180;
@@ -786,800 +1457,216 @@ export default function StudentAttendanceDashboardView({
                   setGeofenceStatus({ checked: true, inside: false, distance: null });
                 });
               }}
-              style={{ padding: '9px 20px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0369a1', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+              style={{ padding: '10px 20px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0369a1', fontWeight: 600, fontSize: '0.86rem', cursor: 'pointer', alignSelf: 'flex-start' }}
             >
-              📍 Check My Location
+              📍 Check My Campus Location
             </button>
           </div>
         );
       })()}
 
-      {/* Stats Row with Interactive Modals & Real DB Data Sync */}
-      <StudentStatsRowWithModals 
-        studentLogs={studentLogs} 
-        playCyberSound={playCyberSound} 
-        onRequestDispute={(log) => {
-          setDisputePrefillSession(log);
-          setShowDisputeModal(true);
-        }} 
-      />
+      {/* ===== 9. DEDICATED SECTION: LEAVE APPLICATIONS & DISPUTES ===== */}
+      {activeSection === 'disputes' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Apply Leave Form */}
+          <div style={{ padding: 'clamp(14px, 3vw, 22px)', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem' }}>📝</span> Apply for Leave
+            </h3>
+            <LeaveApplicationForm
+              token={token}
+              API_BASE_URL={API_BASE_URL}
+              onLeaveApplied={fetchStudentLeaves}
+              playCyberSound={playCyberSound}
+              subjects={subjects}
+              studentLeaveRequests={studentLeaveRequests}
+            />
+          </div>
 
-      {/* ===== ATTENDANCE FORECAST + VIRTUAL ID + LEAVE REQUEST ROW ===== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-        {/* Attendance Forecast Card */}
-        <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem' }}>📊</span> Attendance Forecast
-          </h3>
-          {(() => {
-            const total = safeStudentLogs.length;
-            const present = safeStudentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-            const rate = total > 0 ? (present / total) * 100 : 0;
-            const minRequired = 0.75;
-            const canBunk = Math.floor(present / minRequired - total);
-            const needMore = Math.ceil((minRequired * total - present) / (1 - minRequired));
-
-            return (
+          {/* Leave Requests List */}
+          {studentLeaveRequests.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📋</span> My Leave Requests
+              </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {/* Circular Progress */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ position: 'relative', width: '80px', height: '80px', flexShrink: 0 }}>
-                    <svg width="80" height="80" viewBox="0 0 80 80">
-                      <circle cx="40" cy="40" r="34" fill="none" stroke="#e2e8f0" strokeWidth="8" />
-                      <circle
-                        cx="40" cy="40" r="34" fill="none"
-                        stroke={rate >= 75 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#ef4444'}
-                        strokeWidth="8" strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 34}`}
-                        strokeDashoffset={`${2 * Math.PI * 34 * (1 - rate / 100)}`}
-                        transform="rotate(-90 40 40)"
-                        style={{ transition: 'stroke-dashoffset 1s ease' }}
-                      />
-                    </svg>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 700, color: rate >= 75 ? '#059669' : '#dc2626' }}>
-                      {rate.toFixed(0)}%
+                {studentLeaveRequests.map(req => (
+                  <div key={req.id} style={{ padding: '14px 16px', borderRadius: '12px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fed7aa'}` }}>
+                    <div>
+                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                        {req.leave_type} {req.subject_name ? `(${req.subject_name} - ${req.subject_code})` : ' (General)'}
+                      </span>
+                      <p style={{ fontWeight: 600, fontSize: '0.88rem', color: '#0f172a', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
+                      <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>{req.reason}</p>
                     </div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    {rate >= 75 ? (
-                      <>
-                        <p style={{ color: '#059669', fontWeight: 700, fontSize: '0.9rem', margin: 0 }}>✅ You're Safe!</p>
-                        <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px', margin: 0 }}>
-                          {canBunk > 0 ? `You can bunk up to ${canBunk} more class${canBunk !== 1 ? 'es' : ''} safely.` : 'Attend all upcoming classes to stay safe.'}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.9rem', margin: 0 }}>⚠️ Below 75%!</p>
-                        <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px', margin: 0 }}>
-                          {total === 0 ? 'No attendance records yet.' : `Attend the next ${needMore} class${needMore !== 1 ? 'es' : ''} to reach 75%.`}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
-                  <span>Present: <strong style={{ color: '#0f172a' }}>{present}</strong></span>
-                  <span>Absent: <strong style={{ color: '#0f172a' }}>{total - present}</strong></span>
-                  <span>Total: <strong style={{ color: '#0f172a' }}>{total}</strong></span>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* Virtual ID Card Trigger */}
-        <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', cursor: 'pointer' }}
-          onClick={() => setShowVirtualId(true)}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem' }}>🪪</span> Virtual ID & QR Check-in
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '12px', background: '#f3e8ff', border: '1px solid #d8b4fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
-              🎫
-            </div>
-            <p style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', margin: 0 }}>
-              Dynamic QR code for contactless scanning.
-            </p>
-            <button className="btn btn-primary" style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }}>
-              Open Virtual ID Card
-            </button>
-          </div>
-        </div>
-
-        {/* Apply Leave Request */}
-        <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem' }}>📝</span> Apply for Leave
-          </h3>
-          <LeaveApplicationForm
-            token={token}
-            API_BASE_URL={API_BASE_URL}
-            onLeaveApplied={fetchStudentLeaves}
-            playCyberSound={playCyberSound}
-            subjects={subjects}
-            studentLeaveRequests={studentLeaveRequests}
-          />
-        </div>
-
-        {/* Attendance Disputes & Correction Trigger */}
-        <div 
-          style={{ 
-            padding: '24px', 
-            borderRadius: '16px', 
-            border: '1px solid #e2e8f0', 
-            background: '#ffffff', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            cursor: 'pointer' 
-          }}
-          onClick={() => {
-            playCyberSound('click');
-            setDisputePrefillSession(null);
-            setShowDisputeModal(true);
-          }}
-        >
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem' }}>⚖️</span> Attendance Disputes
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
-            <div style={{ 
-              width: '64px', 
-              height: '64px', 
-              borderRadius: '12px', 
-              background: '#fee2e2', 
-              border: '1px solid #fecaca', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              fontSize: '2rem' 
-            }}>
-              🛡️
-            </div>
-            <p style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', margin: 0 }}>
-              Submit attendance correction request with proof.
-            </p>
-            <button className="btn" style={{ 
-              width: '100%', 
-              padding: '10px', 
-              borderRadius: '8px', 
-              fontWeight: 600, 
-              fontSize: '0.85rem', 
-              background: '#fee2e2', 
-              border: '1px solid #fca5a5', 
-              color: '#dc2626',
-              cursor: 'pointer'
-            }}>
-              Dispute Attendance / Check Status
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* AI Attendance Forecaster & Bunk Simulator */}
-      <AiAttendanceForecaster
-        blueprintData={blueprintData}
-        playCyberSound={playCyberSound}
-      />
-
-      {/* My Leave Requests History */}
-      {studentLeaveRequests.length > 0 && (
-        <div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>📋</span> My Leave Requests
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {studentLeaveRequests.map(req => (
-              <div key={req.id} style={{ padding: '16px 20px', borderRadius: '12px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fed7aa'}` }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    {req.leave_type} {req.subject_name ? `(${req.subject_name} - ${req.subject_code})` : ' (General)'}
-                  </span>
-                  <p style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
-                  <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>{req.reason}</p>
-                </div>
-                <span style={{
-                  padding: '5px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
-                  background: req.status === 'Approved' ? '#d1fae5' : req.status === 'Rejected' ? '#fee2e2' : '#fef3c7',
-                  color: req.status === 'Approved' ? '#065f46' : req.status === 'Rejected' ? '#991b1b' : '#b45309',
-                  border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fde68a'}`
-                }}>
-                  {req.status === 'Approved' ? '✅' : req.status === 'Rejected' ? '❌' : '⏳'} {req.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* My Attendance Disputes & Status */}
-      {myDisputes.length > 0 && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⚖️</span> My Attendance Disputes & Status
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '12px' }}>
-                {myDisputes.length}
-              </span>
-            </h3>
-            <button
-              onClick={() => {
-                if (playCyberSound) playCyberSound('click');
-                setDisputePrefillSession(null);
-                setShowDisputeModal(true);
-              }}
-              style={{
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                color: '#1d4ed8',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              + Submit New Dispute
-            </button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {myDisputes.map(d => {
-              const st = (d.status || 'SUBMITTED').toUpperCase();
-              const isApproved = st === 'APPROVED';
-              const isRejected = st === 'REJECTED';
-              return (
-                <div key={d.id} style={{
-                  padding: '16px 20px',
-                  borderRadius: '12px',
-                  background: '#ffffff',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fed7aa'}`
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
-                      {d.subject_name ? `${d.subject_name} (${d.subject_code || ''})` : 'General Class'} • Date: {d.date}
-                    </span>
                     <span style={{
-                      padding: '3px 12px',
-                      borderRadius: '12px',
-                      fontSize: '0.74rem',
-                      fontWeight: 700,
-                      background: isApproved ? '#d1fae5' : isRejected ? '#fee2e2' : '#fef3c7',
-                      color: isApproved ? '#065f46' : isRejected ? '#991b1b' : '#b45309',
-                      border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fde68a'}`
+                      padding: '4px 12px', borderRadius: '20px', fontSize: '0.74rem', fontWeight: 700,
+                      background: req.status === 'Approved' ? '#d1fae5' : req.status === 'Rejected' ? '#fee2e2' : '#fef3c7',
+                      color: req.status === 'Approved' ? '#065f46' : req.status === 'Rejected' ? '#991b1b' : '#b45309',
+                      border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fde68a'}`
                     }}>
-                      {isApproved ? '✅ Approved & Corrected' : isRejected ? '❌ Rejected' : '⏳ ' + (d.status || 'Under Review')}
+                      {req.status === 'Approved' ? '✅' : req.status === 'Rejected' ? '❌' : '⏳'} {req.status}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '0.8rem', color: '#475569' }}>
-                    <span>Reason: <strong style={{ color: '#0f172a' }}>{d.reason}</strong> ({d.original_status} → {d.requested_status})</span>
-                    <button
-                      onClick={() => generateDisputePdf({ ...d, student_name: currentUser?.name || d.student_name, student_roll: currentUser?.details?.roll_number || d.student_roll })}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: '#f8fafc',
-                        border: '1px solid #cbd5e1',
-                        color: '#334155',
-                        fontSize: '0.74rem',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      📄 Download PDF Proof
-                    </button>
-                  </div>
-                  {d.reviewer_comments && (
-                    <div style={{ fontSize: '0.78rem', color: '#1e40af', background: '#eff6ff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-                      <strong>Teacher / HOD Note:</strong> {d.reviewer_comments}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Subject-wise Attendance Cards */}
-      {(() => {
-        const hasDirectStats = studentSubjectStats && (Array.isArray(studentSubjectStats) ? studentSubjectStats.length > 0 : Object.keys(studentSubjectStats).length > 0);
-        let displayStats = hasDirectStats ? studentSubjectStats : null;
-
-        if (!displayStats && safeStudentLogs.length > 0) {
-          const derived = {};
-          safeStudentLogs.forEach(log => {
-            const subKey = log.subject_id ? String(log.subject_id) : (log.subject_name || 'General');
-            if (!derived[subKey]) {
-              derived[subKey] = {
-                subject_id: log.subject_id || 0,
-                subjectCode: log.subject_code || (log.subject_id ? `SUB-${log.subject_id}` : 'GEN'),
-                subjectName: log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance'),
-                presentDays: 0,
-                totalDays: 0,
-                percentage: 0
-              };
-            }
-            derived[subKey].totalDays += 1;
-            if (log.attendance === 'Present' || log.attendance === 'Late') {
-              derived[subKey].presentDays += 1;
-            }
-          });
-          Object.values(derived).forEach(s => {
-            s.percentage = s.totalDays > 0 ? (s.presentDays / s.totalDays) * 100 : 0;
-          });
-          displayStats = derived;
-        }
-
-        const statsList = displayStats ? (Array.isArray(displayStats) ? displayStats : Object.values(displayStats)) : [];
-
-        return (
+          {/* Attendance Disputes List */}
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
-              <BookOpen size={20} style={{ color: '#2563eb' }} />
-              Subject-wise Attendance
-            </h3>
-            
-            {statsList.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                No subject records found for your department.
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⚖️</span> My Attendance Disputes & Status
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '12px' }}>
+                  {myDisputes.length}
+                </span>
+              </h3>
+              <button
+                onClick={() => {
+                  if (playCyberSound) playCyberSound('click');
+                  setDisputePrefillSession(null);
+                  setShowDisputeModal(true);
+                }}
+                style={{
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  color: '#1d4ed8',
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                + Submit New Dispute
+              </button>
+            </div>
+
+            {myDisputes.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.84rem' }}>
+                No active attendance disputes filed.
               </div>
             ) : (
-              <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-                {statsList.map((subStat, idx) => {
-                  const pDays = subStat.presentDays || subStat.present_count || 0;
-                  const tDays = Math.max(subStat.totalDays || subStat.total_classes || 0, pDays);
-                  const rawPct = (subStat.percentage !== undefined ? subStat.percentage : (tDays > 0 ? (pDays / tDays) * 100 : 0));
-                  const safePct = Math.min(100.0, Math.max(0.0, Number(rawPct) || 0));
-                  const isWarning = safePct < 75.0 && tDays > 0;
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {myDisputes.map(d => {
+                  const st = (d.status || 'SUBMITTED').toUpperCase();
+                  const isApproved = st === 'APPROVED';
+                  const isRejected = st === 'REJECTED';
                   return (
-                    <div key={idx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-                      <div className="flex-between">
-                        <div>
-                          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{subStat.subjectCode || subStat.subject_code}</span>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', margin: '2px 0 0 0' }}>{subStat.subjectName || subStat.subject_name}</h4>
-                        </div>
+                    <div key={d.id} style={{
+                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      background: '#ffffff',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fed7aa'}`
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
+                          {d.subject_name ? `${d.subject_name} (${d.subject_code || ''})` : 'General Class'} • Date: {d.date}
+                        </span>
                         <span style={{
-                          padding: '4px 8px',
+                          padding: '3px 10px',
                           borderRadius: '12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          background: isWarning ? '#fee2e2' : '#d1fae5',
-                          color: isWarning ? '#dc2626' : '#059669',
-                          border: `1px solid ${isWarning ? '#fca5a5' : '#a7f3d0'}`
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: isApproved ? '#d1fae5' : isRejected ? '#fee2e2' : '#fef3c7',
+                          color: isApproved ? '#065f46' : isRejected ? '#991b1b' : '#b45309',
+                          border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fde68a'}`
                         }}>
-                          {tDays === 0 ? 'No Classes' : isWarning ? 'Shortage' : 'Good'}
+                          {isApproved ? '✅ Approved & Corrected' : isRejected ? '❌ Rejected' : '⏳ ' + (d.status || 'Under Review')}
                         </span>
                       </div>
-                      
-                      <div className="flex-between" style={{ marginTop: '8px' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Classes: {pDays} / {tDays}</span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: isWarning ? '#dc2626' : '#059669' }}>
-                          {safePct.toFixed(1)}%
-                        </span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '0.78rem', color: '#475569' }}>
+                        <span>Reason: <strong style={{ color: '#0f172a' }}>{d.reason}</strong> ({d.original_status} → {d.requested_status})</span>
+                        <button
+                          onClick={() => generateDisputePdf({ ...d, student_name: currentUser?.name || d.student_name, student_roll: currentUser?.details?.roll_number || d.student_roll })}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            background: '#f8fafc',
+                            border: '1px solid #cbd5e1',
+                            color: '#334155',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          📄 Download PDF Proof
+                        </button>
                       </div>
-                      
-                      {/* Progress Bar */}
-                      <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{
-                          width: `${Math.min(100, safePct)}%`,
-                          height: '100%',
-                          background: isWarning ? 'linear-gradient(90deg, #f87171, #ef4444)' : 'linear-gradient(90deg, #34d399, #10b981)',
-                          borderRadius: '3px',
-                          transition: 'width 1s cubic-bezier(0.16, 1, 0.3, 1)'
-                        }} />
-                      </div>
+                      {d.reviewer_comments && (
+                        <div style={{ fontSize: '0.76rem', color: '#1e40af', background: '#eff6ff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                          <strong>Teacher / HOD Note:</strong> {d.reviewer_comments}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
-        );
-      })()}
+        </div>
+      )}
 
-      {/* Attendance Shortage Warning */}
-      {(() => {
-        const total = safeStudentLogs.length;
-        const present = safeStudentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-        const rate = total > 0 ? Math.min(100.0, (present / total) * 100) : 0;
-        if (total > 0 && rate < 75) {
-          return (
-            <div style={{
-              padding: '20px',
-              border: '1px solid #fecaca',
-              background: '#fee2e2',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              <AlertCircle size={28} style={{ color: '#dc2626', flexShrink: 0 }} />
-              <div>
-                <h4 style={{ color: '#991b1b', fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Attendance Shortage Warning</h4>
-                <p style={{ color: '#7f1d1d', fontSize: '0.875rem', margin: 0 }}>
-                  Your attendance rate is currently at <strong>{rate.toFixed(1)}%</strong>, which is below the minimum required <strong>75%</strong> academic limit. Please attend upcoming lectures regularly.
-                </p>
-              </div>
-            </div>
-          );
-        }
-        return null;
-      })()}
-
-      {/* ===== SUBJECT-WISE ATTENDANCE BLUEPRINT CALENDAR ===== */}
-      {(() => {
-        const safeBlueprintRaw = Array.isArray(blueprintData) ? blueprintData : [];
-        let effectiveBlueprintData = safeBlueprintRaw;
-
-        // If safeBlueprintRaw is empty but safeStudentLogs has records, construct synthetic blueprint from real records!
-        if (effectiveBlueprintData.length === 0 && safeStudentLogs.length > 0) {
-          const subMap = {};
-          safeStudentLogs.forEach(log => {
-            const subId = log.subject_id !== undefined && log.subject_id !== null ? log.subject_id : 0;
-            if (!subMap[subId]) {
-              subMap[subId] = {
-                subject_id: subId,
-                subject_name: log.subject_name || (subId ? `Subject #${subId}` : 'General Attendance'),
-                subject_code: log.subject_code || (subId ? `SUB-${subId}` : 'GEN'),
-                department: log.department || '',
-                calendar: {}
-              };
-            }
-            if (log.date) {
-              const d = String(log.date).trim();
-              const statusVal = log.attendance || 'Present';
-              subMap[subId].calendar[d] = statusVal;
-              if (d.includes('-') && d.length === 10) {
-                const [y, m, day] = d.split('-');
-                subMap[subId].calendar[`${day}/${m}/${y}`] = statusVal;
-              } else if (d.includes('/')) {
-                const parts = d.split('/');
-                if (parts.length === 3) {
-                  const [day, m, y] = parts;
-                  subMap[subId].calendar[`${y}-${m.padStart(2,'0')}-${day.padStart(2,'0')}`] = statusVal;
-                  subMap[subId].calendar[`${day.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`] = statusVal;
-                }
-              }
-            }
-          });
-          effectiveBlueprintData = Object.values(subMap);
-        }
-
-        const activeSubject = effectiveBlueprintData.find(s => s.subject_id === selectedBlueprintSubject) || effectiveBlueprintData[0] || null;
-        const calYear = blueprintCalendarDate ? blueprintCalendarDate.getFullYear() : new Date().getFullYear();
-        const calMonth = blueprintCalendarDate ? blueprintCalendarDate.getMonth() : new Date().getMonth();
-        const startDay = new Date(calYear, calMonth, 1).getDay();
-        const numDays = new Date(calYear, calMonth + 1, 0).getDate();
-        const monthName = (blueprintCalendarDate || new Date()).toLocaleString('default', { month: 'long', year: 'numeric' });
-
-        const getStats = (subject) => {
-          if (!subject) return { present: 0, absent: 0, late: 0, total: 0 };
-          const vals = Object.values(subject.calendar || {});
-          return {
-            present: vals.filter(v => v === 'Present').length,
-            late: vals.filter(v => v === 'Late').length,
-            absent: vals.filter(v => v === 'Absent').length,
-            total: vals.length
-          };
-        };
-        const stats = getStats(activeSubject);
-        const pct = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
-
-        return (
-          <div style={{ padding: '28px', marginTop: '8px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>My Attendance Blueprint</h3>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Subject-wise calendar — click any date cell to view real-time log details & submit disputes</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => fetchBlueprint(token)}
-                disabled={blueprintLoading}
-                style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: blueprintLoading ? 'not-allowed' : 'pointer', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0369a1', fontWeight: 600 }}
-              >
-                <span style={{ display: 'inline-block', animation: blueprintLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
-                {blueprintLoading ? 'Updating...' : 'Refresh'}
-              </button>
-            </div>
-
-            {blueprintLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#64748b', gap: '12px', alignItems: 'center' }}>
-                <div style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                Loading blueprint...
-              </div>
-            ) : effectiveBlueprintData.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px 20px', color: '#64748b' }}>
-                <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#64748b' }}>
-                  No attendance records found yet. Your blueprint will appear once attendance is marked.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => fetchBlueprint(token)}
-                  style={{ padding: '7px 18px', fontSize: '0.82rem', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}
-                >
-                  🔄 Check Again
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* Subject Tabs */}
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                  {effectiveBlueprintData.map(sub => (
-                    <button
-                      key={sub.subject_id}
-                      onClick={() => setSelectedBlueprintSubject(sub.subject_id)}
-                      style={{
-                        padding: '7px 14px',
-                        borderRadius: '20px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        border: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
-                          ? '1px solid #3b82f6'
-                          : '1px solid #cbd5e1',
-                        background: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
-                          ? '#eff6ff'
-                          : '#f8fafc',
-                        color: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id)) ? '#1d4ed8' : '#64748b'
-                      }}
-                    >
-                      {sub.subject_code} — {sub.subject_name}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Stats Bar (Always Horizontal Grid on Mobile & Desktop) */}
-                {activeSubject && (
-                  <div>
-                    <div
-                      className="blueprint-stats-row"
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(5, 1fr)',
-                        gap: '6px',
-                        alignItems: 'center',
-                        marginBottom: (pct < 75 && stats.total > 0) ? '10px' : '20px',
-                        padding: '12px 8px',
-                        background: '#f8fafc',
-                        borderRadius: '12px',
-                        border: '1px solid #e2e8f0',
-                        textAlign: 'center',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <div style={{ minWidth: 0, padding: '2px 4px' }}>
-                        <div style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.35rem)', fontWeight: 800, color: pct >= 75 ? '#059669' : '#dc2626', lineHeight: 1.1 }}>{pct}%</div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Attendance</div>
-                      </div>
-                      <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', fontWeight: 700, color: '#059669', lineHeight: 1.1 }}>{stats.present}</div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Present</div>
-                      </div>
-                      <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', fontWeight: 700, color: '#d97706', lineHeight: 1.1 }}>{stats.late}</div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Late</div>
-                      </div>
-                      <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', fontWeight: 700, color: '#dc2626', lineHeight: 1.1 }}>{stats.absent}</div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Absent</div>
-                      </div>
-                      <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', fontWeight: 700, color: '#0f172a', lineHeight: 1.1 }}>{stats.total}</div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total Days</div>
-                      </div>
-                    </div>
-                    {pct < 75 && stats.total > 0 && (
-                      <div style={{ marginBottom: '18px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: '#dc2626', fontSize: '0.75rem', fontWeight: 700 }}>⚠ Below 75% — Shortage</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Calendar Navigation */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <button
-                    onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() - 1); return d; })}
-                    style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
-                  >◀ Prev</button>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>{monthName}</span>
-                  <button
-                    onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() + 1); return d; })}
-                    style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
-                  >Next ▶</button>
-                </div>
-
-                {/* Calendar Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '8px' }}>
-                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-                    <div key={d} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', padding: '6px 0' }}>{d}</div>
-                  ))}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '5px' }}>
-                  {/* Empty alignment cells */}
-                  {Array.from({ length: startDay }, (_, i) => (
-                    <div key={`e${i}`} />
-                  ))}
-                  {/* Day cells */}
-                  {Array.from({ length: numDays }, (_, i) => {
-                    const day = i + 1;
-                    const padDay = String(day).padStart(2, '0');
-                    const padMonth = String(calMonth + 1).padStart(2, '0');
-                    const dateStr = `${padDay}/${padMonth}/${calYear}`;
-                    const isoDateStr = `${calYear}-${padMonth}-${padDay}`;
-                    const shortSlash = `${day}/${calMonth + 1}/${calYear}`;
-
-                    let status = activeSubject?.calendar?.[dateStr] || 
-                                 activeSubject?.calendar?.[isoDateStr] || 
-                                 activeSubject?.calendar?.[shortSlash];
-
-                    if (!status && safeStudentLogs.length > 0) {
-                      const match = safeStudentLogs.find(l => {
-                        if (activeSubject && activeSubject.subject_id !== 0 && l.subject_id && String(l.subject_id) !== String(activeSubject.subject_id)) {
-                          return false;
-                        }
-                        const lDate = (l.date || '').trim();
-                        return lDate === dateStr || lDate === isoDateStr || lDate === shortSlash;
-                      });
-                      if (match) {
-                        status = match.attendance || 'Present';
-                      }
-                    }
-                    const today = new Date();
-                    const isToday = today.getDate() === day && today.getMonth() === calMonth && today.getFullYear() === calYear;
-
-                    let bg = '#f8fafc';
-                    let border = '1px solid #e2e8f0';
-                    let color = '#64748b';
-                    let dot = null;
-                    let label = null;
-
-                    if (status === 'Present') {
-                      bg = '#d1fae5';
-                      border = '1px solid #a7f3d0';
-                      color = '#065f46';
-                      dot = '✓';
-                      label = 'P';
-                    } else if (status === 'Late') {
-                      bg = '#fef3c7';
-                      border = '1px solid #fde68a';
-                      color = '#b45309';
-                      dot = '~';
-                      label = 'L';
-                    } else if (status === 'Absent') {
-                      bg = '#fee2e2';
-                      border = '1px solid #fecaca';
-                      color = '#991b1b';
-                      dot = '✗';
-                      label = 'A';
-                    }
-
-                    if (isToday) {
-                      border = '2px solid #2563eb';
-                    }
-
-                    return (
-                      <div
-                        key={day}
-                        title={status ? `${dateStr}: ${status} (Click for Details)` : `${dateStr} (Click for Details)`}
-                        onClick={() => {
-                          setBlueprintDayModalDate(dateStr);
-                          setShowBlueprintDayModal(true);
-                          if (typeof playCyberSound === 'function') playCyberSound('click');
-                        }}
-                        style={{
-                          background: bg,
-                          border,
-                          borderRadius: '8px',
-                          padding: '6px 2px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minHeight: '52px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        <span style={{ fontSize: '0.82rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#2563eb' : color }}>{day}</span>
-                        {dot && (
-                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color, marginTop: '2px' }}>{label}</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Legend */}
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '16px', fontSize: '0.73rem', color: '#64748b', alignItems: 'center' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#d1fae5', border: '1px solid #a7f3d0', display: 'inline-block' }}/>P = Present</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#fee2e2', border: '1px solid #fecaca', display: 'inline-block' }}/>A = Absent</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#fef3c7', border: '1px solid #fde68a', display: 'inline-block' }}/>L = Late</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '12px', height: '12px', borderRadius: '3px', border: '2px solid #2563eb', display: 'inline-block' }}/>Today</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto', color: '#2563eb', fontWeight: 600 }}>💡 Click any date cell to view day breakdown & submit disputes</span>
-                </div>
-
-                {/* Daily Attendance Breakdown Modal */}
-                <BlueprintDayBreakdownModal
-                  isOpen={showBlueprintDayModal}
-                  onClose={() => setShowBlueprintDayModal(false)}
-                  dateStr={blueprintDayModalDate}
-                  studentLogs={studentLogs}
-                  activeSubject={activeSubject}
-                  playCyberSound={playCyberSound}
-                  onRequestDispute={(log) => {
-                    setDisputePrefillSession(log);
-                    setShowDisputeModal(true);
-                  }}
-                />
-              </>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Sleek Bottom Feedback Section */}
+      {/* Sleek Feedback Section */}
       <div 
         style={{ 
-          padding: '24px', 
+          padding: '16px', 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
           flexWrap: 'wrap', 
-          gap: '16px',
+          gap: '12px',
           borderLeft: '4px solid #2563eb',
           background: '#ffffff',
-          borderRadius: '16px',
+          borderRadius: '14px',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+          marginTop: '6px'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ 
             background: '#eff6ff', 
             color: '#2563eb', 
-            borderRadius: '12px', 
-            padding: '12px',
+            borderRadius: '10px', 
+            padding: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <MessageSquare size={24} />
+            <MessageSquare size={20} />
           </div>
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Help Us Improve the Platform</h3>
-            <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '4px 0 0' }}>
-              Share your suggestions, report a bug, or rate your overall experience with our smart attendance tracker.
+            <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Help Us Improve the Platform</h4>
+            <p style={{ color: '#64748b', fontSize: '0.76rem', margin: '2px 0 0' }}>
+              Share your suggestions or report any discrepancy directly to the admin desk.
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => {
-            playCyberSound('click');
+            if (playCyberSound) playCyberSound('click');
             setShowFeedbackModal(true);
           }}
           className="btn-primary"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '10px 20px',
+            gap: '6px',
+            padding: '8px 16px',
             borderRadius: '8px',
             fontWeight: 600,
-            fontSize: '0.88rem',
+            fontSize: '0.82rem',
             cursor: 'pointer'
           }}
         >
-          <MessageSquare size={16} /> Share Feedback
+          <MessageSquare size={14} /> Share Feedback
         </button>
       </div>
     </div>

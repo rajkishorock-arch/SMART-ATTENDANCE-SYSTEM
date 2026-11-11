@@ -10,6 +10,7 @@ from sqlalchemy import or_
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, timedelta
 import logging
+import re
 
 from . import models, security
 from .database import get_db
@@ -148,6 +149,26 @@ def create_notification(
         return None
 
 
+def _is_future_scheduled_calendar_notice(title: Optional[str], message: Optional[str]) -> bool:
+    """Helper to detect notifications for calendar events scheduled > 1 day in future."""
+    if not title and not message:
+        return False
+    text = f"{title or ''} {message or ''}"
+    m = re.search(r'(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})', text)
+    if not m:
+        return False
+    ds = m.group(1).replace('/', '-')
+    today = datetime.now().date()
+    for fmt in ("%d-%m-%Y", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(ds, fmt).date()
+            if (parsed - today).days > 1:
+                return True
+        except ValueError:
+            pass
+    return False
+
+
 @router.get("/my-notifications")
 def get_my_notifications(
     limit: int = 40,
@@ -188,10 +209,15 @@ def get_my_notifications(
             )
         )
 
-    notifications = query.order_by(models.NotificationModel.created_at.desc()).limit(limit).all()
+    notifications = query.order_by(models.NotificationModel.created_at.desc()).limit(limit * 2).all()
 
     output = []
     for n in notifications:
+        # Suppress future scheduled calendar notices (> 1 day ahead) from today's real-time list
+        is_calendar = n.category == "ACADEMIC_CALENDAR" or "holiday" in (n.title or "").lower() or "exam" in (n.title or "").lower()
+        if is_calendar and _is_future_scheduled_calendar_notice(n.title, n.message):
+            continue
+
         dt = n.created_at
         iso_str = None
         if dt:
@@ -210,6 +236,8 @@ def get_my_notifications(
             "is_read": bool(n.is_read),
             "created_at": iso_str
         })
+        if len(output) >= limit:
+            break
 
     return output
 
@@ -254,8 +282,15 @@ def get_unread_notification_count(
             )
         )
 
-    unread_count = query.count()
-    return {"unread_count": unread_count}
+    unread_notifications = query.all()
+    valid_unread = 0
+    for n in unread_notifications:
+        is_calendar = n.category == "ACADEMIC_CALENDAR" or "holiday" in (n.title or "").lower() or "exam" in (n.title or "").lower()
+        if is_calendar and _is_future_scheduled_calendar_notice(n.title, n.message):
+            continue
+        valid_unread += 1
+
+    return {"unread_count": valid_unread}
 
 
 @router.post("/mark-read/{notification_id}")
