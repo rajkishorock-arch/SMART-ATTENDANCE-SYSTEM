@@ -8389,6 +8389,10 @@ export default function App() {
                 currentUser={currentUser}
                 setCurrentUser={setCurrentUser}
                 isDemoMode={isDemoMode}
+                userRole={userRole}
+                playCyberSound={playCyberSound}
+                handleLogout={handleLogout}
+                onNavigate={navigateToTab}
               />
             )}
 

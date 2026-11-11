@@ -177,24 +177,24 @@ export default function DepartmentSettings({
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '16px', width: '100%', boxSizing: 'border-box' }}>
-          <div className="form-group" style={{ margin: 0, width: '100%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+          <div className="form-group" style={{ margin: 0, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <label className="form-label" style={{ fontWeight: 600, color: '#0f172a' }}>Department Name</label>
             <input
               type="text"
               className="form-input"
-              style={{ width: '100%', boxSizing: 'border-box' }}
+              style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
               placeholder="e.g. Computer Science & Engineering"
               value={newDeptName}
               onChange={e => setNewDeptName(e.target.value)}
             />
           </div>
-          <div className="form-group" style={{ margin: 0, width: '100%' }}>
+          <div className="form-group" style={{ margin: 0, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <label className="form-label" style={{ fontWeight: 600, color: '#0f172a' }}>Department Code (Optional)</label>
             <input
               type="text"
               className="form-input"
-              style={{ width: '100%', boxSizing: 'border-box' }}
+              style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
               placeholder="e.g. CSE"
               value={newDeptCode}
               onChange={e => setNewDeptCode(e.target.value)}
@@ -225,7 +225,7 @@ export default function DepartmentSettings({
       </div>
 
       {/* List of Departments */}
-      <div style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
         <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: '14px' }}>🏫 Active Departments</h4>
 
         {departmentsList.length === 0 ? (
@@ -238,42 +238,57 @@ export default function DepartmentSettings({
             </div>
           </div>
         ) : (
-          <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: '12px', border: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '320px' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>Department Name</th>
-                  <th style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>Code</th>
-                  <th style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 700, color: '#64748b', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {departmentsList.map(dept => (
-                  <tr key={dept.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s ease' }} className="table-row-hover">
-                    <td style={{ padding: '12px 16px', color: '#0f172a', fontSize: '0.88rem', fontWeight: 600 }}>{dept.name}</td>
-                    <td style={{ padding: '12px 16px', color: '#8b5cf6', fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600 }}>{dept.code || 'N/A'}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <button
-                        onClick={() => handleDeleteDepartment(dept)}
-                        className="action-btn"
-                        style={{
-                          padding: '5px 12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          borderRadius: '6px',
-                          background: 'rgba(239, 68, 68, 0.12)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          color: '#ef4444',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 }}>
+            {departmentsList.map(dept => (
+              <div
+                key={dept.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  minWidth: 0,
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {dept.name}
+                  </div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 8px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: 700 }}>
+                      {dept.code || 'NO CODE'}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteDepartment(dept)}
+                  className="hover-elevate active-haptic"
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
