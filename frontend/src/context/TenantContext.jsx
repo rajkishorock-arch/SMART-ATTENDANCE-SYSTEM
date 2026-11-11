@@ -78,12 +78,28 @@ export function TenantProvider({ children }) {
       const res = await systemApi.fetchBranding(targetSlug);
       if (res && res.ok) {
         const branding = await res.json();
-        setTenantBranding(branding);
+        // Guard against fallback to "Default Institution" if active user belongs to a specific institution (e.g. RIT)
+        let resolvedBranding = branding;
         try {
-          localStorage.setItem('cached_tenant_branding', JSON.stringify(branding));
+          const rawUser = localStorage.getItem('cached_user');
+          if (rawUser) {
+            const u = JSON.parse(rawUser);
+            if (u?.institution_slug && u.institution_slug !== 'default' && branding.slug === 'default') {
+              resolvedBranding = {
+                ...branding,
+                name: u.institution_name || targetSlug.toUpperCase(),
+                slug: u.institution_slug
+              };
+            }
+          }
         } catch {}
-        applyBrandingTheme(branding);
-        return branding;
+
+        setTenantBranding(resolvedBranding);
+        try {
+          localStorage.setItem('cached_tenant_branding', JSON.stringify(resolvedBranding));
+        } catch {}
+        applyBrandingTheme(resolvedBranding);
+        return resolvedBranding;
       }
     } catch (err) {
       console.error('Branding load error:', err);
@@ -114,11 +130,26 @@ export function TenantProvider({ children }) {
         const res = await systemApi.fetchBranding(targetSlug);
         if (res && res.ok && isMounted) {
           const branding = await res.json();
-          setTenantBranding(branding);
+          let resolvedBranding = branding;
           try {
-            localStorage.setItem('cached_tenant_branding', JSON.stringify(branding));
+            const rawUser = localStorage.getItem('cached_user');
+            if (rawUser) {
+              const u = JSON.parse(rawUser);
+              if (u?.institution_slug && u.institution_slug !== 'default' && branding.slug === 'default') {
+                resolvedBranding = {
+                  ...branding,
+                  name: u.institution_name || targetSlug.toUpperCase(),
+                  slug: u.institution_slug
+                };
+              }
+            }
           } catch {}
-          applyBrandingTheme(branding);
+
+          setTenantBranding(resolvedBranding);
+          try {
+            localStorage.setItem('cached_tenant_branding', JSON.stringify(resolvedBranding));
+          } catch {}
+          applyBrandingTheme(resolvedBranding);
         }
       } catch (err) {
         console.error('Branding load error:', err);

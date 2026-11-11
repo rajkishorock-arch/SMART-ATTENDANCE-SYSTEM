@@ -534,9 +534,10 @@ export default function App() {
   // App Navigation & Modal State
   const [activeTab, setActiveTab] = useState(() => {
     try {
-      const hashTab = window.location.hash.replace(/^#\/?/, '').trim();
-      if (hashTab && !['login', 'signup', ''].includes(hashTab)) {
-        return hashTab;
+      const hash = window.location.hash.replace(/^#\/?/, '').trim();
+      const baseHash = hash.split('/')[0].split('?')[0];
+      if (baseHash && !['login', 'signup', ''].includes(baseHash)) {
+        return baseHash;
       }
       const savedTab = localStorage.getItem('last_active_tab');
       if (savedTab && !['login', 'signup'].includes(savedTab)) {
@@ -547,17 +548,47 @@ export default function App() {
     } catch { /* ignore fallback error */ }
     return 'dashboard';
   });
-  const [activeSubSetting, setActiveSubSetting] = useState(null);
+
+  const [activeSubSetting, setActiveSubSetting] = useState(() => {
+    try {
+      const hash = window.location.hash.replace(/^#\/?/, '').trim();
+      if (hash.startsWith('settings/')) {
+        const sub = hash.replace('settings/', '').split('?')[0].trim();
+        if (sub) return sub;
+      }
+      const savedSub = localStorage.getItem('last_active_sub_setting');
+      if (savedSub) return savedSub;
+    } catch { /* ignore */ }
+    return null;
+  });
+
   const [activeDashboardSubTab, setActiveDashboardSubTab] = useState(null);
 
+  // Synchronize sub-settings to localStorage
+  useEffect(() => {
+    try {
+      if (activeTab === 'settings' && activeSubSetting) {
+        localStorage.setItem('last_active_sub_setting', activeSubSetting);
+      } else if (activeTab !== 'settings') {
+        localStorage.removeItem('last_active_sub_setting');
+      }
+    } catch { /* ignore */ }
+  }, [activeTab, activeSubSetting]);
+
+  const prevActiveTabRef = useRef(activeTab);
   useEffect(() => {
     if (activeTab && !['login', 'signup'].includes(activeTab)) {
       try {
         localStorage.setItem('last_active_tab', activeTab);
       } catch { /* ignore */ }
     }
-    setActiveSubSetting(null);
-    setActiveDashboardSubTab(null);
+    if (prevActiveTabRef.current !== activeTab) {
+      if (activeTab !== 'settings') {
+        setActiveSubSetting(null);
+      }
+      setActiveDashboardSubTab(null);
+      prevActiveTabRef.current = activeTab;
+    }
   }, [activeTab]);
 
 
@@ -4657,21 +4688,31 @@ export default function App() {
 
         if (!sessionInitializedRef.current) {
           sessionInitializedRef.current = true;
-          const currentHash = window.location.hash.replace(/^#\/?/, '');
+          const currentHash = window.location.hash.replace(/^#\/?/, '').trim();
           const isTabValid = (tabId, role) => {
             if (role === 'student') {
               return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave'].includes(tabId);
+            } else if (role === 'parent') {
+              return ['dashboard', 'student-attendance', 'settings'].includes(tabId);
             } else if (role === 'teacher') {
               return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
+            } else if (role === 'hod') {
+              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant'].includes(tabId);
             } else if (role === 'admin') {
               return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant'].includes(tabId);
             }
             return false;
           };
 
-          const candidateTab = currentHash || localStorage.getItem('last_active_tab');
-          if (candidateTab && isTabValid(candidateTab, data.role)) {
-            setActiveTab(candidateTab);
+          const rawCandidate = currentHash || localStorage.getItem('last_active_tab') || '';
+          const baseCandidate = rawCandidate.split('/')[0].split('?')[0].trim();
+          const subCandidate = rawCandidate.includes('/') ? rawCandidate.split('/')[1].split('?')[0].trim() : localStorage.getItem('last_active_sub_setting');
+
+          if (baseCandidate && isTabValid(baseCandidate, data.role)) {
+            setActiveTab(baseCandidate);
+            if (baseCandidate === 'settings' && subCandidate) {
+              setActiveSubSetting(subCandidate);
+            }
           } else {
             if (data.role === 'student') {
               setActiveTab('student-attendance');
@@ -5159,29 +5200,40 @@ export default function App() {
 
     const handleHashChange = () => {
       if (!token || !userRole) return;
-      const currentHash = window.location.hash.replace(/^#\/?/, '');
-      if (currentHash && currentHash !== activeTab && isTabValidForRole(currentHash, userRole)) {
-        setActiveTab(currentHash);
+      const currentHash = window.location.hash.replace(/^#\/?/, '').trim();
+      const baseHash = currentHash.split('/')[0].split('?')[0].trim();
+      const subHash = currentHash.includes('/') ? currentHash.split('/')[1].split('?')[0].trim() : null;
+
+      if (baseHash && isTabValidForRole(baseHash, userRole)) {
+        if (baseHash !== activeTab) {
+          setActiveTab(baseHash);
+        }
+        if (baseHash === 'settings' && subHash && subHash !== activeSubSetting) {
+          setActiveSubSetting(subHash);
+        }
       }
     };
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [activeTab, token, userRole]);
+  }, [activeTab, activeSubSetting, token, userRole]);
 
-  // Synchronize React activeTab state change to window location hash
+  // Synchronize React activeTab and activeSubSetting state change to window location hash
   useEffect(() => {
     if (token && userRole && activeTab) {
-      const expectedHash = `#/${activeTab}`;
+      const expectedHash = activeTab === 'settings' && activeSubSetting
+        ? `#/${activeTab}/${activeSubSetting}`
+        : `#/${activeTab}`;
       if (window.location.hash !== expectedHash) {
         window.location.hash = expectedHash;
       }
-    } else if (!token) {
+    } else if (!token && !localStorage.getItem('token')) {
+      // Only clear hash if the user is truly logged out
       if (window.location.hash) {
         window.history.replaceState(null, '', window.location.pathname);
       }
     }
-  }, [activeTab, token, userRole]);
+  }, [activeTab, activeSubSetting, token, userRole]);
 
   const navigateToTab = useCallback((tabId) => {
     setActiveTab(tabId);
@@ -6375,6 +6427,21 @@ export default function App() {
     saveAndShareFile(csvRows.join('\n'), `Attendance_Logs_${getLocalDateString()}.csv`, 'text/csv;charset=utf-8;');
   };
 
+  // Stable, flicker-free institution display name
+  const displayInstitutionName = useMemo(() => {
+    const rawUserInst = currentUser?.institution_name || currentUser?.details?.institution_name;
+    if (rawUserInst && !['default', 'default institution'].includes(rawUserInst.toLowerCase().trim())) {
+      return rawUserInst;
+    }
+    if (tenantBranding?.name && !['default institution'].includes(tenantBranding.name.toLowerCase().trim())) {
+      return tenantBranding.name;
+    }
+    if (currentUser?.institution_slug && currentUser.institution_slug !== 'default') {
+      return currentUser.institution_slug.toUpperCase();
+    }
+    return tenantBranding?.name || "Smart Attendance";
+  }, [currentUser, tenantBranding]);
+
   // Filtering lists
   // Filtering lists (Memoized for high performance)
   const filteredStudents = useMemo(() => {
@@ -6642,7 +6709,7 @@ export default function App() {
             animation: 'shineText 4s linear infinite',
             textShadow: '0 0 15px rgba(0, 242, 254, 0.4)'
           }}>
-            {((currentUser?.institution_name || tenantBranding?.name || "SMART ATTENDANCE SYSTEM")).toUpperCase()}
+            {(displayInstitutionName || "SMART ATTENDANCE SYSTEM").toUpperCase()}
           </h2>
           <p style={{ 
             fontSize: '0.72rem', 
@@ -7258,7 +7325,7 @@ export default function App() {
             </svg>
           </div>
           <span className="text-gradient" style={{ fontWeight: 800, background: 'linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 50%, #94A3B8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            {((currentUser?.institution_name || tenantBranding?.name || "SMART ATTENDANCE")).toUpperCase()}
+            {(displayInstitutionName || "SMART ATTENDANCE").toUpperCase()}
           </span>
           <button 
             className="mobile-sidebar-close hide-on-desktop" 
@@ -7545,7 +7612,7 @@ export default function App() {
       <main className="main-content">
         <Suspense fallback={<div style={{ padding: "40px 20px", textAlign: "center", color: "#94a3b8" }}>Loading...</div>}>
         {/* Header */}
-        <header className={`flex-between header-container ${activeTab === 'settings' && activeSubSetting !== null ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
+        <header className={`flex-between header-container ${(activeTab === 'settings' && activeSubSetting !== null) || activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div className={activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''} style={{ flex: 1, minWidth: 0 }}>
               <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
@@ -7563,7 +7630,7 @@ export default function App() {
                 {activeTab === 'interventions' && 'Counselor & Parent Intervention Center'}
                 {activeTab === 'lms' && 'SIS & Enterprise LMS Sync Engine'}
                 {activeTab === 'payroll' && 'Staff Attendance & Institutional Payroll'}
-                {activeTab === 'student-attendance' && `Welcome, ${currentUser?.name || 'Student'}`}
+                {activeTab === 'student-attendance' && 'Student Attendance Dashboard'}
                 {activeTab === 'student-profile' && 'My Profile'}
                 {activeTab === 'settings' && 'Security & System Settings'}
                 {activeTab === 'ai-assistant' && 'Advanced AI System Assistant'}
@@ -9450,7 +9517,7 @@ export default function App() {
                     alignItems: 'center',
                     gap: '8px'
                   }}>
-                    {currentUser?.institution_name || (tenantBranding ? tenantBranding.name : "Smart Attendance")}
+                    {displayInstitutionName}
                     <span style={{
                       fontSize: '0.7rem',
                       fontWeight: 700,
