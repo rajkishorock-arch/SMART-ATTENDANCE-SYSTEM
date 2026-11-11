@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Video, BookOpen, Calendar, Clock, AlertCircle, Camera, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
@@ -36,6 +37,7 @@ export default function LiveScannerSessionHubView({
 }) {
   const { userRole, currentUser } = useAuth();
   const { playCyberSound } = useUI();
+  const [validationError, setValidationError] = useState('');
 
   return (
     <>
@@ -72,7 +74,7 @@ export default function LiveScannerSessionHubView({
                   <select 
                     className="form-input"
                     value={selectedSubjectId}
-                    onChange={e => setSelectedSubjectId(e.target.value)}
+                    onChange={e => { setSelectedSubjectId(e.target.value); setValidationError(''); }}
                     required
                     style={{ background: '#ffffff', border: '1px solid var(--border-subtle)' }}
                   >
@@ -214,11 +216,41 @@ export default function LiveScannerSessionHubView({
                 </select>
               </div>
 
+              {/* Validation Warning Alert */}
+              {validationError && (
+                <div style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#dc2626',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  animation: 'fadeInUp 0.2s ease'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertCircle size={16} />
+                    <span>{validationError}</span>
+                  </div>
+                  <button 
+                    onClick={() => setValidationError('')} 
+                    style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontWeight: 800, padding: '0 4px' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               <button 
                 onClick={() => {
                   if (sessionDate && sessionPeriod) {
                     if (userRole === 'admin' && !selectedSubjectId) {
-                      alert('Please select a subject first.');
+                      setValidationError('Please select an active subject from the dropdown above before starting.');
+                      if (playCyberSound) playCyberSound('error');
                       return;
                     }
                     setSessionActive(true);
@@ -251,7 +283,8 @@ export default function LiveScannerSessionHubView({
               <button
                 onClick={() => {
                   if (userRole === 'admin' && !selectedSubjectId) {
-                    alert('Please select a subject first to use Manual Register.');
+                    setValidationError('Please select an active subject first to use Manual Register.');
+                    if (playCyberSound) playCyberSound('error');
                     return;
                   }
                   const subId = userRole === 'teacher'
@@ -288,7 +321,8 @@ export default function LiveScannerSessionHubView({
               <button
                 onClick={() => {
                   if (userRole === 'admin' && !selectedSubjectId) {
-                    alert('Please select a subject first to scan Virtual ID Card.');
+                    setValidationError('Please select an active subject first to scan Virtual ID Card.');
+                    if (playCyberSound) playCyberSound('error');
                     return;
                   }
                   setShowQrScannerModal(true);
@@ -319,7 +353,8 @@ export default function LiveScannerSessionHubView({
               <button
                 onClick={() => {
                   if (userRole === 'admin' && !selectedSubjectId) {
-                    alert('Please select a subject first to launch Classroom Kiosk Mode.');
+                    setValidationError('Please select an active subject first to launch Classroom Kiosk Mode.');
+                    if (playCyberSound) playCyberSound('error');
                     return;
                   }
                   if (setShowKioskModal) {

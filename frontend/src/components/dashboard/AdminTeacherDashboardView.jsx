@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { ArrowLeft, Camera, Edit, ScanFace, ShieldAlert, Calendar, Monitor, Activity, Layers, Settings, MessageSquare, Users, CheckCircle2, AlertCircle, TrendingUp, ShieldCheck } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
 import PullToRefresh from '../PullToRefresh';
@@ -60,6 +61,7 @@ export default function AdminTeacherDashboardView({
   const { currentUser, userRole, token } = useAuth();
   const { activeTheme, playCyberSound } = useUI();
   const displayStats = scopedDashboardStats || stats;
+  const [absentAlertFeedback, setAbsentAlertFeedback] = useState(null);
 
   return (
     <PullToRefresh onRefresh={async () => { await fetchStats(); await fetchLogs(); }}>
@@ -122,7 +124,10 @@ export default function AdminTeacherDashboardView({
                   setIsManualAttendanceOpen(true);
                 }}
                 onSendAbsenteeAlerts={(absentList) => {
-                  alert(`Sent attendance notifications for ${absentList.length} absent students.`);
+                  const count = Array.isArray(absentList) ? absentList.length : (absentList?.count || 0);
+                  setAbsentAlertFeedback(`✅ Dispatched attendance alerts for ${count} absent students to registered guardian contacts.`);
+                  if (playCyberSound) playCyberSound('success');
+                  setTimeout(() => setAbsentAlertFeedback(null), 5000);
                 }}
                 onExportCsv={exportToCSV}
                 lang={appLang}
@@ -1065,6 +1070,37 @@ export default function AdminTeacherDashboardView({
                 </div>
               )}
 
+            </div>
+          )}
+
+          {/* Absent Alert Toast Notification */}
+          {absentAlertFeedback && (
+            <div style={{
+              position: 'fixed',
+              bottom: '24px',
+              right: '24px',
+              background: '#065f46',
+              color: '#ffffff',
+              padding: '14px 20px',
+              borderRadius: '12px',
+              boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              zIndex: 99999,
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              border: '1px solid #059669',
+              animation: 'fadeInUp 0.3s ease'
+            }}>
+              <CheckCircle2 size={18} color="#34d399" />
+              <span>{absentAlertFeedback}</span>
+              <button 
+                onClick={() => setAbsentAlertFeedback(null)} 
+                style={{ background: 'none', border: 'none', color: '#a7f3d0', cursor: 'pointer', padding: '0 4px', fontSize: '1rem', marginLeft: '6px' }}
+              >
+                ✕
+              </button>
             </div>
           )}
         </div>

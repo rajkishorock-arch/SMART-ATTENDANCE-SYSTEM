@@ -13,6 +13,7 @@ export default function StudentAttendanceRecoveryWidget({ token, currentUser, pl
   const [preferredDate, setPreferredDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState('');
+  const [requestError, setRequestError] = useState('');
 
   const fetchStatus = async () => {
     try {
@@ -36,6 +37,7 @@ export default function StudentAttendanceRecoveryWidget({ token, currentUser, pl
     e.preventDefault();
     try {
       setSubmitting(true);
+      setRequestError('');
       const res = await interventionApi.requestCounselor(token, {
         reason: requestReason.trim() || 'Student requested attendance recovery counseling.',
         preferred_date: preferredDate || null,
@@ -47,11 +49,13 @@ export default function StudentAttendanceRecoveryWidget({ token, currentUser, pl
         setRequestSuccess('');
         setRequestReason('');
         setPreferredDate('');
+        setRequestError('');
         fetchStatus();
       }, 2000);
     } catch (err) {
       console.error('Error requesting counselor:', err);
-      alert(err.message || 'Failed to submit counselor request.');
+      setRequestError(err.message || 'Failed to submit counselor request.');
+      if (typeof playCyberSound === 'function') playCyberSound('error');
     } finally {
       setSubmitting(false);
     }
@@ -310,6 +314,19 @@ export default function StudentAttendanceRecoveryWidget({ token, currentUser, pl
               </div>
             ) : (
               <form onSubmit={handleRequestCounselor} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {requestError && (
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    fontSize: '0.84rem',
+                    fontWeight: 600
+                  }}>
+                    ⚠️ {requestError}
+                  </div>
+                )}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                     Reason / Academic Concerns:

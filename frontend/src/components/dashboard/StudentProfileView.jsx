@@ -109,6 +109,7 @@ export default function StudentProfileView({
   // Profile Picture Upload State
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoUploadMsg, setPhotoUploadMsg] = useState('');
+  const [photoUploadError, setPhotoUploadError] = useState('');
   const fileInputRef = useRef(null);
 
   const profilePicUrl = currentUser?.details?.profile_pic || currentUser?.profile_pic;
@@ -118,8 +119,10 @@ export default function StudentProfileView({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setPhotoUploadError('');
     if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid image file (JPG, PNG, WebP).');
+      setPhotoUploadError('Please upload a valid image file (JPG, PNG, WebP).');
+      if (typeof playCyberSound === 'function') playCyberSound('error');
       return;
     }
 
@@ -202,7 +205,7 @@ export default function StudentProfileView({
     } catch (err) {
       console.error('Error uploading photo:', err);
       if (typeof playCyberSound === 'function') playCyberSound('error');
-      alert(err.message || 'Error uploading photo');
+      setPhotoUploadError(err.message || 'Error uploading photo');
       setPhotoUploadMsg('');
     } finally {
       setIsUploadingPhoto(false);
@@ -494,6 +497,12 @@ export default function StudentProfileView({
       {photoUploadMsg && (
         <div style={{ padding: '12px 18px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', color: '#065f46', fontSize: '0.85rem', fontWeight: 600 }}>
           ✅ {photoUploadMsg}
+        </div>
+      )}
+
+      {photoUploadError && (
+        <div style={{ padding: '12px 18px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', color: '#dc2626', fontSize: '0.85rem', fontWeight: 600 }}>
+          ⚠️ {photoUploadError}
         </div>
       )}
 

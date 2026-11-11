@@ -388,7 +388,7 @@ export default function TodaySessionHub({
             </div>
 
             <button
-              onClick={onSendAbsenteeAlerts}
+              onClick={() => onSendAbsenteeAlerts && onSendAbsenteeAlerts(absentStudents)}
               className="btn-secondary"
               style={{
                 minHeight: '34px',
@@ -528,7 +528,7 @@ export default function TodaySessionHub({
             {/* Actions */}
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
-                onClick={onSendAbsenteeAlerts}
+                onClick={() => onSendAbsenteeAlerts && onSendAbsenteeAlerts(lastEndedSummary?.absentList || absentStudents)}
                 className="btn-secondary"
                 style={{ flex: 1, minHeight: '42px', fontSize: '0.85rem' }}
               >

@@ -9,6 +9,8 @@ import GamificationHub from '../GamificationHub';
 import LeaveApplicationForm from '../LeaveApplicationForm';
 import StudentAcademicCalendarWidget from './StudentAcademicCalendarWidget';
 import StudentAttendanceRecoveryWidget from './StudentAttendanceRecoveryWidget';
+import { disputeApi } from '../../api/disputeApi';
+import { generateDisputePdf } from '../../utils/disputePdfGenerator';
 
 function BlueprintDayBreakdownModal({ 
   isOpen, 
@@ -678,6 +680,32 @@ export default function StudentAttendanceDashboardView({
   const safeSubjects = Array.isArray(subjects) ? subjects : [];
   const safeLeaveRequests = Array.isArray(studentLeaveRequests) ? studentLeaveRequests : [];
 
+  const [myDisputes, setMyDisputes] = React.useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_my_disputes');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  React.useEffect(() => {
+    let ignore = false;
+    if (!token) return;
+    disputeApi.fetchMyDisputes(token)
+      .then(res => res.json())
+      .then(data => {
+        if (!ignore && Array.isArray(data)) {
+          setMyDisputes(data);
+          try {
+            localStorage.setItem('cached_my_disputes', JSON.stringify(data));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, [token]);
+
   return (
     <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
       {/* Student Daily Driver Today Status & 75% Rule Card */}
@@ -959,6 +987,98 @@ export default function StudentAttendanceDashboardView({
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* My Attendance Disputes & Status */}
+      {myDisputes.length > 0 && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚖️</span> My Attendance Disputes & Status
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '12px' }}>
+                {myDisputes.length}
+              </span>
+            </h3>
+            <button
+              onClick={() => {
+                if (playCyberSound) playCyberSound('click');
+                setDisputePrefillSession(null);
+                setShowDisputeModal(true);
+              }}
+              style={{
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                color: '#1d4ed8',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              + Submit New Dispute
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {myDisputes.map(d => {
+              const st = (d.status || 'SUBMITTED').toUpperCase();
+              const isApproved = st === 'APPROVED';
+              const isRejected = st === 'REJECTED';
+              return (
+                <div key={d.id} style={{
+                  padding: '16px 20px',
+                  borderRadius: '12px',
+                  background: '#ffffff',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fed7aa'}`
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
+                      {d.subject_name ? `${d.subject_name} (${d.subject_code || ''})` : 'General Class'} • Date: {d.date}
+                    </span>
+                    <span style={{
+                      padding: '3px 12px',
+                      borderRadius: '12px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      background: isApproved ? '#d1fae5' : isRejected ? '#fee2e2' : '#fef3c7',
+                      color: isApproved ? '#065f46' : isRejected ? '#991b1b' : '#b45309',
+                      border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fde68a'}`
+                    }}>
+                      {isApproved ? '✅ Approved & Corrected' : isRejected ? '❌ Rejected' : '⏳ ' + (d.status || 'Under Review')}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '0.8rem', color: '#475569' }}>
+                    <span>Reason: <strong style={{ color: '#0f172a' }}>{d.reason}</strong> ({d.original_status} → {d.requested_status})</span>
+                    <button
+                      onClick={() => generateDisputePdf({ ...d, student_name: currentUser?.name || d.student_name, student_roll: currentUser?.details?.roll_number || d.student_roll })}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        color: '#334155',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📄 Download PDF Proof
+                    </button>
+                  </div>
+                  {d.reviewer_comments && (
+                    <div style={{ fontSize: '0.78rem', color: '#1e40af', background: '#eff6ff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                      <strong>Teacher / HOD Note:</strong> {d.reviewer_comments}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
