@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, AlertCircle, MessageSquare, Calendar, CheckCircle2, TrendingUp, X } from 'lucide-react';
+import { BookOpen, AlertCircle, MessageSquare, Calendar, CheckCircle2, TrendingUp, X, MapPin } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
 import StudentTodayView from '../StudentTodayView';
@@ -707,7 +707,7 @@ export default function StudentAttendanceDashboardView({
   }, [token]);
 
   return (
-    <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '32px', animation: 'fadeInUp 0.5s ease' }}>
+    <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeInUp 0.3s ease' }}>
       {/* Student Daily Driver Today Status & 75% Rule Card */}
       <StudentTodayView
         studentLogs={studentLogs}
@@ -743,19 +743,19 @@ export default function StudentAttendanceDashboardView({
       {(() => {
         const geo = geofenceStatus;
         return (
-          <div style={{ padding: '20px 24px', borderRadius: '16px', border: `1px solid ${geo.checked ? (geo.inside ? '#a7f3d0' : '#fecaca') : '#e2e8f0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: geo.checked ? (geo.inside ? '#f0fdf4' : '#fef2f2') : '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: geo.checked ? (geo.inside ? '#d1fae5' : '#fee2e2') : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
-                {geo.checked ? (geo.inside ? '🟢' : '🔴') : '📡'}
+          <div style={{ padding: '14px 16px', borderRadius: '14px', border: `1px solid ${geo.checked ? (geo.inside ? '#a7f3d0' : '#fecaca') : '#e2e8f0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: geo.checked ? (geo.inside ? '#f0fdf4' : '#fef2f2') : '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: geo.checked ? (geo.inside ? '#d1fae5' : '#fee2e2') : '#eff6ff', color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <MapPin size={18} />
               </div>
               <div>
-                <p style={{ fontWeight: 700, color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#0284c7', margin: 0, fontSize: '0.95rem' }}>
-                  {geo.checked ? (geo.inside ? '✅ Inside Campus Zone' : '⚠️ Outside Campus Zone') : '📡 Campus Location Check'}
+                <p style={{ fontWeight: 700, color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#0f172a', margin: 0, fontSize: '0.9rem' }}>
+                  {geo.checked ? (geo.inside ? 'Inside Campus Zone' : 'Outside Campus Zone') : 'Campus Location Verification'}
                 </p>
-                <p style={{ color: '#64748b', fontSize: '0.78rem', margin: '2px 0 0' }}>
+                <p style={{ color: '#64748b', fontSize: '0.76rem', margin: '2px 0 0' }}>
                   {geo.checked
-                    ? geo.distance !== null ? `Distance to campus center: ~${Math.round(geo.distance)}m` : 'Location determined.'
-                    : 'Check if you are within the campus geofence boundary.'}
+                    ? geo.distance !== null ? `Distance to campus center: ~${Math.round(geo.distance)}m` : 'Location verified.'
+                    : 'Verify whether you are inside the authorized campus geofence.'}
                 </p>
               </div>
             </div>

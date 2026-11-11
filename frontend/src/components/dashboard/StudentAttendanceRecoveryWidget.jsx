@@ -86,20 +86,20 @@ export default function StudentAttendanceRecoveryWidget({ token, currentUser, pl
       background: '#ffffff',
       borderRadius: '16px',
       border: `1px solid ${isLowAttendance ? badgeBorder : '#e2e8f0'}`,
-      padding: '24px',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+      padding: 'clamp(14px, 3vw, 20px)',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '20px',
+      gap: '14px',
       animation: 'fadeInUp 0.4s ease'
     }}>
       {/* Header Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '12px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: badgeBg,
             border: `1px solid ${badgeBorder}`,
             display: 'flex',
@@ -108,29 +108,23 @@ export default function StudentAttendanceRecoveryWidget({ token, currentUser, pl
             color: badgeColor,
             flexShrink: 0
           }}>
-            {isLowAttendance ? <ShieldAlert size={26} /> : <ShieldCheck size={26} />}
+            {isLowAttendance ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                {isLowAttendance ? 'Attendance Intervention & Recovery Plan' : 'Academic Attendance Compliance & Status'}
-              </h3>
-              <span style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '999px',
-                background: badgeBg,
-                color: badgeColor,
-                border: `1px solid ${badgeBorder}`,
-                letterSpacing: '0.04em'
-              }}>
-                {data.tier.replace('_', ' ')}
-              </span>
-            </div>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
-              University 75% regulatory compliance tracker & institutional intervention workflow
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              {isLowAttendance ? 'Attendance Recovery Plan' : 'Attendance Compliance Status'}
+            </h3>
+            <span style={{
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              padding: '2px 8px',
+              borderRadius: '8px',
+              background: badgeBg,
+              color: badgeColor,
+              border: `1px solid ${badgeBorder}`,
+            }}>
+              {data.tier.replace('_', ' ')}
+            </span>
           </div>
         </div>
 

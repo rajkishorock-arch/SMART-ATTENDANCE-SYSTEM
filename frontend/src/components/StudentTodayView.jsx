@@ -71,47 +71,49 @@ export default function StudentTodayView({
       <div
         className="surface-card"
         style={{
-          padding: '20px',
-          border: `1.5px solid ${todayCheckIn ? '#10b981' : '#f59e0b'}`,
-          background: todayCheckIn ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+          padding: '12px 14px',
+          border: `1px solid ${todayCheckIn ? '#a7f3d0' : '#fde68a'}`,
+          borderRadius: '14px',
+          background: todayCheckIn ? '#f0fdf4' : '#fffbeb',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '14px'
+          gap: '10px'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: 'var(--radius-full)',
-              background: todayCheckIn ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: todayCheckIn ? '#d1fae5' : '#fef3c7',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}
           >
             {todayCheckIn ? (
-              <CheckCircle2 size={24} color="#10b981" />
+              <CheckCircle2 size={18} color="#10b981" />
             ) : (
-              <Clock size={24} color="#f59e0b" />
+              <Clock size={18} color="#d97706" />
             )}
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
                 {todayCheckIn ? (lang === 'hi' ? 'आज की उपस्थिति दर्ज है' : "Today's Attendance Recorded") : (lang === 'hi' ? 'आज अभी तक चेक-इन नहीं हुआ' : 'Not Checked In Yet Today')}
               </h3>
-              <span className={`status-pill ${todayCheckIn ? 'status-pill-success' : 'status-pill-warning'}`} style={{ fontSize: '0.68rem' }}>
+              <span className={`status-pill ${todayCheckIn ? 'status-pill-success' : 'status-pill-warning'}`} style={{ fontSize: '0.68rem', padding: '2px 7px' }}>
                 {todayCheckIn ? 'Present' : 'Pending'}
               </span>
             </div>
-            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#475569' }}>
+            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
               {todayCheckIn
                 ? `${t('checked_in_at', lang, { time: todayCheckIn.time || 'Morning' })} · ${todayCheckIn.department || 'Campus'}`
-                : (lang === 'hi' ? 'क्लासरूम कियोस्क या शिक्षक के स्कैनर से स्कैन कराएं।' : 'Scan your face at your classroom scanner or teacher kiosk.')}
+                : (lang === 'hi' ? 'क्लासरूम कियोस्क या शिक्षक के स्कैनर से स्कैन कराएं।' : 'Scan your face at classroom scanner or teacher kiosk.')}
             </p>
           </div>
         </div>
@@ -119,7 +121,7 @@ export default function StudentTodayView({
         <button
           onClick={onRequestDispute}
           className="btn-secondary"
-          style={{ minHeight: '38px', padding: '6px 14px', fontSize: '0.78rem' }}
+          style={{ minHeight: '32px', padding: '5px 12px', fontSize: '0.76rem', borderRadius: '8px' }}
         >
           <FileText size={13} color="#0ea5e9" />
           <span>{t('request_correction', lang)}</span>
