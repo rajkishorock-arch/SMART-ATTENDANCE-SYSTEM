@@ -396,119 +396,77 @@ export default function AdminProfileSettings({
         </div>
       )}
 
-      {/* Hero Profile Identity Card */}
+      {/* Sleek Compact Profile Header Bar */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)',
-          border: '1px solid #dbeafe',
-          borderRadius: '14px',
-          padding: '18px 20px',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
+          gap: '12px',
           width: '100%',
-          maxWidth: '100%',
           boxSizing: 'border-box',
-          minWidth: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: 1 }}>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div
-              style={{
-                width: '54px',
-                height: '54px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
-              }}
-            >
-              {userInitials}
-            </div>
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                width: '14px',
-                height: '14px',
-                borderRadius: '50%',
-                background: '#10b981',
-                border: '2px solid #ffffff',
-              }}
-              title="Session Active"
-            />
+        {/* Avatar */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1rem',
+              fontWeight: 800,
+              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
+            }}
+          >
+            {userInitials}
           </div>
-
-          <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                {currentUser?.name || 'Administrator'}
-              </span>
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: userRole === 'admin' ? '#f5f3ff' : '#eff6ff',
-                  color: userRole === 'admin' ? '#7c3aed' : '#2563eb',
-                  border: userRole === 'admin' ? '1px solid #ddd6fe' : '1px solid #bfdbfe',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
-                {userRole === 'admin' ? '🛡️ Administrator' : '🎓 Faculty Member'}
-              </span>
-            </div>
-            <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px', wordBreak: 'break-all' }}>
-              {currentUser?.email || 'admin@campus.edu'}
-            </div>
-          </div>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: '#10b981',
+              border: '2px solid #ffffff',
+            }}
+            title="Session Active"
+          />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              padding: '6px 12px',
-              borderRadius: '8px',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              color: '#334155',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Building size={14} style={{ color: '#2563eb' }} />
-            <span>{currentUser?.institution_name || (currentUser?.institution_slug ? currentUser.institution_slug.toUpperCase() : 'MAIN CAMPUS')}</span>
+        {/* User Info Details */}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+              {currentUser?.name || (userRole === 'admin' ? 'Administrator' : 'Faculty Member')}
+            </span>
+            <span
+              style={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                padding: '2px 6px',
+                borderRadius: '6px',
+                background: userRole === 'admin' ? '#eff6ff' : '#f5f3ff',
+                color: userRole === 'admin' ? '#1d4ed8' : '#7c3aed',
+                border: userRole === 'admin' ? '1px solid #bfdbfe' : '1px solid #ddd6fe',
+                textTransform: 'uppercase',
+              }}
+            >
+              {userRole === 'admin' ? 'Admin' : 'Teacher'}
+            </span>
           </div>
-          <div
-            style={{
-              padding: '6px 10px',
-              borderRadius: '8px',
-              background: '#ecfdf5',
-              border: '1px solid #a7f3d0',
-              fontSize: '0.74rem',
-              fontWeight: 700,
-              color: '#059669',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <BadgeCheck size={14} />
-            <span>Verified</span>
+          <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {currentUser?.email || 'admin@campus.edu'} • <span style={{ color: '#059669', fontWeight: 600 }}>{currentUser?.institution_name || (currentUser?.institution_slug ? currentUser.institution_slug.toUpperCase() : 'MAIN CAMPUS')}</span>
           </div>
         </div>
       </div>

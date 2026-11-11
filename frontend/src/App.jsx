@@ -5281,11 +5281,17 @@ export default function App() {
 
   const handleBottomScan = useCallback(() => {
     playCyberSound('click');
-    setActiveTab('attendance');
+    triggerNativeHaptic();
     setActiveSubSetting(null);
-    setShowScannerModal(true);
+    setMobileSidebarOpen(false);
     setMobileControlOpen(false);
-  }, []);
+    if (sessionActive) {
+      setActiveTab('attendance');
+      setShowScannerModal(true);
+    } else {
+      navigateToTab('attendance');
+    }
+  }, [sessionActive, navigateToTab, playCyberSound]);
 
   const checkServerConnection = async () => {
     try {
@@ -7728,18 +7734,14 @@ export default function App() {
                 triggerHaptic();
                 setMobileSidebarOpen(prev => !prev);
               }}
-              aria-label={mobileSidebarOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
-              title={mobileSidebarOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+              aria-label="Open Navigation Menu"
+              title="Open Navigation Menu"
             >
-              {mobileSidebarOpen ? (
-                <X size={20} />
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="12" x2="21" y2="12"></line>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-              )}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
             </button>
           </div>
           
