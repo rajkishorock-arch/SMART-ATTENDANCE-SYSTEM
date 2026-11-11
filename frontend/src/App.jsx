@@ -2660,11 +2660,11 @@ export default function App() {
     let active = true;
 
     const connect = () => {
-      console.log('Connecting to WebSocket:', wsUrl);
+      if (import.meta.env?.DEV) console.log('Connecting to WebSocket:', wsUrl);
       socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
-        console.log('WebSocket connection established.');
+        if (import.meta.env?.DEV) console.log('WebSocket connection established.');
         setWsConnected(true);
       };
 
@@ -2697,7 +2697,7 @@ export default function App() {
       };
 
       socket.onclose = () => {
-        console.log('WebSocket disconnected.');
+        if (import.meta.env?.DEV) console.log('WebSocket disconnected.');
         setWsConnected(false);
         if (active) {
           reconnectTimeout = setTimeout(connect, 5000);

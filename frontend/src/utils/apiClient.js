@@ -10,6 +10,7 @@
 const activeRequestsMap = new Map();
 const abortControllersMap = new Map();
 const memoryCacheMap = new Map();
+const isDev = Boolean(import.meta.env?.DEV) || (typeof window !== 'undefined' && Boolean(window.__DEBUG_ATTENDANCE__));
 
 function getEndpointTtl(url, options = {}) {
   if (options.noCache || options.skipCache) return 0;
@@ -60,11 +61,13 @@ export async function fetchWithDedupe(url, options = {}) {
     try {
       const response = await fetch(url, options);
       const duration = (performance.now() - startTime).toFixed(1);
-      console.log(`[PERF FETCH] ${method} ${url} took ${duration}ms (status ${response.status})`);
+      if (isDev) {
+        console.log(`[PERF FETCH] ${method} ${url} took ${duration}ms (status ${response.status})`);
+      }
       return response;
     } catch (err) {
       const duration = (performance.now() - startTime).toFixed(1);
-      if (err.name !== 'AbortError') {
+      if (isDev && err.name !== 'AbortError') {
         console.warn(`[PERF FETCH ERROR] ${method} ${url} failed after ${duration}ms:`, err);
       }
       throw err;
@@ -73,7 +76,9 @@ export async function fetchWithDedupe(url, options = {}) {
 
   // Check if an identical GET request is currently in-flight
   if (activeRequestsMap.has(requestKey)) {
-    console.log(`[DEDUPE] Reusing in-flight request for: ${url}`);
+    if (isDev) {
+      console.log(`[DEDUPE] Reusing in-flight request for: ${url}`);
+    }
     try {
       const inFlightResponse = await activeRequestsMap.get(requestKey);
       return inFlightResponse.clone();
@@ -97,7 +102,9 @@ export async function fetchWithDedupe(url, options = {}) {
     try {
       const response = await fetch(url, options);
       const duration = (performance.now() - startTime).toFixed(1);
-      console.log(`[PERF FETCH] ${method} ${url} took ${duration}ms (status ${response.status})`);
+      if (isDev) {
+        console.log(`[PERF FETCH] ${method} ${url} took ${duration}ms (status ${response.status})`);
+      }
 
       // Cache successful response in memory if eligible
       if (ttl > 0 && response.ok) {
@@ -118,7 +125,7 @@ export async function fetchWithDedupe(url, options = {}) {
       return response;
     } catch (err) {
       const duration = (performance.now() - startTime).toFixed(1);
-      if (err.name !== 'AbortError') {
+      if (isDev && err.name !== 'AbortError') {
         console.warn(`[PERF FETCH ERROR] ${method} ${url} failed after ${duration}ms:`, err);
       }
       throw err;

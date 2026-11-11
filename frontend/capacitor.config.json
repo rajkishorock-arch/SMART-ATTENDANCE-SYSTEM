@@ -3,6 +3,8 @@
   "appName": "Smart Attendance",
   "webDir": "dist",
   "server": {
+    "url": "https://kgattendence.vercel.app",
+    "cleartext": false,
     "androidScheme": "https"
   },
   "plugins": {
