@@ -209,9 +209,9 @@ export default function AdminTeacherDashboardView({
                               flexDirection: 'column',
                               gap: '8px',
                               cursor: 'pointer',
-                              background: 'rgba(255, 255, 255, 0.02)',
+                              background: '#f8fafc',
                               borderRadius: '12px',
-                              border: '1px solid rgba(255, 255, 255, 0.06)'
+                              border: '1px solid #e2e8f0'
                             }}
                           >
                             {/* Top Row: Avatar, Student Name, Roll/Dep, Status Pill */}
@@ -220,7 +220,7 @@ export default function AdminTeacherDashboardView({
                                 <div style={{
                                   width: '36px', height: '36px', borderRadius: '50%',
                                   background: isPresent ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                  color: isPresent ? '#34d399' : '#f87171',
+                                  color: isPresent ? '#059669' : '#dc2626',
                                   border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   fontWeight: 700, fontSize: '0.85rem', flexShrink: 0
@@ -228,10 +228,10 @@ export default function AdminTeacherDashboardView({
                                   {log.name ? log.name.charAt(0).toUpperCase() : 'S'}
                                 </div>
                                 <div style={{ minWidth: 0 }}>
-                                  <div style={{ color: 'var(--color-text-main)', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <div style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     {log.name}
                                   </div>
-                                  <div style={{ color: 'var(--color-text-dim)', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  <div style={{ color: '#64748b', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <span>Roll: {log.roll || 'N/A'}</span>
                                     {(log.dep || log.department) && <span>· {log.dep || log.department}</span>}
                                   </div>
@@ -251,13 +251,13 @@ export default function AdminTeacherDashboardView({
                               justifyContent: 'space-between',
                               gap: '8px',
                               paddingTop: '6px',
-                              borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+                              borderTop: '1px solid #e2e8f0',
                               fontSize: '0.76rem',
-                              color: '#94a3b8'
+                              color: '#64748b'
                             }}>
                               {/* Subject & Period badges */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
                                   📚 {log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance')}
                                 </span>
                                 {(log.period_label || log.period) && (
@@ -1042,7 +1042,7 @@ export default function AdminTeacherDashboardView({
                                       height="14" 
                                       viewBox="0 0 24 24" 
                                       fill={star <= item.rating ? "#fbbf24" : "none"} 
-                                      stroke={star <= item.rating ? "#fbbf24" : "rgba(255, 255, 255, 0.2)"} 
+                                      stroke={star <= item.rating ? "#fbbf24" : "#cbd5e1"} 
                                       strokeWidth="2.5"
                                     >
                                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>

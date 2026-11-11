@@ -5186,12 +5186,20 @@ export default function App() {
           if (targetSub !== activeSubSettingRef.current) {
             setActiveSubSetting(targetSub);
           }
+        } else {
+          if (activeSubSettingRef.current !== null) {
+            setActiveSubSetting(null);
+          }
         }
       }
     };
 
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
   }, [token, userRole]);
 
   // Synchronize React activeTab and activeSubSetting state change to window location hash
