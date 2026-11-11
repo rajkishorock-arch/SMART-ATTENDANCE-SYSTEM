@@ -101,14 +101,14 @@ export default function StudentTodayView({
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
                 {todayCheckIn ? (lang === 'hi' ? 'आज की उपस्थिति दर्ज है' : "Today's Attendance Recorded") : (lang === 'hi' ? 'आज अभी तक चेक-इन नहीं हुआ' : 'Not Checked In Yet Today')}
               </h3>
               <span className={`status-pill ${todayCheckIn ? 'status-pill-success' : 'status-pill-warning'}`} style={{ fontSize: '0.68rem' }}>
                 {todayCheckIn ? 'Present' : 'Pending'}
               </span>
             </div>
-            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#475569' }}>
               {todayCheckIn
                 ? `${t('checked_in_at', lang, { time: todayCheckIn.time || 'Morning' })} · ${todayCheckIn.department || 'Campus'}`
                 : (lang === 'hi' ? 'क्लासरूम कियोस्क या शिक्षक के स्कैनर से स्कैन कराएं।' : 'Scan your face at your classroom scanner or teacher kiosk.')}

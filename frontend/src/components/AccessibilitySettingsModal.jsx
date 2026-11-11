@@ -79,6 +79,9 @@ export default function AccessibilitySettingsModal({
           width: '100%',
           maxWidth: '460px',
           padding: '24px',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
           borderRadius: 'var(--radius-xl)',
           animation: 'scaleIn 0.25s ease'
         }}
@@ -88,21 +91,21 @@ export default function AccessibilitySettingsModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Sliders size={22} color="var(--color-primary)" />
-            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
               {t('accessibility', currentLang)}
             </h3>
           </div>
-          <button onClick={onClose} className="clean-back-btn" style={{ width: '36px', height: '36px' }}>
+          <button onClick={onClose} className="clean-back-btn" style={{ width: '36px', height: '36px', color: '#64748b' }}>
             <X size={18} />
           </button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '22px' }}>
           {/* Language Switch */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: 'var(--radius-md)', padding: '14px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ background: '#f8fafc', borderRadius: 'var(--radius-md)', padding: '14px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <Languages size={18} color="#0ea5e9" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fff' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
                 {t('language', currentLang)} (Language)
               </span>
             </div>
@@ -131,12 +134,12 @@ export default function AccessibilitySettingsModal({
           </div>
 
           {/* Large Text Switch */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Type size={18} color="#10b981" />
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#fff' }}>{t('large_text', currentLang)}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Increase font sizes across all screens</div>
+                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a' }}>{t('large_text', currentLang)}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Increase font sizes across all screens</div>
               </div>
             </div>
             <input
@@ -148,12 +151,12 @@ export default function AccessibilitySettingsModal({
           </div>
 
           {/* High Contrast Mode */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Eye size={18} color="#f59e0b" />
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#fff' }}>{t('high_contrast', currentLang)}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Solid borders and pure black surfaces</div>
+                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a' }}>{t('high_contrast', currentLang)}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Solid borders and high contrast surfaces</div>
               </div>
             </div>
             <input
@@ -165,12 +168,12 @@ export default function AccessibilitySettingsModal({
           </div>
 
           {/* Reduced Motion */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Sparkles size={18} color="#a78bfa" />
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#fff' }}>{t('reduced_motion', currentLang)}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Silence floating animations and transitions</div>
+                <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a' }}>{t('reduced_motion', currentLang)}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Silence floating animations and transitions</div>
               </div>
             </div>
             <input
@@ -183,7 +186,7 @@ export default function AccessibilitySettingsModal({
         </div>
 
         {/* Touch Target Notice */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#64748b', marginBottom: '16px' }}>
           <Smartphone size={14} color="#10b981" />
           <span>All touch targets certified $\ge 44$px for seamless one-handed mobile navigation.</span>
         </div>

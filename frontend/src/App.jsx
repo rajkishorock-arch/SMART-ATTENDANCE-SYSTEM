@@ -7531,8 +7531,8 @@ export default function App() {
             style={{
               padding: '10px 14px',
               borderRadius: '12px',
-              background: activeTab === 'student-profile' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-              border: activeTab === 'student-profile' ? '1px solid #6366f1' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeTab === 'student-profile' ? '#eff6ff' : '#f8fafc',
+              border: activeTab === 'student-profile' ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
@@ -7548,19 +7548,19 @@ export default function App() {
               <img 
                 src={currentUser.profile_pic} 
                 alt={currentUser.name} 
-                style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #6366f1', flexShrink: 0 }} 
+                style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', flexShrink: 0 }} 
               />
             ) : (
-              <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>
                 {(currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase()}
               </div>
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: '#f8fafc', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ color: '#0f172a', fontSize: '0.84rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {currentUser.name || currentUser.email}
               </div>
-              <div style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {currentUser.role || 'Member'} • {currentUser.institution_name || 'Institute'}
+              <div style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentUser.role || 'Member'} • {displayInstitutionName}
               </div>
             </div>
           </div>
@@ -7571,19 +7571,20 @@ export default function App() {
           className="nav-item" 
           style={{ 
             width: '100%', 
-            border: '1px solid rgba(0, 242, 254, 0.15)', 
-            background: 'rgba(0, 242, 254, 0.05)', 
-            color: '#00f2fe', 
+            border: '1px solid #e2e8f0', 
+            background: '#f8fafc', 
+            color: '#475569', 
             display: 'flex', 
             alignItems: 'center', 
             gap: '12px', 
             marginBottom: '10px',
             borderRadius: '12px',
-            padding: '12px 18px',
-            fontWeight: 600
+            padding: '11px 16px',
+            fontWeight: 600,
+            fontSize: '0.85rem'
           }}
         >
-          <Info size={18} />
+          <Info size={18} style={{ color: '#2563eb' }} />
           About System
         </button>
 
@@ -7592,15 +7593,16 @@ export default function App() {
           className="nav-item" 
           style={{ 
             width: '100%', 
-            border: '1px solid rgba(239, 68, 68, 0.15)', 
-            background: 'rgba(239, 68, 68, 0.05)', 
-            color: '#ef4444', 
+            border: '1px solid #fecaca', 
+            background: '#fef2f2', 
+            color: '#dc2626', 
             display: 'flex', 
             alignItems: 'center', 
             gap: '12px', 
             borderRadius: '12px',
-            padding: '12px 18px',
-            fontWeight: 600
+            padding: '11px 16px',
+            fontWeight: 700,
+            fontSize: '0.85rem'
           }}
         >
           <LogOut size={18} />
@@ -8478,7 +8480,7 @@ export default function App() {
       {showEditStudentModal && editingStudent && (
         <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Student Profile</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#0f172a' }}>Edit Student Profile</h3>
             
             {editStudentError && (
               <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
@@ -8705,7 +8707,7 @@ export default function App() {
       {showEditStudentSelfModal && editingStudentSelf && (
         <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Profile Information</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#0f172a' }}>Edit Profile Information</h3>
             
             {editStudentSelfError && (
               <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
@@ -8819,7 +8821,7 @@ export default function App() {
       {showEditTeacherSelfModal && editingTeacherSelf && (
         <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', color: '#f8fafc' }}>Edit Profile Information</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#0f172a' }}>Edit Profile Information</h3>
             
             {editTeacherSelfError && (
               <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
@@ -9118,16 +9120,16 @@ export default function App() {
             {/* Header */}
             <div className="webcam-capture-modal-header">
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#f8fafc' }}>📸 Capture Face Samples</h3>
-                <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 0' }}>
-                  Student: <strong style={{ color: '#00f2fe' }}>{captureStudent.name}</strong> ({captureStudent.roll})
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>📸 Capture Face Samples</h3>
+                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '4px 0 0' }}>
+                  Student: <strong style={{ color: '#2563eb' }}>{captureStudent.name}</strong> ({captureStudent.roll})
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeWebcamModal}
                 disabled={isCapturing}
-                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#9ca3af', cursor: 'pointer', padding: '6px 10px', fontSize: '1.1rem', lineHeight: 1 }}
+                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#64748b', cursor: 'pointer', padding: '6px 10px', fontSize: '1.1rem', lineHeight: 1 }}
                 aria-label="Close"
               >✕</button>
             </div>
@@ -9791,12 +9793,12 @@ export default function App() {
               }}>
                 <Lock size={20} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: '#f8fafc' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
                 {masterKeyPrompt.title}
               </h3>
             </div>
             
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#9ca3af', lineHeight: '1.5' }}>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569', lineHeight: '1.5' }}>
               {masterKeyPrompt.message}
             </p>
             
@@ -9815,10 +9817,13 @@ export default function App() {
               }}
               style={{
                 width: '100%',
-                background: 'rgba(8, 12, 20, 0.5)',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                color: '#0f172a',
                 padding: '12px 16px',
                 boxSizing: 'border-box',
-                fontSize: '0.95rem'
+                fontSize: '0.95rem',
+                borderRadius: '10px'
               }}
             />
             
@@ -9860,8 +9865,10 @@ export default function App() {
             maxWidth: '700px',
             margin: '16px',
             padding: '0',
-            border: '1px solid rgba(167, 139, 250, 0.35)',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
             borderRadius: '20px',
+            background: '#ffffff',
             display: 'flex',
             flexDirection: 'column',
             maxHeight: '90vh',
@@ -9871,25 +9878,25 @@ export default function App() {
             {/* Modal Header */}
             <div style={{
               padding: '24px 28px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: 'rgba(167, 139, 250, 0.05)',
+              background: '#f8fafc',
               flexShrink: 0
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   ✋ Manual Attendance Register
                 </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.4 }}>
+                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.4 }}>
                   Subject: <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(manualSubjectId))?.name || 'N/A'}</strong> • Date: <strong>{manualDate}</strong> • Slot: <strong>{manualPeriod}</strong>
                 </p>
               </div>
               <button
                 onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
                 style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '1.5rem', cursor: 'pointer', flexShrink: 0 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                onMouseEnter={e => e.currentTarget.style.color = '#0f172a'}
                 onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
               >
                 ✕
@@ -9897,7 +9904,7 @@ export default function App() {
             </div>
 
             {/* Search input & Scan Virtual ID Button */}
-            <div style={{ padding: '16px 28px 8px', flexShrink: 0, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ padding: '16px 28px 8px', flexShrink: 0, display: 'flex', gap: '10px', flexWrap: 'wrap', background: '#ffffff' }}>
               <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
                 <input
                   type="text"
@@ -9905,7 +9912,7 @@ export default function App() {
                   placeholder="🔍 Search student name or roll number..."
                   value={manualSearchQuery}
                   onChange={e => setManualSearchQuery(e.target.value)}
-                  style={{ background: 'rgba(8, 12, 20, 0.4)', paddingLeft: '16px', width: '100%' }}
+                  style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', color: '#0f172a', paddingLeft: '16px', width: '100%', borderRadius: '10px' }}
                 />
               </div>
               <button
@@ -9924,9 +9931,9 @@ export default function App() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  border: '1px solid rgba(0, 242, 254, 0.35)',
-                  color: '#00f2fe',
-                  background: 'rgba(0, 242, 254, 0.08)',
+                  border: '1px solid #bfdbfe',
+                  color: '#2563eb',
+                  background: '#eff6ff',
                   cursor: 'pointer'
                 }}
               >
@@ -9935,7 +9942,7 @@ export default function App() {
             </div>
 
             {/* Students Register List */}
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 28px 16px', minHeight: 0 }}>
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 28px 16px', minHeight: 0, background: '#ffffff' }}>
               {(() => {
                 const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
                 const subjectDept = selectedSubject ? selectedSubject.department : '';
@@ -9949,7 +9956,7 @@ export default function App() {
 
                 if (classStudents.length === 0) {
                   return (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
                       No students found {subjectDept ? `in department: ${subjectDept}` : ''}.
                     </div>
                   );
@@ -9965,17 +9972,17 @@ export default function App() {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: '10px',
-                      background: `rgba(255, 255, 255, 0.01)`,
-                      border: `1px solid ${statusColor}15`,
-                      borderLeft: `3px solid ${statusColor}`,
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderLeft: `4px solid ${statusColor}`,
                       borderRadius: '10px',
                       padding: '10px 14px',
                       animation: `fadeInUp 0.25s ease both ${idx * 20}ms`
                     }}>
                       {/* Name & Roll */}
                       <div style={{ flex: '1', minWidth: '160px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f1f5f9' }}>{student.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>Roll: {student.roll} • {student.dep}</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#0f172a' }}>{student.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>Roll: {student.roll} • {student.dep}</div>
                       </div>
 
                       {/* Status Toggle buttons */}
@@ -9984,9 +9991,9 @@ export default function App() {
                           const isSelected = stateData.status === status;
                           let selectedStyle = {};
                           if (isSelected) {
-                            if (status === 'Present') selectedStyle = { background: 'rgba(16, 185, 129, 0.18)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.5)' };
-                            else if (status === 'Late') selectedStyle = { background: 'rgba(245, 158, 11, 0.18)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.5)' };
-                            else selectedStyle = { background: 'rgba(239, 68, 68, 0.18)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.5)' };
+                            if (status === 'Present') selectedStyle = { background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' };
+                            else if (status === 'Late') selectedStyle = { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' };
+                            else selectedStyle = { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' };
                           }
                           return (
                             <button
@@ -9999,15 +10006,15 @@ export default function App() {
                                 }));
                               }}
                               style={{
-                                padding: '5px 10px',
+                                padding: '5px 12px',
                                 borderRadius: '6px',
-                                fontSize: '0.72rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 700,
                                 cursor: 'pointer',
                                 transition: 'all 0.15s',
-                                background: 'transparent',
+                                background: '#f8fafc',
                                 color: '#64748b',
-                                border: '1px solid rgba(255,255,255,0.05)',
+                                border: '1px solid #e2e8f0',
                                 ...(isSelected ? selectedStyle : {})
                               }}
                             >
@@ -10030,12 +10037,14 @@ export default function App() {
                           }));
                         }}
                         style={{
-                          background: 'rgba(8, 12, 20, 0.25)',
+                          background: '#ffffff',
                           padding: '6px 10px',
                           fontSize: '0.75rem',
                           width: '160px',
                           minWidth: '120px',
-                          border: '1px solid rgba(255,255,255,0.04)'
+                          border: '1px solid #cbd5e1',
+                          color: '#0f172a',
+                          borderRadius: '6px'
                         }}
                       />
                     </div>
@@ -10045,8 +10054,8 @@ export default function App() {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                 Default status is <strong style={{ color: '#10b981' }}>Present</strong> — change per student as needed.
               </span>
               <div style={{ display: 'flex', gap: '10px' }}>

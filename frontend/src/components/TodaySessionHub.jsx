@@ -196,8 +196,8 @@ export default function TodaySessionHub({
           style={{
             padding: '18px 20px',
             border: '1.5px solid #10b981',
-            background: 'rgba(16, 185, 129, 0.08)',
-            boxShadow: '0 0 25px rgba(16, 185, 129, 0.15)',
+            background: '#f0fdf4',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -211,7 +211,7 @@ export default function TodaySessionHub({
                 width: '44px',
                 height: '44px',
                 borderRadius: '50%',
-                background: 'rgba(16, 185, 129, 0.2)',
+                background: '#dcfce7',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -222,14 +222,14 @@ export default function TodaySessionHub({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>
+                <span style={{ fontWeight: 800, fontSize: '1rem', color: '#065f46' }}>
                   {t('session_live', lang)}
                 </span>
                 <span className="status-pill status-pill-success" style={{ fontSize: '0.68rem' }}>
                   {selectedPeriod}
                 </span>
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.8rem', color: '#047857', marginTop: '2px' }}>
                 {activeSubject?.name} · {presentRolls.size} {t('marked_present', lang)}
               </div>
             </div>
@@ -333,16 +333,16 @@ export default function TodaySessionHub({
 
           {/* Quick Enrolled & Present Snapshot */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-            <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>{t('total_enrolled', lang)}</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff', marginTop: '2px' }}>{enrolledStudents.length}</div>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('total_enrolled', lang)}</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{enrolledStudents.length}</div>
             </div>
-            <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#34d399' }}>{t('marked_present', lang)}</div>
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', color: '#059669' }}>{t('marked_present', lang)}</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>{displayPresentCount}</div>
             </div>
-            <div style={{ background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#f87171' }}>{t('absent_today', lang)}</div>
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', color: '#dc2626' }}>{t('absent_today', lang)}</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>{displayAbsentCount}</div>
             </div>
           </div>
@@ -412,14 +412,14 @@ export default function TodaySessionHub({
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '8px 12px',
-                  background: 'rgba(255, 255, 255, 0.02)',
+                  background: '#f8fafc',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-subtle)'
+                  border: '1px solid #e2e8f0'
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff' }}>{stu.name}</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>{stu.roll} · {stu.dep}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{stu.name}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{stu.roll} · {stu.dep}</div>
                 </div>
 
                 <button
@@ -459,6 +459,9 @@ export default function TodaySessionHub({
               width: '100%',
               maxWidth: '480px',
               padding: '24px',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
               borderRadius: 'var(--radius-xl)',
               animation: 'scaleIn 0.25s ease'
             }}
@@ -467,35 +470,35 @@ export default function TodaySessionHub({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={22} color="#10b981" />
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                   {t('session_summary', lang)}
                 </h3>
               </div>
               <button
                 onClick={() => setShowSummaryModal(false)}
                 className="clean-back-btn"
-                style={{ width: '36px', height: '36px' }}
+                style={{ width: '36px', height: '36px', color: '#64748b' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.82rem', marginBottom: '16px' }}>
+            <div style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '16px' }}>
               {lastEndedSummary.subjectName} · {lastEndedSummary.period} · {lastEndedSummary.timestamp}
             </div>
 
             {/* Scoreboard */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-              <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>{t('total_enrolled', lang)}</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>{lastEndedSummary.totalEnrolled}</div>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('total_enrolled', lang)}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>{lastEndedSummary.totalEnrolled}</div>
               </div>
-              <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.72rem', color: '#34d399' }}>{t('marked_present', lang)}</div>
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', color: '#059669' }}>{t('marked_present', lang)}</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981' }}>{lastEndedSummary.presentCount}</div>
               </div>
-              <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.72rem', color: '#f87171' }}>{t('absent_today', lang)}</div>
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', color: '#dc2626' }}>{t('absent_today', lang)}</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4444' }}>{lastEndedSummary.absentList.length}</div>
               </div>
             </div>
@@ -503,13 +506,13 @@ export default function TodaySessionHub({
             {/* Absent List with Action */}
             {lastEndedSummary.absentList.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
                   {t('absent_students', lang)}:
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
                   {lastEndedSummary.absentList.map(stu => (
-                    <div key={stu.id || stu.roll} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#fff' }}>{stu.name} ({stu.roll})</span>
+                    <div key={stu.id || stu.roll} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#0f172a' }}>{stu.name} ({stu.roll})</span>
                       <button
                         onClick={onOpenManualAttendance}
                         style={{ background: 'none', border: 'none', color: '#0ea5e9', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}

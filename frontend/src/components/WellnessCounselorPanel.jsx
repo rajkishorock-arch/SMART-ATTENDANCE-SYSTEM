@@ -228,12 +228,11 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
       maxWidth: '1100px',
       margin: '0 auto',
       padding: '24px',
-      background: 'rgba(12, 16, 32, 0.85)',
-      backdropFilter: 'blur(16px)',
-      border: '1px solid rgba(236, 72, 153, 0.25)',
-      borderRadius: '24px',
-      boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 35px rgba(236, 72, 153, 0.08)',
-      color: '#f8fafc',
+      background: '#ffffff',
+      border: '1px solid #e2e8f0',
+      borderRadius: '20px',
+      boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)',
+      color: '#0f172a',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* Header Banner */}
@@ -245,7 +244,7 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
         gap: '16px',
         marginBottom: '28px',
         paddingBottom: '20px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+        borderBottom: '1px solid #e2e8f0'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
@@ -257,42 +256,40 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '1.6rem',
-            boxShadow: '0 0 20px rgba(236, 72, 153, 0.35)'
+            boxShadow: '0 4px 15px rgba(236, 72, 153, 0.25)'
           }}>
             ❤️
           </div>
           <div>
             <h2 style={{
               margin: 0,
-              fontSize: '1.75rem',
+              fontSize: '1.6rem',
               fontWeight: 800,
-              background: 'linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #00f2fe 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#0f172a',
               letterSpacing: '0.01em'
             }}>
               Student Wellness Center
             </h2>
-            <p style={{ margin: '4px 0 0', color: '#9ca3af', fontSize: '0.88rem' }}>
+            <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.88rem' }}>
               Mental Health Tracker, Mood Analytics & Confidential Counselor Hub
             </p>
           </div>
         </div>
 
         {/* View Mode Toggle Buttons */}
-        <div style={{ display: 'flex', gap: '10px', background: 'rgba(255, 255, 255, 0.04)', padding: '4px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
           <button
             onClick={() => setViewMode('student')}
             style={{
-              padding: '10px 20px',
-              borderRadius: '10px',
+              padding: '8px 18px',
+              borderRadius: '8px',
               fontWeight: 700,
-              fontSize: '0.88rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
-              border: viewMode === 'student' ? '1px solid #ec4899' : 'none',
-              background: viewMode === 'student' ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(168, 85, 247, 0.25))' : 'transparent',
-              color: viewMode === 'student' ? '#fff' : '#9ca3af',
-              boxShadow: viewMode === 'student' ? '0 0 15px rgba(236, 72, 153, 0.2)' : 'none',
+              border: 'none',
+              background: viewMode === 'student' ? '#ffffff' : 'transparent',
+              color: viewMode === 'student' ? '#db2777' : '#64748b',
+              boxShadow: viewMode === 'student' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
               transition: 'all 0.2s ease'
             }}
           >
@@ -303,15 +300,15 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
             <button
               onClick={() => setViewMode('counselor')}
               style={{
-                padding: '10px 20px',
-                borderRadius: '10px',
+                padding: '8px 18px',
+                borderRadius: '8px',
                 fontWeight: 700,
-                fontSize: '0.88rem',
+                fontSize: '0.85rem',
                 cursor: 'pointer',
-                border: viewMode === 'counselor' ? '1px solid #a855f7' : 'none',
-                background: viewMode === 'counselor' ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(0, 242, 254, 0.25))' : 'transparent',
-                color: viewMode === 'counselor' ? '#fff' : '#9ca3af',
-                boxShadow: viewMode === 'counselor' ? '0 0 15px rgba(168, 85, 247, 0.2)' : 'none',
+                border: 'none',
+                background: viewMode === 'counselor' ? '#ffffff' : 'transparent',
+                color: viewMode === 'counselor' ? '#7c3aed' : '#64748b',
+                boxShadow: viewMode === 'counselor' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
                 transition: 'all 0.2s ease'
               }}
             >
@@ -322,7 +319,7 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
       </div>
 
       {loading ? (
-        <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
+        <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
           <div style={{ fontSize: '2rem', marginBottom: '12px' }}>💖</div>
           <div>Loading Wellness Metrics...</div>
         </div>
@@ -331,16 +328,17 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
 
           {/* CARD 1: Wellness Score Summary */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '20px',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            borderRadius: '16px',
             padding: '24px',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                 Your Wellness Score
               </h3>
               <span style={{
@@ -367,46 +365,46 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
                 width: '130px',
                 height: '130px',
                 borderRadius: '50%',
-                background: `radial-gradient(closest-side, #0c1020 78%, transparent 80% 100%), conic-gradient(${currentBadge.color} ${wellnessData.score}%, rgba(255,255,255,0.08) 0)`,
+                background: `radial-gradient(closest-side, #f8fafc 78%, transparent 80% 100%), conic-gradient(${currentBadge.color} ${wellnessData.score}%, #e2e8f0 0)`,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: `0 0 25px ${currentBadge.bg}`
+                boxShadow: `0 4px 16px ${currentBadge.bg}`
               }}>
-                <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#fff', lineHeight: 1 }}>
+                <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
                   {wellnessData.score}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '2px', fontWeight: 600 }}>OUT OF 100</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>OUT OF 100</div>
               </div>
             </div>
 
             {/* 4 Metric Breakdown Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div style={{ background: 'rgba(0, 242, 254, 0.06)', border: '1px solid rgba(0, 242, 254, 0.15)', padding: '12px', borderRadius: '14px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Attendance</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#00f2fe', marginTop: '2px' }}>
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px', borderRadius: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#1e40af' }}>Attendance</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
                   {wellnessData.breakdown?.attendance_score || 94}%
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.15)', padding: '12px', borderRadius: '14px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Mood Index</div>
+              <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '12px', borderRadius: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#065f46' }}>Mood Index</div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
                   {wellnessData.breakdown?.mood_score || 86}%
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(168, 85, 247, 0.06)', border: '1px solid rgba(168, 85, 247, 0.15)', padding: '12px', borderRadius: '14px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Engagement</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#a855f7', marginTop: '2px' }}>
+              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', padding: '12px', borderRadius: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#6b21a8' }}>Engagement</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#9333ea', marginTop: '2px' }}>
                   {wellnessData.breakdown?.engagement_score || 88}%
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.15)', padding: '12px', borderRadius: '14px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Overall Health</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '12px', borderRadius: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#92400e' }}>Overall Health</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>
                   {wellnessData.breakdown?.overall_health || 88}%
                 </div>
               </div>
@@ -415,19 +413,20 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
 
           {/* CARD 2: Interactive Mood Check-In */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '20px',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            borderRadius: '16px',
             padding: '24px',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px'
           }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                 How are you feeling today?
               </h3>
-              <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#9ca3af' }}>
+              <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
                 Tap an emoji to record your mental mood & earn +15 XP wellness bonus
               </p>
             </div>
@@ -446,22 +445,22 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
                     onClick={() => setSelectedMood(key)}
                     style={{
                       padding: '12px 6px',
-                      borderRadius: '16px',
-                      border: isSelected ? `2px solid ${item.color}` : '1px solid rgba(255, 255, 255, 0.08)',
-                      background: isSelected ? `${item.color}22` : 'rgba(255, 255, 255, 0.02)',
-                      color: '#fff',
+                      borderRadius: '14px',
+                      border: isSelected ? `2px solid ${item.color}` : '1px solid #e2e8f0',
+                      background: isSelected ? `${item.color}15` : '#f8fafc',
+                      color: '#0f172a',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '4px',
-                      transform: isSelected ? 'scale(1.05)' : 'none',
-                      boxShadow: isSelected ? `0 0 15px ${item.color}44` : 'none',
+                      transform: isSelected ? 'scale(1.04)' : 'none',
+                      boxShadow: isSelected ? `0 2px 10px ${item.color}25` : 'none',
                       transition: 'all 0.2s ease'
                     }}
                   >
                     <span style={{ fontSize: '1.8rem' }}>{item.emoji}</span>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isSelected ? item.color : '#9ca3af' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isSelected ? item.color : '#64748b' }}>
                       {item.label}
                     </span>
                   </button>
@@ -480,9 +479,9 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
                   width: '100%',
                   padding: '12px',
                   borderRadius: '12px',
-                  background: 'rgba(8, 12, 24, 0.6)',
-                  border: '1px solid rgba(236, 72, 153, 0.3)',
-                  color: '#fff',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  color: '#0f172a',
                   fontSize: '0.85rem',
                   outline: 'none',
                   resize: 'none',
@@ -496,9 +495,9 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
               <div style={{
                 padding: '10px 14px',
                 borderRadius: '12px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid #10b981',
-                color: '#10b981',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                color: '#065f46',
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 textAlign: 'center'
@@ -514,15 +513,15 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
               style={{
                 width: '100%',
                 padding: '14px',
-                borderRadius: '14px',
-                background: selectedMood ? 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)' : 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                background: selectedMood ? 'linear-gradient(135deg, #ec4899 0%, #a855f7 100%)' : '#f1f5f9',
                 border: 'none',
-                color: selectedMood ? '#fff' : '#64748b',
+                color: selectedMood ? '#fff' : '#94a3b8',
                 fontWeight: 800,
                 fontSize: '0.92rem',
                 cursor: selectedMood && !isSubmitting ? 'pointer' : 'not-allowed',
-                boxShadow: selectedMood ? '0 6px 20px rgba(236, 72, 153, 0.3)' : 'none',
-                opacity: selectedMood ? 1 : 0.6,
+                boxShadow: selectedMood ? '0 4px 15px rgba(236, 72, 153, 0.25)' : 'none',
+                opacity: selectedMood ? 1 : 0.7,
                 transition: 'all 0.2s ease'
               }}
             >
@@ -533,12 +532,13 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
           {/* CARD 3: Mood History Timeline */}
           <div style={{
             gridColumn: '1 / -1',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '20px',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            borderRadius: '16px',
             padding: '24px'
           }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
               Your Mood History & Wellness Timeline
             </h3>
 
@@ -554,26 +554,26 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
                       justifyContent: 'space-between',
                       gap: '14px',
                       padding: '12px 16px',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
-                      borderRadius: '14px'
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                       <span style={{ fontSize: '1.8rem' }}>{item.emoji}</span>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#fff', textTransform: 'capitalize' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', textTransform: 'capitalize' }}>
                           {item.label} Mood
                         </div>
                         {entry.notes && (
-                          <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '2px' }}>
+                          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
                             "{entry.notes}"
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div style={{ fontSize: '0.78rem', color: '#a78bfa', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#7c3aed', whiteSpace: 'nowrap', fontWeight: 600 }}>
                       {new Date(entry.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
@@ -586,16 +586,17 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
       ) : (
         /* Counselor Alerts Dashboard */
         <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '20px',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+          borderRadius: '16px',
           padding: '24px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
               Counselor Early Intervention Alerts
             </h3>
-            <span style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.8rem', color: '#dc2626', fontWeight: 700 }}>
               {alerts.filter(a => !a.resolved).length} Pending High Priority Flags
             </span>
           </div>
@@ -611,14 +612,14 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
                   justifyContent: 'space-between',
                   gap: '16px',
                   padding: '18px 20px',
-                  background: alert.resolved ? 'rgba(16, 185, 129, 0.06)' : 'rgba(239, 68, 68, 0.08)',
-                  border: alert.resolved ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.4)',
-                  borderRadius: '16px'
+                  background: alert.resolved ? '#f0fdf4' : '#fef2f2',
+                  border: alert.resolved ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                  borderRadius: '14px'
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>
+                    <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>
                       {alert.student_name} ({alert.student_id})
                     </span>
                     <span style={{
@@ -626,26 +627,26 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
                       fontWeight: 800,
                       padding: '2px 8px',
                       borderRadius: '10px',
-                      background: alert.severity === 'high' ? '#ef4444' : '#f59e0b',
-                      color: '#000',
+                      background: alert.severity === 'high' ? '#fee2e2' : '#fef3c7',
+                      color: alert.severity === 'high' ? '#b91c1c' : '#92400e',
                       textTransform: 'uppercase'
                     }}>
                       {alert.severity} Risk
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '0.88rem', color: alert.resolved ? '#10b981' : '#fca5a5', marginTop: '6px', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.88rem', color: alert.resolved ? '#059669' : '#b91c1c', marginTop: '6px', fontWeight: 600 }}>
                     {alert.reason}
                   </div>
 
-                  <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px' }}>
-                    Wellness Score: <strong style={{ color: '#fff' }}>{alert.wellness_score}/100</strong> • Triggered: {new Date(alert.triggered_at).toLocaleString()}
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                    Wellness Score: <strong style={{ color: '#0f172a' }}>{alert.wellness_score}/100</strong> • Triggered: {new Date(alert.triggered_at).toLocaleString()}
                   </div>
                 </div>
 
                 <div>
                   {alert.resolved ? (
-                    <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 800 }}>
+                    <span style={{ fontSize: '0.85rem', color: '#059669', fontWeight: 800 }}>
                       ✅ Resolved
                     </span>
                   ) : (
@@ -660,7 +661,7 @@ const WellnessCounselorPanel = ({ user, apiBaseUrl, token, userRole, students = 
                         fontWeight: 700,
                         fontSize: '0.85rem',
                         cursor: 'pointer',
-                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.25)'
                       }}
                     >
                       Resolve & Contact
