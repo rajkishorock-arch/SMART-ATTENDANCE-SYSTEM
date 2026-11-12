@@ -416,17 +416,17 @@
   font-weight: 600;
 }
 
-/* Desktop vs mobile layout split */
-@media (min-width: 769px) {
+/* Desktop vs mobile & tablet layout split */
+@media (min-width: 1025px) {
   .bottom-nav,
   .bottom-nav-container {
     display: none !important;
   }
 
   .main-content {
-    margin-left: 220px !important;
+    margin-left: 240px !important;
     padding-bottom: 24px !important;
-    max-width: calc(100% - 220px) !important;
+    max-width: calc(100% - 240px) !important;
   }
 
   .settings-section {
@@ -439,9 +439,22 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .desktop-only-feature {
     display: none !important;
+  }
+
+  .bottom-nav,
+  .bottom-nav-container {
+    display: flex !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .settings-section {

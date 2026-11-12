@@ -1211,7 +1211,7 @@ body:not(.theme-matrix):not(.theme-cyberpunk):not(.theme-obsidian) .crt-vignette
   animation: fadeIn 0.25s ease-out;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .sidebar-backdrop {
     display: none !important;
     pointer-events: none !important;
@@ -3573,12 +3573,25 @@ html {
   overflow-x: hidden;
 }
 
-.main-content {
-  flex: 1;
-  min-width: 0;
-  width: calc(100% - 220px);
-  max-width: calc(100% - 220px);
-  overflow-x: hidden;
+@media (min-width: 1025px) {
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    width: calc(100% - 240px);
+    max-width: calc(100% - 240px);
+    overflow-x: hidden;
+  }
+}
+
+@media (max-width: 1024px) {
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    overflow-x: hidden;
+  }
 }
 
 .header-container {
@@ -4137,8 +4150,11 @@ html {
 }
 
 /* Tablet & small laptop */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
