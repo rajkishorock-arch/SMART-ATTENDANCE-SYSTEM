@@ -47,29 +47,48 @@ export default function AttendanceRegistersView({
   const presentLogsCount = filteredLogs.filter(l => l.attendance.toLowerCase() === 'present').length;
   const presenceRateLogs = totalLogsCount > 0 ? Math.round((presentLogsCount / totalLogsCount) * 100) : 0;
 
-  // Peak Scan hour math
-  let peakScanHour = "N/A";
-  if (filteredLogs.length > 0) {
+  // Peak Scan hour math (Safely handles "Period 1", "09:30:00", AM/PM and null values)
+  let peakScanHour = "--";
+  if (filteredLogs && filteredLogs.length > 0) {
     const hours = filteredLogs.map(l => {
-      const parts = l.time.split(':');
+      if (!l || !l.time) return null;
+      const t = String(l.time).trim();
+
+      // Check for period format e.g. "Period 1", "Period 2"
+      const pMatch = t.match(/Period\s*(\d+)/i);
+      if (pMatch) {
+        const pNum = parseInt(pMatch[1], 10);
+        if (!isNaN(pNum) && pNum >= 1 && pNum <= 8) {
+          return 8 + pNum; // Period 1 -> 9 AM, Period 2 -> 10 AM, etc.
+        }
+      }
+
+      // Check standard HH:MM(:SS) format
+      const parts = t.split(':');
       if (parts.length > 0) {
-        let hr = parseInt(parts[0]);
-        if (l.time.toLowerCase().includes('pm') && hr < 12) hr += 12;
-        if (l.time.toLowerCase().includes('am') && hr === 12) hr = 0;
-        return hr;
+        const rawHr = parseInt(parts[0], 10);
+        if (!isNaN(rawHr)) {
+          let hr = rawHr;
+          if (t.toLowerCase().includes('pm') && hr < 12) hr += 12;
+          if (t.toLowerCase().includes('am') && hr === 12) hr = 0;
+          return hr;
+        }
       }
       return null;
-    }).filter(h => h !== null);
+    }).filter(h => h !== null && !isNaN(h));
+
     if (hours.length > 0) {
       const counts = hours.reduce((acc, curr) => {
         acc[curr] = (acc[curr] || 0) + 1;
         return acc;
       }, {});
       const peak = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
-      const peakHourNum = parseInt(peak);
-      const ampm = peakHourNum >= 12 ? 'PM' : 'AM';
-      const dispHour = peakHourNum % 12 === 0 ? 12 : peakHourNum % 12;
-      peakScanHour = `${dispHour}:00 ${ampm}`;
+      const peakHourNum = parseInt(peak, 10);
+      if (!isNaN(peakHourNum)) {
+        const ampm = peakHourNum >= 12 ? 'PM' : 'AM';
+        const dispHour = peakHourNum % 12 === 0 ? 12 : peakHourNum % 12;
+        peakScanHour = `${dispHour}:00 ${ampm}`;
+      }
     }
   }
 

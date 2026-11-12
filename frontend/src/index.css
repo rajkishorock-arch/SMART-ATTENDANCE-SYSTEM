@@ -1400,7 +1400,7 @@ html, body {
     width: 100% !important;
   }
   
-  form div[style*="display: grid"] {
+  form div[style*="display: grid"]:not(.keep-horizontal):not([class*="keep-horizontal"]):not([class*="-row"]) {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
@@ -4297,17 +4297,41 @@ html {
     box-sizing: border-box !important;
   }
 
-  /* Form grids on mobile: stack fields into single column so inputs don't squeeze out of view */
+  /* Form grids on mobile: stack fields into single column so inputs don't squeeze out of view (except horizontal button rows) */
   .responsive-form-grid,
   .responsive-form-grid-3,
-  .glass-panel form div[style*="display: grid"],
-  .glass-panel form div[style*="display:grid"],
-  form div[style*="display: grid"],
-  form div[style*="display:grid"],
-  div[style*="grid-template-columns: 1fr 1fr"],
-  div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+  .glass-panel form div[style*="display: grid"]:not(.keep-horizontal):not([class*="keep-horizontal"]):not([class*="-row"]),
+  .glass-panel form div[style*="display:grid"]:not(.keep-horizontal):not([class*="keep-horizontal"]):not([class*="-row"]),
+  form div[style*="display: grid"]:not(.keep-horizontal):not([class*="keep-horizontal"]):not([class*="-row"]),
+  form div[style*="display:grid"]:not(.keep-horizontal):not([class*="keep-horizontal"]):not([class*="-row"]),
+  div[style*="grid-template-columns: 1fr 1fr"]:not(.keep-horizontal):not([class*="keep-horizontal"]):not([class*="-row"]),
+  div[style*="grid-template-columns: 1fr 1fr 1fr"]:not(.keep-horizontal):not([class*="keep-horizontal"]):not([class*="-row"]) {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
+  }
+
+  /* Explicit horizontal layout enforcement for button groups and segmented bars across all devices */
+  .keep-horizontal,
+  .broadcast-type-row,
+  .broadcast-audience-row,
+  .broadcast-actions-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Optimized minimal modal padding for mobile screens */
+  .modal-overlay,
+  .broadcast-modal-overlay,
+  .dispute-modal-overlay {
+    padding: 10px 8px !important;
+  }
+  .broadcast-modal-container,
+  .modal-container {
+    max-height: 94vh !important;
+    border-radius: 14px !important;
   }
 
   /* Table containers: strictly constrained to 100% width with smooth horizontal touch swipe */

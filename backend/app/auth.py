@@ -92,7 +92,11 @@ def login_for_access_token(
             is_explicit_tenant = bool(tenant_slug and tenant_slug != "default")
 
             if is_explicit_tenant:
-                inst = db.query(models.Institution).filter(func.lower(models.Institution.slug) == tenant_slug).first()
+                raw_code = (raw_tenant_slug or "").strip()
+                inst = db.query(models.Institution).filter(
+                    (func.lower(models.Institution.slug) == tenant_slug) |
+                    (models.Institution.master_key == raw_code)
+                ).first()
                 if not inst:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,

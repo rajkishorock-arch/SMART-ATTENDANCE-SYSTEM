@@ -67,10 +67,22 @@ def setup_exception_handlers(app: FastAPI) -> None:
 
     logger = logging.getLogger("app.exception")
 
+    def _cors_headers(request: Request) -> dict:
+        origin = request.headers.get("origin")
+        if origin:
+            return {
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+            }
+        return {}
+
     @app.exception_handler(AppException)
     async def app_exception_handler(request: Request, exc: AppException):
         return JSONResponse(
             status_code=exc.status_code,
+            headers=_cors_headers(request),
             content={
                 "success": False,
                 "message": exc.message,
@@ -89,6 +101,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
         msg = "An unexpected internal server error occurred." if is_prod else str(exc)
         return JSONResponse(
             status_code=500,
+            headers=_cors_headers(request),
             content={
                 "success": False,
                 "message": msg,

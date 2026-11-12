@@ -159,7 +159,8 @@ export function AuthProvider({ children }) {
 
     const isParentLogin = loginRole === 'parent';
     const loginEndpoint = isParentLogin ? `${API_BASE_URL}/parents/login` : `${API_BASE_URL}/auth/token`;
-    const targetSlug = (loginWorkspaceSlug || '').trim().toLowerCase() || getActiveTenantSlug() || 'default';
+    const rawEnteredSlug = (loginWorkspaceSlug || '').trim().toLowerCase();
+    const targetSlug = rawEnteredSlug ? rawEnteredSlug : (getActiveTenantSlug() || 'default');
     const loginHeaders = isParentLogin
       ? { 'Content-Type': 'application/json', 'X-Tenant-Slug': targetSlug }
       : { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Tenant-Slug': targetSlug };
@@ -267,7 +268,7 @@ export function AuthProvider({ children }) {
     setAuthError(`${hint} Tap "Wake Cloud Server" below, wait 45s, then login again. Default admin password: raj@9211`);
     setServerWarmingUp(true);
     setIsLoading(false);
-  }, [loginEmail, loginPassword, loginRole]);
+  }, [loginEmail, loginPassword, loginRole, loginWorkspaceSlug]);
 
   // Handle SSO Login
   const handleSsoLogin = useCallback(async (provider, emailHint, onSuccess) => {

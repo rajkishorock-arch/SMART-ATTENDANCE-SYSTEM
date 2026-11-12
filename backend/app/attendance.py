@@ -319,30 +319,47 @@ async def recognize_and_mark_attendance(
             continue
 
         # Mark attendance in database + CSV for high-confidence verified faces
-        db_attendance, newly_marked = crud.mark_student_attendance(
-            db, 
-            student_id=user_id, 
-            name=name, 
-            roll=roll, 
-            dep=dep, 
-            subject_id=subject_id,
-            custom_date=custom_date,
-            custom_time=custom_time,
-            institution_id=current_user.institution_id
-        )
-
-        
-        student = crud.get_student_by_id(db, student_id=user_id, institution_id=current_user.institution_id)
-        # If student's attendance is newly marked today, send an asynchronous confirmation email
-        if newly_marked and student and student.email:
-            background_tasks.add_task(
-                send_presence_email,
-                student_email=student.email,
-                student_name=name,
-                roll_no=roll,
-                time_str=db_attendance.time,
-                date_str=db_attendance.date
+        db_attendance = None
+        newly_marked = False
+        try:
+            db_attendance, newly_marked = crud.mark_student_attendance(
+                db, 
+                student_id=user_id, 
+                name=name, 
+                roll=roll, 
+                dep=dep, 
+                subject_id=subject_id,
+                custom_date=custom_date,
+                custom_time=custom_time,
+                institution_id=current_user.institution_id
             )
+        except Exception as mark_err:
+            print(f"[RECOGNIZE FRAME] Warning: mark_student_attendance exception for {user_id}: {mark_err}")
+            # Attempt soft recovery: attendance might already be marked in database
+            db_attendance = None
+            newly_marked = False
+
+        student = None
+        try:
+            student = crud.get_student_by_id(db, student_id=user_id, institution_id=current_user.institution_id)
+        except Exception as std_err:
+            print(f"[RECOGNIZE FRAME] Student lookup error for {user_id}: {std_err}")
+
+        # If student's attendance is newly marked today, send an asynchronous confirmation email
+        if newly_marked and student and getattr(student, "email", None):
+            try:
+                rec_time = getattr(db_attendance, "time", None) or custom_time or datetime.now(IST).strftime("%H:%M:%S")
+                rec_date = getattr(db_attendance, "date", None) or custom_date or datetime.now(IST).strftime("%d/%m/%Y")
+                background_tasks.add_task(
+                    send_presence_email,
+                    student_email=student.email,
+                    student_name=name,
+                    roll_no=roll,
+                    time_str=rec_time,
+                    date_str=rec_date
+                )
+            except Exception as email_err:
+                print(f"[RECOGNIZE FRAME] Error queueing presence email: {email_err}")
         
         face_details = face.copy()
         face_details["newly_marked"] = newly_marked
@@ -351,10 +368,13 @@ async def recognize_and_mark_attendance(
         if student:
             face_photo = student.profile_pic if (student.profile_pic and student.profile_pic != "no") else None
             if not face_photo:
-                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                disk_img = os.path.join(base_dir, "data", f"tenant_{current_user.institution_id}", f"user.{user_id}.1.jpg")
-                if os.path.exists(disk_img):
-                    face_photo = f"/api/v1/students/{user_id}/photo"
+                try:
+                    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    disk_img = os.path.join(base_dir, "data", f"tenant_{current_user.institution_id}", f"user.{user_id}.1.jpg")
+                    if os.path.exists(disk_img):
+                        face_photo = f"/api/v1/students/{user_id}/photo"
+                except Exception:
+                    pass
             face_details["photo"] = face_photo
             face_details["streak_days"] = getattr(student, "streak_days", 0) or 1
             face_details["course"] = getattr(student, "course", None)
