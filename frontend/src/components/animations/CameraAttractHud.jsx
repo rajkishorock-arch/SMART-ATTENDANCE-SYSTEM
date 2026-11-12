@@ -1,6 +1,6 @@
 /**
- * CameraAttractHud — Subtle live scan reticle and focus frame.
- * Renders sleek corner brackets that transition to green on verification.
+ * CameraAttractHud — Professional, clean and user-friendly viewfinder frame.
+ * Soft natural white rounded frame, transitioning smoothly to emerald green on verification.
  */
 export default function CameraAttractHud({
   active,
@@ -13,18 +13,18 @@ export default function CameraAttractHud({
   const isVerifying = livenessStatus === 'verifying' || livenessStatus === 'liveness';
   const isError = livenessStatus === 'failed' || livenessStatus === 'error';
 
-  // Semantic color based on recognition state
-  let primaryColor = '#38bdf8'; // friendly clean sky-blue
-  let glowColor = 'rgba(56, 189, 248, 0.2)';
+  // Professional, natural colors (no harsh sci-fi neon)
+  let borderColor = 'rgba(255, 255, 255, 0.8)';
+  let glowColor = 'rgba(0, 0, 0, 0.25)';
 
   if (isVerified) {
-    primaryColor = '#10b981'; // vibrant clean green
+    borderColor = '#10b981';
     glowColor = 'rgba(16, 185, 129, 0.3)';
   } else if (isVerifying) {
-    primaryColor = '#3b82f6';
-    glowColor = 'rgba(59, 130, 246, 0.25)';
+    borderColor = 'rgba(255, 255, 255, 0.95)';
+    glowColor = 'rgba(255, 255, 255, 0.2)';
   } else if (isError) {
-    primaryColor = '#ef4444';
+    borderColor = '#ef4444';
     glowColor = 'rgba(239, 68, 68, 0.25)';
   }
 
@@ -32,8 +32,6 @@ export default function CameraAttractHud({
     <div
       className={`camera-attract-hud camera-attract-${mode} clean-attract-hud`}
       style={{
-        '--hud-primary': primaryColor,
-        '--hud-glow': glowColor,
         position: 'absolute',
         inset: 0,
         pointerEvents: 'none',
@@ -44,24 +42,19 @@ export default function CameraAttractHud({
       }}
       aria-hidden="true"
     >
-      {/* Friendly, Simple Portrait Viewfinder Box */}
+      {/* Friendly, Clean Rounded Viewfinder Frame (Face ID / Mobile KYC style) */}
       <div
         style={{
           width: 'min(72vw, 260px)',
-          height: 'min(90vw, 320px)',
-          borderRadius: '36px',
-          border: `2px solid ${primaryColor}`,
-          boxShadow: `0 0 0 9999px rgba(0, 0, 0, 0.25), 0 0 20px ${glowColor}`,
-          transition: 'all 0.3s ease',
+          height: 'min(78vw, 320px)',
+          maxHeight: 'min(58vh, 320px)',
+          borderRadius: '32px',
+          border: isVerified ? '2.5px solid #10b981' : isError ? '2px solid #ef4444' : `2px solid ${borderColor}`,
+          boxShadow: `0 0 0 9999px rgba(0, 0, 0, 0.38), 0 0 20px ${glowColor}`,
+          transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
           position: 'relative',
         }}
-      >
-        {/* Soft Corner Accents */}
-        <div style={{ position: 'absolute', top: '-2px', left: '-2px', width: '24px', height: '24px', borderTop: `4px solid ${primaryColor}`, borderLeft: `4px solid ${primaryColor}`, borderTopLeftRadius: '36px' }} />
-        <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '24px', height: '24px', borderTop: `4px solid ${primaryColor}`, borderRight: `4px solid ${primaryColor}`, borderTopRightRadius: '36px' }} />
-        <div style={{ position: 'absolute', bottom: '-2px', left: '-2px', width: '24px', height: '24px', borderBottom: `4px solid ${primaryColor}`, borderLeft: `4px solid ${primaryColor}`, borderBottomLeftRadius: '36px' }} />
-        <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '24px', height: '24px', borderBottom: `4px solid ${primaryColor}`, borderRight: `4px solid ${primaryColor}`, borderBottomRightRadius: '36px' }} />
-      </div>
+      />
     </div>
   );
 }

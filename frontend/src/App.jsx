@@ -50,6 +50,9 @@ import {
   Camera,
   Video,
   RefreshCw,
+  SwitchCamera,
+  Eye,
+  EyeOff,
   Clock,
   History,
   ArrowLeft,
@@ -1872,7 +1875,7 @@ export default function App() {
       return { type: 'offline', text: 'Camera Offline', icon: <Camera size={14} /> };
     }
     if (scannerBootActive) {
-      return { type: 'booting', text: 'Initializing Camera...', icon: <RefreshCw size={14} className="spin-fast" /> };
+      return { type: 'booting', text: 'Starting camera...', icon: <RefreshCw size={14} className="spin-fast" /> };
     }
     if (attendanceError) {
       return { type: 'failed', text: 'Camera Error', icon: <AlertCircle size={14} /> };
@@ -1881,7 +1884,7 @@ export default function App() {
       return { type: 'verified', text: 'Attendance Recorded', icon: <CheckCircle2 size={14} /> };
     }
     if (isScanning) {
-      return { type: 'recognizing', text: 'Matching Face Signature...', icon: <RefreshCw size={14} className="spin-fast" /> };
+      return { type: 'recognizing', text: 'Verifying face...', icon: <RefreshCw size={14} className="spin-fast" /> };
     }
     if (scanStatus && (scanStatus.toLowerCase().includes('failed') || scanStatus.toLowerCase().includes('low confidence') || scanStatus.toLowerCase().includes('unrecognized'))) {
       return { type: 'failed', text: 'Face Not Recognized', icon: <AlertCircle size={14} /> };
@@ -1890,12 +1893,12 @@ export default function App() {
       return { type: 'offline_queued', text: 'Offline Mode • Queued', icon: <Clock size={14} /> };
     }
     if (livenessStatus === 'verifying' && !livenessBypass) {
-      return { type: 'liveness', text: 'Liveness Check • Blink Eyes', icon: <ShieldCheck size={14} /> };
+      return { type: 'liveness', text: 'Please blink your eyes', icon: <Eye size={14} /> };
     }
     if (faceDetected) {
-      return { type: 'detected', text: 'Face Locked • Hold Steady', icon: <ScanFace size={14} /> };
+      return { type: 'detected', text: 'Face detected • Hold steady', icon: <ScanFace size={14} /> };
     }
-    return { type: 'searching', text: 'Position Face In Frame', icon: <ScanFace size={14} /> };
+    return { type: 'searching', text: 'Position face in frame', icon: <ScanFace size={14} /> };
   }, [attendanceActive, scannerBootActive, attendanceError, scannedStudent, isScanning, scanStatus, livenessStatus, livenessBypass, faceDetected]);
 
   // Refs for video, canvas & stream
@@ -4086,8 +4089,8 @@ export default function App() {
               status: livenessStatusRef.current === 'verified' ? 'Verified' : 'Detecting',
             })));
             if (livenessStatusRef.current === 'verifying') {
-              setLivenessMessage(livenessBypassRef.current ? 'Scanning...' : 'Hold Still • Blink to Confirm');
-              setScanStatus(livenessBypassRef.current ? 'Scanning...' : 'Blink to Confirm');
+              setLivenessMessage(livenessBypassRef.current ? 'Looking for face...' : 'Please blink to verify');
+              setScanStatus(livenessBypassRef.current ? 'Looking for face...' : 'Please blink');
             }
           } else {
             lastFaceBoxesRef.current = [];
@@ -4096,8 +4099,8 @@ export default function App() {
             setFaceDetected(false);
             setLiveFaceGrid([]);
             if (livenessStatusRef.current === 'verifying') {
-              setLivenessMessage('Position Face in Center');
-              setScanStatus('Position Face in Center');
+              setLivenessMessage('Position face in frame');
+              setScanStatus('Position face in frame');
             }
           }
         });
@@ -4269,7 +4272,7 @@ export default function App() {
             if (livenessStatusRef.current === 'verifying') {
               livenessStatusRef.current = 'verified';
               setLivenessStatus('verified');
-              setLivenessMessage('Scanning face...');
+              setLivenessMessage('Verifying face...');
               addDiagnosticLog('Liveness verification: BYPASSED (Instant scan active)');
               triggerFaceRecognition();
             }
@@ -4287,7 +4290,7 @@ export default function App() {
 
               if (avgEAR < earThreshold) {
                 eyeStateRef.current = 'closed';
-                setLivenessMessage('Blink Naturally • Now Open Eyes');
+                setLivenessMessage('Blink detected • Verifying...');
                 addDiagnosticLog('Ocular state: Blink trigger detected');
               } else if (
                 (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') ||
@@ -4297,7 +4300,7 @@ export default function App() {
                 faceLockStartRef.current = null;
                 livenessStatusRef.current = 'verified';
                 setLivenessStatus('verified');
-                setLivenessMessage('Biometric Lock • Scanning...');
+                setLivenessMessage('Face verified • Processing...');
                 addDiagnosticLog('Smartphone FaceLock: Verified in ' + lockElapsed + 'ms');
                 
                 if (voiceAnnounceLiveness) {
@@ -7011,20 +7014,51 @@ export default function App() {
 
               {/* Floating Camera Controls (Right) */}
               <div className="clean-scanner-top-controls">
-                {isMobileView && attendanceActive && (
+                {/* Liveness / Eye Blink Security Control */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLivenessBypass((prev) => !prev);
+                    try {
+                      playCyberSound('click');
+                    } catch (_) {}
+                  }}
+                  className="clean-liveness-toggle"
+                  title={livenessBypass ? "Eye-Blink Security: OFF (Click to turn ON)" : "Eye-Blink Security: ON (Click to turn OFF)"}
+                  style={{
+                    borderColor: livenessBypass ? 'rgba(239, 68, 68, 0.45)' : 'rgba(16, 185, 129, 0.45)',
+                    background: livenessBypass ? 'rgba(239, 68, 68, 0.16)' : 'rgba(16, 185, 129, 0.16)',
+                    color: '#ffffff',
+                  }}
+                >
+                  {livenessBypass ? (
+                    <EyeOff size={15} color="#fca5a5" />
+                  ) : (
+                    <Eye size={15} color="#86efac" />
+                  )}
+                  <span>{livenessBypass ? 'Blink: OFF' : 'Blink: ON'}</span>
+                </button>
+
+                {/* Flip Camera Icon Button */}
+                {attendanceActive && (
                   <button
+                    type="button"
                     onClick={toggleAttendanceCameraFacing}
-                    className="clean-camera-switch"
+                    className="clean-camera-icon-btn"
                     title="Switch Front/Back Camera"
+                    aria-label="Switch Camera"
                   >
-                    <RefreshCw size={14} />
-                    <span>Flip</span>
+                    <SwitchCamera size={17} />
                   </button>
                 )}
 
+                {/* Stop / Start Camera Button */}
                 <button
+                  type="button"
                   onClick={() => {
-                    playCyberSound('click');
+                    try {
+                      playCyberSound('click');
+                    } catch (_) {}
                     if (attendanceActive || scannerBootActive) {
                       stopAttendanceCam();
                     } else {
@@ -7033,11 +7067,13 @@ export default function App() {
                   }}
                   className="clean-camera-toggle"
                   style={{
-                    color: (attendanceActive || scannerBootActive) ? '#ef4444' : '#10b981',
+                    borderColor: (attendanceActive || scannerBootActive) ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)',
+                    background: (attendanceActive || scannerBootActive) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                    color: '#ffffff',
                   }}
                   title="Toggle Camera"
                 >
-                  <Camera size={14} />
+                  <Camera size={15} color={(attendanceActive || scannerBootActive) ? '#f87171' : '#34d399'} />
                   <span>{(attendanceActive || scannerBootActive) ? 'Stop' : 'Start'}</span>
                 </button>
               </div>

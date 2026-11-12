@@ -145,6 +145,7 @@ def get_dashboard_stats(
     return crud.get_dashboard_stats(db, institution_id=current_user.institution_id)
 
 @router.post("/recognize-frame")
+@router.post("/recognize-frame/")
 async def recognize_and_mark_attendance(
     request: Request,
     background_tasks: BackgroundTasks,

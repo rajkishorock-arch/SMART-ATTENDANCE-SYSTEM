@@ -6492,23 +6492,43 @@ html {
 .clean-camera-toggle,
 .clean-camera-switch,
 .clean-liveness-toggle {
-  min-height: 38px;
-  padding: 7px 14px;
+  min-height: 36px;
+  padding: 6px 12px;
   border-radius: var(--radius-full);
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   background: rgba(15, 23, 42, 0.85);
   color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   transition: all var(--transition-fast);
   user-select: none;
+}
+
+.clean-camera-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: all var(--transition-fast);
+  user-select: none;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .clean-camera-toggle:hover,
@@ -6518,10 +6538,17 @@ html {
   border-color: rgba(255, 255, 255, 0.6);
 }
 
+.clean-camera-icon-btn:hover {
+  transform: translateY(-1px) rotate(180deg);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(30, 41, 59, 0.95);
+}
+
 .clean-camera-toggle:active,
 .clean-camera-switch:active,
-.clean-liveness-toggle:active {
-  transform: scale(0.96);
+.clean-liveness-toggle:active,
+.clean-camera-icon-btn:active {
+  transform: scale(0.95);
 }
 
 /* Near-Fullscreen Viewport */
@@ -6555,14 +6582,14 @@ html {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 18px;
+  padding: 7px 16px;
   border-radius: var(--radius-full);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  font-size: 0.85rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   transition: all 0.25s ease;
   white-space: nowrap;
@@ -6571,52 +6598,46 @@ html {
 .clean-scanner-state-bar.state-searching,
 .clean-scanner-state-bar.state-booting,
 .clean-scanner-state-bar.state-offline {
-  background: rgba(15, 23, 42, 0.92);
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #f8fafc !important;
 }
 
 .clean-scanner-state-bar.state-detected,
 .clean-scanner-state-bar.state-hold_steady {
-  background: rgba(14, 165, 233, 0.35);
-  border: 1.5px solid #38bdf8;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
   color: #ffffff !important;
-  text-shadow: 0 1px 6px rgba(14, 165, 233, 0.8);
 }
 
 .clean-scanner-state-bar.state-liveness {
-  background: rgba(245, 158, 11, 0.35);
-  border: 1.5px solid #fbbf24;
-  color: #ffffff !important;
-  text-shadow: 0 1px 6px rgba(245, 158, 11, 0.8);
+  background: rgba(30, 22, 10, 0.9);
+  border: 1.5px solid rgba(245, 158, 11, 0.6);
+  color: #fef3c7 !important;
 }
 
 .clean-scanner-state-bar.state-recognizing {
-  background: rgba(14, 165, 233, 0.4);
-  border: 1.5px solid #00f2fe;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1.5px solid rgba(99, 102, 241, 0.6);
   color: #ffffff !important;
-  text-shadow: 0 1px 8px rgba(0, 242, 254, 0.9);
 }
 
 .clean-scanner-state-bar.state-verified {
-  background: rgba(16, 185, 129, 0.4);
-  border: 1.5px solid #34d399;
-  color: #ffffff !important;
-  text-shadow: 0 1px 8px rgba(16, 185, 129, 0.9);
+  background: rgba(6, 78, 59, 0.9);
+  border: 1.5px solid #10b981;
+  color: #ecfdf5 !important;
 }
 
 .clean-scanner-state-bar.state-failed {
-  background: rgba(239, 68, 68, 0.4);
-  border: 1.5px solid #f87171;
-  color: #ffffff !important;
-  text-shadow: 0 1px 8px rgba(239, 68, 68, 0.9);
+  background: rgba(127, 29, 29, 0.9);
+  border: 1.5px solid #ef4444;
+  color: #fef2f2 !important;
 }
 
 .clean-scanner-state-bar.state-offline_queued {
-  background: rgba(168, 85, 247, 0.4);
-  border: 1.5px solid #c084fc;
-  color: #ffffff !important;
-  text-shadow: 0 1px 8px rgba(168, 85, 247, 0.9);
+  background: rgba(88, 28, 135, 0.9);
+  border: 1.5px solid #a855f7;
+  color: #faf5ff !important;
 }
 
 /* Verified Flash Glow */
