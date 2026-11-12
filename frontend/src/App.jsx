@@ -7298,76 +7298,12 @@ export default function App() {
           }
         }}
       >
-        <div className="sidebar-logo" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '16px 16px 12px',
-          borderBottom: '1px solid #f1f5f9'
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
-            borderRadius: '12px',
-            padding: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '38px',
-            height: '38px',
-            color: '#ffffff',
-            boxShadow: '0 2px 6px rgba(30, 64, 175, 0.25)',
-            flexShrink: 0
-          }}>
-            <ScanFace size={22} />
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{
-              fontWeight: 800,
-              fontSize: '0.92rem',
-              color: '#0f172a',
-              letterSpacing: '-0.01em',
-              display: 'block',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
-            }}>
-              {(displayInstitutionName || "SMART ATTENDANCE").toUpperCase()}
-            </span>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'block' }}>
-              Campus System Hub
-            </span>
-          </div>
-          <button 
-            type="button"
-            className="mobile-sidebar-close hide-on-desktop" 
-            onClick={(e) => { e.stopPropagation(); setMobileSidebarOpen(false); playCyberSound('click'); }}
-            aria-label="Close Sidebar"
-            style={{
-              marginLeft: 'auto',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              color: '#64748b',
-              borderRadius: '10px',
-              width: '34px',
-              height: '34px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* User Profile Card */}
+        {/* User Profile Card (Promoted to Top) */}
         {currentUser && (
           <div 
             onClick={() => { setActiveTab('student-profile'); playCyberSound('click'); setMobileSidebarOpen(false); }}
             style={{
-              margin: '12px 14px 4px',
+              margin: '16px 14px 4px',
               padding: '10px 12px',
               borderRadius: '12px',
               background: activeTab === 'student-profile' ? '#eff6ff' : '#f8fafc',
@@ -7747,17 +7683,6 @@ export default function App() {
           </div>
           
           <div className="header-actions">
-            {/* Real-time Cloud / Offline Sync Status Pill */}
-            <div className="header-action-desktop-only">
-              <SyncStatusPill 
-                compact={false}
-                apiBaseUrl={API_BASE_URL}
-                token={token}
-                institutionId={currentUser?.institution_id || 1}
-                lang={appLang}
-              />
-            </div>
-
             {/* Campus Broadcast Button for Admin */}
             {userRole === 'admin' && (
               <button 

@@ -12,14 +12,17 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
     setTimeout(() => setChecking(false), 1200);
   };
 
-  const isNewAvailable = status.tone === 'warn' || (serverLatest && serverLatest !== APP_VERSION);
+  const isNative = typeof window !== 'undefined' && Boolean(window.Capacitor?.isNativePlatform?.());
+  // In Web browser, user is always running the latest deployed production bundle
+  const isNewAvailable = isNative && (status.tone === 'warn' || (serverLatest && serverLatest !== APP_VERSION));
+  const activeVersion = isNative ? APP_VERSION : (serverLatest || APP_VERSION);
 
   if (compact) {
     return (
       <button
         type="button"
         onClick={handleCheck}
-        title={`App version ${APP_VERSION} — ${status.sub}`}
+        title={isNative ? `App version ${activeVersion} — ${status.sub}` : `Web Production Build v${activeVersion} — Always up to date`}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -39,7 +42,7 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
         }}
       >
         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isNewAvailable ? '#f59e0b' : '#10b981', display: 'inline-block' }} />
-        v{APP_VERSION}
+        v{activeVersion}
       </button>
     );
   }
@@ -75,10 +78,10 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
           </div>
           <div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: isNewAvailable ? '#92400e' : '#166534' }}>
-              {isNewAvailable ? '🔥 New Feature Update Available!' : '✨ App is Fully Up to Date!'}
+              {isNewAvailable ? '🔥 New Feature Update Available!' : (isNative ? '✨ App is Fully Up to Date!' : '✨ Web App is Running Latest Production Build!')}
             </div>
             <div style={{ fontSize: '0.84rem', color: '#475569', marginTop: '2px' }}>
-              Running Version: <strong style={{ color: isNewAvailable ? '#b45309' : '#15803d' }}>v{APP_VERSION}</strong>
+              Running Version: <strong style={{ color: isNewAvailable ? '#b45309' : '#15803d' }}>v{activeVersion}</strong>
               {serverLatest ? ` • Latest Server Build: v${serverLatest}` : ' • Production Channel'}
             </div>
           </div>

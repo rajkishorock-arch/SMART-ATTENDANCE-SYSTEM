@@ -12,7 +12,8 @@ if not JWT_SECRET_KEY and ENV == "development":
     JWT_SECRET_KEY = "local-dev-secret-key-change-before-production-use"
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+# 525,600 minutes = 365 days (1 year) persistent session so users stay logged in indefinitely until manual logout
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "525600"))
 
 CORS_ORIGINS = [
     origin.strip()

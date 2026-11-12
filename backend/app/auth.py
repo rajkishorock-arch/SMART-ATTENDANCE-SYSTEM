@@ -87,75 +87,34 @@ def login_for_access_token(
         with cache_service.rate_limit_user_lock(user_ip_key):
             _check_rate_limit(rate_key, client_ip=client_ip)
 
-            tenant_slug = request.headers.get("X-Tenant-Slug", "default")
-            # Resolve active institution from tenant_slug header
-            inst = db.query(models.Institution).filter(models.Institution.slug == tenant_slug).first()
-            if not inst:
-                # Fallback to default institution if not found
+            raw_tenant_slug = request.headers.get("X-Tenant-Slug", "default")
+            tenant_slug = (raw_tenant_slug or "").strip().lower()
+            is_explicit_tenant = bool(tenant_slug and tenant_slug != "default")
+
+            if is_explicit_tenant:
+                inst = db.query(models.Institution).filter(func.lower(models.Institution.slug) == tenant_slug).first()
+                if not inst:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Institution with code '{tenant_slug}' does not exist. Please check your institution code."
+                    )
+                institution_id = inst.id
+            else:
                 inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
-            institution_id = inst.id if inst else 1
+                institution_id = inst.id if inst else 1
 
             # For Default/System institution (id==1):
             # - ADMIN logins are restricted to System Owner only
             # - TEACHERS and STUDENTS of this institution CAN login normally
             _is_default_inst = (institution_id == 1)
 
-            # 2. Try Admin/Teacher Login
+            # 2. Try Admin/Teacher Login (Strictly Scoped to institution_id)
             clean_username = form_data.username.strip().lower()
-            is_system_owner = (clean_username == config.SYSTEM_OWNER_EMAIL.lower())
-
-            # If user is system owner, prioritize requested institution or root admin account (institution 1)
-            if is_system_owner:
-                user = None
-                if institution_id != 1:
-                    user = db.query(models.User).filter(
-                        func.lower(models.User.email) == clean_username,
-                        models.User.institution_id == institution_id,
-                        models.User.role == "admin",
-                        models.User.is_active == True
-                    ).first()
-                if not user:
-                    user = db.query(models.User).filter(
-                        func.lower(models.User.email) == clean_username,
-                        models.User.institution_id == 1,
-                        models.User.role == "admin",
-                        models.User.is_active == True
-                    ).first()
-                if not user:
-                    user = db.query(models.User).filter(
-                        func.lower(models.User.email) == clean_username,
-                        models.User.role == "admin",
-                        models.User.is_active == True
-                    ).first()
-                if user:
-                    institution_id = user.institution_id
-                    _is_default_inst = (institution_id == 1)
-            else:
-                user = crud.get_user_by_email(db, email=clean_username, institution_id=institution_id)
-
-            if not user:
-                # If not found in current tenant, check all active users across institutions
-                candidate_users = db.query(models.User).filter(
-                    func.lower(models.User.email) == clean_username,
-                    models.User.is_active == True
-                ).all()
-                if len(candidate_users) == 1:
-                    user = candidate_users[0]
-                    institution_id = user.institution_id
-                    _is_default_inst = (institution_id == 1)
-                elif len(candidate_users) > 1:
-                    # Find candidate whose password matches
-                    for cand in candidate_users:
-                        if security.verify_password(form_data.password, cand.password_hash):
-                            user = cand
-                            institution_id = user.institution_id
-                            _is_default_inst = (institution_id == 1)
-                            break
-                    if not user:
-                        inst1_cand = next((c for c in candidate_users if c.institution_id == 1), None)
-                        user = inst1_cand or candidate_users[0]
-                        institution_id = user.institution_id
-                        _is_default_inst = (institution_id == 1)
+            user = db.query(models.User).filter(
+                func.lower(models.User.email) == clean_username,
+                models.User.institution_id == institution_id,
+                models.User.is_active == True
+            ).first()
 
             if user:
                 # For default institution, only system owner can login as admin
@@ -210,7 +169,7 @@ def login_for_access_token(
                 }
                 return {"access_token": access_token, "token_type": "bearer", "user": user_info}
 
-            # 3. Try Student Login (Supports Email, Roll Number, or Student ID)
+            # 3. Try Student Login (Strictly Scoped to institution_id)
             from sqlalchemy import or_
             student = db.query(models.StudentModel).filter(
                 models.StudentModel.institution_id == institution_id,
@@ -220,28 +179,7 @@ def login_for_access_token(
                     models.StudentModel.id == clean_username
                 )
             ).first()
-            if not student:
-                candidate_students = db.query(models.StudentModel).filter(
-                    or_(
-                        func.lower(models.StudentModel.email) == clean_username,
-                        func.lower(models.StudentModel.roll) == clean_username,
-                        models.StudentModel.id == clean_username
-                    )
-                ).all()
-                if len(candidate_students) == 1:
-                    student = candidate_students[0]
-                    institution_id = student.institution_id
-                elif len(candidate_students) > 1:
-                    for cand in candidate_students:
-                        if cand.password_hash and security.verify_password(form_data.password, cand.password_hash):
-                            student = cand
-                            institution_id = student.institution_id
-                            break
-                    if not student:
-                        # Prioritize non-default institution over default
-                        non_default = [c for c in candidate_students if c.institution_id != 1]
-                        student = non_default[0] if non_default else candidate_students[0]
-                        institution_id = student.institution_id
+
             if student:
                 is_valid = False
                 if not student.password_hash:
@@ -309,12 +247,21 @@ def login_for_access_token(
                 }
                 return {"access_token": access_token, "token_type": "bearer", "user": student_info}
 
+            # Neither User nor Student found in this institution
             _record_failed_login(rate_key, client_ip=client_ip)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            if is_explicit_tenant:
+                inst_label = inst.name if inst else tenant_slug
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f"Account '{clean_username}' is not registered under institution '{inst_label}'. Please verify your institution code or register an account.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect email, roll number, or password.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
     except cache_service.LockAcquisitionError as err:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

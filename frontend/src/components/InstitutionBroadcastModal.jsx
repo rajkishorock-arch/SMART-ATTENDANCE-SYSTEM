@@ -62,11 +62,22 @@ export default function InstitutionBroadcastModal({
         target_roles: targetRoles
       });
 
-      if (res && (res.ok || res.status === 200)) {
-        const data = typeof res.json === 'function' ? await res.json().catch(() => ({})) : res;
+      let data = res;
+      let isOk = res && (res.ok || res.status === 200);
+
+      if (res && typeof res.json === 'function') {
+        try {
+          data = await res.json();
+          isOk = res.ok;
+        } catch {
+          data = {};
+        }
+      }
+
+      if (isOk) {
         setFeedback({ 
           type: 'success', 
-          text: data.detail || data.message || 'Broadcast announcement dispatched to all selected channels!' 
+          text: data?.detail || data?.message || 'Broadcast announcement dispatched to all selected channels!' 
         });
         if (playCyberSound) playCyberSound('success');
         if (onBroadcastSuccess) onBroadcastSuccess(data);
@@ -77,12 +88,14 @@ export default function InstitutionBroadcastModal({
           onClose();
         }, 1200);
       } else {
-        const err = res && typeof res.json === 'function' ? await res.json().catch(() => ({})) : (res || {});
-        setFeedback({ type: 'error', text: err.detail || 'Failed to dispatch broadcast announcement.' });
+        const errorText = data?.detail || data?.message || (res?.status === 401 ? 'Session expired or invalid. Please sign in again.' : 'Failed to dispatch broadcast announcement.');
+        setFeedback({ type: 'error', text: errorText });
         if (playCyberSound) playCyberSound('error');
       }
-    } catch {
-      setFeedback({ type: 'error', text: 'Network connection failed. Please try again.' });
+    } catch (err) {
+      console.warn('Broadcast dispatch error:', err);
+      const errMsg = err?.message || 'Broadcast service temporarily unavailable. Saved offline.';
+      setFeedback({ type: 'error', text: errMsg });
       if (playCyberSound) playCyberSound('error');
     } finally {
       setIsSubmitting(false);

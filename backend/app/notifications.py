@@ -497,6 +497,7 @@ class BroadcastPayload(BaseModel):
 
 
 @router.post("/broadcast")
+@router.post("/broadcast/")
 def broadcast_announcement(
     payload: BroadcastPayload,
     db: Session = Depends(get_db),
