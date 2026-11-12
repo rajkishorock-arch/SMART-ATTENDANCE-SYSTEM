@@ -6,6 +6,7 @@ export default function CameraAttractHud({
   active,
   mode = 'attendance',
   livenessStatus = 'pending',
+  isAlreadyMarked = false,
 }) {
   if (!active) return null;
 
@@ -17,7 +18,10 @@ export default function CameraAttractHud({
   let borderColor = 'rgba(255, 255, 255, 0.8)';
   let glowColor = 'rgba(0, 0, 0, 0.25)';
 
-  if (isVerified) {
+  if (isAlreadyMarked) {
+    borderColor = '#f59e0b';
+    glowColor = 'rgba(245, 158, 11, 0.35)';
+  } else if (isVerified) {
     borderColor = '#10b981';
     glowColor = 'rgba(16, 185, 129, 0.3)';
   } else if (isVerifying) {
@@ -49,7 +53,7 @@ export default function CameraAttractHud({
           height: 'min(78vw, 320px)',
           maxHeight: 'min(58vh, 320px)',
           borderRadius: '32px',
-          border: isVerified ? '2.5px solid #10b981' : isError ? '2px solid #ef4444' : `2px solid ${borderColor}`,
+          border: isAlreadyMarked ? '2.5px solid #f59e0b' : isVerified ? '2.5px solid #10b981' : isError ? '2px solid #ef4444' : `2px solid ${borderColor}`,
           boxShadow: `0 0 0 9999px rgba(0, 0, 0, 0.38), 0 0 20px ${glowColor}`,
           transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
           position: 'relative',

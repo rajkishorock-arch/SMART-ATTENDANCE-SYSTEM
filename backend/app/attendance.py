@@ -346,6 +346,8 @@ async def recognize_and_mark_attendance(
         
         face_details = face.copy()
         face_details["newly_marked"] = newly_marked
+        face_details["already_marked"] = not newly_marked
+        face_details["status"] = "Present" if newly_marked else "Already Marked"
         if student:
             face_photo = student.profile_pic if (student.profile_pic and student.profile_pic != "no") else None
             if not face_photo:

@@ -1833,6 +1833,7 @@ export default function App() {
   const [livenessStatus, setLivenessStatus] = useState('pending'); // 'pending', 'verifying', 'verified'
   const [livenessMessage, setLivenessMessage] = useState('Camera Offline');
   const eyeStateRef = React.useRef('open');
+  const [eyeState, setEyeState] = useState('open');
   const livenessStatusRef = React.useRef('pending');
   const faceLockStartRef = React.useRef(null);
   const faceMeshRef = React.useRef(null);
@@ -1881,6 +1882,9 @@ export default function App() {
       return { type: 'failed', text: 'Camera Error', icon: <AlertCircle size={14} /> };
     }
     if (scannedStudent) {
+      if (scannedStudent.status === 'Already Marked' || scannedStudent.already_marked || String(scannedStudent.status).toLowerCase().includes('already')) {
+        return { type: 'already_marked', text: 'Already Marked Today', icon: <AlertCircle size={14} /> };
+      }
       return { type: 'verified', text: 'Attendance Recorded', icon: <CheckCircle2 size={14} /> };
     }
     if (isScanning) {
@@ -1893,13 +1897,16 @@ export default function App() {
       return { type: 'offline_queued', text: 'Offline Mode • Queued', icon: <Clock size={14} /> };
     }
     if (livenessStatus === 'verifying' && !livenessBypass) {
+      if (eyeState === 'closed') {
+        return { type: 'liveness', text: 'Blink detected • Open eyes', icon: <Eye size={14} /> };
+      }
       return { type: 'liveness', text: 'Please blink your eyes', icon: <Eye size={14} /> };
     }
     if (faceDetected) {
       return { type: 'detected', text: 'Face detected • Hold steady', icon: <ScanFace size={14} /> };
     }
     return { type: 'searching', text: 'Position face in frame', icon: <ScanFace size={14} /> };
-  }, [attendanceActive, scannerBootActive, attendanceError, scannedStudent, isScanning, scanStatus, livenessStatus, livenessBypass, faceDetected]);
+  }, [attendanceActive, scannerBootActive, attendanceError, scannedStudent, isScanning, scanStatus, livenessStatus, livenessBypass, eyeState, faceDetected]);
 
   // Refs for video, canvas & stream
   const videoRef = React.useRef(null);
@@ -3275,19 +3282,28 @@ export default function App() {
               setScanStatus(`Classroom scan: ${count} students — ${newlyMarkedList.length} newly marked`);
             } else {
               const m = validMatches[0];
-              setScanStatus(m.newly_marked ? `Recognized: ${m.name} (${m.confidence}%)` : `Recognized: ${m.name} (Already Marked)`);
+              setScanStatus(m.newly_marked ? `Recognized: ${m.name} (${m.confidence}%)` : `${m.name}: Attendance already recorded today.`);
             }
-            playCyberSound('success');
-            if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
-            triggerHaptic(newlyMarkedList.length ? [40, 30, 40] : 20);
-            triggerNativeHaptic(newlyMarkedList.length ? 'medium' : 'light');
-            if (newlyMarkedList.length) recordScan(newlyMarkedList.length);
+
+            const primary = validMatches[0];
+            const isSingleAlready = !primary.newly_marked;
+
+            if (newlyMarkedList.length > 0) {
+              playCyberSound('success');
+              if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
+              triggerHaptic([40, 30, 40]);
+              triggerNativeHaptic('medium');
+              recordScan(newlyMarkedList.length);
+            } else {
+              playCyberSound('click');
+              triggerHaptic(20);
+              triggerNativeHaptic('light');
+            }
 
             const now = new Date();
             const timeStr = effectivePeriod;
             const dateStr = (sessionActive && sessionDate) ? sessionDate.split('-').reverse().join('/') : `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
 
-            const primary = validMatches[0];
             const matchedSubject = subjects.find(s => String(s.id) === String(effectiveSubId));
             const matchedRecord = students.find(s => 
               (primary.user_id && (s.id === primary.user_id || String(s.id) === String(primary.user_id))) ||
@@ -3321,7 +3337,8 @@ export default function App() {
               subject_name: matchedSubject ? `${matchedSubject.name} (${matchedSubject.code})` : 'Class Session',
               confidence: primary.confidence,
               streak_days: primary.streak_days || matchedRecord?.streak_days || 1,
-              status: primary.newly_marked ? 'Present' : 'Already Marked',
+              status: isSingleAlready ? 'Already Marked' : 'Present',
+              already_marked: isSingleAlready,
               isOffline: false,
               sync_status: 'SYNCED'
             });
@@ -3364,8 +3381,10 @@ export default function App() {
               speakScanner(`${newlyMarkedList[0].name} marked!`);
             } else if (count === 1) {
               handleSpeak(`${primary.name}, your attendance is already marked.`);
+              speakScanner(`${primary.name}, already marked today!`);
             } else {
               handleSpeak(`${count} students recognized. All already marked.`);
+              speakScanner("All already marked today!");
             }
           } else {
             playCyberSound('error');
@@ -3435,8 +3454,9 @@ export default function App() {
             sync_status: 'PENDING'
           };
           
-          offlineAttendanceQueue.enqueue(queuedRecord);
+          const enqueued = offlineAttendanceQueue.enqueue(queuedRecord);
           matchSuccess = true;
+          const isOfflineAlready = !enqueued;
           
           showScannedStudentWithTimeout({
             name: matchedStudent.name,
@@ -3448,17 +3468,26 @@ export default function App() {
             period_label: 'Offline Mode (Local Check-in)',
             subject_name: 'Offline Attendance',
             confidence: 94,
-            status: 'Present (Offline)',
+            status: isOfflineAlready ? 'Already Marked' : 'Present (Offline)',
+            already_marked: isOfflineAlready,
             isOffline: true,
-            sync_status: 'PENDING'
+            sync_status: isOfflineAlready ? 'ALREADY_SYNCED' : 'PENDING'
           });
           
-          playCyberSound('success');
-          if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
-          triggerHaptic([40, 30, 40]);
-          triggerNativeHaptic('medium');
-          setScanStatus(`Recognized (Offline): ${matchedStudent.name} • Attendance saved on this device and will sync when you're online.`);
-          handleSpeak(`Attendance queued offline for ${matchedStudent.name}.`);
+          if (isOfflineAlready) {
+            playCyberSound('click');
+            setScanStatus(`${matchedStudent.name}: Attendance already recorded today.`);
+            handleSpeak(`${matchedStudent.name}, your attendance is already marked.`);
+            speakScanner(`${matchedStudent.name}, already marked today!`);
+          } else {
+            playCyberSound('success');
+            if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
+            triggerHaptic([40, 30, 40]);
+            triggerNativeHaptic('medium');
+            setScanStatus(`Recognized (Offline): ${matchedStudent.name} • Attendance saved on this device and will sync when you're online.`);
+            handleSpeak(`Attendance queued offline for ${matchedStudent.name}.`);
+            speakScanner(`${matchedStudent.name} marked!`);
+          }
         } catch (offlineErr) {
           console.error('Offline match execution error:', offlineErr);
           const now = new Date();
@@ -4089,8 +4118,14 @@ export default function App() {
               status: livenessStatusRef.current === 'verified' ? 'Verified' : 'Detecting',
             })));
             if (livenessStatusRef.current === 'verifying') {
-              setLivenessMessage(livenessBypassRef.current ? 'Looking for face...' : 'Please blink to verify');
-              setScanStatus(livenessBypassRef.current ? 'Looking for face...' : 'Please blink');
+              if (livenessBypassRef.current) {
+                setLivenessMessage('Looking for face...');
+                setScanStatus('Looking for face...');
+              } else {
+                const isClosed = eyeStateRef.current === 'closed';
+                setLivenessMessage(isClosed ? 'Blink detected • Now open eyes' : 'Please blink your eyes to verify');
+                setScanStatus(isClosed ? 'Blink detected • Now open eyes' : 'Please blink your eyes');
+              }
             }
           } else {
             lastFaceBoxesRef.current = [];
@@ -4282,32 +4317,37 @@ export default function App() {
             const avgEAR = (leftEAR + rightEAR) / 2.0;
 
             if (livenessStatusRef.current === 'verifying') {
-              if (!faceLockStartRef.current) {
-                faceLockStartRef.current = Date.now();
-              }
-              const lockElapsed = Date.now() - faceLockStartRef.current;
-              const earThreshold = Math.max(antiSpoofingThreshold, 0.21);
+              const earThreshold = Math.max(antiSpoofingThreshold, 0.20);
 
               if (avgEAR < earThreshold) {
-                eyeStateRef.current = 'closed';
-                setLivenessMessage('Blink detected • Verifying...');
-                addDiagnosticLog('Ocular state: Blink trigger detected');
-              } else if (
-                (avgEAR > earThreshold + 0.02 && eyeStateRef.current === 'closed') ||
-                (avgEAR >= 0.18 && lockElapsed >= 220)
-              ) {
+                // User has closed their eyes (blink in progress)
+                if (eyeStateRef.current !== 'closed') {
+                  eyeStateRef.current = 'closed';
+                  setEyeState('closed');
+                  setLivenessMessage('Blink detected • Now open eyes');
+                  setScanStatus('Blink detected • Now open eyes');
+                  addDiagnosticLog('Ocular state: Blink trigger detected (EAR: ' + avgEAR.toFixed(3) + ')');
+                }
+              } else if (avgEAR >= (earThreshold + 0.03) && eyeStateRef.current === 'closed') {
+                // User reopened eyes: FULL BLINK COMPLETED!
                 eyeStateRef.current = 'open';
+                setEyeState('open');
                 faceLockStartRef.current = null;
                 livenessStatusRef.current = 'verified';
                 setLivenessStatus('verified');
                 setLivenessMessage('Face verified • Processing...');
-                addDiagnosticLog('Smartphone FaceLock: Verified in ' + lockElapsed + 'ms');
+                setScanStatus('Face verified • Processing...');
+                addDiagnosticLog('Smartphone FaceLock: Strict Eye Blink Verified');
                 
                 if (voiceAnnounceLiveness) {
-                  handleSpeak("Liveness verified. Scanning face.");
+                  handleSpeak("Blink verified. Marking attendance.");
                 }
                 
                 triggerFaceRecognition();
+              } else if (eyeStateRef.current !== 'closed') {
+                // Waiting for user to blink
+                setLivenessMessage('Please blink your eyes to verify');
+                setScanStatus('Please blink your eyes to verify');
               }
             }
           }
@@ -7014,7 +7054,7 @@ export default function App() {
 
               {/* Floating Camera Controls (Right) */}
               <div className="clean-scanner-top-controls">
-                {/* Liveness / Eye Blink Security Control */}
+                {/* Liveness / Eye Blink Security Control (Line across eye when OFF, illuminated green when ON) */}
                 <button
                   type="button"
                   onClick={() => {
@@ -7023,20 +7063,15 @@ export default function App() {
                       playCyberSound('click');
                     } catch (_) {}
                   }}
-                  className="clean-liveness-toggle"
-                  title={livenessBypass ? "Eye-Blink Security: OFF (Click to turn ON)" : "Eye-Blink Security: ON (Click to turn OFF)"}
-                  style={{
-                    borderColor: livenessBypass ? 'rgba(239, 68, 68, 0.45)' : 'rgba(16, 185, 129, 0.45)',
-                    background: livenessBypass ? 'rgba(239, 68, 68, 0.16)' : 'rgba(16, 185, 129, 0.16)',
-                    color: '#ffffff',
-                  }}
+                  className={`clean-camera-icon-btn ${!livenessBypass ? 'is-liveness-active' : 'is-liveness-off'}`}
+                  title={livenessBypass ? "Eye-Blink Security: OFF (Bypassed) — Tap to enable blink verification" : "Eye-Blink Security: ON (Active) — Tap to bypass"}
+                  aria-label={livenessBypass ? "Eye Blink Check Inactive" : "Eye Blink Check Active"}
                 >
                   {livenessBypass ? (
-                    <EyeOff size={15} color="#fca5a5" />
+                    <EyeOff size={18} color="rgba(255, 255, 255, 0.45)" />
                   ) : (
-                    <Eye size={15} color="#86efac" />
+                    <Eye size={18} color="#34d399" />
                   )}
-                  <span>{livenessBypass ? 'Blink: OFF' : 'Blink: ON'}</span>
                 </button>
 
                 {/* Flip Camera Icon Button */}
@@ -7086,12 +7121,13 @@ export default function App() {
             </div>
 
             {/* Camera Viewport */}
-            <div className={`clean-camera-viewport ${scannedStudent ? 'scanner-verified-border' : (attendanceError ? 'scanner-failed-border' : '')}`}>
+            <div className={`clean-camera-viewport ${scannedStudent ? (scannedStudent.already_marked || scannedStudent.status === 'Already Marked' ? 'scanner-already-border' : 'scanner-verified-border') : (attendanceError ? 'scanner-failed-border' : '')}`}>
               {/* Corner brackets overlay - clean HUD */}
               <CameraAttractHud
                 active={attendanceActive}
                 mode="attendance"
                 livenessStatus={livenessStatus}
+                isAlreadyMarked={Boolean(scannedStudent?.already_marked || scannedStudent?.status === 'Already Marked')}
                 clean={true}
               />
 
