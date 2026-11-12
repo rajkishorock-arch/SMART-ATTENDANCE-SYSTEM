@@ -80,7 +80,13 @@ export default function InstitutionBroadcastModal({
           text: data?.detail || data?.message || 'Broadcast announcement dispatched to all selected channels!' 
         });
         if (playCyberSound) playCyberSound('success');
-        if (onBroadcastSuccess) onBroadcastSuccess(data);
+        if (onBroadcastSuccess) {
+          try {
+            onBroadcastSuccess(data);
+          } catch (cbErr) {
+            console.warn('onBroadcastSuccess callback error:', cbErr);
+          }
+        }
         setTimeout(() => {
           setTitle('');
           setMessage('');

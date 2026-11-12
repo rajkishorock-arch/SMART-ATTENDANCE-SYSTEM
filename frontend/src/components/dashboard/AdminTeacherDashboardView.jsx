@@ -178,6 +178,14 @@ export default function AdminTeacherDashboardView({
                 onOpenScanner={() => {
                   setActiveTab('attendance');
                   setShowScannerModal(true);
+                  try {
+                    startAttendanceCam();
+                  } catch (err) {
+                    console.error('Failed to start camera:', err);
+                  }
+                }}
+                onOpenManualAttendance={() => {
+                  setIsManualAttendanceOpen(true);
                 }}
                 onNavigateTab={(tab, subTab) => {
                   setActiveTab(tab);

@@ -14,15 +14,15 @@ export default function CameraAttractHud({
   const isError = livenessStatus === 'failed' || livenessStatus === 'error';
 
   // Semantic color based on recognition state
-  let primaryColor = '#0ea5e9'; // default cyan
-  let glowColor = 'rgba(14, 165, 233, 0.2)';
+  let primaryColor = '#38bdf8'; // friendly clean sky-blue
+  let glowColor = 'rgba(56, 189, 248, 0.2)';
 
   if (isVerified) {
-    primaryColor = '#10b981';
+    primaryColor = '#10b981'; // vibrant clean green
     glowColor = 'rgba(16, 185, 129, 0.3)';
   } else if (isVerifying) {
-    primaryColor = '#f59e0b';
-    glowColor = 'rgba(245, 158, 11, 0.25)';
+    primaryColor = '#3b82f6';
+    glowColor = 'rgba(59, 130, 246, 0.25)';
   } else if (isError) {
     primaryColor = '#ef4444';
     glowColor = 'rgba(239, 68, 68, 0.25)';
@@ -38,57 +38,30 @@ export default function CameraAttractHud({
         inset: 0,
         pointerEvents: 'none',
         zIndex: 8,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
       aria-hidden="true"
     >
-      {/* ── Corner Focus Brackets ── */}
-      <div
-        className="camera-attract-bracket camera-attract-bracket-tl"
-        style={{
-          borderColor: primaryColor,
-          transition: 'border-color 0.25s ease',
-          filter: `drop-shadow(0 0 4px ${primaryColor})`
-        }}
-      />
-      <div
-        className="camera-attract-bracket camera-attract-bracket-tr"
-        style={{
-          borderColor: primaryColor,
-          transition: 'border-color 0.25s ease',
-          filter: `drop-shadow(0 0 4px ${primaryColor})`
-        }}
-      />
-      <div
-        className="camera-attract-bracket camera-attract-bracket-bl"
-        style={{
-          borderColor: primaryColor,
-          transition: 'border-color 0.25s ease',
-          filter: `drop-shadow(0 0 4px ${primaryColor})`
-        }}
-      />
-      <div
-        className="camera-attract-bracket camera-attract-bracket-br"
-        style={{
-          borderColor: primaryColor,
-          transition: 'border-color 0.25s ease',
-          filter: `drop-shadow(0 0 4px ${primaryColor})`
-        }}
-      />
-
-      {/* Subtle Central Viewfinder Oval */}
+      {/* Friendly, Simple Portrait Viewfinder Box */}
       <div
         style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '220px',
-          height: '260px',
-          borderRadius: '130px',
-          border: `1px dashed ${primaryColor}30`,
-          transition: 'border-color 0.25s ease',
+          width: 'min(72vw, 260px)',
+          height: 'min(90vw, 320px)',
+          borderRadius: '36px',
+          border: `2px solid ${primaryColor}`,
+          boxShadow: `0 0 0 9999px rgba(0, 0, 0, 0.25), 0 0 20px ${glowColor}`,
+          transition: 'all 0.3s ease',
+          position: 'relative',
         }}
-      />
+      >
+        {/* Soft Corner Accents */}
+        <div style={{ position: 'absolute', top: '-2px', left: '-2px', width: '24px', height: '24px', borderTop: `4px solid ${primaryColor}`, borderLeft: `4px solid ${primaryColor}`, borderTopLeftRadius: '36px' }} />
+        <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '24px', height: '24px', borderTop: `4px solid ${primaryColor}`, borderRight: `4px solid ${primaryColor}`, borderTopRightRadius: '36px' }} />
+        <div style={{ position: 'absolute', bottom: '-2px', left: '-2px', width: '24px', height: '24px', borderBottom: `4px solid ${primaryColor}`, borderLeft: `4px solid ${primaryColor}`, borderBottomLeftRadius: '36px' }} />
+        <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '24px', height: '24px', borderBottom: `4px solid ${primaryColor}`, borderRight: `4px solid ${primaryColor}`, borderBottomRightRadius: '36px' }} />
+      </div>
     </div>
   );
 }

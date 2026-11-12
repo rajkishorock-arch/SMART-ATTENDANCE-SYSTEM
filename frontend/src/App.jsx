@@ -2942,8 +2942,7 @@ export default function App() {
         }
       }
       attendanceStreamRef.current = stream;
-      setScanStatus('Boot sequence...');
-      addDiagnosticLog(`Optical array online (${preset.label})`);
+      handleScannerBootComplete();
     } catch (err) {
       setScannerBootActive(false);
       setAttendanceError("Camera access is blocked. Allow camera access from your browser's address-bar permissions, then try again.");
@@ -3057,7 +3056,7 @@ export default function App() {
           }
         }
         attendanceStreamRef.current = stream;
-        setScanStatus('Boot sequence...');
+        handleScannerBootComplete();
       } catch (err) {
         setScannerBootActive(false);
         setAttendanceActive(false);
@@ -7006,41 +7005,22 @@ export default function App() {
                 <ArrowLeft size={22} color="#fff" />
               </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                <h1 className="clean-scanner-title">Face Scanner</h1>
-                <SyncStatusPill 
-                  compact={true} 
-                  apiBaseUrl={API_BASE_URL}
-                  token={token}
-                  institutionId={currentUser?.institution_id || 1}
-                  lang={appLang}
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <h1 className="clean-scanner-title">Face Attendance</h1>
               </div>
 
               {/* Floating Camera Controls (Right) */}
               <div className="clean-scanner-top-controls">
-                {isMobileView && (attendanceActive || scannerBootActive) && (
+                {isMobileView && attendanceActive && (
                   <button
                     onClick={toggleAttendanceCameraFacing}
                     className="clean-camera-switch"
-                    title="Switch Camera"
+                    title="Switch Front/Back Camera"
                   >
-                    <RefreshCw size={13} />
-                    <span>Switch</span>
+                    <RefreshCw size={14} />
+                    <span>Flip</span>
                   </button>
                 )}
-
-                <button
-                  onClick={() => {
-                    setLivenessBypass(prev => !prev);
-                    playCyberSound('click');
-                  }}
-                  className="clean-liveness-toggle"
-                  title="Toggle Liveness Check"
-                >
-                  <ShieldCheck size={13} />
-                  <span>{livenessBypass ? 'Bypass' : 'Liveness'}</span>
-                </button>
 
                 <button
                   onClick={() => {
@@ -7055,9 +7035,9 @@ export default function App() {
                   style={{
                     color: (attendanceActive || scannerBootActive) ? '#ef4444' : '#10b981',
                   }}
-                  title="Toggle Camera Power"
+                  title="Toggle Camera"
                 >
-                  <Camera size={13} />
+                  <Camera size={14} />
                   <span>{(attendanceActive || scannerBootActive) ? 'Stop' : 'Start'}</span>
                 </button>
               </div>
@@ -7071,16 +7051,9 @@ export default function App() {
 
             {/* Camera Viewport */}
             <div className={`clean-camera-viewport ${scannedStudent ? 'scanner-verified-border' : (attendanceError ? 'scanner-failed-border' : '')}`}>
-              {/* Robotic boot sequence */}
-              <ScannerBootOverlay
-                active={scannerBootActive}
-                onComplete={handleScannerBootComplete}
-                label="SEC_CAM_01"
-              />
-
               {/* Corner brackets overlay - clean HUD */}
               <CameraAttractHud
-                active={attendanceActive && !scannerBootActive}
+                active={attendanceActive}
                 mode="attendance"
                 livenessStatus={livenessStatus}
                 clean={true}
@@ -10165,8 +10138,7 @@ export default function App() {
         token={token}
         onBroadcastSuccess={() => {
           triggerHaptic();
-          setSuccessMessage('Broadcast announcement dispatched to all channels successfully.');
-          setTimeout(() => setSuccessMessage(''), 5000);
+          if (playCyberSound) playCyberSound('success');
         }}
       />
 
