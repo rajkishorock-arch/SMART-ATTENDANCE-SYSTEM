@@ -16,6 +16,17 @@ function getEndpointTtl(url, options = {}) {
   if (options.noCache || options.skipCache) return 0;
   if (url.includes('/auth/token') || url.includes('/auth/heartbeat') || url.includes('/ws')) return 0;
 
+  // Attendance history, logs, and dashboard telemetry (0ms instant page loads)
+  if (url.includes('/attendance/logs') || url.includes('/attendance/sessions-history')) {
+    return 60000; // 60 seconds
+  }
+  if (url.includes('/attendance/stats') || url.includes('/attendance/my-report') || url.includes('/attendance/my-calendar')) {
+    return 30000; // 30 seconds
+  }
+  if (url.includes('/students') || url.includes('/subjects') || url.includes('/teachers')) {
+    return 60000; // 60 seconds
+  }
+
   // Frequently queried setting/metadata endpoints
   if (url.includes('/departments') || url.includes('/institutions') || url.includes('/settings') || url.includes('/premium/status')) {
     return 45000; // 45 seconds

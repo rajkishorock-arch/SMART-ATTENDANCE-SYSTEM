@@ -2380,18 +2380,14 @@ export default function App() {
         localStorage.setItem('cached_students_inst_id', String(userInst));
         localStorage.setItem('cached_students_timestamp', Date.now().toString());
       } else {
-        console.warn(`fetchStudents failed with status ${res.status}`);
-        setStudents([]);
-        localStorage.removeItem('cached_students');
-        localStorage.removeItem('cached_students_timestamp');
-        localStorage.removeItem('cached_students_inst_id');
+        console.warn(`fetchStudents returned status ${res.status}, retaining cached students`);
       }
     } catch (err) {
       console.error('Error fetching students:', err);
     }
   };
 
-  // Fetch Attendance Logs (Supports options.limit for Dashboard 10-log limit)
+  // Fetch Attendance Logs (Supports options.limit with safe rich history preservation)
   const fetchLogs = async (authToken, options = {}) => {
     if (isDemoMode) return;
     const usedToken = typeof authToken === 'string' ? authToken : token;
@@ -2399,7 +2395,7 @@ export default function App() {
       fetchStudentLogs(usedToken);
     }
     try {
-      const limitVal = options && options.limit ? options.limit : 100;
+      const limitVal = options && options.limit ? options.limit : 300;
       const res = await attendanceApi.fetchLogs(usedToken, 0, limitVal);
       if (res.status === 401) {
         handleLogout();
@@ -2407,12 +2403,23 @@ export default function App() {
       }
       if (res.ok) {
         const data = await res.json();
-        setLogs(data);
-        localStorage.setItem('cached_logs', JSON.stringify(data));
-        localStorage.setItem('cached_logs_timestamp', Date.now().toString());
+        if (Array.isArray(data)) {
+          setLogs(prev => {
+            if (options.limit && options.limit < 50 && prev && prev.length > data.length) {
+              return prev;
+            }
+            return data;
+          });
+          if (!options.limit || options.limit >= 50) {
+            try {
+              localStorage.setItem('cached_logs', JSON.stringify(data));
+              localStorage.setItem('cached_logs_timestamp', Date.now().toString());
+            } catch {}
+          }
+        }
       }
     } catch (err) {
-      console.error('Error fetching logs:', err);
+      console.error('Error fetching logs, retaining cached data:', err);
     }
   };
 
@@ -2433,7 +2440,7 @@ export default function App() {
         localStorage.setItem('cached_subjects_timestamp', Date.now().toString());
       }
     } catch (err) {
-      console.error('Error fetching subjects:', err);
+      console.error('Error fetching subjects, retaining cached data:', err);
     }
   };
 
@@ -2449,7 +2456,7 @@ export default function App() {
     await authSendHeartbeat();
   };
 
-  // Fetch session history
+  // Fetch session history (Instant 0ms retrieval with multi-level local cache)
   const fetchSessionHistory = async (subjId = null, dateVal = null, periodVal = null) => {
     if (isDemoMode) return;
     try {
@@ -2460,18 +2467,19 @@ export default function App() {
       const data = await attendanceApi.fetchSessionHistory(token, sId, dVal, pVal);
       if (Array.isArray(data)) {
         setSessionHistory(data);
-        if (!subjId && !dateVal && !periodVal) {
-          try {
-            localStorage.setItem('cached_session_history', JSON.stringify(data));
-          } catch { /* storage fallback */ }
-        }
+        try {
+          localStorage.setItem('cached_session_history', JSON.stringify(data));
+          if (sId) {
+            localStorage.setItem(`cached_session_history_${sId}`, JSON.stringify(data));
+          }
+        } catch { /* storage fallback */ }
       }
     } catch (err) {
       if (err.status === 401) {
         handleLogout();
         return;
       }
-      console.error('Error fetching session history:', err);
+      console.error('Error fetching session history, retaining cached data:', err);
     }
   };
 
@@ -5681,9 +5689,18 @@ export default function App() {
     }
   }, [userRole, currentUser, subjects, selectedHistoryDept, selectedHistorySubjectId]);
 
-  // Fetch session history when filters change reactively
+  // Fetch session history when filters change reactively (Hydrates cached history at 0ms first)
   useEffect(() => {
     if (activeTab === 'session-history' && selectedHistorySubjectId) {
+      try {
+        const cachedSubj = localStorage.getItem(`cached_session_history_${selectedHistorySubjectId}`);
+        if (cachedSubj) {
+          const parsed = JSON.parse(cachedSubj);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSessionHistory(parsed);
+          }
+        }
+      } catch { /* storage fallback */ }
       fetchSessionHistory(selectedHistorySubjectId, historyFilterDate, historyFilterPeriod);
     }
   }, [activeTab, selectedHistorySubjectId, historyFilterDate, historyFilterPeriod]);

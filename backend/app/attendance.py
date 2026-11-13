@@ -39,6 +39,12 @@ def get_attendance_logs(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can view global logs."
         )
+
+    # Sub-millisecond instant memory cache for attendance logs
+    cache_key = f"logs:inst_{current_user.institution_id}:role_{current_user.role}:u_{current_user.id}:d_{date}:dep_{department}:st_{status}"
+    cached_logs = cache_service.cache_get(cache_key)
+    if cached_logs is not None:
+        return cached_logs
     
     subject_ids = None
     teacher_depts = None
@@ -89,6 +95,16 @@ def get_attendance_logs(
             remarks=getattr(log, "fallback_reason", None) or getattr(log, "remarks", None),
             marked_by=getattr(log, "verification_method", None)
         ))
+
+    try:
+        serialized = [
+            log.dict() if hasattr(log, "dict") else log.model_dump() 
+            for log in output_logs
+        ]
+        cache_service.cache_set(cache_key, serialized, ttl=60)
+    except Exception:
+        pass
+
     return output_logs
 
 
@@ -587,6 +603,7 @@ def send_absentee_alerts(
     try:
         cache_service.cache_delete_pattern(f"stats:inst_{current_user.institution_id}")
         cache_service.cache_delete_pattern(f"sessions:inst_{current_user.institution_id}")
+        cache_service.cache_delete_pattern(f"logs:inst_{current_user.institution_id}")
     except Exception:
         pass
 
@@ -981,6 +998,7 @@ def mark_manual_attendance_bulk(
     try:
         cache_service.cache_delete_pattern(f"stats:inst_{current_user.institution_id}")
         cache_service.cache_delete_pattern(f"sessions:inst_{current_user.institution_id}")
+        cache_service.cache_delete_pattern(f"logs:inst_{current_user.institution_id}")
     except Exception:
         pass
 
@@ -1177,7 +1195,7 @@ def get_attendance_sessions_history(
         })
         
     try:
-        cache_service.cache_set(cache_key, history, ttl=20)
+        cache_service.cache_set(cache_key, history, ttl=180)
     except Exception:
         pass
     return history
@@ -1251,6 +1269,12 @@ def update_attendance_status(
             ),
             institution_id=current_user.institution_id
         )
+        try:
+            cache_service.cache_delete_pattern(f"stats:inst_{current_user.institution_id}")
+            cache_service.cache_delete_pattern(f"sessions:inst_{current_user.institution_id}")
+            cache_service.cache_delete_pattern(f"logs:inst_{current_user.institution_id}")
+        except Exception:
+            pass
         return {"status": "success", "message": "Attendance status updated successfully."}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1477,6 +1501,7 @@ async def broadcast_attendance_event(event_data: dict):
         try:
             cache_service.cache_delete_pattern(f"stats:inst_{inst_id}")
             cache_service.cache_delete_pattern(f"sessions:inst_{inst_id}")
+            cache_service.cache_delete_pattern(f"logs:inst_{inst_id}")
         except Exception:
             pass
 
