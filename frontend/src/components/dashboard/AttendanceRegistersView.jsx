@@ -93,7 +93,7 @@ export default function AttendanceRegistersView({
   }
 
   return (
-    <div className="glass-panel mobile-tab-panel logs-panel" style={{ padding: '32px', animation: 'fadeInUp 0.6s ease both' }}>
+    <div className="glass-panel mobile-tab-panel logs-panel" style={{ padding: isMobileView ? '12px 10px' : '20px', width: '100%', maxWidth: '100%', boxSizing: 'border-box', animation: 'fadeInUp 0.6s ease both' }}>
       {/* Logs Metrics Summary cards */}
       <div 
         className="keep-horizontal logs-summary-grid"
@@ -206,18 +206,18 @@ export default function AttendanceRegistersView({
           <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
         </div>
 
-        {/* Row 2: Department Select + Date Navigation */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+        {/* Row 2: Department Select + Date Navigation (Clean 2-Column Responsive Grid) */}
+        <div style={{ display: 'grid', gridTemplateColumns: userRole === 'admin' ? 'repeat(auto-fit, minmax(140px, 1fr))' : '1fr', gap: '8px', alignItems: 'center', width: '100%' }}>
           {userRole === 'admin' ? (
             <select 
               className="form-input" 
               style={{ 
-                flex: '1 1 140px', 
-                minWidth: '120px',
+                width: '100%',
                 background: '#ffffff', 
                 border: '1px solid var(--border-subtle)', 
                 height: '40px',
-                borderRadius: '10px'
+                borderRadius: '10px',
+                boxSizing: 'border-box'
               }}
               value={logDeptFilter}
               onChange={e => setLogDeptFilter(e.target.value)}
@@ -246,7 +246,7 @@ export default function AttendanceRegistersView({
           ) : null}
 
           {/* Date Picker with Prev / Next Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 180px', minWidth: '170px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
             <button
               type="button"
               onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, -1, setLogDateFilter); }}

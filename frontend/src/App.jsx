@@ -622,9 +622,13 @@ export default function App() {
       const prev = tabHistoryRef.current.pop();
       setActiveTab(prev);
     } else {
-      setActiveTab(userRole === 'student' ? 'student-attendance' : 'dashboard');
+      if (['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(activeTab)) {
+        setActiveTab('control');
+      } else {
+        setActiveTab(userRole === 'student' ? 'student-attendance' : 'dashboard');
+      }
     }
-  }, [activeSubSetting, activeDashboardSubTab, userRole, playCyberSound]);
+  }, [activeSubSetting, activeDashboardSubTab, activeTab, userRole, playCyberSound]);
 
 
   // Real-Time Role Notification System
@@ -820,7 +824,9 @@ export default function App() {
             setActiveTab(prev);
             playCyberSound('click');
           } else if (currentTab !== 'dashboard' && currentTab !== 'student-attendance') {
-            if (userRoleRef.current === 'student') {
+            if (['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(currentTab)) {
+              setActiveTab('control');
+            } else if (userRoleRef.current === 'student') {
               setActiveTab('student-attendance');
             } else {
               setActiveTab('dashboard');
@@ -5345,6 +5351,13 @@ export default function App() {
   }, [activeTab, activeSubSetting, token, userRole]);
 
   const navigateToTab = useCallback((tabId) => {
+    if (activeTab && activeTab !== tabId && !['login', 'signup'].includes(activeTab)) {
+      const historyArr = tabHistoryRef.current;
+      if (historyArr[historyArr.length - 1] !== activeTab) {
+        historyArr.push(activeTab);
+        if (historyArr.length > 25) historyArr.shift();
+      }
+    }
     setActiveTab(tabId);
     setActiveSubSetting(null);
     setMobileSidebarOpen(false);
@@ -5353,7 +5366,7 @@ export default function App() {
     if (tabId === 'attendance' && sessionActive) {
       setShowScannerModal(true);
     }
-  }, [sessionActive]);
+  }, [activeTab, sessionActive, playCyberSound]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -8020,6 +8033,16 @@ export default function App() {
               attendanceActive={attendanceActive}
               scannerBootActive={scannerBootActive}
               wsConnected={wsConnected}
+              selectedSubjectId={selectedSubjectId}
+              sessionPeriod={sessionPeriod}
+              sessionDate={sessionDate}
+              setSessionDate={setSessionDate}
+              manualSubjectId={manualSubjectId}
+              setManualSubjectId={setManualSubjectId}
+              manualPeriod={manualPeriod}
+              setManualPeriod={setManualPeriod}
+              manualDate={manualDate}
+              setManualDate={setManualDate}
               setSelectedSubjectId={setSelectedSubjectId}
               setSessionPeriod={setSessionPeriod}
               setSessionActive={setSessionActive}
@@ -10068,7 +10091,7 @@ export default function App() {
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: '24px 28px',
+              padding: '16px 20px',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
@@ -10077,11 +10100,11 @@ export default function App() {
               flexShrink: 0
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   ✋ Manual Attendance Register
                 </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.4 }}>
-                  Subject: <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(manualSubjectId))?.name || 'N/A'}</strong> • Date: <strong>{manualDate}</strong> • Slot: <strong>{manualPeriod}</strong>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.4 }}>
+                  Subject: <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(manualSubjectId))?.name || (subjects && subjects[0]?.name) || 'General Attendance'}</strong> • Slot: <strong>{manualPeriod}</strong> • Date: <strong>{manualDate}</strong>
                 </p>
               </div>
               <button
@@ -10092,6 +10115,80 @@ export default function App() {
               >
                 ✕
               </button>
+            </div>
+
+            {/* Quick Session Selectors: Subject, Slot, Date */}
+            <div style={{
+              padding: '10px 16px',
+              background: '#f1f5f9',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+              gap: '8px',
+              alignItems: 'center'
+            }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                  Subject / Class
+                </label>
+                <select
+                  value={manualSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '1')}
+                  onChange={e => {
+                    setManualSubjectId(e.target.value);
+                    setSelectedSubjectId(e.target.value);
+                  }}
+                  className="form-input"
+                  style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px' }}
+                >
+                  {subjects && subjects.length > 0 ? (
+                    subjects.map(s => (
+                      <option key={s.id} value={String(s.id)}>{s.name} ({s.code || s.id})</option>
+                    ))
+                  ) : (
+                    <option value="1">General Attendance</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                  Timetable Slot
+                </label>
+                <select
+                  value={manualPeriod}
+                  onChange={e => {
+                    setManualPeriod(e.target.value);
+                    setSessionPeriod(e.target.value);
+                  }}
+                  className="form-input"
+                  style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px' }}
+                >
+                  <option value="Period 1">Period 1 (09:00 - 10:00)</option>
+                  <option value="Period 2">Period 2 (10:00 - 11:00)</option>
+                  <option value="Period 3">Period 3 (11:15 - 12:15)</option>
+                  <option value="Period 4">Period 4 (12:15 - 01:15)</option>
+                  <option value="Period 5">Period 5 (02:00 - 03:00)</option>
+                  <option value="Period 6">Period 6 (03:00 - 04:00)</option>
+                  <option value="Period 7">Period 7 (04:00 - 05:00)</option>
+                  <option value="Period 8">Period 8 (05:00 - 06:00)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                  Session Date
+                </label>
+                <input
+                  type="date"
+                  value={manualDate}
+                  onChange={e => {
+                    setManualDate(e.target.value);
+                    setSessionDate(e.target.value);
+                  }}
+                  className="form-input"
+                  style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px', boxSizing: 'border-box' }}
+                />
+              </div>
             </div>
 
             {/* Search input & Scan Virtual ID Button */}

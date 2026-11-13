@@ -28,6 +28,16 @@ export default function AdminTeacherDashboardView({
   attendanceActive,
   scannerBootActive,
   wsConnected,
+  selectedSubjectId = '',
+  sessionPeriod = 'Period 1',
+  sessionDate = '',
+  setSessionDate = () => {},
+  manualSubjectId = '',
+  setManualSubjectId = () => {},
+  manualPeriod = 'Period 1',
+  setManualPeriod = () => {},
+  manualDate = '',
+  setManualDate = () => {},
   setSelectedSubjectId,
   setSessionPeriod,
   setSessionActive,
@@ -64,6 +74,51 @@ export default function AdminTeacherDashboardView({
   const displayStats = scopedDashboardStats || stats;
   const [absentAlertFeedback, setAbsentAlertFeedback] = useState(null);
 
+  // Pre-flight Attendance Session Setup State
+  const [sessionSetupMode, setSessionSetupMode] = useState(null); // 'scanner' | 'manual' | null
+  const [chosenSubjectId, setChosenSubjectId] = useState(selectedSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '1'));
+  const [chosenPeriod, setChosenPeriod] = useState(sessionPeriod || 'Period 1');
+  const [chosenDate, setChosenDate] = useState(sessionDate || new Date().toISOString().split('T')[0]);
+
+  React.useEffect(() => {
+    if (selectedSubjectId) {
+      setChosenSubjectId(selectedSubjectId);
+    } else if (subjects && subjects.length > 0) {
+      setChosenSubjectId(String(subjects[0].id));
+    }
+  }, [selectedSubjectId, subjects]);
+
+  const handleConfirmSessionSetup = () => {
+    if (chosenSubjectId) {
+      if (setSelectedSubjectId) setSelectedSubjectId(chosenSubjectId);
+      if (setManualSubjectId) setManualSubjectId(chosenSubjectId);
+    }
+    if (chosenPeriod) {
+      if (setSessionPeriod) setSessionPeriod(chosenPeriod);
+      if (setManualPeriod) setManualPeriod(chosenPeriod);
+    }
+    if (chosenDate) {
+      if (setSessionDate) setSessionDate(chosenDate);
+      if (setManualDate) setManualDate(chosenDate);
+    }
+    if (setSessionActive) setSessionActive(true);
+
+    const mode = sessionSetupMode;
+    setSessionSetupMode(null);
+
+    if (mode === 'scanner') {
+      setActiveTab('attendance');
+      setShowScannerModal(true);
+      try {
+        startAttendanceCam();
+      } catch (err) {
+        console.error('Failed to start camera:', err);
+      }
+    } else if (mode === 'manual') {
+      setIsManualAttendanceOpen(true);
+    }
+  };
+
   return (
     <PullToRefresh onRefresh={async () => { await fetchStats(); await fetchLogs(); }}>
       <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
@@ -99,16 +154,10 @@ export default function AdminTeacherDashboardView({
                   }
                 }}
                 onOpenScanner={() => {
-                  setActiveTab('attendance');
-                  setShowScannerModal(true);
-                  try {
-                    startAttendanceCam();
-                  } catch (err) {
-                    console.error('Failed to start camera:', err);
-                  }
+                  setSessionSetupMode('scanner');
                 }}
                 onOpenManualAttendance={() => {
-                  setIsManualAttendanceOpen(true);
+                  setSessionSetupMode('manual');
                 }}
                 onSendAbsenteeAlerts={async (absentList) => {
                   const count = Array.isArray(absentList) ? absentList.length : (absentList?.count || 0);
@@ -149,16 +198,10 @@ export default function AdminTeacherDashboardView({
                   ws_connected: wsConnected
                 }}
                 onOpenScanner={() => {
-                  setActiveTab('attendance');
-                  setShowScannerModal(true);
-                  try {
-                    startAttendanceCam();
-                  } catch (err) {
-                    console.error('Failed to start camera:', err);
-                  }
+                  setSessionSetupMode('scanner');
                 }}
                 onOpenManualAttendance={() => {
-                  setIsManualAttendanceOpen(true);
+                  setSessionSetupMode('manual');
                 }}
                 onNavigateTab={(tab, subTab) => {
                   setActiveTab(tab);
@@ -1086,6 +1129,217 @@ export default function AdminTeacherDashboardView({
                 </div>
               )}
 
+            </div>
+          )}
+
+          {/* Pre-Flight Attendance Session Setup Modal */}
+          {sessionSetupMode !== null && (
+            <div
+              className="modal-overlay flex-center"
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 100065,
+                background: 'rgba(15, 23, 42, 0.65)',
+                backdropFilter: 'blur(6px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '16px',
+                boxSizing: 'border-box'
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setSessionSetupMode(null);
+              }}
+            >
+              <div
+                className="glass-panel"
+                style={{
+                  width: '100%',
+                  maxWidth: '460px',
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 20px 40px rgba(15, 23, 42, 0.16)',
+                  padding: '24px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  boxSizing: 'border-box',
+                  animation: 'modernScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both'
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      background: sessionSetupMode === 'scanner' ? '#eff6ff' : '#f0fdf4',
+                      color: sessionSetupMode === 'scanner' ? '#2563eb' : '#16a34a',
+                      border: `1px solid ${sessionSetupMode === 'scanner' ? '#bfdbfe' : '#bbf7d0'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {sessionSetupMode === 'scanner' ? <Camera size={20} /> : <Edit size={20} />}
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                        {sessionSetupMode === 'scanner' ? 'Start Face Attendance' : 'Open Manual Register'}
+                      </h3>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                        Select Course & Class Slot Before Marking
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSessionSetupMode(null)}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer', padding: '4px' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Form Controls */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Subject Selection */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      Course / Subject *
+                    </label>
+                    <select
+                      value={chosenSubjectId}
+                      onChange={(e) => setChosenSubjectId(e.target.value)}
+                      className="form-input"
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        padding: '0 12px',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: '#0f172a'
+                      }}
+                    >
+                      {subjects && subjects.length > 0 ? (
+                        subjects.map(s => (
+                          <option key={s.id} value={String(s.id)}>
+                            {s.name} ({s.code || `SUB-${s.id}`}) {s.department ? `• ${s.department}` : ''}
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="1">Computer Science (CS101) • Engineering</option>
+                          <option value="2">Data Structures (CS201) • Engineering</option>
+                          <option value="3">Mathematics (MATH101) • Science</option>
+                          <option value="4">General Attendance • Campus</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Period / Time Slot */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      Timetable Slot (Period) *
+                    </label>
+                    <select
+                      value={chosenPeriod}
+                      onChange={(e) => setChosenPeriod(e.target.value)}
+                      className="form-input"
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        padding: '0 12px',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: '#0f172a'
+                      }}
+                    >
+                      <option value="Period 1">Period 1 (09:00 - 10:00 AM)</option>
+                      <option value="Period 2">Period 2 (10:00 - 11:00 AM)</option>
+                      <option value="Period 3">Period 3 (11:15 - 12:15 PM)</option>
+                      <option value="Period 4">Period 4 (12:15 - 01:15 PM)</option>
+                      <option value="Period 5">Period 5 (02:00 - 03:00 PM)</option>
+                      <option value="Period 6">Period 6 (03:00 - 04:00 PM)</option>
+                      <option value="Period 7">Period 7 (04:00 - 05:00 PM)</option>
+                      <option value="Period 8">Period 8 (05:00 - 06:00 PM)</option>
+                    </select>
+                  </div>
+
+                  {/* Date */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      Session Date
+                    </label>
+                    <input
+                      type="date"
+                      value={chosenDate}
+                      onChange={(e) => setChosenDate(e.target.value)}
+                      className="form-input"
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        padding: '0 12px',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: '#0f172a',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSessionSetupMode(null)}
+                    style={{
+                      flex: 1,
+                      padding: '11px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      background: '#f8fafc',
+                      color: '#475569',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmSessionSetup}
+                    style={{
+                      flex: 2,
+                      padding: '11px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: sessionSetupMode === 'scanner' ? '#2563eb' : '#16a34a',
+                      color: '#ffffff',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: sessionSetupMode === 'scanner' ? '0 4px 12px rgba(37, 99, 235, 0.3)' : '0 4px 12px rgba(22, 163, 74, 0.3)'
+                    }}
+                  >
+                    {sessionSetupMode === 'scanner' ? '🚀 Launch Face Scanner' : '📋 Open Attendance Register'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

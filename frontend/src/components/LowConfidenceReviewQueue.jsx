@@ -135,25 +135,26 @@ export default function LowConfidenceReviewQueue({
 
   return (
     <div className="review-queue-container" style={{
-      color: '#f8fafc',
-      padding: '24px',
-      maxWidth: '1280px',
-      margin: '0 auto',
+      color: '#0f172a',
+      padding: '0',
+      width: '100%',
+      maxWidth: '100%',
+      boxSizing: 'border-box',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Header Banner */}
+      {/* Header Banner - Clean and uncluttered */}
       <div style={{
         background: '#ffffff',
         border: '1px solid #e2e8f0',
         borderRadius: '14px',
-        padding: '20px 24px',
-        marginBottom: '24px',
+        padding: '16px 18px',
+        marginBottom: '16px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
         position: 'relative'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
                 background: '#fef3c7',
                 border: '1px solid #fde68a',
@@ -164,15 +165,12 @@ export default function LowConfidenceReviewQueue({
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <ScanFace size={20} />
+                <ScanFace size={18} />
               </div>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+              <h2 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#0f172a' }}>
                 Low-Confidence Face Match Review Queue
               </h2>
             </div>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.84rem', maxWidth: '750px', lineHeight: 1.4 }}>
-              Borderline facial matches (similarity 0.35 to 0.49) held for verification to ensure accuracy.
-            </p>
           </div>
 
           <button

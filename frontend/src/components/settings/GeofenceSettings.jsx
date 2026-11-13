@@ -30,40 +30,25 @@ export default function GeofenceSettings({
     <div 
       className="surface-card" 
       style={{ 
-        padding: '30px', 
+        padding: '16px', 
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '24px', 
+        gap: '20px', 
         border: '1px solid var(--border-subtle)', 
         background: '#ffffff',
         borderRadius: '16px',
-        boxShadow: 'var(--shadow-card)'
+        boxShadow: 'var(--shadow-card)',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
       }}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+      {/* Header - Clean bold heading without cluttering badges */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              Security Perimeter & Geofence Configuration
-            </h3>
-          </div>
-          <p style={{ color: '#475569', fontSize: '0.85rem', margin: '6px 0 0' }}>
-            Manage GPS location boundaries, authorized Wi-Fi subnet gates, and high-priority emergency threat lockdown controls.
-          </p>
-        </div>
-
-        {/* Realtime Status Pill Badges */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ padding: '4px 10px', borderRadius: '8px', background: settingsGeoEnabled ? '#ecfdf5' : '#f1f5f9', color: settingsGeoEnabled ? '#059669' : '#64748b', fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--border-subtle)' }}>
-            GPS: {settingsGeoEnabled ? `ACTIVE (${settingsRadius}m)` : 'OFF'}
-          </span>
-          <span style={{ padding: '4px 10px', borderRadius: '8px', background: settingsIpEnabled ? '#ecfdf5' : '#f1f5f9', color: settingsIpEnabled ? '#059669' : '#64748b', fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--border-subtle)' }}>
-            IP Gate: {settingsIpEnabled ? 'ACTIVE' : 'OFF'}
-          </span>
-          <span style={{ padding: '4px 10px', borderRadius: '8px', background: lockdownActive ? '#fef2f2' : '#ecfdf5', color: lockdownActive ? '#dc2626' : '#059669', fontSize: '0.75rem', fontWeight: 700, border: `1px solid ${lockdownActive ? '#fecaca' : '#a7f3d0'}` }}>
-            {lockdownActive ? 'LOCKDOWN ENGAGED' : 'DISARMED'}
-          </span>
+          <h3 style={{ fontSize: '1.18rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            Security Perimeter & Geofence Configuration
+          </h3>
         </div>
       </div>
 

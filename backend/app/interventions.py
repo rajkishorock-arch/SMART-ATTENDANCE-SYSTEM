@@ -40,6 +40,53 @@ def _format_intervention(item: models.AttendanceIntervention, db: Session) -> sc
     )
 
 
+def _auto_evaluate_institution(institution_id: int, db: Session):
+    students = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == institution_id
+    ).all()
+
+    for s in students:
+        logs = db.query(models.AttendanceModel).filter(
+            models.AttendanceModel.institution_id == institution_id,
+            models.AttendanceModel.roll == s.roll
+        ).all()
+
+        conducted = len([l for l in logs if l.attendance != "CLASS_CANCELLED"])
+        if conducted == 0:
+            continue
+
+        attended = len([l for l in logs if l.attendance in ["Present", "LATE"]])
+        pct = (attended / conducted) * 100.0
+
+        if pct < 75.0:
+            if pct < 60.0:
+                tier = "DEBARMENT_RISK"
+            elif pct < 70.0:
+                tier = "PARENT_ALERT"
+            else:
+                tier = "WARNING"
+
+            existing = db.query(models.AttendanceIntervention).filter(
+                models.AttendanceIntervention.institution_id == institution_id,
+                models.AttendanceIntervention.student_id == s.id,
+                models.AttendanceIntervention.status != "RESOLVED"
+            ).first()
+
+            if existing:
+                existing.tier = tier
+                existing.attendance_percentage = pct
+            else:
+                new_intervention = models.AttendanceIntervention(
+                    institution_id=institution_id,
+                    student_id=s.id,
+                    tier=tier,
+                    attendance_percentage=pct,
+                    status="TRIGGERED"
+                )
+                db.add(new_intervention)
+    db.commit()
+
+
 @router.get("", response_model=List[schemas.AttendanceInterventionResponse])
 def list_interventions(
     tier: Optional[str] = None,
@@ -48,6 +95,12 @@ def list_interventions(
     identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """List attendance interventions filtered by tier or resolution status."""
+    existing_count = db.query(models.AttendanceIntervention).filter(
+        models.AttendanceIntervention.institution_id == identity.institution_id
+    ).count()
+    if existing_count == 0:
+        _auto_evaluate_institution(identity.institution_id, db)
+
     query = db.query(models.AttendanceIntervention).filter(
         models.AttendanceIntervention.institution_id == identity.institution_id
     )
@@ -71,6 +124,12 @@ def get_intervention_summary(
     all_items = db.query(models.AttendanceIntervention).filter(
         models.AttendanceIntervention.institution_id == identity.institution_id
     ).all()
+
+    if not all_items:
+        _auto_evaluate_institution(identity.institution_id, db)
+        all_items = db.query(models.AttendanceIntervention).filter(
+            models.AttendanceIntervention.institution_id == identity.institution_id
+        ).all()
 
     total = len(all_items)
     t1 = sum(1 for i in all_items if i.tier == "WARNING" and i.status != "RESOLVED")
