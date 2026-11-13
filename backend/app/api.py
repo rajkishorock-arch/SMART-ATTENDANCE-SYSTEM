@@ -60,6 +60,7 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 api_router.include_router(calendar_engine.router, prefix="/calendar", tags=["Academic Calendar Engine"])
 api_router.include_router(planner_engine.router, prefix="/planner", tags=["Smart Attendance Planner"])
 api_router.include_router(review_queue.router, prefix="/review-queue", tags=["Low-Confidence Match Review Queue"])
+api_router.include_router(review_queue.router, prefix="/attendance/low-confidence-reviews", tags=["Low-Confidence Match Review Queue (Alias)"], include_in_schema=False)
 api_router.include_router(device_monitor.router, prefix="/devices", tags=["Device & Kiosk Health Monitoring"])
 api_router.include_router(enrollment_qa.router, prefix="/enrollment", tags=["Face Enrollment QA & Re-Enrollment"])
 api_router.include_router(interventions.router, prefix="/interventions", tags=["Counselor & Parent Intervention System"])

@@ -44,12 +44,9 @@ export default function GeofenceSettings({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
               Security Perimeter & Geofence Configuration
             </h3>
-            <span style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
-              CAMPUS SECURITY
-            </span>
           </div>
           <p style={{ color: '#475569', fontSize: '0.85rem', margin: '6px 0 0' }}>
             Manage GPS location boundaries, authorized Wi-Fi subnet gates, and high-priority emergency threat lockdown controls.

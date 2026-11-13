@@ -166,26 +166,12 @@ export default function LowConfidenceReviewQueue({
               }}>
                 <ScanFace size={20} />
               </div>
-              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#0f172a' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
                 Low-Confidence Face Match Review Queue
               </h2>
-              <span style={{
-                background: '#fef3c7',
-                border: '1px solid #fde68a',
-                color: '#b45309',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: '12px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase'
-              }}>
-                Phase 5 QA Staging
-              </span>
             </div>
-            <p style={{ margin: 0, color: '#475569', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
-              Borderline facial matches (similarity 0.35 to 0.49) captured by scanning kiosks are safely held in 
-              this review queue to eliminate false positives before attendance is officially committed.
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.84rem', maxWidth: '750px', lineHeight: 1.4 }}>
+              Borderline facial matches (similarity 0.35 to 0.49) held for verification to ensure accuracy.
             </p>
           </div>
 

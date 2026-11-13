@@ -78,7 +78,7 @@ export default function AdminPulseDashboard({
 
       // 2. Fetch pending borderline face reviews
       try {
-        const reviewUrl = buildApiUrl('/attendance/low-confidence-reviews?status=PENDING');
+        const reviewUrl = buildApiUrl('/review-queue?status=PENDING');
         const res = await fetch(reviewUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -252,40 +252,25 @@ export default function AdminPulseDashboard({
         </div>
       </div>
 
-      {/* ── Action Required Center (100% Real Live Data & Operational Status) ── */}
+      {/* ── Action Required Center (Clean, Focused & Badge-Free) ── */}
       <div 
         className="surface-card" 
         style={{ 
-          padding: '18px 20px',
+          padding: '16px 18px',
           background: '#ffffff',
           borderRadius: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px'
+          gap: '12px'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ShieldAlert size={18} color="#d97706" />
             <span>{lang === 'hi' ? 'त्वरित ध्यान केंद्र (Action Required)' : 'Action Required Center'}</span>
           </h3>
-          <span 
-            style={{ 
-              fontSize: '0.7rem', 
-              fontWeight: 700, 
-              padding: '2px 8px', 
-              borderRadius: '10px', 
-              background: (pendingDisputesCount > 0 || borderlineMatchesCount > 0) ? '#fffbeb' : '#ecfdf5',
-              color: (pendingDisputesCount > 0 || borderlineMatchesCount > 0) ? '#b45309' : '#059669',
-              border: (pendingDisputesCount > 0 || borderlineMatchesCount > 0) ? '1px solid #fde68a' : '1px solid #a7f3d0'
-            }}
-          >
-            {(pendingDisputesCount > 0 || borderlineMatchesCount > 0) 
-              ? `${pendingDisputesCount + borderlineMatchesCount} Actions Pending` 
-              : 'All Systems Normal'}
-          </span>
         </div>
 
         {/* 4 Interactive Operational Cards */}
@@ -328,32 +313,14 @@ export default function AdminPulseDashboard({
                 <FileText size={18} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>{lang === 'hi' ? 'छात्र उपस्थिति आपत्तियां' : 'Attendance Disputes'}</span>
-                </div>
-                <div style={{ fontSize: '0.74rem', color: pendingDisputesCount > 0 ? '#c2410c' : '#64748b', fontWeight: 500, marginTop: '1px' }}>
-                  {pendingDisputesCount > 0 
-                    ? `${pendingDisputesCount} student appeals awaiting review` 
-                    : '0 pending • All dispute claims resolved'}
-                </div>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                  {lang === 'hi' ? 'छात्र उपस्थिति आपत्तियां' : 'Attendance Disputes'}
+                </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-              <span 
-                style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: pendingDisputesCount > 0 ? '#ffedd5' : '#ecfdf5',
-                  color: pendingDisputesCount > 0 ? '#c2410c' : '#059669',
-                  border: pendingDisputesCount > 0 ? '1px solid #fed7aa' : '1px solid #a7f3d0'
-                }}
-              >
-                {pendingDisputesCount > 0 ? `${pendingDisputesCount} Pending` : 'Resolved'}
-              </span>
-              <ChevronRight size={15} color="#94a3b8" />
+            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <ChevronRight size={17} color="#94a3b8" />
             </div>
           </div>
 
@@ -394,32 +361,14 @@ export default function AdminPulseDashboard({
                 <Camera size={18} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>{lang === 'hi' ? 'कम सटीकता वाले चेहरे' : 'Borderline Matches'}</span>
-                </div>
-                <div style={{ fontSize: '0.74rem', color: borderlineMatchesCount > 0 ? '#b45309' : '#64748b', fontWeight: 500, marginTop: '1px' }}>
-                  {borderlineMatchesCount > 0 
-                    ? `${borderlineMatchesCount} ambiguous scans need verification` 
-                    : '100% Match Confidence • Zero review backlog'}
-                </div>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                  {lang === 'hi' ? 'कम सटीकता वाले चेहरे' : 'Borderline Matches'}
+                </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-              <span 
-                style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: borderlineMatchesCount > 0 ? '#fef3c7' : '#ecfdf5',
-                  color: borderlineMatchesCount > 0 ? '#b45309' : '#059669',
-                  border: borderlineMatchesCount > 0 ? '1px solid #fde68a' : '1px solid #a7f3d0'
-                }}
-              >
-                {borderlineMatchesCount > 0 ? `${borderlineMatchesCount} In Review` : 'Verified'}
-              </span>
-              <ChevronRight size={15} color="#94a3b8" />
+            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <ChevronRight size={17} color="#94a3b8" />
             </div>
           </div>
 
@@ -460,34 +409,14 @@ export default function AdminPulseDashboard({
                 <Smartphone size={18} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
                   {lang === 'hi' ? 'कियोस्क एवं कैमरा फ्लीट' : 'Scanner Kiosk Fleet'}
-                </div>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 500, marginTop: '1px' }}>
-                  {fleetOnlineCount} scanner station connected &bull; 0 offline
-                </div>
+                </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-              <span 
-                style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: '#ecfdf5',
-                  color: '#059669',
-                  border: '1px solid #a7f3d0',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
-                Online
-              </span>
-              <ChevronRight size={15} color="#94a3b8" />
+            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <ChevronRight size={17} color="#94a3b8" />
             </div>
           </div>
 
@@ -528,30 +457,14 @@ export default function AdminPulseDashboard({
                 <Calendar size={18} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
                   {lang === 'hi' ? 'अकादमिक कैलेंडर' : 'Academic Calendar'}
-                </div>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 500, marginTop: '1px' }}>
-                  Regular Instruction Day &bull; Timetable Active
-                </div>
+                </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-              <span 
-                style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: '#eff6ff',
-                  color: '#1d4ed8',
-                  border: '1px solid #bfdbfe'
-                }}
-              >
-                In Session
-              </span>
-              <ChevronRight size={15} color="#94a3b8" />
+            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <ChevronRight size={17} color="#94a3b8" />
             </div>
           </div>
 

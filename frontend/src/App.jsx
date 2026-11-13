@@ -7712,10 +7712,10 @@ export default function App() {
       {/* Main Panel */}
       <main className="main-content">
         {/* Header */}
-        <header className={`flex-between header-container ${(activeTab === 'settings' && activeSubSetting !== null) || activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
+        <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -7743,7 +7743,13 @@ export default function App() {
               )}
               <div className={activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''} style={{ flex: 1, minWidth: 0 }}>
                 <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, wordBreak: 'normal' }}>
-                  {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
+                  {activeTab === 'dashboard' && (() => {
+                    if (activeDashboardSubTab === 'metrics' || activeDashboardSubTab === 'telemetry') return 'Attendance Metrics';
+                    if (activeDashboardSubTab === 'trends' || activeDashboardSubTab === 'radar') return 'Attendance Trends';
+                    if (activeDashboardSubTab === 'diagnostics') return 'System Diagnostics';
+                    if (activeDashboardSubTab === 'feedback') return 'User Feedback';
+                    return userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard';
+                  })()}
                   {activeTab === 'students' && 'Student Directory'}
                   {activeTab === 'teachers' && 'Teacher Directory'}
                   {activeTab === 'logs' && 'Attendance Logs'}
@@ -7759,12 +7765,38 @@ export default function App() {
                   {activeTab === 'payroll' && 'Staff & Payroll'}
                   {activeTab === 'student-attendance' && 'My Attendance'}
                   {activeTab === 'student-profile' && 'My Profile'}
-                  {activeTab === 'settings' && (activeSubSetting ? 'System Settings' : 'Settings Directory')}
+                  {activeTab === 'settings' && (() => {
+                    if (!activeSubSetting) return 'Settings Directory';
+                    const subTitles = {
+                      geofencing: 'Security Perimeter & Geofence',
+                      advanced: 'Face Recognition & Biometrics',
+                      profile: 'My Profile & Credentials',
+                      admins: 'Staff & Administrator Accounts',
+                      departments: 'Departments & Branches',
+                      leave_management: 'Leave Management',
+                      app_version: 'System Version & Build',
+                      multitenant: 'Campus & Institution Registry',
+                      release_updates: 'Release Updates',
+                      features_folder: 'Advanced Features',
+                      enterprise: 'Enterprise Configuration',
+                      extreme: 'Extreme Security Settings',
+                      ideas150: 'Product Roadmap & Ideas',
+                      features7: 'Enterprise 7 Suite',
+                      new_features: 'Next-Gen Capabilities',
+                      wellness: 'Student Wellness Portal',
+                      ar_gamification: 'AR & Gamification Settings',
+                      premium: 'Plan & Billing'
+                    };
+                    return subTitles[activeSubSetting] || 'System Settings';
+                  })()}
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
                 <p style={{ color: '#64748b', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {activeTab === 'dashboard' && 'Real-time attendance overview and telemetry'}
+                  {activeTab === 'dashboard' && (() => {
+                    if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
+                    return 'Real-time attendance overview and telemetry';
+                  })()}
                   {activeTab === 'students' && 'Registered students and face enrollments'}
                   {activeTab === 'teachers' && 'Faculty directory and subject timetables'}
                   {activeTab === 'logs' && 'Daily scan registers and export logs'}
@@ -7780,7 +7812,22 @@ export default function App() {
                   {activeTab === 'payroll' && 'Staff punches, hours, and disbursements'}
                   {activeTab === 'student-attendance' && 'Attendance progress and subject breakdown'}
                   {activeTab === 'student-profile' && 'Personal profile and account credentials'}
-                  {activeTab === 'settings' && (activeSubSetting ? 'Configure security, perimeter, and preferences' : 'Security, biometrics, and administration')}
+                  {activeTab === 'settings' && (() => {
+                    if (!activeSubSetting) return 'Security, biometrics, and administration';
+                    const subDescs = {
+                      geofencing: 'Perimeter boundaries, Wi-Fi subnet gates & emergency lockdown',
+                      advanced: 'Biometrics, liveness detection, and anti-spoofing parameters',
+                      profile: 'Personal profile, security credentials, and preferences',
+                      admins: 'Manage administrative staff, teachers, and system access',
+                      departments: 'Academic departments, faculties, and degree branches',
+                      leave_management: 'Student leave applications, approvals, and history',
+                      app_version: 'Application version, release telemetry, and system updates',
+                      multitenant: 'Tenant registry and campus multi-institution management',
+                      release_updates: 'Software release pipeline and version changelogs',
+                      features_folder: 'Enterprise modules and extended system tools'
+                    };
+                    return subDescs[activeSubSetting] || 'Configure security, perimeter, and preferences';
+                  })()}
                   {activeTab === 'ai-assistant' && 'Campus AI assistant for queries and actions'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'All campus operations, services, and system utilities'}
                 </p>
@@ -8229,41 +8276,7 @@ export default function App() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '24px', boxSizing: 'border-box' }}>
-            {activeSubSetting !== null && (
-              <div className="settings-sub-nav" style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                <button 
-                  type="button"
-                  onClick={() => { 
-                    const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
-                    const targetSub = folderItems.includes(activeSubSetting) ? 'features_folder' : null;
-                    setActiveSubSetting(targetSub);
-                    playCyberSound('click'); 
-                  }}
-                  className="back-icon-btn active-haptic"
-                  aria-label="Go Back"
-                  title="Go Back"
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
-                    padding: 0,
-                    flexShrink: 0
-                  }}
-                >
-                  <ArrowLeft size={18} />
-                </button>
-              </div>
-            )}
-
+          <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '20px', boxSizing: 'border-box' }}>
             {activeSubSetting === null ? (
               <SettingsDirectoryHub
                 setActiveSubSetting={setActiveSubSetting}

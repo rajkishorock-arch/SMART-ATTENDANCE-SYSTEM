@@ -67,34 +67,6 @@ export default function AdminTeacherDashboardView({
   return (
     <PullToRefresh onRefresh={async () => { await fetchStats(); await fetchLogs(); }}>
       <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
-        {activeDashboardSubTab !== null && (
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-            <button 
-              type="button"
-              onClick={() => { setActiveDashboardSubTab(null); if (playCyberSound) playCyberSound('click'); }}
-              className="back-icon-btn active-haptic"
-              aria-label="Go Back"
-              title="Go Back"
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                color: '#0f172a',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
-                padding: 0,
-                flexShrink: 0
-              }}
-            >
-              <ArrowLeft size={18} />
-            </button>
-          </div>
-        )}
 
         {activeDashboardSubTab === null ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '100%', overflowX: 'hidden' }}>

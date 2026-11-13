@@ -840,9 +840,9 @@ export default function StudentAttendanceDashboardView({
 
   return (
     <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeInUp 0.3s ease' }}>
-      {/* Back Button when inside a dedicated sub-section */}
+      {/* Back Button and Section Title when inside a dedicated sub-section */}
       {activeSection !== null && (
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <button
             type="button"
             onClick={() => {
@@ -870,6 +870,9 @@ export default function StudentAttendanceDashboardView({
           >
             <ArrowLeft size={18} />
           </button>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+            {hubSections.find(s => s.id === activeSection)?.label || 'Section Details'}
+          </h2>
         </div>
       )}
 
