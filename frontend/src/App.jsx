@@ -582,6 +582,7 @@ export default function App() {
     } catch { /* ignore */ }
   }, [activeTab, activeSubSetting]);
 
+  const tabHistoryRef = useRef([]);
   const prevActiveTabRef = useRef(activeTab);
   useEffect(() => {
     if (activeTab && !['login', 'signup'].includes(activeTab)) {
@@ -590,6 +591,15 @@ export default function App() {
       } catch { /* ignore */ }
     }
     if (prevActiveTabRef.current !== activeTab) {
+      if (prevActiveTabRef.current && !['login', 'signup'].includes(prevActiveTabRef.current)) {
+        const historyArr = tabHistoryRef.current;
+        if (historyArr[historyArr.length - 1] !== prevActiveTabRef.current) {
+          historyArr.push(prevActiveTabRef.current);
+          if (historyArr.length > 25) {
+            historyArr.shift();
+          }
+        }
+      }
       if (activeTab !== 'settings') {
         setActiveSubSetting(null);
       }
@@ -597,6 +607,24 @@ export default function App() {
       prevActiveTabRef.current = activeTab;
     }
   }, [activeTab]);
+
+  const handleNavigateBack = useCallback(() => {
+    if (playCyberSound) playCyberSound('click');
+    if (activeSubSetting !== null) {
+      setActiveSubSetting(null);
+      return;
+    }
+    if (activeDashboardSubTab !== null) {
+      setActiveDashboardSubTab(null);
+      return;
+    }
+    if (tabHistoryRef.current.length > 0) {
+      const prev = tabHistoryRef.current.pop();
+      setActiveTab(prev);
+    } else {
+      setActiveTab(userRole === 'student' ? 'student-attendance' : 'dashboard');
+    }
+  }, [activeSubSetting, activeDashboardSubTab, userRole, playCyberSound]);
 
 
   // Real-Time Role Notification System
@@ -787,6 +815,10 @@ export default function App() {
             setShowFeedbackModal(false);
           } else if (showPrivacyPolicyRef.current) {
             setShowPrivacyPolicy(false);
+          } else if (tabHistoryRef.current.length > 0) {
+            const prev = tabHistoryRef.current.pop();
+            setActiveTab(prev);
+            playCyberSound('click');
           } else if (currentTab !== 'dashboard' && currentTab !== 'student-attendance') {
             if (userRoleRef.current === 'student') {
               setActiveTab('student-attendance');
@@ -1923,8 +1955,18 @@ export default function App() {
       const userObj = savedUser ? JSON.parse(savedUser) : null;
       const expectedInst = userObj?.institution_id;
       const todayStr = getLocalDateString();
-      if (cached && cachedDate === todayStr && (!expectedInst || !cachedInst || String(cachedInst) === String(expectedInst))) {
-        return JSON.parse(cached);
+      if (cached && (!expectedInst || !cachedInst || String(cachedInst) === String(expectedInst))) {
+        const parsed = JSON.parse(cached);
+        // If date has rolled over, preserve total_students, departments & weekly trends so screen never flashes 0
+        if (cachedDate !== todayStr) {
+          return {
+            ...parsed,
+            total_present_today: 0,
+            total_absent_today: parsed.total_students || 0,
+            average_attendance_rate: 0
+          };
+        }
+        return parsed;
       }
       return {
         total_students: 0,
@@ -2095,7 +2137,14 @@ export default function App() {
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionDate, setSessionDate] = useState(getLocalDateString());
   const [sessionPeriod, setSessionPeriod] = useState('Period 1');
-  const [sessionHistory, setSessionHistory] = useState([]);
+  const [sessionHistory, setSessionHistory] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_session_history');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Session History Filter States
   const [selectedHistoryDept, setSelectedHistoryDept] = useState('');
@@ -2409,7 +2458,14 @@ export default function App() {
       const pVal = periodVal !== null ? periodVal : historyFilterPeriod;
 
       const data = await attendanceApi.fetchSessionHistory(token, sId, dVal, pVal);
-      setSessionHistory(data);
+      if (Array.isArray(data)) {
+        setSessionHistory(data);
+        if (!subjId && !dateVal && !periodVal) {
+          try {
+            localStorage.setItem('cached_session_history', JSON.stringify(data));
+          } catch { /* storage fallback */ }
+        }
+      }
     } catch (err) {
       if (err.status === 401) {
         handleLogout();
@@ -4780,12 +4836,10 @@ export default function App() {
           localStorage.setItem('cached_student_logs', JSON.stringify(logsArray));
         } catch { /* ignore fallback error */ }
       } else {
-        setStudentLogs([]);
-        console.error("Failed to fetch student attendance logs");
+        console.error("Failed to fetch student attendance logs, retaining cached data");
       }
     } catch (err) {
-      setStudentLogs([]);
-      console.error("Error fetching student attendance logs:", err);
+      console.error("Error fetching student attendance logs, retaining cached data:", err);
     } finally {
       setIsLoadingStudentLogs(false);
     }
@@ -5380,7 +5434,7 @@ export default function App() {
     };
   }, []);
 
-  // Load core data once after login (P1 Target: Only stats + 10 recent logs on login)
+  // Load core data once after login (Instant 0ms parallel background hydration)
   useEffect(() => {
     if (!token || !userRole) return;
 
@@ -5391,48 +5445,35 @@ export default function App() {
 
     let isMounted = true;
     
-    const initializeData = async () => {
-      const isConnected = await checkServerConnection();
-      if (isConnected) {
-        if (!isMounted) return;
-        if (userRole === 'student') {
-          fetchStudentLogs(token);
-          fetchStudentLeaves();
-          fetchBlueprint(token);
-          if (currentUser?.details) {
-            fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
-          }
-        } else {
-          // Fetch stats, recent logs, AND registered students immediately on initial load
-          fetchStats(token);
-          fetchLogs(token, { limit: 10 });
-          fetchStudents(token);
-        }
+    const initializeData = () => {
+      if (!isMounted) return;
+      
+      // Parallel background fetch - UI is already hydrated from cache in 0 milliseconds!
+      if (userRole === 'student') {
+        Promise.allSettled([
+          fetchStudentLogs(token),
+          fetchStudentLeaves(),
+          fetchBlueprint(token),
+          currentUser?.details ? fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id) : Promise.resolve()
+        ]);
       } else {
-        if (!isMounted) return;
-        setServerWarmingUp(true);
-        const intervalId = setInterval(async () => {
-          const success = await checkServerConnection();
-          if (success) {
-            clearInterval(intervalId);
-            if (!isMounted) return;
-            setServerWarmingUp(false);
-            if (userRole === 'student') {
-              fetchStudentLogs(token);
-              fetchStudentLeaves();
-              fetchBlueprint(token);
-              if (currentUser?.details) {
-                fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id);
-              }
-            } else {
-              fetchStats(token);
-              fetchLogs(token, { limit: 10 });
-              fetchStudents(token);
-            }
-          }
-        }, 5000);
-        return () => clearInterval(intervalId);
+        // Fetch stats, 100 recent history logs, students, subjects, departments, and history in parallel
+        Promise.allSettled([
+          fetchStats(token),
+          fetchLogs(token, { limit: 100 }),
+          fetchStudents(token),
+          fetchSubjects(token),
+          fetchDepartments(token),
+          fetchSessionHistory()
+        ]);
       }
+
+      // Silent non-blocking server warmup
+      wakeBackend(API_BASE_URL, 3000).then(ok => {
+        if (ok && isMounted) {
+          setServerWarmingUp(false);
+        }
+      }).catch(() => {});
     };
 
     initializeData();
@@ -7656,49 +7697,77 @@ export default function App() {
         {/* Header */}
         <header className={`flex-between header-container ${(activeTab === 'settings' && activeSubSetting !== null) || activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <div className={activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''} style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, wordBreak: 'normal' }}>
-                {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
-                {activeTab === 'students' && 'Student Directory'}
-                {activeTab === 'teachers' && 'Teacher Directory'}
-                {activeTab === 'logs' && 'Attendance Logs'}
-                {activeTab === 'attendance' && 'Face Scanner'}
-                {activeTab === 'reports' && 'Reports & Analytics'}
-                {activeTab === 'session-history' && 'Session History'}
-                {activeTab === 'disputes' && 'Attendance Disputes'}
-                {activeTab === 'face-review' && 'Face Match Review'}
-                {activeTab === 'calendar' && 'Academic Calendar'}
-                {activeTab === 'devices' && 'Kiosks & Sensors'}
-                {activeTab === 'interventions' && 'Student Interventions'}
-                {activeTab === 'lms' && 'LMS Integration'}
-                {activeTab === 'payroll' && 'Staff & Payroll'}
-                {activeTab === 'student-attendance' && 'My Attendance'}
-                {activeTab === 'student-profile' && 'My Profile'}
-                {activeTab === 'settings' && (activeSubSetting ? 'System Settings' : 'Settings Directory')}
-                {activeTab === 'ai-assistant' && 'AI Assistant'}
-                {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
-              </h1>
-              <p style={{ color: '#64748b', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {activeTab === 'dashboard' && 'Real-time attendance overview and telemetry'}
-                {activeTab === 'students' && 'Registered students and face enrollments'}
-                {activeTab === 'teachers' && 'Faculty directory and subject timetables'}
-                {activeTab === 'logs' && 'Daily scan registers and export logs'}
-                {activeTab === 'attendance' && 'Face recognition and kiosk check-in'}
-                {activeTab === 'reports' && 'Shortage defaulters, exports, and alerts'}
-                {activeTab === 'session-history' && 'Class-wise daily session registers'}
-                {activeTab === 'disputes' && 'Student disputes and attendance corrections'}
-                {activeTab === 'face-review' && 'Low-confidence face detection review'}
-                {activeTab === 'calendar' && 'Campus schedule, holidays, and events'}
-                {activeTab === 'devices' && 'Hardware kiosks and camera sensors'}
-                {activeTab === 'interventions' && 'Shortage alerts and counseling workflows'}
-                {activeTab === 'lms' && 'Canvas, Moodle, and ERP roster sync'}
-                {activeTab === 'payroll' && 'Staff punches, hours, and disbursements'}
-                {activeTab === 'student-attendance' && 'Attendance progress and subject breakdown'}
-                {activeTab === 'student-profile' && 'Personal profile and account credentials'}
-                {activeTab === 'settings' && (activeSubSetting ? 'Configure security, perimeter, and preferences' : 'Security, biometrics, and administration')}
-                {activeTab === 'ai-assistant' && 'Campus AI assistant for queries and actions'}
-                {(activeTab === 'control' || activeTab === 'all-features') && 'All campus operations, services, and system utilities'}
-              </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null)) && (
+                <button
+                  type="button"
+                  onClick={handleNavigateBack}
+                  className="back-icon-btn active-haptic"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    minWidth: '36px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                  }}
+                  title="Go Back"
+                  aria-label="Go Back"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+              )}
+              <div className={activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''} style={{ flex: 1, minWidth: 0 }}>
+                <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, wordBreak: 'normal' }}>
+                  {activeTab === 'dashboard' && (userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard')}
+                  {activeTab === 'students' && 'Student Directory'}
+                  {activeTab === 'teachers' && 'Teacher Directory'}
+                  {activeTab === 'logs' && 'Attendance Logs'}
+                  {activeTab === 'attendance' && 'Face Scanner'}
+                  {activeTab === 'reports' && 'Reports & Analytics'}
+                  {activeTab === 'session-history' && 'Session History'}
+                  {activeTab === 'disputes' && 'Attendance Disputes'}
+                  {activeTab === 'face-review' && 'Face Match Review'}
+                  {activeTab === 'calendar' && 'Academic Calendar'}
+                  {activeTab === 'devices' && 'Kiosks & Sensors'}
+                  {activeTab === 'interventions' && 'Student Interventions'}
+                  {activeTab === 'lms' && 'LMS Integration'}
+                  {activeTab === 'payroll' && 'Staff & Payroll'}
+                  {activeTab === 'student-attendance' && 'My Attendance'}
+                  {activeTab === 'student-profile' && 'My Profile'}
+                  {activeTab === 'settings' && (activeSubSetting ? 'System Settings' : 'Settings Directory')}
+                  {activeTab === 'ai-assistant' && 'AI Assistant'}
+                  {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
+                </h1>
+                <p style={{ color: '#64748b', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {activeTab === 'dashboard' && 'Real-time attendance overview and telemetry'}
+                  {activeTab === 'students' && 'Registered students and face enrollments'}
+                  {activeTab === 'teachers' && 'Faculty directory and subject timetables'}
+                  {activeTab === 'logs' && 'Daily scan registers and export logs'}
+                  {activeTab === 'attendance' && 'Face recognition and kiosk check-in'}
+                  {activeTab === 'reports' && 'Shortage defaulters, exports, and alerts'}
+                  {activeTab === 'session-history' && 'Class-wise daily session registers'}
+                  {activeTab === 'disputes' && 'Student disputes and attendance corrections'}
+                  {activeTab === 'face-review' && 'Low-confidence face detection review'}
+                  {activeTab === 'calendar' && 'Campus schedule, holidays, and events'}
+                  {activeTab === 'devices' && 'Hardware kiosks and camera sensors'}
+                  {activeTab === 'interventions' && 'Shortage alerts and counseling workflows'}
+                  {activeTab === 'lms' && 'Canvas, Moodle, and ERP roster sync'}
+                  {activeTab === 'payroll' && 'Staff punches, hours, and disbursements'}
+                  {activeTab === 'student-attendance' && 'Attendance progress and subject breakdown'}
+                  {activeTab === 'student-profile' && 'Personal profile and account credentials'}
+                  {activeTab === 'settings' && (activeSubSetting ? 'Configure security, perimeter, and preferences' : 'Security, biometrics, and administration')}
+                  {activeTab === 'ai-assistant' && 'Campus AI assistant for queries and actions'}
+                  {(activeTab === 'control' || activeTab === 'all-features') && 'All campus operations, services, and system utilities'}
+                </p>
+              </div>
             </div>
 
             {/* Notification Bell Button (Placed directly to the Left of 3-line Hamburger Menu) */}

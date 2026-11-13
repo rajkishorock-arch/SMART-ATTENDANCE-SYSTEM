@@ -239,30 +239,11 @@ export default function SettingsDirectoryHub({
               <Icon size={18} />
             </div>
 
-            {/* Middle Label & Badge */}
+            {/* Middle Label - Clean bold heading */}
             <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.25 }}>
-                  {item.label}
-                </span>
-                {item.badge && (
-                  <span
-                    style={{
-                      fontSize: '0.65rem',
-                      fontWeight: 700,
-                      padding: '2px 7px',
-                      borderRadius: '6px',
-                      background: item.badgeBg || '#eff6ff',
-                      color: item.badgeColor || '#1d4ed8',
-                      border: `1px solid ${item.badgeBorder || '#bfdbfe'}`,
-                      lineHeight: 1.1,
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </div>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+                {item.label}
+              </span>
             </div>
 
             {/* Right Chevron */}

@@ -124,6 +124,12 @@ def get_dashboard_stats(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can view dashboard statistics."
         )
+
+    # Sub-millisecond cache for dashboard telemetry
+    cache_key = f"stats:inst_{current_user.institution_id}:role_{current_user.role}:u_{current_user.id}"
+    cached_stats = cache_service.cache_get(cache_key)
+    if cached_stats:
+        return cached_stats
         
     if current_user.role == "teacher":
         teacher_subjects = db.query(models.Subject).filter(
@@ -135,14 +141,20 @@ def get_dashboard_stats(
             teacher_depts.append(current_user.subject_department)
         teacher_sub_ids = [s.id for s in teacher_subjects] if teacher_subjects else None
         
-        return crud.get_dashboard_stats(
+        result = crud.get_dashboard_stats(
             db, 
             institution_id=current_user.institution_id,
             departments=teacher_depts if teacher_depts else None,
             subject_ids=teacher_sub_ids
         )
+    else:
+        result = crud.get_dashboard_stats(db, institution_id=current_user.institution_id)
 
-    return crud.get_dashboard_stats(db, institution_id=current_user.institution_id)
+    try:
+        cache_service.cache_set(cache_key, result, ttl=20)
+    except Exception:
+        pass
+    return result
 
 @router.post("/recognize-frame")
 @router.post("/recognize-frame/")
@@ -291,27 +303,34 @@ async def recognize_and_mark_attendance(
         # Phase 5: Stage borderline / low-confidence face matches (0.35 <= score < 0.50) into review queue
         if face.get("match_quality") == "BORDERLINE":
             today_str = custom_date or datetime.now().strftime("%d/%m/%Y")
-            existing_review = db.query(models.LowConfidenceReview).filter(
-                models.LowConfidenceReview.institution_id == current_user.institution_id,
-                models.LowConfidenceReview.candidate_student_id == user_id,
-                models.LowConfidenceReview.date == today_str,
-                models.LowConfidenceReview.status == "PENDING"
-            ).first()
-            if not existing_review:
-                review_item = models.LowConfidenceReview(
-                    institution_id=current_user.institution_id,
-                    candidate_student_id=user_id,
-                    candidate_roll=roll,
-                    candidate_name=name,
-                    similarity_score=face.get("raw_score", 0.40),
-                    date=today_str,
-                    session_time=custom_time or datetime.now().strftime("%I:%M:%S %p"),
-                    subject_id=subject_id,
-                    device_id="scanner-live",
-                    status="PENDING"
-                )
-                db.add(review_item)
-                db.commit()
+            try:
+                existing_review = db.query(models.LowConfidenceReview).filter(
+                    models.LowConfidenceReview.institution_id == current_user.institution_id,
+                    models.LowConfidenceReview.candidate_student_id == user_id,
+                    models.LowConfidenceReview.date == today_str,
+                    models.LowConfidenceReview.status == "PENDING"
+                ).first()
+                if not existing_review:
+                    review_item = models.LowConfidenceReview(
+                        institution_id=current_user.institution_id,
+                        candidate_student_id=user_id,
+                        candidate_roll=roll,
+                        candidate_name=name,
+                        similarity_score=face.get("raw_score", 0.40),
+                        date=today_str,
+                        session_time=custom_time or datetime.now().strftime("%I:%M:%S %p"),
+                        subject_id=subject_id,
+                        device_id="scanner-live",
+                        status="PENDING"
+                    )
+                    db.add(review_item)
+                    db.commit()
+            except Exception as rev_err:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+                print(f"[RECOGNIZE FRAME] Warning: LowConfidenceReview staging exception: {rev_err}")
             face_details = face.copy()
             face_details["staged_for_review"] = True
             face_details["newly_marked"] = False
@@ -564,6 +583,12 @@ def send_absentee_alerts(
         ),
         institution_id=current_user.institution_id
     )
+
+    try:
+        cache_service.cache_delete_pattern(f"stats:inst_{current_user.institution_id}")
+        cache_service.cache_delete_pattern(f"sessions:inst_{current_user.institution_id}")
+    except Exception:
+        pass
 
     return {
         "message": f"Successfully queued {queued_count} absentee warning emails{subject_info_str}.",
@@ -953,6 +978,12 @@ def mark_manual_attendance_bulk(
         institution_id=current_user.institution_id
     )
 
+    try:
+        cache_service.cache_delete_pattern(f"stats:inst_{current_user.institution_id}")
+        cache_service.cache_delete_pattern(f"sessions:inst_{current_user.institution_id}")
+    except Exception:
+        pass
+
     return {
         "status": "success",
         "success_count": success_count,
@@ -980,6 +1011,11 @@ def get_attendance_sessions_history(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can view session history."
         )
+
+    cache_key = f"sessions:inst_{current_user.institution_id}:role_{current_user.role}:u_{current_user.id}:s_{subject_id}:d_{date_filter}:p_{period}"
+    cached_res = cache_service.cache_get(cache_key)
+    if cached_res is not None:
+        return cached_res
         
     if current_user.role == "teacher":
         if subject_id is None:
@@ -1140,6 +1176,10 @@ def get_attendance_sessions_history(
             "students": session_students
         })
         
+    try:
+        cache_service.cache_set(cache_key, history, ttl=20)
+    except Exception:
+        pass
     return history
 
 @router.put("/status")
@@ -1432,6 +1472,14 @@ async def attendance_websocket_endpoint(websocket: WebSocket, token: str = None)
             active_connections.remove(websocket)
 
 async def broadcast_attendance_event(event_data: dict):
+    inst_id = event_data.get("institution_id")
+    if inst_id:
+        try:
+            cache_service.cache_delete_pattern(f"stats:inst_{inst_id}")
+            cache_service.cache_delete_pattern(f"sessions:inst_{inst_id}")
+        except Exception:
+            pass
+
     if not active_connections:
         return
     disconnected = []

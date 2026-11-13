@@ -170,6 +170,7 @@ export default function AdminTeacherDashboardView({
             ) : userRole === 'admin' ? (
               <AdminPulseDashboard
                 stats={stats}
+                token={token}
                 systemHealth={{
                   face_match_latency: stats?.face_match_latency || 85,
                   camera_active: attendanceActive || scannerBootActive,

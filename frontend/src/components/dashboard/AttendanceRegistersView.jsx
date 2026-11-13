@@ -95,84 +95,158 @@ export default function AttendanceRegistersView({
   return (
     <div className="glass-panel mobile-tab-panel logs-panel" style={{ padding: '32px', animation: 'fadeInUp 0.6s ease both' }}>
       {/* Logs Metrics Summary cards */}
-      <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '28px' }}>
-        <div className="glass-panel metric-card" style={{ padding: '16px 20px', borderLeft: '4px solid var(--color-primary)' }}>
-          <div className="metric-info">
-            <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-muted)' }}>Filtered Check-ins</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)' }}>{totalLogsCount}</p>
+      <div 
+        className="keep-horizontal logs-summary-grid"
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', 
+          gap: '8px', 
+          marginBottom: '16px',
+          width: '100%' 
+        }}
+      >
+        <div 
+          style={{ 
+            padding: '10px 12px', 
+            background: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            borderLeft: '4px solid var(--color-primary)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '6px'
+          }}
+        >
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <h3 style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Filtered</h3>
+            <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-main)', margin: '2px 0 0 0' }}>{totalLogsCount}</p>
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)', width: '40px', height: '40px', borderRadius: '10px' }}>
-            <FileSpreadsheet size={18} />
+          <div style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)', width: '32px', height: '32px', minWidth: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FileSpreadsheet size={15} />
           </div>
         </div>
         
-        <div className="glass-panel metric-card" style={{ padding: '16px 20px', borderLeft: '4px solid var(--color-success)' }}>
-          <div className="metric-info">
-            <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-muted)' }}>Presence Rate</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)' }}>{presenceRateLogs}%</p>
+        <div 
+          style={{ 
+            padding: '10px 12px', 
+            background: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            borderLeft: '4px solid var(--color-success)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '6px'
+          }}
+        >
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <h3 style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Presence</h3>
+            <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-main)', margin: '2px 0 0 0' }}>{presenceRateLogs}%</p>
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(5, 150, 105, 0.08)', color: 'var(--color-success)', width: '40px', height: '40px', borderRadius: '10px' }}>
-            <CheckCircle2 size={18} />
+          <div style={{ background: 'rgba(5, 150, 105, 0.08)', color: 'var(--color-success)', width: '32px', height: '32px', minWidth: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CheckCircle2 size={15} />
           </div>
         </div>
 
-        <div className="glass-panel metric-card" style={{ padding: '16px 20px', borderLeft: '4px solid var(--color-purple)' }}>
-          <div className="metric-info">
-            <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-muted)' }}>Peak Traffic Hour</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-main)' }}>{peakScanHour}</p>
+        <div 
+          style={{ 
+            padding: '10px 12px', 
+            background: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            borderLeft: '4px solid var(--color-purple)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '6px'
+          }}
+        >
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <h3 style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Peak Hour</h3>
+            <p style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-text-main)', margin: '2px 0 0 0', whiteSpace: 'nowrap' }}>{peakScanHour}</p>
           </div>
-          <div className="metric-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)', width: '40px', height: '40px', borderRadius: '10px' }}>
-            <Clock size={18} />
+          <div style={{ background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)', width: '32px', height: '32px', minWidth: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Clock size={15} />
           </div>
         </div>
       </div>
 
       {/* Filter Cockpit Bar */}
-      <div className="mobile-filter-stack" style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: '16px', flex: 1, minWidth: '300px', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
-            <input 
-              type="text" 
-              className="form-input" 
-              style={{ paddingLeft: '44px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
-              placeholder="Search by ID, Name or Roll..."
-              value={logSearch}
-              onChange={e => setLogSearch(e.target.value)}
-            />
-            <Search size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-          </div>
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '10px', 
+          marginBottom: '20px', 
+          width: '100%' 
+        }}
+      >
+        {/* Row 1: Full-width Search Input */}
+        <div style={{ position: 'relative', width: '100%' }}>
+          <input 
+            type="text" 
+            className="form-input" 
+            style={{ 
+              width: '100%', 
+              paddingLeft: '40px', 
+              background: '#ffffff', 
+              border: '1px solid var(--border-subtle)',
+              height: '42px',
+              borderRadius: '10px',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Search by ID, Name or Roll..."
+            value={logSearch}
+            onChange={e => setLogSearch(e.target.value)}
+          />
+          <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+        </div>
 
+        {/* Row 2: Department Select + Date Navigation */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           {userRole === 'admin' ? (
             <select 
               className="form-input" 
-              style={{ width: '180px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}
+              style={{ 
+                flex: '1 1 140px', 
+                minWidth: '120px',
+                background: '#ffffff', 
+                border: '1px solid var(--border-subtle)', 
+                height: '40px',
+                borderRadius: '10px'
+              }}
               value={logDeptFilter}
               onChange={e => setLogDeptFilter(e.target.value)}
             >
-              <option value="">All Depts</option>
+              <option value="">All Departments</option>
               {departments.map(dept => (
                 <option key={dept} value={dept}>{dept}</option>
               ))}
             </select>
           ) : userRole === 'teacher' ? (
             <div style={{ 
-              padding: '10px 16px', 
+              padding: '8px 14px', 
               background: 'rgba(30, 64, 175, 0.08)', 
               border: '1px solid rgba(30, 64, 175, 0.2)', 
               borderRadius: '10px', 
               color: 'var(--color-primary)',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '6px'
             }}>
               <BookOpen size={14} />
               <span>{currentUser?.details?.subject_code || 'N/A'}</span>
             </div>
           ) : null}
 
-          <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Date Picker with Prev / Next Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 180px', minWidth: '170px' }}>
             <button
               type="button"
               onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, -1, setLogDateFilter); }}
@@ -181,20 +255,15 @@ export default function AttendanceRegistersView({
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 color: 'var(--color-text-secondary)',
-                padding: '0',
-                width: '38px',
-                minWidth: '38px',
-                maxWidth: '38px',
-                flex: '0 0 38px',
-                flexShrink: 0,
+                width: '36px',
+                minWidth: '36px',
+                height: '40px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '0.85rem',
-                transition: 'all 0.2s',
-                height: '42px',
-                boxSizing: 'border-box'
+                fontSize: '0.8rem',
+                flexShrink: 0
               }}
               title="Previous Day"
             >
@@ -202,8 +271,19 @@ export default function AttendanceRegistersView({
             </button>
             <input 
               type="date" 
-              className="form-input flex-input"
-              style={{ width: '150px', minWidth: 0, background: '#ffffff', border: '1px solid var(--border-subtle)', height: '42px', margin: 0, boxSizing: 'border-box' }}
+              className="form-input"
+              style={{ 
+                flex: 1, 
+                minWidth: 0, 
+                background: '#ffffff', 
+                border: '1px solid var(--border-subtle)', 
+                height: '40px', 
+                borderRadius: '8px',
+                padding: '0 8px',
+                fontSize: '0.8rem',
+                margin: 0,
+                boxSizing: 'border-box'
+              }}
               value={logDateFilter}
               onChange={e => setLogDateFilter(e.target.value)}
             />
@@ -215,20 +295,15 @@ export default function AttendanceRegistersView({
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 color: 'var(--color-text-secondary)',
-                padding: '0',
-                width: '38px',
-                minWidth: '38px',
-                maxWidth: '38px',
-                flex: '0 0 38px',
-                flexShrink: 0,
+                width: '36px',
+                minWidth: '36px',
+                height: '40px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '0.85rem',
-                transition: 'all 0.2s',
-                height: '42px',
-                boxSizing: 'border-box'
+                fontSize: '0.8rem',
+                flexShrink: 0
               }}
               title="Next Day"
             >
@@ -237,28 +312,28 @@ export default function AttendanceRegistersView({
           </div>
         </div>
 
-        {/* View Toggles & Status filters */}
-        <div className="mobile-filter-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Status Chips */}
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+        {/* Row 3: Status Filters & View Mode Toggles */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             {['all', 'present', 'absent'].map(status => (
               <button
                 key={status}
+                type="button"
                 onClick={() => {
                   playCyberSound('click');
                   setQuickFilterStatus(status);
                 }}
                 style={{
-                  padding: '6px 12px',
-                  fontSize: '0.75rem',
+                  padding: '5px 12px',
+                  fontSize: '0.72rem',
                   background: quickFilterStatus === status ? 'var(--color-primary)' : 'transparent',
                   color: quickFilterStatus === status ? '#ffffff' : 'var(--color-text-muted)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontWeight: 'bold',
+                  fontWeight: 700,
                   textTransform: 'uppercase',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.15s ease'
                 }}
               >
                 {status}
@@ -266,45 +341,48 @@ export default function AttendanceRegistersView({
             ))}
           </div>
 
-          {/* Mode Toggles */}
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             <button
+              type="button"
               onClick={() => {
                 playCyberSound('click');
                 setLogsViewMode('grid');
               }}
               style={{
-                padding: '6px 12px',
-                fontSize: '0.75rem',
+                padding: '5px 12px',
+                fontSize: '0.72rem',
                 background: logsViewMode === 'grid' ? 'var(--color-primary)' : 'transparent',
                 color: logsViewMode === 'grid' ? '#ffffff' : 'var(--color-text-muted)',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'all 0.2s'
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                transition: 'all 0.15s ease'
               }}
             >
-              📊 GRID
+              Grid
             </button>
             <button
+              type="button"
               onClick={() => {
                 playCyberSound('click');
-                setLogsViewMode('chrono');
+                setLogsViewMode('feed');
               }}
               style={{
-                padding: '6px 12px',
-                fontSize: '0.75rem',
-                background: logsViewMode === 'chrono' ? 'var(--color-primary)' : 'transparent',
-                color: logsViewMode === 'chrono' ? '#ffffff' : 'var(--color-text-muted)',
+                padding: '5px 12px',
+                fontSize: '0.72rem',
+                background: logsViewMode === 'feed' ? 'var(--color-primary)' : 'transparent',
+                color: logsViewMode === 'feed' ? '#ffffff' : 'var(--color-text-muted)',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'all 0.2s'
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                transition: 'all 0.15s ease'
               }}
             >
-              ⏳ FEED
+              Feed
             </button>
           </div>
         </div>
