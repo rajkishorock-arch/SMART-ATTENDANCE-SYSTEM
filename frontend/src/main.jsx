@@ -215,4 +215,18 @@ createRoot(document.getElementById('root')).render(
       </UIProvider>
     </ErrorBoundary>
   </StrictMode>,
-)
+);
+
+// Register Service Worker for seamless offline PWA web access
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/service-worker.js')
+      .then((reg) => {
+        console.log('[ServiceWorker] Registered with scope:', reg.scope);
+      })
+      .catch((err) => {
+        console.warn('[ServiceWorker] Registration failed:', err);
+      });
+  });
+}
