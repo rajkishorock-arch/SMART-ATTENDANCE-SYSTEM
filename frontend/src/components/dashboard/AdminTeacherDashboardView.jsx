@@ -169,6 +169,7 @@ export default function AdminTeacherDashboardView({
                 }}
                 onExportCsv={exportToCSV}
                 lang={appLang}
+                onNavigateTab={setActiveTab}
               />
             ) : userRole === 'admin' ? (
               <AdminPulseDashboard

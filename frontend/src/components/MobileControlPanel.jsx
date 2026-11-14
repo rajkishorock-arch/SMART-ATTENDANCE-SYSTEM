@@ -17,6 +17,7 @@ import {
   Globe,
   DollarSign,
   FileSpreadsheet,
+  Megaphone,
 } from 'lucide-react';
 
 export default function MobileControlPanel({
@@ -31,13 +32,14 @@ export default function MobileControlPanel({
   if (!open) return null;
 
   const items = [
-    { id: 'disputes', label: 'Disputes & Corrections', icon: ShieldAlert, roles: ['admin', 'teacher'], badge: 'Review' },
-    { id: 'face-review', label: 'Face Match QA Queue', icon: ScanFace, roles: ['admin', 'teacher'], badge: 'AI QA' },
+    { id: 'broadcast', label: 'Campus Notices & Circulars', icon: Megaphone, roles: ['admin', 'teacher', 'student'] },
+    { id: 'disputes', label: 'Disputes & Corrections', icon: ShieldAlert, roles: ['admin', 'teacher'] },
+    { id: 'face-review', label: 'Face Match QA Queue', icon: ScanFace, roles: ['admin', 'teacher'] },
     { id: 'calendar', label: 'Academic Calendar', icon: Calendar, roles: ['admin', 'teacher'] },
-    { id: 'devices', label: 'Kiosk & Device Fleet', icon: Monitor, roles: ['admin'], badge: 'Hardware' },
-    { id: 'interventions', label: 'Attendance Interventions', icon: AlertOctagon, roles: ['admin', 'teacher'], badge: 'Alerts' },
-    { id: 'lms', label: 'SIS & LMS Sync', icon: Globe, roles: ['admin'], badge: 'Sync' },
-    { id: 'payroll', label: 'Staff & Payroll', icon: DollarSign, roles: ['admin', 'teacher'], badge: 'Finance' },
+    { id: 'devices', label: 'Kiosk & Device Fleet', icon: Monitor, roles: ['admin'] },
+    { id: 'interventions', label: 'Attendance Interventions', icon: AlertOctagon, roles: ['admin', 'teacher'] },
+    { id: 'lms', label: 'SIS & LMS Sync', icon: Globe, roles: ['admin'] },
+    { id: 'payroll', label: 'Staff & Payroll', icon: DollarSign, roles: ['admin', 'teacher'] },
     { id: 'reports', label: 'Reports & Alerts', icon: BarChart3, roles: ['admin', 'teacher'] },
     { id: 'session-history', label: 'Session History', icon: History, roles: ['admin', 'teacher'] },
     { id: 'logs', label: 'Attendance Logs', icon: FileSpreadsheet, roles: ['admin', 'teacher'] },
@@ -56,8 +58,10 @@ export default function MobileControlPanel({
         <div className="control-panel-handle" />
         <div className="control-panel-header">
           <div>
-            <h3>Control Center</h3>
-            <p>Full Institutional System Features & Navigation</p>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Control Center</h3>
+            {userRole !== 'student' && userRole !== 'teacher' && (
+              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>Full Institutional System Features & Navigation</p>
+            )}
           </div>
           <button type="button" className="control-panel-close" onClick={onClose} aria-label="Close">
             <X size={20} />
@@ -65,7 +69,7 @@ export default function MobileControlPanel({
         </div>
 
         <div className="control-panel-grid" style={{ maxHeight: '55vh', overflowY: 'auto', paddingRight: '4px' }}>
-          {items.map(({ id, label, icon: Icon, badge }) => (
+          {items.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -76,21 +80,8 @@ export default function MobileControlPanel({
               }}
               style={{ position: 'relative' }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%', alignItems: 'center' }}>
                 <Icon size={22} style={{ color: activeTab === id ? '#1d4ed8' : '#2563eb' }} />
-                {badge && (
-                  <span style={{
-                    fontSize: '0.62rem',
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: '6px',
-                    background: '#eff6ff',
-                    color: '#1d4ed8',
-                    border: '1px solid #bfdbfe'
-                  }}>
-                    {badge}
-                  </span>
-                )}
               </div>
               <span style={{ fontSize: '0.78rem', lineHeight: '1.25', fontWeight: 600 }}>{label}</span>
             </button>

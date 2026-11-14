@@ -7952,34 +7952,33 @@ export default function App() {
           </div>
           
           <div className="header-actions">
-            {/* Campus Broadcast Button for Admin */}
-            {userRole === 'admin' && (
-              <button 
-                type="button"
-                className="header-action-desktop-only hover-elevate"
-                onClick={() => { playCyberSound('click'); navigateToTab('broadcast'); }}
-                title="Campus Broadcast & Notice Board"
-                aria-label="Campus Broadcast & Notice Board"
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  background: '#fffbeb',
-                  border: '1px solid #fde68a',
-                  color: '#b45309',
-                  cursor: 'pointer',
-                  minHeight: '38px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <Megaphone size={15} />
-                <span>Broadcast</span>
-              </button>
-            )}
+            {/* Campus Broadcast & Notices Button for All Credentials */}
+            <button 
+              type="button"
+              className="hover-elevate active-haptic"
+              onClick={() => { playCyberSound('click'); navigateToTab('broadcast'); }}
+              title={userRole === 'admin' ? "Campus Broadcast & Dispatch" : "Campus Notice Board & Official Circulars"}
+              aria-label="Campus Notice Board"
+              style={{
+                padding: '7px 12px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                background: activeTab === 'broadcast' ? '#eff6ff' : 'rgba(255, 255, 255, 0.95)',
+                border: activeTab === 'broadcast' ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                color: activeTab === 'broadcast' ? '#1d4ed8' : '#334155',
+                cursor: 'pointer',
+                minHeight: '36px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Megaphone size={14} color="#2563eb" />
+              <span>{userRole === 'admin' ? 'Broadcast' : 'Notices'}</span>
+            </button>
 
             {/* Accessibility & Language Modal Trigger */}
             <button 
@@ -8119,6 +8118,7 @@ export default function App() {
               appLang={appLang}
               playCyberSound={playCyberSound}
               currentUser={currentUser}
+              onNavigateTab={navigateToTab}
             />
           ) : (
             <AdminTeacherDashboardView
@@ -8743,6 +8743,7 @@ export default function App() {
             setBlueprintDayModalDate={setBlueprintDayModalDate}
             appLang={appLang}
             onNavigateToCalendar={() => { setActiveTab('calendar'); playCyberSound('click'); }}
+            onNavigateTab={navigateToTab}
           />
         )}
 

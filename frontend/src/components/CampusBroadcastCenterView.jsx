@@ -141,34 +141,10 @@ export default function CampusBroadcastCenterView({
         sender_name: currentUser?.name || 'Campus Administrator'
       };
 
-      await notificationApi.broadcastAnnouncement(token, payload);
+      const res = await notificationApi.broadcastAnnouncement(token, payload);
       
       triggerHaptic();
       if (playCyberSound) playCyberSound('success');
-
-      // Optimistically add to top of broadcasts list right away!
-      const newNotice = {
-        id: Date.now(),
-        title: formTitle.trim(),
-        message: formMessage.trim(),
-        category: formCategory,
-        created_at: new Date().toISOString(),
-        target_roles: formTargetRoles,
-        is_urgent: formIsUrgent
-      };
-
-      setBroadcasts(prev => {
-        const updated = [newNotice, ...prev.filter(b => b.title !== newNotice.title)];
-        try {
-          localStorage.setItem('cached_campus_broadcasts', JSON.stringify(updated));
-        } catch { /* ignore */ }
-        return updated;
-      });
-
-      setDispatchFeedback({
-        type: 'success',
-        message: `✅ Broadcast successfully dispatched to ${formTargetRoles.join(', ')}!`
-      });
 
       // Immediate 0ms optimistic inclusion in history archive
       const dispatchedNotice = {
@@ -187,6 +163,11 @@ export default function CampusBroadcastCenterView({
           localStorage.setItem('cached_campus_broadcasts', JSON.stringify(updated));
         } catch { /* ignore */ }
         return updated;
+      });
+
+      setDispatchFeedback({
+        type: 'success',
+        message: `✅ Broadcast successfully dispatched to ${formTargetRoles.join(', ')}!`
       });
 
       // Clear Form
@@ -311,14 +292,47 @@ export default function CampusBroadcastCenterView({
     }
   };
 
-  // Metrics computation
+  // Role-aware metrics computation
   const statsMetrics = useMemo(() => {
     const total = broadcasts.length;
+    const isStudent = String(userRole).toLowerCase() === 'student';
+    const isTeacher = String(userRole).toLowerCase() === 'teacher';
+
+    if (isStudent) {
+      const exams = broadcasts.filter(b => ['EXAM', 'EXAMINATION', 'CIRCULAR', 'ACADEMIC'].includes(String(b.category).toUpperCase())).length;
+      const holidays = broadcasts.filter(b => String(b.category).toUpperCase() === 'HOLIDAY').length;
+      const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
+      return [
+        { label: 'Total Circulars', val: total, color: '#0f172a' },
+        { label: 'Academic & Exams', val: exams, color: '#2563eb' },
+        { label: 'Gazetted Holidays', val: holidays, color: '#059669' },
+        { label: 'Urgent Alerts', val: urgent, color: '#dc2626' }
+      ];
+    }
+
+    if (isTeacher) {
+      const staffCount = broadcasts.filter(b => !b.target_roles || b.target_roles.includes('staff') || b.target_roles.includes('teacher') || b.target_roles.includes('all')).length;
+      const exams = broadcasts.filter(b => ['EXAM', 'EXAMINATION', 'CIRCULAR'].includes(String(b.category).toUpperCase())).length;
+      const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
+      return [
+        { label: 'Total Notices', val: total, color: '#0f172a' },
+        { label: 'Staff & Faculty', val: staffCount, color: '#059669' },
+        { label: 'Academic & Exams', val: exams, color: '#2563eb' },
+        { label: 'Urgent Notices', val: urgent, color: '#dc2626' }
+      ];
+    }
+
+    // Admin default
     const students = broadcasts.filter(b => !b.target_roles || b.target_roles.includes('students') || b.target_roles.includes('student') || b.target_roles.includes('all')).length;
     const staff = broadcasts.filter(b => !b.target_roles || b.target_roles.includes('staff') || b.target_roles.includes('teacher') || b.target_roles.includes('all')).length;
     const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
-    return { total, students, staff, urgent };
-  }, [broadcasts]);
+    return [
+      { label: 'Total Notices', val: total, color: '#0f172a' },
+      { label: 'Students Reach', val: students, color: '#2563eb' },
+      { label: 'Staff & Faculty', val: staff, color: '#059669' },
+      { label: 'Urgent Alerts', val: urgent, color: '#dc2626' }
+    ];
+  }, [broadcasts, userRole]);
 
   return (
     <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -439,9 +453,11 @@ export default function CampusBroadcastCenterView({
             <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
               Campus Broadcast & Official Notices
             </h2>
-            <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#e0e7ff', opacity: 0.9 }}>
-              Official circulars, academic notifications & downloadable certified PDF circulars
-            </p>
+            {userRole !== 'student' && userRole !== 'teacher' && (
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#e0e7ff', opacity: 0.9 }}>
+                Official circulars, academic notifications & downloadable certified PDF circulars
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -452,25 +468,12 @@ export default function CampusBroadcastCenterView({
         gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
         gap: '10px'
       }}>
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Total Notices</span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{statsMetrics.total}</div>
-        </div>
-
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600, textTransform: 'uppercase' }}>Students Reach</span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>{statsMetrics.students}</div>
-        </div>
-
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600, textTransform: 'uppercase' }}>Staff & Faculty</span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>{statsMetrics.staff}</div>
-        </div>
-
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 600, textTransform: 'uppercase' }}>Urgent Alerts</span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>{statsMetrics.urgent}</div>
-        </div>
+        {statsMetrics.map((stat, idx) => (
+          <div key={idx} className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.72rem', color: stat.color, fontWeight: 600, textTransform: 'uppercase' }}>{stat.label}</span>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: stat.color, marginTop: '2px' }}>{stat.val}</div>
+          </div>
+        ))}
       </div>
 
       {/* ── Dispatch Form for Admin / Authorized Staff ── */}
@@ -740,9 +743,11 @@ export default function CampusBroadcastCenterView({
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
               Notice History Archive ({filteredBroadcasts.length})
             </h3>
-            <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              Chronological log of all campus broadcasts with downloadable verified PDF notices
-            </p>
+            {userRole !== 'student' && userRole !== 'teacher' && (
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                Chronological log of all campus broadcasts with downloadable verified PDF notices
+              </p>
+            )}
           </div>
         </div>
 

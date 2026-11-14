@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Bell, CheckCircle2, AlertCircle, Clock, X, ShieldAlert,
-  Calendar, CheckCheck, Sliders, Trash2
+  Calendar, CheckCheck, Sliders, Trash2, Megaphone
 } from 'lucide-react';
 import NotificationSettingsModal from './NotificationSettingsModal';
 import { notificationApi } from '../api/notificationApi.js';
@@ -95,7 +95,18 @@ export default function NotificationDrawerModal({
         setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
       } catch { /* ignore fallback error */ }
     }
-    if (onNotificationClick) {
+    const cat = String(notif?.category || '').toUpperCase();
+    const actionUrl = String(notif?.action_url || '').toLowerCase();
+    const title = String(notif?.title || '').toLowerCase();
+    if (
+      ['BROADCAST', 'ANNOUNCEMENT', 'NOTICE', 'CIRCULAR', 'EXAM', 'EVENT', 'HOLIDAY', 'URGENT'].includes(cat) ||
+      actionUrl.includes('broadcast') || actionUrl.includes('notice') ||
+      title.includes('notice') || title.includes('broadcast') || title.includes('circular')
+    ) {
+      if (onNotificationClick) {
+        onNotificationClick({ ...notif, targetTab: 'broadcast' });
+      }
+    } else if (onNotificationClick) {
       onNotificationClick(notif);
     }
     onClose();
@@ -371,6 +382,46 @@ export default function NotificationDrawerModal({
                 <CheckCheck size={14} /> Mark all read
               </button>
             )}
+          </div>
+
+          {/* Quick Jump to Campus Notice Board Archive */}
+          <div style={{
+            padding: '10px 20px',
+            background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
+            borderBottom: '1px solid #dbeafe',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <Megaphone size={16} color="#2563eb" />
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e40af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Campus Notice Board Archive
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                playCyberSound('click');
+                if (onNotificationClick) {
+                  onNotificationClick({ targetTab: 'broadcast' });
+                }
+                onClose();
+              }}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#ffffff',
+                background: '#2563eb',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                cursor: 'pointer',
+                flexShrink: 0
+              }}
+            >
+              Open History
+            </button>
           </div>
 
           {/* Notifications List */}

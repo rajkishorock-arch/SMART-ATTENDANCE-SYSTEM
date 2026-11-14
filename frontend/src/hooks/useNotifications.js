@@ -5,10 +5,23 @@ import { notificationApi } from '../api/notificationApi.js';
 export function resolveNotificationNavigation(notif, userRole = null) {
   if (!notif) return { targetTab: null, targetSubSetting: null, openScanner: false };
 
+  // Explicit target tab pass-through
+  if (notif.targetTab) {
+    return { targetTab: notif.targetTab, targetSubSetting: notif.targetSubSetting || null, openScanner: !!notif.openScanner };
+  }
+
   const actionUrl = (notif.action_url || '').toLowerCase();
   const category = (notif.category || '').toUpperCase();
   const title = (notif.title || '').toLowerCase();
   const message = (notif.message || '').toLowerCase();
+
+  const isNoticeOrBroadcast = ['BROADCAST', 'ANNOUNCEMENT', 'NOTICE', 'CIRCULAR', 'EXAM', 'EVENT', 'HOLIDAY', 'URGENT'].includes(category) ||
+    actionUrl.includes('broadcast') || actionUrl.includes('notice') ||
+    title.includes('notice') || title.includes('broadcast') || title.includes('circular');
+
+  if (isNoticeOrBroadcast) {
+    return { targetTab: 'broadcast', targetSubSetting: null, openScanner: false };
+  }
 
   const isLeave = category === 'LEAVE' || actionUrl.includes('leave') || title.includes('leave') || message.includes('leave');
   const isDispute = category === 'DISPUTE' || actionUrl.includes('dispute') || title.includes('dispute') || message.includes('dispute');

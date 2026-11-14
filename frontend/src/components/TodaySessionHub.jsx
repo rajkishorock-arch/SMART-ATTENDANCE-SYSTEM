@@ -9,6 +9,7 @@ import {
   Edit3, 
   FileSpreadsheet, 
   Sparkles,
+  Megaphone,
   X
 } from 'lucide-react';
 import { t } from '../utils/i18n';
@@ -26,7 +27,8 @@ export default function TodaySessionHub({
   onOpenManualAttendance,
   onSendAbsenteeAlerts,
   onExportCsv,
-  lang = 'en'
+  lang = 'en',
+  onNavigateTab
 }) {
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('Period 1');
@@ -164,6 +166,17 @@ export default function TodaySessionHub({
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab('broadcast')}
+              className="btn-secondary active-haptic"
+              style={{ minHeight: '40px', padding: '8px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8' }}
+              title="View Official Notice Board & Circulars"
+            >
+              <Megaphone size={14} color="#2563eb" />
+              <span>Notice Board</span>
+            </button>
+          )}
           <button
             onClick={onOpenManualAttendance}
             className="btn-secondary"

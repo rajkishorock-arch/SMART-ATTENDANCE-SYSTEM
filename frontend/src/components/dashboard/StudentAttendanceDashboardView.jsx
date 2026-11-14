@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   BookOpen, AlertCircle, MessageSquare, Calendar, CheckCircle2, TrendingUp, 
-  X, MapPin, ArrowLeft, ChevronRight, Target, Award, ShieldCheck, FileText, Bell 
+  X, MapPin, ArrowLeft, ChevronRight, Target, Award, ShieldCheck, FileText, Bell, Megaphone 
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
@@ -675,6 +675,7 @@ export default function StudentAttendanceDashboardView({
   setBlueprintDayModalDate,
   appLang,
   onNavigateToCalendar = () => {},
+  onNavigateTab = () => {},
 }) {
   const { currentUser } = useAuth();
   const { playCyberSound } = useUI();
@@ -748,6 +749,15 @@ export default function StudentAttendanceDashboardView({
 
   // Navigation Hub items
   const hubSections = [
+    {
+      id: 'broadcast',
+      title: 'Campus Notices & Official Circulars',
+      subtitle: 'Official academic circulars, emergency announcements & PDF notices',
+      icon: Megaphone,
+      iconColor: '#2563eb',
+      iconBg: '#eff6ff',
+      isDirectTab: 'broadcast',
+    },
     {
       id: 'subjects',
       title: 'Subject-wise Attendance',
@@ -890,6 +900,55 @@ export default function StudentAttendanceDashboardView({
             lang={appLang}
           />
 
+          {/* Campus Notices & Circulars Quick Access Banner */}
+          <div 
+            onClick={() => {
+              if (playCyberSound) playCyberSound('click');
+              if (onNavigateTab) onNavigateTab('broadcast');
+            }}
+            className="surface-card hover-elevate active-haptic"
+            style={{
+              padding: '14px 18px',
+              background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)',
+              borderRadius: '14px',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              cursor: 'pointer',
+              boxShadow: '0 3px 12px rgba(30, 58, 138, 0.18)',
+              transition: 'transform 0.15s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Megaphone size={19} color="#ffffff" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#ffffff' }}>
+                  Campus Notice Board & Official Circulars
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#e0e7ff', marginTop: '2px', opacity: 0.9 }}>
+                  View all broadcast history & download certified PDF notices
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#ffffff' }}>View Archive</span>
+              <ChevronRight size={17} color="#ffffff" />
+            </div>
+          </div>
+
           {/* Clean Portal Hub Sections */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: '4px 0 2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -907,6 +966,10 @@ export default function StudentAttendanceDashboardView({
                     key={sec.id}
                     onClick={() => {
                       if (playCyberSound) playCyberSound('click');
+                      if (sec.isDirectTab && onNavigateTab) {
+                        onNavigateTab(sec.isDirectTab);
+                        return;
+                      }
                       setActiveSection(sec.id);
                     }}
                     className="hover-elevate active-haptic"
