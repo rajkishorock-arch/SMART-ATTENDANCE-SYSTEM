@@ -64,6 +64,12 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
     : null;
 
   const detail = currentUser?.details || {};
+  const studentRoll = detail.roll || currentUser?.roll || 'N/A';
+  const studentDep = detail.dep || currentUser?.dep || currentUser?.department || 'N/A';
+  const studentCourse = detail.course || currentUser?.course || 'General Program';
+  const studentYear = detail.year || currentUser?.year || '2026';
+  const studentSemester = detail.semester || currentUser?.semester || 'Semester 1';
+  const studentMentor = detail.teacher || currentUser?.teacher || 'Assigned Faculty';
 
   return (
     <div style={{
@@ -92,17 +98,17 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
             🎓 Smart Attendance System
           </div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 4px', background: 'linear-gradient(135deg, #00f2fe, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            {currentUser?.name}
+            {currentUser?.name || 'Enrolled Student'}
           </h2>
-          <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0 }}>{detail.dep || 'N/A'} · {detail.course || 'N/A'}</p>
+          <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0 }}>{studentDep} · {studentCourse}</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
           {[
-            { label: 'Roll No', value: detail.roll || 'N/A' },
-            { label: 'Year', value: detail.year || 'N/A' },
-            { label: 'Semester', value: detail.semester || 'N/A' },
-            { label: 'Mentor', value: detail.teacher || 'N/A' },
+            { label: 'Roll No', value: studentRoll },
+            { label: 'Year', value: studentYear },
+            { label: 'Semester', value: studentSemester },
+            { label: 'Mentor', value: studentMentor },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
               <p style={{ color: '#6b7280', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>{label}</p>
@@ -112,7 +118,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-          <p style={{ color: '#9ca3af', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1.5px', margin: 0 }}>Dynamic QR — Show to Teacher</p>
+          <p style={{ color: '#9ca3af', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1.5px', margin: 0 }}>Dynamic QR — Show to Scanner Kiosk or Teacher</p>
           <div style={{
             borderRadius: '16px', padding: '8px', width: '216px', height: '216px',
             background: '#0d0d1a', border: '2px solid rgba(0,242,254,0.35)',

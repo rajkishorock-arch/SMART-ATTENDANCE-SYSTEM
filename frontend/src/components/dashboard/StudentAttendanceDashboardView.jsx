@@ -1,7 +1,8 @@
 import React from 'react';
 import { 
   BookOpen, AlertCircle, MessageSquare, Calendar, CheckCircle2, TrendingUp, 
-  X, MapPin, ArrowLeft, ChevronRight, Target, Award, ShieldCheck, FileText, Bell, Megaphone 
+  X, MapPin, ArrowLeft, ChevronRight, Target, Award, ShieldCheck, FileText, Bell, Megaphone,
+  CreditCard, QrCode
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
@@ -903,52 +904,136 @@ export default function StudentAttendanceDashboardView({
             lang={appLang}
           />
 
-          {/* Campus Notices & Circulars Quick Access Banner */}
+          {/* Student Virtual ID Card & QR Check-in Pass */}
           <div 
             onClick={() => {
               if (playCyberSound) playCyberSound('click');
-              if (onNavigateTab) onNavigateTab('broadcast');
+              if (typeof setShowVirtualId === 'function') setShowVirtualId(true);
             }}
             className="surface-card hover-elevate active-haptic"
             style={{
-              padding: '14px 18px',
-              background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)',
-              borderRadius: '14px',
+              padding: '16px 18px',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              borderRadius: '16px',
+              border: '1px solid #334155',
               color: '#ffffff',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              flexDirection: 'column',
               gap: '12px',
               cursor: 'pointer',
-              boxShadow: '0 3px 12px rgba(30, 58, 138, 0.18)',
-              transition: 'transform 0.15s ease'
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-              <div style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Megaphone size={19} color="#ffffff" />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#ffffff' }}>
-                  Campus Notice Board & Official Circulars
+            {/* Subtle background glow */}
+            <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '110px', height: '110px', background: 'radial-gradient(circle, rgba(14, 165, 233, 0.22), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+            {/* Top row: Institutional Header & Live Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: 'rgba(14, 165, 233, 0.18)',
+                  border: '1px solid rgba(14, 165, 233, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#38bdf8'
+                }}>
+                  <CreditCard size={18} />
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#e0e7ff', marginTop: '2px', opacity: 0.9 }}>
-                  View all broadcast history & download certified PDF notices
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.9px', color: '#38bdf8' }}>
+                    Institutional Identity Pass
+                  </div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f8fafc' }}>
+                    Student Virtual ID Card
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '3px 10px',
+                borderRadius: '999px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#34d399',
+                fontSize: '0.7rem',
+                fontWeight: 700
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                <span>Active & Verified</span>
+              </div>
+            </div>
+
+            {/* Middle row: Student Details Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+              gap: '8px',
+              padding: '10px 12px',
+              background: 'rgba(255, 255, 255, 0.04)',
+              borderRadius: '10px',
+              border: '1px solid rgba(255, 255, 255, 0.06)'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.64rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Student Name</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentUser?.name || 'Enrolled Student'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.64rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Roll Number</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#38bdf8' }}>
+                  {currentUser?.details?.roll || currentUser?.roll || 'N/A'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.64rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Department</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentUser?.details?.dep || currentUser?.dep || currentUser?.department || 'General Academic'}
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#ffffff' }}>View Archive</span>
-              <ChevronRight size={17} color="#ffffff" />
+
+            {/* Bottom row: Touchless QR Scanner trigger CTA */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                <QrCode size={15} color="#38bdf8" />
+                <span>Show live dynamic QR to kiosk or teacher for instant attendance</span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (playCyberSound) playCyberSound('click');
+                  if (typeof setShowVirtualId === 'function') setShowVirtualId(true);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)'
+                }}
+              >
+                <span>Open ID & QR</span>
+                <ChevronRight size={14} />
+              </button>
             </div>
           </div>
 

@@ -39,18 +39,26 @@ def institution_has_premium(db: Session, institution_id: int) -> bool:
 @router.get("/status")
 def premium_status(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user),
+    identity: security.AuthIdentity = Depends(security.get_current_identity),
 ):
+    inst_id = identity.institution_id or 1
     inst = db.query(models.Institution).filter(
-        models.Institution.id == current_user.institution_id
+        models.Institution.id == inst_id
     ).first()
     paid_plan = inst and (inst.subscription_plan or "free") != "free"
     # If the institution itself has premium (any admin granted), all users get it
-    inst_premium = institution_has_premium(db, current_user.institution_id)
+    inst_premium = institution_has_premium(db, inst_id)
+    
+    user_premium = False
+    if identity.role != "student" and hasattr(identity.model_instance, "premium_access"):
+        user_premium = user_has_premium(identity.model_instance)
+
+    is_owner = identity.email.strip().lower() == config.SYSTEM_OWNER_EMAIL if identity.email else False
+
     return {
-        "premium": user_has_premium(current_user) or paid_plan or inst_premium,
-        "premium_access": user_has_premium(current_user) or inst_premium,
-        "is_owner": current_user.email.strip().lower() == config.SYSTEM_OWNER_EMAIL,
+        "premium": user_premium or paid_plan or inst_premium,
+        "premium_access": user_premium or inst_premium,
+        "is_owner": is_owner,
         "subscription_plan": inst.subscription_plan if inst else "free",
         "institution_premium": inst_premium,
     }

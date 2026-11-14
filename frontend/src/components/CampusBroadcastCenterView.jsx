@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  ArrowLeft, 
   Megaphone, 
   Send, 
   Download, 
@@ -337,36 +336,9 @@ export default function CampusBroadcastCenterView({
   return (
     <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* ── Top Bar: Back Button First ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={() => {
-            playCyberSound('click');
-            onNavigateBack();
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            borderRadius: '10px',
-            color: '#334155',
-            fontSize: '0.86rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            transition: 'all 0.15s ease'
-          }}
-          aria-label="Back to Previous Screen"
-        >
-          <ArrowLeft size={16} />
-          <span>Back</span>
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* ── Top Bar: Quick Action Controls ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
           <button
             type="button"
             onClick={() => {

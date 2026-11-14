@@ -625,6 +625,8 @@ export default function App() {
     } else {
       if (['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(activeTab)) {
         setActiveTab('control');
+      } else if (activeTab === 'broadcast') {
+        setActiveTab(userRole === 'student' ? 'student-attendance' : 'control');
       } else {
         setActiveTab(userRole === 'student' ? 'student-attendance' : 'dashboard');
       }
@@ -8115,9 +8117,20 @@ export default function App() {
               subjects={subjects}
               fetchBlueprint={fetchBlueprint}
               fetchStudentLogs={fetchStudentLogs}
+              fetchStudentLeaves={fetchStudentLeaves}
+              exportToCSV={exportToCSV}
+              setShowVirtualId={setShowVirtualId}
+              setShowDisputeModal={setShowDisputeModal}
+              setDisputePrefillSession={setDisputePrefillSession}
+              setShowFeedbackModal={setShowFeedbackModal}
+              showBlueprintDayModal={showBlueprintDayModal}
+              setShowBlueprintDayModal={setShowBlueprintDayModal}
+              blueprintDayModalDate={blueprintDayModalDate}
+              setBlueprintDayModalDate={setBlueprintDayModalDate}
               appLang={appLang}
               playCyberSound={playCyberSound}
               currentUser={currentUser}
+              onNavigateToCalendar={() => { setActiveTab('calendar'); playCyberSound('click'); }}
               onNavigateTab={navigateToTab}
             />
           ) : (
