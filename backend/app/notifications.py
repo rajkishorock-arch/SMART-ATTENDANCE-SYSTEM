@@ -555,18 +555,18 @@ def get_broadcast_history(
 
     query = db.query(models.NotificationModel).filter(
         models.NotificationModel.institution_id == inst_id,
-        or_(
-            models.NotificationModel.category.in_(["ANNOUNCEMENT", "NOTICE", "HOLIDAY", "URGENT", "CIRCULAR", "EVENT"]),
-            models.NotificationModel.recipient_id == None
-        )
+        models.NotificationModel.category.in_(["ANNOUNCEMENT", "NOTICE", "HOLIDAY", "URGENT", "CIRCULAR", "EVENT"])
     )
 
-    # Role visibility check: non-admins only see broadcasts targeted to their role or all
+    # Role visibility check: non-admins only see broadcasts targeted to their role, plural form, or all
     if role not in ("admin", "principal"):
+        allowed_roles = [role, f"{role}s", "all"]
+        if role in ("teacher", "hod"):
+            allowed_roles.extend(["staff", "teachers", "faculty"])
         query = query.filter(
             or_(
-                models.NotificationModel.recipient_role == role,
-                models.NotificationModel.recipient_role == "all"
+                models.NotificationModel.recipient_role.in_(allowed_roles),
+                models.NotificationModel.recipient_role.is_(None)
             )
         )
 
@@ -578,7 +578,17 @@ def get_broadcast_history(
     # Group records by (title, message, created_at date minute)
     grouped = {}
     for r in records:
-        dt_str = r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "recent"
+        dt = r.created_at
+        dt_str = "recent"
+        iso_str = datetime.now(timezone.utc).isoformat()
+        if dt:
+            if isinstance(dt, str):
+                dt_str = dt[:16]
+                iso_str = dt if (dt.endswith('Z') or '+' in dt or '-' in dt[10:]) else f"{dt.replace(' ', 'T')}Z"
+            elif hasattr(dt, "strftime"):
+                dt_str = dt.strftime("%Y-%m-%d %H:%M")
+                iso_str = dt.isoformat() if hasattr(dt, "isoformat") else str(dt)
+        
         key = f"{r.title.strip()}::{dt_str}"
         if key not in grouped:
             grouped[key] = {
@@ -586,7 +596,7 @@ def get_broadcast_history(
                 "title": r.title,
                 "message": r.message,
                 "category": r.category,
-                "created_at": r.created_at.isoformat() if r.created_at else datetime.now(timezone.utc).isoformat(),
+                "created_at": iso_str,
                 "action_url": r.action_url,
                 "target_roles": [r.recipient_role] if r.recipient_role else ["all"]
             }

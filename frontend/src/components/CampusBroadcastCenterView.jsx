@@ -31,9 +31,18 @@ export default function CampusBroadcastCenterView({
   institutionName = 'SMART ATTENDANCE INSTITUTION',
   onNavigateBack = () => {}
 }) {
-  // State for Broadcast Notice History
-  const [broadcasts, setBroadcasts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // State for Broadcast Notice History (initializes from localStorage for instant 0ms load)
+  const [broadcasts, setBroadcasts] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_campus_broadcasts');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+    return [];
+  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
@@ -59,43 +68,35 @@ export default function CampusBroadcastCenterView({
     setLoading(true);
     setError(null);
     try {
-      const data = await notificationApi.fetchBroadcastHistory(token, 100);
-      if (Array.isArray(data)) {
-        setBroadcasts(data);
-      } else if (data?.broadcasts && Array.isArray(data.broadcasts)) {
-        setBroadcasts(data.broadcasts);
-      } else {
-        setBroadcasts([]);
+      const res = await notificationApi.fetchBroadcastHistory(token, 100);
+      let list = [];
+      if (res && typeof res.json === 'function') {
+        if (res.ok) {
+          list = await res.json();
+        }
+      } else if (Array.isArray(res)) {
+        list = res;
+      } else if (res?.broadcasts && Array.isArray(res.broadcasts)) {
+        list = res.broadcasts;
+      }
+
+      if (Array.isArray(list) && list.length > 0) {
+        setBroadcasts(list);
+        try {
+          localStorage.setItem('cached_campus_broadcasts', JSON.stringify(list));
+        } catch { /* ignore */ }
       }
     } catch (err) {
-      console.warn('Failed to fetch broadcasts from API, using cached or fallback notices:', err);
-      // Fallback notices for seamless experience
-      setBroadcasts([
-        {
-          id: 101,
-          title: 'Autumn Semester Attendance & Biometric Verification Notice',
-          message: 'All students and faculty members are reminded that 75% minimum biometric attendance is mandatory for academic examination clearance. Daily attendance check-ins are recorded via automated optical kiosk terminals across campus blocks.',
-          category: 'CIRCULAR',
-          created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-          target_roles: ['student', 'teacher', 'parent']
-        },
-        {
-          id: 102,
-          title: 'Campus Holiday Declaration - National Festival',
-          message: 'The institution campus and academic departments will observe an official holiday tomorrow. Automated attendance kiosk tracking will remain suspended. Classes resume regular timetable on the following working day.',
-          category: 'HOLIDAY',
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          target_roles: ['student', 'teacher', 'staff']
-        },
-        {
-          id: 103,
-          title: 'Mid-Term Assessment & Examination Schedule Release',
-          message: 'Mid-term evaluation schedules for all enrolled departments are officially published. Students can view detailed date-sheets and seat allocations on their respective academic portals.',
-          category: 'NOTICE',
-          created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-          target_roles: ['student', 'parent']
+      console.warn('Failed to fetch broadcasts from API, using cached notices:', err);
+      try {
+        const cached = localStorage.getItem('cached_campus_broadcasts');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setBroadcasts(parsed);
+          }
         }
-      ]);
+      } catch { /* ignore */ }
     } finally {
       setLoading(false);
     }
@@ -134,7 +135,26 @@ export default function CampusBroadcastCenterView({
       
       triggerHaptic();
       if (playCyberSound) playCyberSound('success');
-      
+
+      // Optimistically add to top of broadcasts list right away!
+      const newNotice = {
+        id: Date.now(),
+        title: formTitle.trim(),
+        message: formMessage.trim(),
+        category: formCategory,
+        created_at: new Date().toISOString(),
+        target_roles: formTargetRoles,
+        is_urgent: formIsUrgent
+      };
+
+      setBroadcasts(prev => {
+        const updated = [newNotice, ...prev.filter(b => b.title !== newNotice.title)];
+        try {
+          localStorage.setItem('cached_campus_broadcasts', JSON.stringify(updated));
+        } catch { /* ignore */ }
+        return updated;
+      });
+
       setDispatchFeedback({
         type: 'success',
         message: `✅ Broadcast successfully dispatched to ${formTargetRoles.join(', ')}!`
@@ -145,8 +165,10 @@ export default function CampusBroadcastCenterView({
       setFormMessage('');
       setFormIsUrgent(false);
 
-      // Refresh list
-      await fetchBroadcastHistory();
+      // Refresh list from server to get official database IDs
+      setTimeout(() => {
+        fetchBroadcastHistory();
+      }, 600);
     } catch (err) {
       console.error('Failed to dispatch broadcast:', err);
       // Optimistic addition so user is not blocked
@@ -156,9 +178,16 @@ export default function CampusBroadcastCenterView({
         message: formMessage.trim(),
         category: formCategory,
         created_at: new Date().toISOString(),
-        target_roles: formTargetRoles
+        target_roles: formTargetRoles,
+        is_urgent: formIsUrgent
       };
-      setBroadcasts(prev => [optimisticNotice, ...prev]);
+      setBroadcasts(prev => {
+        const updated = [optimisticNotice, ...prev];
+        try {
+          localStorage.setItem('cached_campus_broadcasts', JSON.stringify(updated));
+        } catch { /* ignore */ }
+        return updated;
+      });
       setDispatchFeedback({
         type: 'success',
         message: '✅ Notice circular published to campus notice board.'

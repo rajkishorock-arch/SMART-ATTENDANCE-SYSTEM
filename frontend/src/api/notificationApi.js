@@ -45,7 +45,15 @@ export const notificationApi = {
    * Broadcast institution announcement across target roles (/notifications/broadcast)
    */
   async broadcastAnnouncement(token, payload) {
-    return apiPost('/notifications/broadcast', payload, { token });
+    const res = await apiPost('/notifications/broadcast', payload, { token });
+    if (res && typeof res.json === 'function') {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || err.message || 'Failed to dispatch broadcast');
+      }
+      return await res.json();
+    }
+    return res;
   },
 
   /**
@@ -53,7 +61,14 @@ export const notificationApi = {
    */
   async fetchBroadcastHistory(token, limit = 50, category = '') {
     const query = category ? `?limit=${limit}&category=${encodeURIComponent(category)}` : `?limit=${limit}`;
-    return apiGet(`/notifications/broadcasts${query}`, { token });
+    const res = await apiGet(`/notifications/broadcasts${query}`, { token });
+    if (res && typeof res.json === 'function') {
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    }
+    return Array.isArray(res) ? res : [];
   }
 };
 
