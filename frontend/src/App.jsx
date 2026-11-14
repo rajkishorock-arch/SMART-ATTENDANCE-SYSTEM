@@ -105,6 +105,7 @@ import BiometricFallbackModal from './components/BiometricFallbackModal';
 import LmsSyncIntegrationView from './components/LmsSyncIntegrationView';
 import StaffPayrollView from './components/StaffPayrollView';
 import InstitutionBroadcastModal from './components/InstitutionBroadcastModal';
+import CampusBroadcastCenterView from './components/CampusBroadcastCenterView';
 import ControlCenterView from './components/ControlCenterView';
 import QuickActionsDock from './components/QuickActionsDock';
 import OnboardingTour from './components/OnboardingTour';
@@ -4797,15 +4798,15 @@ export default function App() {
           const currentHash = window.location.hash.replace(/^#\/?/, '').trim();
           const isTabValid = (tabId, role) => {
             if (role === 'student') {
-              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features'].includes(tabId);
+              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast'].includes(tabId);
             } else if (role === 'parent') {
-              return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features'].includes(tabId);
+              return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast'].includes(tabId);
             } else if (role === 'teacher') {
-              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
+              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
             } else if (role === 'hod') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
             } else if (role === 'admin') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
             }
             return false;
           };
@@ -5289,15 +5290,15 @@ export default function App() {
   useEffect(() => {
     const isTabValidForRole = (tabId, role) => {
       if (role === 'student') {
-        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features'].includes(tabId);
+        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast'].includes(tabId);
       } else if (role === 'parent') {
-        return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features'].includes(tabId);
+        return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
       } else if (role === 'hod') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
       }
       return false;
     };
@@ -7494,6 +7495,17 @@ export default function App() {
               </li>
               <li>
                 <button 
+                  className={`nav-item ${activeTab === 'broadcast' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { navigateToTab('broadcast'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                >
+                  <Megaphone size={18} />
+                  <span>Campus Notices</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                </button>
+              </li>
+              <li>
+                <button 
                   className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
                   onClick={() => { setActiveTab('student-profile'); setMobileSidebarOpen(false); playCyberSound('click'); }}
@@ -7594,6 +7606,17 @@ export default function App() {
                 >
                   <Calendar size={18} />
                   <span>Academic Calendar</span>
+                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`nav-item ${activeTab === 'broadcast' ? 'active' : ''}`}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
+                  onClick={() => { navigateToTab('broadcast'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                >
+                  <Megaphone size={18} />
+                  <span>Campus Notices</span>
                   <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
                 </button>
               </li>
@@ -7728,7 +7751,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -7776,6 +7799,7 @@ export default function App() {
                   {activeTab === 'interventions' && 'Student Interventions'}
                   {activeTab === 'lms' && 'LMS Integration'}
                   {activeTab === 'payroll' && 'Staff & Payroll'}
+                  {activeTab === 'broadcast' && 'Campus Broadcast & Notices'}
                   {activeTab === 'student-attendance' && 'My Attendance'}
                   {activeTab === 'student-profile' && 'My Profile'}
                   {activeTab === 'settings' && (() => {
@@ -7823,6 +7847,7 @@ export default function App() {
                   {activeTab === 'interventions' && 'Shortage alerts and counseling workflows'}
                   {activeTab === 'lms' && 'Canvas, Moodle, and ERP roster sync'}
                   {activeTab === 'payroll' && 'Staff punches, hours, and disbursements'}
+                  {activeTab === 'broadcast' && 'Official circulars, announcements, and downloadable certified PDF circulars'}
                   {activeTab === 'student-attendance' && 'Attendance progress and subject breakdown'}
                   {activeTab === 'student-profile' && 'Personal profile and account credentials'}
                   {activeTab === 'settings' && (() => {
@@ -7879,9 +7904,9 @@ export default function App() {
               <button 
                 type="button"
                 className="header-action-desktop-only hover-elevate"
-                onClick={() => { playCyberSound('click'); setShowBroadcastModal(true); }}
-                title="Dispatch Campus Broadcast Notice"
-                aria-label="Dispatch Campus Broadcast Notice"
+                onClick={() => { playCyberSound('click'); navigateToTab('broadcast'); }}
+                title="Campus Broadcast & Notice Board"
+                aria-label="Campus Broadcast & Notice Board"
                 style={{
                   padding: '8px 14px',
                   borderRadius: '8px',
@@ -8295,6 +8320,18 @@ export default function App() {
             token={token} 
             currentUser={currentUser} 
             playCyberSound={playCyberSound} 
+          />
+        )}
+
+        {activeTab === 'broadcast' && (
+          <CampusBroadcastCenterView
+            token={token}
+            currentUser={currentUser}
+            userRole={userRole}
+            playCyberSound={playCyberSound}
+            triggerHaptic={triggerHaptic}
+            institutionName={currentUser?.institution_name || 'Smart Attendance System'}
+            onNavigateBack={handleNavigateBack}
           />
         )}
 
@@ -10418,7 +10455,7 @@ export default function App() {
           onReport={() => { setActiveTab('reports'); playCyberSound('click'); }}
           onNotify={() => {
             if (userRole === 'admin') {
-              setShowBroadcastModal(true);
+              navigateToTab('broadcast');
             } else {
               setShowNotificationDrawer(true);
             }

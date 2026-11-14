@@ -46,6 +46,14 @@ export const notificationApi = {
    */
   async broadcastAnnouncement(token, payload) {
     return apiPost('/notifications/broadcast', payload, { token });
+  },
+
+  /**
+   * Fetch institution-wide broadcast notice history (/notifications/broadcasts)
+   */
+  async fetchBroadcastHistory(token, limit = 50, category = '') {
+    const query = category ? `?limit=${limit}&category=${encodeURIComponent(category)}` : `?limit=${limit}`;
+    return apiGet(`/notifications/broadcasts${query}`, { token });
   }
 };
 

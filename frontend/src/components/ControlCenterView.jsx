@@ -22,6 +22,7 @@ import {
   TrendingUp,
   ArrowLeft,
   Building2,
+  Megaphone,
 } from 'lucide-react';
 
 export default function ControlCenterView({
@@ -106,6 +107,20 @@ export default function ControlCenterView({
           iconBorder: '#bfdbfe',
           desc: 'Campus timetable, holiday list & exam schedules',
           roles: ['admin', 'teacher', 'student'],
+        },
+        {
+          id: 'broadcast',
+          label: 'Campus Broadcast & Notices',
+          icon: Megaphone,
+          iconColor: '#2563eb',
+          iconBg: '#eff6ff',
+          iconBorder: '#bfdbfe',
+          badge: 'Notices',
+          badgeBg: '#eff6ff',
+          badgeColor: '#1d4ed8',
+          badgeBorder: '#bfdbfe',
+          desc: 'Official circulars, announcements & downloadable certified PDFs',
+          roles: ['admin', 'teacher', 'student', 'parent'],
         },
         {
           id: 'session-history',
