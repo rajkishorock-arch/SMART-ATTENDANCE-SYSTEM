@@ -12,6 +12,7 @@ import GamificationHub from '../GamificationHub';
 import LeaveApplicationForm from '../LeaveApplicationForm';
 import StudentAcademicCalendarWidget from './StudentAcademicCalendarWidget';
 import StudentAttendanceRecoveryWidget from './StudentAttendanceRecoveryWidget';
+import StudentSubjectAttendanceHub from './StudentSubjectAttendanceHub';
 import { disputeApi } from '../../api/disputeApi';
 import { generateDisputePdf } from '../../utils/disputePdfGenerator';
 
@@ -30,7 +31,7 @@ function BlueprintDayBreakdownModal({
   // Normalize date string for matching (both DD/MM/YYYY and YYYY-MM-DD)
   const matchingLogs = safeLogs.filter(log => {
     if (!log || !log.date) return false;
-    const lDate = log.date.trim();
+    const lDate = String(log.date).trim();
     if (lDate === dateStr) return true;
 
     // Convert DD/MM/YYYY to YYYY-MM-DD or vice-versa
@@ -49,12 +50,35 @@ function BlueprintDayBreakdownModal({
   });
 
   // Filter by active subject if a specific subject tab is selected
-  const filteredLogs = activeSubject && activeSubject.subject_id !== 'GEN' && activeSubject.subject_id !== 'ALL'
-    ? matchingLogs.filter(log => String(log.subject_id) === String(activeSubject.subject_id) || log.subject_code === activeSubject.subject_code)
-    : matchingLogs;
+  const isGeneralOrAll = !activeSubject || activeSubject.subject_id === 0 || activeSubject.subject_id === '0' || activeSubject.subject_id === 'GEN' || activeSubject.subject_id === 'ALL' || activeSubject.subject_code === 'GEN';
 
-  const presentCount = filteredLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-  const absentCount = filteredLogs.filter(l => l.attendance === 'Absent').length;
+  const filteredLogs = isGeneralOrAll
+    ? matchingLogs
+    : matchingLogs.filter(log => String(log.subject_id) === String(activeSubject.subject_id) || log.subject_code === activeSubject.subject_code);
+
+  // If filteredLogs is empty but blueprint calendar recorded attendance for this date, surface it
+  const displayLogs = filteredLogs.length > 0 ? filteredLogs : (() => {
+    const isoDate = dateStr.includes('/') ? dateStr.split('/').reverse().join('-') : dateStr;
+    const slashDate = dateStr.includes('-') ? dateStr.split('-').reverse().join('/') : dateStr;
+    const recordedStatus = activeSubject?.calendar ? (activeSubject.calendar[slashDate] || activeSubject.calendar[isoDate] || activeSubject.calendar[dateStr]) : null;
+    if (recordedStatus) {
+      return [{
+        id: `cal_${dateStr}`,
+        date: dateStr,
+        time: 'Recorded Session Slot',
+        attendance: recordedStatus,
+        subject_name: activeSubject?.subject_name || 'General Academic Attendance',
+        subject_code: activeSubject?.subject_code || 'GEN',
+        period: 'Institutional Session',
+        period_label: 'Standard Period',
+        marked_by: 'BIOMETRIC_VERIFIED'
+      }];
+    }
+    return [];
+  })();
+
+  const presentCount = displayLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+  const absentCount = displayLogs.filter(l => l.attendance === 'Absent').length;
 
   return (
     <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -86,12 +110,12 @@ function BlueprintDayBreakdownModal({
           </div>
           <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
             <div style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600 }}>Total Classes</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0284c7' }}>{filteredLogs.length}</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0284c7' }}>{displayLogs.length}</div>
           </div>
         </div>
 
         {/* Detailed Class Cards */}
-        {filteredLogs.length === 0 ? (
+        {displayLogs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '36px 16px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
             <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 12px' }}>
               No attendance records found in real database for {dateStr}.
@@ -110,7 +134,7 @@ function BlueprintDayBreakdownModal({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {filteredLogs.map((log, idx) => {
+            {displayLogs.map((log, idx) => {
               const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
               return (
                 <div key={log.id || idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -765,9 +789,6 @@ export default function StudentAttendanceDashboardView({
       icon: BookOpen,
       iconColor: '#2563eb',
       iconBg: '#eff6ff',
-      badge: statsList.some(s => (s.percentage || 0) < 75) ? 'Alert' : 'Good',
-      badgeColor: statsList.some(s => (s.percentage || 0) < 75) ? '#dc2626' : '#059669',
-      badgeBg: statsList.some(s => (s.percentage || 0) < 75) ? '#fee2e2' : '#ecfdf5',
     },
     {
       id: 'blueprint',
@@ -776,9 +797,6 @@ export default function StudentAttendanceDashboardView({
       icon: Calendar,
       iconColor: '#7c3aed',
       iconBg: '#f5f3ff',
-      badge: `${totalClasses} records`,
-      badgeColor: '#7c3aed',
-      badgeBg: '#f5f3ff',
     },
     {
       id: 'calendar',
@@ -787,20 +805,14 @@ export default function StudentAttendanceDashboardView({
       icon: Bell,
       iconColor: '#0284c7',
       iconBg: '#f0f9ff',
-      badge: 'Notices',
-      badgeColor: '#0284c7',
-      badgeBg: '#f0f9ff',
     },
     {
       id: 'compliance',
-      title: 'Attendance Compliance Status',
+      title: 'Attendance Compliance & Grievance Complaints Desk',
       subtitle: 'Regulatory safety buffer & mentor guidance',
       icon: ShieldCheck,
       iconColor: '#10b981',
       iconBg: '#ecfdf5',
-      badge: Number(overallRate) >= 75 ? 'Safe' : 'Review',
-      badgeColor: Number(overallRate) >= 75 ? '#059669' : '#dc2626',
-      badgeBg: Number(overallRate) >= 75 ? '#ecfdf5' : '#fee2e2',
     },
     {
       id: 'planner',
@@ -809,9 +821,6 @@ export default function StudentAttendanceDashboardView({
       icon: Target,
       iconColor: '#f59e0b',
       iconBg: '#fffbeb',
-      badge: 'Simulator',
-      badgeColor: '#d97706',
-      badgeBg: '#fffbeb',
     },
     {
       id: 'wallet',
@@ -831,9 +840,6 @@ export default function StudentAttendanceDashboardView({
       icon: MapPin,
       iconColor: geofenceStatus.checked ? (geofenceStatus.inside ? '#059669' : '#dc2626') : '#64748b',
       iconBg: geofenceStatus.checked ? (geofenceStatus.inside ? '#ecfdf5' : '#fef2f2') : '#f1f5f9',
-      badge: geofenceStatus.checked ? (geofenceStatus.inside ? 'Verified' : 'Outside') : 'Check',
-      badgeColor: geofenceStatus.checked ? (geofenceStatus.inside ? '#059669' : '#dc2626') : '#64748b',
-      badgeBg: geofenceStatus.checked ? (geofenceStatus.inside ? '#ecfdf5' : '#fee2e2') : '#f1f5f9',
     },
     {
       id: 'disputes',
@@ -842,9 +848,6 @@ export default function StudentAttendanceDashboardView({
       icon: FileText,
       iconColor: '#6366f1',
       iconBg: '#eef2ff',
-      badge: 'Requests',
-      badgeColor: '#4f46e5',
-      badgeBg: '#eef2ff',
     },
   ];
 
@@ -1016,109 +1019,17 @@ export default function StudentAttendanceDashboardView({
 
       {/* ===== 2. DEDICATED SECTION: SUBJECT-WISE ATTENDANCE ===== */}
       {activeSection === 'subjects' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BookOpen size={20} style={{ color: '#2563eb' }} /> Subject-wise Attendance
-            </h3>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-              {statsList.length} Registered Subjects
-            </span>
-          </div>
-
-          {hasShortage && (
-            <div style={{
-              padding: '12px 14px',
-              border: '1px solid #fecaca',
-              background: '#fee2e2',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <AlertCircle size={20} style={{ color: '#dc2626', flexShrink: 0 }} />
-              <div>
-                <h4 style={{ color: '#991b1b', fontSize: '0.88rem', fontWeight: 700, margin: 0 }}>Attendance Shortage Alert</h4>
-                <p style={{ color: '#7f1d1d', fontSize: '0.78rem', margin: '2px 0 0' }}>
-                  Your overall attendance rate ({overallRate}%) is below the required 75% limit. Please attend upcoming lectures regularly.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {statsList.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              No subject records found for your department.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {statsList.map((subStat, idx) => {
-                const pDays = subStat.presentDays || subStat.present_count || 0;
-                const tDays = Math.max(subStat.totalDays || subStat.total_classes || 0, pDays);
-                const rawPct = (subStat.percentage !== undefined ? subStat.percentage : (tDays > 0 ? (pDays / tDays) * 100 : 0));
-                const safePct = Math.min(100.0, Math.max(0.0, Number(rawPct) || 0));
-                const isWarning = safePct < 75.0 && tDays > 0;
-                return (
-                  <div
-                    key={idx}
-                    style={{
-                      background: '#ffffff',
-                      border: `1px solid ${isWarning ? '#fca5a5' : '#e2e8f0'}`,
-                      borderRadius: '12px',
-                      padding: '12px 14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', padding: '1px 6px', borderRadius: '4px' }}>
-                            {subStat.subjectCode || subStat.subject_code || 'SUB'}
-                          </span>
-                          <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {subStat.subjectName || subStat.subject_name || 'Subject'}
-                          </h4>
-                        </div>
-                        <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
-                          Attended: {pDays} / {tDays} lectures
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: isWarning ? '#dc2626' : '#059669' }}>
-                          {safePct.toFixed(1)}%
-                        </span>
-                        <span style={{
-                          padding: '1px 6px',
-                          borderRadius: '6px',
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          background: isWarning ? '#fee2e2' : '#d1fae5',
-                          color: isWarning ? '#dc2626' : '#059669'
-                        }}>
-                          {tDays === 0 ? 'No Classes' : isWarning ? 'Shortage' : 'Good'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 4px slim progress bar */}
-                    <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${Math.min(100, safePct)}%`,
-                        height: '100%',
-                        background: isWarning ? '#ef4444' : '#10b981',
-                        borderRadius: '2px',
-                        transition: 'width 0.4s ease'
-                      }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <StudentSubjectAttendanceHub
+          statsList={statsList}
+          subjects={subjects}
+          studentLogs={studentLogs}
+          blueprintData={blueprintData}
+          onOpenDispute={(log) => {
+            setDisputePrefillSession(log);
+            setShowDisputeModal(true);
+          }}
+          playCyberSound={playCyberSound}
+        />
       )}
 
       {/* ===== 3. DEDICATED SECTION: ATTENDANCE BLUEPRINT CALENDAR ===== */}
@@ -1451,6 +1362,8 @@ export default function StudentAttendanceDashboardView({
           token={token}
           currentUser={currentUser}
           playCyberSound={playCyberSound}
+          studentLogs={studentLogs}
+          subjects={subjects}
         />
       )}
 

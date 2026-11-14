@@ -639,27 +639,41 @@ def read_student_attendance(
     """
     Get current logged in student's attendance history logs with enriched subject & period details.
     """
-    from sqlalchemy import or_
+    from sqlalchemy import or_, and_
     from .period_utils import resolve_period_name, get_period_slot_label
 
-    possible_rolls = list(set([str(r).strip() for r in [current_student.roll, str(current_student.id), current_student.email] if r]))
+    student_roll = str(current_student.roll).strip() if current_student.roll else None
+    student_name = str(current_student.name).strip() if current_student.name else None
 
     student_match_conditions = [
-        models.AttendanceModel.roll.in_(possible_rolls),
-        models.AttendanceModel.id == str(current_student.id),
-        models.AttendanceModel.id.like(f"{current_student.id}_%"),
+        models.AttendanceModel.id.like(f"{current_student.id}_%")
     ]
-    if current_student.roll:
-        student_match_conditions.extend([
-            models.AttendanceModel.roll == str(current_student.roll).strip(),
-            models.AttendanceModel.id == str(current_student.roll).strip(),
-            models.AttendanceModel.id.like(f"{current_student.roll}_%"),
-        ])
-    if current_student.name:
-        student_match_conditions.extend([
-            models.AttendanceModel.name == current_student.name,
-            models.AttendanceModel.name.ilike(current_student.name.strip()),
-        ])
+    if student_roll:
+        student_match_conditions.append(models.AttendanceModel.roll == student_roll)
+        student_match_conditions.append(models.AttendanceModel.id.like(f"{student_roll}_%"))
+
+    if student_name and student_roll:
+        student_match_conditions.append(
+            and_(
+                models.AttendanceModel.id == str(current_student.id),
+                or_(
+                    models.AttendanceModel.roll == student_roll,
+                    models.AttendanceModel.name.ilike(student_name)
+                )
+            )
+        )
+        student_match_conditions.append(
+            and_(
+                models.AttendanceModel.name.ilike(student_name),
+                models.AttendanceModel.roll == student_roll
+            )
+        )
+    elif student_roll:
+        student_match_conditions.append(models.AttendanceModel.roll == student_roll)
+    elif student_name:
+        student_match_conditions.append(models.AttendanceModel.name.ilike(student_name))
+    else:
+        student_match_conditions.append(models.AttendanceModel.id == str(current_student.id))
 
     logs = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.institution_id == current_student.institution_id,

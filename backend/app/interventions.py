@@ -372,9 +372,28 @@ def get_my_intervention_status(
     if not student:
         raise HTTPException(status_code=404, detail="Student record not found.")
 
+    student_roll = str(student.roll).strip() if student.roll else None
+    student_name = str(student.name).strip() if student.name else None
+
+    student_conditions = [
+        models.AttendanceModel.id.like(f"{student.id}_%")
+    ]
+    if student_roll:
+        student_conditions.append(models.AttendanceModel.roll == student_roll)
+        student_conditions.append(models.AttendanceModel.id.like(f"{student_roll}_%"))
+    if student_name and student_roll:
+        student_conditions.append(
+            and_(
+                models.AttendanceModel.name.ilike(student_name),
+                models.AttendanceModel.roll == student_roll
+            )
+        )
+    elif student_name:
+        student_conditions.append(models.AttendanceModel.name.ilike(student_name))
+
     logs = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.institution_id == identity.institution_id,
-        models.AttendanceModel.roll == student.roll
+        or_(*student_conditions)
     ).all()
 
     conducted = len([l for l in logs if l.attendance != "CLASS_CANCELLED"])
@@ -493,9 +512,28 @@ def request_counseling_session(
         models.AttendanceIntervention.status != "RESOLVED"
     ).order_by(models.AttendanceIntervention.id.desc()).first()
 
+    student_roll = str(student.roll).strip() if student.roll else None
+    student_name = str(student.name).strip() if student.name else None
+
+    student_conditions = [
+        models.AttendanceModel.id.like(f"{student.id}_%")
+    ]
+    if student_roll:
+        student_conditions.append(models.AttendanceModel.roll == student_roll)
+        student_conditions.append(models.AttendanceModel.id.like(f"{student_roll}_%"))
+    if student_name and student_roll:
+        student_conditions.append(
+            and_(
+                models.AttendanceModel.name.ilike(student_name),
+                models.AttendanceModel.roll == student_roll
+            )
+        )
+    elif student_name:
+        student_conditions.append(models.AttendanceModel.name.ilike(student_name))
+
     logs = db.query(models.AttendanceModel).filter(
         models.AttendanceModel.institution_id == identity.institution_id,
-        models.AttendanceModel.roll == student.roll
+        or_(*student_conditions)
     ).all()
     conducted = len([l for l in logs if l.attendance != "CLASS_CANCELLED"])
     attended = len([l for l in logs if l.attendance in ["Present", "LATE"]])

@@ -1,122 +1,78 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Calendar, Clock, AlertTriangle, CheckCircle2, ChevronRight, 
-  RefreshCw, BookOpen, UserX, ShieldCheck, PartyPopper
+  RefreshCw, BookOpen, UserX, ShieldCheck, PartyPopper, Megaphone,
+  Download, FileText, Bell, Sparkles
 } from 'lucide-react';
 import { calendarApi } from '../../api/calendarApi';
+import notificationApi from '../../api/notificationApi';
+import { generateNoticePdf } from '../../utils/noticePdfGenerator';
 
 const EVENT_TYPE_CONFIG = {
   HOLIDAY: { 
-    bg: '#fef2f2', 
-    border: '#fecaca', 
-    text: '#dc2626', 
-    label: 'Holiday', 
-    icon: PartyPopper,
-    badgeBg: '#fef2f2'
+    bg: '#f0fdf4', 
+    border: '#bbf7d0', 
+    text: '#16a34a', 
+    label: '🌴 Holiday', 
+    icon: PartyPopper
   },
   EXAM: { 
     bg: '#fffbeb', 
     border: '#fde68a', 
     text: '#d97706', 
-    label: 'Exam Session', 
-    icon: BookOpen,
-    badgeBg: '#fffbeb'
+    label: '📝 Examination', 
+    icon: BookOpen
+  },
+  CIRCULAR: {
+    bg: '#f5f3ff',
+    border: '#ddd6fe',
+    text: '#7c3aed',
+    label: '📜 Official Circular',
+    icon: Megaphone
+  },
+  NOTICE: {
+    bg: '#eff6ff',
+    border: '#bfdbfe',
+    text: '#2563eb',
+    label: '📌 Campus Notice',
+    icon: Bell
   },
   CLASS_CANCELLED: { 
     bg: '#fff1f2', 
     border: '#fecdd3', 
     text: '#e11d48', 
-    label: 'Class Cancelled', 
-    icon: UserX,
-    badgeBg: '#fff1f2'
-  },
-  SUBSTITUTE_CLASS: { 
-    bg: '#f5f3ff', 
-    border: '#ddd6fe', 
-    text: '#7c3aed', 
-    label: 'Substitute Class', 
-    icon: RefreshCw,
-    badgeBg: '#f5f3ff'
-  },
-  TEACHER_SUBSTITUTION: { 
-    bg: '#f5f3ff', 
-    border: '#ddd6fe', 
-    text: '#7c3aed', 
-    label: 'Substitute Teacher', 
-    icon: RefreshCw,
-    badgeBg: '#f5f3ff'
+    label: '⛔ Cancelled', 
+    icon: UserX
   },
   INSTITUTION_CLOSED: { 
     bg: '#f8fafc', 
-    border: '#e2e8f0', 
-    text: '#64748b', 
-    label: 'Campus Closed', 
-    icon: ShieldCheck,
-    badgeBg: '#f1f5f9'
-  },
-  SPECIAL_CLASS: { 
-    bg: '#eff6ff', 
-    border: '#bfdbfe', 
-    text: '#2563eb', 
-    label: 'Special Lecture', 
-    icon: BookOpen,
-    badgeBg: '#eff6ff'
+    border: '#cbd5e1', 
+    text: '#475569', 
+    label: '🏛️ Campus Closed', 
+    icon: ShieldCheck
   },
   EVENT: { 
-    bg: '#f0fdf4', 
-    border: '#bbf7d0', 
-    text: '#16a34a', 
-    label: 'Academic Event', 
-    icon: Calendar,
-    badgeBg: '#f0fdf4'
+    bg: '#fdf4ff', 
+    border: '#f5d0fe', 
+    text: '#c026d3', 
+    label: '🎯 Campus Event', 
+    icon: Sparkles
   }
 };
 
-function parseDateFlexible(dateStr) {
-  if (!dateStr) return null;
-  const str = String(dateStr).trim();
-  let day, month, year;
-
-  if (str.includes('/')) {
-    const parts = str.split('/').map(p => parseInt(p, 10));
-    if (parts.length === 3) {
-      if (parts[0] > 1000) {
-        [year, month, day] = parts;
-      } else {
-        [day, month, year] = parts;
-      }
-    }
-  } else if (str.includes('-')) {
-    const parts = str.split('-').map(p => parseInt(p, 10));
-    if (parts.length === 3) {
-      if (parts[0] > 1000) {
-        [year, month, day] = parts;
-      } else {
-        [day, month, year] = parts;
-      }
-    }
+function parseSafeDate(dStr) {
+  if (!dStr) return null;
+  const s = String(dStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const [y, m, d] = s.split('T')[0].split('-');
+    return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
   }
-
-  if (year && month && day && !isNaN(year) && !isNaN(month) && !isNaN(day)) {
-    return new Date(year, month - 1, day);
+  if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}/.test(s)) {
+    const parts = s.split(/[/-]/);
+    return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
   }
-  const fallback = new Date(str);
-  return isNaN(fallback.getTime()) ? null : fallback;
-}
-
-function getDaysUntil(dateStr) {
-  const target = parseDateFlexible(dateStr);
-  if (!target) return null;
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const diffTime = target.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return { label: 'Today', isToday: true, isFuture: false };
-  if (diffDays === 1) return { label: 'Tomorrow', isTomorrow: true, isFuture: true };
-  if (diffDays > 1 && diffDays <= 7) return { label: `In ${diffDays} days`, isFuture: true };
-  if (diffDays > 7) return { label: `In ${diffDays} days`, isFuture: true };
-  if (diffDays < 0) return { label: `${Math.abs(diffDays)} days ago`, isPast: true };
-  return null;
+  const parsed = new Date(s);
+  return isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export default function StudentAcademicCalendarWidget({
@@ -125,419 +81,380 @@ export default function StudentAcademicCalendarWidget({
   onNavigateToCalendar = () => {},
   playCyberSound = () => {}
 }) {
-  const [events, setEvents] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [broadcastNotices, setBroadcastNotices] = useState([]);
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
-  const loadCalendarEvents = useCallback(async () => {
+  // Synchronize both Academic Calendar events AND Campus Broadcast notices
+  const loadContent = useCallback(async () => {
     if (!token) return;
     setIsLoading(true);
-    setErrorMsg('');
     try {
-      const data = await calendarApi.fetchEvents(token);
-      const safeList = Array.isArray(data) ? data : (data?.events || []);
-      setEvents(safeList);
+      const [calRes, notifRes] = await Promise.allSettled([
+        calendarApi.fetchEvents(token),
+        notificationApi.fetchBroadcastHistory(token, 50)
+      ]);
+
+      if (calRes.status === 'fulfilled' && calRes.value) {
+        const raw = calRes.value;
+        const list = Array.isArray(raw) ? raw : (raw?.events || []);
+        setCalendarEvents(list);
+      }
+
+      if (notifRes.status === 'fulfilled' && notifRes.value) {
+        const raw = notifRes.value;
+        let list = [];
+        if (Array.isArray(raw)) list = raw;
+        else if (raw?.broadcasts) list = raw.broadcasts;
+        setBroadcastNotices(list);
+      }
     } catch (err) {
-      console.warn('[StudentAcademicCalendarWidget] Failed to fetch events:', err);
-      setErrorMsg('Unable to synchronize academic events.');
+      console.warn('Error loading academic calendar content:', err);
     } finally {
       setIsLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
-    loadCalendarEvents();
+    loadContent();
+  }, [loadContent]);
 
-    const handleCalendarUpdate = () => {
-      loadCalendarEvents();
-    };
+  // Combine and normalize items into unified academic timeline entries
+  const unifiedEntries = useMemo(() => {
+    const list = [];
 
-    window.addEventListener('academic_calendar_updated', handleCalendarUpdate);
-    const interval = setInterval(loadCalendarEvents, 30000);
+    // 1. Calendar Events
+    calendarEvents.forEach(evt => {
+      const dt = parseSafeDate(evt.event_date || evt.date);
+      const category = String(evt.event_type || 'EVENT').toUpperCase();
+      list.push({
+        id: `cal_${evt.id || Math.random()}`,
+        title: evt.title || evt.name || 'Academic Event',
+        description: evt.description || '',
+        date: dt,
+        rawDate: evt.event_date || evt.date || '',
+        category: category in EVENT_TYPE_CONFIG ? category : 'EVENT',
+        type: 'calendar',
+        source: 'Academic Office'
+      });
+    });
 
-    return () => {
-      window.removeEventListener('academic_calendar_updated', handleCalendarUpdate);
-      clearInterval(interval);
-    };
-  }, [loadCalendarEvents]);
+    // 2. Broadcast Notices
+    broadcastNotices.forEach(notif => {
+      const dt = parseSafeDate(notif.created_at || notif.date);
+      const cat = String(notif.category || 'NOTICE').toUpperCase();
+      let normalizedCat = 'NOTICE';
+      if (cat.includes('HOLIDAY')) normalizedCat = 'HOLIDAY';
+      else if (cat.includes('EXAM')) normalizedCat = 'EXAM';
+      else if (cat.includes('CIRCULAR')) normalizedCat = 'CIRCULAR';
+      else if (cat.includes('EVENT')) normalizedCat = 'EVENT';
 
-  // Filter events based on active category
-  const filteredEvents = events.filter(e => {
+      list.push({
+        id: `notice_${notif.id || Math.random()}`,
+        title: notif.title || 'Official Announcement',
+        description: notif.message || notif.body || '',
+        date: dt,
+        rawDate: notif.created_at || '',
+        category: normalizedCat,
+        type: 'notice',
+        source: notif.sender_name || 'Principal / Admin',
+        rawNotice: notif
+      });
+    });
+
+    // Sort by date descending
+    return list.sort((a, b) => {
+      const tA = a.date ? a.date.getTime() : 0;
+      const tB = b.date ? b.date.getTime() : 0;
+      return tB - tA;
+    });
+  }, [calendarEvents, broadcastNotices]);
+
+  // Summary counts
+  const totalCount = unifiedEntries.length;
+  const holidayCount = unifiedEntries.filter(e => e.category === 'HOLIDAY' || e.category === 'INSTITUTION_CLOSED').length;
+  const examCount = unifiedEntries.filter(e => e.category === 'EXAM').length;
+  const noticeCount = unifiedEntries.filter(e => e.category === 'NOTICE' || e.category === 'CIRCULAR').length;
+
+  // Filtered entries
+  const filteredEntries = unifiedEntries.filter(e => {
     if (activeFilter === 'ALL') return true;
-    if (activeFilter === 'HOLIDAYS') {
-      return e.event_type === 'HOLIDAY' || e.event_type === 'INSTITUTION_CLOSED';
-    }
-    if (activeFilter === 'EXAMS') {
-      return e.event_type === 'EXAM';
-    }
-    if (activeFilter === 'CANCELLATIONS') {
-      return e.event_type === 'CLASS_CANCELLED' || e.event_type === 'SUBSTITUTE_CLASS';
-    }
-    if (activeFilter === 'EVENTS') {
-      return e.event_type === 'EVENT' || e.event_type === 'SPECIAL_CLASS';
-    }
+    if (activeFilter === 'HOLIDAYS') return e.category === 'HOLIDAY' || e.category === 'INSTITUTION_CLOSED';
+    if (activeFilter === 'EXAMS') return e.category === 'EXAM';
+    if (activeFilter === 'NOTICES') return e.category === 'NOTICE' || e.category === 'CIRCULAR';
+    if (activeFilter === 'EVENTS') return e.category === 'EVENT';
     return true;
   });
 
-  // Calculate summary counts
-  const holidayCount = events.filter(e => e.event_type === 'HOLIDAY' || e.event_type === 'INSTITUTION_CLOSED').length;
-  const examCount = events.filter(e => e.event_type === 'EXAM').length;
-  const cancelledCount = events.filter(e => e.event_type === 'CLASS_CANCELLED').length;
-  const eventCount = events.length - holidayCount - examCount - cancelledCount;
-
   return (
-    <div 
-      className="surface-card" 
-      style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '16px',
-        padding: 'clamp(14px, 3vw, 20px)',
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}
-    >
-      {/* Header Bar */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '10px',
-        paddingBottom: '10px',
-        borderBottom: '1px solid #f1f5f9'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#2563eb',
-            flexShrink: 0
-          }}>
-            <Calendar size={18} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
-              Academic Calendar & Notices
-            </h3>
-            {events.length > 0 && (
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: 600,
-                background: '#f1f5f9',
-                color: '#64748b',
-                padding: '2px 7px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
-              }}>
-                {events.length} {events.length === 1 ? 'Notice' : 'Notices'}
-              </span>
-            )}
-          </div>
+    <div style={{
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '14px',
+      animation: 'fadeInUp 0.3s ease'
+    }}>
+      {/* ── Top Bar: Title & Action Button ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+            Academic Calendar, Events & Official Notices
+          </h3>
         </div>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
-            onClick={() => {
-              playCyberSound('click');
-              loadCalendarEvents();
-            }}
+            type="button"
+            onClick={() => { playCyberSound('click'); loadContent(); }}
             disabled={isLoading}
-            title="Refresh schedule"
             style={{
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              color: '#64748b',
-              padding: '6px 10px',
-              borderRadius: '8px',
-              fontSize: '0.76rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
-              transition: 'all 0.15s'
+              gap: '6px',
+              padding: '7px 12px',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              color: '#475569',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer'
             }}
           >
-            <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
-            <span className="hide-on-mobile">Sync</span>
+            <RefreshCw size={13} className={isLoading ? 'spin-anim' : ''} />
+            <span>Refresh</span>
           </button>
 
           <button
-            onClick={() => {
-              playCyberSound('click');
-              onNavigateToCalendar();
-            }}
+            type="button"
+            onClick={() => { playCyberSound('click'); onNavigateToCalendar(); }}
             style={{
-              background: '#2563eb',
-              border: 'none',
-              color: '#ffffff',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
-              boxShadow: '0 1px 2px rgba(37, 99, 235, 0.2)',
-              transition: 'all 0.15s'
+              gap: '6px',
+              padding: '7px 14px',
+              background: '#2563eb',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.2)'
             }}
           >
-            <span>Full Calendar</span>
+            <Calendar size={14} />
+            <span>Open Interactive Full Calendar</span>
             <ChevronRight size={14} />
           </button>
         </div>
       </div>
 
-      {/* Quick Category Filter Bar (Smooth horizontal scroll on mobile & web) */}
-      <div 
-        className="calendar-filter-bar"
-        style={{
-          display: 'flex',
-          flexWrap: 'nowrap',
-          overflowX: 'auto',
-          gap: '6px',
-          paddingBottom: '2px',
-          width: '100%',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch'
-        }}
-      >
-        {[
-          { id: 'ALL', label: 'All', count: events.length },
-          { id: 'HOLIDAYS', label: 'Holidays', count: holidayCount },
-          { id: 'EXAMS', label: 'Exams', count: examCount },
-          { id: 'CANCELLATIONS', label: 'Cancellations', count: cancelledCount },
-          { id: 'EVENTS', label: 'Events', count: eventCount }
-        ].map(cat => {
-          const isSelected = activeFilter === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => {
-                playCyberSound('click');
-                setActiveFilter(cat.id);
-              }}
-              style={{
-                flexShrink: 0,
-                background: isSelected ? '#eff6ff' : '#ffffff',
-                border: isSelected ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                color: isSelected ? '#1d4ed8' : '#64748b',
-                padding: '5px 12px',
-                borderRadius: '20px',
-                fontSize: '0.76rem',
-                fontWeight: isSelected ? 700 : 500,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-                boxShadow: isSelected ? '0 1px 2px rgba(37, 99, 235, 0.08)' : 'none'
-              }}
-            >
-              <span>{cat.label}</span>
-              {cat.count > 0 && (
-                <span style={{
-                  background: isSelected ? '#dbeafe' : '#f1f5f9',
-                  color: isSelected ? '#1e40af' : '#64748b',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  padding: '1px 6px',
-                  borderRadius: '10px'
-                }}>
-                  {cat.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* ── Horizontal Executive Summary Strip (4 Cards) ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+        gap: '10px'
+      }}>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Total Schedule Entries</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{totalCount} Active</div>
+        </div>
+
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700, textTransform: 'uppercase' }}>Gazetted Holidays</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>{holidayCount} Days</div>
+        </div>
+
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700, textTransform: 'uppercase' }}>Exams & Audits</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>{examCount} Sessions</div>
+        </div>
+
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700, textTransform: 'uppercase' }}>Campus Circulars</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>{noticeCount} Notices</div>
+        </div>
       </div>
 
-      {/* Events Display Area */}
-      {isLoading ? (
-        <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b' }}>
-          <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto 8px', color: '#2563eb' }} />
-          <p style={{ margin: 0, fontSize: '0.84rem' }}>Updating schedule...</p>
-        </div>
-      ) : filteredEvents.length === 0 ? (
+      {/* ── Category Filter Pills ── */}
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+        {[
+          { id: 'ALL', label: `All (${totalCount})` },
+          { id: 'HOLIDAYS', label: `Holidays (${holidayCount})` },
+          { id: 'EXAMS', label: `Examinations (${examCount})` },
+          { id: 'NOTICES', label: `Circulars & Notices (${noticeCount})` },
+          { id: 'EVENTS', label: `Events` }
+        ].map(cat => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => { playCyberSound('click'); setActiveFilter(cat.id); }}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: activeFilter === cat.id ? '1px solid #2563eb' : '1px solid #e2e8f0',
+              background: activeFilter === cat.id ? '#2563eb' : '#ffffff',
+              color: activeFilter === cat.id ? '#ffffff' : '#64748b',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Unified Horizontal Entry Timeline Cards ── */}
+      {filteredEntries.length === 0 ? (
         <div style={{
-          padding: '28px 16px',
+          padding: '36px 16px',
           textAlign: 'center',
-          borderRadius: '12px',
           background: '#f8fafc',
+          borderRadius: '12px',
           border: '1px dashed #cbd5e1',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center'
+          color: '#64748b'
         }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#94a3b8',
-            marginBottom: '8px'
-          }}>
-            <Calendar size={18} />
-          </div>
-          <h4 style={{ margin: '0 0 4px', fontSize: '0.9rem', fontWeight: 600, color: '#334155' }}>
-            No {activeFilter !== 'ALL' ? activeFilter.toLowerCase() : 'notices'} scheduled
-          </h4>
-          <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
-            No active calendar notices in this category.
-          </p>
+          <Calendar size={30} style={{ opacity: 0.5, marginBottom: '6px' }} />
+          <h4 style={{ margin: '0 0 4px', fontSize: '0.94rem', color: '#334155' }}>No Entries Under This Category</h4>
+          <p style={{ margin: 0, fontSize: '0.82rem' }}>All institution activities and circulars will be displayed here as they are published.</p>
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: '10px'
-        }}>
-          {filteredEvents.map(event => {
-            const config = EVENT_TYPE_CONFIG[event.event_type] || {
-              bg: '#f8fafc',
-              border: '#e2e8f0',
-              text: '#475569',
-              label: event.event_type || 'Notice',
-              icon: Calendar,
-              badgeBg: '#f1f5f9'
-            };
-            const IconComponent = config.icon;
-            const daysInfo = getDaysUntil(event.start_date);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {filteredEntries.map(entry => {
+            const config = EVENT_TYPE_CONFIG[entry.category] || EVENT_TYPE_CONFIG.EVENT;
+            const Icon = config.icon || Calendar;
+
+            // Formatted date values
+            const dayNum = entry.date ? entry.date.getDate() : '--';
+            const monthStr = entry.date ? entry.date.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase() : 'CAL';
+            const dayStr = entry.date ? entry.date.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase() : '';
+
+            // Compute relative timing badge
+            let timingText = '';
+            let timingColor = '#64748b';
+            if (entry.date) {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const target = new Date(entry.date);
+              target.setHours(0, 0, 0, 0);
+              const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+              if (diffDays === 0) { timingText = 'TODAY'; timingColor = '#059669'; }
+              else if (diffDays === 1) { timingText = 'TOMORROW'; timingColor = '#2563eb'; }
+              else if (diffDays > 1 && diffDays <= 7) { timingText = `IN ${diffDays} DAYS`; timingColor = '#2563eb'; }
+              else if (diffDays < 0) { timingText = `${Math.abs(diffDays)} DAYS AGO`; timingColor = '#94a3b8'; }
+            }
 
             return (
               <div
-                key={event.id}
+                key={entry.id}
+                className="surface-card"
                 style={{
-                  background: '#ffffff',
+                  padding: '14px 16px',
+                  borderRadius: '14px',
                   border: '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {/* Event Top Row: Category Tag + Relative Time */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px'
-                }}>
-                  <span style={{
-                    background: config.badgeBg,
-                    border: `1px solid ${config.border}`,
-                    color: config.text,
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <IconComponent size={12} />
-                    {config.label}
-                  </span>
-
-                  {daysInfo && (
-                    <span style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 500,
-                      color: daysInfo.isToday ? '#dc2626' : '#94a3b8'
-                    }}>
-                      {daysInfo.label}
-                    </span>
-                  )}
-                </div>
-
-                {/* Title & Description */}
-                <div>
-                  <h4 style={{
-                    margin: 0,
-                    fontSize: '0.92rem',
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    lineHeight: 1.3
-                  }}>
-                    {event.title}
-                  </h4>
-
-                  {event.description && (
-                    <p style={{
-                      margin: '3px 0 0',
-                      fontSize: '0.8rem',
-                      color: '#64748b',
-                      lineHeight: 1.4
-                    }}>
-                      {event.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Bottom Meta Bar (Date, Time, Subject) */}
-                <div style={{
-                  paddingTop: '8px',
-                  marginTop: '2px',
-                  borderTop: '1px solid #f8fafc',
+                  background: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  gap: '8px',
-                  fontSize: '0.74rem',
-                  color: '#64748b'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 500 }}>
-                    <Calendar size={13} color="#2563eb" />
-                    <span>{event.start_date}</span>
-                    {event.end_date && event.end_date !== event.start_date && (
-                      <span>→ {event.end_date}</span>
-                    )}
+                  gap: '14px',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+                }}
+              >
+                {/* Left Date Block + Content Details */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '240px', flex: 1 }}>
+                  {/* Big Date Badge */}
+                  <div style={{
+                    width: '52px',
+                    height: '56px',
+                    borderRadius: '10px',
+                    background: config.bg,
+                    border: `1px solid ${config.border}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <span style={{ fontSize: '0.66rem', fontWeight: 800, color: config.text, lineHeight: 1 }}>
+                      {monthStr}
+                    </span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 900, color: config.text, lineHeight: 1.1, marginTop: '2px' }}>
+                      {dayNum}
+                    </span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 700, color: config.text, lineHeight: 1 }}>
+                      {dayStr}
+                    </span>
                   </div>
 
-                  {event.start_time && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={12} />
-                      <span>{event.start_time}</span>
+                  {/* Title & Info */}
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        background: config.bg,
+                        color: config.text,
+                        border: `1px solid ${config.border}`
+                      }}>
+                        {config.label}
+                      </span>
+                      {timingText && (
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: timingColor }}>
+                          • {timingText}
+                        </span>
+                      )}
                     </div>
-                  )}
 
-                  {event.subject_name && (
-                    <span style={{
-                      background: '#eff6ff',
-                      color: '#1d4ed8',
-                      padding: '1px 6px',
-                      borderRadius: '4px',
-                      fontSize: '0.7rem',
-                      fontWeight: 600
-                    }}>
-                      {event.subject_code || event.subject_name}
-                    </span>
+                    <h4 style={{ margin: '4px 0 2px', fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+                      {entry.title}
+                    </h4>
+
+                    {entry.description && (
+                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.4, marginTop: '2px' }}>
+                        {entry.description}
+                      </div>
+                    )}
+
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
+                      Issued by {entry.source}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Action: Download PDF for Official Circulars */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  {entry.type === 'notice' && entry.rawNotice && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (playCyberSound) playCyberSound('click');
+                        generateNoticePdf(entry.rawNotice, currentUser?.institution_name || 'Smart Attendance System');
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        color: '#1d4ed8',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                      title="Download Certified PDF Circular"
+                    >
+                      <Download size={13} />
+                      <span>Official PDF</span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -546,24 +463,22 @@ export default function StudentAcademicCalendarWidget({
         </div>
       )}
 
-      {/* Safeguard Notice Callout (Compact & Professional) */}
+      {/* Institutional Attendance Protection Clause */}
       <div style={{
-        padding: '8px 12px',
-        borderRadius: '8px',
-        background: '#f0fdf4',
-        border: '1px solid #bbf7d0',
+        padding: '12px 14px',
+        borderRadius: '10px',
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
-        fontSize: '0.74rem',
-        color: '#166534',
-        lineHeight: 1.3
+        gap: '10px'
       }}>
-        <ShieldCheck size={14} color="#16a34a" style={{ flexShrink: 0 }} />
-        <span>
-          <strong>Attendance Protection:</strong> Official holidays and cancelled sessions do not count as absences.
+        <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.4 }}>
+          <strong>Statutory Attendance Safe Guard:</strong> Officially scheduled institution holidays, semester recesses, and authorized examination windows are automatically protected and are never counted as student absences.
         </span>
       </div>
+
     </div>
   );
 }

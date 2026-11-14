@@ -369,10 +369,15 @@ def get_attendance_report(
             pass
 
     def parse_date_str(d_str: str) -> Optional[date]:
-        try:
-            return datetime.strptime(d_str.strip(), "%d/%m/%Y").date()
-        except ValueError:
+        if not d_str:
             return None
+        s = str(d_str).strip()
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                pass
+        return None
 
     # Fetch attendance logs for this subject
     attendance_query = db.query(models.AttendanceModel).filter(models.AttendanceModel.attendance == "Present")
@@ -428,11 +433,21 @@ def get_attendance_report(
                 continue
             if end_date and log_date > end_date:
                 continue
-            presents_count[log.id] += 1
+            if log.roll:
+                presents_count[str(log.roll).strip()] += 1
+            if log.id:
+                raw_id = str(log.id).strip()
+                presents_count[raw_id] += 1
+                if '_' in raw_id:
+                    presents_count[raw_id.split('_')[0]] += 1
 
     student_reports = []
     for s in students:
-        present_days = presents_count[str(s.id)]
+        p_roll = str(s.roll).strip() if s.roll else None
+        p_id = str(s.id)
+        present_days = presents_count.get(p_id, 0)
+        if p_roll and presents_count.get(p_roll, 0) > present_days:
+            present_days = presents_count.get(p_roll, 0)
         effective_total = max(total_working_days, present_days)
         raw_percentage = (present_days / effective_total * 100.0) if effective_total > 0 else 0.0
         percentage = min(100.0, max(0.0, round(raw_percentage, 2)))
