@@ -120,19 +120,6 @@ export default function AdminPulseDashboard({
               <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
                 {lang === 'hi' ? 'आज की उपस्थिति' : "Today's Attendance"}
               </h2>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: '#ecfdf5',
-                  color: '#059669',
-                  border: '1px solid #a7f3d0'
-                }}
-              >
-                ● Live Session
-              </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
               {totalStudents} {lang === 'hi' ? 'नामांकित परिसर छात्र' : 'Enrolled Campus Students'}

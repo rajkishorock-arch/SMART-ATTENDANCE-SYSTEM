@@ -39,12 +39,15 @@ function getEndpointTtl(url, options = {}) {
 
 export function clearApiClientCache() {
   memoryCacheMap.clear();
+  activeRequestsMap.clear();
 }
 
 export async function fetchWithDedupe(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
-  const requestKey = `${method}:${url}`;
+  const authHeader = options?.headers?.Authorization || options?.headers?.authorization || '';
+  const tokenHash = authHeader ? String(authHeader).slice(-16) : 'anon';
+  const requestKey = `${method}:${url}:${tokenHash}`;
 
   // Invalidate read cache on write mutations
   if (!isGet) {

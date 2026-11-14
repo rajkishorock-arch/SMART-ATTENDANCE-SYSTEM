@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspens
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { initKeepAliveEngine } from './utils/keepAlive';
-import { fetchWithDedupe } from './utils/apiClient';
+import { fetchWithDedupe, clearApiClientCache } from './utils/apiClient';
 import { studentApi, teacherApi, attendanceApi, systemApi, interactiveApi, apiGet } from './api/index.js';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
@@ -2684,6 +2684,18 @@ export default function App() {
     if (!studentDept || !studentId) return;
     const activeToken = authToken || token;
     if (!activeToken) return;
+
+    // 0ms instant cached load
+    try {
+      const cached = localStorage.getItem(`cached_student_subject_stats_${studentId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          setStudentSubjectStats(parsed);
+        }
+      }
+    } catch { /* ignore */ }
+
     try {
       let subjectsList = await systemApi.fetchSubjects(activeToken);
       if (subjectsList && typeof subjectsList.json === 'function') {
@@ -2692,40 +2704,47 @@ export default function App() {
       if (!Array.isArray(subjectsList) || subjectsList.length === 0) return;
       
       const statsMap = {};
-      await Promise.all(subjectsList.map(async (sub) => {
-        try {
-          const res = await attendanceApi.fetchMyReport(activeToken, sub.id);
-          if (res.ok) {
-            const data = await res.json();
-            const myRecord = data.students.find(s => s.id === studentId);
-            if (myRecord) {
-              const pDays = myRecord.present_days || 0;
-              const tDays = Math.max(myRecord.total_days || 0, pDays);
-              const pct = Math.min(100.0, Math.max(0.0, Number(myRecord.percentage) || 0));
-              statsMap[sub.id] = {
-                subjectName: sub.name,
-                subjectCode: sub.code,
-                presentDays: pDays,
-                totalDays: tDays,
-                percentage: pct,
-                lowAttendance: pct < 75.0 && tDays > 0
-              };
-            } else {
-              statsMap[sub.id] = {
-                subjectName: sub.name,
-                subjectCode: sub.code,
-                presentDays: 0,
-                totalDays: 0,
-                percentage: 0.0,
-                lowAttendance: false
-              };
+      const CHUNK_SIZE = 2;
+      for (let i = 0; i < subjectsList.length; i += CHUNK_SIZE) {
+        const chunk = subjectsList.slice(i, i + CHUNK_SIZE);
+        await Promise.all(chunk.map(async (sub) => {
+          try {
+            const res = await attendanceApi.fetchMyReport(activeToken, sub.id);
+            if (res.ok) {
+              const data = await res.json();
+              const myRecord = data?.students?.find(s => s.id === studentId);
+              if (myRecord) {
+                const pDays = myRecord.present_days || 0;
+                const tDays = Math.max(myRecord.total_days || 0, pDays);
+                const pct = Math.min(100.0, Math.max(0.0, Number(myRecord.percentage) || 0));
+                statsMap[sub.id] = {
+                  subjectName: sub.name,
+                  subjectCode: sub.code,
+                  presentDays: pDays,
+                  totalDays: tDays,
+                  percentage: pct,
+                  lowAttendance: pct < 75.0 && tDays > 0
+                };
+              } else {
+                statsMap[sub.id] = {
+                  subjectName: sub.name,
+                  subjectCode: sub.code,
+                  presentDays: 0,
+                  totalDays: 0,
+                  percentage: 0.0,
+                  lowAttendance: false
+                };
+              }
             }
+          } catch (err) {
+            console.error(`Error fetching stats for subject ${sub.id}:`, err);
           }
-        } catch (err) {
-          console.error(`Error fetching stats for subject ${sub.id}:`, err);
-        }
-      }));
+        }));
+      }
       setStudentSubjectStats(statsMap);
+      try {
+        localStorage.setItem(`cached_student_subject_stats_${studentId}`, JSON.stringify(statsMap));
+      } catch { /* ignore */ }
     } catch (err) {
       console.error('Error in fetchStudentSubjectStats:', err);
     }
@@ -5323,6 +5342,14 @@ export default function App() {
             setActiveSubSetting(null);
           }
         }
+      } else {
+        const fallback = userRole === 'student' ? 'student-attendance' : 'dashboard';
+        if (fallback !== activeTabRef.current) {
+          setActiveTab(fallback);
+        }
+        if (activeSubSettingRef.current !== null) {
+          setActiveSubSetting(null);
+        }
       }
     };
 
@@ -5619,13 +5646,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, [token, userRole, activeTab]);
 
-  // System Health telemetry loop
+  // System Health telemetry loop (throttled to 60s to prevent backend saturation)
   useEffect(() => {
     if (token && userRole && userRole !== 'student' && activeTab === 'dashboard') {
       fetchSystemHealth();
       const interval = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
         fetchSystemHealth();
-      }, 4000);
+      }, 60000);
       return () => clearInterval(interval);
     }
   }, [token, userRole, activeTab]);
@@ -5910,10 +5938,14 @@ export default function App() {
     await authHandleLogin(e, ({ token: newToken, currentUser: meData }) => {
       loginJustCompletedRef.current = true;
       loginBootstrapDoneRef.current = true;
-      if (!sessionInitializedRef.current) {
-        sessionInitializedRef.current = true;
-        if (meData.role === 'student') setActiveTab('student-attendance');
-        else setActiveTab('dashboard');
+      sessionInitializedRef.current = true;
+      clearApiClientCache();
+      if (meData.role === 'student') {
+        setActiveTab('student-attendance');
+        try { window.location.hash = '#/student-attendance'; } catch { /* ignore */ }
+      } else {
+        setActiveTab('dashboard');
+        try { window.location.hash = '#/dashboard'; } catch { /* ignore */ }
       }
 
       if (meData.role === 'student') {
@@ -5941,13 +5973,32 @@ export default function App() {
     });
   };
 
-  // Handle Logout (delegated to AuthContext)
+  // Handle Logout (delegated to AuthContext) - complete state and cache isolation
   const handleLogout = () => {
+    clearApiClientCache();
     authHandleLogout(() => {
       sessionInitializedRef.current = false;
+      loginBootstrapDoneRef.current = false;
+      loginJustCompletedRef.current = false;
+      setStats(null);
+      setStudents([]);
+      setTeachers([]);
+      setLogs([]);
+      setTodayLogs([]);
       setStudentLogs([]);
-      setActiveTab('dashboard');
+      setStudentAttendanceSummary(null);
+      setStudentSubjectStats({});
+      setBlueprintData([]);
+      setActiveDashboardSubTab(null);
+      setActiveSubSetting(null);
+      tabHistoryRef.current = [];
+      setActiveTab('');
       setIsDemoMode(false);
+      try {
+        if (typeof window !== 'undefined') {
+          window.location.hash = '';
+        }
+      } catch { /* ignore */ }
     });
   };
 
@@ -7829,46 +7880,48 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                <p style={{ color: '#64748b', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {activeTab === 'dashboard' && (() => {
-                    if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
-                    return 'Real-time attendance overview and telemetry';
-                  })()}
-                  {activeTab === 'students' && 'Registered students and face enrollments'}
-                  {activeTab === 'teachers' && 'Faculty directory and subject timetables'}
-                  {activeTab === 'logs' && 'Daily scan registers and export logs'}
-                  {activeTab === 'attendance' && 'Face recognition and kiosk check-in'}
-                  {activeTab === 'reports' && 'Shortage defaulters, exports, and alerts'}
-                  {activeTab === 'session-history' && 'Class-wise daily session registers'}
-                  {activeTab === 'disputes' && 'Student disputes and attendance corrections'}
-                  {activeTab === 'face-review' && 'Low-confidence face detection review'}
-                  {activeTab === 'calendar' && 'Campus schedule, holidays, and events'}
-                  {activeTab === 'devices' && 'Hardware kiosks and camera sensors'}
-                  {activeTab === 'interventions' && 'Shortage alerts and counseling workflows'}
-                  {activeTab === 'lms' && 'Canvas, Moodle, and ERP roster sync'}
-                  {activeTab === 'payroll' && 'Staff punches, hours, and disbursements'}
-                  {activeTab === 'broadcast' && 'Official circulars, announcements, and downloadable certified PDF circulars'}
-                  {activeTab === 'student-attendance' && 'Attendance progress and subject breakdown'}
-                  {activeTab === 'student-profile' && 'Personal profile and account credentials'}
-                  {activeTab === 'settings' && (() => {
-                    if (!activeSubSetting) return 'Security, biometrics, and administration';
-                    const subDescs = {
-                      geofencing: 'Perimeter boundaries, Wi-Fi subnet gates & emergency lockdown',
-                      advanced: 'Biometrics, liveness detection, and anti-spoofing parameters',
-                      profile: 'Personal profile, security credentials, and preferences',
-                      admins: 'Manage administrative staff, teachers, and system access',
-                      departments: 'Academic departments, faculties, and degree branches',
-                      leave_management: 'Student leave applications, approvals, and history',
-                      app_version: 'Application version, release telemetry, and system updates',
-                      multitenant: 'Tenant registry and campus multi-institution management',
-                      release_updates: 'Software release pipeline and version changelogs',
-                      features_folder: 'Enterprise modules and extended system tools'
-                    };
-                    return subDescs[activeSubSetting] || 'Configure security, perimeter, and preferences';
-                  })()}
-                  {activeTab === 'ai-assistant' && 'Campus AI assistant for queries and actions'}
-                  {(activeTab === 'control' || activeTab === 'all-features') && 'All campus operations, services, and system utilities'}
-                </p>
+                {userRole !== 'student' && userRole !== 'teacher' && (
+                  <p style={{ color: '#64748b', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {activeTab === 'dashboard' && (() => {
+                      if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
+                      return 'Real-time attendance overview and telemetry';
+                    })()}
+                    {activeTab === 'students' && 'Registered students and face enrollments'}
+                    {activeTab === 'teachers' && 'Faculty directory and subject timetables'}
+                    {activeTab === 'logs' && 'Daily scan registers and export logs'}
+                    {activeTab === 'attendance' && 'Face recognition and kiosk check-in'}
+                    {activeTab === 'reports' && 'Shortage defaulters, exports, and alerts'}
+                    {activeTab === 'session-history' && 'Class-wise daily session registers'}
+                    {activeTab === 'disputes' && 'Student disputes and attendance corrections'}
+                    {activeTab === 'face-review' && 'Low-confidence face detection review'}
+                    {activeTab === 'calendar' && 'Campus schedule, holidays, and events'}
+                    {activeTab === 'devices' && 'Hardware kiosks and camera sensors'}
+                    {activeTab === 'interventions' && 'Shortage alerts and counseling workflows'}
+                    {activeTab === 'lms' && 'Canvas, Moodle, and ERP roster sync'}
+                    {activeTab === 'payroll' && 'Staff punches, hours, and disbursements'}
+                    {activeTab === 'broadcast' && 'Official circulars, announcements, and downloadable certified PDF circulars'}
+                    {activeTab === 'student-attendance' && 'Attendance progress and subject breakdown'}
+                    {activeTab === 'student-profile' && 'Personal profile and account credentials'}
+                    {activeTab === 'settings' && (() => {
+                      if (!activeSubSetting) return 'Security, biometrics, and administration';
+                      const subDescs = {
+                        geofencing: 'Perimeter boundaries, Wi-Fi subnet gates & emergency lockdown',
+                        advanced: 'Biometrics, liveness detection, and anti-spoofing parameters',
+                        profile: 'Personal profile, security credentials, and preferences',
+                        admins: 'Manage administrative staff, teachers, and system access',
+                        departments: 'Academic departments, faculties, and degree branches',
+                        leave_management: 'Student leave applications, approvals, and history',
+                        app_version: 'Application version, release telemetry, and system updates',
+                        multitenant: 'Tenant registry and campus multi-institution management',
+                        release_updates: 'Software release pipeline and version changelogs',
+                        features_folder: 'Enterprise modules and extended system tools'
+                      };
+                      return subDescs[activeSubSetting] || 'Configure security, perimeter, and preferences';
+                    })()}
+                    {activeTab === 'ai-assistant' && 'Campus AI assistant for queries and actions'}
+                    {(activeTab === 'control' || activeTab === 'all-features') && 'All campus operations, services, and system utilities'}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -8044,6 +8097,28 @@ export default function App() {
               currentUser={currentUser}
               navigateToTab={navigateToTab}
               playCyberSound={playCyberSound}
+            />
+          ) : userRole === 'student' ? (
+            <StudentAttendanceDashboardView
+              studentLogs={studentLogs}
+              studentSubjectStats={studentSubjectStats}
+              blueprintData={blueprintData}
+              blueprintLoading={blueprintLoading}
+              selectedBlueprintSubject={selectedBlueprintSubject}
+              setSelectedBlueprintSubject={setSelectedBlueprintSubject}
+              blueprintCalendarDate={blueprintCalendarDate}
+              setBlueprintCalendarDate={setBlueprintCalendarDate}
+              geofenceStatus={geofenceStatus}
+              setGeofenceStatus={setGeofenceStatus}
+              studentLeaveRequests={studentLeaveRequests}
+              token={token}
+              API_BASE_URL={API_BASE_URL}
+              subjects={subjects}
+              fetchBlueprint={fetchBlueprint}
+              fetchStudentLogs={fetchStudentLogs}
+              appLang={appLang}
+              playCyberSound={playCyberSound}
+              currentUser={currentUser}
             />
           ) : (
             <AdminTeacherDashboardView

@@ -194,9 +194,6 @@ export default function LmsSyncIntegrationView({
               SIS & Enterprise LMS Sync Engine
             </h2>
           </div>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '0.82rem', lineHeight: 1.4 }}>
-            Bidirectional roster and verified attendance synchronization with Canvas, Moodle, and ERP portals.
-          </p>
         </div>
 
         {/* Quick Horizontal Action Buttons */}

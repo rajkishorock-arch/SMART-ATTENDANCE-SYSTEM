@@ -106,9 +106,6 @@ export default function StudentTodayView({
               <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
                 {todayCheckIn ? (lang === 'hi' ? 'आज की उपस्थिति दर्ज है' : "Today's Attendance Recorded") : (lang === 'hi' ? 'आज अभी तक चेक-इन नहीं हुआ' : 'Not Checked In Yet Today')}
               </h3>
-              <span className={`status-pill ${todayCheckIn ? 'status-pill-success' : 'status-pill-warning'}`} style={{ fontSize: '0.68rem', padding: '2px 7px' }}>
-                {todayCheckIn ? 'Present' : 'Pending'}
-              </span>
             </div>
             {todayCheckIn && (
               <div style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#16a34a', fontWeight: 600 }}>
@@ -154,13 +151,6 @@ export default function StudentTodayView({
                 {t('my_attendance_rate', lang)}
               </h3>
             </div>
-
-            <span
-              className={`status-pill ${isSafe ? 'status-pill-success' : 'status-pill-danger'}`}
-              style={{ fontSize: '0.72rem', padding: '4px 10px' }}
-            >
-              {isSafe ? t('safe_zone', lang) : t('deficit_warning', lang)}
-            </span>
           </div>
 
           {/* Big percentage & progress bar */}

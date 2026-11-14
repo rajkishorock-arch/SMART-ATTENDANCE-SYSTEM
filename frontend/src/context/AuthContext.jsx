@@ -3,6 +3,7 @@ import { authApi } from '../api/authApi.js';
 import { getActiveTenantSlug } from '../utils/tenantConfig';
 import { getApiBaseUrl } from '../utils/platform';
 import { wakeBackend } from '../utils/cameraScanner';
+import { clearApiClientCache } from '../utils/apiClient';
 
 export const AuthContext = createContext(null);
 
@@ -70,12 +71,15 @@ export function AuthProvider({ children }) {
   // Handle Logout
   const handleLogout = useCallback((onLogoutCallback) => {
     playSound('click');
+    clearApiClientCache();
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('isDemoMode');
     localStorage.removeItem('cached_user');
     localStorage.removeItem('onboarding_tour_done');
     localStorage.removeItem('onboarding_guide_done');
+    localStorage.removeItem('last_active_tab');
+    localStorage.removeItem('last_active_sub_setting');
     localStorage.removeItem('cached_students');
     localStorage.removeItem('cached_students_timestamp');
     localStorage.removeItem('cached_stats');
@@ -93,6 +97,16 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('active_tenant_slug');
     localStorage.removeItem('cached_students_inst_id');
     localStorage.removeItem('cached_student_logs');
+    localStorage.removeItem('cached_campus_broadcasts');
+    localStorage.removeItem('cached_blueprint');
+    localStorage.removeItem('cached_leaves');
+    localStorage.removeItem('cached_leave_requests');
+    try {
+      sessionStorage.clear();
+      if (typeof window !== 'undefined' && window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } catch { /* ignore */ }
     setToken('');
     setUserRole('');
     setCurrentUser(null);

@@ -940,18 +940,6 @@ export default function StudentAttendanceDashboardView({
                       </div>
                       <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{sec.title}</h4>
-                        {sec.badge && (
-                          <span style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            padding: '1px 7px',
-                            borderRadius: '6px',
-                            background: sec.badgeBg,
-                            color: sec.badgeColor
-                          }}>
-                            {sec.badge}
-                          </span>
-                        )}
                       </div>
                     </div>
                     <ChevronRight size={18} style={{ color: '#94a3b8', flexShrink: 0 }} />
@@ -1137,7 +1125,6 @@ export default function StudentAttendanceDashboardView({
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>My Attendance Blueprint</h3>
-                      <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b' }}>Click any date cell to view real-time log details & submit disputes</p>
                     </div>
                   </div>
                   <button

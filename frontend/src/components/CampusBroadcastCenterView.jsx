@@ -80,11 +80,21 @@ export default function CampusBroadcastCenterView({
         list = res.broadcasts;
       }
 
-      if (Array.isArray(list) && list.length > 0) {
-        setBroadcasts(list);
-        try {
-          localStorage.setItem('cached_campus_broadcasts', JSON.stringify(list));
-        } catch { /* ignore */ }
+      if (Array.isArray(list)) {
+        if (list.length > 0) {
+          setBroadcasts(list);
+          try {
+            localStorage.setItem('cached_campus_broadcasts', JSON.stringify(list));
+          } catch { /* ignore */ }
+        } else {
+          try {
+            const cached = localStorage.getItem('cached_campus_broadcasts');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) setBroadcasts(parsed);
+            }
+          } catch { /* ignore */ }
+        }
       }
     } catch (err) {
       console.warn('Failed to fetch broadcasts from API, using cached notices:', err);
@@ -160,15 +170,34 @@ export default function CampusBroadcastCenterView({
         message: `✅ Broadcast successfully dispatched to ${formTargetRoles.join(', ')}!`
       });
 
+      // Immediate 0ms optimistic inclusion in history archive
+      const dispatchedNotice = {
+        id: (res && (res.id || res.notification_id)) || Date.now(),
+        title: formTitle.trim(),
+        message: formMessage.trim(),
+        category: formCategory,
+        created_at: new Date().toISOString(),
+        target_roles: formTargetRoles,
+        is_urgent: formIsUrgent
+      };
+      setBroadcasts(prev => {
+        const filtered = prev.filter(b => b.title !== dispatchedNotice.title || b.message !== dispatchedNotice.message);
+        const updated = [dispatchedNotice, ...filtered];
+        try {
+          localStorage.setItem('cached_campus_broadcasts', JSON.stringify(updated));
+        } catch { /* ignore */ }
+        return updated;
+      });
+
       // Clear Form
       setFormTitle('');
       setFormMessage('');
       setFormIsUrgent(false);
 
-      // Refresh list from server to get official database IDs
+      // Refresh list in background from server
       setTimeout(() => {
         fetchBroadcastHistory();
-      }, 600);
+      }, 800);
     } catch (err) {
       console.error('Failed to dispatch broadcast:', err);
       // Optimistic addition so user is not blocked

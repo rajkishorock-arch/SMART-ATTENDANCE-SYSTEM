@@ -526,7 +526,7 @@ def broadcast_announcement(
             recipient_role=r_clean,
             title=title,
             message=msg,
-            category=payload.category or "ANNOUNCEMENT",
+            category=(payload.category.upper() if payload.category else "ANNOUNCEMENT"),
             action_url=payload.action_url
         )
         created_count += 1
@@ -555,7 +555,7 @@ def get_broadcast_history(
 
     query = db.query(models.NotificationModel).filter(
         models.NotificationModel.institution_id == inst_id,
-        models.NotificationModel.category.in_(["ANNOUNCEMENT", "NOTICE", "HOLIDAY", "URGENT", "CIRCULAR", "EVENT"])
+        models.NotificationModel.category.in_(["ANNOUNCEMENT", "NOTICE", "HOLIDAY", "URGENT", "CIRCULAR", "EVENT", "EXAM"])
     )
 
     # Role visibility check: non-admins only see broadcasts targeted to their role, plural form, or all

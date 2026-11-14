@@ -34,9 +34,6 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Present Today
             </span>
-            <span className="status-pill status-pill-success" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-              <TrendingUp size={11} /> Active
-            </span>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0' }}>
@@ -72,9 +69,6 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               {lateCount ? 'Late Today' : 'Absent Today'}
-            </span>
-            <span className={`status-pill ${lateCount ? 'status-pill-warning' : 'status-pill-danger'}`} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-              {lateCount ? 'Check-in' : 'Attention'}
             </span>
           </div>
 
@@ -112,9 +106,6 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Scanner Engine
             </span>
-            <span className={`status-pill ${scannerLive ? 'status-pill-cyan' : ''}`} style={{ fontSize: '0.68rem', padding: '2px 8px', background: scannerLive ? 'var(--color-primary-light)' : '#f1f5f9', color: scannerLive ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
-              <Zap size={11} /> {scannerLive ? 'ONLINE' : 'STANDBY'}
-            </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0' }}>
@@ -149,9 +140,6 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Attendance Rate
-            </span>
-            <span className="status-pill" style={{ fontSize: '0.68rem', padding: '2px 8px', background: 'rgba(139, 92, 246, 0.1)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-              Rate
             </span>
           </div>
 

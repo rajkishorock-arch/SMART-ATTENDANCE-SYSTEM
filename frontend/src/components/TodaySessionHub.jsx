@@ -160,13 +160,7 @@ export default function TodaySessionHub({
             <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-main)' }}>
               {teacherName ? `${teacherName}` : t('teacher_hub', lang)}
             </h2>
-            <span className="status-pill status-pill-success" style={{ fontSize: '0.68rem' }}>
-              {todayDayName}
-            </span>
           </div>
-          <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-            {todayFormattedDate} · {todaySchedule.length > 0 ? `${todaySchedule.length} ${lang === 'hi' ? 'क्लासेज आज शेड्यूल हैं' : 'classes scheduled today'}` : t('no_classes_today', lang)}
-          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -225,9 +219,6 @@ export default function TodaySessionHub({
                 <span style={{ fontWeight: 800, fontSize: '1rem', color: '#065f46' }}>
                   {t('session_live', lang)}
                 </span>
-                <span className="status-pill status-pill-success" style={{ fontSize: '0.68rem' }}>
-                  {selectedPeriod}
-                </span>
               </div>
               <div style={{ fontSize: '0.8rem', color: '#047857', marginTop: '2px' }}>
                 {activeSubject?.name} · {presentRolls.size} {t('marked_present', lang)}
@@ -266,9 +257,6 @@ export default function TodaySessionHub({
                 {t('current_class', lang)}
               </h3>
             </div>
-            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#38bdf8', background: 'rgba(14, 165, 233, 0.12)', border: '1px solid rgba(14, 165, 233, 0.25)', padding: '3px 10px', borderRadius: '12px' }}>
-              {selectedPeriod} Selected
-            </span>
           </div>
 
           {/* Symmetrical Responsive Grid for Periods (3x2 on phone, 6x1 on desktop) */}

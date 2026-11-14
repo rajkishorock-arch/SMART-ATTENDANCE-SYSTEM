@@ -288,9 +288,6 @@ export default function InterventionsManagementView({
               Counselor & Parent Intervention Center
             </h2>
           </div>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '0.82rem', lineHeight: 1.4 }}>
-            Multi-tier attendance warnings: Academic warning (70-75%), parent alert (60-70%), and debarment risk (&lt;60%).
-          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
