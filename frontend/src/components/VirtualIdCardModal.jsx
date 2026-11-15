@@ -1,9 +1,10 @@
 import React from 'react';
+import { School, RefreshCw } from 'lucide-react';
 
 export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
   const [qrToken, setQrToken] = React.useState(null);
-  const [countdown, setCountdown] = React.useState(30);
-  const [maxTtl, setMaxTtl] = React.useState(30);
+  const [countdown, setCountdown] = React.useState(45);
+  const [maxTtl, setMaxTtl] = React.useState(45);
   const [loading, setLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState(null);
 
@@ -20,18 +21,18 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
       });
       if (res.ok) {
         const data = await res.json();
-        const ttl = data.expires_in || 30;
+        const ttl = data.expires_in || 45;
         setQrToken(data.token);
         setMaxTtl(ttl);
         setCountdown(ttl);
       } else {
         setQrToken(null);
-        setErrorMsg('Failed to generate secure QR token');
+        setErrorMsg('Unable to generate dynamic attendance pass');
       }
     } catch (e) {
       console.error('QR token fetch failed', e);
       setQrToken(null);
-      setErrorMsg('Network error while generating QR code');
+      setErrorMsg('Network error. Check connection & retry.');
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
@@ -58,106 +59,247 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
     return () => clearInterval(timer);
   }, [fetchQrToken, maxTtl]);
 
-  // Build QR code image URL using Google Charts API (no npm needed)
+  // High-contrast clean black-on-white QR image
   const qrUrl = qrToken
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}&bgcolor=ffffff&color=000000&margin=10`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrToken)}&bgcolor=ffffff&color=0f172a&margin=12`
     : null;
 
   const detail = currentUser?.details || {};
   const studentRoll = detail.roll || currentUser?.roll || 'N/A';
-  const studentDep = detail.dep || currentUser?.dep || currentUser?.department || 'N/A';
-  const studentCourse = detail.course || currentUser?.course || 'General Program';
-  const studentYear = detail.year || currentUser?.year || '2026';
-  const studentSemester = detail.semester || currentUser?.semester || 'Semester 1';
+  const studentDep = detail.dep || currentUser?.dep || currentUser?.department || 'General Academic';
+  const studentCourse = detail.course || currentUser?.course || 'B.Tech';
+  const studentSemester = detail.semester || currentUser?.semester || '1st Sem';
   const studentMentor = detail.teacher || currentUser?.teacher || 'Assigned Faculty';
+  const institutionName = currentUser?.institution_name || 'Smart Attendance System';
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 99999,
-      background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px',
-      animation: 'fadeIn 0.3s ease'
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(13,13,26,0.98) 0%, rgba(22,22,44,0.98) 100%)',
-        border: '1px solid rgba(0,242,254,0.3)',
-        borderRadius: '24px', padding: '36px 32px',
-        width: '100%', maxWidth: '400px',
-        boxShadow: '0 0 60px rgba(0,242,254,0.15), 0 0 120px rgba(139,92,246,0.08)',
-        position: 'relative', overflow: 'hidden'
-      }}>
-        {/* Glow effect blobs */}
-        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(0,242,254,0.12), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(139,92,246,0.1), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-
-        <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: '#9ca3af', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={{ display: 'inline-block', padding: '4px 16px', borderRadius: '20px', background: 'rgba(0,242,254,0.1)', border: '1px solid rgba(0,242,254,0.25)', color: '#00f2fe', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>
-            🎓 Smart Attendance System
-          </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 4px', background: 'linear-gradient(135deg, #00f2fe, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            {currentUser?.name || 'Enrolled Student'}
-          </h2>
-          <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: 0 }}>{studentDep} · {studentCourse}</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
-          {[
-            { label: 'Roll No', value: studentRoll },
-            { label: 'Year', value: studentYear },
-            { label: 'Semester', value: studentSemester },
-            { label: 'Mentor', value: studentMentor },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p style={{ color: '#6b7280', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>{label}</p>
-              <p style={{ color: '#f3f4f6', fontSize: '0.9rem', fontWeight: 600, margin: '2px 0 0' }}>{value}</p>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        background: 'rgba(15, 23, 42, 0.72)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        animation: 'fadeIn 0.2s ease'
+      }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: '20px',
+          width: '100%',
+          maxWidth: '380px',
+          boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.25)',
+          overflow: 'hidden',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative'
+        }}
+      >
+        {/* Top Institutional Header */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            color: '#ffffff',
+            padding: '16px 18px',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <School size={20} color="#ffffff" />
             </div>
-          ))}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#bfdbfe' }}>
+                STUDENT DIGITAL ID PASS
+              </div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {institutionName}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            aria-label="Close Virtual ID Card"
+            style={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              flexShrink: 0
+            }}
+          >
+            ✕
+          </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-          <p style={{ color: '#9ca3af', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1.5px', margin: 0 }}>Dynamic QR — Show to Scanner Kiosk or Teacher</p>
-          <div style={{
-            borderRadius: '16px', padding: '8px', width: '216px', height: '216px',
-            background: '#0d0d1a', border: '2px solid rgba(0,242,254,0.35)',
-            boxShadow: '0 0 30px rgba(0,242,254,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
+        {/* Student Name & Roll Ribbon */}
+        <div style={{ padding: '14px 18px 8px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+            {currentUser?.name || 'Student Name'}
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '4px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+              Roll: {studentRoll}
+            </span>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+              {studentDep}
+            </span>
+          </div>
+        </div>
+
+        {/* Hero Section: Prominent, High-Contrast QR Code for Easy Kiosk / Teacher Scanning */}
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div
+            style={{
+              width: '240px',
+              height: '240px',
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '2px solid #2563eb',
+              padding: '10px',
+              boxShadow: '0 8px 24px rgba(37, 99, 235, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative'
+            }}
+          >
+            {/* Viewfinder Target Corners */}
+            <div style={{ position: 'absolute', top: '6px', left: '6px', width: '16px', height: '16px', borderTop: '3px solid #2563eb', borderLeft: '3px solid #2563eb', borderTopLeftRadius: '6px' }} />
+            <div style={{ position: 'absolute', top: '6px', right: '6px', width: '16px', height: '16px', borderTop: '3px solid #2563eb', borderRight: '3px solid #2563eb', borderTopRightRadius: '6px' }} />
+            <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '16px', height: '16px', borderBottom: '3px solid #2563eb', borderLeft: '3px solid #2563eb', borderBottomLeftRadius: '6px' }} />
+            <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '16px', height: '16px', borderBottom: '3px solid #2563eb', borderRight: '3px solid #2563eb', borderBottomRightRadius: '6px' }} />
+
             {loading && !qrToken ? (
-              <div style={{ color: '#00f2fe', fontSize: '0.8rem', textAlign: 'center' }}>Generating QR...</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#2563eb', fontSize: '0.82rem', fontWeight: 600 }}>
+                <RefreshCw size={24} className="spin-anim" />
+                <span>Generating Live Pass...</span>
+              </div>
             ) : qrToken && qrUrl ? (
-              <img src={qrUrl} alt="QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px', opacity: loading ? 0.6 : 1 }} />
+              <img
+                src={qrUrl}
+                alt="Attendance QR Pass"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                  opacity: loading ? 0.6 : 1,
+                  imageRendering: 'crisp-edges'
+                }}
+              />
             ) : (
-              <div style={{ color: '#ef4444', fontSize: '0.78rem', textAlign: 'center', padding: '12px' }}>
-                <p style={{ margin: '0 0 8px' }}>{errorMsg || 'Failed to load QR code'}</p>
+              <div style={{ textAlign: 'center', padding: '12px', color: '#dc2626' }}>
+                <p style={{ margin: '0 0 8px', fontSize: '0.78rem', fontWeight: 600 }}>{errorMsg || 'Failed to load QR'}</p>
                 <button
+                  type="button"
                   onClick={fetchQrToken}
                   style={{
-                    background: 'rgba(0, 242, 254, 0.15)',
-                    border: '1px solid #00f2fe',
-                    color: '#00f2fe',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#1d4ed8',
+                    padding: '6px 14px',
                     borderRadius: '8px',
-                    padding: '4px 12px',
                     fontSize: '0.75rem',
+                    fontWeight: 700,
                     cursor: 'pointer'
                   }}
                 >
-                  Retry Now
+                  Tap to Retry
                 </button>
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: `${Math.max(0, Math.min(100, (countdown / (maxTtl || 30)) * 100))}%`, height: '4px', borderRadius: '2px', background: countdown > 10 ? '#10b981' : '#ef4444', transition: 'width 1s linear, background 0.5s', minWidth: '20px' }} />
-            <p style={{ color: countdown > 10 ? '#10b981' : '#ef4444', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
-              {countdown > 0 ? `${countdown}s` : 'Refreshing...'}
-            </p>
+
+          {/* Dynamic Auto-Refresh Progress Indicator */}
+          <div style={{ width: '240px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                <span>Live Encrypted QR</span>
+              </span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: countdown <= 10 ? '#dc2626' : '#2563eb' }}>
+                {countdown}s remaining
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${Math.max(0, Math.min(100, (countdown / (maxTtl || 45)) * 100))}%`,
+                  background: countdown <= 10 ? '#dc2626' : 'linear-gradient(90deg, #2563eb, #10b981)',
+                  borderRadius: '999px',
+                  transition: 'width 1s linear'
+                }}
+              />
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
+              Aim at kiosk camera or show to teacher for touchless check-in
+            </div>
           </div>
-          <p style={{ color: '#6b7280', fontSize: '0.72rem', textAlign: 'center', margin: 0 }}>
-            QR refreshes automatically every {maxTtl || 30} seconds for security.
-          </p>
+        </div>
+
+        {/* Compact Bottom Details: Small & Clean ("niche me chhota sa details ho") */}
+        <div
+          style={{
+            background: '#f8fafc',
+            borderTop: '1px solid #e2e8f0',
+            padding: '12px 18px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '8px',
+            textAlign: 'center'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Course</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {studentCourse}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Semester</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+              {studentSemester}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Mentor</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {studentMentor}
+            </div>
+          </div>
         </div>
       </div>
     </div>

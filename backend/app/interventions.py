@@ -7,8 +7,10 @@ Automated escalation workflow for students below attendance thresholds:
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
 from typing import Optional, List
 from datetime import datetime, timezone
+import math
 
 from . import models, schemas, security, crud
 from .database import get_db
@@ -345,7 +347,7 @@ def get_my_intervention_status(
     if identity.role == "student":
         student_id = identity.id
     elif identity.role == "parent":
-        student_id = getattr(identity.model, "id", None)
+        student_id = getattr(identity.model_instance, "student_id", None) or getattr(identity.model_instance, "id", None) or getattr(identity, "id", None)
 
     if not student_id:
         first_s = db.query(models.StudentModel).filter(
@@ -423,16 +425,20 @@ def get_my_intervention_status(
     ).order_by(models.AttendanceIntervention.id.desc()).first()
 
     if pct < 75.0 and not intervention and conducted > 0:
-        intervention = models.AttendanceIntervention(
-            institution_id=identity.institution_id,
-            student_id=student.id,
-            tier=tier,
-            attendance_percentage=pct,
-            status="TRIGGERED"
-        )
-        db.add(intervention)
-        db.commit()
-        db.refresh(intervention)
+        try:
+            intervention = models.AttendanceIntervention(
+                institution_id=identity.institution_id,
+                student_id=student.id,
+                tier=tier,
+                attendance_percentage=pct,
+                status="TRIGGERED"
+            )
+            db.add(intervention)
+            db.commit()
+            db.refresh(intervention)
+        except Exception:
+            db.rollback()
+            intervention = None
 
     counselor = None
     if intervention and intervention.counselor_id:
@@ -494,7 +500,7 @@ def request_counseling_session(
     if identity.role == "student":
         student_id = identity.id
     elif identity.role == "parent":
-        student_id = getattr(identity.model, "id", None)
+        student_id = getattr(identity.model_instance, "student_id", None) or getattr(identity.model_instance, "id", None) or getattr(identity, "id", None)
 
     if not student_id:
         raise HTTPException(status_code=400, detail="Only students or parents can request counseling.")

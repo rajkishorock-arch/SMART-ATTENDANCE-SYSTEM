@@ -913,22 +913,19 @@ export default function StudentAttendanceDashboardView({
             className="surface-card hover-elevate active-haptic"
             style={{
               padding: '16px 18px',
-              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              background: '#ffffff',
               borderRadius: '16px',
-              border: '1px solid #334155',
-              color: '#ffffff',
+              border: '1.5px solid #bfdbfe',
+              color: '#0f172a',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
+              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.08)',
               position: 'relative',
               overflow: 'hidden'
             }}
           >
-            {/* Subtle background glow */}
-            <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '110px', height: '110px', background: 'radial-gradient(circle, rgba(14, 165, 233, 0.22), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-
             {/* Top row: Institutional Header & Live Badge */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -936,20 +933,20 @@ export default function StudentAttendanceDashboardView({
                   width: '34px',
                   height: '34px',
                   borderRadius: '10px',
-                  background: 'rgba(14, 165, 233, 0.18)',
-                  border: '1px solid rgba(14, 165, 233, 0.35)',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#38bdf8'
+                  color: '#2563eb'
                 }}>
                   <CreditCard size={18} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.9px', color: '#38bdf8' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#2563eb' }}>
                     Institutional Identity Pass
                   </div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
                     Student Virtual ID Card
                   </div>
                 </div>
@@ -961,13 +958,13 @@ export default function StudentAttendanceDashboardView({
                 gap: '5px',
                 padding: '3px 10px',
                 borderRadius: '999px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                color: '#34d399',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                color: '#15803d',
                 fontSize: '0.7rem',
                 fontWeight: 700
               }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
                 <span>Active & Verified</span>
               </div>
             </div>
@@ -978,25 +975,25 @@ export default function StudentAttendanceDashboardView({
               gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
               gap: '8px',
               padding: '10px 12px',
-              background: 'rgba(255, 255, 255, 0.04)',
+              background: '#f8fafc',
               borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.06)'
+              border: '1px solid #e2e8f0'
             }}>
               <div>
-                <div style={{ fontSize: '0.64rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Student Name</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Student Name</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentUser?.name || 'Enrolled Student'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.64rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Roll Number</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#38bdf8' }}>
+                <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Roll Number</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#2563eb' }}>
                   {currentUser?.details?.roll || currentUser?.roll || 'N/A'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.64rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Department</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Department</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentUser?.details?.dep || currentUser?.dep || currentUser?.department || 'General Academic'}
                 </div>
               </div>
@@ -1004,8 +1001,8 @@ export default function StudentAttendanceDashboardView({
 
             {/* Bottom row: Touchless QR Scanner trigger CTA */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#cbd5e1' }}>
-                <QrCode size={15} color="#38bdf8" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#475569' }}>
+                <QrCode size={15} color="#2563eb" />
                 <span>Show live dynamic QR to kiosk or teacher for instant attendance</span>
               </div>
               <button
@@ -1020,7 +1017,7 @@ export default function StudentAttendanceDashboardView({
                   alignItems: 'center',
                   gap: '6px',
                   padding: '7px 14px',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
@@ -1028,7 +1025,7 @@ export default function StudentAttendanceDashboardView({
                   fontWeight: 700,
                   cursor: 'pointer',
                   flexShrink: 0,
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)'
+                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
                 }}
               >
                 <span>Open ID & QR</span>
