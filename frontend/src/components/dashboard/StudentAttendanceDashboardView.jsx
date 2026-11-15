@@ -14,6 +14,8 @@ import LeaveApplicationForm from '../LeaveApplicationForm';
 import StudentAcademicCalendarWidget from './StudentAcademicCalendarWidget';
 import StudentAttendanceRecoveryWidget from './StudentAttendanceRecoveryWidget';
 import StudentSubjectAttendanceHub from './StudentSubjectAttendanceHub';
+import StudentCampusGeofenceHub from './StudentCampusGeofenceHub';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { disputeApi } from '../../api/disputeApi';
 import { generateDisputePdf } from '../../utils/disputePdfGenerator';
 
@@ -26,6 +28,7 @@ function BlueprintDayBreakdownModal({
   playCyberSound = () => {},
   onRequestDispute 
 }) {
+  useBodyScrollLock(isOpen);
   if (!isOpen || !dateStr) return null;
 
   const safeLogs = Array.isArray(studentLogs) ? studentLogs : [];
@@ -1460,63 +1463,19 @@ export default function StudentAttendanceDashboardView({
       {/* ===== 7. DEDICATED SECTION: WALLET & GAMIFICATION ===== */}
       {activeSection === 'wallet' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} />
+          <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} subjects={subjects} />
           <GamificationHub logs={studentLogs} />
         </div>
       )}
 
       {/* ===== 8. DEDICATED SECTION: CAMPUS GEOFENCE LOCATION ===== */}
-      {activeSection === 'geofence' && (() => {
-        const geo = geofenceStatus;
-        return (
-          <div style={{ padding: '20px', borderRadius: '16px', border: `1px solid ${geo.checked ? (geo.inside ? '#a7f3d0' : '#fecaca') : '#e2e8f0'}`, display: 'flex', flexDirection: 'column', gap: '14px', background: geo.checked ? (geo.inside ? '#f0fdf4' : '#fef2f2') : '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: geo.checked ? (geo.inside ? '#d1fae5' : '#fee2e2') : '#eff6ff', color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <MapPin size={20} />
-              </div>
-              <div>
-                <p style={{ fontWeight: 700, color: geo.checked ? (geo.inside ? '#059669' : '#dc2626') : '#0f172a', margin: 0, fontSize: '0.98rem' }}>
-                  {geo.checked ? (geo.inside ? 'Inside Campus Zone' : 'Outside Campus Zone') : 'Campus Location Verification'}
-                </p>
-                <p style={{ color: '#64748b', fontSize: '0.78rem', margin: '2px 0 0' }}>
-                  {geo.checked
-                    ? geo.distance !== null ? `Distance to campus center: ~${Math.round(geo.distance)}m` : 'Location verified.'
-                    : 'Verify whether your device is within the designated college GPS perimeter.'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                if (!navigator.geolocation) {
-                  setGeofenceStatus({ checked: true, inside: false, distance: null });
-                  return;
-                }
-                navigator.geolocation.getCurrentPosition(pos => {
-                  const { latitude, longitude } = pos.coords;
-                  const campusLat = parseFloat(localStorage.getItem('geo_lat') || '0');
-                  const campusLng = parseFloat(localStorage.getItem('geo_lng') || '0');
-                  const radiusM = parseFloat(localStorage.getItem('geo_radius') || '200');
-                  if (!campusLat || !campusLng) {
-                    setGeofenceStatus({ checked: true, inside: true, distance: null });
-                    return;
-                  }
-                  const R = 6371000;
-                  const dLat = (latitude - campusLat) * Math.PI / 180;
-                  const dLng = (longitude - campusLng) * Math.PI / 180;
-                  const a = Math.sin(dLat/2)**2 + Math.cos(campusLat * Math.PI / 180) * Math.cos(latitude * Math.PI / 180) * Math.sin(dLng/2)**2;
-                  const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                  setGeofenceStatus({ checked: true, inside: dist <= radiusM, distance: Math.round(dist) });
-                }, () => {
-                  setGeofenceStatus({ checked: true, inside: false, distance: null });
-                });
-              }}
-              style={{ padding: '10px 20px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0369a1', fontWeight: 600, fontSize: '0.86rem', cursor: 'pointer', alignSelf: 'flex-start' }}
-            >
-              📍 Check My Campus Location
-            </button>
-          </div>
-        );
-      })()}
+      {activeSection === 'geofence' && (
+        <StudentCampusGeofenceHub
+          geofenceStatus={geofenceStatus}
+          setGeofenceStatus={setGeofenceStatus}
+          playCyberSound={playCyberSound}
+        />
+      )}
 
       {/* ===== 9. DEDICATED SECTION: LEAVE APPLICATIONS & DISPUTES ===== */}
       {activeSection === 'disputes' && (

@@ -1,8 +1,10 @@
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import useUI from '../hooks/useUI';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
 
 export default function FeedbackModal({ feedbackState }) {
   const { playCyberSound } = useUI();
+  useBodyScrollLock(!!feedbackState?.showFeedbackModal);
 
   if (!feedbackState || !feedbackState.showFeedbackModal) return null;
 

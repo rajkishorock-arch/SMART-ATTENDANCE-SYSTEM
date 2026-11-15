@@ -1,16 +1,42 @@
-import React from 'react';
-import { School, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { School, RefreshCw, CheckCircle2, QrCode } from 'lucide-react';
+import QRCode from 'qrcode';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
 
 export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, onClose }) {
-  const [qrToken, setQrToken] = React.useState(null);
-  const [countdown, setCountdown] = React.useState(45);
-  const [maxTtl, setMaxTtl] = React.useState(45);
-  const [loading, setLoading] = React.useState(false);
-  const [errorMsg, setErrorMsg] = React.useState(null);
+  // Prevent background scrolling while modal is open
+  useBodyScrollLock(true);
 
-  const isFetchingRef = React.useRef(false);
+  const [qrToken, setQrToken] = useState(null);
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [countdown, setCountdown] = useState(45);
+  const [maxTtl, setMaxTtl] = useState(45);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
-  const fetchQrToken = React.useCallback(async () => {
+  const isFetchingRef = useRef(false);
+
+  // Generate QR Code locally in 0ms using client-side library
+  const generateLocalQr = useCallback(async (tokenString) => {
+    try {
+      const dataUrl = await QRCode.toDataURL(tokenString, {
+        width: 320,
+        margin: 1,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'M'
+      });
+      setQrDataUrl(dataUrl);
+    } catch (err) {
+      console.error('Local QR rendering error:', err);
+      // Safe fallback
+      setQrDataUrl(`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(tokenString)}&bgcolor=ffffff&color=0f172a&margin=10`);
+    }
+  }, []);
+
+  const fetchQrToken = useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     setLoading(true);
@@ -22,31 +48,33 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
       if (res.ok) {
         const data = await res.json();
         const ttl = data.expires_in || 45;
-        setQrToken(data.token);
+        const freshToken = data.token;
+        setQrToken(freshToken);
         setMaxTtl(ttl);
         setCountdown(ttl);
+        // Instantly generate QR locally
+        await generateLocalQr(freshToken);
       } else {
         setQrToken(null);
+        setQrDataUrl(null);
         setErrorMsg('Unable to generate dynamic attendance pass');
       }
     } catch (e) {
       console.error('QR token fetch failed', e);
       setQrToken(null);
+      setQrDataUrl(null);
       setErrorMsg('Network error. Check connection & retry.');
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [token, API_BASE_URL]);
+  }, [token, API_BASE_URL, generateLocalQr]);
 
-  React.useEffect(() => {
-    const t = setTimeout(() => {
-      fetchQrToken();
-    }, 0);
-    return () => clearTimeout(t);
+  useEffect(() => {
+    fetchQrToken();
   }, [fetchQrToken]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -58,11 +86,6 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
     }, 1000);
     return () => clearInterval(timer);
   }, [fetchQrToken, maxTtl]);
-
-  // High-contrast clean black-on-white QR image
-  const qrUrl = qrToken
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrToken)}&bgcolor=ffffff&color=0f172a&margin=12`
-    : null;
 
   const detail = currentUser?.details || {};
   const studentRoll = detail.roll || currentUser?.roll || 'N/A';
@@ -79,40 +102,45 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
         inset: 0,
         zIndex: 99999,
         background: 'rgba(15, 23, 42, 0.72)',
-        backdropFilter: 'blur(6px)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '16px',
-        animation: 'fadeIn 0.2s ease'
+        animation: 'fadeIn 0.2s ease',
+        touchAction: 'none'
       }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div
         style={{
           background: '#ffffff',
-          borderRadius: '20px',
+          borderRadius: '24px',
           width: '100%',
-          maxWidth: '380px',
-          boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.25)',
+          maxWidth: '390px',
+          boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.3)',
           overflow: 'hidden',
           border: '1px solid #e2e8f0',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative'
+          position: 'relative',
+          maxHeight: '92vh'
         }}
+        onClick={e => e.stopPropagation()}
       >
         {/* Top Institutional Header */}
         <div
           style={{
             background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
             color: '#ffffff',
-            padding: '16px 18px',
+            padding: '16px 20px',
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '12px'
+            gap: '12px',
+            flexShrink: 0
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
@@ -144,8 +172,8 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
             onClick={onClose}
             aria-label="Close Virtual ID Card"
             style={{
-              width: '30px',
-              height: '30px',
+              width: '32px',
+              height: '32px',
               borderRadius: '50%',
               background: 'rgba(255, 255, 255, 0.2)',
               border: 'none',
@@ -154,9 +182,10 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '0.9rem',
+              fontSize: '1rem',
               fontWeight: 700,
-              flexShrink: 0
+              flexShrink: 0,
+              transition: 'background 0.15s ease'
             }}
           >
             ✕
@@ -164,11 +193,11 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
         </div>
 
         {/* Student Name & Roll Ribbon */}
-        <div style={{ padding: '14px 18px 8px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
+        <div style={{ padding: '14px 20px 8px', textAlign: 'center', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
           <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
             {currentUser?.name || 'Student Name'}
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
               Roll: {studentRoll}
             </span>
@@ -179,16 +208,16 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
         </div>
 
         {/* Hero Section: Prominent, High-Contrast QR Code for Easy Kiosk / Teacher Scanning */}
-        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ padding: '14px 20px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
           <div
             style={{
-              width: '240px',
-              height: '240px',
+              width: '230px',
+              height: '230px',
               background: '#ffffff',
               borderRadius: '16px',
               border: '2px solid #2563eb',
-              padding: '10px',
-              boxShadow: '0 8px 24px rgba(37, 99, 235, 0.12)',
+              padding: '8px',
+              boxShadow: '0 4px 16px rgba(37, 99, 235, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -196,27 +225,26 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
             }}
           >
             {/* Viewfinder Target Corners */}
-            <div style={{ position: 'absolute', top: '6px', left: '6px', width: '16px', height: '16px', borderTop: '3px solid #2563eb', borderLeft: '3px solid #2563eb', borderTopLeftRadius: '6px' }} />
-            <div style={{ position: 'absolute', top: '6px', right: '6px', width: '16px', height: '16px', borderTop: '3px solid #2563eb', borderRight: '3px solid #2563eb', borderTopRightRadius: '6px' }} />
-            <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '16px', height: '16px', borderBottom: '3px solid #2563eb', borderLeft: '3px solid #2563eb', borderBottomLeftRadius: '6px' }} />
-            <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '16px', height: '16px', borderBottom: '3px solid #2563eb', borderRight: '3px solid #2563eb', borderBottomRightRadius: '6px' }} />
+            <div style={{ position: 'absolute', top: '5px', left: '5px', width: '16px', height: '16px', borderTop: '3px solid #2563eb', borderLeft: '3px solid #2563eb', borderTopLeftRadius: '6px' }} />
+            <div style={{ position: 'absolute', top: '5px', right: '5px', width: '16px', height: '16px', borderTop: '3px solid #2563eb', borderRight: '3px solid #2563eb', borderTopRightRadius: '6px' }} />
+            <div style={{ position: 'absolute', bottom: '5px', left: '5px', width: '16px', height: '16px', borderBottom: '3px solid #2563eb', borderLeft: '3px solid #2563eb', borderBottomLeftRadius: '6px' }} />
+            <div style={{ position: 'absolute', bottom: '5px', right: '5px', width: '16px', height: '16px', borderBottom: '3px solid #2563eb', borderRight: '3px solid #2563eb', borderBottomRightRadius: '6px' }} />
 
-            {loading && !qrToken ? (
+            {loading && !qrDataUrl ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#2563eb', fontSize: '0.82rem', fontWeight: 600 }}>
                 <RefreshCw size={24} className="spin-anim" />
-                <span>Generating Live Pass...</span>
+                <span>Generating Instant QR...</span>
               </div>
-            ) : qrToken && qrUrl ? (
+            ) : qrDataUrl ? (
               <img
-                src={qrUrl}
+                src={qrDataUrl}
                 alt="Attendance QR Pass"
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'contain',
                   borderRadius: '8px',
-                  opacity: loading ? 0.6 : 1,
-                  imageRendering: 'crisp-edges'
+                  display: 'block'
                 }}
               />
             ) : (
@@ -243,10 +271,10 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
           </div>
 
           {/* Dynamic Auto-Refresh Progress Indicator */}
-          <div style={{ width: '240px', marginTop: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+          <div style={{ width: '230px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
                 <span>Live Encrypted QR</span>
               </span>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: countdown <= 10 ? '#dc2626' : '#2563eb' }}>
@@ -264,9 +292,11 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
                 }}
               />
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
-              Aim at kiosk camera or show to teacher for touchless check-in
-            </div>
+          </div>
+
+          {/* Clean Instruction Text with No Overlap */}
+          <div style={{ fontSize: '0.72rem', color: '#64748b', textAlign: 'center', marginTop: '8px', lineHeight: 1.3 }}>
+            Aim at kiosk camera or show to teacher for touchless check-in
           </div>
         </div>
 
@@ -279,7 +309,9 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '8px',
-            textAlign: 'center'
+            textAlign: 'center',
+            marginTop: 'auto',
+            flexShrink: 0
           }}
         >
           <div>

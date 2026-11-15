@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import NotificationSettingsModal from './NotificationSettingsModal';
 import { notificationApi } from '../api/notificationApi.js';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
 
 export default function NotificationDrawerModal({
   isOpen,
@@ -13,6 +14,7 @@ export default function NotificationDrawerModal({
   onNotificationClick = () => {},
   playCyberSound = () => {}
 }) {
+  useBodyScrollLock(isOpen);
   const [notifications, setNotifications] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_realtime_notifications');

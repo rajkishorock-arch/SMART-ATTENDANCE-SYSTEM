@@ -6,6 +6,7 @@ import {
 import { getApiBaseUrl } from '../utils/platform';
 import { generateDisputePdf } from '../utils/disputePdfGenerator';
 import { disputeApi } from '../api/disputeApi';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -33,6 +34,7 @@ export default function AttendanceDisputeModal({
   playCyberSound = () => {},
   API_BASE_URL: customApiBaseUrl
 }) {
+  useBodyScrollLock(isOpen);
   const resolveApiUrl = () => {
     let url = customApiBaseUrl || API_BASE_URL || getApiBaseUrl();
     if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http:')) {
