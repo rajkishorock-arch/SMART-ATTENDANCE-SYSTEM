@@ -829,13 +829,10 @@ export default function StudentAttendanceDashboardView({
     {
       id: 'wallet',
       title: 'Attendance Wallet & Streaks',
-      subtitle: 'Earn credits, track attendance streaks, and rewards',
+      subtitle: 'Track your attendance records and course passes',
       icon: Award,
       iconColor: '#ec4899',
       iconBg: '#fdf2f8',
-      badge: 'Credits',
-      badgeColor: '#db2777',
-      badgeBg: '#fdf2f8',
     },
     {
       id: 'geofence',
@@ -955,20 +952,9 @@ export default function StudentAttendanceDashboardView({
                 </div>
               </div>
 
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '3px 10px',
-                borderRadius: '999px',
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                color: '#15803d',
-                fontSize: '0.7rem',
-                fontWeight: 700
-              }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
-                <span>Active & Verified</span>
+              <div style={{ color: '#2563eb', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
+                <QrCode size={18} />
+                <span>Show QR</span>
               </div>
             </div>
 
@@ -1460,11 +1446,10 @@ export default function StudentAttendanceDashboardView({
         </div>
       )}
 
-      {/* ===== 7. DEDICATED SECTION: WALLET & GAMIFICATION ===== */}
+      {/* ===== 7. DEDICATED SECTION: WALLET ===== */}
       {activeSection === 'wallet' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} subjects={subjects} />
-          <GamificationHub logs={studentLogs} />
         </div>
       )}
 

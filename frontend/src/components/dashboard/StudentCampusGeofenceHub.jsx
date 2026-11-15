@@ -177,18 +177,14 @@ export default function StudentCampusGeofenceHub({
           </div>
 
           <div style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '5px 12px',
-            borderRadius: '999px',
-            background: isInside ? '#f0fdf4' : '#fff1f2',
-            border: `1px solid ${isInside ? '#86efac' : '#fecdd3'}`,
             color: isInside ? '#15803d' : '#be123c',
-            fontSize: '0.76rem',
-            fontWeight: 800
+            fontSize: '0.84rem',
+            fontWeight: 700
           }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isInside ? '#16a34a' : '#e11d48', display: 'inline-block' }} />
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isInside ? '#16a34a' : '#e11d48', display: 'inline-block' }} />
             <span>{isInside ? 'Perimeter Verified' : 'Out of Bounds'}</span>
           </div>
         </div>
@@ -307,16 +303,12 @@ export default function StudentCampusGeofenceHub({
                 </div>
 
                 <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  padding: '3px 8px',
-                  borderRadius: '999px',
-                  background: inRange ? '#dcfce7' : '#f1f5f9',
-                  color: inRange ? '#15803d' : '#64748b',
-                  border: `1px solid ${inRange ? '#86efac' : '#cbd5e1'}`,
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  color: inRange ? '#16a34a' : '#64748b',
                   flexShrink: 0
                 }}>
-                  {inRange ? 'In Range' : 'Checked'}
+                  {inRange ? 'In Range' : 'Outside'}
                 </span>
               </div>
             );

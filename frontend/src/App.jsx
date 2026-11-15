@@ -863,7 +863,7 @@ export default function App() {
 
   // Fetch premium + subscription status
   useEffect(() => {
-    if (!token) return;
+    if (!token || userRole === 'student') return;
     systemApi.fetchPremiumStatus(token)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -4905,7 +4905,9 @@ export default function App() {
         console.warn('Blueprint fetch returned status:', res.status);
       }
     } catch (err) {
-      console.error('Blueprint fetch error:', err);
+      if (err.name !== 'AbortError') {
+        console.warn('Blueprint fetch error:', err);
+      }
     } finally {
       setBlueprintLoading(false);
     }
