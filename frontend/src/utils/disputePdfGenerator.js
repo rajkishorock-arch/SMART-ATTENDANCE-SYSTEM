@@ -1,13 +1,18 @@
-import jsPDF from 'jspdf';
-
 /**
  * Generate an official, structured Attendance Dispute & Correction Summary PDF Document.
  * @param {Object} dispute Attendance dispute object
  * @param {string} instName Institution name fallback
  */
-export function generateDisputePdf(dispute, instName = 'SMART ATTENDANCE SYSTEM') {
+export async function generateDisputePdf(dispute, instName = 'SMART ATTENDANCE SYSTEM') {
   if (!dispute) return;
 
+  let jsPDF;
+  try {
+    ({ jsPDF } = await import('jspdf'));
+  } catch {
+    window.alert('The PDF tool could not load. Check your connection and try again.');
+    return;
+  }
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

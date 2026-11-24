@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Bell, CheckCircle2, AlertCircle, Clock, X, ShieldAlert,
   Calendar, CheckCheck, Sliders, Trash2, Megaphone
@@ -15,53 +15,32 @@ export default function NotificationDrawerModal({
   playCyberSound = () => {}
 }) {
   useBodyScrollLock(isOpen);
-  const [notifications, setNotifications] = useState(() => {
-    try {
-      const cached = localStorage.getItem('cached_realtime_notifications');
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [notifications, setNotifications] = useState([]);
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
-  const fetchNotifications = useCallback(async () => {
-    if (!token) return;
-    if (notifications.length === 0) setIsLoading(true);
-    try {
-      const res = await notificationApi.fetchMyNotifications(token, 50);
-      if (res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
-        setNotifications(list);
-        try {
-          localStorage.setItem('cached_realtime_notifications', JSON.stringify(list));
-        } catch { /* ignore fallback error */ }
-      }
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, notifications.length]);
-
+  const [loadError, setLoadError] = useState('');
   useEffect(() => {
-    let ignore = false;
-    if (isOpen) {
-      const load = async () => {
-        await Promise.resolve();
-        if (!ignore) {
-          await fetchNotifications();
-        }
-      };
-      load();
+    if (!isOpen || !token) return;
+    let active = true;
+    async function refresh() {
+      setIsLoading(true);
+      setLoadError('');
+      try {
+        const response = await notificationApi.fetchMyNotifications(token, 50);
+        if (!response.ok) throw new Error();
+        const entries = await response.json();
+        if (active) setNotifications(entries);
+      } catch {
+        if (active) setLoadError('Notifications could not load. Reopen this panel to retry.');
+      } finally {
+        if (active) setIsLoading(false);
+      }
     }
-    return () => {
-      ignore = true;
-    };
-  }, [isOpen, fetchNotifications]);
+    refresh();
+    return () => { active = false; };
+  }, [isOpen, token]);
 
   const handleMarkAllRead = async () => {
     if (!token) return;
@@ -82,7 +61,11 @@ export default function NotificationDrawerModal({
     if (!token) return;
     playCyberSound('click');
     try {
-      await notificationApi.deleteNotification(token, id);
+      const response = await notificationApi.deleteNotification(token, id);
+      if (!response.ok) {
+        setLoadError('Could not delete this notification. Please try again.');
+        return;
+      }
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) {
       console.error(err);
@@ -93,8 +76,8 @@ export default function NotificationDrawerModal({
     playCyberSound('click');
     if (!notif.is_read) {
       try {
-        await notificationApi.markNotificationRead(token, notif.id);
-        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+        const response = await notificationApi.markNotificationRead(token, notif.id);
+        if (response.ok) setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
       } catch { /* ignore fallback error */ }
     }
     const cat = String(notif?.category || '').toUpperCase();
@@ -247,6 +230,7 @@ export default function NotificationDrawerModal({
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {loadError && <p role="alert">{loadError}</p>}
           {/* Drawer Header */}
           <div style={{
             padding: '20px 24px',
@@ -451,7 +435,7 @@ export default function NotificationDrawerModal({
                   </div>
                 ))}
               </div>
-            ) : filteredNotifications.length === 0 ? (
+            ) : loadError && filteredNotifications.length === 0 ? null : filteredNotifications.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
                 <Bell size={32} style={{ margin: '0 auto 10px auto', opacity: 0.4 }} />
                 <p style={{ margin: 0, fontSize: '0.88rem', color: '#0f172a', fontWeight: 600 }}>No Notifications</p>

@@ -344,6 +344,7 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
             raise credentials_exception
         parent = db.query(models.ParentAccount).filter(
             models.ParentAccount.email == email,
+            models.ParentAccount.institution_id == institution_id,
             models.ParentAccount.student_id == jwt_student_id,
         ).first()
         if not parent:

@@ -46,7 +46,7 @@ class InstitutionVectorIndex:
         Query the index with a target face embedding vector.
         Returns top_k matches as list of (student_dict, similarity_score).
         """
-        if not self.is_built or self.matrix is None or len(self.students) == 0:
+        if top_k <= 0 or not self.is_built or self.matrix is None or len(self.students) == 0:
             return []
 
         # Ensure target is flat and normalized
@@ -55,8 +55,9 @@ class InstitutionVectorIndex:
         if norm > 1e-9:
             v = v / norm
 
-        # BLAS matrix-vector product: shape (N,)
-        scores = np.dot(self.matrix, v)
+        # Small rosters fit in cache; avoid starting a BLAS thread pool per scan.
+        scores = (np.einsum("ij,j->i", self.matrix, v) if len(self.students) < 500
+                  else np.dot(self.matrix, v))
 
         if top_k == 1:
             best_idx = int(np.argmax(scores))

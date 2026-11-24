@@ -395,7 +395,7 @@ export default function AdminTeacherDashboardView({
                 {/* Pending Review & Attention Center */}
                 <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Operations & Review Center
+                    Requests to review
                   </span>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -456,7 +456,7 @@ export default function AdminTeacherDashboardView({
                 {/* Secondary Analytics Directory Hub */}
                 <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Analytics & Diagnostics Hub
+                    Reports and system health
                   </span>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <button
@@ -557,7 +557,7 @@ export default function AdminTeacherDashboardView({
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                        Attendance Metrics & Live Telemetry
+                        Attendance overview
                       </h3>
                       <span style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
                         REALTIME
@@ -573,7 +573,7 @@ export default function AdminTeacherDashboardView({
                       Attendance Rate: {stats?.average_attendance_rate || 0}%
                     </span>
                     <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#eff6ff', color: '#1e40af', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #bfdbfe' }}>
-                      Active Users: {activeTelemetry?.total_active || 1}
+                      Active Users: {activeTelemetry?.total_active ?? '—'}
                     </span>
                   </div>
                 </div>
@@ -659,7 +659,7 @@ export default function AdminTeacherDashboardView({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#059669', boxShadow: '0 0 10px rgba(5, 150, 105, 0.4)' }} />
                       <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                        Active Role Telemetry & Connections
+                        Users online
                       </h4>
                     </div>
                     <span style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>
@@ -670,19 +670,19 @@ export default function AdminTeacherDashboardView({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
                     <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>TOTAL ACTIVE USERS</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e40af' }}>{activeTelemetry?.total_active || (stats?.total_present_today > 0 ? stats.total_present_today + 1 : 1)}</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e40af' }}>{activeTelemetry?.total_active ?? '—'}</span>
                     </div>
                     <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>STUDENTS ONLINE</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669' }}>{activeTelemetry?.students || stats?.total_present_today || 0}</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669' }}>{activeTelemetry?.students ?? '—'}</span>
                     </div>
                     <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>TEACHERS ONLINE</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#d97706' }}>{activeTelemetry?.teachers || 1}</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#d97706' }}>{activeTelemetry?.teachers ?? '—'}</span>
                     </div>
                     <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>ADMINISTRATORS</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7c3aed' }}>{activeTelemetry?.admins || 1}</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7c3aed' }}>{activeTelemetry?.admins ?? '—'}</span>
                     </div>
                   </div>
                 </div>

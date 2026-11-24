@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Request, Body
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from typing import List, Optional, Any, Dict
 import cv2
 import numpy as np
@@ -55,8 +55,8 @@ def get_attendance_logs(
         ).all()
         subject_ids = [s.id for s in teacher_subjects] if teacher_subjects else None
         teacher_depts = [s.department for s in teacher_subjects if s.department]
-        if current_user.subject_department and current_user.subject_department not in teacher_depts:
-            teacher_depts.append(current_user.subject_department)
+        if current_user.department and current_user.department not in teacher_depts:
+            teacher_depts.append(current_user.department)
         if not teacher_depts:
             teacher_depts = None
             
@@ -153,8 +153,8 @@ def get_dashboard_stats(
             models.Subject.institution_id == current_user.institution_id
         ).all()
         teacher_depts = [s.department for s in teacher_subjects if s.department]
-        if current_user.subject_department and current_user.subject_department not in teacher_depts:
-            teacher_depts.append(current_user.subject_department)
+        if current_user.department and current_user.department not in teacher_depts:
+            teacher_depts.append(current_user.department)
         teacher_sub_ids = [s.id for s in teacher_subjects] if teacher_subjects else None
         
         result = crud.get_dashboard_stats(

@@ -53,3 +53,4 @@ Thumbs.db
 frontend/android/app/release.keystore
 keystore_base64.txt
 scratch/
+.venv-verify/

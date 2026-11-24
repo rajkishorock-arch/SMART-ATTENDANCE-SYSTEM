@@ -3244,7 +3244,7 @@ export default function App() {
             time: timeStr,
             clockTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
             date: dateStr,
-            period: sessionActive ? sessionPeriod : (effectivePeriod || null),
+            period: sessionActive ? sessionPeriod : resolvePeriodName(),
             subject_name: matchedSubject ? `${matchedSubject.name} (${matchedSubject.code})` : (effectiveSubId ? `Subject #${effectiveSubId}` : null),
             confidence: confidence,
             streak_days: matched.streak_days || 1,
@@ -5988,9 +5988,7 @@ export default function App() {
       setStudents([]);
       setTeachers([]);
       setLogs([]);
-      setTodayLogs([]);
       setStudentLogs([]);
-      setStudentAttendanceSummary(null);
       setStudentSubjectStats({});
       setBlueprintData([]);
       setActiveDashboardSubTab(null);
@@ -10502,6 +10500,7 @@ export default function App() {
 
       {/* Real-time Role Notification Drawer Modal */}
       <NotificationDrawerModal
+        key={token}
         isOpen={showNotificationDrawer}
         onClose={() => setShowNotificationDrawer(false)}
         token={token}
@@ -10542,7 +10541,7 @@ export default function App() {
       {token && userRole !== 'student' && activeTab !== 'control' && activeTab !== 'all-features' && (
         <QuickActionsDock
           onScan={() => { setActiveTab('attendance'); playCyberSound('click'); }}
-          onManual={() => { setShowManualAttendanceModal(true); playCyberSound('click'); }}
+          onManual={() => { setIsManualAttendanceOpen(true); playCyberSound('click'); }}
           onReport={() => { setActiveTab('reports'); playCyberSound('click'); }}
           onNotify={() => {
             if (userRole === 'admin') {

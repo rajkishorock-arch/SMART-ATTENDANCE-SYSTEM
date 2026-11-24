@@ -779,7 +779,7 @@ export default function StudentAttendanceDashboardView({
   const hubSections = [
     {
       id: 'broadcast',
-      title: 'Campus Notices & Official Circulars',
+      title: 'Campus notices',
       subtitle: 'Official academic circulars, emergency announcements & PDF notices',
       icon: Megaphone,
       iconColor: '#2563eb',
@@ -796,8 +796,8 @@ export default function StudentAttendanceDashboardView({
     },
     {
       id: 'blueprint',
-      title: 'Attendance Blueprint Calendar',
-      subtitle: 'Monthly attendance matrix & daily log details',
+      title: 'Attendance calendar',
+      subtitle: 'Select a day to see your attendance.',
       icon: Calendar,
       iconColor: '#7c3aed',
       iconBg: '#f5f3ff',

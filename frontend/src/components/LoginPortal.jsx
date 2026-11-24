@@ -268,99 +268,16 @@ export default function LoginPortal({
         className="auth-card-motion"
         style={{
           width: '100%',
-          maxWidth: isRegister ? '520px' : '960px',
+          maxWidth: '480px',
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '24px',
           boxShadow: '0 20px 50px rgba(15, 23, 42, 0.08)',
           overflow: 'hidden',
           display: 'grid',
-          gridTemplateColumns: (!isRegister && window.innerWidth >= 860) ? '1fr 1fr' : '1fr',
-          transition: 'all 0.3s ease-in-out'
+          gridTemplateColumns: '1fr'
         }}
       >
-        {/* Left Branding Showcase Column (Desktop Only for Login) */}
-        {!isRegister && window.innerWidth >= 860 && (
-          <div style={{
-            background: '#f8fafc',
-            borderRight: '1px solid #e2e8f0',
-            padding: '48px 40px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            position: 'relative'
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-                <div style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 8px 20px rgba(14, 165, 233, 0.3)'
-                }}>
-                  <ShieldCheck size={24} color="#ffffff" />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-                    SMART ATTENDANCE
-                  </h2>
-                  <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0' }}>
-                    Next-Gen Institutional Attendance & LMS
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '40px' }}>
-                {[
-                  { title: 'Sub-Millisecond Face Verification', desc: 'AI-powered instant multi-face detection & liveness check.', icon: Sparkles },
-                  { title: 'Role Isolation & Data Privacy', desc: 'Secure student, teacher, and administrative workspace portals.', icon: ShieldCheck },
-                  { title: 'Offline Attendance Queue & Auto-Sync', desc: 'Continuous camera check-in even without active internet.', icon: CheckCircle2 }
-                ].map((feature, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: '#e0f2fe',
-                      border: '1px solid #bae6fd',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: '2px'
-                    }}>
-                      <feature.icon size={16} color="#0284c7" />
-                    </div>
-                    <div>
-                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                        {feature.title}
-                      </h4>
-                      <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '4px 0 0', lineHeight: 1.4 }}>
-                        {feature.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{
-              padding: '16px',
-              borderRadius: '12px',
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              fontSize: '0.75rem',
-              color: '#64748b'
-            }}>
-              Protected by Enterprise Geofencing & AES-256 Biometric Vector Encryption.
-            </div>
-          </div>
-        )}
-
         {/* Form Column */}
         <div style={{
           padding: 'clamp(20px, 4vw, 40px) clamp(14px, 3.5vw, 36px)',
@@ -373,7 +290,7 @@ export default function LoginPortal({
         }}>
           
           {/* Header Mobile Brand */}
-          {(isRegister || window.innerWidth < 860) && (
+          {(
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
               <div style={{
                 width: '36px',
@@ -440,7 +357,7 @@ export default function LoginPortal({
                   cursor: 'pointer'
                 }}
               >
-                Wake Now
+                Reconnect
               </button>
             </div>
           )}
@@ -521,7 +438,7 @@ export default function LoginPortal({
                   <span style={{ color: '#0f172a', fontWeight: 700 }}>{regSuccessData.institution_name}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                  <span style={{ color: '#64748b', fontWeight: 600 }}>Portal Code / Slug:</span>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Institution code:</span>
                   <span style={{ color: '#0284c7', fontWeight: 800, fontFamily: 'monospace' }}>{regSuccessData.institution_code}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>

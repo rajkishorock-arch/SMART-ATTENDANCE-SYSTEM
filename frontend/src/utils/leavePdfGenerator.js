@@ -1,5 +1,3 @@
-import { jsPDF } from 'jspdf';
-
 export function parseSafeUtcDate(dateStr) {
   if (!dateStr) return null;
   if (dateStr instanceof Date) return dateStr;
@@ -33,9 +31,16 @@ export function formatDateTimeIST(dateStr) {
  * @param {Object} req Leave request object
  * @param {string} instName Institution name
  */
-export function generateLeavePdf(req, instName = 'SMART ATTENDANCE SYSTEM') {
+export async function generateLeavePdf(req, instName = 'SMART ATTENDANCE SYSTEM') {
   if (!req) return;
 
+  let jsPDF;
+  try {
+    ({ jsPDF } = await import('jspdf'));
+  } catch {
+    window.alert('The PDF tool could not load. Check your connection and try again.');
+    return;
+  }
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

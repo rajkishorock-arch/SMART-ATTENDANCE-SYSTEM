@@ -25,6 +25,7 @@ class AuthIdentity:
         self.name = name
         self.institution_id = institution_id
         self.model = model_instance
+        self.model_instance = model_instance
         self.is_department_head = getattr(model_instance, "is_department_head", False)
         self.department = getattr(model_instance, "department", None) or getattr(model_instance, "dep", None)
 

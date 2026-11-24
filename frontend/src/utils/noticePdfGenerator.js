@@ -1,5 +1,3 @@
-import { jsPDF } from 'jspdf';
-
 /**
  * Formats a date string into formal Indian academic format (e.g. "14th November, 2026")
  */
@@ -30,9 +28,16 @@ function formatFormalAcademicDate(dateStr) {
  * @param {Object} notice Notice object with title, message, category, created_at, target_roles, id
  * @param {string} instName Registered Institution Name
  */
-export function generateNoticePdf(notice, instName = 'SMART ATTENDANCE INSTITUTION') {
+export async function generateNoticePdf(notice, instName = 'SMART ATTENDANCE INSTITUTION') {
   if (!notice) return;
 
+  let jsPDF;
+  try {
+    ({ jsPDF } = await import('jspdf'));
+  } catch {
+    window.alert('The PDF tool could not load. Check your connection and try again.');
+    return;
+  }
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
