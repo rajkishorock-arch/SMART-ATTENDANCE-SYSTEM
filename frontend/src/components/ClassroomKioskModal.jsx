@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, ShieldCheck, Lock, CheckCircle2, User, RefreshCw, X, Radio, Volume2, WifiOff } from 'lucide-react';
+import './ClassroomKiosk.css';
+import { Lock, Camera } from 'lucide-react';
 import { enterpriseApi } from '../api/enterpriseApi';
-import { addToOfflineQueue, syncOfflineQueue } from '../utils/offlineQueue';
+import { addToOfflineQueue } from '../utils/offlineQueue';
 
 export default function ClassroomKioskModal({
   isOpen,
@@ -75,6 +76,7 @@ export default function ClassroomKioskModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    let cancelled = false;
     let activeStream = null;
 
     const startCamera = async () => {
@@ -86,6 +88,7 @@ export default function ClassroomKioskModal({
             height: { ideal: 720 }
           }
         });
+        if (cancelled) { stream.getTracks().forEach(track => track.stop()); return; }
         activeStream = stream;
         streamRef.current = stream;
         if (videoRef.current) {
@@ -101,6 +104,7 @@ export default function ClassroomKioskModal({
     startCamera();
 
     return () => {
+      cancelled = true;
       if (activeStream) {
         activeStream.getTracks().forEach(t => t.stop());
       }
@@ -128,12 +132,12 @@ export default function ClassroomKioskModal({
   // Successful Student Recognition
   const handleStudentVerified = useCallback((studentData) => {
     setActiveStudent(studentData);
-    setScanStatus(`Verified: ${studentData.name}`);
+    setScanStatus(studentData.newly_marked === false ? 'Already checked in' : 'Attendance recorded');
     playCyberSound('success');
     speakGreeting(studentData.name);
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
-    if (onStudentCheckedIn) {
+    if (onStudentCheckedIn && studentData.newly_marked !== false) {
       onStudentCheckedIn(studentData);
     }
     addDiagnosticLog?.(`KIOSK VERIFIED: ${studentData.name} (${studentData.roll}) marked Present.`);
@@ -148,7 +152,7 @@ export default function ClassroomKioskModal({
 
   // Facial Recognition Loop (Captures Blob via FormData)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || showExitPinModal) return;
 
     const tick = (timestamp) => {
       if (
@@ -159,7 +163,7 @@ export default function ClassroomKioskModal({
         videoRef.current.videoWidth > 0
       ) {
         // Run recognition tick every 1000ms
-        if (timestamp - lastCaptureTimeRef.current >= 1000) {
+        if (timestamp - lastCaptureTimeRef.current >= 2100) {
           lastCaptureTimeRef.current = timestamp;
 
           try {
@@ -169,8 +173,8 @@ export default function ClassroomKioskModal({
               const ctx = canvas.getContext('2d');
               const targetW = 640;
               const targetH = Math.round((video.videoHeight / video.videoWidth) * targetW) || 480;
-              canvas.width = targetW;
-              canvas.height = targetH;
+              if (canvas.width !== targetW) canvas.width = targetW;
+              if (canvas.height !== targetH) canvas.height = targetH;
               ctx.drawImage(video, 0, 0, targetW, targetH);
 
               canvas.toBlob(async (blob) => {
@@ -189,7 +193,8 @@ export default function ClassroomKioskModal({
                   });
 
                   if (data && data.results && data.results.length > 0) {
-                    const match = data.results[0];
+                    const match = data.results.find(item => !item.staged_for_review);
+                    if (!match) { setScanStatus('Match needs staff review.'); return; }
                     handleStudentVerified({
                       id: match.user_id || match.student_id,
                       name: match.name,
@@ -200,9 +205,12 @@ export default function ClassroomKioskModal({
                       streak_days: match.streak_days || 1,
                       newly_marked: match.newly_marked !== false,
                     });
+                  } else {
+                    setScanStatus('No match yet. Face the camera in good light.');
                   }
                 } catch (apiErr) {
-                  // Network or frame error - continue gracefully
+                  setScanStatus(apiErr.message || 'Connection unavailable. Retrying…');
+                  if (apiErr.status === 429) lastCaptureTimeRef.current = performance.now() + 58000;
                 } finally {
                   isProcessingRef.current = false;
                   setIsProcessing(false);
@@ -222,7 +230,7 @@ export default function ClassroomKioskModal({
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [isOpen, activeStudent, selectedSubjectId, sessionDate, sessionPeriod, token, handleStudentVerified]);
+  }, [isOpen, showExitPinModal, activeStudent, selectedSubjectId, sessionDate, sessionPeriod, token, handleStudentVerified]);
 
   // RFID / Card Tap Handler (Supports Offline Queue)
   const handleRfidSubmit = async (e) => {
@@ -241,15 +249,7 @@ export default function ClassroomKioskModal({
           timestamp: new Date().toISOString()
         });
         setRfidInput('');
-        handleStudentVerified({
-          name: `Roll ${clean}`,
-          roll: clean,
-          department: 'Queued Offline (Local)',
-          time: new Date().toLocaleTimeString(),
-          photo: null,
-          streak_days: 1,
-          newly_marked: true
-        });
+        setScanStatus('Card saved on this device. Sync pending.');
         addDiagnosticLog?.(`OFFLINE QUEUE: Roll ${clean} saved to local storage.`);
         return;
       }
@@ -280,15 +280,7 @@ export default function ClassroomKioskModal({
           timestamp: new Date().toISOString()
         });
         setRfidInput('');
-        handleStudentVerified({
-          name: `Roll ${clean}`,
-          roll: clean,
-          department: 'Queued Offline (Network Drop)',
-          time: new Date().toLocaleTimeString(),
-          photo: null,
-          streak_days: 1,
-          newly_marked: true
-        });
+        setScanStatus('Card saved on this device. Sync pending.');
         return;
       }
       playCyberSound('error');
@@ -318,306 +310,19 @@ export default function ClassroomKioskModal({
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: '#0a0f1d',
-      zIndex: 99999,
-      display: 'flex',
-      flexDirection: 'column',
-      color: '#ffffff',
-      overflow: 'hidden',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      {/* Hidden processing canvas */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-      {/* Hidden RFID Input Wedge */}
-      <form onSubmit={handleRfidSubmit} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
-        <input
-          ref={rfidInputRef}
-          type="text"
-          value={rfidInput}
-          onChange={(e) => setRfidInput(e.target.value)}
-          autoFocus
-        />
-      </form>
-
-      {/* Top Kiosk Bar (Responsive for Mobile & Desktop) */}
-      <header style={{
-        padding: '12px 16px',
-        background: 'rgba(15, 23, 42, 0.95)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '8px 12px',
-        backdropFilter: 'blur(10px)',
-        zIndex: 10
-      }}>
-        {/* Institution Info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #61471e, #916d30)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.1rem',
-            fontWeight: 900,
-            flexShrink: 0
-          }}>
-            🏛️
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <h2 style={{
-              margin: 0,
-              fontSize: '0.95rem',
-              fontWeight: 800,
-              letterSpacing: '0.01em',
-              color: '#ffffff',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '220px'
-            }}>
-              {kioskConfig?.institution_name || 'Academic Institution'}
-            </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
-              <span>{sessionPeriod || 'Active Slot'}</span>
-              <span>•</span>
-              <span style={{ color: '#38bdf8', fontWeight: 600 }}>AI Kiosk Mode</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Digital Clock & Exit Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            fontSize: '0.9rem',
-            fontWeight: 800,
-            fontFamily: 'monospace',
-            letterSpacing: '0.04em',
-            color: '#38bdf8',
-            whiteSpace: 'nowrap'
-          }}>
-            {clock}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowExitPinModal(true)}
-            style={{
-              background: 'rgba(239, 68, 68, 0.2)',
-              border: '1px solid rgba(239, 68, 68, 0.5)',
-              color: '#fca5a5',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-          >
-            <Lock size={13} /> Exit
-          </button>
-        </div>
-      </header>
-
-      {/* Main Kiosk Viewport (Full Coverage on Mobile & Desktop) */}
-      <main style={{
-        flex: 1,
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        minHeight: 0,
-        overflow: 'hidden',
-        background: '#030712'
-      }}>
-        {/* Full Viewport Video */}
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            transform: 'scaleX(-1)' // Mirror image for natural user interaction
-          }}
-        />
-
-        {/* Holographic Face Guide (Centered & Responsively Sized) */}
-        {!activeStudent && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 'min(280px, 72vw)',
-            height: 'min(380px, 50vh)',
-            borderRadius: '50%',
-            border: '3px solid rgba(56, 189, 248, 0.75)',
-            boxShadow: '0 0 35px rgba(56, 189, 248, 0.35), inset 0 0 25px rgba(56, 189, 248, 0.2)',
-            pointerEvents: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {/* Animated Laser Scanning Beam */}
-            <div style={{
-              position: 'absolute',
-              top: '20%',
-              width: '80%',
-              height: '3px',
-              background: 'linear-gradient(to right, transparent, #38bdf8, transparent)',
-              boxShadow: '0 0 15px #38bdf8',
-              animation: 'kioskLaser 2.2s infinite ease-in-out'
-            }} />
-          </div>
-        )}
-
-        {/* Bottom Status Notification Pill */}
-        <div style={{
-          position: 'absolute',
-          bottom: '24px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 'max-content',
-          maxWidth: '92vw',
-          background: 'rgba(15, 23, 42, 0.9)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          padding: '10px 20px',
-          borderRadius: '999px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
-          zIndex: 5,
-          boxSizing: 'border-box'
-        }}>
-          <div style={{
-            width: '10px',
-            height: '100%',
-            minWidth: '10px',
-            minHeight: '10px',
-            borderRadius: '50%',
-            background: activeStudent ? '#10b981' : (isProcessing ? '#eab308' : '#38bdf8'),
-            boxShadow: `0 0 10px ${activeStudent ? '#10b981' : (isProcessing ? '#eab308' : '#38bdf8')}`,
-            flexShrink: 0
-          }} />
-          <span style={{
-            fontSize: '0.88rem',
-            fontWeight: 700,
-            color: '#faf9f6',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}>
-            {isProcessing ? 'Verifying facial signature...' : scanStatus}
-          </span>
-        </div>
-
-        {/* Student Verification Splash Modal (Full Pop-up on match) */}
-        {activeStudent && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.88)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 20,
-            padding: '16px',
-            animation: 'fadeInUp 0.3s ease'
-          }}>
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '24px',
-              padding: '32px 24px',
-              maxWidth: '440px',
-              width: '100%',
-              textAlign: 'center',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
-              border: '2px solid #86efac'
-            }}>
-              <div style={{
-                width: '84px',
-                height: '84px',
-                borderRadius: '50%',
-                background: '#f0fdf4',
-                border: '4px solid #10b981',
-                margin: '0 auto 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden'
-              }}>
-                {activeStudent.photo ? (
-                  <img src={activeStudent.photo} alt={activeStudent.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <User size={44} color="#059669" />
-                )}
-              </div>
-
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: '#dcfce7',
-                color: '#15803d',
-                padding: '4px 14px',
-                borderRadius: '999px',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                marginBottom: '10px'
-              }}>
-                <CheckCircle2 size={15} /> ATTENDANCE RECORDED
-              </div>
-
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#064e3b', margin: '0 0 6px' }}>
-                {activeStudent.name}
-              </h2>
-
-              <p style={{ color: '#047857', fontSize: '0.92rem', fontWeight: 600, margin: '0 0 16px' }}>
-                Roll: {activeStudent.roll} • {activeStudent.department}
-              </p>
-
-              <div style={{
-                background: '#faf9f6',
-                borderRadius: '12px',
-                padding: '12px',
-                border: '1px solid #e4dfd5',
-                display: 'flex',
-                justifyContent: 'space-around',
-                fontSize: '0.85rem',
-                color: '#58534a'
-              }}>
-                <span>Time: <strong>{activeStudent.time}</strong></span>
-                <span>Streak: <strong>🔥 {activeStudent.streak_days || 1} Days</strong></span>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Staff Exit Passcode PIN Modal */}
+    <div className="class-kiosk" role="dialog" aria-modal="true" aria-label="Classroom check-in">
+      <header><div><small>{kioskConfig?.institution_name || currentUser?.institution_name}</small><h2>Classroom check-in</h2></div>
+        <button onClick={() => setShowExitPinModal(true)}><Lock size={16}/> Exit</button></header>
+      <div className="class-kiosk-body">
+        <div className="class-kiosk-preview"><video ref={videoRef} autoPlay playsInline muted/><i aria-hidden="true"/><canvas hidden ref={canvasRef}/></div>
+        <section><small>{sessionPeriod} · {clock}</small><h3>Face the camera</h3><p>Stand inside the guide and wait for your name.</p>
+          <div className="class-kiosk-result" role="status"><Camera size={19}/><div><strong>{activeStudent?.name || scanStatus}</strong>
+          {activeStudent && <p>{scanStatus} · {activeStudent.roll}</p>}</div></div>
+          <form onSubmit={handleRfidSubmit}><label htmlFor="kiosk-reader">Card reader</label>
+          <input id="kiosk-reader" ref={rfidInputRef} value={rfidInput} onChange={e => setRfidInput(e.target.value)} placeholder="Tap a registered card" autoComplete="off"/>
+          <button disabled={!rfidInput.trim() || isProcessing}>Check in card</button></form>
+        </section>
+      </div>
       {showExitPinModal && (
         <div style={{
           position: 'fixed',
@@ -722,14 +427,6 @@ export default function ClassroomKioskModal({
         </div>
       )}
 
-      {/* Embedded CSS for Laser Scanning Animation */}
-      <style>{`
-        @keyframes kioskLaser {
-          0% { top: 18%; opacity: 0.3; }
-          50% { top: 78%; opacity: 0.95; }
-          100% { top: 18%; opacity: 0.3; }
-        }
-      `}</style>
     </div>
   );
 }

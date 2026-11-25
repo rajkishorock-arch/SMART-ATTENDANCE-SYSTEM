@@ -44,7 +44,10 @@ export const enterpriseApi = {
     const res = await apiPost(url, formData, { token });
     if (res && typeof res.json === 'function') {
       if (res.ok) return res.json();
-      return null;
+      const body = await res.json().catch(() => ({}));
+      const error = new Error(typeof body.detail === 'string' ? body.detail : 'Frame could not be verified.');
+      error.status = res.status;
+      throw error;
     }
     return res;
   }

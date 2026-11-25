@@ -1,0 +1,15 @@
+.class-kiosk {position:fixed;inset:0;z-index:99999;overflow:auto;background:#f8f5ee;color:#332c23;padding:clamp(10px,2vw,24px);box-sizing:border-box}
+.class-kiosk>header,.class-kiosk-body {max-width:1100px;margin:auto}
+.class-kiosk>header {display:flex;justify-content:space-between;align-items:center;padding:10px 0 16px}
+.class-kiosk h2,.class-kiosk h3 {color:#332c23!important;margin:0}
+.class-kiosk small,.class-kiosk label {font-weight:650;color:#775a2e}
+.class-kiosk button {min-height:44px;border:1px solid #d1bf9c;border-radius:10px;background:#fffaf0;color:#513d1d;padding:8px 14px;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+.class-kiosk-body {display:grid;grid-template-columns:minmax(0,2fr) minmax(220px,1fr);align-items:center;gap:20px}
+.class-kiosk-preview {position:relative;aspect-ratio:4/3;background:#221e19;border-radius:16px;overflow:hidden}
+.class-kiosk .class-kiosk-preview video {position:absolute!important;inset:0;width:100%!important;height:100%!important;object-fit:cover;transform:scaleX(-1)}
+.class-kiosk-preview i {position:absolute;inset:12% 30%;border:2px solid #ecd5a2;border-radius:48%;pointer-events:none}
+.class-kiosk-body section {padding:16px;background:#fffdf7;border:1px solid #e5dbc7;border-radius:14px;overflow-wrap:anywhere}
+.class-kiosk-body p {margin:4px 0 12px}
+.class-kiosk-result {display:flex;gap:10px;background:#f3ead6;padding:12px;border-radius:10px;margin:14px 0}
+.class-kiosk form {display:grid;gap:8px}.class-kiosk input {min-height:44px;min-width:0;padding:8px}
+@media(max-width:720px){.class-kiosk-body{grid-template-columns:minmax(0,1fr);gap:10px}.class-kiosk-preview{max-height:48dvh}.class-kiosk-body section{padding:12px}}
