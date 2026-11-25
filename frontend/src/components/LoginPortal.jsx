@@ -255,7 +255,7 @@ export default function LoginPortal({
     <div style={{
       minHeight: '100vh',
       width: '100%',
-      background: '#f1f5f9',
+      background: 'var(--bg-canvas)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -270,8 +270,8 @@ export default function LoginPortal({
           width: '100%',
           maxWidth: '480px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '24px',
+          border: '1px solid var(--border-color)',
+          borderRadius: '20px',
           boxShadow: '0 20px 50px rgba(15, 23, 42, 0.08)',
           overflow: 'hidden',
           display: 'grid',
@@ -296,7 +296,7 @@ export default function LoginPortal({
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                background: 'linear-gradient(145deg, #8a6836, #554020)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -305,7 +305,7 @@ export default function LoginPortal({
               </div>
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  SMART ATTENDANCE
+                  Smart Attendance
                 </h3>
               </div>
             </div>
@@ -313,7 +313,7 @@ export default function LoginPortal({
 
           {/* Login / Register Toggle Header */}
           <div style={{ marginBottom: '24px' }}>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: 'clamp(1.65rem, 4vw, 2rem)', fontWeight: 650, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
               {isRegister ? 'Create Your Account' : 'Welcome back'}
             </h1>
             <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>
@@ -492,7 +492,7 @@ export default function LoginPortal({
                   width: '100%',
                   padding: '11px 16px',
                   borderRadius: '10px',
-                  background: '#0284c7',
+                  background: 'var(--color-primary)',
                   border: 'none',
                   color: '#ffffff',
                   fontSize: '0.88rem',
@@ -552,6 +552,7 @@ export default function LoginPortal({
                   <button
                     key={role.id}
                     type="button"
+                    aria-pressed={loginRole === role.id}
                     onClick={() => setLoginRole(role.id)}
                     style={{
                       width: '100%',
@@ -573,7 +574,7 @@ export default function LoginPortal({
                       minWidth: 0
                     }}
                   >
-                    <role.icon size={15} color={loginRole === role.id ? role.color : '#64748b'} style={{ flexShrink: 0 }} />
+                    <role.icon size={15} color={loginRole === role.id ? 'var(--color-primary)' : '#64748b'} style={{ flexShrink: 0 }} />
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{role.label}</span>
                   </button>
                 ))}
@@ -720,7 +721,7 @@ export default function LoginPortal({
                     width: '100%',
                     padding: '12px 20px',
                     borderRadius: '10px',
-                    background: '#0284c7',
+                    background: 'var(--color-primary)',
                     border: 'none',
                     color: '#ffffff',
                     fontSize: '0.9rem',
@@ -795,7 +796,7 @@ export default function LoginPortal({
                   <span>{regStep === 1 ? 'Personal Details' : regStep === 2 ? (loginRole === 'admin' ? 'Institution Info' : 'Academic Info') : 'Security & Consent'}</span>
                 </div>
                 <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${(regStep / 3) * 100}%`, height: '100%', background: '#0284c7', transition: 'width 0.25s ease' }} />
+                  <div style={{ width: `${(regStep / 3) * 100}%`, height: '100%', background: 'var(--color-primary)', transition: 'width 0.25s ease' }} />
                 </div>
               </div>
 
@@ -815,7 +816,8 @@ export default function LoginPortal({
                         <button
                           key={role.id}
                           type="button"
-                          onClick={() => setLoginRole(role.id)}
+                          aria-pressed={loginRole === role.id}
+                    onClick={() => setLoginRole(role.id)}
                           style={{
                             padding: '10px 6px',
                             borderRadius: '10px',
@@ -904,7 +906,7 @@ export default function LoginPortal({
                       width: '100%',
                       padding: '12px 20px',
                       borderRadius: '10px',
-                      background: '#0284c7',
+                      background: 'var(--color-primary)',
                       border: 'none',
                       color: '#ffffff',
                       fontSize: '0.88rem',
@@ -1144,7 +1146,7 @@ export default function LoginPortal({
                         flex: 2,
                         padding: '12px 20px',
                         borderRadius: '10px',
-                        background: '#0284c7',
+                        background: 'var(--color-primary)',
                         border: 'none',
                         color: '#ffffff',
                         fontSize: '0.88rem',
@@ -1366,7 +1368,7 @@ export default function LoginPortal({
                   type="button"
                   onClick={() => { setShowForgotPasswordModal(false); setForgotSubmitted(false); setForgotEmail(''); }}
                   style={{
-                    padding: '10px 16px', background: '#0284c7', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', marginTop: '4px'
+                    padding: '10px 16px', background: 'var(--color-primary)', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', marginTop: '4px'
                   }}
                 >
                   Return to Sign In
@@ -1399,7 +1401,7 @@ export default function LoginPortal({
                   </button>
                   <button
                     type="submit"
-                    style={{ flex: 1.5, padding: '10px', borderRadius: '8px', background: '#0284c7', border: 'none', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                    style={{ flex: 1.5, padding: '10px', borderRadius: '8px', background: 'var(--color-primary)', border: 'none', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
                   >
                     Request Password Reset
                   </button>
