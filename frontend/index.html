@@ -8,9 +8,8 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="/manifest.json" />
     <title>SMART ATTENDANCE SYSTEM</title>
-    <!-- Mediapipe face mesh libraries for real-time client-side liveness detection (loaded locally for offline support) -->
-    <script src="/mediapipe/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="/mediapipe/face_mesh.js" crossorigin="anonymous"></script>
+    <!-- Load the local liveness library without blocking HTML parsing. -->
+    <script defer src="/mediapipe/face_mesh.js" crossorigin="anonymous"></script>
   </head>
   <body>
     <div id="root"></div>
