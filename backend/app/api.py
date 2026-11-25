@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from .core.campus_policy import check_campus_access
 from . import auth, users, attendance, settings, subjects, health, feedback, chat, institutions, departments
 from . import liveness, bulk_import, analytics, parents, billing, sso, erp, audit_router, enrollment, offline_sync, schedules_auto, premium, interactive, enterprise, extreme, ideas150, features7_router
 from . import leave
@@ -11,7 +12,7 @@ from . import blockchain_ledger, mfa_admin, wellness_score, rewards_system, prox
 from . import age_estimation, task_queue, edge_mode, i18n_support, seating_chart, wearable_api
 from . import offline_face
 
-api_router = APIRouter()
+api_router = APIRouter(dependencies=[Depends(check_campus_access)])
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(attendance.router, prefix="/attendance", tags=["Attendance"])

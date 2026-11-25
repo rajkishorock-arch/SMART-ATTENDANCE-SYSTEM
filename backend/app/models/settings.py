@@ -143,3 +143,12 @@ class LmsSyncJobLog(Base):
 
 
 __all__ = ['SystemSettings', 'Feedback', 'CustomReportConfig', 'SavedReport', 'I18nTranslation', 'TaskQueue', 'LmsIntegrationConfig', 'LmsSyncJobLog']
+
+
+class CampusSecurityPolicy(Base):
+    __tablename__ = "campus_security_policies"
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), primary_key=True)
+    locked = Column(Boolean, nullable=False, default=False)
+    confidence_filter = Column(Boolean, nullable=False, default=False)
+    similarity = Column(Float, nullable=False, default=0.92)
+    blink_ear = Column(Float, nullable=False, default=0.20)

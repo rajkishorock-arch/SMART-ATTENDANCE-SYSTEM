@@ -187,6 +187,8 @@ def update_schema():
                 "Added composite unique key"
             )
         else:
+            if db_dialect == 'postgresql':
+                safe_execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_key", "Dropped legacy users_email_key constraint")
             safe_execute("DROP INDEX IF EXISTS ix_users_email", "Dropped ix_users_email index")
             safe_execute("DROP INDEX IF EXISTS email", "Dropped email index")
             if not constraint_exists("uq_institution_email"):

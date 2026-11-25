@@ -101,9 +101,13 @@ def sync_offline_attendance(
     payload: OfflineSyncRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
+
 ):
     if current_user.role not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Staff only")
+    policy = crud.get_system_settings(db, institution_id=current_user.institution_id)
+    if policy.geofencing_enabled or policy.ip_restriction_enabled or policy.liveness_strict_mode:
+        raise HTTPException(403, "Campus verification requires an online check-in.")
     synced, skipped, errors = 0, 0, []
     for item in payload.items:
         existing_queue = db.query(models.OfflineAttendanceQueue).filter(

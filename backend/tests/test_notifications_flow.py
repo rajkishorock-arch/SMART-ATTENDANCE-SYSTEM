@@ -295,3 +295,57 @@ def test_qr_checkin_branch_and_personal_result(test_db, role):
         assert result["id"] > qr["result_cursor"]
         assert result["title"] == expected
         assert users.latest_qr_result(db, test_db["unrelated_student"]) == {"id": 0}
+
+def test_broadcast_revision_withdrawal_and_personal_dismissal(test_db):
+    from types import SimpleNamespace
+    from app import notifications as notices
+
+    db, admin = test_db["db"], test_db["admin"]
+    student = SimpleNamespace(id=101, email=test_db["student"].email, role="student", institution_id=1)
+    notices.broadcast_announcement(notices.BroadcastPayload(title="Lab", message="Room 4",
+        target_roles=["students", "staff"], effective_date="2026-11-26"), db, admin)
+    history = notices.get_broadcast_history(db=db, current_identity=admin)
+    assert len(history) == 1 and history[0]["effective_date"] == "2026-11-26"
+    item = notices.get_my_notifications(db=db, current_identity=student)[0]
+    notices.delete_notification(item["id"], db, student)
+    assert notices.get_my_notifications(db=db, current_identity=student) == []
+    notices.republish_notice(history[0]["id"], notices.NoticeRevision(title="Lab change",
+        message="Room 5", effective_date="2026-11-27"), db, admin)
+    assert notices.get_my_notifications(db=db, current_identity=student)[0]["message"] == "Room 5"
+    notices.withdraw_notice(history[0]["id"], db, admin)
+    assert notices.get_broadcast_history(db=db, current_identity=admin) == []
+
+
+def test_manual_register_records_only_assigned_students_and_notifies_once(test_db):
+    from app import attendance
+    db = test_db["db"]
+    payload = {"records": [{"student_id": s, "subject_id": 1, "period": "P2",
+        "attendance_status": "Late", "custom_date": "2026-11-25"} for s in (101, 102)]}
+    for _ in range(2):
+        result = attendance.mark_manual_attendance_bulk(payload, db, test_db["teacher"])
+        assert (result["success_count"], result["fail_count"]) == (1, 1)
+    assert db.query(models.AttendanceModel).one().attendance == "Late"
+    assert db.query(models.NotificationModel).one().recipient_id == 101
+
+
+def test_lockdown_and_recovery_are_institution_scoped(test_db):
+    from app.settings import CampusPolicyUpdate, save_campus_policy
+    from app.core.campus_policy import check_campus_access
+    from app.core import config
+    from fastapi import HTTPException
+    from jose import jwt
+    from starlette.requests import Request
+
+    db, admin = test_db["db"], test_db["admin"]
+    def request(inst):
+        token = jwt.encode({"sub": "staff", "institution_id": inst}, config.JWT_SECRET_KEY, algorithm=config.ALGORITHM)
+        return Request({"type":"http", "path":"/api/v1/attendance/manual", "headers":[(b"authorization", f"Bearer {token}".encode())]})
+    with pytest.raises(HTTPException):
+        save_campus_policy(CampusPolicyUpdate(locked=True), test_db["teacher"], db)
+    save_campus_policy(CampusPolicyUpdate(locked=True), admin, db)
+    with pytest.raises(HTTPException) as denied:
+        check_campus_access(request(1), db)
+    assert denied.value.status_code == 423
+    check_campus_access(request(2), db)
+    save_campus_policy(CampusPolicyUpdate(locked=False), admin, db)
+    check_campus_access(request(1), db)

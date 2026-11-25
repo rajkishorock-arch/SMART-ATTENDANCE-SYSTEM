@@ -984,6 +984,7 @@ def add_student(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only teachers or administrators can register new students."
         )
+    crud.validate_department(db, current_user.institution_id, student.dep)
     db_student = crud.get_student_by_id(db, student_id=student.id, institution_id=current_user.institution_id)
     if db_student:
         raise HTTPException(status_code=400, detail=f"Student with ID #{student.id} already exists.")

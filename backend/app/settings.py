@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from pydantic import BaseModel, Field
+from .models.settings import CampusSecurityPolicy
 from sqlalchemy.orm import Session
 import os
 
@@ -33,10 +35,10 @@ def update_system_settings(
     """
     Update system settings (Admins only).
     """
-    if current_user.role not in ["admin", "teacher"]:
+    if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators or teachers can modify security settings."
+            detail="Only administrators can modify security settings."
         )
         
     updated = crud.update_system_settings(db, settings_update, institution_id=current_user.institution_id)
@@ -392,3 +394,40 @@ def toggle_beta_update_active(
         else "🔕 Beta update channel has been deactivated."
     )
     return {"status": "success", "message": msg, "update_beta_active": payload.active}
+
+
+class CampusPolicyUpdate(BaseModel):
+    locked: bool | None = None
+    confidence_filter: bool | None = None
+    similarity: float | None = Field(None, ge=.80, le=.99)
+    blink_ear: float | None = Field(None, ge=.15, le=.30)
+    strict_liveness: bool | None = None
+
+
+@router.get("/campus-policy")
+def get_campus_policy(identity=Depends(security.get_current_identity), db: Session = Depends(get_db)):
+    policy = db.get(CampusSecurityPolicy, identity.institution_id)
+    result = {"locked": bool(policy and policy.locked)}
+    if identity.role in ("admin", "teacher"):
+        settings = crud.get_system_settings(db, institution_id=identity.institution_id)
+        result.update(confidence_filter=bool(policy and policy.confidence_filter),
+                      similarity=policy.similarity if policy else .92, blink_ear=policy.blink_ear if policy else .20,
+                      strict_liveness=bool(settings.liveness_strict_mode))
+    return result
+
+
+@router.put("/campus-policy")
+def save_campus_policy(payload: CampusPolicyUpdate, identity=Depends(security.get_current_identity),
+                       db: Session = Depends(get_db)):
+    if identity.role != "admin":
+        raise HTTPException(403, "Administrator access required.")
+    settings = crud.get_system_settings(db, institution_id=identity.institution_id)
+    policy = db.get(CampusSecurityPolicy, identity.institution_id) or CampusSecurityPolicy(institution_id=identity.institution_id)
+    for key, value in payload.model_dump(exclude_none=True).items():
+        if key == "strict_liveness":
+            settings.liveness_strict_mode = value
+        else:
+            setattr(policy, key, value)
+    db.add(policy)
+    db.commit()
+    return get_campus_policy(identity, db)

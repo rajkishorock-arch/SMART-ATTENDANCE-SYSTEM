@@ -24,8 +24,11 @@ export default function NotificationDrawerModal({
   useEffect(() => {
     if (!isOpen || !token) return;
     let active = true;
-    async function refresh() {
-      setIsLoading(true);
+    let busy = false;
+    async function refresh(initial = false) {
+      if (busy) return;
+      busy = true;
+      if (initial) setIsLoading(true);
       setLoadError('');
       try {
         const response = await notificationApi.fetchMyNotifications(token, 50);
@@ -35,11 +38,13 @@ export default function NotificationDrawerModal({
       } catch {
         if (active) setLoadError('Notifications could not load. Reopen this panel to retry.');
       } finally {
+        busy = false;
         if (active) setIsLoading(false);
       }
     }
-    refresh();
-    return () => { active = false; };
+    refresh(true);
+    const timer = setInterval(() => { if (!document.hidden) refresh(); }, 5000);
+    return () => { active = false; clearInterval(timer); };
   }, [isOpen, token]);
 
   const handleMarkAllRead = async () => {

@@ -73,15 +73,183 @@ def _reset_login_attempts(rate_key: str, client_ip: Optional[str] = None):
         cache_service.rate_limit_reset(user_ip_key)
 
 
+def _resolve_institution_by_code(db: Session, raw_code: str) -> Optional[models.Institution]:
+    """Resolve an institution by slug, master key (case-insensitive), or name."""
+    cleaned = (raw_code or "").strip()
+    lowered = cleaned.lower()
+    if not lowered:
+        return None
+    inst = db.query(models.Institution).filter(
+        (func.lower(models.Institution.slug) == lowered) |
+        (func.lower(models.Institution.master_key) == lowered)
+    ).first()
+    if not inst:
+        inst = db.query(models.Institution).filter(
+            func.lower(models.Institution.name) == lowered
+        ).first()
+    return inst
+
+
+def _verify_student_password(db: Session, student: models.StudentModel, raw_password: str) -> bool:
+    """Verify student password hash or legacy roll-number fallback and persist initial hash."""
+    if not student.password_hash:
+        if config.ALLOW_ROLL_PASSWORD and student.roll and raw_password == student.roll:
+            student.password_hash = security.get_password_hash(raw_password)
+            db.commit()
+            return True
+        return False
+    return bool(security.verify_password(raw_password, student.password_hash))
+
+
+def _issue_user_login_response(
+    db: Session,
+    user: models.User,
+    raw_password: str,
+    rate_key: str,
+    client_ip: Optional[str] = None,
+) -> dict:
+    """Upgrade legacy password hash if needed and build User JWT login response."""
+    if security.needs_rehash(user.password_hash):
+        try:
+            user.password_hash = security.get_password_hash(raw_password)
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    _reset_login_attempts(rate_key, client_ip=client_ip)
+    record_active_user(user.email, user.role)
+    access_token = security.create_access_token(
+        data={"sub": user.email, "role": user.role, "institution_id": user.institution_id}
+    )
+    inst = db.query(models.Institution).filter(models.Institution.id == user.institution_id).first()
+    inst_name = inst.name if inst else "Smart Attendance System"
+    inst_slug = inst.slug if inst else "default"
+    user_info = {
+        "role": user.role,
+        "email": user.email,
+        "name": user.name,
+        "institution_id": user.institution_id,
+        "institution_name": inst_name,
+        "institution_slug": inst_slug,
+        "profile_pic": getattr(user, "profile_pic", None),
+        "department": getattr(user, "department", None),
+        "phone": getattr(user, "phone", None),
+        "bio": getattr(user, "bio", None),
+    }
+    return {"access_token": access_token, "token_type": "bearer", "user": user_info}
+
+
+def _issue_student_login_response(
+    db: Session,
+    student: models.StudentModel,
+    raw_password: str,
+    rate_key: str,
+    client_ip: Optional[str] = None,
+) -> dict:
+    """Upgrade legacy password hash if needed and build Student JWT login response."""
+    if student.password_hash and security.needs_rehash(student.password_hash):
+        try:
+            student.password_hash = security.get_password_hash(raw_password)
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    _reset_login_attempts(rate_key, client_ip=client_ip)
+    record_active_user(student.email, "student")
+    access_token = security.create_access_token(
+        data={"sub": student.email, "role": "student", "institution_id": student.institution_id}
+    )
+    inst = db.query(models.Institution).filter(models.Institution.id == student.institution_id).first()
+    inst_name = inst.name if inst else "Smart Attendance System"
+    inst_slug = inst.slug if inst else "default"
+    student_info = {
+        "role": "student",
+        "email": student.email,
+        "name": student.name,
+        "institution_id": student.institution_id,
+        "institution_name": inst_name,
+        "institution_slug": inst_slug,
+        "profile_pic": getattr(student, "profile_pic", None),
+        "phone": getattr(student, "phone", None),
+        "bio": getattr(student, "bio", None),
+        "details": {
+            "id": student.id,
+            "roll": student.roll,
+            "dep": student.dep,
+            "course": student.course,
+            "year": student.year,
+            "semester": student.semester,
+            "gender": student.gender,
+            "dob": student.dob,
+            "phone": student.phone,
+            "address": student.address,
+            "teacher": student.teacher,
+            "photo": student.photo,
+            "profile_pic": getattr(student, "profile_pic", None),
+            "bio": getattr(student, "bio", None),
+            "institution_name": inst_name,
+            "institution_slug": inst_slug,
+            "face_enrolled_at": student.face_enrolled_at.isoformat() if student.face_enrolled_at else None
+        }
+    }
+    return {"access_token": access_token, "token_type": "bearer", "user": student_info}
+
+
+def _find_non_default_user_match(
+    db: Session,
+    clean_username: str,
+    raw_password: str,
+) -> tuple[list[models.User], list[models.User]]:
+    """Find active staff/admin users matching email across non-default active institutions."""
+    candidates = (
+        db.query(models.User)
+        .join(models.Institution, models.User.institution_id == models.Institution.id)
+        .filter(
+            func.lower(models.User.email) == clean_username,
+            models.User.is_active == True,
+            models.Institution.is_active == True,
+            models.User.institution_id != 1,
+        )
+        .all()
+    )
+    matched = [u for u in candidates if security.verify_password(raw_password, u.password_hash)]
+    return candidates, matched
+
+
+def _find_non_default_student_match(
+    db: Session,
+    clean_username: str,
+    raw_password: str,
+) -> tuple[list[models.StudentModel], list[models.StudentModel]]:
+    """Find students matching email across non-default active institutions."""
+    if "@" not in clean_username:
+        return [], []
+    candidates = (
+        db.query(models.StudentModel)
+        .join(models.Institution, models.StudentModel.institution_id == models.Institution.id)
+        .filter(
+            func.lower(models.StudentModel.email) == clean_username,
+            models.Institution.is_active == True,
+            models.StudentModel.institution_id != 1,
+        )
+        .all()
+    )
+    matched = [s for s in candidates if _verify_student_password(db, s, raw_password)]
+    return candidates, matched
+
+
 @router.post("/token", response_model=schemas.Token)
 def login_for_access_token(
     request: Request,
     db: Session = Depends(get_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
+    from sqlalchemy import or_
+
     rate_key = form_data.username.strip().lower()
     client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
     user_ip_key = f"auth:user_ip:{rate_key}:{client_ip}"
+    system_owner_email = (config.SYSTEM_OWNER_EMAIL or "").strip().lower()
 
     try:
         with cache_service.rate_limit_user_lock(user_ip_key):
@@ -92,15 +260,16 @@ def login_for_access_token(
             is_explicit_tenant = bool(tenant_slug and tenant_slug != "default")
 
             if is_explicit_tenant:
-                raw_code = (raw_tenant_slug or "").strip()
-                inst = db.query(models.Institution).filter(
-                    (func.lower(models.Institution.slug) == tenant_slug) |
-                    (models.Institution.master_key == raw_code)
-                ).first()
+                inst = _resolve_institution_by_code(db, raw_tenant_slug)
                 if not inst:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"Institution with code '{tenant_slug}' does not exist. Please check your institution code."
+                    )
+                if not inst.is_active:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"Institution '{inst.name}' is currently inactive."
                     )
                 institution_id = inst.id
             else:
@@ -121,60 +290,46 @@ def login_for_access_token(
             ).first()
 
             if user:
-                # For default institution, only system owner can login as admin
-                if _is_default_inst and user.role in ("admin",) and user.email.strip().lower() != config.SYSTEM_OWNER_EMAIL:
+                is_restricted_default_admin = (
+                    _is_default_inst
+                    and user.role in ("admin",)
+                    and user.email.strip().lower() != system_owner_email
+                )
+
+                if not is_restricted_default_admin and security.verify_password(form_data.password, user.password_hash):
+                    return _issue_user_login_response(
+                        db, user, form_data.password, rate_key, client_ip=client_ip
+                    )
+
+                # When no explicit tenant code was supplied, fall back to a matching active tenant account
+                # (handles newly registered institution admins leaving Institution Code blank).
+                if not is_explicit_tenant:
+                    _, matched_users = _find_non_default_user_match(db, clean_username, form_data.password)
+                    if len(matched_users) == 1:
+                        return _issue_user_login_response(
+                            db, matched_users[0], form_data.password, rate_key, client_ip=client_ip
+                        )
+                    if len(matched_users) > 1:
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Multiple institutions match this email. Please enter your Institution Code to sign in.",
+                            headers={"WWW-Authenticate": "Bearer"},
+                        )
+
+                if is_restricted_default_admin:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="Default Institution admin access is restricted to the System Owner only."
                     )
 
-                is_authenticated = False
-                res = security.verify_password(form_data.password, user.password_hash)
-                if res:
-                    is_authenticated = True
-
-                if not is_authenticated:
-                    _record_failed_login(rate_key, client_ip=client_ip)
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Incorrect email or password",
-                        headers={"WWW-Authenticate": "Bearer"},
-                    )
-                if not user.is_active:
-                    raise HTTPException(status_code=400, detail="Inactive user account.")
-
-                # Transparent password hash upgrade if legacy format detected
-                if security.needs_rehash(user.password_hash):
-                    try:
-                        user.password_hash = security.get_password_hash(form_data.password)
-                        db.commit()
-                    except Exception:
-                        db.rollback()
-
-                _reset_login_attempts(rate_key, client_ip=client_ip)
-                record_active_user(user.email, user.role)
-                access_token = security.create_access_token(
-                    data={"sub": user.email, "role": user.role, "institution_id": user.institution_id}
+                _record_failed_login(rate_key, client_ip=client_ip)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect email or password",
+                    headers={"WWW-Authenticate": "Bearer"},
                 )
-                inst = db.query(models.Institution).filter(models.Institution.id == user.institution_id).first()
-                inst_name = inst.name if inst else "Smart Attendance System"
-                inst_slug = inst.slug if inst else "default"
-                user_info = {
-                    "role": user.role,
-                    "email": user.email,
-                    "name": user.name,
-                    "institution_id": user.institution_id,
-                    "institution_name": inst_name,
-                    "institution_slug": inst_slug,
-                    "profile_pic": getattr(user, "profile_pic", None),
-                    "department": getattr(user, "department", None),
-                    "phone": getattr(user, "phone", None),
-                    "bio": getattr(user, "bio", None),
-                }
-                return {"access_token": access_token, "token_type": "bearer", "user": user_info}
 
             # 3. Try Student Login (Strictly Scoped to institution_id)
-            from sqlalchemy import or_
             student = db.query(models.StudentModel).filter(
                 models.StudentModel.institution_id == institution_id,
                 or_(
@@ -185,17 +340,39 @@ def login_for_access_token(
             ).first()
 
             if student:
-                is_valid = False
-                if not student.password_hash:
-                    if config.ALLOW_ROLL_PASSWORD and student.roll and form_data.password == student.roll:
-                        is_valid = True
-                        # Set initial password hash for roll password
-                        student.password_hash = security.get_password_hash(form_data.password)
-                        db.commit()
-                elif security.verify_password(form_data.password, student.password_hash):
-                    is_valid = True
+                if _verify_student_password(db, student, form_data.password):
+                    return _issue_student_login_response(
+                        db, student, form_data.password, rate_key, client_ip=client_ip
+                    )
 
-                if not is_valid:
+                if not is_explicit_tenant:
+                    _, matched_students = _find_non_default_student_match(db, clean_username, form_data.password)
+                    if len(matched_students) == 1:
+                        return _issue_student_login_response(
+                            db, matched_students[0], form_data.password, rate_key, client_ip=client_ip
+                        )
+
+                _record_failed_login(rate_key, client_ip=client_ip)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect email or password",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            # 4. When no explicit Institution Code was provided, auto-resolve active tenant accounts by email
+            if not is_explicit_tenant:
+                candidate_users, matched_users = _find_non_default_user_match(db, clean_username, form_data.password)
+                if len(matched_users) == 1:
+                    return _issue_user_login_response(
+                        db, matched_users[0], form_data.password, rate_key, client_ip=client_ip
+                    )
+                if len(matched_users) > 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Multiple institutions match this email. Please enter your Institution Code to sign in.",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                if candidate_users:
                     _record_failed_login(rate_key, client_ip=client_ip)
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -203,53 +380,26 @@ def login_for_access_token(
                         headers={"WWW-Authenticate": "Bearer"},
                     )
 
-                # Transparent password hash upgrade if legacy format detected
-                if student.password_hash and security.needs_rehash(student.password_hash):
-                    try:
-                        student.password_hash = security.get_password_hash(form_data.password)
-                        db.commit()
-                    except Exception:
-                        db.rollback()
-
-                _reset_login_attempts(rate_key, client_ip=client_ip)
-                record_active_user(student.email, "student")
-                access_token = security.create_access_token(
-                    data={"sub": student.email, "role": "student", "institution_id": student.institution_id}
+                candidate_students, matched_students = _find_non_default_student_match(
+                    db, clean_username, form_data.password
                 )
-                inst = db.query(models.Institution).filter(models.Institution.id == student.institution_id).first()
-                inst_name = inst.name if inst else "Smart Attendance System"
-                inst_slug = inst.slug if inst else "default"
-                student_info = {
-                    "role": "student",
-                    "email": student.email,
-                    "name": student.name,
-                    "institution_id": student.institution_id,
-                    "institution_name": inst_name,
-                    "institution_slug": inst_slug,
-                    "profile_pic": getattr(student, "profile_pic", None),
-                    "phone": getattr(student, "phone", None),
-                    "bio": getattr(student, "bio", None),
-                    "details": {
-                        "id": student.id,
-                        "roll": student.roll,
-                        "dep": student.dep,
-                        "course": student.course,
-                        "year": student.year,
-                        "semester": student.semester,
-                        "gender": student.gender,
-                        "dob": student.dob,
-                        "phone": student.phone,
-                        "address": student.address,
-                        "teacher": student.teacher,
-                        "photo": student.photo,
-                        "profile_pic": getattr(student, "profile_pic", None),
-                        "bio": getattr(student, "bio", None),
-                        "institution_name": inst_name,
-                        "institution_slug": inst_slug,
-                        "face_enrolled_at": student.face_enrolled_at.isoformat() if student.face_enrolled_at else None
-                    }
-                }
-                return {"access_token": access_token, "token_type": "bearer", "user": student_info}
+                if len(matched_students) == 1:
+                    return _issue_student_login_response(
+                        db, matched_students[0], form_data.password, rate_key, client_ip=client_ip
+                    )
+                if len(matched_students) > 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Multiple institutions match this email. Please enter your Institution Code to sign in.",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                if candidate_students:
+                    _record_failed_login(rate_key, client_ip=client_ip)
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Incorrect email or password",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
 
             # Neither User nor Student found in this institution
             _record_failed_login(rate_key, client_ip=client_ip)
@@ -471,18 +621,13 @@ def get_active_users_count(
     }
 
 
-from sqlalchemy import func
-
 @router.post("/register/student", status_code=status.HTTP_201_CREATED)
 def register_student_self(
     payload: schemas.StudentPublicRegister,
     db: Session = Depends(get_db)
 ):
-    # Resolve institution by slug or master_key
-    inst = db.query(models.Institution).filter(
-        (func.lower(models.Institution.slug) == payload.institution_code.strip().lower()) |
-        (models.Institution.master_key == payload.institution_code.strip())
-    ).first()
+    # Resolve institution by slug, master_key, or name
+    inst = _resolve_institution_by_code(db, payload.institution_code)
     
     if not inst:
         raise HTTPException(
@@ -558,11 +703,8 @@ def register_teacher_self(
     payload: schemas.TeacherPublicRegister,
     db: Session = Depends(get_db)
 ):
-    # Resolve institution by slug or master_key
-    inst = db.query(models.Institution).filter(
-        (func.lower(models.Institution.slug) == payload.institution_code.strip().lower()) |
-        (models.Institution.master_key == payload.institution_code.strip())
-    ).first()
+    # Resolve institution by slug, master_key, or name
+    inst = _resolve_institution_by_code(db, payload.institution_code)
     
     if not inst:
         raise HTTPException(
@@ -641,8 +783,13 @@ def register_institution_public(
     if len(slug_clean) < 2:
         slug_clean = f"inst-{secrets.token_hex(3)}"
 
-    # 3. Check for uniqueness of slug
-    existing_slug = db.query(models.Institution).filter(models.Institution.slug == slug_clean).first()
+    # 3. Check for uniqueness of slug (reserve 'default' for system default institution)
+    if slug_clean == "default":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The identifier 'default' is reserved. Please choose a unique Institution Code."
+        )
+    existing_slug = db.query(models.Institution).filter(func.lower(models.Institution.slug) == slug_clean).first()
     if existing_slug:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -691,7 +838,7 @@ def register_institution_public(
     part2 = ''.join(secrets.choice(alphabet) for _ in range(4))
     generated_master_key = f"MK-{part1}-{part2}"
 
-    # 7. Create the Institution record
+    # 7. Create the Institution record (flush so admin/settings/departments commit atomically)
     new_inst = models.Institution(
         name=inst_name,
         slug=slug_clean,
@@ -706,8 +853,7 @@ def register_institution_public(
         student_limit=payload.student_limit or 500
     )
     db.add(new_inst)
-    db.commit()
-    db.refresh(new_inst)
+    db.flush()
 
     # 8. Create the Primary Administrator Account
     hashed_pw = security.get_password_hash(payload.admin_password)
@@ -741,6 +887,7 @@ def register_institution_public(
     ]
     db.add_all(default_depts)
     db.commit()
+    db.refresh(new_inst)
     db.refresh(new_admin)
 
     # 11. Queue Welcome Email

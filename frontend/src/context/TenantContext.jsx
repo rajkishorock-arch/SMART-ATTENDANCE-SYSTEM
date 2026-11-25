@@ -194,6 +194,15 @@ export function TenantProvider({ children }) {
     await loadTenantBranding(slug);
   }, [loadTenantBranding]);
 
+  // Reset tenant state on logout without persisting override_tenant
+  const resetTenant = useCallback(async () => {
+    localStorage.removeItem('override_tenant');
+    localStorage.removeItem('active_tenant_slug');
+    localStorage.removeItem('cached_tenant_branding');
+    setTenantSlug('default');
+    await loadTenantBranding('default');
+  }, [loadTenantBranding]);
+
   const value = {
     tenantSlug,
     setTenantSlug,
@@ -202,6 +211,7 @@ export function TenantProvider({ children }) {
     isLoadingBranding,
     loadTenantBranding,
     switchTenant,
+    resetTenant,
   };
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;

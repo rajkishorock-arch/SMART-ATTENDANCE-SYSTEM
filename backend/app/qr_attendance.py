@@ -1,3 +1,5 @@
+from fastapi import Request
+from .core.attendance_perimeter import enforce_attendance_perimeter
 """
 Feature 16: QR Code Backup Attendance
 Student shows dynamic QR code on phone as fallback when face recognition fails.
@@ -38,11 +40,14 @@ def scan_student_qr(
     payload: dict,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
+    request: Request = None,
 ):
     """
     Teacher scans student QR code to mark attendance.
     Validates token, atomically consumes jti to prevent replay, and registers attendance.
     """
+    policy = crud.get_system_settings(db, institution_id=current_user.institution_id)
+    enforce_attendance_perimeter(request, policy, payload.get("latitude"), payload.get("longitude"))
     return QRService.consume_and_mark_attendance(
         db=db,
         token=payload.get("token"),

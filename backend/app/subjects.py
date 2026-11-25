@@ -21,6 +21,7 @@ def create_new_subject(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can register new subjects."
         )
+    crud.validate_department(db, current_user.institution_id, subject.department)
     # Check if subject code already exists within that institution
     existing = db.query(models.Subject).filter(
         models.Subject.code == subject.code,
@@ -89,8 +90,15 @@ def read_subjects(
                 models.User.role == "teacher"
             ).all()
             
+    branches = db.query(models.Department.name, models.Department.code).filter_by(institution_id=institution_id).all()
+    registered = {value.strip().casefold() for branch in branches for value in branch if value}
     res = []
     for s in db_subjects:
+        branch = (s.department or "").strip().casefold()
+        if branches and branch and branch not in registered:
+            continue
+        if role == "student" and branch and branch != (student.dep or "").strip().casefold():
+            continue
         teacher_name = "Not Assigned"
         if s.teacher_id:
             teacher = db.query(models.User).filter(
@@ -146,6 +154,8 @@ def read_schedules(
             detail="Student scheduling views not authorized here."
         )
     schedules = crud.get_schedules(db, institution_id=current_user.institution_id)
+    branches = db.query(models.Department.name, models.Department.code).filter_by(institution_id=institution_id).all()
+    registered = {value.strip().casefold() for branch in branches for value in branch if value}
     res = []
     for sc in schedules:
         sub = db.query(models.Subject).filter(

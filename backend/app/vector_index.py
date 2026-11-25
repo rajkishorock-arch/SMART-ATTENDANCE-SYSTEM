@@ -40,6 +40,8 @@ class InstitutionVectorIndex:
         self.matrix = mat / norms
         self.students = list(students_meta)
         self.is_built = True
+        # Initialize NumPy scoring and top-k selection when the roster is loaded.
+        self.query(self.matrix[0], top_k=min(3, len(self.students)))
 
     def query(self, target_vector: np.ndarray, top_k: int = 1) -> List[Tuple[Dict[str, Any], float]]:
         """

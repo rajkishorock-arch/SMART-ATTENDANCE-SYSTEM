@@ -1,7 +1,7 @@
 /**
  * Notification Domain API Module
  */
-import { apiGet, apiPost, buildApiUrl } from './client.js';
+import { apiGet, apiPost, apiDelete, apiPut, buildApiUrl } from './client.js';
 import { fetchWithDedupe } from '../utils/apiClient.js';
 
 export const notificationApi = {
@@ -44,6 +44,8 @@ export const notificationApi = {
   /**
    * Broadcast institution announcement across target roles (/notifications/broadcast)
    */
+  reviseNotice(token, id, payload) { return apiPut(`/notifications/broadcasts/${id}`, payload, { token }); },
+  withdrawNotice(token, id) { return apiDelete(`/notifications/broadcasts/${id}`, { token }); },
   async broadcastAnnouncement(token, payload) {
     const res = await apiPost('/notifications/broadcast', payload, { token });
     if (res && typeof res.json === 'function') {
@@ -66,7 +68,7 @@ export const notificationApi = {
       if (res.ok) {
         return await res.json();
       }
-      return [];
+      throw new Error("Unable to load campus notices");
     }
     return Array.isArray(res) ? res : [];
   }

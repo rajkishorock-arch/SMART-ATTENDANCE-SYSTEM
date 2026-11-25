@@ -1,3 +1,4 @@
+import { attendanceCoordinates } from './utils/attendanceCoordinates';
 import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
 import { triggerNativeHaptic } from './utils/nativeMobile';
@@ -424,6 +425,7 @@ export default function App() {
     tenantBranding,
     loadTenantBranding,
     switchTenant,
+    resetTenant,
   } = useTenant();
 
   // UI Context
@@ -1731,7 +1733,16 @@ export default function App() {
 
 
   // Manual Attendance States
-  const [isManualAttendanceOpen, setIsManualAttendanceOpen] = useState(false);
+  const manualReturnTab = useRef('attendance');
+  const isManualAttendanceOpen = activeTab === 'manual-register' && ['admin', 'teacher'].includes(userRole);
+  const [manualFeedback, setManualFeedback] = useState('');
+  const setIsManualAttendanceOpen = (open) => {
+    if (open) {
+      manualReturnTab.current = activeTab;
+      setManualFeedback('');
+    }
+    setActiveTab(open ? 'manual-register' : manualReturnTab.current);
+  };
   const [manualSubjectId, setManualSubjectId] = useState('');
   const [manualDate, setManualDate] = useState(getLocalDateString());
   const [manualPeriod, setManualPeriod] = useState('Period 1');
@@ -2033,18 +2044,8 @@ export default function App() {
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
   });
-  const [departments, setDepartments] = useState(() => {
-    try {
-      const cached = localStorage.getItem('cached_departments');
-      return cached ? JSON.parse(cached) : ['Computer Science', 'Information Technology', 'Electronics'];
-    } catch { return ['Computer Science', 'Information Technology', 'Electronics']; }
-  });
-  const [departmentsList, setDepartmentsList] = useState(() => {
-    try {
-      const cached = localStorage.getItem('cached_departmentsList');
-      return cached ? JSON.parse(cached) : [];
-    } catch { return []; }
-  });
+  const [departments, setDepartments] = useState([]);
+  const [departmentsList, setDepartmentsList] = useState([]);
 
   // Search & Filter States
   const [studentSearch, setStudentSearch] = useState('');
@@ -2089,12 +2090,7 @@ export default function App() {
   const [geoTrackingError, setGeoTrackingError] = useState('');
 
   // Subject & Timetable States
-  const [subjects, setSubjects] = useState(() => {
-    try {
-      const cached = localStorage.getItem('cached_subjects');
-      return cached ? JSON.parse(cached) : [];
-    } catch { return []; }
-  });
+  const [subjects, setSubjects] = useState([]);
   const [schedules, setSchedules] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_schedules');
@@ -2266,14 +2262,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setDepartmentsList(data);
-        localStorage.setItem('cached_departmentsList', JSON.stringify(data));
-        if (data && data.length > 0) {
-          const names = data.map(d => d.name);
-          setDepartments(names);
-          localStorage.setItem('cached_departments', JSON.stringify(names));
-        } else {
-          setDepartments(['Computer Science', 'Information Technology', 'Electronics']);
-        }
+        setDepartments(data.map(department => department.name));
       }
     } catch (err) {
       console.error('Error fetching departments:', err);
@@ -2504,15 +2493,12 @@ export default function App() {
         };
       });
 
-      const result = await attendanceApi.submitManualAttendance(token, { records });
-
-      setIsSubmittingManual(false);
-      setIsManualAttendanceOpen(false);
-
-      const successCount = result.success_count || 0;
-      const failCount = result.fail_count || 0;
-      alert(`Successfully marked manual attendance for ${successCount} students.${failCount > 0 ? ` Failed for ${failCount} students.` : ''}`);
-      playCyberSound('success');
+      const coordinates = await attendanceCoordinates(settingsGeoEnabled);
+      const response = await attendanceApi.submitManualAttendance(token, { records, ...coordinates });
+      const result = await response.json();
+      if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'Register could not be saved.');
+      setManualFeedback(`Saved ${result.success_count} of ${records.length} attendance records for ${manualDate}, ${manualPeriod}.`);
+      playCyberSound(result.fail_count ? 'error' : 'success');
       setSelectedHistorySubjectId(String(manualSubjectId));
       setHistoryFilterDate(manualDate);
       setHistoryFilterPeriod(manualPeriod);
@@ -2520,21 +2506,10 @@ export default function App() {
       fetchStats();
       fetchLogs();
     } catch (err) {
+      setManualFeedback(err.message || 'Unable to confirm the save. Check your connection and retry.');
+      playCyberSound('error');
+    } finally {
       setIsSubmittingManual(false);
-      alert(err.message || 'Failed to mark manual attendance. Please check network and security settings.');
-      playCyberSound('error');
-      classStudents.forEach((student) => {
-        const stateData = manualAttendanceData[student.id] || { status: 'Present' };
-        addToOfflineQueue({
-          student_id: student.id,
-          subject_id: parseInt(manualSubjectId, 10),
-          custom_date: manualDate,
-          custom_time: manualPeriod,
-        });
-      });
-      setIsManualAttendanceOpen(false);
-      alert('Network error — attendance queued offline. Will sync when back online.');
-      playCyberSound('error');
     }
   };
 
@@ -2817,7 +2792,9 @@ export default function App() {
     }
     lastSettingsFetchTimeRef.current = now;
     try {
-      const data = await systemApi.fetchSettings(token);
+      const response = await systemApi.fetchSettings(token);
+      if (!response.ok) throw new Error("Could not load institution settings");
+      const data = await response.json();
       if (data) {
         setSettingsGeoEnabled(data.geofencing_enabled);
         setSettingsLat(data.center_latitude);
@@ -2854,7 +2831,8 @@ export default function App() {
         ip_restriction_enabled: settingsIpEnabled,
         allowed_ip_ranges: settingsIpRanges
       };
-      await systemApi.saveSettings(token, payload);
+      const response = await systemApi.saveSettings(token, payload);
+      if (!response.ok) throw new Error("Institution settings could not be saved.");
       setSettingsMessage('Settings updated successfully!');
       setTimeout(() => setSettingsMessage(''), 3000);
     } catch (err) {
@@ -4079,6 +4057,43 @@ export default function App() {
 
 
 
+  const [policyMessage, setPolicyMessage] = useState('');
+  useEffect(() => {
+    setLockdownActive(false);
+    if (!token || isDemoMode) return;
+    let active = true;
+    let initial = true;
+    const refresh = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/settings/campus-policy`, {headers: {Authorization: `Bearer ${token}`}, cache: 'no-store'});
+        if (!res.ok) return;
+        const policy = await res.json();
+        if (!active) return;
+        setLockdownActive(policy.locked);
+        if (initial && policy.similarity != null) {
+          setAntiSpoofingThreshold(policy.blink_ear);
+          setBiometricConfidenceFilterEnabled(policy.confidence_filter);
+          setBiometricMatchThreshold(policy.similarity);
+          setLivenessBypass(!policy.strict_liveness);
+          initial = false;
+        }
+      } catch { /* Server-side policy continues to apply. */ }
+    };
+    refresh();
+    const timer = setInterval(refresh, 10000);
+    return () => { active = false; clearInterval(timer); };
+  }, [token, isDemoMode, API_BASE_URL]);
+  const saveCampusPolicy = async (changes) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/campus-policy`, {method: 'PUT',
+        headers: {Authorization: `Bearer ${token}`, 'Content-Type': 'application/json'}, body: JSON.stringify(changes)});
+      if (!res.ok) throw new Error();
+      const policy = await res.json();
+      setLockdownActive(policy.locked);
+      setPolicyMessage('Campus policy saved.');
+    } catch { setPolicyMessage('Unable to save campus policy. Please retry.'); }
+  };
+
   // Automatic camera shutoff when lockdown is activated
   useEffect(() => {
     if (lockdownActive) {
@@ -4088,56 +4103,7 @@ export default function App() {
     }
   }, [lockdownActive]);
 
-  // Lockdown siren audio oscillator
-  useEffect(() => {
-    if (!lockdownActive) return;
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    let ctx;
-    let osc;
-    let gain;
-    let timer;
-    try {
-      ctx = new AudioContext();
-      osc = ctx.createOscillator();
-      gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sawtooth';
-      gain.gain.setValueAtTime(audioVolume * 0.4, ctx.currentTime);
-      osc.start();
-      let freq = 300;
-      let dir = 1;
-      timer = setInterval(() => {
-        if (!soundEnabled) {
-          gain.gain.setValueAtTime(0, ctx.currentTime);
-          return;
-        }
-        gain.gain.setValueAtTime(audioVolume * 0.4, ctx.currentTime);
-        freq += 20 * dir;
-        if (freq >= 700) dir = -1;
-        if (freq <= 300) dir = 1;
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      }, 20);
-    } catch (err) {
-      console.error(err);
-    }
-    return () => {
-      clearInterval(timer);
-      if (osc) {
-        try {
-          osc.stop();
-          osc.disconnect();
-        } catch { /* ignore fallback error */ }
-      }
-      if (gain) {
-        try { gain.disconnect(); } catch { /* ignore fallback error */ }
-      }
-      if (ctx) {
-        try { ctx.close(); } catch { /* ignore fallback error */ }
-      }
-    };
-  }, [lockdownActive, soundEnabled, audioVolume]);
+
 
   // Auto-start camera when scanner modal opens — removes need for a separate "Start Scanner" click
   useEffect(() => {
@@ -4360,7 +4326,7 @@ export default function App() {
             return;
           }
           if (livenessStatusRef.current === 'verifying') {
-            const earThreshold = Math.max(antiSpoofingThreshold, 0.20);
+            const earThreshold = antiSpoofingThreshold;
 
             if (avgEAR < earThreshold) {
               // User has closed their eyes (blink in progress)
@@ -4771,11 +4737,11 @@ export default function App() {
             } else if (role === 'parent') {
               return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast'].includes(tabId);
             } else if (role === 'teacher') {
-              return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+              return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
             } else if (role === 'hod') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
             } else if (role === 'admin') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
             }
             return false;
           };
@@ -5265,11 +5231,11 @@ export default function App() {
       } else if (role === 'parent') {
         return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
       } else if (role === 'hod') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
       }
       return false;
     };
@@ -5944,6 +5910,7 @@ export default function App() {
   const handleLogout = () => {
     clearApiClientCache();
     authHandleLogout(() => {
+      resetTenant();
       sessionInitializedRef.current = false;
       loginBootstrapDoneRef.current = false;
       loginJustCompletedRef.current = false;
@@ -6075,7 +6042,7 @@ export default function App() {
         id: '',
         name: '',
         roll: '',
-        dep: departments[0] || 'Computer Science',
+        dep: departments[0] || '',
         course: 'B.Tech',
         year: '2026',
         semester: '1st',
@@ -6115,7 +6082,7 @@ export default function App() {
         id: '',
         name: '',
         roll: '',
-        dep: departments[0] || 'Computer Science',
+        dep: departments[0] || '',
         course: 'B.Tech',
         year: '2026',
         semester: '1st',
@@ -6277,7 +6244,7 @@ export default function App() {
         role: 'teacher',
         subject_name: '',
         subject_code: '',
-        subject_department: departments[0] || 'Computer Science'
+        subject_department: departments[0] || ''
       });
       return;
     }
@@ -6321,7 +6288,7 @@ export default function App() {
           role: 'teacher',
           subject_name: '',
           subject_code: '',
-          subject_department: departments[0] || 'Computer Science'
+          subject_department: departments[0] || ''
         });
       } else {
         playCyberSound('error');
@@ -6359,7 +6326,7 @@ export default function App() {
         role: editingTeacher.role,
         subject_name: editingTeacher.subject_name || '',
         subject_code: editingTeacher.subject_code || '',
-        subject_department: editingTeacher.subject_department || (departments[0] || 'Computer Science')
+        subject_department: editingTeacher.subject_department || (departments[0] || '')
       };
       await teacherApi.updateTeacher(token, editingTeacher.id, payload);
       setTeacherSuccess('Teacher details updated successfully!');
@@ -6477,7 +6444,7 @@ export default function App() {
       const added = { ...newSubject, id: Date.now(), teacher_id: newSubject.teacher_id ? parseInt(newSubject.teacher_id) : null };
       setSubjects(prev => [...prev, added]);
       setSubjectSuccess('SIMULATOR ACTION: Subject registered locally.');
-      setNewSubject({ name: '', code: '', department: departments[0] || 'Computer Science', teacher_id: '' });
+      setNewSubject({ name: '', code: '', department: departments[0] || '', teacher_id: '' });
       return;
     }
 
@@ -6491,7 +6458,7 @@ export default function App() {
       await systemApi.createSubject(token, payload);
       setSubjectSuccess('Subject registered successfully!');
       fetchSubjects();
-      setNewSubject({ name: '', code: '', department: departments[0] || 'Computer Science', teacher_id: '' });
+      setNewSubject({ name: '', code: '', department: departments[0] || '', teacher_id: '' });
     } catch (err) {
       setSubjectError(err.message || 'Failed to register subject.');
     }
@@ -6935,6 +6902,12 @@ export default function App() {
     );
   }
 
+  if (token && lockdownActive) {
+    return <main className="enrolment-sheet"><h1>Campus access paused</h1>
+      <p>Your institution has paused access. This screen updates when access resumes.</p>
+      {userRole === 'admin' && <button className="bg-gradient-btn" onClick={() => saveCampusPolicy({locked:false})}>Restore campus access</button>}
+      <p role="status">{policyMessage}</p></main>;
+  }
   if (!token) {
     return (
       <LoginPortal
@@ -6947,6 +6920,8 @@ export default function App() {
         loginWorkspaceSlug={loginWorkspaceSlug}
         setLoginWorkspaceSlug={setLoginWorkspaceSlug}
         authError={authError}
+        onClearAuthError={() => setAuthError('')}
+        onTenantSwitch={switchTenant}
         isLoading={isLoading}
         serverWarmingUp={serverWarmingUp}
         onWakeServer={async () => {
@@ -6975,6 +6950,8 @@ export default function App() {
       )}
       {showQrScannerModal && (
         <QrScannerModal
+          period={sessionPeriod}
+          geofenceEnabled={settingsGeoEnabled}
           token={token}
           API_BASE_URL={API_BASE_URL}
           selectedSubjectId={selectedSubjectId}
@@ -8244,7 +8221,7 @@ export default function App() {
             selectedSubjectId={selectedSubjectId}
             setSelectedSubjectId={setSelectedSubjectId}
             lockdownActive={lockdownActive}
-            setLockdownActive={setLockdownActive}
+            setLockdownActive={locked => saveCampusPolicy({locked})}
             attendanceActive={attendanceActive}
             scannerBootActive={scannerBootActive}
             recognizedStudents={recognizedStudents}
@@ -8414,7 +8391,7 @@ export default function App() {
                     settingsIpRanges={settingsIpRanges}
                     setSettingsIpRanges={setSettingsIpRanges}
                     lockdownActive={lockdownActive}
-                    setLockdownActive={setLockdownActive}
+                    setLockdownActive={locked => saveCampusPolicy({locked})}
                     isSavingSettings={isSavingSettings}
                     saveSystemSettings={saveSystemSettings}
                     settingsMessage={settingsMessage}
@@ -8590,7 +8567,7 @@ export default function App() {
 
             {/* ===== ADVANCED SYSTEM CONFIG & EXTREME SECURITY CONSOLE ===== */}
             {activeSubSetting === 'advanced' && (
-              <AdvancedBiometricSettings
+              <div><AdvancedBiometricSettings
                 biometricConfidenceFilterEnabled={biometricConfidenceFilterEnabled}
                 setBiometricConfidenceFilterEnabled={setBiometricConfidenceFilterEnabled}
                 biometricMatchThreshold={biometricMatchThreshold}
@@ -8606,6 +8583,11 @@ export default function App() {
                 userRole={userRole}
                 playCyberSound={playCyberSound}
               />
+              {userRole === 'admin' && <button className="bg-gradient-btn" onClick={() => saveCampusPolicy({
+                similarity: biometricMatchThreshold, blink_ear: antiSpoofingThreshold, strict_liveness: !livenessBypass,
+                confidence_filter: biometricConfidenceFilterEnabled
+              })}>Save campus biometric settings</button>}
+              <p role="status">{policyMessage}</p></div>
             )}
 
             {/* ===== ADMIN ACCOUNT PROFILE SECTION ===== */}
@@ -8643,7 +8625,7 @@ export default function App() {
                 playCyberSound={playCyberSound}
                 departments={departments}
                 departmentsList={departmentsList}
-                fetchDepartments={fetchDepartments}
+                fetchDepartments={async () => { clearApiClientCache(); await Promise.all([fetchDepartments(), fetchSubjects()]); }}
                 requestMasterPassword={requestMasterPassword}
               />
             )}
@@ -9209,10 +9191,9 @@ export default function App() {
       )}
 
       {showAddModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px' }}>Register New Student</h3>
-            
+        <div className="student-enrolment-page">
+          <div className="enrolment-sheet">
+            <h2>Register student</h2>
             {(formError || studentError) && (
               <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
                 <AlertCircle size={16} />
@@ -10153,26 +10134,9 @@ export default function App() {
 
       {/* ===== MANUAL ATTENDANCE MODAL ===== */}
       {isManualAttendanceOpen && (
-        <div
-          className="flex-center modal-overlay"
-          style={{ position: 'fixed', inset: 0, zIndex: 100060, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setIsManualAttendanceOpen(false); }}
-        >
-          <div className="glass-panel" style={{
-            width: '100%',
-            maxWidth: '700px',
-            margin: '16px',
-            padding: '0',
-            border: '1px solid #e4dfd5',
-            boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
-            borderRadius: '20px',
-            background: '#ffffff',
-            display: 'flex',
-            flexDirection: 'column',
-            maxHeight: '90vh',
-            overflow: 'hidden',
-            animation: 'fadeInUp 0.3s ease'
-          }}>
+        <div className="register-page">
+          <div className="register-sheet">
+            {manualFeedback && <p role="status" className="register-feedback">{manualFeedback}</p>}
             {/* Modal Header */}
             <div style={{
               padding: '16px 20px',

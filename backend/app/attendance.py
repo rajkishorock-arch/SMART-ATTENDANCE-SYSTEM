@@ -16,12 +16,15 @@ from . import crud, schemas, models, security, security_utils, cache_service
 from .period_utils import resolve_period_name, get_period_slot_label, PERIOD_SLOT_LABELS, generate_session_key
 from .database import get_db
 from .recognition_service import recognition_service
+from .notifications import push_saved_notification
 from .email_service import send_presence_email, send_absent_email
 from .core import config
 
 router = APIRouter()
 
 
+
+from .core.attendance_perimeter import enforce_attendance_perimeter
 
 @router.get("/logs", response_model=List[schemas.Attendance])
 def get_attendance_logs(
@@ -258,31 +261,7 @@ async def recognize_and_mark_attendance(
     # Fetch active settings
     settings = crud.get_system_settings(db, institution_id=current_user.institution_id)
     
-    # 1. IP Network Restriction Check
-    if settings.ip_restriction_enabled:
-        client_ip = security_utils.get_client_ip(request, config.TRUST_PROXY_HEADERS)
-        if not security_utils.verify_client_ip(
-            client_ip,
-            settings.allowed_ip_ranges,
-            restriction_enabled=True,
-        ):
-            raise HTTPException(
-                status_code=403, 
-                detail=f"Access denied: IP restriction is active. Your IP ({client_ip}) is not authorized."
-            )
-            
-    # 2. Geofencing Check (OFF by default — only active if manually enabled by admin)
-    if bool(settings.geofencing_enabled) is True:
-        if latitude is None or longitude is None:
-            raise HTTPException(
-                status_code=403,
-                detail="Access denied: Geofencing is active, but your location coordinates were not provided."
-            )
-        if not security_utils.verify_geofence(latitude, longitude, settings.center_latitude, settings.center_longitude, settings.allowed_radius_meters):
-            raise HTTPException(
-                status_code=403,
-                detail=f"Access denied: You are outside the allowed campus coordinates. Check-ins are restricted to the campus boundaries."
-            )
+    enforce_attendance_perimeter(request, settings, latitude, longitude)
 
     contents = await file.read()
     if len(contents) > config.MAX_UPLOAD_BYTES:
@@ -309,15 +288,20 @@ async def recognize_and_mark_attendance(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Recognition engine error: {str(e)}")
 
+    from .models.settings import CampusSecurityPolicy
+    policy = db.get(CampusSecurityPolicy, current_user.institution_id)
+    active_subject = db.get(models.Subject, subject_id) if subject_id else None
     marked_students = []
     for face in results:
         user_id = face["user_id"]
         name = face["name"]
         roll = face["roll"]
         dep = face["dep"]
+        if active_subject and active_subject.department and (dep or "").strip().casefold() != active_subject.department.strip().casefold():
+            continue
         
         # Phase 5: Stage borderline / low-confidence face matches (0.35 <= score < 0.50) into review queue
-        if face.get("match_quality") == "BORDERLINE":
+        if face.get("match_quality") == "BORDERLINE" or (policy and policy.confidence_filter and float(face.get("raw_score") or 0) < policy.similarity):
             today_str = custom_date or datetime.now().strftime("%d/%m/%Y")
             try:
                 existing_review = db.query(models.LowConfidenceReview).filter(
@@ -380,6 +364,15 @@ async def recognize_and_mark_attendance(
         except Exception as std_err:
             print(f"[RECOGNIZE FRAME] Student lookup error for {user_id}: {std_err}")
 
+        if newly_marked and student:
+            subject = db.get(models.Subject, subject_id) if subject_id else None
+            notice = models.NotificationModel(institution_id=current_user.institution_id, recipient_id=student.id,
+                recipient_email=student.email, recipient_role="student", category="ATTENDANCE",
+                title="Attendance confirmed", message=f"{subject.name if subject else 'Attendance'} · {custom_date} · {custom_time} · Present",
+                action_url="/#/student-attendance")
+            db.add(notice)
+            db.commit()
+            background_tasks.add_task(push_saved_notification, notice.id)
         # If student's attendance is newly marked today, send an asynchronous confirmation email
         if newly_marked and student and getattr(student, "email", None):
             try:
@@ -884,7 +877,9 @@ def get_student_attendance_calendar(
 def mark_manual_attendance_bulk(
     payload: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
+    current_user: models.User = Depends(security.get_current_user),
+    request: Request = None,
+    background_tasks: BackgroundTasks = None
 ):
     """
     Bulk manual attendance marking. Accepts a list of student attendance records
@@ -897,6 +892,8 @@ def mark_manual_attendance_bulk(
             detail="Only teachers and admins can mark manual attendance."
         )
 
+    settings = crud.get_system_settings(db, institution_id=current_user.institution_id)
+    enforce_attendance_perimeter(request, settings, payload.get("latitude"), payload.get("longitude"))
     records = payload.get("records", [])
     if not records:
         raise HTTPException(status_code=400, detail="No records provided.")
@@ -948,52 +945,35 @@ def mark_manual_attendance_bulk(
                 models.StudentModel.institution_id == current_user.institution_id
             ).first()
 
-            if not student:
+            if (not student or not subject or not subject.department or
+                subject.department.strip().casefold() != (student.dep or "").strip().casefold() or
+                (current_user.role == "teacher" and subject.teacher_id != current_user.id) or
+                attendance_status not in ("Present", "Absent", "Late")):
                 fail_count += 1
                 continue
 
-            if attendance_status == "Absent":
-                # Remove existing record for this student+date+period
-                existing = db.query(models.AttendanceModel).filter(
-                    models.AttendanceModel.id == student_id,
-                    models.AttendanceModel.date == date_str,
-                    models.AttendanceModel.time == period,
-                    models.AttendanceModel.subject_id == subject_id,
-                    models.AttendanceModel.institution_id == current_user.institution_id
-                ).first()
-                if existing:
-                    db.delete(existing)
-                    db.commit()
-            else:
-                # Upsert: update if exists, create if not
-                existing = db.query(models.AttendanceModel).filter(
-                    models.AttendanceModel.id == student_id,
-                    models.AttendanceModel.date == date_str,
-                    models.AttendanceModel.time == period,
-                    models.AttendanceModel.subject_id == subject_id,
-                    models.AttendanceModel.institution_id == current_user.institution_id
-                ).first()
-
-                if existing:
-                    existing.attendance = attendance_status
-                    db.commit()
-                else:
-                    s_key = generate_session_key(current_user.institution_id, student_id, date_str, period, subject_id)
-                    new_record = models.AttendanceModel(
-                        id=student_id,
-                        name=student.name,
-                        roll=student.roll or "",
-                        department=student.dep or "",
-                        date=date_str,
-                        time=period,
-                        attendance=attendance_status,
-                        subject_id=subject_id,
-                        institution_id=current_user.institution_id,
-                        session_key=s_key
-                    )
-                    db.add(new_record)
-                    db.commit()
-
+            existing = db.query(models.AttendanceModel).filter_by(
+                id=student_id, date=date_str, time=period, subject_id=subject_id,
+                institution_id=current_user.institution_id).first()
+            changed = existing is None or existing.attendance != attendance_status
+            if not existing:
+                existing = models.AttendanceModel(id=student_id, name=student.name, roll=student.roll,
+                    department=student.dep, date=date_str, time=period, subject_id=subject_id,
+                    institution_id=current_user.institution_id,
+                    session_key=generate_session_key(current_user.institution_id, student_id, date_str, period, subject_id))
+                db.add(existing)
+            existing.attendance = attendance_status
+            existing.verification_method = "MANUAL_STAFF"
+            if changed:
+                notice = models.NotificationModel(institution_id=current_user.institution_id,
+                    recipient_id=student.id, recipient_email=student.email, recipient_role="student",
+                    category="ATTENDANCE", title=f"Attendance marked {attendance_status.lower()}",
+                    message=f"{subject.name} · {date_str} · {period} · {attendance_status}",
+                    action_url="/#/student-attendance")
+                db.add(notice)
+            db.commit()
+            if changed and background_tasks is not None:
+                background_tasks.add_task(push_saved_notification, notice.id)
             success_count += 1
 
         except Exception as e:
@@ -1302,7 +1282,9 @@ def update_attendance_status(
 def checkin_via_student_qr(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
+    current_user: models.User = Depends(security.get_current_user),
+    request: Request = None,
+    background_tasks: BackgroundTasks = None
 ):
     """
     Teachers & Admins scan the dynamic QR Code presented on a student's phone.
@@ -1311,6 +1293,8 @@ def checkin_via_student_qr(
     if current_user.role not in ["admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Only teachers or administrators can scan attendance QR codes.")
         
+    settings = crud.get_system_settings(db, institution_id=current_user.institution_id)
+    enforce_attendance_perimeter(request, settings, payload.get("latitude"), payload.get("longitude"))
     qr_token = payload.get("token")
     subject_id = payload.get("subject_id")
     
@@ -1373,9 +1357,13 @@ def checkin_via_student_qr(
     active_subject_id = subject.id
 
     def record_result(title, message):
-        db.add(models.NotificationModel(institution_id=institution_id, recipient_id=student.id,
+        notice = models.NotificationModel(institution_id=institution_id, recipient_id=student.id,
             recipient_email=student.email, recipient_role="student", category="QR_CHECKIN",
-            title=title, message=message, action_url="/#/student-attendance", is_read=False))
+            title=title, message=message, action_url="/#/student-attendance", is_read=False)
+        db.add(notice)
+        db.flush()
+        if background_tasks is not None:
+            background_tasks.add_task(push_saved_notification, notice.id)
 
     # 6. Replay protection: atomically consume the jti
     from sqlalchemy.exc import IntegrityError
@@ -1418,19 +1406,22 @@ def checkin_via_student_qr(
         now = datetime.now(timezone(timedelta(hours=5, minutes=30))) # India standard time
         time_str = now.strftime("%I:%M:%S %p")
         date_str = now.strftime("%Y-%m-%d")
-        attendance_id = f"{student.id}_{date_str}_{active_subject_id or 'none'}"
+        legacy_id = f"{student.id}_{date_str}_{active_subject_id or 'none'}"
+        attendance_id = str(student.id)
+        period = payload.get("period") or resolve_period_name(now.strftime("%H:%M:%S"))
+        session_key = generate_session_key(institution_id, attendance_id, date_str, period, active_subject_id)
 
         try:
             db_attendance = db.query(models.AttendanceModel).filter(
-                models.AttendanceModel.id == attendance_id,
+                or_(models.AttendanceModel.id == legacy_id, models.AttendanceModel.session_key == session_key),
                 models.AttendanceModel.institution_id == current_user.institution_id
             ).first()
             
             if db_attendance:
                 db_attendance.attendance = "Present"
-                db_attendance.time = time_str
+
             else:
-                s_key = generate_session_key(institution_id, attendance_id, date_str, time_str, active_subject_id)
+                s_key = session_key
                 db_attendance = models.AttendanceModel(
                     id=attendance_id,
                     institution_id=institution_id,

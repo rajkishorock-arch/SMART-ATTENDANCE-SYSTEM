@@ -16,11 +16,6 @@ def list_departments(
     """
     List all departments registered for the current admin's institution.
     """
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can view the department list."
-        )
     return db.query(models.Department).filter(
         models.Department.institution_id == current_user.institution_id
     ).order_by(models.Department.name.asc()).all()
@@ -111,6 +106,11 @@ def delete_department(
             detail="Department not found."
         )
         
+    aliases = [name for name in (dept.name, dept.code) if name]
+    if db.query(models.StudentModel.id).filter(models.StudentModel.institution_id == current_user.institution_id,
+            models.StudentModel.dep.in_(aliases)).first() or db.query(models.Subject.id).filter(
+            models.Subject.institution_id == current_user.institution_id, models.Subject.department.in_(aliases)).first():
+        raise HTTPException(409, "Reassign this branch's students and subjects before removing it.")
     db.delete(dept)
     db.commit()
     return {"message": "Department deleted successfully."}

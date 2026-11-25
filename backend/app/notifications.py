@@ -3,12 +3,15 @@ Real-Time & Push Notification Dispatcher Module
 Handles role-filtered in-app notifications, device token registration,
 notification category preferences, quiet hours, and FCM push notifications.
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, timedelta
+from uuid import uuid4
+from datetime import date
+from .models.notification import BroadcastEntry, NotificationReceipt
 import logging
 import re
 
@@ -71,82 +74,97 @@ def create_notification(
         db.refresh(notif)
 
 
-        # Check notification category preferences & quiet hours if recipient_email provided
-        send_push = True
-        if recipient_email:
-            pref = db.query(models.NotificationPreferenceModel).filter(
-                models.NotificationPreferenceModel.institution_id == institution_id,
-                models.NotificationPreferenceModel.user_email == recipient_email
-            ).first()
-
-            if pref:
-                cat_upper = category.upper()
-                if cat_upper == "ATTENDANCE" and not pref.attendance_enabled:
-                    send_push = False
-                elif cat_upper in ["LEAVE", "DISPUTE"] and not pref.leave_dispute_enabled:
-                    send_push = False
-                elif cat_upper == "CLASS_REMINDER" and not pref.class_reminders_enabled:
-                    send_push = False
-                elif cat_upper in ["SECURITY", "SYSTEM"] and not pref.security_enabled:
-                    send_push = False
-                elif cat_upper == "PROMOTIONAL" and not pref.promotional_enabled:
-                    send_push = False
-
-                # Quiet Hours Check
-                if send_push and pref.quiet_hours_enabled and pref.quiet_start_time and pref.quiet_end_time:
-                    try:
-                        now_hm = datetime.now().strftime("%H:%M")
-                        start = pref.quiet_start_time
-                        end = pref.quiet_end_time
-                        if start <= end:
-                            if start <= now_hm <= end:
-                                send_push = False
-                        else: # Spans midnight
-                            if now_hm >= start or now_hm <= end:
-                                send_push = False
-                    except Exception as quiet_err:
-                        logger.warn(f"Error checking quiet hours: {quiet_err}")
-
-        # Dispatch FCM Push Notification
-        if send_push:
-            query = db.query(models.DeviceTokenModel).filter(
-                models.DeviceTokenModel.institution_id == institution_id,
-                models.DeviceTokenModel.is_active == True
-            )
-            if recipient_email:
-                query = query.filter(models.DeviceTokenModel.user_email == recipient_email)
-            else:
-                query = query.filter(models.DeviceTokenModel.role == recipient_role)
-
-            active_tokens = query.all()
-            if active_tokens:
-                token_strings = [t.push_token for t in active_tokens]
-                res = send_fcm_push_notification(
-                    tokens=token_strings,
-                    title=title,
-                    body=message,
-                    category=category,
-                    action_url=action_url,
-                    data_payload={
-                        "notification_id": str(notif.id),
-                        "institution_id": str(institution_id),
-                        "action_url": action_url or ""
-                    }
-                )
-
-                # Inactivate expired/invalid tokens
-                if res and res.get("invalid_tokens"):
-                    for inv_token in res["invalid_tokens"]:
-                        db.query(models.DeviceTokenModel).filter(
-                            models.DeviceTokenModel.push_token == inv_token
-                        ).update({"is_active": False}, synchronize_session=False)
-                    db.commit()
-
+        deliver_notification(db, notif)
         return notif
     except Exception as err:
         db.rollback()
         logger.error(f"Failed to create notification: {err}")
         return None
+
+
+def deliver_notification(db, notif):
+    institution_id, recipient_email, recipient_role = notif.institution_id, notif.recipient_email, notif.recipient_role
+    category, title, message, action_url = notif.category, notif.title, notif.message, notif.action_url
+    if notif.recipient_id is not None and not recipient_email:
+        return
+    # Check notification category preferences & quiet hours if recipient_email provided
+    send_push = True
+    if recipient_email:
+        pref = db.query(models.NotificationPreferenceModel).filter(
+            models.NotificationPreferenceModel.institution_id == institution_id,
+            models.NotificationPreferenceModel.user_email == recipient_email
+        ).first()
+
+        if pref:
+            cat_upper = category.upper()
+            if cat_upper == "ATTENDANCE" and not pref.attendance_enabled:
+                send_push = False
+            elif cat_upper in ["LEAVE", "DISPUTE"] and not pref.leave_dispute_enabled:
+                send_push = False
+            elif cat_upper == "CLASS_REMINDER" and not pref.class_reminders_enabled:
+                send_push = False
+            elif cat_upper in ["SECURITY", "SYSTEM"] and not pref.security_enabled:
+                send_push = False
+            elif cat_upper == "PROMOTIONAL" and not pref.promotional_enabled:
+                send_push = False
+
+            # Quiet Hours Check
+            if send_push and pref.quiet_hours_enabled and pref.quiet_start_time and pref.quiet_end_time:
+                try:
+                    now_hm = datetime.now().strftime("%H:%M")
+                    start = pref.quiet_start_time
+                    end = pref.quiet_end_time
+                    if start <= end:
+                        if start <= now_hm <= end:
+                            send_push = False
+                    else: # Spans midnight
+                        if now_hm >= start or now_hm <= end:
+                            send_push = False
+                except Exception as quiet_err:
+                    logger.warn(f"Error checking quiet hours: {quiet_err}")
+
+    # Dispatch FCM Push Notification
+    if send_push:
+        query = db.query(models.DeviceTokenModel).filter(
+            models.DeviceTokenModel.institution_id == institution_id,
+            models.DeviceTokenModel.is_active == True
+        )
+        if recipient_email:
+            query = query.filter(models.DeviceTokenModel.user_email == recipient_email)
+        else:
+            query = query.filter(models.DeviceTokenModel.role == recipient_role)
+
+        active_tokens = query.all()
+        if active_tokens:
+            token_strings = [t.push_token for t in active_tokens]
+            res = send_fcm_push_notification(
+                tokens=token_strings,
+                title=title,
+                body=message,
+                category=category,
+                action_url=action_url,
+                data_payload={
+                    "notification_id": str(notif.id),
+                    "institution_id": str(institution_id),
+                    "action_url": action_url or ""
+                }
+            )
+
+            # Inactivate expired/invalid tokens
+            if res and res.get("invalid_tokens"):
+                for inv_token in res["invalid_tokens"]:
+                    db.query(models.DeviceTokenModel).filter(
+                        models.DeviceTokenModel.push_token == inv_token
+                    ).update({"is_active": False}, synchronize_session=False)
+                db.commit()
+
+
+def push_saved_notification(notification_id):
+    from .database import SessionLocal
+    with SessionLocal() as db:
+        notif = db.get(models.NotificationModel, notification_id)
+        if notif:
+            deliver_notification(db, notif)
 
 
 def _is_future_scheduled_calendar_notice(title: Optional[str], message: Optional[str]) -> bool:
@@ -169,6 +187,26 @@ def _is_future_scheduled_calendar_notice(title: Optional[str], message: Optional
     return False
 
 
+def inbox(db, identity):
+    n = models.NotificationModel
+    receipt = NotificationReceipt
+    roles = {identity.role, identity.role + "s", "all"}
+    if identity.role in ("admin", "teacher", "hod"):
+        roles.add("staff")
+    return db.query(n, receipt).outerjoin(receipt, and_(receipt.notification_id == n.id,
+        receipt.identity_role == identity.role, receipt.identity_id == identity.id)).filter(
+        n.institution_id == identity.institution_id, n.recipient_role.in_(roles),
+        or_(and_(n.recipient_id.is_(None), n.recipient_email.is_(None)),
+            and_(n.recipient_id == identity.id, n.recipient_role == identity.role),
+            n.recipient_email == identity.email if identity.email else False),
+        or_(receipt.notification_id.is_(None), receipt.dismissed.is_(False)))
+
+
+def receipt_for(notice, receipt, identity):
+    return receipt or NotificationReceipt(notification_id=notice.id, identity_role=identity.role,
+                                          identity_id=identity.id, dismissed=False)
+
+
 @router.get("/my-notifications")
 def get_my_notifications(
     limit: int = 40,
@@ -176,43 +214,10 @@ def get_my_notifications(
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """Fetch role-filtered real-time notifications for the logged in user."""
-    inst_id = current_identity.institution_id
-    role = current_identity.role.lower()
-    email = current_identity.email
-    user_id = current_identity.id
-
-    query = db.query(models.NotificationModel).filter(
-        models.NotificationModel.institution_id == inst_id
-    )
-
-    if role == "student":
-        query = query.filter(
-            models.NotificationModel.recipient_role == "student",
-            or_(
-                models.NotificationModel.recipient_id == user_id,
-                models.NotificationModel.recipient_email == email,
-                models.NotificationModel.recipient_email.is_(None)
-            )
-        )
-    elif role in ["teacher", "hod"]:
-        query = query.filter(
-            or_(
-                models.NotificationModel.recipient_role.in_(["teacher", "hod", "staff"]),
-                models.NotificationModel.recipient_email == email
-            )
-        )
-    else:  # admin
-        query = query.filter(
-            or_(
-                models.NotificationModel.recipient_role.in_(["admin", "staff"]),
-                models.NotificationModel.recipient_email == email
-            )
-        )
-
-    notifications = query.order_by(models.NotificationModel.created_at.desc()).limit(limit * 2).all()
+    notifications = inbox(db, current_identity).order_by(models.NotificationModel.created_at.desc()).limit(limit * 2).all()
 
     output = []
-    for n in notifications:
+    for n, receipt in notifications:
         # Suppress future scheduled calendar notices (> 1 day ahead) from today's real-time list
         is_calendar = n.category == "ACADEMIC_CALENDAR" or "holiday" in (n.title or "").lower() or "exam" in (n.title or "").lower()
         if is_calendar and _is_future_scheduled_calendar_notice(n.title, n.message):
@@ -233,7 +238,7 @@ def get_my_notifications(
             "title": n.title,
             "message": n.message,
             "action_url": n.action_url,
-            "is_read": bool(n.is_read),
+            "is_read": bool(receipt or n.is_read),
             "created_at": iso_str
         })
         if len(output) >= limit:
@@ -248,48 +253,11 @@ def get_unread_notification_count(
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """Get total unread notification count for the current user's header badge."""
-    inst_id = current_identity.institution_id
-    role = current_identity.role.lower()
-    email = current_identity.email
-    user_id = current_identity.id
-
-    query = db.query(models.NotificationModel).filter(
-        models.NotificationModel.institution_id == inst_id,
-        models.NotificationModel.is_read == False
-    )
-
-    if role == "student":
-        query = query.filter(
-            models.NotificationModel.recipient_role == "student",
-            or_(
-                models.NotificationModel.recipient_id == user_id,
-                models.NotificationModel.recipient_email == email,
-                models.NotificationModel.recipient_email.is_(None)
-            )
-        )
-    elif role in ["teacher", "hod"]:
-        query = query.filter(
-            or_(
-                models.NotificationModel.recipient_role.in_(["teacher", "hod", "staff"]),
-                models.NotificationModel.recipient_email == email
-            )
-        )
-    else:
-        query = query.filter(
-            or_(
-                models.NotificationModel.recipient_role.in_(["admin", "staff"]),
-                models.NotificationModel.recipient_email == email
-            )
-        )
-
-    unread_notifications = query.all()
-    valid_unread = 0
-    for n in unread_notifications:
-        is_calendar = n.category == "ACADEMIC_CALENDAR" or "holiday" in (n.title or "").lower() or "exam" in (n.title or "").lower()
-        if is_calendar and _is_future_scheduled_calendar_notice(n.title, n.message):
-            continue
-        valid_unread += 1
-
+    notifications = inbox(db, current_identity).filter(NotificationReceipt.notification_id.is_(None),
+        models.NotificationModel.is_read.is_(False)).all()
+    valid_unread = sum(1 for n, _ in notifications if not (
+        (n.category == "ACADEMIC_CALENDAR" or "holiday" in n.title.lower() or "exam" in n.title.lower()) and
+        _is_future_scheduled_calendar_notice(n.title, n.message)))
     return {"unread_count": valid_unread}
 
 
@@ -300,13 +268,9 @@ def mark_notification_read(
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """Mark a specific notification as read."""
-    notif = db.query(models.NotificationModel).filter(
-        models.NotificationModel.id == notification_id,
-        models.NotificationModel.institution_id == current_identity.institution_id
-    ).first()
-    if notif:
-        notif.is_read = True
-        db.commit()
+    for n, receipt in inbox(db, current_identity).filter(models.NotificationModel.id == notification_id):
+        db.merge(receipt_for(n, receipt, current_identity))
+    db.commit()
     return {"status": "ok", "id": notification_id}
 
 
@@ -316,28 +280,8 @@ def mark_all_notifications_read(
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """Mark all notifications for the current user as read."""
-    inst_id = current_identity.institution_id
-    role = current_identity.role.lower()
-    email = current_identity.email
-    user_id = current_identity.id
-
-    query = db.query(models.NotificationModel).filter(
-        models.NotificationModel.institution_id == inst_id,
-        models.NotificationModel.is_read == False
-    )
-
-    if role == "student":
-        query = query.filter(
-            models.NotificationModel.recipient_role == "student",
-            or_(
-                models.NotificationModel.recipient_id == user_id,
-                models.NotificationModel.recipient_email == email
-            )
-        )
-    else:
-        query = query.filter(models.NotificationModel.recipient_role.in_([role, "staff"]))
-
-    query.update({"is_read": True}, synchronize_session=False)
+    for n, receipt in inbox(db, current_identity).filter(NotificationReceipt.notification_id.is_(None)):
+        db.merge(receipt_for(n, receipt, current_identity))
     db.commit()
     return {"status": "ok", "message": "All notifications marked as read."}
 
@@ -349,13 +293,11 @@ def delete_notification(
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """Delete a specific notification."""
-    notif = db.query(models.NotificationModel).filter(
-        models.NotificationModel.id == notification_id,
-        models.NotificationModel.institution_id == current_identity.institution_id
-    ).first()
-    if notif:
-        db.delete(notif)
-        db.commit()
+    for n, receipt in inbox(db, current_identity).filter(models.NotificationModel.id == notification_id):
+        entry = receipt_for(n, receipt, current_identity)
+        entry.dismissed = True
+        db.merge(entry)
+    db.commit()
     return {"status": "ok", "id": notification_id}
 
 
@@ -365,13 +307,10 @@ def clear_all_notifications(
     current_identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """Clear/delete all notifications for the current user."""
-    inst_id = current_identity.institution_id
-    email = current_identity.email
-
-    db.query(models.NotificationModel).filter(
-        models.NotificationModel.institution_id == inst_id,
-        models.NotificationModel.recipient_email == email
-    ).delete(synchronize_session=False)
+    for n, receipt in inbox(db, current_identity):
+        entry = receipt_for(n, receipt, current_identity)
+        entry.dismissed = True
+        db.merge(entry)
     db.commit()
     return {"status": "ok", "message": "All notifications cleared."}
 
@@ -489,6 +428,7 @@ def update_notification_preferences(
 
 
 class BroadcastPayload(BaseModel):
+    effective_date: Optional[date] = None
     title: str
     message: str
     target_roles: Optional[List[str]] = ["student", "teacher", "parent"]
@@ -501,7 +441,8 @@ class BroadcastPayload(BaseModel):
 def broadcast_announcement(
     payload: BroadcastPayload,
     db: Session = Depends(get_db),
-    current_identity: security.AuthIdentity = Depends(security.get_current_identity)
+    current_identity: security.AuthIdentity = Depends(security.get_current_identity),
+    background_tasks: BackgroundTasks = None
 ):
     """Dispatches institution-wide broadcast announcement across selected roles (students, teachers, parents)."""
     if current_identity.role.lower() not in ("admin", "principal"):
@@ -516,20 +457,24 @@ def broadcast_announcement(
     created_count = 0
     roles = payload.target_roles or ["student", "teacher", "parent"]
 
-    for r in roles:
-        r_clean = r.strip().lower()
-        if not r_clean:
-            continue
-        create_notification(
-            db=db,
-            institution_id=inst_id,
-            recipient_role=r_clean,
-            title=title,
-            message=msg,
-            category=(payload.category.upper() if payload.category else "ANNOUNCEMENT"),
-            action_url=payload.action_url
-        )
-        created_count += 1
+    group_id = str(uuid4())
+    notice_ids = []
+    for role in dict.fromkeys(roles):
+        audience = {"students": "student", "parents": "parent", "teachers": "teacher"}.get(role, role)
+        if audience not in ("student", "parent", "teacher", "staff", "hod", "admin", "all"):
+            raise HTTPException(422, "Unsupported notice audience.")
+        notice = models.NotificationModel(institution_id=inst_id, recipient_role=audience, title=title, message=msg,
+            category=(payload.category or "ANNOUNCEMENT").upper(), action_url=payload.action_url)
+        db.add(notice)
+        db.flush()
+        db.add(BroadcastEntry(notification_id=notice.id, group_id=group_id,
+                              effective_date=payload.effective_date.isoformat() if payload.effective_date else None))
+        notice_ids.append(notice.id)
+    db.commit()
+    created_count = len(notice_ids)
+    if background_tasks is not None:
+        for notice_id in notice_ids:
+            background_tasks.add_task(push_saved_notification, notice_id)
 
     return {
         "status": "ok",
@@ -555,6 +500,7 @@ def get_broadcast_history(
 
     query = db.query(models.NotificationModel).filter(
         models.NotificationModel.institution_id == inst_id,
+        models.NotificationModel.recipient_email.is_(None), models.NotificationModel.recipient_id.is_(None),
         models.NotificationModel.category.in_(["ANNOUNCEMENT", "NOTICE", "HOLIDAY", "URGENT", "CIRCULAR", "EVENT", "EXAM"])
     )
 
@@ -575,6 +521,7 @@ def get_broadcast_history(
 
     records = query.order_by(models.NotificationModel.created_at.desc()).limit(limit * 3).all()
 
+    entries = {x.notification_id: x for x in db.query(BroadcastEntry).filter(BroadcastEntry.notification_id.in_([r.id for r in records])).all()}
     # Group records by (title, message, created_at date minute)
     grouped = {}
     for r in records:
@@ -589,7 +536,8 @@ def get_broadcast_history(
                 dt_str = dt.strftime("%Y-%m-%d %H:%M")
                 iso_str = dt.isoformat() if hasattr(dt, "isoformat") else str(dt)
         
-        key = f"{r.title.strip()}::{dt_str}"
+        entry = entries.get(r.id)
+        key = entry.group_id if entry else (r.title, r.message, r.category, dt_str)
         if key not in grouped:
             grouped[key] = {
                 "id": r.id,
@@ -597,6 +545,7 @@ def get_broadcast_history(
                 "message": r.message,
                 "category": r.category,
                 "created_at": iso_str,
+                "effective_date": entry.effective_date if entry else None,
                 "action_url": r.action_url,
                 "target_roles": [r.recipient_role] if r.recipient_role else ["all"]
             }
@@ -606,36 +555,59 @@ def get_broadcast_history(
 
     result_list = list(grouped.values())[:limit]
 
-    # If no past broadcasts yet, provide initial high-fidelity institutional circulars
-    if len(result_list) == 0:
-        result_list = [
-            {
-                "id": 9991,
-                "title": "Autumn Semester Attendance & Biometric Verification Notice",
-                "message": "All students and faculty members are reminded that 75% minimum biometric attendance is mandatory for academic examination clearance. Daily attendance check-ins are recorded via automated optical kiosk terminals across campus blocks.",
-                "category": "CIRCULAR",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "target_roles": ["student", "teacher", "parent"],
-                "action_url": None
-            },
-            {
-                "id": 9992,
-                "title": "Upcoming Campus Gazetted Holiday Announcement",
-                "message": "Institution instruction and academic lectures will remain suspended on the upcoming public holiday. Normal class timetable and biometric scanner kiosks will resume on the next instructional day at 09:00 AM.",
-                "category": "HOLIDAY",
-                "created_at": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat(),
-                "target_roles": ["student", "teacher", "parent"],
-                "action_url": None
-            },
-            {
-                "id": 9993,
-                "title": "Automated WhatsApp & SMS Absentee Alerts Activation",
-                "message": "Real-time automated parent notifications for Period 1 attendance have been activated. Guardians can monitor daily attendance timestamps directly via the parent portal.",
-                "category": "NOTICE",
-                "created_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat(),
-                "target_roles": ["parent", "student"],
-                "action_url": None
-            }
-        ]
-
     return result_list
+
+
+def editable_notice_rows(db, identity, notice_id):
+    if identity.role.lower() not in ("admin", "principal"):
+        raise HTTPException(403, "Administrator access required.")
+    query = db.query(models.NotificationModel).filter_by(institution_id=identity.institution_id,
+        recipient_email=None, recipient_id=None).filter(models.NotificationModel.category.in_(
+        ["ANNOUNCEMENT", "NOTICE", "HOLIDAY", "URGENT", "CIRCULAR", "EVENT", "EXAM"]))
+    notice = query.filter_by(id=notice_id).first()
+    if notice is None:
+        raise HTTPException(404, "Notice not found.")
+    entry = db.get(BroadcastEntry, notice.id)
+    if entry:
+        return query.join(BroadcastEntry, BroadcastEntry.notification_id == models.NotificationModel.id).filter(
+            BroadcastEntry.group_id == entry.group_id).all()
+    start = notice.created_at.replace(second=0, microsecond=0)
+    return query.outerjoin(BroadcastEntry, BroadcastEntry.notification_id == models.NotificationModel.id).filter(
+        BroadcastEntry.notification_id.is_(None), models.NotificationModel.title == notice.title,
+        models.NotificationModel.message == notice.message, models.NotificationModel.category == notice.category,
+        models.NotificationModel.created_at >= start, models.NotificationModel.created_at < start + timedelta(minutes=1)).all()
+
+
+class NoticeRevision(BaseModel):
+    title: str
+    message: str
+    effective_date: date
+
+
+@router.put("/broadcasts/{notice_id}")
+def republish_notice(notice_id: int, payload: NoticeRevision, db: Session = Depends(get_db),
+                     identity: security.AuthIdentity = Depends(security.get_current_identity)):
+    if not payload.title.strip() or len(payload.title.strip()) > 200 or not payload.message.strip():
+        raise HTTPException(422, "A title and message are required.")
+    group_id = str(uuid4())
+    for row in editable_notice_rows(db, identity, notice_id):
+        entry = db.get(BroadcastEntry, row.id) or BroadcastEntry(notification_id=row.id, group_id=group_id)
+        entry.effective_date = payload.effective_date.isoformat()
+        db.add(entry)
+        db.query(NotificationReceipt).filter_by(notification_id=row.id).delete(synchronize_session=False)
+        row.title, row.message = payload.title.strip(), payload.message.strip()
+        row.created_at, row.is_read = datetime.now(timezone.utc), False
+    db.commit()
+    return {"status": "published"}
+
+
+@router.delete("/broadcasts/{notice_id}")
+def withdraw_notice(notice_id: int, db: Session = Depends(get_db),
+                    identity: security.AuthIdentity = Depends(security.get_current_identity)):
+    for row in editable_notice_rows(db, identity, notice_id):
+        entry = db.get(BroadcastEntry, row.id)
+        if entry:
+            db.delete(entry)
+        db.delete(row)
+    db.commit()
+    return {"status": "withdrawn"}

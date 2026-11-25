@@ -61,3 +61,18 @@ class NotificationPreferenceModel(Base):
 
 
 __all__ = ['NotificationModel', 'DeviceTokenModel', 'NotificationPreferenceModel']
+
+
+class BroadcastEntry(Base):
+    __tablename__ = "broadcast_entries"
+    notification_id = Column(Integer, ForeignKey("notifications.id", ondelete="CASCADE"), primary_key=True)
+    group_id = Column(String(36), nullable=False, index=True)
+    effective_date = Column(String(10), nullable=True)
+
+
+class NotificationReceipt(Base):
+    __tablename__ = "notification_receipts"
+    notification_id = Column(Integer, ForeignKey("notifications.id", ondelete="CASCADE"), primary_key=True)
+    identity_role = Column(String(30), primary_key=True)
+    identity_id = Column(Integer, primary_key=True)
+    dismissed = Column(Boolean, default=False, nullable=False)

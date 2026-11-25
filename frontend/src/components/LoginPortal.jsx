@@ -54,6 +54,8 @@ export default function LoginPortal({
   loginWorkspaceSlug,
   setLoginWorkspaceSlug,
   authError,
+  onClearAuthError,
+  onTenantSwitch,
   isLoading,
   onSubmit,
   serverWarmingUp,
@@ -182,7 +184,7 @@ export default function LoginPortal({
       endpoint = '/auth/register/institution';
       payload = {
         name: regInstName.trim(),
-        slug: regInstSlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-'),
+        slug: regInstSlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/^-+|-+$/g, ''),
         admin_name: regName.trim(),
         admin_email: regEmail.trim().toLowerCase(),
         admin_password: regPassword,
@@ -228,18 +230,35 @@ export default function LoginPortal({
         throw new Error(data.detail || 'Registration failed. Please check credentials.');
       }
 
+      const resolvedEmail = (data.admin_email || regEmail || '').trim().toLowerCase();
+      setLoginEmail(resolvedEmail);
+      setLoginPassword?.('');
+      onClearAuthError?.();
+      setRegPassword('');
+      setRegConfirmPassword('');
+
       if (isInstitution) {
-        localStorage.setItem('override_tenant', data.institution_code || regInstSlug.trim().toLowerCase());
-        setLoginEmail(regEmail.trim().toLowerCase());
+        const resolvedCode = (data.institution_code || regInstSlug || '').trim().toLowerCase();
+        localStorage.setItem('override_tenant', resolvedCode);
+        localStorage.setItem('active_tenant_slug', resolvedCode);
+        setLoginWorkspaceSlug?.(resolvedCode);
         setLoginRole('admin');
+        onTenantSwitch?.(resolvedCode);
         setRegSuccessData({
           institution_name: data.institution_name || regInstName,
-          institution_code: data.institution_code || regInstSlug,
-          admin_email: data.admin_email || regEmail,
+          institution_code: resolvedCode,
+          admin_email: resolvedEmail,
           master_key: data.master_key
         });
         setIsRegister(false);
       } else {
+        const resolvedCode = regInstitutionCode.trim().toLowerCase();
+        if (resolvedCode) {
+          localStorage.setItem('override_tenant', resolvedCode);
+          localStorage.setItem('active_tenant_slug', resolvedCode);
+          setLoginWorkspaceSlug?.(resolvedCode);
+          onTenantSwitch?.(resolvedCode);
+        }
         setShowPostRegFaceEnroll(true);
       }
     } catch (err) {
@@ -487,7 +506,15 @@ export default function LoginPortal({
 
               <button
                 type="button"
-                onClick={() => setRegSuccessData(null)}
+                onClick={() => {
+                  const code = regSuccessData?.institution_code;
+                  if (code) setLoginWorkspaceSlug?.(code);
+                  if (regSuccessData?.admin_email) setLoginEmail(regSuccessData.admin_email);
+                  setLoginRole('admin');
+                  setRegError('');
+                  onClearAuthError?.();
+                  setRegSuccessData(null);
+                }}
                 style={{
                   width: '100%',
                   padding: '11px 16px',
@@ -514,6 +541,8 @@ export default function LoginPortal({
                 <button
                   type="button"
                   onClick={() => {
+                    setRegError('');
+                    onClearAuthError?.();
                     setShowPostRegFaceEnroll(false);
                     setIsRegister(false);
                   }}
@@ -584,7 +613,7 @@ export default function LoginPortal({
                 {/* Institution / Workspace Code (Optional) */}
                 <div>
                   <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                    Institution Code <span style={{ color: '#94a3b8', fontWeight: 400 }}>(e.g. rit — leave blank for default)</span>
+                    Institution Code <span style={{ color: '#94a3b8', fontWeight: 400 }}>(e.g. rit — optional)</span>
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -592,7 +621,10 @@ export default function LoginPortal({
                       className="form-input-touch"
                       placeholder="e.g. rit"
                       value={loginWorkspaceSlug || ''}
-                      onChange={(e) => setLoginWorkspaceSlug?.(e.target.value)}
+                      onChange={(e) => {
+                        setLoginWorkspaceSlug?.(e.target.value);
+                        onClearAuthError?.();
+                      }}
                       style={{
                         width: '100%',
                         padding: '12px 14px 12px 40px',
@@ -777,6 +809,7 @@ export default function LoginPortal({
                   type="button"
                   onClick={() => {
                     setRegError('');
+                    onClearAuthError?.();
                     setIsRegister(true);
                     setRegStep(1);
                   }}
@@ -939,9 +972,11 @@ export default function LoginPortal({
                           placeholder="e.g. Delhi Public School or Apex Engineering"
                           value={regInstName}
                           onChange={(e) => {
-                            setRegInstName(e.target.value);
-                            if (!regInstSlug || regInstSlug === regInstName.toLowerCase().replace(/[^a-z0-9]/g, '-')) {
-                              setRegInstSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30));
+                            const val = e.target.value;
+                            const prevAuto = regInstName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+                            setRegInstName(val);
+                            if (!regInstSlug || regInstSlug === prevAuto) {
+                              setRegInstSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30));
                             }
                           }}
                           style={{
@@ -1309,7 +1344,11 @@ export default function LoginPortal({
                 Already registered?{' '}
                 <button
                   type="button"
-                  onClick={() => setIsRegister(false)}
+                  onClick={() => {
+                    setRegError('');
+                    onClearAuthError?.();
+                    setIsRegister(false);
+                  }}
                   style={{ background: 'none', border: 'none', color: '#80602c', cursor: 'pointer', fontWeight: 700, padding: 0 }}
                 >
                   Sign in

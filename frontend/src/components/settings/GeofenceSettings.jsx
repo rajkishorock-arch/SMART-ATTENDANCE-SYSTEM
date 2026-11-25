@@ -82,14 +82,6 @@ export default function GeofenceSettings({
             onClick={() => {
               const newLock = !lockdownActive;
               setLockdownActive(newLock);
-              localStorage.setItem('lockdownActive', newLock);
-              if (newLock) {
-                if (typeof addDiagnosticLog === 'function') addDiagnosticLog('CRITICAL: Emergency system lockdown protocol engaged!');
-                if (typeof playCyberSound === 'function') playCyberSound('error');
-              } else {
-                if (typeof addDiagnosticLog === 'function') addDiagnosticLog('INFO: Emergency lockdown disarmed. Camera relays restored.');
-                if (typeof playCyberSound === 'function') playCyberSound('click');
-              }
             }}
             style={{
               padding: '10px 20px',

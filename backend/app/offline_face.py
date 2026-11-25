@@ -110,7 +110,8 @@ async def sync_offline_attendance(
     institution_id: int,
     sync_request: OfflineSyncRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+
 ):
     """
     Upload offline attendance records collected by mobile app
@@ -118,6 +119,9 @@ async def sync_offline_attendance(
     """
     check_staff_or_admin(current_user, institution_id)
     
+    policy = crud.get_system_settings(db, institution_id=current_user.institution_id)
+    if policy.geofencing_enabled or policy.ip_restriction_enabled or policy.liveness_strict_mode:
+        raise HTTPException(403, "Campus verification requires an online check-in.")
     synced_count = 0
     skipped_count = 0
     errors = []

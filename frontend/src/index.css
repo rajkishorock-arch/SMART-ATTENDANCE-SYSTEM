@@ -8005,3 +8005,19 @@ button:active:not(:disabled),
     border-radius: 0 !important;
   }
 }
+
+.register-page, .student-enrolment-page {
+  position: fixed; inset: 0; z-index: 100060; overflow: auto;
+  background: linear-gradient(145deg, #faf6ec, #fff 60%);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.register-sheet, .enrolment-sheet {
+  box-sizing: border-box; width: min(100%, 54rem); margin-inline: auto; background: #fff;
+}
+.register-sheet { display: flex; flex-direction: column; height: 100%; }
+.enrolment-sheet { padding: clamp(16px, 4vw, 40px); min-height: 100%; }
+.enrolment-sheet h2 { margin: 0 0 24px; color: #453317; }
+.register-feedback { padding: 12px 18px; margin: 0; background: #f7edda; color: #49350e; }
+@media (max-width: 540px) {
+  .enrolment-sheet form > div[style*="grid"] { grid-template-columns: minmax(0, 1fr) !important; }
+}

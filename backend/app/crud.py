@@ -469,6 +469,14 @@ def create_subject(db: Session, subject: schemas.SubjectCreate, institution_id: 
     db.refresh(db_subject)
     return db_subject
 
+def validate_department(db, institution_id, value):
+    from fastapi import HTTPException
+    branches = db.query(models.Department.name, models.Department.code).filter_by(institution_id=institution_id).all()
+    if branches and not any((value or "").strip().casefold() == alias.strip().casefold()
+                            for branch in branches for alias in branch if alias):
+        raise HTTPException(422, "Choose a registered branch from this institution.")
+
+
 def get_subjects(db: Session, department: str = None, teacher_id: int = None, institution_id: Optional[int] = None):
     query = db.query(models.Subject)
     if institution_id is not None:

@@ -1,8 +1,9 @@
+import { attendanceCoordinates } from '../utils/attendanceCoordinates';
 import React from 'react';
 import { SwitchCamera, X, ScanLine } from 'lucide-react';
 import './QrScanner.css';
 
-export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId, onClose, onStudentCheckedIn, playCyberSound, addDiagnosticLog }) {
+export default function QrScannerModal({ geofenceEnabled, period, token, API_BASE_URL, selectedSubjectId, onClose, onStudentCheckedIn, playCyberSound, addDiagnosticLog }) {
   const [errorMsg, setErrorMsg] = React.useState('');
   const [successStudent, setSuccessStudent] = React.useState(null);
   const [errorDetails, setErrorDetails] = React.useState('');
@@ -80,6 +81,8 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          ...await attendanceCoordinates(geofenceEnabled),
+          period,
           token: qrData,
           subject_id: selectedSubjectId ? parseInt(selectedSubjectId) : null
         })
@@ -107,7 +110,7 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
       setStatusText('Scan Failed');
       startCooldown(3000);
     }
-  }, [token, API_BASE_URL, selectedSubjectId, playCyberSound, onStudentCheckedIn, addDiagnosticLog, startCooldown]);
+  }, [period, geofenceEnabled, token, API_BASE_URL, selectedSubjectId, playCyberSound, onStudentCheckedIn, addDiagnosticLog, startCooldown]);
 
   // Frame decoding loop
   React.useEffect(() => {

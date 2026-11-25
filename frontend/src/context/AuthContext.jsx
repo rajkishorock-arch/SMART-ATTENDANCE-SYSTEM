@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/authApi.js';
-import { getActiveTenantSlug } from '../utils/tenantConfig';
+import { getActiveTenantSlug, getSubdomainTenantSlug } from '../utils/tenantConfig';
 import { getApiBaseUrl } from '../utils/platform';
 import { wakeBackend } from '../utils/cameraScanner';
 import { clearApiClientCache } from '../utils/apiClient';
@@ -9,9 +9,8 @@ export const AuthContext = createContext(null);
 
 export const getRoleMismatchMessage = (expectedRole, actualRole) => {
   const portalNames = { student: 'Student', teacher: 'Teacher', hod: 'HOD', admin: 'Admin', parent: 'Parent' };
-  const expected = portalNames[expectedRole] || expectedRole;
   const actual = portalNames[actualRole] || actualRole;
-  return `This is a ${actual} account. Please navigate to the correct "${expected} Portal" to log in.`;
+  return `This is a ${actual} account. Please select the "${actual}" tab to log in.`;
 };
 
 export function AuthProvider({ children }) {
@@ -31,7 +30,10 @@ export function AuthProvider({ children }) {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginRole, setLoginRole] = useState('admin');
-  const [loginWorkspaceSlug, setLoginWorkspaceSlug] = useState(() => localStorage.getItem('active_tenant_slug') || '');
+  const [loginWorkspaceSlug, setLoginWorkspaceSlug] = useState(() => {
+    const saved = localStorage.getItem('active_tenant_slug') || '';
+    return saved === 'default' ? '' : saved;
+  });
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [serverWarmingUp, setServerWarmingUp] = useState(false);
@@ -110,6 +112,9 @@ export function AuthProvider({ children }) {
     setToken('');
     setUserRole('');
     setCurrentUser(null);
+    setLoginPassword('');
+    setLoginWorkspaceSlug('');
+    setAuthError('');
     if (typeof onLogoutCallback === 'function') {
       onLogoutCallback();
     }
@@ -174,7 +179,7 @@ export function AuthProvider({ children }) {
     const isParentLogin = loginRole === 'parent';
     const loginEndpoint = isParentLogin ? `${API_BASE_URL}/parents/login` : `${API_BASE_URL}/auth/token`;
     const rawEnteredSlug = (loginWorkspaceSlug || '').trim().toLowerCase();
-    const targetSlug = rawEnteredSlug ? rawEnteredSlug : (getActiveTenantSlug() || 'default');
+    const targetSlug = rawEnteredSlug || getSubdomainTenantSlug() || 'default';
     const loginHeaders = isParentLogin
       ? { 'Content-Type': 'application/json', 'X-Tenant-Slug': targetSlug }
       : { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Tenant-Slug': targetSlug };

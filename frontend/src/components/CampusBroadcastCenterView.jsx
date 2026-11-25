@@ -30,17 +30,7 @@ export default function CampusBroadcastCenterView({
   institutionName = 'SMART ATTENDANCE INSTITUTION',
   onNavigateBack = () => {}
 }) {
-  // State for Broadcast Notice History (initializes from localStorage for instant 0ms load)
-  const [broadcasts, setBroadcasts] = useState(() => {
-    try {
-      const cached = localStorage.getItem('cached_campus_broadcasts');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch { /* ignore */ }
-    return [];
-  });
+  const [broadcasts, setBroadcasts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
@@ -50,6 +40,8 @@ export default function CampusBroadcastCenterView({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
 
   // Dispatch Form State (for Admins / Staff)
+  const [editing, setEditing] = useState(null);
+  const [effectiveDate, setEffectiveDate] = useState('');
   const [formCategory, setFormCategory] = useState('NOTICE');
   const [formTargetRoles, setFormTargetRoles] = useState(['students', 'staff', 'parents']);
   const [formTitle, setFormTitle] = useState('');
@@ -59,7 +51,7 @@ export default function CampusBroadcastCenterView({
   const [dispatchFeedback, setDispatchFeedback] = useState(null);
   const [showComposeForm, setShowComposeForm] = useState(true);
 
-  const canDispatch = ['admin', 'principal', 'hod'].includes(String(userRole).toLowerCase());
+  const canDispatch = ['admin', 'principal'].includes(String(userRole).toLowerCase());
 
   // Fetch Broadcasts
   const fetchBroadcastHistory = useCallback(async () => {
@@ -68,44 +60,9 @@ export default function CampusBroadcastCenterView({
     setError(null);
     try {
       const res = await notificationApi.fetchBroadcastHistory(token, 100);
-      let list = [];
-      if (res && typeof res.json === 'function') {
-        if (res.ok) {
-          list = await res.json();
-        }
-      } else if (Array.isArray(res)) {
-        list = res;
-      } else if (res?.broadcasts && Array.isArray(res.broadcasts)) {
-        list = res.broadcasts;
-      }
-
-      if (Array.isArray(list)) {
-        if (list.length > 0) {
-          setBroadcasts(list);
-          try {
-            localStorage.setItem('cached_campus_broadcasts', JSON.stringify(list));
-          } catch { /* ignore */ }
-        } else {
-          try {
-            const cached = localStorage.getItem('cached_campus_broadcasts');
-            if (cached) {
-              const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) setBroadcasts(parsed);
-            }
-          } catch { /* ignore */ }
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to fetch broadcasts from API, using cached notices:', err);
-      try {
-        const cached = localStorage.getItem('cached_campus_broadcasts');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setBroadcasts(parsed);
-          }
-        }
-      } catch { /* ignore */ }
+      setBroadcasts(res);
+    } catch {
+      setError('Campus notices could not be loaded. Please refresh.');
     } finally {
       setLoading(false);
     }
@@ -131,6 +88,7 @@ export default function CampusBroadcastCenterView({
     setDispatchFeedback(null);
     try {
       const payload = {
+        effective_date: effectiveDate || null,
         title: formTitle.trim(),
         message: formMessage.trim(),
         category: formCategory,
@@ -140,69 +98,22 @@ export default function CampusBroadcastCenterView({
         sender_name: currentUser?.name || 'Campus Administrator'
       };
 
-      const res = await notificationApi.broadcastAnnouncement(token, payload);
-      
-      triggerHaptic();
-      if (playCyberSound) playCyberSound('success');
-
-      // Immediate 0ms optimistic inclusion in history archive
-      const dispatchedNotice = {
-        id: (res && (res.id || res.notification_id)) || Date.now(),
-        title: formTitle.trim(),
-        message: formMessage.trim(),
-        category: formCategory,
-        created_at: new Date().toISOString(),
-        target_roles: formTargetRoles,
-        is_urgent: formIsUrgent
-      };
-      setBroadcasts(prev => {
-        const filtered = prev.filter(b => b.title !== dispatchedNotice.title || b.message !== dispatchedNotice.message);
-        const updated = [dispatchedNotice, ...filtered];
-        try {
-          localStorage.setItem('cached_campus_broadcasts', JSON.stringify(updated));
-        } catch { /* ignore */ }
-        return updated;
-      });
-
-      setDispatchFeedback({
-        type: 'success',
-        message: `✅ Broadcast successfully dispatched to ${formTargetRoles.join(', ')}!`
-      });
-
-      // Clear Form
+      if (editing) {
+        const response = await notificationApi.reviseNotice(token, editing, payload);
+        if (!response.ok) throw new Error('Could not publish the changes.');
+      } else {
+        await notificationApi.broadcastAnnouncement(token, payload);
+      }
+      setEditing(null);
+      setEffectiveDate('');
+      setDispatchFeedback({ type: 'success', message: 'Campus notice published.' });
       setFormTitle('');
       setFormMessage('');
       setFormIsUrgent(false);
-
-      // Refresh list in background from server
-      setTimeout(() => {
-        fetchBroadcastHistory();
-      }, 800);
+      triggerHaptic();
+      await fetchBroadcastHistory();
     } catch (err) {
-      console.error('Failed to dispatch broadcast:', err);
-      // Optimistic addition so user is not blocked
-      const optimisticNotice = {
-        id: Date.now(),
-        title: formTitle.trim(),
-        message: formMessage.trim(),
-        category: formCategory,
-        created_at: new Date().toISOString(),
-        target_roles: formTargetRoles,
-        is_urgent: formIsUrgent
-      };
-      setBroadcasts(prev => {
-        const updated = [optimisticNotice, ...prev];
-        try {
-          localStorage.setItem('cached_campus_broadcasts', JSON.stringify(updated));
-        } catch { /* ignore */ }
-        return updated;
-      });
-      setDispatchFeedback({
-        type: 'success',
-        message: '✅ Notice circular published to campus notice board.'
-      });
-      setFormTitle('');
-      setFormMessage('');
+      setDispatchFeedback({ type: 'error', message: err.message || 'Unable to publish. Your draft is still here.' });
     } finally {
       setIsSubmitting(false);
       setTimeout(() => {
@@ -213,6 +124,7 @@ export default function CampusBroadcastCenterView({
 
   // Toggle role in target roles
   const toggleRole = (roleKey) => {
+    if (editing) return;
     setFormTargetRoles(prev => 
       prev.includes(roleKey) 
         ? prev.filter(r => r !== roleKey)
@@ -394,6 +306,7 @@ export default function CampusBroadcastCenterView({
         </div>
       </div>
 
+      {error && <p role="alert">{error}</p>}
       {/* ── Horizontal Operational Metrics Strip ── */}
       <div style={{
         display: 'grid',
@@ -464,6 +377,8 @@ export default function CampusBroadcastCenterView({
           {showComposeForm && (
             <form onSubmit={handleDispatch} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               
+              <label>Notice date<input className="form-input" type="date" required value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)} /></label>
+
               {/* Category Pills */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '8px' }}>
@@ -483,7 +398,7 @@ export default function CampusBroadcastCenterView({
                       <button
                         key={cat.id}
                         type="button"
-                        onClick={() => setFormCategory(cat.id)}
+                        onClick={() => !editing && setFormCategory(cat.id)}
                         style={{
                           padding: '7px 12px',
                           borderRadius: '8px',
@@ -629,7 +544,7 @@ export default function CampusBroadcastCenterView({
                   }}
                 >
                   <Send size={16} />
-                  <span>{isSubmitting ? 'Dispatching...' : 'Dispatch Broadcast'}</span>
+                  <span>{isSubmitting ? 'Dispatching...' : editing ? 'Republish notice' : 'Publish notice'}</span>
                 </button>
               </div>
 
@@ -827,7 +742,7 @@ export default function CampusBroadcastCenterView({
                     {notice.title}
                   </h4>
 
-                  {/* Message Body */}
+                  <details><summary>Read notice</summary>
                   <div style={{
                     fontSize: '0.86rem',
                     color: '#46423b',
@@ -839,8 +754,26 @@ export default function CampusBroadcastCenterView({
                     border: '1px solid #f4f1eb'
                   }}>
                     {notice.message}
-                  </div>
+                  </div></details>
 
+                  {notice.effective_date && <span>Notice date · {notice.effective_date}</span>}
+                  {canDispatch && <div>
+                    <button type="button" onClick={() => {
+                      setEditing(notice.id); setFormTitle(notice.title); setFormMessage(notice.message);
+                      setEffectiveDate(notice.effective_date || notice.created_at.slice(0, 10));
+                      setFormTargetRoles(notice.target_roles); setFormCategory(notice.category);
+                      setShowComposeForm(true);
+                      requestAnimationFrame(() => document.querySelector('form input[type=date]')?.focus());
+                    }}>Edit notice</button>
+                    <button type="button" onClick={async () => {
+                      if (!window.confirm(`Withdraw “${notice.title}” from the notice board?`)) return;
+                      try {
+                        const res = await notificationApi.withdrawNotice(token, notice.id);
+                        if (!res.ok) throw new Error();
+                        await fetchBroadcastHistory();
+                      } catch { setError('Unable to withdraw the notice.'); }
+                    }}>Withdraw</button>
+                  </div>}
                   {/* Action Footer */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', paddingTop: '4px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
