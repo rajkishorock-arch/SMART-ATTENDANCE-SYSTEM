@@ -11,15 +11,9 @@ jobs:
     name: Ping Render Backend
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Root Endpoint
+      - name: Check Render wake endpoint
         run: |
-          echo "Pinging Render backend root at $(date -u)..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 45 "https://smart-attendance-system-1-mvwa.onrender.com/" || echo "FAILED")
-          echo "Root HTTP Status: $STATUS"
-
-      - name: Ping Health Endpoint
-        run: |
-          echo "Pinging Render health endpoint at $(date -u)..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 45 "https://smart-attendance-system-1-mvwa.onrender.com/api/v1/health" || echo "FAILED")
-          echo "Health HTTP Status: $STATUS"
-          echo "Keep-alive ping completed. Render server is warm!"
+          curl --fail --silent --show-error --max-time 90 \
+            --output ping.json --write-out 'HTTP %{http_code} after %{time_total}s\n' \
+            https://smart-attendance-system-1-mvwa.onrender.com/api/v1/health/ping
+          jq -e '.ok == true' ping.json
