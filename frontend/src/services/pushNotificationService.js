@@ -118,31 +118,29 @@ export async function initializePushNotifications(token, currentUser, onNotifica
       }
 
       if (permStatus.receive === 'granted') {
-        await PushNotifications.register();
-
         // Listen for token registration
-        PushNotifications.addListener('registration', async (tokenObj) => {
-          console.info('[PushService] FCM Push Token acquired:', tokenObj.value);
+        await PushNotifications.addListener('registration', async (tokenObj) => {
           await registerBackendPushToken(token, currentUser.email, currentUser.role, tokenObj.value, 'android');
         });
 
-        PushNotifications.addListener('registrationError', (err) => {
+        await PushNotifications.addListener('registrationError', (err) => {
           console.error('[PushService] FCM Push Token registration error:', err);
         });
 
         // Listen for foreground notification arrival
-        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        await PushNotifications.addListener('pushNotificationReceived', (notification) => {
           console.info('[PushService] Push notification received in foreground:', notification);
         });
 
         // Listen for notification action tap (Deep Linking)
-        PushNotifications.addListener('pushNotificationActionPerformed', (notificationAction) => {
+        await PushNotifications.addListener('pushNotificationActionPerformed', (notificationAction) => {
           const data = notificationAction.notification.data || {};
           console.info('[PushService] Push notification tapped:', data);
           if (onNotificationTap) {
             onNotificationTap(data);
           }
         });
+        await PushNotifications.register();
       } else {
         console.warn('[PushService] Push notification permission denied by user.');
       }

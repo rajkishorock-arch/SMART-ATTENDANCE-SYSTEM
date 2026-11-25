@@ -50,7 +50,7 @@ class InstitutionVectorIndex:
             return []
 
         # Ensure target is flat and normalized
-        v = target_vector.flatten().astype(np.float32)
+        v = np.asarray(target_vector, dtype=np.float32).reshape(-1)
         norm = np.linalg.norm(v)
         if norm > 1e-9:
             v = v / norm
@@ -65,8 +65,11 @@ class InstitutionVectorIndex:
 
         # Top K
         k = min(top_k, len(self.students))
-        top_indices = np.argpartition(scores, -k)[-k:]
-        sorted_indices = top_indices[np.argsort(-scores[top_indices])]
+        if len(scores) < 500:
+            sorted_indices = np.argsort(-scores)[:k]
+        else:
+            top_indices = np.argpartition(scores, -k)[-k:]
+            sorted_indices = top_indices[np.argsort(-scores[top_indices])]
 
         results = []
         for idx in sorted_indices:

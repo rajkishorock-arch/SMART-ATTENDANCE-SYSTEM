@@ -3,7 +3,7 @@ import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } f
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { initKeepAliveEngine } from './utils/keepAlive';
 import { fetchWithDedupe, clearApiClientCache } from './utils/apiClient';
-import { studentApi, teacherApi, attendanceApi, systemApi, interactiveApi, apiGet } from './api/index.js';
+import { studentApi, teacherApi, attendanceApi, systemApi, apiGet } from './api/index.js';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -16,7 +16,6 @@ import ConsentModal from './components/ConsentModal';
 import CyberBotWidget from './components/CyberBotWidget';
 import FeedbackModal from './components/FeedbackModal';
 import UpdateNotification from './components/UpdateNotification';
-import OnboardingGuideModal from './components/OnboardingGuideModal';
 import NotificationBell from './components/NotificationBell';
 import { useFeedback, useUpdateChecker, useOnboarding, useOfflineSync, useNotifications } from './hooks/index.js';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -25,9 +24,6 @@ import QrScannerModal from './components/QrScannerModal';
 import ClassroomKioskModal from './components/ClassroomKioskModal';
 import SmartCardNfcModal from './components/SmartCardNfcModal';
 import { addToOfflineQueue, getOfflineQueue } from './utils/offlineQueue';
-import AppAmbientLayer from './components/animations/AppAmbientLayer';
-import ClickFxLayer from './components/animations/ClickFxLayer';
-import PageTransitionFlash from './components/animations/PageTransitionFlash';
 import CameraAttractHud from './components/animations/CameraAttractHud';
 import { 
   Users, 
@@ -108,7 +104,6 @@ import InstitutionBroadcastModal from './components/InstitutionBroadcastModal';
 import CampusBroadcastCenterView from './components/CampusBroadcastCenterView';
 import ControlCenterView from './components/ControlCenterView';
 import QuickActionsDock from './components/QuickActionsDock';
-import OnboardingTour from './components/OnboardingTour';
 import OfflineBanner from './components/OfflineBanner';
 import { recordScan, speakScanner, triggerHaptic, checkKonamiCode, applyTheme, loadFuturisticSettings } from './utils/futuristicFeatures';
 const NewFeaturesHub = safeLazy(() => import('./components/NewFeaturesHub'));
@@ -117,7 +112,6 @@ import { offlineAttendanceQueue } from './services/offlineAttendanceQueue';
 const WellnessCounselorPanel = safeLazy(() => import('./components/WellnessCounselorPanel'));
 const ARGamificationPortal = safeLazy(() => import('./components/ARGamificationPortal'));
 import { getStoredLanguage } from './utils/i18n';
-import SyncStatusPill from './components/SyncStatusPill';
 import { ScannerSuccessReceipt, ScannerFallbackOptions } from './components/ScannerSuccessReceipt';
 import AccessibilitySettingsModal from './components/AccessibilitySettingsModal';
 import PrivacyTrustCenter from './components/PrivacyTrustCenter';
@@ -134,7 +128,7 @@ import ThemeEqualizerSettings from './components/settings/ThemeEqualizerSettings
 import SettingsDirectoryHub from './components/settings/SettingsDirectoryHub';
 import FeaturesDirectoryHub from './components/settings/FeaturesDirectoryHub';
 import AdvancedBiometricSettings from './components/settings/AdvancedBiometricSettings';
-import AdminTeacherDashboardView from './components/dashboard/AdminTeacherDashboardView';
+const AdminTeacherDashboardView = safeLazy(() => import('./components/dashboard/AdminTeacherDashboardView'));
 import StudentsDirectoryView, { StudentsDirectoryHeaderAction } from './components/dashboard/StudentsDirectoryView';
 import TeachersDirectoryView from './components/dashboard/TeachersDirectoryView';
 import AttendanceRegistersView, { AttendanceRegistersHeaderAction } from './components/dashboard/AttendanceRegistersView';
@@ -8089,6 +8083,7 @@ export default function App() {
               onNavigateTab={navigateToTab}
             />
           ) : (
+            <Suspense fallback={<p role='status'>Loading dashboard…</p>}>
             <AdminTeacherDashboardView
               fetchStats={fetchStats}
               fetchLogs={fetchLogs}
@@ -8142,6 +8137,7 @@ export default function App() {
               isLoadingFeedbacks={isLoadingFeedbacks}
               feedbacks={feedbacks}
             />
+            </Suspense>
           )
         )}
 
