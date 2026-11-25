@@ -41,3 +41,13 @@ def test_teacher_dashboard_stats_scoped_to_cse(db):
     # Teacher in CSE calls get_dashboard_stats with departments=["CSE"]
     stats = crud.get_dashboard_stats(db, institution_id=1, departments=["CSE"])
     assert stats["total_students"] == 2
+
+def test_multiple_periods_count_once_per_enrolled_student(db):
+    today = crud.datetime.now(crud.IST).strftime("%Y-%m-%d")
+    for student, period in [("1", "P1"), ("1", "P2"), ("999", "P3")]:
+        db.add(models.AttendanceModel(id=student, date=today, time=period,
+            institution_id=1, department="MECH", attendance="Present"))
+    db.commit()
+    stats = crud.get_dashboard_stats(db, institution_id=1)
+    assert stats["total_present_today"] == 1
+    assert stats["average_attendance_rate"] == 25

@@ -11,9 +11,10 @@ import {
   Trash2, 
   Save 
 } from 'lucide-react';
+import { getApiBaseUrl } from '../utils/platform';
 import useUI from '../hooks/useUI';
 
-export default function NotificationSettingsModal({ isOpen, onClose, token, API_BASE_URL, onPreferencesSaved, onHistoryCleared }) {
+export default function NotificationSettingsModal({ isOpen, onClose, token, API_BASE_URL = getApiBaseUrl(), onPreferencesSaved, onHistoryCleared }) {
   const { playCyberSound } = useUI();
   const [preferences, setPreferences] = useState({
     attendance_enabled: true,

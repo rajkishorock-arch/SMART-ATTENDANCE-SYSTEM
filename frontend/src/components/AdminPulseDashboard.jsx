@@ -409,7 +409,7 @@ export default function AdminPulseDashboard({
 
           {/* 4. Academic Calendar & Today's Schedule */}
           <div
-            onClick={() => onNavigateTab && onNavigateTab('calendar')}
+            onClick={() => onNavigateTab && onNavigateTab('broadcast')}
             role="button"
             tabIndex={0}
             className="surface-card-hover"
@@ -445,7 +445,7 @@ export default function AdminPulseDashboard({
               </div>
               <div style={{ minWidth: 0 }}>
                 <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
-                  {lang === 'hi' ? 'अकादमिक कैलेंडर' : 'Academic Calendar'}
+                  {lang === 'hi' ? 'कैंपस सूचनाएँ' : 'Campus Broadcast'}
                 </span>
               </div>
             </div>

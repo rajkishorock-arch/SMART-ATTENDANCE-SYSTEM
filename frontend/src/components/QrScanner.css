@@ -4,7 +4,19 @@
 .qr-camera header {background:linear-gradient(115deg,#372d20,#72572e);color:white}
 .qr-camera header h2 {color:white!important;font-size:1.16rem;margin:0;flex:1}
 .qr-camera button {min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;border:1px solid #cfbc9d;background:#fff9ec;color:#4d391b;cursor:pointer}
-.qr-camera-preview {position:relative;background:#181510;aspect-ratio:4/3;max-height:58dvh;overflow:hidden}
-.qr-camera-preview video {width:100%;height:100%;object-fit:cover;display:block}
+.qr-camera-preview {position:relative;background:#181510;width:100%;height:min(58dvh,480px);overflow:hidden}
+.qr-camera .qr-camera-preview > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100% !important;
+  max-height: none;
+  object-fit: cover;
+  display: block;
+}
+@media (max-width: 600px) {
+  .qr-camera-overlay { padding: 0; }
+  .qr-camera-overlay .qr-camera { width: 100%; border-inline: 0; border-radius: 0; }
+}
 .qr-camera-guide {position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(65%,32dvh);aspect-ratio:1;border:2px solid #eed398;border-radius:12px;box-shadow:0 0 0 100vmax #0003;pointer-events:none}
 .qr-camera-controls {justify-content:space-between;flex-wrap:wrap}.qr-camera-controls p {margin:3px 0;color:#675a48;font-size:.88rem}.qr-camera-picker select {flex:1;min-width:0;max-width:100%;min-height:44px}

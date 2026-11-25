@@ -130,6 +130,18 @@ def verify(directory):
                                 back.click()
                             setup.wait_for()
                             assert page.url.endswith("#/attendance")
+                        page.get_by_role("button", name="Scan Virtual ID Card", exact=False).click()
+                        scanner = page.get_by_role("dialog", name="Scan student ID")
+                        for width, height in ((440, 956), (1280, 720)):
+                            page.set_viewport_size({"width": width, "height": height})
+                            assert scanner.locator("video").evaluate("""video => {
+                                const frame = video.parentElement.getBoundingClientRect();
+                                const card = video.closest('section').getBoundingClientRect();
+                                const rect = video.getBoundingClientRect();
+                                return Math.abs(frame.width - card.width) <= 2 &&
+                                    ['top','right','bottom','left'].every(edge => Math.abs(frame[edge] - rect[edge]) < 1);
+                            }""")
+                        scanner.get_by_role("button", name="Close scanner").click()
                         page.get_by_role("button", name="Launch Kiosk Mode", exact=False).click()
                         kiosk = page.get_by_role("dialog", name="Classroom check-in")
                         reader = kiosk.get_by_label("Card reader")

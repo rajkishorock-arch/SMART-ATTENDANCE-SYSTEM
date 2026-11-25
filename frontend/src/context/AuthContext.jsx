@@ -187,101 +187,93 @@ export function AuthProvider({ children }) {
           return fd;
         })();
 
-    const MAX_RETRIES = 2;
-    let lastError = null;
+    if (!navigator.onLine) {
+      setAuthError('You are offline. Reconnect to sign in.');
+      setIsLoading(false);
+      setServerWarmingUp(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(loginEndpoint, {
+        method: 'POST',
+        headers: loginHeaders,
+        body: loginBody,
+        signal: controller.signal,
+      });
 
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      let data = {};
+      const raw = await res.text();
       try {
-        if (attempt > 0) {
-          setAuthError(`Cloud server waking up... Retry ${attempt}/${MAX_RETRIES}`);
-          await new Promise((r) => setTimeout(r, 2000 + attempt * 1000));
-          await wakeBackend(API_BASE_URL, 2500);
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error('Server returned invalid response. Backend may still be starting.');
+      }
+
+      if (res.ok && data.access_token) {
+        let meData = data.user;
+        if (!meData) {
+          const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${data.access_token}` },
+            signal: controller.signal,
+          });
+
+          if (!meRes.ok) {
+            throw new Error('Session validation failed');
+          }
+          meData = await meRes.json();
         }
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000);
-
-        const res = await fetch(loginEndpoint, {
-          method: 'POST',
-          headers: loginHeaders,
-          body: loginBody,
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        let data = {};
-        const raw = await res.text();
-        try {
-          data = raw ? JSON.parse(raw) : {};
-        } catch {
-          throw new Error('Server returned invalid response. Backend may still be starting.');
-        }
-
-        if (res.ok && data.access_token) {
-          let meData = data.user;
-          if (!meData) {
-            const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
-              headers: { Authorization: `Bearer ${data.access_token}` },
-            });
-
-            if (!meRes.ok) {
-              throw new Error('Session validation failed');
-            }
-            meData = await meRes.json();
-          }
-          if (meData.role !== loginRole) {
-            playSound('error');
-            setAuthError(getRoleMismatchMessage(loginRole, meData.role));
-            setIsLoading(false);
-            setServerWarmingUp(false);
-            return;
-          }
-
-          playSound('success');
-          setAuthError('');
-          setServerWarmingUp(false);
-          localStorage.setItem('token', data.access_token);
-          localStorage.setItem('loginRole', loginRole);
-          localStorage.setItem('userRole', meData.role);
-          localStorage.setItem('cached_user', JSON.stringify(meData));
-          if (meData.institution_slug) {
-            localStorage.setItem('override_tenant', meData.institution_slug);
-            localStorage.setItem('active_tenant_slug', meData.institution_slug);
-          }
-          sessionStorage.setItem('just_logged_in_tour', 'true');
-          setToken(data.access_token);
-          setUserRole(meData.role);
-          setCurrentUser(meData);
+        if (meData.role !== loginRole) {
+          playSound('error');
+          setAuthError(getRoleMismatchMessage(loginRole, meData.role));
           setIsLoading(false);
-
-          if (typeof onSuccess === 'function') {
-            onSuccess({ token: data.access_token, userRole: meData.role, currentUser: meData });
-          }
+          setServerWarmingUp(false);
           return;
         }
 
-        const detail = data.detail;
-        const msg = Array.isArray(detail)
-          ? detail.map((d) => d.msg || JSON.stringify(d)).join(', ')
-          : (detail || 'Incorrect email or password');
-        playSound('error');
-        setAuthError(msg);
-        setIsLoading(false);
+        playSound('success');
+        setAuthError('');
         setServerWarmingUp(false);
-        return;
-      } catch (err) {
-        lastError = err;
-        console.log(`Login attempt ${attempt + 1} failed:`, err.message);
-      }
-    }
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('loginRole', loginRole);
+        localStorage.setItem('userRole', meData.role);
+        localStorage.setItem('cached_user', JSON.stringify(meData));
+        if (meData.institution_slug) {
+          localStorage.setItem('override_tenant', meData.institution_slug);
+          localStorage.setItem('active_tenant_slug', meData.institution_slug);
+        }
+        sessionStorage.setItem('just_logged_in_tour', 'true');
+        setToken(data.access_token);
+        setUserRole(meData.role);
+        setCurrentUser(meData);
+        setIsLoading(false);
 
-    playSound('error');
-    const hint = lastError?.name === 'AbortError'
-      ? 'Request timed out — Render server is still waking up.'
-      : (lastError?.message || 'Network error');
-    setAuthError(`${hint} Tap "Wake Cloud Server" below, wait 45s, then login again. Default admin password: raj@9211`);
-    setServerWarmingUp(true);
-    setIsLoading(false);
+        if (typeof onSuccess === 'function') {
+          onSuccess({ token: data.access_token, userRole: meData.role, currentUser: meData });
+        }
+        return;
+      }
+
+      const detail = data.detail;
+      const msg = Array.isArray(detail)
+        ? detail.map((d) => d.msg || JSON.stringify(d)).join(', ')
+        : (detail || 'Incorrect email or password');
+      playSound('error');
+      setAuthError(msg);
+      setIsLoading(false);
+      setServerWarmingUp(false);
+      return;
+    } catch (err) {
+      playSound('error');
+      setAuthError(!navigator.onLine ? 'You are offline. Reconnect to sign in.'
+        : err.name === 'AbortError' ? 'Sign-in timed out. Please try again.'
+        : 'Could not reach the sign-in service. Check your connection and try again.');
+    } finally {
+      clearTimeout(timeoutId);
+      setIsLoading(false);
+      setServerWarmingUp(false);
+    }
   }, [loginEmail, loginPassword, loginRole, loginWorkspaceSlug]);
 
   // Handle SSO Login

@@ -72,12 +72,6 @@ async def download_embeddings_for_offline(
         StudentModel.consent_given == True
     ).all()
     
-    if not students:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No students with face embeddings found"
-        )
-    
     from .encryption_service import decrypt_embedding
     offline_data = []
     for student in students:

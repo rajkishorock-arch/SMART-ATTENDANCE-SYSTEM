@@ -392,67 +392,6 @@ export default function AdminTeacherDashboardView({
                   </div>
                 </div>
 
-                {/* Pending Review & Attention Center */}
-                <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Requests to review
-                  </span>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {userRole !== 'student' && (
-                      <button
-                        type="button"
-                        onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('face-review'); }}
-                        className="btn-secondary"
-                        style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <ScanFace size={16} style={{ color: '#987235' }} /> Borderline Face Matches
-                        </span>
-                        <span className="status-pill status-pill-cyan" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>Review</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('disputes'); }}
-                      className="btn-secondary"
-                      style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <ShieldAlert size={16} style={{ color: '#f59e0b' }} /> Student Disputes
-                      </span>
-                      <span className="status-pill status-pill-warning" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>Queue</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('calendar'); }}
-                      className="btn-secondary"
-                      style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Calendar size={16} style={{ color: '#8b5cf6' }} /> Academic Calendar
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>Schedule</span>
-                    </button>
-
-                    {userRole === 'admin' && (
-                      <button
-                        type="button"
-                        onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('devices'); }}
-                        className="btn-secondary"
-                        style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Monitor size={16} style={{ color: '#10b981' }} /> Scanner Device Fleet
-                        </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)' }}>Telemetry</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
                 {/* Secondary Analytics Directory Hub */}
                 <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>

@@ -394,54 +394,14 @@ export default function CampusBroadcastCenterView({
         </div>
       </div>
 
-      {/* ── Page Header Banner ── */}
-      <div 
-        className="surface-card"
-        style={{
-          padding: '18px 20px',
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #61471e 50%, #785927 100%)',
-          borderRadius: '16px',
-          color: '#ffffff',
-          boxShadow: '0 4px 16px rgba(30, 58, 138, 0.18)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'rgba(255, 255, 255, 0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(4px)'
-          }}>
-            <Megaphone size={22} color="#ffffff" />
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
-              Campus Broadcast & Official Notices
-            </h2>
-            {userRole !== 'student' && userRole !== 'teacher' && (
-              <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#e0e7ff', opacity: 0.9 }}>
-                Official circulars, academic notifications & downloadable certified PDF circulars
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* ── Horizontal Operational Metrics Strip ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
         gap: '10px'
       }}>
         {statsMetrics.map((stat, idx) => (
-          <div key={idx} className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
+          <div key={idx} style={{ padding: '8px', minWidth: 0, overflowWrap: 'anywhere', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
             <span style={{ fontSize: '0.72rem', color: stat.color, fontWeight: 600, textTransform: 'uppercase' }}>{stat.label}</span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: stat.color, marginTop: '2px' }}>{stat.val}</div>
           </div>

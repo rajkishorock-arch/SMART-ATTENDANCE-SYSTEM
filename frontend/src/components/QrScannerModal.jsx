@@ -166,6 +166,7 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
     <div className="qr-camera-overlay">
       <section className="qr-camera" role="dialog" aria-modal="true" aria-labelledby="qr-camera-title">
         <header><ScanLine aria-hidden="true"/><h2 id="qr-camera-title">Scan student ID</h2>
+          {devices.length > 1 && <button type="button" disabled={opening} onClick={flip} aria-label="Flip camera" title="Flip camera"><SwitchCamera size={21} aria-hidden="true"/></button>}
           <button onClick={onClose} aria-label="Close scanner"><X/></button></header>
         <div className="qr-camera-preview">
           <video ref={videoRef} autoPlay muted playsInline/>
@@ -176,9 +177,8 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
           <div role="status"><strong>{errorMsg ? 'Camera unavailable' : opening ? 'Opening camera…' : statusText}</strong>
           <p>{errorMsg || errorDetails || (successStudent ? [successStudent.name, successStudent.roll].join(' · ') :
             isProcessing ? 'Checking attendance…' : 'Hold the student’s live QR code inside the frame.')}</p></div>
-          {devices.length > 1 && <button disabled={opening} onClick={flip}><SwitchCamera size={19}/> Flip camera</button>}
         </div>
-        {devices.length > 1 && <label className="qr-camera-picker">Camera<select value={camera} onChange={e => setActiveDeviceId(e.target.value)}>
+        {devices.length > 2 && <label className="qr-camera-picker">Camera<select value={camera} onChange={e => setActiveDeviceId(e.target.value)}>
           {devices.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || 'Camera ' + (index + 1)}</option>)}
         </select></label>}
       </section>
