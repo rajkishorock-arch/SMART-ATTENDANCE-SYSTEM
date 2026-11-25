@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { CreditCard, X } from 'lucide-react';
 import useBodyScrollLock from '../hooks/useBodyScrollLock';
@@ -10,6 +10,33 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
   const [now, setNow] = useState(Date.now);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
+  const cursor = useRef(null);
+  const [result, setResult] = useState(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer;
+    async function poll() {
+      try {
+        if (cursor.current !== null && !document.hidden) {
+          const response = await fetch(API_BASE_URL + '/users/students/me/qr-result', {
+            headers: { Authorization: 'Bearer ' + token }, cache: 'no-store', signal: controller.signal
+          });
+          if (response.ok) {
+            const next = await response.json();
+            if (!controller.signal.aborted && next.id > cursor.current) {
+              cursor.current = next.id;
+              setResult(next);
+            }
+          }
+        }
+      } catch { /* Resume polling after transient network errors. */ }
+      if (!controller.signal.aborted) timer = setTimeout(poll, 2000);
+    }
+    cursor.current = null;
+    setResult(null);
+    poll();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [API_BASE_URL, token]);
   useEffect(() => {
     const controller = new AbortController();
     let timer;
@@ -28,6 +55,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
         const image = await QRCode.toDataURL(data.token, { width: 480, margin: 4 });
         if (controller.signal.aborted) return;
         if (expires <= Date.now()) throw new Error();
+        if (cursor.current === null) cursor.current = data.result_cursor ?? 0;
         setNow(Date.now());
         setPass({ image, expires });
         timer = setTimeout(refresh, expires - Date.now());
@@ -57,6 +85,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
           <span>{[details.roll || currentUser?.roll, details.dep || currentUser?.department].filter(Boolean).join(' · ')}</span>
           <small>{[details.course, details.semester && ('Semester ' + details.semester)].filter(Boolean).join(' · ')}</small>
         </div>
+        {result && <div className="id-pass-result" role="status"><strong>{result.title}</strong><span>{result.message}</span></div>}
         <div className="id-pass-code">
           {remaining > 0 ? <><img src={pass.image} alt="Attendance QR pass"/><strong>{remaining}s remaining</strong><span>Show this code to the attendance scanner.</span></>
             : error ? <><span role="alert">{error}</span><button onClick={() => setRevision(n => n + 1)}>Retry</button></>

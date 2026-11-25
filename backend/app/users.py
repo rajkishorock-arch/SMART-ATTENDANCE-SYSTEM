@@ -1746,8 +1746,17 @@ def review_leave_request(
         created_at=leave.created_at
     )
 
+@router.get("/students/me/qr-result")
+def latest_qr_result(db: Session = Depends(get_db), current_student: models.StudentModel = Depends(security.get_current_student)):
+    result = db.query(models.NotificationModel).filter_by(institution_id=current_student.institution_id,
+        recipient_role="student", recipient_id=current_student.id, category="QR_CHECKIN"
+    ).order_by(models.NotificationModel.id.desc()).first()
+    return {"id": result.id, "title": result.title, "message": result.message} if result else {"id": 0}
+
+
 @router.get("/students/me/qr-token")
 def generate_student_qr_token(
+    db: Session = Depends(get_db),
     current_student: models.StudentModel = Depends(security.get_current_student)
 ):
     """
@@ -1770,4 +1779,4 @@ def generate_student_qr_token(
         "type": "qr_checkin"
     }
     token = jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.ALGORITHM)
-    return {"token": token, "expires_in": 45}
+    return {"token": token, "expires_in": 45, "result_cursor": latest_qr_result(db, current_student)["id"]}

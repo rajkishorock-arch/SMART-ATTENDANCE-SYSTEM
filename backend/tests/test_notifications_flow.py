@@ -271,3 +271,27 @@ def test_idempotency_protection(test_db):
         models.NotificationModel.recipient_id == student.id
     ).count()
     assert count == 1
+
+@pytest.mark.parametrize("role", ["teacher", "admin"])
+def test_qr_checkin_branch_and_personal_result(test_db, role):
+    from fastapi import HTTPException
+    from app import users, attendance
+
+    db, student, subject = test_db["db"], test_db["student"], test_db["subject"]
+    for branch, expected in [("Electrical", "Branch mismatch"), (student.dep, "Attendance confirmed")]:
+        subject.department = branch
+        db.commit()
+        qr = users.generate_student_qr_token(db, student)
+        payload = {"token": qr["token"], "subject_id": subject.id}
+        if branch != student.dep:
+            with pytest.raises(HTTPException) as error:
+                attendance.checkin_via_student_qr(payload, db, test_db[role])
+            assert error.value.status_code == 422
+            assert db.query(models.AttendanceModel).count() == 0
+        else:
+            assert attendance.checkin_via_student_qr(payload, db, test_db[role])["status"] == "success"
+            assert db.query(models.AttendanceModel).count() == 1
+        result = users.latest_qr_result(db, student)
+        assert result["id"] > qr["result_cursor"]
+        assert result["title"] == expected
+        assert users.latest_qr_result(db, test_db["unrelated_student"]) == {"id": 0}

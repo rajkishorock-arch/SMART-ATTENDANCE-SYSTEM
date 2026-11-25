@@ -1360,6 +1360,23 @@ def checkin_via_student_qr(
     if not student:
         raise HTTPException(status_code=404, detail="Student record not found.")
 
+    subjects = db.query(models.Subject).filter_by(institution_id=institution_id)
+    if current_user.role == "teacher":
+        subjects = subjects.filter_by(teacher_id=current_user.id)
+    if subject_id:
+        subject = subjects.filter_by(id=subject_id).first()
+    else:
+        choices = subjects.limit(2).all() if current_user.role == "teacher" else []
+        subject = choices[0] if len(choices) == 1 else None
+    if not subject:
+        raise HTTPException(status_code=400, detail="Select an assigned subject before scanning.")
+    active_subject_id = subject.id
+
+    def record_result(title, message):
+        db.add(models.NotificationModel(institution_id=institution_id, recipient_id=student.id,
+            recipient_email=student.email, recipient_role="student", category="QR_CHECKIN",
+            title=title, message=message, action_url="/#/student-attendance", is_read=False))
+
     # 6. Replay protection: atomically consume the jti
     from sqlalchemy.exc import IntegrityError
     import threading
@@ -1389,17 +1406,14 @@ def checkin_via_student_qr(
             db.rollback()
             raise HTTPException(status_code=409, detail="QR token has already been used.")
             
-        # 7. Determine active subject (use assigned subject if teacher)
-        active_subject_id = subject_id
-        if current_user.role == "teacher" and not active_subject_id:
-            # Fallback to teacher's primary assigned subject
-            teacher_subject = db.query(models.Subject).filter(
-                models.Subject.teacher_id == current_user.id,
-                models.Subject.institution_id == current_user.institution_id
-            ).first()
-            if teacher_subject:
-                active_subject_id = teacher_subject.id
-                
+        branch = (student.dep or "").strip()
+        required = (subject.department or "").strip()
+        if not branch or not required or branch.casefold() != required.casefold():
+            message = f"Attendance not marked for {subject.name}. Class branch: {required or 'unassigned'}. Student branch: {branch or 'unassigned'}."
+            record_result("Branch mismatch", message)
+            db.commit()
+            raise HTTPException(status_code=422, detail=message)
+
         # 8. Transactionally coordinated attendance creation/update
         now = datetime.now(timezone(timedelta(hours=5, minutes=30))) # India standard time
         time_str = now.strftime("%I:%M:%S %p")
@@ -1431,6 +1445,7 @@ def checkin_via_student_qr(
                 )
                 db.add(db_attendance)
                 
+            record_result("Attendance confirmed", f"{subject.name} · Present · {time_str}")
             # Log to audit trail
             crud.create_audit_log(
                 db=db,

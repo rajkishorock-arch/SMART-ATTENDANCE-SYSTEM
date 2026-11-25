@@ -8,3 +8,4 @@
 .id-pass-owner strong { font-size: 1.35rem; }
 .id-pass-code { justify-items: center; text-align: center; font-size: .85rem; }
 .id-pass .id-pass-code img { display: block; width: min(100%, 264px) !important; height: auto !important; aspect-ratio: 1; position: static; image-rendering: pixelated; }
+.id-pass-result { display:grid; gap:4px; margin:8px 12px; padding:12px; background:linear-gradient(115deg,#f4e6c6,#fffcf5); border:1px solid #cfb576; border-radius:12px; color:#48381c; overflow-wrap:anywhere; }
