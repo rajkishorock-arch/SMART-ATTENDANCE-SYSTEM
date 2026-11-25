@@ -90,6 +90,10 @@ def verify(directory):
                         card.wait_for()
                         for width in (320, 390, 440):
                             page.set_viewport_size({"width": width, "height": 956})
+                            page.wait_for_function("""() => {
+                                const rect = document.querySelector('.scanner-session-setup > .glass-panel').getBoundingClientRect();
+                                return Math.abs(rect.left) <= 1 && Math.abs(rect.right - innerWidth) <= 1;
+                            }""", timeout=3000)
                             for element, inset in ((card, 1), (card.locator("select").first, 6)):
                                 box = element.bounding_box()
                                 right = width - box["x"] - box["width"]

@@ -238,24 +238,12 @@ const getPeriodSlotLabel = (periodOrTime) => {
 const LEFT_EYE_INDICES = [362, 385, 387, 263, 373, 380];
 const RIGHT_EYE_INDICES = [33, 160, 158, 133, 153, 144];
 
-function calculateEAR(landmarks, eyeIndices) {
-  try {
-    const p1 = landmarks[eyeIndices[0]];
-    const p2 = landmarks[eyeIndices[1]];
-    const p3 = landmarks[eyeIndices[2]];
-    const p4 = landmarks[eyeIndices[3]];
-    const p5 = landmarks[eyeIndices[4]];
-    const p6 = landmarks[eyeIndices[5]];
-
-    const distHorizontal = Math.hypot(p1.x - p4.x, p1.y - p4.y);
-    const distVertical1 = Math.hypot(p2.x - p6.x, p2.y - p6.y);
-    const distVertical2 = Math.hypot(p3.x - p5.x, p3.y - p5.y);
-
-    if (distHorizontal === 0) return 0.0;
-    return (distVertical1 + distVertical2) / (2.0 * distHorizontal);
-  } catch (err) {
-    return 0.0;
-  }
+function calculateEAR(landmarks, eyeIndices, width, height) {
+  const [outer, upper1, upper2, inner, lower2, lower1] = eyeIndices.map(i => landmarks[i]);
+  if (![outer, upper1, upper2, inner, lower2, lower1].every(Boolean)) return NaN;
+  const distance = (a, b) => Math.hypot((a.x - b.x) * width, (a.y - b.y) * height);
+  const span = distance(outer, inner);
+  return span > 0 ? (distance(upper1, lower1) + distance(upper2, lower2)) / (2 * span) : NaN;
 }
 
 // =====================================================================
@@ -4338,7 +4326,7 @@ export default function App() {
 
     const preset = getCameraPreset(cameraScanSettings.preset || 'turbo');
     faceMesh.setOptions({
-      maxNumFaces: cameraScanSettings.classroomMultiScan !== false ? 10 : 1,
+      maxNumFaces: 1, // The blink check uses only the primary face.
       refineLandmarks: preset.refineLandmarks,
       minDetectionConfidence: preset.minDetectionConfidence,
       minTrackingConfidence: Math.max(0.5, preset.minDetectionConfidence - 0.05),
@@ -4361,10 +4349,16 @@ export default function App() {
             triggerFaceRecognition();
           }
         } else {
-          const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES);
-          const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES);
+          const width = video.videoWidth || video.naturalWidth;
+          const height = video.videoHeight || video.naturalHeight;
+          const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES, width, height);
+          const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES, width, height);
           const avgEAR = (leftEAR + rightEAR) / 2.0;
 
+          if (!Number.isFinite(avgEAR)) {
+            eyeStateRef.current = 'open';
+            return;
+          }
           if (livenessStatusRef.current === 'verifying') {
             const earThreshold = Math.max(antiSpoofingThreshold, 0.20);
 
@@ -4401,6 +4395,8 @@ export default function App() {
           }
         }
       } else {
+        eyeStateRef.current = 'open';
+        lastLandmarksRef.current = null;
         faceLockStartRef.current = null;
       }
 

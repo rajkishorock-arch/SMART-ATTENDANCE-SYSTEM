@@ -1183,7 +1183,7 @@ export default function StudentAttendanceDashboardView({
                   </button>
                 </div>
 
-                {blueprintLoading ? (
+                {blueprintLoading && effectiveBlueprintData.length === 0 ? (
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#696358', gap: '12px', alignItems: 'center' }}>
                     <div style={{ width: '28px', height: '28px', border: '3px solid #cfc8ba', borderTopColor: '#785927', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                     Loading blueprint...

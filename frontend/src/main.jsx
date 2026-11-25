@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { getActiveTenantSlug } from './utils/tenantConfig'
 
+import { clearApiClientCache } from './utils/apiClient';
 import { getApiBaseUrl } from './utils/platform';
 
 // Global Fetch Interceptor to inject X-Tenant-Slug header into all backend API calls
@@ -17,7 +18,13 @@ window.fetch = async function (url, options = {}) {
       'X-Tenant-Slug': getActiveTenantSlug()
     };
   }
-  return originalFetch.call(this, url, options);
+  const response = await originalFetch.call(this, url, options);
+  if (response.ok && apiBase && urlStr.startsWith(apiBase + '/') &&
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes((options.method || 'GET').toUpperCase()) &&
+      !urlStr.includes('/auth/heartbeat')) {
+    clearApiClientCache();
+  }
+  return response;
 };
 
 import './styles/futuristicFeatures.css';
