@@ -1474,14 +1474,6 @@ def checkin_via_student_qr(
             raise HTTPException(status_code=500, detail="Failed to record attendance.")
 
     
-    # Refresh cache
-    try:
-        recognition_service.invalidate_cache(institution_id)
-        recognition_service.load_student_records(db, institution_id=institution_id)
-    except Exception as cache_err:
-        print(f"Failed to reload student records cache: {cache_err}")
-
-    
     return {
         "status": "success",
         "message": f"Successfully checked in {student.name} (Roll: {student.roll})!",
