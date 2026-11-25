@@ -8021,3 +8021,43 @@ button:active:not(:disabled),
 @media (max-width: 540px) {
   .enrolment-sheet form > div[style*="grid"] { grid-template-columns: minmax(0, 1fr) !important; }
 }
+
+.campus-pause {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse at 50% 35%, #f6e4b8, transparent 60%), #f8f5ef;
+}
+.campus-pause-card {
+  width: min(100%, 27rem);
+  box-sizing: border-box;
+  padding: clamp(24px, 5vw, 42px);
+  text-align: center;
+  border: 1px solid #d7c18f;
+  border-radius: 24px;
+  background: linear-gradient(140deg, #fffffff5, #fffaf0e6);
+  box-shadow: inset 0 1px white, 0 16px 44px #59401918;
+}
+.campus-pause-seal {
+  width: 64px;
+  height: 64px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #6b4916;
+  border: 1px solid #ceb17a;
+  background: linear-gradient(145deg, #fff7df, #e4c783);
+}
+.campus-pause-card h1 { margin: 20px 0 8px; font-size: clamp(1.5rem, 5vw, 2rem); color: #332615; line-height: 1.15; }
+.campus-pause-card p { margin: 10px 0 0; color: #625440; line-height: 1.5; }
+.campus-pause-card button { margin-top: 24px; min-height: 44px; padding: 10px 20px; border-radius: 12px; background: #725021; color: white; font-weight: 600; border: 0; cursor: pointer; }
+.campus-pause-card button:focus-visible { outline: 3px solid #855e29; outline-offset: 4px; }
+@media (prefers-reduced-motion: no-preference) {
+  .campus-pause-card { animation: campus-pause-enter 300ms ease-out both; }
+  .campus-pause-seal { animation: campus-pause-glow 800ms ease-out; }
+}
+@keyframes campus-pause-enter { from { opacity: 0; transform: translateY(6px); } }
+@keyframes campus-pause-glow { 50% { box-shadow: 0 0 0 8px #d8ae5430; } }

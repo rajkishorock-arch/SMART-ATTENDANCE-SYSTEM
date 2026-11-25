@@ -6928,10 +6928,25 @@ export default function App() {
   }
 
   if (token && lockdownActive) {
-    return <main className="enrolment-sheet"><h1>Campus access paused</h1>
-      <p>Your institution has paused access. This screen updates when access resumes.</p>
-      {userRole === 'admin' && <button className="bg-gradient-btn" disabled={savingPolicy} onClick={() => saveCampusPolicy({locked:false})}>Restore campus access</button>}
-      <p role="status">{policyMessage}</p></main>;
+    return (
+      <main className="campus-pause">
+        <section className="campus-pause-card" aria-labelledby="pause-heading">
+          <span className="campus-pause-seal" aria-hidden="true"><ShieldCheck size={32} /></span>
+          <div role="status">
+            <h1 id="pause-heading">Campus access paused</h1>
+            <p>Lockdown is active. Access will resume automatically when your administrator restores it.</p>
+          </div>
+          {userRole === 'admin' && (
+            <button type="button" disabled={savingPolicy} onClick={() => saveCampusPolicy({locked:false})}>
+              {savingPolicy ? 'Restoring access…' : 'Restore campus access'}
+            </button>
+          )}
+          {policyMessage && policyMessage !== 'Campus policy saved.' && (
+            <p role="status">{policyMessage}</p>
+          )}
+        </section>
+      </main>
+    );
   }
   if (!token) {
     return (
