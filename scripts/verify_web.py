@@ -84,6 +84,18 @@ def verify(directory):
                     consent = page.get_by_role("button", name="I Agree", exact=True)
                     if consent.is_visible():
                         consent.click()
+                    if role == "admin":
+                        page.evaluate("location.hash = '/attendance'")
+                        card = page.locator(".scanner-session-setup > .glass-panel")
+                        card.wait_for()
+                        for width in (320, 390, 440):
+                            page.set_viewport_size({"width": width, "height": 956})
+                            for element, inset in ((card, 1), (card.locator("select").first, 6)):
+                                box = element.bounding_box()
+                                right = width - box["x"] - box["width"]
+                                print(f"{width}px: {box['width']}px wide, margins {box['x']}, {right}")
+                                assert abs(box["x"]) <= inset and abs(right) <= inset, box
+                        page.set_viewport_size({"width": 1280, "height": 720})
                     if role == "teacher":
                         page.set_viewport_size({"width": 440, "height": 956})
                         page.evaluate("location.hash = '/attendance'")

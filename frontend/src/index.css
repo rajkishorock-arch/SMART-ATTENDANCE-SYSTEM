@@ -7989,3 +7989,19 @@ button:active:not(:disabled),
     box-shadow: 0 0 0 2px rgba(163,124,55,.25);
   }
 }
+@media (max-width: 768px) {
+  .app-container:has(.scanner-session-setup),
+  .app-container .main-content:has(.scanner-session-setup),
+  .main-content .scanner-session-setup {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-inline: 0 !important;
+  }
+  .main-content .scanner-session-setup > .glass-panel {
+    padding-inline: max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right)) !important;
+    border-inline: 0;
+    border-radius: 0 !important;
+  }
+}
