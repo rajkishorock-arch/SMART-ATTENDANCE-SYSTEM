@@ -4229,7 +4229,7 @@ export default function App() {
         const detectLoop = async () => {
           if (!active || !attendanceActive) return;
           const isVideo = video instanceof HTMLVideoElement;
-          const isReady = isVideo ? (video.readyState === 4 && video.videoWidth > 0 && video.videoHeight > 0) : (video.complete && video.naturalWidth > 0);
+          const isReady = isVideo ? (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) : (video.complete && video.naturalWidth > 0);
           if (isReady) {
             try {
               await detector.send({ image: video });
@@ -4411,7 +4411,7 @@ export default function App() {
       if (!active || !attendanceActive) return;
       
       const isVideo = video instanceof HTMLVideoElement;
-      const isReady = isVideo ? (video.readyState === 4 && video.videoWidth > 0 && video.videoHeight > 0) : (video.complete && video.naturalWidth > 0);
+      const isReady = isVideo ? (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) : (video.complete && video.naturalWidth > 0);
       if (isReady) {
         const skip = preset.meshSkipFrames || 0;
         meshFrameSkipRef.current = (meshFrameSkipRef.current + 1) % (skip + 1);
