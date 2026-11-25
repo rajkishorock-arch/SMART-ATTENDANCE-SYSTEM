@@ -7964,3 +7964,28 @@ button:active:not(:disabled),
     transition: none !important;
   }
 }
+
+@media (max-width: 768px) {
+  .main-content:has(.scanner-session-setup) :is(.attendance-layout-grid, .mobile-tab-panel) {
+    padding-inline: 0 !important;
+    margin-inline: 0 !important;
+  }
+  .scanner-session-setup > .glass-panel {
+    padding: 12px !important;
+    gap: 14px !important;
+  }
+  .scanner-session-setup > .glass-panel > div:first-child { padding-bottom: 10px !important; }
+}
+.app-container :is(.glass-panel, .bottom-nav, .modal-card),
+.auth-card-motion {
+  background-image: linear-gradient(125deg, rgba(224,196,133,.13), transparent 55%) !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .app-container :is(.nav-item, .surface-card, .glass-panel), .auth-card-motion button {
+    transition: box-shadow 160ms ease, border-color 160ms ease;
+  }
+  .app-container :is(.surface-card, .glass-panel):focus-within,
+  .auth-card-motion button:focus-visible {
+    box-shadow: 0 0 0 2px rgba(163,124,55,.25);
+  }
+}

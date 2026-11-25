@@ -42,7 +42,7 @@ export default function LiveScannerSessionHubView({
   return (
     <>
       {!sessionActive ? (
-        <div style={{ maxWidth: '600px', margin: '0 auto', width: '100%', animation: 'fadeInUp 0.6s ease both' }}>
+        <div className="scanner-session-setup" style={{ maxWidth: '600px', margin: '0 auto', width: '100%', animation: 'fadeInUp 0.6s ease both' }}>
           <div className="glass-panel" style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '28px', border: '1px solid var(--border-subtle)' }}>
             <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '20px', textAlign: 'center' }}>
               <div style={{

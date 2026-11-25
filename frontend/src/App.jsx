@@ -717,6 +717,7 @@ export default function App() {
   const showFallbackModalRef = useRef(showFallbackModal);
   const showQrScannerModalRef = useRef(showQrScannerModal);
   const userRoleRef = useRef(userRole);
+  const scannerBackRef = useRef(null);
   const isPopStateNavRef = useRef(false);
 
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
@@ -736,6 +737,7 @@ export default function App() {
 
     // 1. Mobile Web Browser Back Button / Gesture (popstate) for Modals
     const handlePopState = () => {
+      if (scannerBackRef.current) { scannerBackRef.current(true); return; }
       // If QR scanner modal is open, close it
       if (showQrScannerModalRef.current) {
         setShowQrScannerModal(false);
@@ -791,6 +793,7 @@ export default function App() {
         const { App: CapApp } = await import('@capacitor/app');
         if (!active) return;
         handle = await CapApp.addListener('backButton', () => {
+          if (scannerBackRef.current) { scannerBackRef.current(false); return; }
           const currentSub = activeSubSettingRef.current;
           const currentTab = activeTabRef.current;
 
@@ -5331,6 +5334,21 @@ export default function App() {
     }
   }, [activeTab, activeSubSetting, token, userRole]);
 
+  useEffect(() => {
+    if (!showScannerModal || activeTab !== 'attendance') return;
+    if (!window.history.state?.attendanceScanner) {
+      window.history.pushState({ attendanceScanner: true }, '', '#/attendance');
+    }
+    scannerBackRef.current = (fromHistory) => {
+      scannerBackRef.current = null;
+      stopAttendanceCam();
+      setShowScannerModal(false);
+      setSessionActive(false);
+      if (!fromHistory && window.history.state?.attendanceScanner) window.history.back();
+    };
+    return () => { scannerBackRef.current = null; };
+  }, [showScannerModal, activeTab]);
+
   const navigateToTab = useCallback((tabId) => {
     if (activeTab && activeTab !== tabId && !['login', 'signup'].includes(activeTab)) {
       const historyArr = tabHistoryRef.current;
@@ -7100,22 +7118,14 @@ export default function App() {
             {/* Modal Floating Header */}
             <div className="clean-camera-header">
               <button
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  try {
-                    stopAttendanceCam();
-                  } catch (err) {
-                    console.error(err);
-                  }
-                  setShowScannerModal(false);
-                }}
                 onClick={() => {
-                  try {
+                  if (scannerBackRef.current) scannerBackRef.current(false);
+                  else {
                     stopAttendanceCam();
-                  } catch (err) {
-                    console.error(err);
+                    setShowScannerModal(false);
+                    setSessionActive(false);
+                    setActiveTab('attendance');
                   }
-                  setShowScannerModal(false);
                 }}
                 className="clean-back-btn"
                 aria-label="Go back"

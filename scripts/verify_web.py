@@ -84,6 +84,22 @@ def verify(directory):
                     consent = page.get_by_role("button", name="I Agree", exact=True)
                     if consent.is_visible():
                         consent.click()
+                    if role == "teacher":
+                        page.set_viewport_size({"width": 440, "height": 956})
+                        page.evaluate("location.hash = '/attendance'")
+                        setup = page.get_by_text("Initialize Attendance Session", exact=True)
+                        for browser_back in (False, True):
+                            setup.wait_for()
+                            page.get_by_role("button", name="Start Face Scanner", exact=False).click()
+                            back = page.locator(".clean-back-btn")
+                            back.wait_for()
+                            if browser_back:
+                                page.evaluate("history.back()")
+                            else:
+                                back.click()
+                            setup.wait_for()
+                            assert page.url.endswith("#/attendance")
+                        page.set_viewport_size({"width": 1280, "height": 720})
                     page.get_by_role("button", name="Sign Out", exact=True).filter(visible=True).first.click()
                     page.get_by_text("Welcome back", exact=True).wait_for()
                     assert not errors, (role, errors)
