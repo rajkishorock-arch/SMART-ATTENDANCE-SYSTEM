@@ -94,6 +94,25 @@ def test_db():
     Base.metadata.drop_all(bind=engine)
 
 
+def test_leave_review_flow_rejects_conflicting_decision(test_db):
+    from fastapi import HTTPException
+    from app import schemas, users
+
+    db, student = test_db["db"], test_db["student"]
+    request = users.apply_leave_request(schemas.LeaveRequestCreate(
+        start_date="2026-11-25", end_date="2026-11-26", leave_type="General",
+        reason="Family event", subject_id=test_db["subject"].id), db, student)
+    approved = schemas.LeaveStatusUpdate(status="Approved")
+    for _ in range(2):
+        assert users.review_leave_request(request.id, approved, db, test_db["admin"]).status == "Approved"
+    with pytest.raises(HTTPException) as error:
+        users.review_leave_request(request.id, schemas.LeaveStatusUpdate(status="Rejected"),
+                                   db, test_db["teacher"])
+    assert error.value.status_code == 409
+    assert db.query(models.NotificationModel).filter_by(
+        recipient_role="student", recipient_id=student.id, category="LEAVE").count() == 1
+
+
 def test_leave_submission_notifications(test_db):
     """Verify student leave submission notifies admin and relevant teacher."""
     db = test_db["db"]

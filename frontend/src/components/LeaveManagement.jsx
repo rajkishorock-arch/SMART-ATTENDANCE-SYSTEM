@@ -2,35 +2,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { Calendar, Send, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { leaveApi } from '../api/leaveApi.js';
 
-export default function LeaveManagement({ token, currentUser }) {
+export default function LeaveManagement({ token }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
-  const [leaveRequests, setLeaveRequests] = useState(() => {
-    try {
-      const cached = localStorage.getItem('cached_leave_requests');
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [leaveRequests, setLeaveRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const fetchLeaveRequests = useCallback(async (isCancelled = () => false) => {
     if (!token) return;
-    if (leaveRequests.length === 0) setIsLoading(true);
+    setIsLoading(true);
     try {
-      const res = await leaveApi.fetchMyLeaveRequests(token, currentUser?.details?.id);
+      const res = await leaveApi.fetchMyLeaveRequests(token);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
         if (!isCancelled()) {
           setLeaveRequests(list);
-          try {
-            localStorage.setItem('cached_leave_requests', JSON.stringify(list));
-          } catch { /* ignore fallback error */ }
+
         }
       } else {
         if (!isCancelled()) {
@@ -46,7 +37,7 @@ export default function LeaveManagement({ token, currentUser }) {
         setIsLoading(false);
       }
     }
-  }, [token, currentUser, leaveRequests.length]);
+  }, [token]);
 
   useEffect(() => {
     let ignore = false;
@@ -69,12 +60,11 @@ export default function LeaveManagement({ token, currentUser }) {
     }
     setIsLoading(true);
     try {
-      const res = await leaveApi.createLeaveRequest(token, {
-        student_id: currentUser.details.id,
-        start_date: new Date(startDate).toISOString(),
-        end_date: new Date(endDate).toISOString(),
+      const res = await leaveApi.submitStudentLeaveRequest(token, {
+        leave_type: 'General',
+        start_date: startDate,
+        end_date: endDate,
         reason,
-        institution_id: currentUser.institution_id,
       });
       if (res.ok) {
         setSuccess('Leave request submitted successfully!');

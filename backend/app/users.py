@@ -1536,7 +1536,7 @@ def apply_leave_request(
             institution_id=current_student.institution_id,
             recipient_role="admin",
             category="LEAVE",
-            title="New Student Leave Request",
+            title=f"New Student Leave Request #{new_leave.id}",
             message=f"{current_student.name} (Roll: {current_student.roll}) applied for leave ({payload.start_date} to {payload.end_date})",
             action_url="/#/leave-management"
         )
@@ -1563,7 +1563,7 @@ def apply_leave_request(
             recipient_role="teacher",
             recipient_email=target_teacher_email,
             category="LEAVE",
-            title="New Student Leave Request",
+            title=f"New Student Leave Request #{new_leave.id}",
             message=f"{current_student.name} (Roll: {current_student.roll}) applied for leave ({payload.start_date} to {payload.end_date})",
             action_url="/#/leave-management"
         )
@@ -1709,13 +1709,27 @@ def review_leave_request(
     if not leave:
         raise HTTPException(status_code=404, detail="Leave request not found.")
         
-    leave.status = payload.status
-    leave.reviewed_by = current_user.id
-    leave.reviewed_at = datetime.now(timezone.utc)
-    db.commit()
+    decision = payload.status.strip().capitalize()
+    if decision not in {"Approved", "Rejected"}:
+        raise HTTPException(status_code=422, detail="Choose Approved or Rejected.")
+    changed = db.query(models.LeaveRequest).filter_by(
+        id=leave.id, institution_id=current_user.institution_id, status="Pending"
+    ).update(dict(status=decision, reviewed_by=current_user.id,
+                  reviewed_at=datetime.now(timezone.utc)), synchronize_session=False)
     db.refresh(leave)
+    if not changed and leave.status != decision:
+        raise HTTPException(status_code=409, detail="This leave request has already been reviewed.")
     
     student = db.query(models.StudentModel).filter(models.StudentModel.id == leave.student_id).first()
+    if changed and student:
+        from .notifications import create_notification
+        create_notification(db=db, institution_id=leave.institution_id,
+                            recipient_role="student", recipient_id=student.id,
+                            recipient_email=student.email, category="LEAVE",
+                            title=f"Leave request #{leave.id} {decision.lower()}",
+                            message=f"Your leave for {leave.start_date} to {leave.end_date} was {decision.lower()}.",
+                            action_url="/#/leave-management")
+    db.commit()
     return schemas.LeaveRequestResponse(
         id=leave.id,
         student_id=leave.student_id,

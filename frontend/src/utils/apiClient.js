@@ -8,6 +8,7 @@
  */
 
 const activeRequestsMap = new Map();
+let cacheGeneration = 0;
 const abortControllersMap = new Map();
 const memoryCacheMap = new Map();
 const isDev = Boolean(import.meta.env?.DEV) || (typeof window !== 'undefined' && Boolean(window.__DEBUG_ATTENDANCE__));
@@ -38,6 +39,7 @@ function getEndpointTtl(url, options = {}) {
 }
 
 export function clearApiClientCache() {
+  cacheGeneration++;
   memoryCacheMap.clear();
   activeRequestsMap.clear();
 }
@@ -51,7 +53,7 @@ export async function fetchWithDedupe(url, options = {}) {
 
   // Invalidate read cache on write mutations
   if (!isGet) {
-    memoryCacheMap.clear();
+    clearApiClientCache();
   }
 
   // Check read cache for eligible GET requests
@@ -74,6 +76,7 @@ export async function fetchWithDedupe(url, options = {}) {
     const startTime = performance.now();
     try {
       const response = await fetch(url, options);
+      if (!isGet && response.ok) clearApiClientCache();
       const duration = (performance.now() - startTime).toFixed(1);
       if (isDev) {
         console.log(`[PERF FETCH] ${method} ${url} took ${duration}ms (status ${response.status})`);
@@ -112,6 +115,7 @@ export async function fetchWithDedupe(url, options = {}) {
   }
 
   const startTime = performance.now();
+  const generation = cacheGeneration;
   const requestPromise = (async () => {
     try {
       const response = await fetch(url, options);
@@ -124,6 +128,7 @@ export async function fetchWithDedupe(url, options = {}) {
       if (ttl > 0 && response.ok) {
         try {
           const bodyClone = await response.clone().text();
+          if (generation !== cacheGeneration) return response;
           const headersObj = {};
           response.headers.forEach((v, k) => { headersObj[k] = v; });
           memoryCacheMap.set(requestKey, {
@@ -143,16 +148,16 @@ export async function fetchWithDedupe(url, options = {}) {
         console.warn(`[PERF FETCH ERROR] ${method} ${url} failed after ${duration}ms:`, err);
       }
       throw err;
-    } finally {
-      setTimeout(() => {
-        activeRequestsMap.delete(requestKey);
-      }, 60);
     }
   })();
 
   activeRequestsMap.set(requestKey, requestPromise);
-  const finalResponse = await requestPromise;
-  return finalResponse.clone();
+  try {
+    const finalResponse = await requestPromise;
+    return finalResponse.clone();
+  } finally {
+    if (activeRequestsMap.get(requestKey) === requestPromise) activeRequestsMap.delete(requestKey);
+  }
 }
 
 export function cancelAbortGroup(groupKey) {
