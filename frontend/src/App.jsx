@@ -6660,6 +6660,7 @@ export default function App() {
     });
   }, [logs, logSearch, userRole, logDeptFilter, subjects, currentUser, selectedTeacherLogSubjectId, logDateFilter, quickFilterStatus]);
 
+  const presentToday = stats?.total_present_today ?? 0;
   const liveActivities = useMemo(() => {
     const items = [];
     logs.slice(0, 15).forEach((log, i) => {
@@ -6677,11 +6678,11 @@ export default function App() {
         text: `${s.name} scanned via face recognition at ${s.time}`,
       });
     });
-    if (items.length === 0 && stats.total_present_today > 0) {
-      items.push({ id: 'stat', type: 'present', text: `${stats.total_present_today} students present today` });
+    if (items.length === 0 && presentToday > 0) {
+      items.push({ id: 'stat', type: 'present', text: `${presentToday} students present today` });
     }
     return items;
-  }, [logs, recognizedStudents, stats.total_present_today]);
+  }, [logs, recognizedStudents, presentToday]);
 
   // Role-scoped dashboard stats: Teachers see only their branch/subject students, Admin sees whole campus
   const scopedDashboardStats = useMemo(() => {
@@ -6695,7 +6696,7 @@ export default function App() {
       const todaySlash = todayDash.split('-').reverse().join('/');
       
       // If server stats already match teacher's student count exactly
-      if (stats.total_students <= teacherStudents.length && stats.total_students > 0) {
+      if (stats?.total_students > 0 && stats.total_students <= teacherStudents.length) {
         return stats;
       }
       
@@ -7363,7 +7364,7 @@ export default function App() {
                       width: '8px',
                       height: '8px',
                       borderRadius: '50%',
-                      backgroundColor: attendanceError ? '#ef4444' : livenessStatus === 'verified' ? '#10b981' : '#0ea5e9',
+                      backgroundColor: attendanceError ? '#ef4444' : livenessStatus === 'verified' ? '#10b981' : '#987235',
                       flexShrink: 0
                     }}
                   />
@@ -7425,8 +7426,8 @@ export default function App() {
               margin: '16px 14px 4px',
               padding: '10px 12px',
               borderRadius: '12px',
-              background: activeTab === 'student-profile' ? '#eff6ff' : '#f8fafc',
-              border: activeTab === 'student-profile' ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+              background: activeTab === 'student-profile' ? '#faf5ea' : '#faf9f6',
+              border: activeTab === 'student-profile' ? '1.5px solid #916d30' : '1px solid #e4dfd5',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
@@ -7440,15 +7441,15 @@ export default function App() {
               <img 
                 src={currentUser.profile_pic} 
                 alt={currentUser.name} 
-                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', flexShrink: 0 }} 
+                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #916d30', flexShrink: 0 }} 
               />
             ) : (
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.88rem', flexShrink: 0 }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #785927, #7c3aed)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.88rem', flexShrink: 0 }}>
                 {(currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase()}
               </div>
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: '#0f172a', fontSize: '0.86rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ color: '#25231f', fontSize: '0.86rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {currentUser.name || currentUser.email}
               </div>
               <div style={{ color: '#16a34a', fontSize: '0.72rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -7708,9 +7709,9 @@ export default function App() {
             className="nav-item" 
             style={{ 
               width: '100%', 
-              border: '1px solid #e2e8f0', 
-              background: '#f8fafc', 
-              color: '#475569', 
+              border: '1px solid #e4dfd5', 
+              background: '#faf9f6', 
+              color: '#58534a', 
               display: 'flex', 
               alignItems: 'center', 
               gap: '10px', 
@@ -7720,7 +7721,7 @@ export default function App() {
               fontSize: '0.85rem'
             }}
           >
-            <Info size={17} style={{ color: '#2563eb' }} />
+            <Info size={17} style={{ color: '#785927' }} />
             <span>About System</span>
           </button>
 
@@ -7763,9 +7764,9 @@ export default function App() {
                     height: '36px',
                     minWidth: '36px',
                     borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid #e4dfd5',
                     background: '#ffffff',
-                    color: '#0f172a',
+                    color: '#25231f',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -7832,7 +7833,7 @@ export default function App() {
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
                 {userRole !== 'student' && userRole !== 'teacher' && (
-                  <p style={{ color: '#64748b', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
                       return 'Real-time attendance overview and telemetry';
@@ -7918,16 +7919,16 @@ export default function App() {
                 gap: '6px',
                 fontSize: '0.8rem',
                 fontWeight: 600,
-                background: activeTab === 'broadcast' ? '#eff6ff' : 'rgba(255, 255, 255, 0.95)',
-                border: activeTab === 'broadcast' ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
-                color: activeTab === 'broadcast' ? '#1d4ed8' : '#334155',
+                background: activeTab === 'broadcast' ? '#faf5ea' : 'rgba(255, 255, 255, 0.95)',
+                border: activeTab === 'broadcast' ? '1.5px solid #785927' : '1px solid #cfc8ba',
+                color: activeTab === 'broadcast' ? '#684c20' : '#46423b',
                 cursor: 'pointer',
                 minHeight: '36px',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                 transition: 'all 0.15s ease'
               }}
             >
-              <Megaphone size={14} color="#2563eb" />
+              <Megaphone size={14} color="#785927" />
               <span>{userRole === 'admin' ? 'Broadcast' : 'Notices'}</span>
             </button>
 
@@ -8430,7 +8431,7 @@ export default function App() {
             )}
 
             {/* ===== PRODUCTIVITY & ENTERPRISE HUB (Lazy Loaded Modules) ===== */}
-            <Suspense fallback={<div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}><span style={{ display: 'inline-block', width: '18px', height: '18px', border: '2px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 0.6s linear infinite', marginRight: '8px', verticalAlign: 'middle' }}></span>Loading module...</div>}>
+            <Suspense fallback={<div style={{ padding: '32px', textAlign: 'center', color: '#696358', fontSize: '0.9rem' }}><span style={{ display: 'inline-block', width: '18px', height: '18px', border: '2px solid #cfc8ba', borderTopColor: '#785927', borderRadius: '50%', animation: 'spin 0.6s linear infinite', marginRight: '8px', verticalAlign: 'middle' }}></span>Loading module...</div>}>
             {activeSubSetting === 'productivity' && (
               <>
                 <AdvancedFeaturesHub
@@ -8560,7 +8561,7 @@ export default function App() {
                   currentUser={currentUser}
                   onPlanActivated={(plan) => setSubscriptionPlan(plan)}
                 />
-                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>
+                <p style={{ color: '#696358', fontSize: '0.82rem', margin: 0 }}>
                   Premium grant/revoke ke liye Futuristic Hub → Premium Control tab use karein.
                 </p>
               </div>
@@ -8772,7 +8773,7 @@ export default function App() {
       {showEditStudentModal && editingStudent && (
         <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#0f172a' }}>Edit Student Profile</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#25231f' }}>Edit Student Profile</h3>
             
             {editStudentError && (
               <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
@@ -8999,7 +9000,7 @@ export default function App() {
       {showEditStudentSelfModal && editingStudentSelf && (
         <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#0f172a' }}>Edit Profile Information</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#25231f' }}>Edit Profile Information</h3>
             
             {editStudentSelfError && (
               <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
@@ -9113,7 +9114,7 @@ export default function App() {
       {showEditTeacherSelfModal && editingTeacherSelf && (
         <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#0f172a' }}>Edit Profile Information</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#25231f' }}>Edit Profile Information</h3>
             
             {editTeacherSelfError && (
               <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
@@ -9412,16 +9413,16 @@ export default function App() {
             {/* Header */}
             <div className="webcam-capture-modal-header">
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>📸 Capture Face Samples</h3>
-                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '4px 0 0' }}>
-                  Student: <strong style={{ color: '#2563eb' }}>{captureStudent.name}</strong> ({captureStudent.roll})
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#25231f' }}>📸 Capture Face Samples</h3>
+                <p style={{ color: '#696358', fontSize: '0.82rem', margin: '4px 0 0' }}>
+                  Student: <strong style={{ color: '#785927' }}>{captureStudent.name}</strong> ({captureStudent.roll})
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeWebcamModal}
                 disabled={isCapturing}
-                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#64748b', cursor: 'pointer', padding: '6px 10px', fontSize: '1.1rem', lineHeight: 1 }}
+                style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '8px', color: '#696358', cursor: 'pointer', padding: '6px 10px', fontSize: '1.1rem', lineHeight: 1 }}
                 aria-label="Close"
               >✕</button>
             </div>
@@ -9767,7 +9768,7 @@ export default function App() {
             maxWidth: '560px',
             width: '92%',
             background: '#ffffff',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             borderRadius: '20px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04)',
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -9779,8 +9780,8 @@ export default function App() {
             {/* Modal Header */}
             <div style={{
               padding: '20px 24px',
-              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-              borderBottom: '1px solid #e2e8f0',
+              background: 'linear-gradient(135deg, #faf9f6 0%, #f4f1eb 100%)',
+              borderBottom: '1px solid #e4dfd5',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -9790,7 +9791,7 @@ export default function App() {
                   width: '42px',
                   height: '42px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #2563eb, #6366f1)',
+                  background: 'linear-gradient(135deg, #785927, #89662e)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
@@ -9803,7 +9804,7 @@ export default function App() {
                   <h2 style={{
                     fontSize: '1.15rem',
                     fontWeight: 800,
-                    color: '#0f172a',
+                    color: '#25231f',
                     margin: 0,
                     letterSpacing: '-0.02em',
                     display: 'flex',
@@ -9816,14 +9817,14 @@ export default function App() {
                       fontWeight: 700,
                       padding: '2px 8px',
                       borderRadius: '6px',
-                      background: '#eff6ff',
-                      color: '#2563eb',
-                      border: '1px solid #bfdbfe'
+                      background: '#faf5ea',
+                      color: '#785927',
+                      border: '1px solid #dfcfaf'
                     }}>
                       v2.5 Enterprise
                     </span>
                   </h2>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#696358', marginTop: '2px' }}>
                     Next-Gen AI Biometric & Geofencing Platform
                   </div>
                 </div>
@@ -9833,8 +9834,8 @@ export default function App() {
                 onClick={() => { playCyberSound('click'); setIsAboutModalOpen(false); }}
                 style={{
                   background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  color: '#64748b',
+                  border: '1px solid #e4dfd5',
+                  color: '#696358',
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
@@ -9861,43 +9862,43 @@ export default function App() {
             }}>
               {/* Feature Cards Grid */}
               <div style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: '#faf9f6',
+                border: '1px solid #e4dfd5',
                 borderRadius: '12px',
                 padding: '14px 16px'
               }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#785927', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ScanFace size={14} /> Biometric AI Architecture
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.55 }}>
+                <div style={{ fontSize: '0.85rem', color: '#46423b', lineHeight: 1.55 }}>
                   Powered by <strong>FaceNet Deep Neural Networks</strong> with 512-dimensional facial embeddings, <strong>MTCNN landmark alignment</strong>, and active <strong>Eye Aspect Ratio (EAR)</strong> anti-spoofing liveness verification.
                 </div>
               </div>
 
               <div style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: '#faf9f6',
+                border: '1px solid #e4dfd5',
                 borderRadius: '12px',
                 padding: '14px 16px'
               }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Globe size={14} /> Perimeter & Security Protocols
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.55 }}>
+                <div style={{ fontSize: '0.85rem', color: '#46423b', lineHeight: 1.55 }}>
                   Enforced <strong>GPS Geofencing</strong> (100m campus boundary radius), campus Wi-Fi IP subnet whitelisting, hardware device signature binding, and tamper-proof attendance registers.
                 </div>
               </div>
 
               <div style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: '#faf9f6',
+                border: '1px solid #e4dfd5',
                 borderRadius: '12px',
                 padding: '14px 16px'
               }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Bot size={14} /> Neural Assistant Intelligence
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.55 }}>
+                <div style={{ fontSize: '0.85rem', color: '#46423b', lineHeight: 1.55 }}>
                   Integrated <strong>ChatGPT & Gemini Pro</strong> multi-tier intelligence providing instant assistance for academic inquiries, coding, mathematics, leave management, and automated schedule tracking.
                 </div>
               </div>
@@ -9909,21 +9910,21 @@ export default function App() {
                 gap: '10px',
                 fontSize: '0.8rem'
               }}>
-                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>FRONTEND ENGINE</div>
-                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>React 18 • WebGL • PWA / APK</div>
+                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '10px' }}>
+                  <div style={{ color: '#696358', fontSize: '0.72rem', fontWeight: 600 }}>FRONTEND ENGINE</div>
+                  <div style={{ color: '#25231f', fontWeight: 700, marginTop: '2px' }}>React 18 • WebGL • PWA / APK</div>
                 </div>
-                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>BACKEND RUNTIME</div>
-                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>FastAPI • SQLAlchemy • Python 3.12</div>
+                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '10px' }}>
+                  <div style={{ color: '#696358', fontSize: '0.72rem', fontWeight: 600 }}>BACKEND RUNTIME</div>
+                  <div style={{ color: '#25231f', fontWeight: 700, marginTop: '2px' }}>FastAPI • SQLAlchemy • Python 3.12</div>
                 </div>
-                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>ACTIVE DEPLOYMENT</div>
-                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>v{APP_VERSION} Stable Build</div>
+                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '10px' }}>
+                  <div style={{ color: '#696358', fontSize: '0.72rem', fontWeight: 600 }}>ACTIVE DEPLOYMENT</div>
+                  <div style={{ color: '#25231f', fontWeight: 700, marginTop: '2px' }}>v{APP_VERSION} Stable Build</div>
                 </div>
-                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>DATA PERSISTENCE</div>
-                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>SQLite / PostgreSQL DB</div>
+                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '10px' }}>
+                  <div style={{ color: '#696358', fontSize: '0.72rem', fontWeight: 600 }}>DATA PERSISTENCE</div>
+                  <div style={{ color: '#25231f', fontWeight: 700, marginTop: '2px' }}>SQLite / PostgreSQL DB</div>
                 </div>
               </div>
 
@@ -9933,15 +9934,15 @@ export default function App() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 16px',
-                background: 'linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%)',
-                border: '1px solid #dbeafe',
+                background: 'linear-gradient(135deg, #faf5ea 0%, #f5f3ff 100%)',
+                border: '1px solid #f2e7d1',
                 borderRadius: '12px'
               }}>
                 <div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>ENGINEERED & DEVELOPED BY</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e40af', letterSpacing: '0.02em', marginTop: '1px' }}>RAJKISHOR</div>
+                  <div style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 600, textTransform: 'uppercase' }}>ENGINEERED & DEVELOPED BY</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#61471e', letterSpacing: '0.02em', marginTop: '1px' }}>RAJKISHOR</div>
                 </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2563eb', background: '#ffffff', padding: '4px 10px', borderRadius: '20px', border: '1px solid #bfdbfe' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#785927', background: '#ffffff', padding: '4px 10px', borderRadius: '20px', border: '1px solid #dfcfaf' }}>
                   Lead Architect
                 </span>
               </div>
@@ -9950,8 +9951,8 @@ export default function App() {
             {/* Modal Footer */}
             <div style={{
               padding: '14px 24px',
-              background: '#f8fafc',
-              borderTop: '1px solid #f1f5f9',
+              background: '#faf9f6',
+              borderTop: '1px solid #f4f1eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -9965,7 +9966,7 @@ export default function App() {
                 style={{
                   padding: '8px 22px',
                   borderRadius: '10px',
-                  background: '#2563eb',
+                  background: '#785927',
                   color: '#ffffff',
                   fontWeight: 600,
                   fontSize: '0.85rem',
@@ -10084,12 +10085,12 @@ export default function App() {
               }}>
                 <Lock size={20} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#25231f' }}>
                 {masterKeyPrompt.title}
               </h3>
             </div>
             
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569', lineHeight: '1.5' }}>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#58534a', lineHeight: '1.5' }}>
               {masterKeyPrompt.message}
             </p>
             
@@ -10109,8 +10110,8 @@ export default function App() {
               style={{
                 width: '100%',
                 background: '#ffffff',
-                border: '1.5px solid #e2e8f0',
-                color: '#0f172a',
+                border: '1.5px solid #e4dfd5',
+                color: '#25231f',
                 padding: '12px 16px',
                 boxSizing: 'border-box',
                 fontSize: '0.95rem',
@@ -10156,7 +10157,7 @@ export default function App() {
             maxWidth: '700px',
             margin: '16px',
             padding: '0',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
             borderRadius: '20px',
             background: '#ffffff',
@@ -10169,26 +10170,26 @@ export default function App() {
             {/* Modal Header */}
             <div style={{
               padding: '16px 20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: '1px solid #e4dfd5',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#f8fafc',
+              background: '#faf9f6',
               flexShrink: 0
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   ✋ Manual Attendance Register
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.4 }}>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#696358', lineHeight: 1.4 }}>
                   Subject: <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(manualSubjectId))?.name || (subjects && subjects[0]?.name) || 'General Attendance'}</strong> • Slot: <strong>{manualPeriod}</strong> • Date: <strong>{manualDate}</strong>
                 </p>
               </div>
               <button
                 onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
-                style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '1.5rem', cursor: 'pointer', flexShrink: 0 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#0f172a'}
-                onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+                style={{ background: 'transparent', border: 'none', color: '#696358', fontSize: '1.5rem', cursor: 'pointer', flexShrink: 0 }}
+                onMouseEnter={e => e.currentTarget.style.color = '#25231f'}
+                onMouseLeave={e => e.currentTarget.style.color = '#696358'}
               >
                 ✕
               </button>
@@ -10197,15 +10198,15 @@ export default function App() {
             {/* Quick Session Selectors: Subject, Slot, Date */}
             <div style={{
               padding: '10px 16px',
-              background: '#f1f5f9',
-              borderBottom: '1px solid #e2e8f0',
+              background: '#f4f1eb',
+              borderBottom: '1px solid #e4dfd5',
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
               gap: '8px',
               alignItems: 'center'
             }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#696358', textTransform: 'uppercase', marginBottom: '2px' }}>
                   Subject / Class
                 </label>
                 <select
@@ -10228,7 +10229,7 @@ export default function App() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#696358', textTransform: 'uppercase', marginBottom: '2px' }}>
                   Timetable Slot
                 </label>
                 <select
@@ -10252,7 +10253,7 @@ export default function App() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#696358', textTransform: 'uppercase', marginBottom: '2px' }}>
                   Session Date
                 </label>
                 <input
@@ -10277,7 +10278,7 @@ export default function App() {
                   placeholder="🔍 Search student name or roll number..."
                   value={manualSearchQuery}
                   onChange={e => setManualSearchQuery(e.target.value)}
-                  style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', color: '#0f172a', paddingLeft: '16px', width: '100%', borderRadius: '10px' }}
+                  style={{ background: '#ffffff', border: '1.5px solid #e4dfd5', color: '#25231f', paddingLeft: '16px', width: '100%', borderRadius: '10px' }}
                 />
               </div>
               <button
@@ -10296,9 +10297,9 @@ export default function App() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  border: '1px solid #bfdbfe',
-                  color: '#2563eb',
-                  background: '#eff6ff',
+                  border: '1px solid #dfcfaf',
+                  color: '#785927',
+                  background: '#faf5ea',
                   cursor: 'pointer'
                 }}
               >
@@ -10321,7 +10322,7 @@ export default function App() {
 
                 if (classStudents.length === 0) {
                   return (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: '#696358' }}>
                       No students found {subjectDept ? `in department: ${subjectDept}` : ''}.
                     </div>
                   );
@@ -10338,7 +10339,7 @@ export default function App() {
                       justifyContent: 'space-between',
                       gap: '10px',
                       background: '#ffffff',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #e4dfd5',
                       borderLeft: `4px solid ${statusColor}`,
                       borderRadius: '10px',
                       padding: '10px 14px',
@@ -10346,8 +10347,8 @@ export default function App() {
                     }}>
                       {/* Name & Roll */}
                       <div style={{ flex: '1', minWidth: '160px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#0f172a' }}>{student.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>Roll: {student.roll} • {student.dep}</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#25231f' }}>{student.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#696358', fontFamily: 'monospace' }}>Roll: {student.roll} • {student.dep}</div>
                       </div>
 
                       {/* Status Toggle buttons */}
@@ -10377,9 +10378,9 @@ export default function App() {
                                 fontWeight: 700,
                                 cursor: 'pointer',
                                 transition: 'all 0.15s',
-                                background: '#f8fafc',
-                                color: '#64748b',
-                                border: '1px solid #e2e8f0',
+                                background: '#faf9f6',
+                                color: '#696358',
+                                border: '1px solid #e4dfd5',
                                 ...(isSelected ? selectedStyle : {})
                               }}
                             >
@@ -10407,8 +10408,8 @@ export default function App() {
                           fontSize: '0.75rem',
                           width: '160px',
                           minWidth: '120px',
-                          border: '1px solid #cbd5e1',
-                          color: '#0f172a',
+                          border: '1px solid #cfc8ba',
+                          color: '#25231f',
                           borderRadius: '6px'
                         }}
                       />
@@ -10419,8 +10420,8 @@ export default function App() {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0 }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderTop: '1px solid #e4dfd5', background: '#faf9f6', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.75rem', color: '#696358' }}>
                 Default status is <strong style={{ color: '#10b981' }}>Present</strong> — change per student as needed.
               </span>
               <div style={{ display: 'flex', gap: '10px' }}>

@@ -81,6 +81,11 @@ def verify(directory):
                         page.evaluate("(tab) => { location.hash = '/' + tab }", tab)
                         page.wait_for_timeout(450)
                         assert not page.get_by_text("This screen couldn’t load").count(), (role, tab)
+                    consent = page.get_by_role("button", name="I Agree", exact=True)
+                    if consent.is_visible():
+                        consent.click()
+                    page.get_by_role("button", name="Sign Out", exact=True).filter(visible=True).first.click()
+                    page.get_by_text("Welcome back", exact=True).wait_for()
                     assert not errors, (role, errors)
                     print(f"{role}: signed in and checked {len(tabs)} tab transitions")
                     context.close()

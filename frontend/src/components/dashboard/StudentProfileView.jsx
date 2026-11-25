@@ -297,7 +297,7 @@ export default function StudentProfileView({
       {/* Top Hero Profile Banner */}
       <div style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '20px',
         padding: '32px',
         boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
@@ -314,7 +314,7 @@ export default function StudentProfileView({
               width: '96px',
               height: '96px',
               borderRadius: '50%',
-              background: profilePicUrl ? 'transparent' : 'linear-gradient(135deg, #0284c7, #2563eb)',
+              background: profilePicUrl ? 'transparent' : 'linear-gradient(135deg, #80602c, #785927)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -358,7 +358,7 @@ export default function StudentProfileView({
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                background: '#0f172a',
+                background: '#25231f',
                 border: '2px solid #ffffff',
                 color: '#ffffff',
                 display: 'flex',
@@ -375,7 +375,7 @@ export default function StudentProfileView({
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#25231f', margin: 0 }}>
                 {currentUser?.name || 'User Profile'}
               </h2>
               <span style={{
@@ -384,15 +384,15 @@ export default function StudentProfileView({
                 textTransform: 'uppercase',
                 padding: '4px 10px',
                 borderRadius: '6px',
-                background: userRole === 'admin' ? '#f5f3ff' : userRole === 'teacher' ? '#eff6ff' : '#ecfdf5',
-                color: userRole === 'admin' ? '#7c3aed' : userRole === 'teacher' ? '#1d4ed8' : '#059669',
-                border: userRole === 'admin' ? '1px solid #ddd6fe' : userRole === 'teacher' ? '1px solid #bfdbfe' : '1px solid #a7f3d0'
+                background: userRole === 'admin' ? '#f5f3ff' : userRole === 'teacher' ? '#faf5ea' : '#ecfdf5',
+                color: userRole === 'admin' ? '#7c3aed' : userRole === 'teacher' ? '#684c20' : '#059669',
+                border: userRole === 'admin' ? '1px solid #ddd6fe' : userRole === 'teacher' ? '1px solid #dfcfaf' : '1px solid #a7f3d0'
               }}>
                 {userRole === 'admin' ? 'Primary Administrator' : userRole === 'teacher' ? 'Faculty Member' : 'Student'}
               </span>
             </div>
 
-            <p style={{ margin: '6px 0 0', fontSize: '0.86rem', color: '#64748b' }}>
+            <p style={{ margin: '6px 0 0', fontSize: '0.86rem', color: '#696358' }}>
               {currentUser?.email}
             </p>
 
@@ -402,7 +402,7 @@ export default function StudentProfileView({
                 alignItems: 'center',
                 gap: '5px',
                 fontSize: '0.76rem',
-                color: '#0284c7',
+                color: '#80602c',
                 background: '#f0f9ff',
                 padding: '3px 8px',
                 borderRadius: '6px',
@@ -452,9 +452,9 @@ export default function StudentProfileView({
             style={{
               padding: '10px 18px',
               borderRadius: '10px',
-              background: isEditingProfile ? '#f1f5f9' : '#0284c7',
-              border: isEditingProfile ? '1px solid #cbd5e1' : 'none',
-              color: isEditingProfile ? '#334155' : '#ffffff',
+              background: isEditingProfile ? '#f4f1eb' : '#80602c',
+              border: isEditingProfile ? '1px solid #cfc8ba' : 'none',
+              color: isEditingProfile ? '#46423b' : '#ffffff',
               fontSize: '0.85rem',
               fontWeight: 700,
               cursor: 'pointer',
@@ -512,7 +512,7 @@ export default function StudentProfileView({
         {/* Left Column: Profile Information or Edit Form */}
         <div style={{
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '18px',
           padding: '28px',
           boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
@@ -520,12 +520,12 @@ export default function StudentProfileView({
           flexDirection: 'column',
           gap: '20px'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <User size={20} color="#0284c7" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e4dfd5', paddingBottom: '14px' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <User size={20} color="#80602c" />
               <span>{isEditingProfile ? 'Edit Account Credentials' : 'Personal & Institutional Details'}</span>
             </h3>
-            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+            <span style={{ fontSize: '0.78rem', color: '#696358' }}>
               {isEditingProfile ? 'Save to update records' : 'Verified Profile'}
             </span>
           </div>
@@ -546,7 +546,7 @@ export default function StudentProfileView({
             /* ================= EDIT PROFILE FORM ================= */
             <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
                   Full Name
                 </label>
                 <input
@@ -559,8 +559,8 @@ export default function StudentProfileView({
                     padding: '11px 14px',
                     borderRadius: '8px',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    border: '1px solid #cfc8ba',
+                    color: '#25231f',
                     fontSize: '0.88rem',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -569,7 +569,7 @@ export default function StudentProfileView({
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
                   Email Address (Identity Anchor)
                 </label>
                 <input
@@ -580,9 +580,9 @@ export default function StudentProfileView({
                     width: '100%',
                     padding: '11px 14px',
                     borderRadius: '8px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    color: '#64748b',
+                    background: '#faf9f6',
+                    border: '1px solid #e4dfd5',
+                    color: '#696358',
                     fontSize: '0.88rem',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -595,7 +595,7 @@ export default function StudentProfileView({
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
                   Contact Phone Number
                 </label>
                 <input
@@ -608,8 +608,8 @@ export default function StudentProfileView({
                     padding: '11px 14px',
                     borderRadius: '8px',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    border: '1px solid #cfc8ba',
+                    color: '#25231f',
                     fontSize: '0.88rem',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -619,7 +619,7 @@ export default function StudentProfileView({
 
               {userRole !== 'student' && (
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
                     Department / Division
                   </label>
                   <input
@@ -632,8 +632,8 @@ export default function StudentProfileView({
                       padding: '11px 14px',
                       borderRadius: '8px',
                       background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      color: '#0f172a',
+                      border: '1px solid #cfc8ba',
+                      color: '#25231f',
                       fontSize: '0.88rem',
                       outline: 'none',
                       boxSizing: 'border-box'
@@ -646,7 +646,7 @@ export default function StudentProfileView({
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div>
-                      <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
                         Date of Birth
                       </label>
                       <input
@@ -658,8 +658,8 @@ export default function StudentProfileView({
                           padding: '11px 14px',
                           borderRadius: '8px',
                           background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          color: '#0f172a',
+                          border: '1px solid #cfc8ba',
+                          color: '#25231f',
                           fontSize: '0.88rem',
                           outline: 'none',
                           boxSizing: 'border-box'
@@ -667,7 +667,7 @@ export default function StudentProfileView({
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
                         Gender
                       </label>
                       <select
@@ -678,8 +678,8 @@ export default function StudentProfileView({
                           padding: '11px 14px',
                           borderRadius: '8px',
                           background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          color: '#0f172a',
+                          border: '1px solid #cfc8ba',
+                          color: '#25231f',
                           fontSize: '0.88rem',
                           outline: 'none',
                           boxSizing: 'border-box'
@@ -693,7 +693,7 @@ export default function StudentProfileView({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
                       Residential Address
                     </label>
                     <textarea
@@ -706,8 +706,8 @@ export default function StudentProfileView({
                         padding: '10px 14px',
                         borderRadius: '8px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid #cfc8ba',
+                        color: '#25231f',
                         fontSize: '0.88rem',
                         outline: 'none',
                         boxSizing: 'border-box',
@@ -719,7 +719,7 @@ export default function StudentProfileView({
               )}
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
                   Professional Bio / Title
                 </label>
                 <input
@@ -732,8 +732,8 @@ export default function StudentProfileView({
                     padding: '11px 14px',
                     borderRadius: '8px',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    border: '1px solid #cfc8ba',
+                    color: '#25231f',
                     fontSize: '0.88rem',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -774,8 +774,8 @@ export default function StudentProfileView({
                     padding: '12px 16px',
                     borderRadius: '10px',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#475569',
+                    border: '1px solid #cfc8ba',
+                    color: '#58534a',
                     fontSize: '0.88rem',
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -788,32 +788,32 @@ export default function StudentProfileView({
           ) : (
             /* ================= READ-ONLY PROFILE OVERVIEW ================= */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Full Legal Name</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.name}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Full Legal Name</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#25231f' }}>{currentUser?.name}</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Email Address</span>
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.email}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Email Address</span>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>{currentUser?.email}</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Phone Number</span>
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Phone Number</span>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>
                   {currentUser?.details?.phone || currentUser?.phone || 'Not set'}
                 </span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Institution</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0284c7' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Institution</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#80602c' }}>
                   {currentUser?.institution_name || currentUser?.details?.institution_name || (Number(currentUser?.institution_id) === 5 ? 'RIT Mumbai' : 'Smart Attendance System')}
                 </span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Workspace Slug</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Workspace Slug</span>
                 <span style={{ fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace', color: '#7c3aed' }}>
                   {currentUser?.institution_slug || currentUser?.details?.institution_slug || (Number(currentUser?.institution_id) === 5 ? 'rit' : 'default')}
                 </span>
@@ -821,36 +821,36 @@ export default function StudentProfileView({
 
               {userRole === 'student' ? (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Roll Number</span>
-                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.roll}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                    <span style={{ color: '#696358', fontSize: '0.84rem' }}>Roll Number</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#25231f' }}>{currentUser?.details?.roll}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Academic Department</span>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{currentUser?.details?.dep}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                    <span style={{ color: '#696358', fontSize: '0.84rem' }}>Academic Department</span>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>{currentUser?.details?.dep}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Course & Year</span>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                    <span style={{ color: '#696358', fontSize: '0.84rem' }}>Course & Year</span>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>
                       {currentUser?.details?.course} ({currentUser?.details?.year || '1st Year'})
                     </span>
                   </div>
                 </>
               ) : (
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                  <span style={{ color: '#64748b', fontSize: '0.84rem' }}>Department</span>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
+                  <span style={{ color: '#696358', fontSize: '0.84rem' }}>Department</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>
                     {currentUser?.department || currentUser?.details?.department || 'Administration'}
                   </span>
                 </div>
               )}
 
               {(currentUser?.bio || currentUser?.details?.bio) && (
-                <div style={{ marginTop: '6px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                <div style={{ marginTop: '6px', padding: '12px', background: '#faf9f6', borderRadius: '10px', border: '1px solid #e4dfd5' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
                     Bio / Role Note
                   </span>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', lineHeight: 1.45 }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#46423b', lineHeight: 1.45 }}>
                     {currentUser?.bio || currentUser?.details?.bio}
                   </p>
                 </div>
@@ -865,12 +865,12 @@ export default function StudentProfileView({
           {/* Change Password Card */}
           <div style={{
             background: '#ffffff',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             borderRadius: '18px',
             padding: '28px',
             boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)'
           }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#25231f', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Lock size={18} color="#e11d48" />
               <span>Change Account Password</span>
             </h3>
@@ -889,7 +889,7 @@ export default function StudentProfileView({
 
             <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>
+                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '5px' }}>
                   {userRole === 'student' ? 'Current Password / Default Roll No' : 'Current Password'}
                 </label>
                 <input
@@ -903,8 +903,8 @@ export default function StudentProfileView({
                     padding: '10px 14px',
                     borderRadius: '8px',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    border: '1px solid #cfc8ba',
+                    color: '#25231f',
                     fontSize: '0.88rem',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -913,7 +913,7 @@ export default function StudentProfileView({
               </div>
 
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>
+                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '5px' }}>
                   New Password (min 6 characters)
                 </label>
                 <input
@@ -927,8 +927,8 @@ export default function StudentProfileView({
                     padding: '10px 14px',
                     borderRadius: '8px',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    border: '1px solid #cfc8ba',
+                    color: '#25231f',
                     fontSize: '0.88rem',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -937,7 +937,7 @@ export default function StudentProfileView({
               </div>
 
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>
+                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '5px' }}>
                   Confirm New Password
                 </label>
                 <input
@@ -951,8 +951,8 @@ export default function StudentProfileView({
                     padding: '10px 14px',
                     borderRadius: '8px',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    border: '1px solid #cfc8ba',
+                    color: '#25231f',
                     fontSize: '0.88rem',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -968,7 +968,7 @@ export default function StudentProfileView({
                   width: '100%',
                   padding: '11px',
                   borderRadius: '10px',
-                  background: '#0f172a',
+                  background: '#25231f',
                   border: 'none',
                   color: '#ffffff',
                   fontSize: '0.86rem',
@@ -986,16 +986,16 @@ export default function StudentProfileView({
           {userRole === 'student' && (
             <div style={{
               background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               borderRadius: '18px',
               padding: '28px',
               boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)'
             }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Camera size={18} color="#0284c7" />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#25231f', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Camera size={18} color="#80602c" />
                 <span>Biometric Face Recognition Profile</span>
               </h3>
-              <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0 0 16px 0', lineHeight: 1.45 }}>
+              <p style={{ color: '#696358', fontSize: '0.8rem', margin: '0 0 16px 0', lineHeight: 1.45 }}>
                 Register or refresh your 128-D face embedding vector using real-time quality verification.
               </p>
 
@@ -1013,7 +1013,7 @@ export default function StudentProfileView({
 
               {(studentWebcamActive || studentWebcamBootActive) ? (
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <div style={{ position: 'relative', width: '100%', maxWidth: '360px', margin: '0 auto', aspectRatio: '4/3', background: '#0f172a', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div style={{ position: 'relative', width: '100%', maxWidth: '360px', margin: '0 auto', aspectRatio: '4/3', background: '#25231f', borderRadius: '12px', overflow: 'hidden' }}>
                     <video ref={studentVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <canvas ref={studentCanvasRef} style={{ display: 'none' }} />
                   </div>
@@ -1029,7 +1029,7 @@ export default function StudentProfileView({
                     <button
                       type="button"
                       onClick={stopStudentWebcam}
-                      style={{ padding: '10px 16px', borderRadius: '8px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 600, cursor: 'pointer' }}
+                      style={{ padding: '10px 16px', borderRadius: '8px', background: '#f4f1eb', color: '#58534a', border: '1px solid #cfc8ba', fontWeight: 600, cursor: 'pointer' }}
                     >
                       Cancel
                     </button>
@@ -1044,7 +1044,7 @@ export default function StudentProfileView({
                       flex: 1,
                       padding: '12px',
                       borderRadius: '10px',
-                      background: '#0284c7',
+                      background: '#80602c',
                       border: 'none',
                       color: '#ffffff',
                       fontSize: '0.84rem',
@@ -1067,20 +1067,20 @@ export default function StudentProfileView({
           {/* Preferences Card */}
           <div style={{
             background: '#ffffff',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             borderRadius: '18px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)'
           }}>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sliders size={16} color="#64748b" />
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#25231f', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Sliders size={16} color="#696358" />
               <span>Interface & Audio Preferences</span>
             </h4>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #f4f1eb' }}>
               <div>
-                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#0f172a', display: 'block' }}>Sound Feedback</span>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Interactive click and scan sound cues</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#25231f', display: 'block' }}>Sound Feedback</span>
+                <span style={{ fontSize: '0.74rem', color: '#696358' }}>Interactive click and scan sound cues</span>
               </div>
               <input
                 type="checkbox"
@@ -1089,12 +1089,12 @@ export default function StudentProfileView({
                   setSoundEnabled(e.target.checked);
                   localStorage.setItem('soundEnabled', e.target.checked);
                 }}
-                style={{ width: '18px', height: '18px', accentColor: '#0284c7', cursor: 'pointer' }}
+                style={{ width: '18px', height: '18px', accentColor: '#80602c', cursor: 'pointer' }}
               />
             </div>
 
             <div style={{ marginTop: '12px' }}>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.78rem', color: '#696358', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
                 {soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />} Volume: {Math.round(audioVolume * 100)}%
               </span>
               <input
@@ -1109,7 +1109,7 @@ export default function StudentProfileView({
                   setAudioVolume(vol);
                   localStorage.setItem('audioVolume', vol);
                 }}
-                style={{ width: '100%', accentColor: '#0284c7' }}
+                style={{ width: '100%', accentColor: '#80602c' }}
               />
             </div>
           </div>

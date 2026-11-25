@@ -97,7 +97,7 @@
 .quick-action-fab.main {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #00f2fe, #0ea5e9);
+  background: linear-gradient(135deg, #00f2fe, #987235);
   color: #001018;
 }
 
@@ -120,7 +120,7 @@
   border-radius: 12px;
   background: rgba(10, 14, 24, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f1f5f9;
+  color: #f4f1eb;
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
@@ -148,7 +148,7 @@
   border-radius: 8px;
   padding: 6px 10px;
   font-size: 0.68rem;
-  color: #e2e8f0;
+  color: #e4dfd5;
   backdrop-filter: blur(8px);
 }
 
@@ -168,7 +168,7 @@
 }
 
 .smart-empty-state h4 {
-  color: #f8fafc;
+  color: #faf9f6;
   font-size: 1.1rem;
   margin: 0;
 }

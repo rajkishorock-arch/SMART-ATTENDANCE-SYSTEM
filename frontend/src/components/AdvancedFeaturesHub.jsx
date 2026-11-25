@@ -280,7 +280,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
 
   return (
     <div className="glass-panel" style={{ padding: '24px' }}>
-      <h3 style={{ color: '#f8fafc', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <h3 style={{ color: '#faf9f6', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Shield size={20} /> Productivity & Enterprise Hub
       </h3>
       <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginBottom: '20px' }}>
@@ -304,7 +304,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
               borderRadius: '8px',
               border: tab === id ? '1px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.1)',
               background: tab === id ? 'rgba(79,70,229,0.2)' : 'transparent',
-              color: '#e2e8f0',
+              color: '#e4dfd5',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -401,7 +401,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
             
             {/* Chart 1: Risk Levels */}
             <div style={{ flex: '1 1 300px', minWidth: '280px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <h4 style={{ color: '#e2e8f0', fontSize: '0.9rem', marginBottom: '12px', fontWeight: '600' }}>Student Risk Classification</h4>
+              <h4 style={{ color: '#e4dfd5', fontSize: '0.9rem', marginBottom: '12px', fontWeight: '600' }}>Student Risk Classification</h4>
               <div style={{ width: '100%', height: '200px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -418,8 +418,8 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
-                    <Legend verticalAlign="bottom" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '10px', color: '#cbd5e1' }} />
+                    <Tooltip contentStyle={{ background: '#25231f', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
+                    <Legend verticalAlign="bottom" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '10px', color: '#cfc8ba' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -427,15 +427,15 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
 
             {/* Chart 2: Predictions & Attendance rates */}
             <div style={{ flex: '1 1 300px', minWidth: '280px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <h4 style={{ color: '#e2e8f0', fontSize: '0.9rem', marginBottom: '12px', fontWeight: '600' }}>Attendance vs Risk Score (Top At-Risk)</h4>
+              <h4 style={{ color: '#e4dfd5', fontSize: '0.9rem', marginBottom: '12px', fontWeight: '600' }}>Attendance vs Risk Score (Top At-Risk)</h4>
               <div style={{ width: '100%', height: '200px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={getPredictionChartData()}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" />
                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} />
                     <YAxis stroke="#94a3b8" fontSize={9} />
-                    <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
-                    <Bar dataKey="attendance" fill="#3b82f6" name="Attendance %" radius={[4, 4, 0, 0]} />
+                    <Tooltip contentStyle={{ background: '#25231f', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
+                    <Bar dataKey="attendance" fill="#916d30" name="Attendance %" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="risk" fill="#ef4444" name="Risk Score %" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -503,7 +503,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
                   <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', borderLeft: parseFloat(s.percentage) < 60 ? '3px solid #ef4444' : '3px solid #fbbf24' }}>
                     <div style={{ fontSize: '0.85rem', flex: '1 1 200px' }}>
                       <span style={{ color: '#fff', fontWeight: '500' }}>{s.name}</span>
-                      <span style={{ color: '#64748b', marginLeft: '6px' }}>({s.roll})</span>
+                      <span style={{ color: '#696358', marginLeft: '6px' }}>({s.roll})</span>
                       <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '2px' }}>
                         Attendance: <strong style={{ color: parseFloat(s.percentage) < 60 ? '#f87171' : '#fbbf24' }}>{s.percentage}%</strong>
                       </div>
@@ -545,7 +545,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
                   <div style={{ color: '#fff', fontWeight: '500', marginBottom: '4px' }}>{p.name}</div>
                   <div style={{ color: '#94a3b8' }}>Risk Level: <span style={{ color: p.risk_level === 'high' ? '#f87171' : p.risk_level === 'medium' ? '#fbbf24' : '#34d399', textTransform: 'capitalize' }}>{p.risk_level}</span></div>
                   <div style={{ color: '#94a3b8', marginTop: '2px' }}>Risk Score: <strong>{p.risk_score}%</strong></div>
-                  <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '4px' }}>Est. absences next week: {p.predicted_absences_next_week}d</div>
+                  <div style={{ color: '#696358', fontSize: '0.7rem', marginTop: '4px' }}>Est. absences next week: {p.predicted_absences_next_week}d</div>
                 </div>
               ))}
             </div>
@@ -557,7 +557,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
         <div>
           <h4 style={{ color: '#fbbf24' }}>Duplicate Face Pairs ({duplicates.length})</h4>
           {duplicates.map((d, i) => (
-            <div key={i} style={{ fontSize: '0.85rem', color: '#cbd5e1', padding: '4px 0' }}>
+            <div key={i} style={{ fontSize: '0.85rem', color: '#cfc8ba', padding: '4px 0' }}>
               {d.student_a.name} ↔ {d.student_b.name} (similarity: {d.similarity})
             </div>
           ))}
@@ -573,13 +573,13 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
       {tab === 'hod' && (
         <div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-            <input value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="Department" style={{ padding: '8px', borderRadius: '6px', background: '#0f172a', border: '1px solid #334155', color: '#fff' }} />
+            <input value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="Department" style={{ padding: '8px', borderRadius: '6px', background: '#25231f', border: '1px solid #46423b', color: '#fff' }} />
             <button type="button" onClick={loadDeptDashboard} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer' }}>
               <RefreshCw size={14} /> Load
             </button>
           </div>
           {deptStats && (
-            <div style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>
+            <div style={{ color: '#cfc8ba', fontSize: '0.9rem' }}>
               <p>Students: {deptStats.total_students} | Avg Attendance: {deptStats.average_attendance}%</p>
               <p>At-risk: {deptStats.at_risk_count}</p>
             </div>
@@ -591,9 +591,9 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
         <div style={{ maxHeight: '300px', overflow: 'auto' }}>
           {auditLogs.map((log) => (
             <div key={log.id} style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.8rem' }}>
-              <span style={{ color: '#64748b' }}>{new Date(log.timestamp).toLocaleString()}</span>
+              <span style={{ color: '#696358' }}>{new Date(log.timestamp).toLocaleString()}</span>
               <span style={{ color: '#00f2fe', marginLeft: '8px' }}>{log.user_email}</span>
-              <p style={{ color: '#e2e8f0', margin: '4px 0 0' }}>{log.action}</p>
+              <p style={{ color: '#e4dfd5', margin: '4px 0 0' }}>{log.action}</p>
             </div>
           ))}
         </div>
@@ -601,11 +601,11 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
 
       {tab === 'erp' && (
         <div>
-          <button type="button" onClick={createApiKey} style={{ padding: '10px 20px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '12px' }}>
+          <button type="button" onClick={createApiKey} style={{ padding: '10px 20px', background: '#765729', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '12px' }}>
             <Key size={14} /> Create API Key
           </button>
           {apiKeys.map((k) => (
-            <div key={k.id} style={{ padding: '8px', color: '#cbd5e1', fontSize: '0.85rem' }}>
+            <div key={k.id} style={{ padding: '8px', color: '#cfc8ba', fontSize: '0.85rem' }}>
               {k.name} — prefix: {k.key_prefix}***
             </div>
           ))}
@@ -613,7 +613,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
       )}
 
       {tab === 'billing' && billing && (
-        <div style={{ color: '#cbd5e1' }}>
+        <div style={{ color: '#cfc8ba' }}>
           <p>Plan: <strong>{billing.plan}</strong> ({billing.status})</p>
           <p>Students: {billing.student_count} / {billing.student_limit}</p>
         </div>
@@ -626,7 +626,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
             onChange={(e) => setFaqText(e.target.value)}
             placeholder="Q: What are college timings?&#10;A: 9 AM to 5 PM..."
             rows={8}
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.85rem' }}
+            style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#25231f', border: '1px solid #46423b', color: '#e4dfd5', fontFamily: 'monospace', fontSize: '0.85rem' }}
           />
           <button type="button" onClick={saveFaq} style={{ marginTop: '12px', padding: '10px 20px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
             Save FAQ for AI Chatbot
@@ -868,7 +868,7 @@ export default function AdvancedFeaturesHub({ apiBaseUrl, token, userRole, curre
                   minWidth: '200px',
                   padding: '12px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #00f2fe, #6366f1)',
+                  background: 'linear-gradient(135deg, #00f2fe, #89662e)',
                   border: 'none',
                   color: '#000',
                   fontWeight: 800,

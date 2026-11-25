@@ -38,7 +38,7 @@ export default function LiveBoardStrip({ token, enabled = true }) {
       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#00f2fe', flexShrink: 0 }}>LIVE BOARD</span>
       <div className="live-board-events no-scrollbar">
         {events.length === 0 ? (
-          <span className="live-board-event" style={{ color: '#64748b' }}>Waiting for marks…</span>
+          <span className="live-board-event" style={{ color: '#696358' }}>Waiting for marks…</span>
         ) : (
           events.map((e, i) => (
             <span key={`${e.roll}-${i}`} className="live-board-event">

@@ -28,7 +28,7 @@ export default function CameraSettingsPanel({ onChange }) {
       border: '1px solid rgba(0, 242, 254, 0.25)',
       borderRadius: '24px',
       boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
-      color: '#f8fafc',
+      color: '#faf9f6',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* Header Banner */}

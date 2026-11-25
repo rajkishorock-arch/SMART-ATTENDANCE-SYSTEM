@@ -9,7 +9,7 @@ const CATEGORIES = [
   {
     name: 'Governance & Security',
     icon: Shield,
-    color: '#3b82f6',
+    color: '#916d30',
     tabs: [
       { id: 'rules', label: 'Rules Engine', icon: Shield, desc: 'Automated 75% minimum threshold alerts and rule evaluation' },
       { id: 'exam', label: 'Exam Mode', icon: GraduationCap, desc: 'Strict geofenced lockdown for exam hall attendance verification' },
@@ -222,7 +222,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       borderRadius: '16px',
       padding: '24px',
       boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-      color: '#f8fafc'
+      color: '#faf9f6'
     }}>
       {/* Header */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '16px' }}>
@@ -231,7 +231,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
             <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, background: 'linear-gradient(90deg, #00f2fe, #4facfe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               🏭 Industry Enterprise Suite Operations Hub
             </h2>
-            <span style={{ background: 'rgba(59, 130, 246, 0.2)', border: '1px solid #3b82f6', color: '#60a5fa', fontSize: '0.72rem', padding: '3px 8px', borderRadius: '12px', fontWeight: 700 }}>
+            <span style={{ background: 'rgba(59, 130, 246, 0.2)', border: '1px solid #916d30', color: '#60a5fa', fontSize: '0.72rem', padding: '3px 8px', borderRadius: '12px', fontWeight: 700 }}>
               ENTERPRISE TIER v1.0.16
             </span>
           </div>
@@ -287,7 +287,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
             <div
               key={cat.name}
               style={{
-                background: isCatActive ? `rgba(${cat.color === '#3b82f6' ? '59, 130, 246' : cat.color === '#8b5cf6' ? '139, 92, 246' : cat.color === '#10b981' ? '16, 185, 129' : '245, 158, 11'}, 0.15)` : 'rgba(0, 0, 0, 0.3)',
+                background: isCatActive ? `rgba(${cat.color === '#916d30' ? '59, 130, 246' : cat.color === '#8b5cf6' ? '139, 92, 246' : cat.color === '#10b981' ? '16, 185, 129' : '245, 158, 11'}, 0.15)` : 'rgba(0, 0, 0, 0.3)',
                 border: `1px solid ${isCatActive ? cat.color : 'rgba(255, 255, 255, 0.08)'}`,
                 borderRadius: '12px',
                 padding: '12px',
@@ -305,7 +305,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
                     onClick={() => { setTab(t.id); setSelectedReport(null); }}
                     style={{
                       background: tab === t.id ? cat.color : 'rgba(255, 255, 255, 0.05)',
-                      color: tab === t.id ? '#ffffff' : '#cbd5e1',
+                      color: tab === t.id ? '#ffffff' : '#cfc8ba',
                       border: 'none',
                       padding: '5px 10px',
                       borderRadius: '6px',
@@ -345,7 +345,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
                 SYSTEM OPERATIONAL
               </span>
             </div>
-            <p style={{ margin: '4px 0 0', color: '#cbd5e1', fontSize: '0.83rem' }}>{activeTabMeta.desc}</p>
+            <p style={{ margin: '4px 0 0', color: '#cfc8ba', fontSize: '0.83rem' }}>{activeTabMeta.desc}</p>
           </div>
         </div>
       )}
@@ -355,7 +355,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 1. Rules Engine */}
       {tab === 'rules' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>⚙️ Smart Mandatory Attendance Rules Engine</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>⚙️ Smart Mandatory Attendance Rules Engine</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
               <label style={labelStyle}>New Custom Policy Rule Name</label>
@@ -391,7 +391,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {(data.rules || []).map((r) => (
               <div key={r.id} style={cardStyle}>
-                <div style={{ fontWeight: 700, color: '#f8fafc' }}>🛡️ {r.name}</div>
+                <div style={{ fontWeight: 700, color: '#faf9f6' }}>🛡️ {r.name}</div>
                 <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '2px' }}>
                   Rule Type: <span style={{ color: '#60a5fa' }}>{r.rule_type}</span> • Threshold: <span style={{ color: '#f59e0b' }}>{r.threshold}%</span> • Action: <span style={{ color: '#34d399' }}>{r.action}</span>
                 </div>
@@ -404,7 +404,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 2. Exam Mode */}
       {tab === 'exam' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🎓 Strict Geofenced Exam Hall Lockdown</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🎓 Strict Geofenced Exam Hall Lockdown</h3>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
             <input value={examName} onChange={(e) => setExamName(e.target.value)} style={inputStyle} />
             <button
@@ -424,7 +424,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
             {(data.exams || []).map((e) => (
               <div key={e.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: '#f8fafc' }}>📝 {e.name}</div>
+                  <div style={{ fontWeight: 700, color: '#faf9f6' }}>📝 {e.name}</div>
                   <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Duration: {e.duration || '2 Hours'} • Geofence Strict: YES</div>
                 </div>
                 <div>
@@ -452,7 +452,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 3. Custom Report Builder */}
       {tab === 'reports' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>📄 Custom Executive Report Builder</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>📄 Custom Executive Report Builder</h3>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
             <div>
@@ -469,7 +469,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
             <label style={labelStyle}>Columns to Export:</label>
             <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
               {['name', 'roll', 'attendance', 'date', 'department'].map((col) => (
-                <label key={col} style={{ color: '#cbd5e1', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <label key={col} style={{ color: '#cfc8ba', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <input
                     type="checkbox"
                     checked={selectedColumns.includes(col)}
@@ -538,7 +538,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
                   <tbody>
                     {selectedReport.rows.map((row, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        {Object.values(row).map((val, i) => <td key={i} style={{ padding: '6px', color: '#cbd5e1' }}>{String(val)}</td>)}
+                        {Object.values(row).map((val, i) => <td key={i} style={{ padding: '6px', color: '#cfc8ba' }}>{String(val)}</td>)}
                       </tr>
                     ))}
                   </tbody>
@@ -552,7 +552,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 4. Parent Escalation */}
       {tab === 'escalation' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🔔 Automated Multi-Tier Parent Escalation</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🔔 Automated Multi-Tier Parent Escalation</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: '14px' }}>
             Tier 1 → Automated WhatsApp to Parent | Tier 2 → HOD Alert Notification | Tier 3 → Formal Principal Warning Notice
           </p>
@@ -572,7 +572,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
             {(data.cases || []).map((c) => (
               <div key={c.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <strong style={{ color: '#f8fafc' }}>👤 {c.student_name} ({c.student_roll})</strong>
+                  <strong style={{ color: '#faf9f6' }}>👤 {c.student_name} ({c.student_roll})</strong>
                   <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Status: {c.status}</div>
                 </div>
                 <span style={{ background: c.tier === 3 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: c.tier === 3 ? '#f87171' : '#fbbf24', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
@@ -587,7 +587,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 5. Substitute Teacher */}
       {tab === 'substitute' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>👨‍🏫 Automatic Substitute Teacher Flow</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>👨‍🏫 Automatic Substitute Teacher Flow</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
             <div>
               <label style={labelStyle}>Original Absent Teacher Email</label>
@@ -615,7 +615,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 6. Bulk Operations */}
       {tab === 'bulk' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>📚 Bulk Operations Center</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>📚 Bulk Operations Center</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>
             Broadcast SMS/WhatsApp presence notifications to parents of all students marked absent today with 1-click.
           </p>
@@ -635,7 +635,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 7. Timetable Copilot */}
       {tab === 'copilot' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🧠 Timetable AI Copilot</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🧠 Timetable AI Copilot</h3>
           <label style={labelStyle}>Ask AI Copilot about schedule, absent status, or faculty availability:</label>
           <div style={{ display: 'flex', gap: '10px', marginTop: '6px', marginBottom: '16px' }}>
             <input value={copilotQ} onChange={(e) => setCopilotQ(e.target.value)} style={inputStyle} />
@@ -656,12 +656,12 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 8. Heatmap */}
       {tab === 'heatmap' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🗺️ Campus Attendance Intensity Heatmap</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🗺️ Campus Attendance Intensity Heatmap</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {((data.heatmap && data.heatmap.zones) || []).map((z, i) => (
               <div key={i} style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <strong style={{ color: '#f8fafc' }}>📍 {z.zone}</strong>
+                  <strong style={{ color: '#faf9f6' }}>📍 {z.zone}</strong>
                   <span style={{ color: '#00f2fe', fontWeight: 700 }}>{z.present_count} Present</span>
                 </div>
                 <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -676,12 +676,12 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 9. Dropout Risk */}
       {tab === 'dropout' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>📉 Predictive Machine Learning Dropout Risk</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>📉 Predictive Machine Learning Dropout Risk</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {(data.scores || []).map((s) => (
               <div key={s.student_id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <strong style={{ color: '#f8fafc' }}>⚠️ {s.name} ({s.roll})</strong>
+                  <strong style={{ color: '#faf9f6' }}>⚠️ {s.name} ({s.roll})</strong>
                   <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Streak: {s.absent_streak} days absent • {s.recommendation}</div>
                 </div>
                 <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid #ef4444', padding: '4px 12px', borderRadius: '12px', fontWeight: 700, fontSize: '0.8rem' }}>
@@ -696,7 +696,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 10. Voice Mark */}
       {tab === 'voice' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🎙️ Voice Attendance in Classroom</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🎙️ Voice Attendance in Classroom</h3>
           <div style={{ display: 'flex', gap: '10px' }}>
             <input value={voiceRoll} onChange={(e) => setVoiceRoll(e.target.value)} placeholder="Enter Roll Number" style={inputStyle} />
             <button
@@ -716,7 +716,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 11. RFID / NFC */}
       {tab === 'rfid' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>📡 RFID / NFC Smart Card Hybrid Fallback</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>📡 RFID / NFC Smart Card Hybrid Fallback</h3>
           <div style={{ display: 'flex', gap: '10px' }}>
             <input value={rfidCard} onChange={(e) => setRfidCard(e.target.value)} placeholder="Scan Card UID" style={inputStyle} />
             <button
@@ -736,7 +736,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 12. AR Kiosk */}
       {tab === 'kiosk' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🖥️ AR Kiosk Mode</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🖥️ AR Kiosk Mode</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>
             {(data.kiosk && data.kiosk.instructions) || 'Position camera at entrance kiosk height. Auto-scans students continuously in low-power mode.'}
           </p>
@@ -749,23 +749,23 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 13. SLA Monitor */}
       {tab === 'sla' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>⚡ Real-Time System Uptime SLA Monitor</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>⚡ Real-Time System Uptime SLA Monitor</h3>
           {data.sla && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
               <div style={cardStyle}>
                 <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>System Status</div>
                 <div style={{ color: '#34d399', fontWeight: 800, fontSize: '1.1rem' }}>{data.sla.status}</div>
-                <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginTop: '2px' }}>Uptime SLA: {data.sla.uptime_sla}</div>
+                <div style={{ color: '#cfc8ba', fontSize: '0.75rem', marginTop: '2px' }}>Uptime SLA: {data.sla.uptime_sla}</div>
               </div>
               <div style={cardStyle}>
                 <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>API Latency</div>
                 <div style={{ color: '#60a5fa', fontWeight: 800, fontSize: '1.1rem' }}>{data.sla.api_latency_ms} ms</div>
-                <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginTop: '2px' }}>SLA Target Met: YES ✓</div>
+                <div style={{ color: '#cfc8ba', fontSize: '0.75rem', marginTop: '2px' }}>SLA Target Met: YES ✓</div>
               </div>
               <div style={cardStyle}>
                 <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Database Cluster</div>
                 <div style={{ color: '#34d399', fontWeight: 800, fontSize: '1.1rem' }}>{data.sla.database}</div>
-                <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginTop: '2px' }}>Active Nodes: {data.sla.active_nodes || 4}</div>
+                <div style={{ color: '#cfc8ba', fontSize: '0.75rem', marginTop: '2px' }}>Active Nodes: {data.sla.active_nodes || 4}</div>
               </div>
             </div>
           )}
@@ -775,12 +775,12 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 14. Multi-Campus */}
       {tab === 'campus' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🏢 Multi-Campus SaaS Administration</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🏢 Multi-Campus SaaS Administration</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {(data.campuses || []).map((c) => (
               <div key={c.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <strong style={{ color: '#f8fafc' }}>🏛️ {c.name}</strong>
+                  <strong style={{ color: '#faf9f6' }}>🏛️ {c.name}</strong>
                   <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Slug: {c.slug} • Enrolled Students: {c.students}</div>
                 </div>
                 <span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
@@ -795,8 +795,8 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 15. SSO Integration */}
       {tab === 'sso' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🔑 Single Sign-On (SSO) Integration</h3>
-          <p style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🔑 Single Sign-On (SSO) Integration</h3>
+          <p style={{ color: '#cfc8ba', fontSize: '0.85rem' }}>
             Google Workspace OAuth 2.0 & Microsoft Azure AD Single Sign-On active.
           </p>
           <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
@@ -809,7 +809,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 16. ERP Sync Webhook */}
       {tab === 'erp' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🔗 Inbound ERP Synchronization Webhook</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🔗 Inbound ERP Synchronization Webhook</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.83rem', marginBottom: '14px' }}>
             Endpoint: <code style={{ color: '#00f2fe' }}>POST /api/v1/enterprise/erp/webhook/sync</code>
           </p>
@@ -829,11 +829,11 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 17. Billing Auto */}
       {tab === 'billing' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>💳 Subscription & Auto-Billing Management</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>💳 Subscription & Auto-Billing Management</h3>
           {data.billing && (
             <div>
               <div style={{ color: '#34d399', fontWeight: 700, fontSize: '1rem', marginBottom: '4px' }}>{data.billing.subscription_plan}</div>
-              <p style={{ color: '#cbd5e1', fontSize: '0.85rem', margin: '0 0 8px' }}>{data.billing.message}</p>
+              <p style={{ color: '#cfc8ba', fontSize: '0.85rem', margin: '0 0 8px' }}>{data.billing.message}</p>
               <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Student Limit: {data.billing.student_limit} • Razorpay Gateway: Verified Active</div>
             </div>
           )}
@@ -843,7 +843,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 18. White-label Branding */}
       {tab === 'whitelabel' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🏷️ White-Label Branding & Domain Customization</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🏷️ White-Label Branding & Domain Customization</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
             <div>
               <label style={labelStyle}>App / College Name</label>
@@ -870,7 +870,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 19. Compliance Audit */}
       {tab === 'compliance' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>📋 Tamper-Proof Compliance Audit Log</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>📋 Tamper-Proof Compliance Audit Log</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '14px' }}>
             Download complete SHA-256 encrypted cryptographic attendance audit log for university inspection.
           </p>
@@ -889,8 +889,8 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 20. Offline Sync */}
       {tab === 'offline' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>📶 Offline-First Edge Queue & Sync Engine</h3>
-          <p style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>📶 Offline-First Edge Queue & Sync Engine</h3>
+          <p style={{ color: '#cfc8ba', fontSize: '0.85rem' }}>
             Queued offline verification marks: <strong style={{ color: '#00f2fe' }}>{offlineQueueCount}</strong>
           </p>
           <p style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '4px' }}>
@@ -902,7 +902,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 21. Liveness 2.0 */}
       {tab === 'liveness' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>🛡️ Biometric Liveness 2.0 Engine</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>🛡️ Biometric Liveness 2.0 Engine</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '14px' }}>
             Server-side real-time blink challenge + 3D surface texture analysis to block digital screen spoofing.
           </p>
@@ -921,7 +921,7 @@ export default function IndustryEnterpriseHub({ apiBaseUrl = '/api/v1', token, u
       {/* 22. Edge AI */}
       {tab === 'edge' && (
         <div style={contentBoxStyle}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 12px' }}>⚡ On-Device Edge AI Engine</h3>
+          <h3 style={{ color: '#faf9f6', margin: '0 0 12px' }}>⚡ On-Device Edge AI Engine</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '14px' }}>
             MediaPipe BlazeFace neural mesh runs directly on client GPU/CPU for sub-5ms face bounding box lock.
           </p>
@@ -961,7 +961,7 @@ const inputStyle = {
 
 const primaryBtnStyle = {
   background: 'linear-gradient(90deg, #00f2fe, #4facfe)',
-  color: '#0f172a',
+  color: '#25231f',
   border: 'none',
   padding: '10px 18px',
   borderRadius: '8px',

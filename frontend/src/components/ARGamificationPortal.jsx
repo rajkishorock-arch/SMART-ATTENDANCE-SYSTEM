@@ -301,7 +301,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
       border: '1px solid rgba(0, 242, 254, 0.2)',
       borderRadius: '24px',
       boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 242, 254, 0.05)',
-      color: '#f8fafc',
+      color: '#faf9f6',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       <style dangerouslySetInnerHTML={{__html: `
@@ -855,7 +855,7 @@ const ARGamificationPortal = ({ user, apiBaseUrl, token, institutionId, students
             gap: '8px'
           }}>
             <div style={{ fontSize: '1.8rem', color: '#f59e0b' }}>👁️</div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '0.01em' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#faf9f6', letterSpacing: '0.01em' }}>
               Position your face inside frame & tap below to verify.
             </div>
           </div>

@@ -279,7 +279,7 @@ export default function AttendanceDisputeModal({
         className="dispute-modal-card"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="dispute-modal-header-wrap" style={{ borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
+        <div className="dispute-modal-header-wrap" style={{ borderBottom: '1px solid #e4dfd5', background: '#ffffff' }}>
           {/* Header */}
           <div style={{
             padding: '16px 20px',
@@ -292,21 +292,21 @@ export default function AttendanceDisputeModal({
                 width: '40px',
                 height: '40px',
                 borderRadius: '12px',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
+                background: '#faf5ea',
+                border: '1px solid #dfcfaf',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#2563eb',
+                color: '#785927',
                 flexShrink: 0
               }}>
                 <ShieldAlert size={20} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#25231f', margin: 0 }}>
                   Attendance Correction & Disputes
                 </h2>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0 0' }}>
+                <p style={{ fontSize: '0.78rem', color: '#696358', margin: '2px 0 0 0' }}>
                   Audited dispute workflow — submit corrections with supporting proof
                 </p>
               </div>
@@ -314,10 +314,10 @@ export default function AttendanceDisputeModal({
             <button
               onClick={() => { playCyberSound('click'); onClose(); }}
               style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: '#faf9f6',
+                border: '1px solid #e4dfd5',
                 borderRadius: '8px',
-                color: '#64748b',
+                color: '#696358',
                 cursor: 'pointer',
                 padding: '6px',
                 flexShrink: 0,
@@ -343,9 +343,9 @@ export default function AttendanceDisputeModal({
                 padding: '8px 16px',
                 borderRadius: '8px 8px 0 0',
                 border: 'none',
-                background: activeView === 'new' ? '#eff6ff' : 'transparent',
-                color: activeView === 'new' ? '#1d4ed8' : '#64748b',
-                borderBottom: activeView === 'new' ? '2px solid #2563eb' : 'none',
+                background: activeView === 'new' ? '#faf5ea' : 'transparent',
+                color: activeView === 'new' ? '#684c20' : '#696358',
+                borderBottom: activeView === 'new' ? '2px solid #785927' : 'none',
                 fontWeight: 700,
                 fontSize: '0.85rem',
                 cursor: 'pointer'
@@ -359,9 +359,9 @@ export default function AttendanceDisputeModal({
                 padding: '8px 16px',
                 borderRadius: '8px 8px 0 0',
                 border: 'none',
-                background: activeView === 'history' ? '#eff6ff' : 'transparent',
-                color: activeView === 'history' ? '#1d4ed8' : '#64748b',
-                borderBottom: activeView === 'history' ? '2px solid #2563eb' : 'none',
+                background: activeView === 'history' ? '#faf5ea' : 'transparent',
+                color: activeView === 'history' ? '#684c20' : '#696358',
+                borderBottom: activeView === 'history' ? '2px solid #785927' : 'none',
                 fontWeight: 700,
                 fontSize: '0.85rem',
                 cursor: 'pointer',
@@ -373,8 +373,8 @@ export default function AttendanceDisputeModal({
               My Disputes
               {myDisputes.length > 0 && (
                 <span style={{
-                  background: '#dbeafe',
-                  color: '#1e40af',
+                  background: '#f2e7d1',
+                  color: '#61471e',
                   fontSize: '0.7rem',
                   fontWeight: 800,
                   padding: '1px 6px',
@@ -429,7 +429,7 @@ export default function AttendanceDisputeModal({
             <form onSubmit={handleSubmitDispute} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                     Attendance Date (Select from Calendar) *
                   </label>
                   <input
@@ -442,8 +442,8 @@ export default function AttendanceDisputeModal({
                       padding: '10px 14px',
                       borderRadius: '10px',
                       background: '#ffffff',
-                      border: '1.5px solid #e2e8f0',
-                      color: '#0f172a',
+                      border: '1.5px solid #e4dfd5',
+                      color: '#25231f',
                       fontSize: '0.85rem',
                       boxSizing: 'border-box'
                     }}
@@ -451,7 +451,7 @@ export default function AttendanceDisputeModal({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                     Session Time / Period *
                   </label>
                   <select
@@ -463,8 +463,8 @@ export default function AttendanceDisputeModal({
                       padding: '10px 14px',
                       borderRadius: '10px',
                       background: '#ffffff',
-                      border: '1.5px solid #e2e8f0',
-                      color: '#0f172a',
+                      border: '1.5px solid #e4dfd5',
+                      color: '#25231f',
                       fontSize: '0.85rem',
                       boxSizing: 'border-box'
                     }}
@@ -482,7 +482,7 @@ export default function AttendanceDisputeModal({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                     Subject / Class
                   </label>
                   <select
@@ -493,8 +493,8 @@ export default function AttendanceDisputeModal({
                       padding: '10px 14px',
                       borderRadius: '10px',
                       background: '#ffffff',
-                      border: '1.5px solid #e2e8f0',
-                      color: '#0f172a',
+                      border: '1.5px solid #e4dfd5',
+                      color: '#25231f',
                       fontSize: '0.85rem',
                       boxSizing: 'border-box'
                     }}
@@ -516,7 +516,7 @@ export default function AttendanceDisputeModal({
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                     Current Recorded Status
                   </label>
                   <select
@@ -527,8 +527,8 @@ export default function AttendanceDisputeModal({
                       padding: '10px 14px',
                       borderRadius: '10px',
                       background: '#ffffff',
-                      border: '1.5px solid #e2e8f0',
-                      color: '#0f172a',
+                      border: '1.5px solid #e4dfd5',
+                      color: '#25231f',
                       fontSize: '0.85rem',
                       boxSizing: 'border-box'
                     }}
@@ -540,7 +540,7 @@ export default function AttendanceDisputeModal({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                     Requested Correction *
                   </label>
                   <select
@@ -551,8 +551,8 @@ export default function AttendanceDisputeModal({
                       padding: '10px 14px',
                       borderRadius: '10px',
                       background: '#ffffff',
-                      border: '1.5px solid #e2e8f0',
-                      color: '#0f172a',
+                      border: '1.5px solid #e4dfd5',
+                      color: '#25231f',
                       fontSize: '0.85rem',
                       boxSizing: 'border-box'
                     }}
@@ -564,7 +564,7 @@ export default function AttendanceDisputeModal({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                     Dispute Reason Category *
                   </label>
                   <select
@@ -575,8 +575,8 @@ export default function AttendanceDisputeModal({
                       padding: '10px 14px',
                       borderRadius: '10px',
                       background: '#ffffff',
-                      border: '1.5px solid #e2e8f0',
-                      color: '#0f172a',
+                      border: '1.5px solid #e4dfd5',
+                      color: '#25231f',
                       fontSize: '0.85rem',
                       boxSizing: 'border-box'
                     }}
@@ -589,7 +589,7 @@ export default function AttendanceDisputeModal({
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                   Detailed Description & Evidence Notes
                 </label>
                 <textarea
@@ -602,8 +602,8 @@ export default function AttendanceDisputeModal({
                     padding: '10px 14px',
                     borderRadius: '10px',
                     background: '#ffffff',
-                    border: '1.5px solid #e2e8f0',
-                    color: '#0f172a',
+                    border: '1.5px solid #e4dfd5',
+                    color: '#25231f',
                     fontSize: '0.85rem',
                     resize: 'vertical',
                     boxSizing: 'border-box'
@@ -613,14 +613,14 @@ export default function AttendanceDisputeModal({
 
               {/* Proof File Uploader */}
               <div>
-                <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                   Supporting Proof (Optional, Max 5MB — JPG, PNG, PDF)
                 </label>
                 <div style={{
                   padding: '18px',
                   borderRadius: '12px',
-                  border: '2px dashed #cbd5e1',
-                  background: '#f8fafc',
+                  border: '2px dashed #cfc8ba',
+                  background: '#faf9f6',
                   textAlign: 'center',
                   cursor: 'pointer'
                 }}>
@@ -632,11 +632,11 @@ export default function AttendanceDisputeModal({
                     style={{ display: 'none' }}
                   />
                   <label htmlFor="dispute-proof-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                    <UploadCloud size={26} style={{ color: '#2563eb' }} />
-                    <span style={{ fontSize: '0.84rem', color: '#0f172a', fontWeight: 700 }}>
+                    <UploadCloud size={26} style={{ color: '#785927' }} />
+                    <span style={{ fontSize: '0.84rem', color: '#25231f', fontWeight: 700 }}>
                       {proofFile ? proofFile.name : 'Click to select proof document or photo'}
                     </span>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#696358' }}>
                       {proofFile ? `${(proofFile.size / 1024).toFixed(1)} KB` : 'Medical slip, duty slip, or classroom presence verification'}
                     </span>
                   </label>
@@ -650,9 +650,9 @@ export default function AttendanceDisputeModal({
                   style={{
                     padding: '10px 18px',
                     borderRadius: '10px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    color: '#475569',
+                    background: '#faf9f6',
+                    border: '1px solid #e4dfd5',
+                    color: '#58534a',
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -666,7 +666,7 @@ export default function AttendanceDisputeModal({
                   style={{
                     padding: '10px 24px',
                     borderRadius: '10px',
-                    background: isSubmitting ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    background: isSubmitting ? '#94a3b8' : 'linear-gradient(135deg, #785927, #684c20)',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,
@@ -685,11 +685,11 @@ export default function AttendanceDisputeModal({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {isLoading ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b', fontSize: '0.88rem' }}>
+                <div style={{ textAlign: 'center', padding: '40px', color: '#696358', fontSize: '0.88rem' }}>
                   Loading dispute history...
                 </div>
               ) : myDisputes.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b', fontSize: '0.88rem', background: '#f8fafc', borderRadius: '14px', border: '1px dashed #cbd5e1' }}>
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#696358', fontSize: '0.88rem', background: '#faf9f6', borderRadius: '14px', border: '1px dashed #cfc8ba' }}>
                   No attendance disputes filed yet. You can dispute any absent class using the submission form.
                 </div>
               ) : (
@@ -702,8 +702,8 @@ export default function AttendanceDisputeModal({
                         style={{
                           padding: '16px 18px',
                           borderRadius: '14px',
-                          background: '#f8fafc',
-                          border: '1px solid #e2e8f0',
+                          background: '#faf9f6',
+                          border: '1px solid #e4dfd5',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '10px'
@@ -711,14 +711,14 @@ export default function AttendanceDisputeModal({
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#2563eb' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#785927' }}>
                               #{d.id}
                             </span>
-                            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0f172a' }}>
+                            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f' }}>
                               {d.date} {d.session_time ? `• ${d.session_time}` : ''}
                             </span>
                             {d.subject_name && (
-                              <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.76rem', color: '#696358', fontWeight: 600 }}>
                                 ({d.subject_code} - {d.subject_name})
                               </span>
                             )}
@@ -738,9 +738,9 @@ export default function AttendanceDisputeModal({
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#475569' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#58534a' }}>
                           <div>
-                            Reason: <strong style={{ color: '#0f172a' }}>{d.reason}</strong>
+                            Reason: <strong style={{ color: '#25231f' }}>{d.reason}</strong>
                           </div>
                           <div>
                             Correction: <span style={{ color: '#dc2626', fontWeight: 700 }}>{d.original_status}</span> → <span style={{ color: '#16a34a', fontWeight: 700 }}>{d.requested_status}</span>
@@ -748,7 +748,7 @@ export default function AttendanceDisputeModal({
                         </div>
 
                         {d.description && (
-                          <p style={{ fontSize: '0.8rem', color: '#334155', margin: 0, fontStyle: 'italic', background: '#ffffff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '8px' }}>
+                          <p style={{ fontSize: '0.8rem', color: '#46423b', margin: 0, fontStyle: 'italic', background: '#ffffff', border: '1px solid #e4dfd5', padding: '8px 12px', borderRadius: '8px' }}>
                             "{d.description}"
                           </p>
                         )}
@@ -757,17 +757,17 @@ export default function AttendanceDisputeModal({
                           <div style={{
                             padding: '8px 12px',
                             borderRadius: '8px',
-                            background: '#eff6ff',
-                            border: '1px solid #bfdbfe',
+                            background: '#faf5ea',
+                            border: '1px solid #dfcfaf',
                             fontSize: '0.78rem',
-                            color: '#1e40af'
+                            color: '#61471e'
                           }}>
-                            <strong style={{ color: '#1d4ed8' }}>Reviewer ({d.reviewed_by}):</strong> {d.reviewer_comments}
+                            <strong style={{ color: '#684c20' }}>Reviewer ({d.reviewed_by}):</strong> {d.reviewer_comments}
                           </div>
                         )}
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
-                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #e4dfd5' }}>
+                          <span style={{ fontSize: '0.74rem', color: '#696358' }}>
                             Submitted on {new Date(d.created_at).toLocaleDateString()}
                           </span>
                           <div style={{ display: 'flex', gap: '8px' }}>
@@ -791,8 +791,8 @@ export default function AttendanceDisputeModal({
                                   padding: '5px 12px',
                                   borderRadius: '8px',
                                   background: '#ffffff',
-                                  border: '1px solid #e2e8f0',
-                                  color: '#2563eb',
+                                  border: '1px solid #e4dfd5',
+                                  color: '#785927',
                                   fontSize: '0.76rem',
                                   fontWeight: 600,
                                   cursor: 'pointer',

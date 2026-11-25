@@ -15,7 +15,7 @@
   border: 1px solid rgba(148, 163, 184, 0.25);
   /* Always readable even if ambient FX are on */
   background: rgba(15, 23, 42, 0.96) !important;
-  color: #f1f5f9 !important;
+  color: #f4f1eb !important;
   filter: none !important;
   opacity: 1 !important;
   backdrop-filter: blur(8px);
@@ -48,14 +48,14 @@
 
 .ideas150-hero h2 {
   margin: 0 0 6px;
-  color: #f8fafc !important;
+  color: #faf9f6 !important;
   font-size: 1.35rem;
   letter-spacing: -0.02em;
 }
 
 .ideas150-hero p {
   margin: 0;
-  color: #cbd5e1 !important;
+  color: #cfc8ba !important;
   font-size: 0.85rem;
 }
 
@@ -68,7 +68,7 @@
 .ideas150-btn {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(15, 23, 42, 0.65);
-  color: #e2e8f0;
+  color: #e4dfd5;
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 0.78rem;
@@ -90,7 +90,7 @@
 .ideas150-btn.primary {
   background: linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(167, 139, 250, 0.25));
   border-color: rgba(0, 242, 254, 0.35);
-  color: #f8fafc;
+  color: #faf9f6;
 }
 
 .ideas150-btn.danger {
@@ -160,12 +160,12 @@
 .ideas150-tab.active {
   background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(167, 139, 250, 0.15));
   border-color: rgba(0, 242, 254, 0.35);
-  color: #f8fafc;
+  color: #faf9f6;
 }
 
 .ideas150-cat-note {
   margin: 0;
-  color: #64748b;
+  color: #696358;
   font-size: 0.75rem;
 }
 
@@ -204,7 +204,7 @@
 
 .ideas150-card-head h4 {
   margin: 0;
-  color: #f1f5f9;
+  color: #f4f1eb;
   font-size: 0.95rem;
   flex: 1;
 }
@@ -222,7 +222,7 @@
   padding: 3px 7px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
+  color: #cfc8ba;
 }
 
 .ideas150-desc {
@@ -242,7 +242,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.7rem;
-  color: #64748b;
+  color: #696358;
 }
 
 .ideas150-meta .on { color: #34d399; font-weight: 700; }
@@ -256,7 +256,7 @@
   background: rgba(0, 0, 0, 0.35);
   border-radius: 8px;
   padding: 8px;
-  color: #cbd5e1;
+  color: #cfc8ba;
 }
 
 /* Toast theater */
@@ -267,7 +267,7 @@
   transform: translate(-50%, 20px);
   background: rgba(15, 23, 42, 0.95);
   border: 1px solid rgba(0, 242, 254, 0.35);
-  color: #f8fafc;
+  color: #faf9f6;
   padding: 12px 18px;
   border-radius: 12px;
   z-index: 99999;
@@ -331,7 +331,7 @@
   display: grid;
   place-items: center;
   font-size: 0.75rem;
-  color: #e2e8f0;
+  color: #e4dfd5;
   font-weight: 700;
 }
 
@@ -816,13 +816,13 @@ body[data-ideas150-skin="exam-week"] {
 /* Force hub text/cards readable */
 .ideas150-hub .ideas150-card {
   background: rgba(2, 6, 23, 0.85) !important;
-  color: #e2e8f0 !important;
+  color: #e4dfd5 !important;
 }
-.ideas150-hub .ideas150-card-head h4 { color: #f8fafc !important; }
+.ideas150-hub .ideas150-card-head h4 { color: #faf9f6 !important; }
 .ideas150-hub .ideas150-desc { color: #94a3b8 !important; }
-.ideas150-hub .ideas150-btn { color: #e2e8f0 !important; }
-.ideas150-hub .ideas150-tab { color: #cbd5e1 !important; }
-.ideas150-hub .ideas150-tab.active { color: #f8fafc !important; }
+.ideas150-hub .ideas150-btn { color: #e4dfd5 !important; }
+.ideas150-hub .ideas150-tab { color: #cfc8ba !important; }
+.ideas150-hub .ideas150-tab.active { color: #faf9f6 !important; }
 
 /* App-wide Home polish when FX ON (visible outside Settings) */
 body.ideas150-fx-active.i150-btn-press-depth button:active,

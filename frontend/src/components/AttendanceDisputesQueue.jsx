@@ -142,7 +142,7 @@ export default function AttendanceDisputesQueue({
       case 'NEEDS_INFORMATION':
         return { bg: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', icon: <HelpCircle size={13} />, label: 'Info Needed' };
       default:
-        return { bg: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', icon: <Clock size={13} />, label: 'Submitted' };
+        return { bg: '#faf5ea', color: '#785927', border: '1px solid #dfcfaf', icon: <Clock size={13} />, label: 'Submitted' };
     }
   };
 
@@ -189,7 +189,7 @@ export default function AttendanceDisputesQueue({
             cursor: 'pointer',
             transition: 'background 0.2s'
           }}
-          onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
+          onMouseEnter={e => e.currentTarget.style.background = '#f4f1eb'}
           onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
         >
           Refresh Queue
@@ -235,7 +235,7 @@ export default function AttendanceDisputesQueue({
               padding: '6px 14px',
               borderRadius: '20px',
               border: statusFilter === tab.key ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-              background: statusFilter === tab.key ? 'var(--color-primary)' : '#f1f5f9',
+              background: statusFilter === tab.key ? 'var(--color-primary)' : '#f4f1eb',
               color: statusFilter === tab.key ? '#ffffff' : 'var(--color-text-secondary)',
               fontSize: '0.78rem',
               fontWeight: 600,
@@ -266,11 +266,11 @@ export default function AttendanceDisputesQueue({
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <div style={{ width: '40%', height: '18px', background: '#f1f5f9', borderRadius: '4px' }}></div>
-                <div style={{ width: '80px', height: '18px', background: '#eff6ff', borderRadius: '12px' }}></div>
+                <div style={{ width: '40%', height: '18px', background: '#f4f1eb', borderRadius: '4px' }}></div>
+                <div style={{ width: '80px', height: '18px', background: '#faf5ea', borderRadius: '12px' }}></div>
               </div>
-              <div style={{ width: '70%', height: '14px', background: '#f1f5f9', borderRadius: '4px' }}></div>
-              <div style={{ width: '30%', height: '12px', background: '#f8fafc', borderRadius: '4px' }}></div>
+              <div style={{ width: '70%', height: '14px', background: '#f4f1eb', borderRadius: '4px' }}></div>
+              <div style={{ width: '30%', height: '12px', background: '#faf9f6', borderRadius: '4px' }}></div>
             </div>
           ))}
         </div>
@@ -319,8 +319,8 @@ export default function AttendanceDisputesQueue({
                       width: '36px',
                       height: '36px',
                       borderRadius: '50%',
-                      background: '#eff6ff',
-                      border: '1px solid #bfdbfe',
+                      background: '#faf5ea',
+                      border: '1px solid #dfcfaf',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -380,7 +380,7 @@ export default function AttendanceDisputesQueue({
                 <div style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
-                  background: '#f8fafc',
+                  background: '#faf9f6',
                   border: '1px solid var(--border-subtle)',
                   display: 'flex',
                   flexDirection: 'column',
@@ -428,8 +428,8 @@ export default function AttendanceDisputesQueue({
                         style={{
                           padding: '6px 12px',
                           borderRadius: '8px',
-                          background: '#eff6ff',
-                          border: '1px solid #bfdbfe',
+                          background: '#faf5ea',
+                          border: '1px solid #dfcfaf',
                           color: 'var(--color-primary)',
                           fontSize: '0.78rem',
                           fontWeight: 600,
@@ -623,7 +623,7 @@ export default function AttendanceDisputesQueue({
                     marginTop: '8px',
                     padding: '14px',
                     borderRadius: '10px',
-                    background: '#f8fafc',
+                    background: '#faf9f6',
                     border: '1px solid var(--border-subtle)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -638,8 +638,8 @@ export default function AttendanceDisputesQueue({
                           <div key={c.id} style={{
                             padding: '8px 12px',
                             borderRadius: '8px',
-                            background: c.author_role === 'student' ? '#eff6ff' : '#f5f3ff',
-                            border: `1px solid ${c.author_role === 'student' ? '#bfdbfe' : '#ddd6fe'}`
+                            background: c.author_role === 'student' ? '#faf5ea' : '#f5f3ff',
+                            border: `1px solid ${c.author_role === 'student' ? '#dfcfaf' : '#ddd6fe'}`
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
                               <strong style={{ color: c.author_role === 'student' ? 'var(--color-primary)' : '#7c3aed' }}>

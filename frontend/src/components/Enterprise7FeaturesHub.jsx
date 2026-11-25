@@ -604,7 +604,7 @@ export default function Enterprise7FeaturesHub({ token, apiBaseUrl = '/api/v1', 
                 <p style={{ color: '#EF4444' }}><strong>Late Arrival Penalty (₹250/late):</strong> -₹{payrollResult.late_penalty_inr?.toLocaleString()}</p>
                 <p style={{ color: '#10B981' }}><strong>Overtime Pay (₹350/hr):</strong> +₹{payrollResult.overtime_pay_inr?.toLocaleString()}</p>
                 <hr style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
-                <h3 style={{ color: '#6366F1' }}>Net Payable Salary: ₹{payrollResult.net_salary_inr?.toLocaleString()}</h3>
+                <h3 style={{ color: '#89662e' }}>Net Payable Salary: ₹{payrollResult.net_salary_inr?.toLocaleString()}</h3>
               </div>
             )}
           </div>
@@ -678,7 +678,7 @@ const styles = {
     margin: 0,
     fontSize: '24px',
     fontWeight: '700',
-    background: 'linear-gradient(135deg, #6366F1, #EC4899)',
+    background: 'linear-gradient(135deg, #89662e, #EC4899)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent'
   },
@@ -690,7 +690,7 @@ const styles = {
   alertBar: {
     padding: '12px 16px',
     backgroundColor: '#374151',
-    borderLeft: '4px solid #6366F1',
+    borderLeft: '4px solid #89662e',
     borderRadius: '6px',
     marginBottom: '20px',
     fontSize: '14px'
@@ -716,8 +716,8 @@ const styles = {
   },
   tabBtnActive: {
     padding: '10px 16px',
-    backgroundColor: '#6366F1',
-    border: '1px solid #6366F1',
+    backgroundColor: '#89662e',
+    border: '1px solid #89662e',
     borderRadius: '8px',
     color: '#FFFFFF',
     cursor: 'pointer',
@@ -766,7 +766,7 @@ const styles = {
     padding: '10px 20px',
     borderRadius: '6px',
     border: 'none',
-    backgroundColor: '#6366F1',
+    backgroundColor: '#89662e',
     color: '#FFFFFF',
     fontWeight: '600',
     cursor: 'pointer',
@@ -803,7 +803,7 @@ const styles = {
   },
   userBubble: {
     alignSelf: 'flex-end',
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#765729',
     padding: '10px 16px',
     borderRadius: '12px 12px 0 12px',
     fontSize: '14px'

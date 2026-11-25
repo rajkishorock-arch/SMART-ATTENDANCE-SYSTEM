@@ -182,7 +182,7 @@ export default function StaffPayrollView({
               }}>
                 <DollarSign size={22} />
               </div>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: '#0f172a' }}>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: '#25231f' }}>
                 Staff Attendance & Payroll
               </h2>
               <span style={{
@@ -199,7 +199,7 @@ export default function StaffPayrollView({
                 FACULTY & STAFF
               </span>
             </div>
-            <p style={{ margin: 0, color: '#475569', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, color: '#58534a', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
               Biometric check-in and check-out logs, overtime auditing, leave deductions, 
               and monthly salary disbursement calculations.
             </p>
@@ -332,7 +332,7 @@ export default function StaffPayrollView({
             />
             <button
               onClick={() => { playCyberSound('click'); fetchData(); }}
-              style={{ background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#cbd5e1', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem' }}
+              style={{ background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#cfc8ba', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem' }}
             >
               <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
             </button>
@@ -346,13 +346,13 @@ export default function StaffPayrollView({
           {payrollRecords.length === 0 ? (
             <div style={{
               background: '#ffffff', border: '1px dashed var(--border-subtle)',
-              borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: '#64748b'
+              borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: '#696358'
             }}>
               <DollarSign size={40} color="#059669" style={{ opacity: 0.6, marginBottom: '12px' }} />
-              <h4 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '1.1rem' }}>
+              <h4 style={{ margin: '0 0 6px 0', color: '#25231f', fontSize: '1.1rem' }}>
                 No Payroll Computed for {selectedMonth}
               </h4>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: '#58534a' }}>
                 Click "Generate Payroll" above to automatically calculate attendance-based payouts.
               </p>
             </div>
@@ -366,20 +366,20 @@ export default function StaffPayrollView({
             }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem', minWidth: '600px' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600, position: 'sticky', left: 0, zIndex: 10, background: '#f8fafc' }}>Staff Member</th>
-                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Attendance Breakdown</th>
-                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Gross Base</th>
-                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Deductions</th>
-                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Net Payout</th>
-                    <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600 }}>Status</th>
-                    {isAdmin && <th style={{ padding: '14px 18px', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Actions</th>}
+                  <tr style={{ background: '#faf9f6', borderBottom: '1px solid var(--border-subtle)' }}>
+                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600, position: 'sticky', left: 0, zIndex: 10, background: '#faf9f6' }}>Staff Member</th>
+                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Attendance Breakdown</th>
+                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Gross Base</th>
+                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Deductions</th>
+                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Net Payout</th>
+                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Status</th>
+                    {isAdmin && <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600, textAlign: 'right' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {payrollRecords.map(rec => (
                     <tr key={rec.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                      <td style={{ padding: '14px 18px', position: 'sticky', left: 0, zIndex: 5, background: '#0f172a' }}>
+                      <td style={{ padding: '14px 18px', position: 'sticky', left: 0, zIndex: 5, background: '#25231f' }}>
                         <div style={{ fontWeight: 700, color: '#fff' }}>{rec.staff_name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{rec.staff_email}</div>
                       </td>
@@ -388,7 +388,7 @@ export default function StaffPayrollView({
                         <span style={{ color: '#fbbf24' }}>{rec.days_half} Half</span> •{' '}
                         <span style={{ color: '#f87171' }}>{rec.days_absent} Absent</span> / {rec.working_days} Days
                       </td>
-                      <td style={{ padding: '14px 18px', color: '#cbd5e1' }}>
+                      <td style={{ padding: '14px 18px', color: '#cfc8ba' }}>
                         ₹{rec.gross_salary.toLocaleString()}
                       </td>
                       <td style={{ padding: '14px 18px', color: '#f87171', fontWeight: 600 }}>
@@ -422,7 +422,7 @@ export default function StaffPayrollView({
                               Approve Payout
                             </button>
                           ) : (
-                            <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Approved</span>
+                            <span style={{ color: '#696358', fontSize: '0.75rem' }}>Approved</span>
                           )}
                         </td>
                       )}
@@ -441,13 +441,13 @@ export default function StaffPayrollView({
           {attendanceLogs.length === 0 ? (
             <div style={{
               background: '#ffffff', border: '1px dashed var(--border-subtle)',
-              borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: '#64748b'
+              borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: '#696358'
             }}>
-              <Clock size={40} color="#1e40af" style={{ opacity: 0.6, marginBottom: '12px' }} />
-              <h4 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '1.1rem' }}>
+              <Clock size={40} color="#61471e" style={{ opacity: 0.6, marginBottom: '12px' }} />
+              <h4 style={{ margin: '0 0 6px 0', color: '#25231f', fontSize: '1.1rem' }}>
                 No Staff Punches Found
               </h4>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: '#58534a' }}>
                 Staff members can record daily biometric check-in using the "Punch In" button.
               </p>
             </div>
@@ -467,8 +467,8 @@ export default function StaffPayrollView({
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                     <div>
-                      <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1.05rem' }}>{log.staff_name}</h4>
-                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>📅 {log.date}</span>
+                      <h4 style={{ margin: '0 0 4px 0', color: '#25231f', fontSize: '1.05rem' }}>{log.staff_name}</h4>
+                      <span style={{ fontSize: '0.78rem', color: '#696358' }}>📅 {log.date}</span>
                     </div>
 
                     <span style={{
@@ -492,7 +492,7 @@ export default function StaffPayrollView({
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#cbd5e1' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#cfc8ba' }}>
                     <span>Hours Worked: <strong>{log.hours_worked} hrs</strong></span>
                     {log.overtime_hours > 0 && (
                       <span style={{ color: '#a78bfa', fontWeight: 600 }}>+{log.overtime_hours} hrs Overtime</span>
@@ -520,19 +520,19 @@ export default function StaffPayrollView({
           }}>
             <button
               onClick={() => setShowCalcModal(false)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#696358', cursor: 'pointer' }}
             >
               <X size={20} />
             </button>
 
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#0f172a' }}>Generate Monthly Payroll</h3>
-            <p style={{ margin: '0 0 18px 0', color: '#64748b', fontSize: '0.85rem' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#25231f' }}>Generate Monthly Payroll</h3>
+            <p style={{ margin: '0 0 18px 0', color: '#696358', fontSize: '0.85rem' }}>
               Target Cycle: <strong>{selectedMonth}</strong>
             </p>
 
             <form onSubmit={handleCalculatePayroll}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '6px', fontWeight: 600 }}>
                   Institutional Working Days *
                 </label>
                 <input
@@ -544,14 +544,14 @@ export default function StaffPayrollView({
                   onChange={e => setWorkingDays(e.target.value)}
                   style={{
                     width: '100%', background: '#ffffff',
-                    border: '1px solid var(--border-subtle)', color: '#0f172a',
+                    border: '1px solid var(--border-subtle)', color: '#25231f',
                     padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem'
                   }}
                 />
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '6px', fontWeight: 600 }}>
                   Default Base Monthly Salary (₹) *
                 </label>
                 <input
@@ -572,7 +572,7 @@ export default function StaffPayrollView({
                 <button
                   type="button"
                   onClick={() => setShowCalcModal(false)}
-                  style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#cbd5e1', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                  style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#cfc8ba', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>

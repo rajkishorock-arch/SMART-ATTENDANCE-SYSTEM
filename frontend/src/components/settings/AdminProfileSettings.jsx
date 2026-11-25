@@ -99,7 +99,7 @@ export default function AdminProfileSettings({
   const strengthColor = useMemo(() => {
     if (passwordStrength <= 1) return '#ef4444';
     if (passwordStrength <= 2) return '#f59e0b';
-    if (passwordStrength <= 3) return '#3b82f6';
+    if (passwordStrength <= 3) return '#916d30';
     return '#10b981';
   }, [passwordStrength]);
 
@@ -331,27 +331,27 @@ export default function AdminProfileSettings({
         boxSizing: 'border-box',
         overflowX: 'hidden',
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
       }}
     >
       {/* Title & Subtitle */}
-      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+      <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px' }}>
         <h3
           style={{
             fontSize: '1.25rem',
             fontWeight: 800,
-            color: '#0f172a',
+            color: '#25231f',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             margin: 0,
           }}
         >
-          <UserCheck size={22} style={{ color: '#2563eb', flexShrink: 0 }} /> My Profile & Account Settings
+          <UserCheck size={22} style={{ color: '#785927', flexShrink: 0 }} /> My Profile & Account Settings
         </h3>
-        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px', margin: 0, lineHeight: 1.4 }}>
+        <p style={{ color: '#696358', fontSize: '0.85rem', marginTop: '4px', margin: 0, lineHeight: 1.4 }}>
           Manage your personal identity, login credentials, security keys, and application preferences.
         </p>
       </div>
@@ -399,8 +399,8 @@ export default function AdminProfileSettings({
       {/* Sleek Compact Profile Header Bar */}
       <div
         style={{
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
+          background: '#faf9f6',
+          border: '1px solid #e4dfd5',
           borderRadius: '12px',
           padding: '12px 14px',
           display: 'flex',
@@ -417,7 +417,7 @@ export default function AdminProfileSettings({
               width: '44px',
               height: '44px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+              background: 'linear-gradient(135deg, #785927, #916d30)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -447,7 +447,7 @@ export default function AdminProfileSettings({
         {/* User Info Details */}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+            <span style={{ fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
               {currentUser?.name || (userRole === 'admin' ? 'Administrator' : 'Faculty Member')}
             </span>
             <span
@@ -456,16 +456,16 @@ export default function AdminProfileSettings({
                 fontWeight: 700,
                 padding: '2px 6px',
                 borderRadius: '6px',
-                background: userRole === 'admin' ? '#eff6ff' : '#f5f3ff',
-                color: userRole === 'admin' ? '#1d4ed8' : '#7c3aed',
-                border: userRole === 'admin' ? '1px solid #bfdbfe' : '1px solid #ddd6fe',
+                background: userRole === 'admin' ? '#faf5ea' : '#f5f3ff',
+                color: userRole === 'admin' ? '#684c20' : '#7c3aed',
+                border: userRole === 'admin' ? '1px solid #dfcfaf' : '1px solid #ddd6fe',
                 textTransform: 'uppercase',
               }}
             >
               {userRole === 'admin' ? 'Admin' : 'Teacher'}
             </span>
           </div>
-          <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '0.76rem', color: '#696358', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {currentUser?.email || 'admin@campus.edu'} • <span style={{ color: '#059669', fontWeight: 600 }}>{currentUser?.institution_name || (currentUser?.institution_slug ? currentUser.institution_slug.toUpperCase() : 'MAIN CAMPUS')}</span>
           </div>
         </div>
@@ -504,9 +504,9 @@ export default function AdminProfileSettings({
                 gap: '8px',
                 padding: '9px 16px',
                 borderRadius: '10px',
-                border: isSelected ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
-                background: isSelected ? '#eff6ff' : '#ffffff',
-                color: isSelected ? '#1d4ed8' : '#64748b',
+                border: isSelected ? '1.5px solid #785927' : '1px solid #e4dfd5',
+                background: isSelected ? '#faf5ea' : '#ffffff',
+                color: isSelected ? '#684c20' : '#696358',
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -530,8 +530,8 @@ export default function AdminProfileSettings({
             display: 'flex',
             flexDirection: 'column',
             gap: '18px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
+            background: '#faf9f6',
+            border: '1px solid #e4dfd5',
             borderRadius: '14px',
             padding: 'clamp(14px, 3vw, 24px)',
             width: '100%',
@@ -541,10 +541,10 @@ export default function AdminProfileSettings({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <User size={18} style={{ color: '#2563eb' }} /> Personal Details & Contact
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <User size={18} style={{ color: '#785927' }} /> Personal Details & Contact
             </h4>
-            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Changes apply immediately to your active session</span>
+            <span style={{ fontSize: '0.74rem', color: '#696358' }}>Changes apply immediately to your active session</span>
           </div>
 
           <div
@@ -560,7 +560,7 @@ export default function AdminProfileSettings({
           >
             {/* Full Name */}
             <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
                 Full Name
               </label>
               <div style={{ position: 'relative', width: '100%' }}>
@@ -578,7 +578,7 @@ export default function AdminProfileSettings({
 
             {/* Email Address */}
             <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
                 Primary Email Address
               </label>
               <div style={{ position: 'relative', width: '100%' }}>
@@ -596,7 +596,7 @@ export default function AdminProfileSettings({
 
             {/* Phone Number */}
             <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
                 Contact Phone
               </label>
               <div style={{ position: 'relative', width: '100%' }}>
@@ -614,7 +614,7 @@ export default function AdminProfileSettings({
 
             {/* Department */}
             <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
                 Department / Unit
               </label>
               <div style={{ position: 'relative', width: '100%' }}>
@@ -639,7 +639,7 @@ export default function AdminProfileSettings({
               style={{
                 padding: '11px 26px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: 'linear-gradient(135deg, #785927, #916d30)',
                 color: '#ffffff',
                 fontSize: '0.88rem',
                 fontWeight: 700,
@@ -672,8 +672,8 @@ export default function AdminProfileSettings({
             display: 'flex',
             flexDirection: 'column',
             gap: '18px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
+            background: '#faf9f6',
+            border: '1px solid #e4dfd5',
             borderRadius: '14px',
             padding: 'clamp(14px, 3vw, 24px)',
             width: '100%',
@@ -682,11 +682,11 @@ export default function AdminProfileSettings({
             minWidth: 0,
           }}
         >
-          <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '12px' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Lock size={18} style={{ color: '#7c3aed' }} /> Change Security Password
             </h4>
-            <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '4px 0 0' }}>
+            <p style={{ color: '#696358', fontSize: '0.8rem', margin: '4px 0 0' }}>
               Set a strong password containing letters, numbers, and symbols to protect your account.
             </p>
           </div>
@@ -704,7 +704,7 @@ export default function AdminProfileSettings({
           >
             {/* New Password */}
             <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
                 New Password
               </label>
               <div style={{ position: 'relative', width: '100%' }}>
@@ -746,7 +746,7 @@ export default function AdminProfileSettings({
                         key={step}
                         style={{
                           flex: 1,
-                          background: passwordStrength >= step ? strengthColor : '#e2e8f0',
+                          background: passwordStrength >= step ? strengthColor : '#e4dfd5',
                           transition: 'all 0.2s ease',
                         }}
                       />
@@ -761,7 +761,7 @@ export default function AdminProfileSettings({
 
             {/* Confirm Password */}
             <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
                 Confirm New Password
               </label>
               <div style={{ position: 'relative', width: '100%' }}>
@@ -835,8 +835,8 @@ export default function AdminProfileSettings({
             display: 'flex',
             flexDirection: 'column',
             gap: '14px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
+            background: '#faf9f6',
+            border: '1px solid #e4dfd5',
             borderRadius: '14px',
             padding: 'clamp(14px, 3vw, 24px)',
             width: '100%',
@@ -845,11 +845,11 @@ export default function AdminProfileSettings({
             minWidth: 0,
           }}
         >
-          <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '12px' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sliders size={18} style={{ color: '#059669' }} /> Experience & Audio Controls
             </h4>
-            <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '4px 0 0' }}>
+            <p style={{ color: '#696358', fontSize: '0.8rem', margin: '4px 0 0' }}>
               Fine-tune sound feedback, button vibrations, and display themes.
             </p>
           </div>
@@ -863,7 +863,7 @@ export default function AdminProfileSettings({
               gap: '12px',
               padding: '14px 16px',
               background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               borderRadius: '12px',
             }}
           >
@@ -873,7 +873,7 @@ export default function AdminProfileSettings({
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  background: soundEnabled ? '#ecfdf5' : '#f1f5f9',
+                  background: soundEnabled ? '#ecfdf5' : '#f4f1eb',
                   color: soundEnabled ? '#059669' : '#94a3b8',
                   display: 'flex',
                   alignItems: 'center',
@@ -883,8 +883,8 @@ export default function AdminProfileSettings({
                 {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
               </div>
               <div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>Cyber Audio Sound FX</div>
-                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Play audio confirmation on scans, taps & updates</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>Cyber Audio Sound FX</div>
+                <div style={{ fontSize: '0.74rem', color: '#696358' }}>Play audio confirmation on scans, taps & updates</div>
               </div>
             </div>
 
@@ -895,7 +895,7 @@ export default function AdminProfileSettings({
                 width: '46px',
                 height: '26px',
                 borderRadius: '13px',
-                background: soundEnabled ? '#10b981' : '#cbd5e1',
+                background: soundEnabled ? '#10b981' : '#cfc8ba',
                 border: 'none',
                 position: 'relative',
                 cursor: 'pointer',
@@ -927,7 +927,7 @@ export default function AdminProfileSettings({
               gap: '12px',
               padding: '14px 16px',
               background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               borderRadius: '12px',
             }}
           >
@@ -937,8 +937,8 @@ export default function AdminProfileSettings({
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  background: hapticEnabled ? '#eff6ff' : '#f1f5f9',
-                  color: hapticEnabled ? '#2563eb' : '#94a3b8',
+                  background: hapticEnabled ? '#faf5ea' : '#f4f1eb',
+                  color: hapticEnabled ? '#785927' : '#94a3b8',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -947,8 +947,8 @@ export default function AdminProfileSettings({
                 <Smartphone size={18} />
               </div>
               <div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>Haptic Touch Vibration</div>
-                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Tactile vibration on button taps and card clicks</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>Haptic Touch Vibration</div>
+                <div style={{ fontSize: '0.74rem', color: '#696358' }}>Tactile vibration on button taps and card clicks</div>
               </div>
             </div>
 
@@ -959,7 +959,7 @@ export default function AdminProfileSettings({
                 width: '46px',
                 height: '26px',
                 borderRadius: '13px',
-                background: hapticEnabled ? '#2563eb' : '#cbd5e1',
+                background: hapticEnabled ? '#785927' : '#cfc8ba',
                 border: 'none',
                 position: 'relative',
                 cursor: 'pointer',
@@ -992,10 +992,10 @@ export default function AdminProfileSettings({
                 padding: '8px 16px',
                 borderRadius: '8px',
                 background: '#ffffff',
-                border: '1px solid #cbd5e1',
+                border: '1px solid #cfc8ba',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                color: '#334155',
+                color: '#46423b',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1016,8 +1016,8 @@ export default function AdminProfileSettings({
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
+            background: '#faf9f6',
+            border: '1px solid #e4dfd5',
             borderRadius: '14px',
             padding: 'clamp(14px, 3vw, 24px)',
             width: '100%',
@@ -1026,11 +1026,11 @@ export default function AdminProfileSettings({
             minWidth: 0,
           }}
         >
-          <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldCheck size={18} style={{ color: '#2563eb' }} /> Active Sessions & Account Control
+          <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '12px' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldCheck size={18} style={{ color: '#785927' }} /> Active Sessions & Account Control
             </h4>
-            <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '4px 0 0' }}>
+            <p style={{ color: '#696358', fontSize: '0.8rem', margin: '4px 0 0' }}>
               Review device connection status, purge local cache, or sign out.
             </p>
           </div>
@@ -1040,7 +1040,7 @@ export default function AdminProfileSettings({
             style={{
               padding: '14px 16px',
               background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               borderRadius: '12px',
               display: 'flex',
               flexDirection: 'column',
@@ -1048,12 +1048,12 @@ export default function AdminProfileSettings({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0f172a' }}>Current Client Device</span>
+              <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f' }}>Current Client Device</span>
               <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
                 LIVE NOW
               </span>
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '0.78rem', color: '#696358', wordBreak: 'break-all', fontFamily: 'monospace' }}>
               {typeof navigator !== 'undefined' ? navigator.userAgent : 'Web Browser Session'}
             </div>
           </div>
@@ -1070,8 +1070,8 @@ export default function AdminProfileSettings({
                 padding: '12px 18px',
                 borderRadius: '10px',
                 background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                color: '#334155',
+                border: '1px solid #cfc8ba',
+                color: '#46423b',
                 fontSize: '0.84rem',
                 fontWeight: 700,
                 cursor: 'pointer',

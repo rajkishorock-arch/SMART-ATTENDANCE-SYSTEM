@@ -86,7 +86,7 @@ const FEATURES = [
   { 
     id: 'proctoring',    
     icon: Shield,       
-    color: '#6366f1', 
+    color: '#89662e', 
     label: 'Exam Proctoring',            
     desc: 'Online exam face verification + multiple face cheating detection',        
     category: 'Security', 
@@ -158,7 +158,7 @@ const FEATURES = [
   { 
     id: 'wearable',      
     icon: Watch,        
-    color: '#6366f1', 
+    color: '#89662e', 
     label: 'Wearable Integration',      
     desc: 'Smartwatch check-in with GPS verification + heart rate sync',          
     category: 'Engagement', 
@@ -170,7 +170,7 @@ const FEATURES = [
   { 
     id: 'leave',         
     icon: Calendar,     
-    color: '#0ea5e9', 
+    color: '#987235', 
     label: 'Leave Management',          
     desc: 'Digital student leave application with teacher & HOD workflow',         
     category: 'Administration', 
@@ -262,7 +262,7 @@ const FEATURES = [
   { 
     id: 'benchmark',     
     icon: BarChart3,    
-    color: '#6366f1', 
+    color: '#89662e', 
     label: 'Institution Benchmarking', 
     desc: 'Compare campus metrics vs national attendance averages',               
     category: 'Analytics', 
@@ -344,7 +344,7 @@ const FEATURES = [
   { 
     id: 'offline',       
     icon: Wifi,         
-    color: '#6366f1', 
+    color: '#89662e', 
     label: 'Offline Face Engine',      
     desc: 'Local browser model execution on mobile — no active internet needed',   
     category: 'Technology', 
@@ -445,7 +445,7 @@ export default function NewFeaturesHub({ token, apiBaseUrl }) {
       border: '1px solid rgba(0, 242, 254, 0.25)',
       borderRadius: '28px',
       boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
-      color: '#f8fafc',
+      color: '#faf9f6',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* Title Header */}
@@ -694,7 +694,7 @@ export default function NewFeaturesHub({ token, apiBaseUrl }) {
               <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#00f2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                 💡 Executive Technical Architecture & How It Works:
               </div>
-              <p style={{ fontSize: '0.9rem', color: '#e2e8f0', margin: 0, lineHeight: 1.55 }}>
+              <p style={{ fontSize: '0.9rem', color: '#e4dfd5', margin: 0, lineHeight: 1.55 }}>
                 {selectedFeature.explanation}
               </p>
             </div>
@@ -722,7 +722,7 @@ export default function NewFeaturesHub({ token, apiBaseUrl }) {
                 <pre style={{
                   margin: 0,
                   fontSize: '0.78rem',
-                  color: '#cbd5e1',
+                  color: '#cfc8ba',
                   fontFamily: 'monospace',
                   maxHeight: '140px',
                   overflowY: 'auto',

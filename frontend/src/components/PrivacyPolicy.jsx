@@ -42,14 +42,14 @@ export default function PrivacyPolicy({ onClose }) {
     }}>
       <div style={{
         maxWidth: '600px', maxHeight: '80vh', overflow: 'auto',
-        background: '#0f172a', borderRadius: '12px', padding: '24px', color: '#e2e8f0',
+        background: '#25231f', borderRadius: '12px', padding: '24px', color: '#e4dfd5',
       }}>
         <h2 style={{ color: '#00f2fe', marginBottom: '16px' }}>Privacy Policy</h2>
         <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', lineHeight: 1.6, fontFamily: 'inherit' }}>
           {PRIVACY_POLICY_TEXT}
         </pre>
         <button type="button" onClick={onClose} style={{
-          marginTop: '16px', padding: '10px 24px', background: '#4f46e5',
+          marginTop: '16px', padding: '10px 24px', background: '#765729',
           color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer',
         }}>
           Close

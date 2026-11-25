@@ -86,20 +86,20 @@ function BlueprintDayBreakdownModal({
 
   return (
     <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <div style={{ width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '28px', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+      <div style={{ width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid #cfc8ba', padding: '28px', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e4dfd5', paddingBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Calendar color="#7c3aed" size={24} />
             <div>
-              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.15rem', fontWeight: 800 }}>Attendance Details — {dateStr}</h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
+              <h3 style={{ margin: 0, color: '#25231f', fontSize: '1.15rem', fontWeight: 800 }}>Attendance Details — {dateStr}</h3>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#696358' }}>
                 {activeSubject ? `Filter: ${activeSubject.subject_code || activeSubject.subject_name || 'General'}` : 'All Subjects'}
               </p>
             </div>
           </div>
-          <button onClick={() => { playCyberSound('click'); onClose(); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
+          <button onClick={() => { playCyberSound('click'); onClose(); }} style={{ background: 'none', border: 'none', color: '#696358', cursor: 'pointer' }}><X size={20} /></button>
         </div>
 
         {/* Stats Pill Row */}
@@ -114,14 +114,14 @@ function BlueprintDayBreakdownModal({
           </div>
           <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
             <div style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600 }}>Total Classes</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0284c7' }}>{displayLogs.length}</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#80602c' }}>{displayLogs.length}</div>
           </div>
         </div>
 
         {/* Detailed Class Cards */}
         {displayLogs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '36px 16px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 12px' }}>
+          <div style={{ textAlign: 'center', padding: '36px 16px', background: '#faf9f6', borderRadius: '12px', border: '1px dashed #cfc8ba' }}>
+            <p style={{ color: '#696358', fontSize: '0.85rem', margin: '0 0 12px' }}>
               No attendance records found in real database for {dateStr}.
             </p>
             {onRequestDispute && (
@@ -130,7 +130,7 @@ function BlueprintDayBreakdownModal({
                   onClose();
                   onRequestDispute({ date: dateStr, attendance: 'Absent' });
                 }}
-                style={{ padding: '8px 16px', borderRadius: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: '8px', background: '#faf5ea', border: '1px solid #dfcfaf', color: '#684c20', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
               >
                 ➕ Submit Correction Request for {dateStr}
               </button>
@@ -141,9 +141,9 @@ function BlueprintDayBreakdownModal({
             {displayLogs.map((log, idx) => {
               const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
               return (
-                <div key={log.id || idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div key={log.id || idx} style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ fontWeight: 700, color: '#25231f', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span>📚 {log.subject_name ? `${log.subject_name} (${log.subject_code || ''})` : (log.department || 'General Class')}</span>
                     </div>
                     <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700, background: isPresent ? '#d1fae5' : '#fee2e2', color: isPresent ? '#065f46' : '#991b1b', border: isPresent ? '1px solid #a7f3d0' : '1px solid #fecaca' }}>
@@ -151,12 +151,12 @@ function BlueprintDayBreakdownModal({
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
-                    <span>⏰ Period: <strong style={{ color: '#0f172a' }}>{log.period_label || log.session_time || 'Regular Session'}</strong></span>
-                    <span>🕒 Time: <strong style={{ color: '#0f172a' }}>{log.time || 'N/A'}</strong></span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#696358' }}>
+                    <span>⏰ Period: <strong style={{ color: '#25231f' }}>{log.period_label || log.session_time || 'Regular Session'}</strong></span>
+                    <span>🕒 Time: <strong style={{ color: '#25231f' }}>{log.time || 'N/A'}</strong></span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #e4dfd5', fontSize: '0.75rem', color: '#696358' }}>
                     <span>Method: {log.verification_method || 'AI Face Scan'}</span>
                     {!isPresent && onRequestDispute && (
                       <button
@@ -283,7 +283,7 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
               <span>Last Attendance Log</span>
               <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>⏰ Log Details</span>
             </h3>
-            <p style={{ fontSize: '0.92rem', fontWeight: 700, marginTop: '8px', color: '#0f172a' }}>
+            <p style={{ fontSize: '0.92rem', fontWeight: 700, marginTop: '8px', color: '#25231f' }}>
               {latestLog ? `${latestLog.date} ${latestLog.time || ''}` : 'No Logs Found'}
             </p>
           </div>
@@ -296,13 +296,13 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
       {/* ── MODAL 1: MY ATTENDANCE RATE BREAKDOWN MODAL ── */}
       {showRateModal && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ width: '100%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+          <div style={{ width: '100%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '18px', border: '1px solid #e4dfd5', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e4dfd5', paddingBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <TrendingUp color="#059669" size={24} />
-                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Attendance Rate & Subject Breakdown</h3>
+                <h3 style={{ margin: 0, color: '#25231f', fontSize: '1.2rem', fontWeight: 800 }}>Attendance Rate & Subject Breakdown</h3>
               </div>
-              <button onClick={() => setShowRateModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
+              <button onClick={() => setShowRateModal(false)} style={{ background: 'none', border: 'none', color: '#696358', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
             {/* Top Overview Cards */}
@@ -324,24 +324,24 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
             </div>
 
             {/* Subject Breakdown Section */}
-            <h4 style={{ color: '#0f172a', margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 700 }}>📚 Subject-wise Attendance Performance (Real DB Logs)</h4>
+            <h4 style={{ color: '#25231f', margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 700 }}>📚 Subject-wise Attendance Performance (Real DB Logs)</h4>
             {subjectBreakdown.length === 0 ? (
-              <p style={{ color: '#64748b', fontSize: '0.85rem' }}>No subject records available yet in real database.</p>
+              <p style={{ color: '#696358', fontSize: '0.85rem' }}>No subject records available yet in real database.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {subjectBreakdown.map((sub, i) => {
                   const rate = sub.total > 0 ? (sub.present / sub.total) * 100 : 0;
                   return (
-                    <div key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '14px 18px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={i} style={{ background: '#faf9f6', border: '1px solid #e4dfd5', padding: '14px 18px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>{sub.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                          Attended <strong style={{ color: '#0f172a' }}>{sub.present}</strong> out of <strong style={{ color: '#0f172a' }}>{sub.total}</strong> classes
+                        <div style={{ fontWeight: 700, color: '#25231f', fontSize: '0.9rem' }}>{sub.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#696358', marginTop: '2px' }}>
+                          Attended <strong style={{ color: '#25231f' }}>{sub.present}</strong> out of <strong style={{ color: '#25231f' }}>{sub.total}</strong> classes
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <span style={{ fontSize: '1.1rem', fontWeight: 800, color: rate >= 75 ? '#059669' : '#dc2626' }}>{rate.toFixed(1)}%</span>
-                        <div style={{ width: '80px', height: '6px', background: '#e2e8f0', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                        <div style={{ width: '80px', height: '6px', background: '#e4dfd5', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
                           <div style={{ width: `${Math.min(100, rate)}%`, height: '100%', background: rate >= 75 ? '#059669' : '#dc2626' }} />
                         </div>
                       </div>
@@ -357,13 +357,13 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
       {/* ── MODAL 2: PRESENTS & TOTAL DAYS BREAKDOWN MODAL ── */}
       {showPresentDaysModal && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ width: '100%', maxWidth: '750px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+          <div style={{ width: '100%', maxWidth: '750px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '18px', border: '1px solid #e4dfd5', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e4dfd5', paddingBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <CheckCircle2 color="#0284c7" size={24} />
-                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Complete Attendance Logs & Days Summary</h3>
+                <CheckCircle2 color="#80602c" size={24} />
+                <h3 style={{ margin: 0, color: '#25231f', fontSize: '1.2rem', fontWeight: 800 }}>Complete Attendance Logs & Days Summary</h3>
               </div>
-              <button onClick={() => setShowPresentDaysModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
+              <button onClick={() => setShowPresentDaysModal(false)} style={{ background: 'none', border: 'none', color: '#696358', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
             {/* Filter Tabs */}
@@ -382,9 +382,9 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
                     borderRadius: '20px',
                     fontSize: '0.78rem',
                     fontWeight: 600,
-                    border: logFilter === f.key ? '1px solid #93c5fd' : '1px solid #e2e8f0',
-                    background: logFilter === f.key ? '#eff6ff' : '#f8fafc',
-                    color: logFilter === f.key ? '#1d4ed8' : '#64748b',
+                    border: logFilter === f.key ? '1px solid #93c5fd' : '1px solid #e4dfd5',
+                    background: logFilter === f.key ? '#faf5ea' : '#faf9f6',
+                    color: logFilter === f.key ? '#684c20' : '#696358',
                     cursor: 'pointer'
                   }}
                 >
@@ -395,20 +395,20 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
 
             {/* Log List */}
             {filteredLogs.length === 0 ? (
-              <p style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center', padding: '30px' }}>No matching attendance records found in real database.</p>
+              <p style={{ color: '#696358', fontSize: '0.85rem', textAlign: 'center', padding: '30px' }}>No matching attendance records found in real database.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {filteredLogs.map((log, idx) => {
                   const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
                   return (
-                    <div key={log.id || idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={log.id || idx} style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ fontWeight: 700, color: '#25231f', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span>📅 {log.date}</span>
-                          {log.time && <span style={{ color: '#0284c7', fontSize: '0.78rem', fontWeight: 600 }}>🕒 {log.time}</span>}
+                          {log.time && <span style={{ color: '#80602c', fontSize: '0.78rem', fontWeight: 600 }}>🕒 {log.time}</span>}
                           {log.period_label && <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '1px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 600 }}>{log.period_label}</span>}
                         </div>
-                        <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '3px' }}>
+                        <div style={{ fontSize: '0.76rem', color: '#696358', marginTop: '3px' }}>
                           📚 {log.subject_name ? `${log.subject_name} (${log.subject_code || ''})` : (log.department || 'General Class')} • Method: {log.verification_method || 'AI Face Scan'}
                         </div>
                       </div>
@@ -422,7 +422,7 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
                               setShowPresentDaysModal(false);
                               onRequestDispute(log);
                             }}
-                            style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.72rem', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
+                            style={{ background: 'none', border: 'none', color: '#785927', fontSize: '0.72rem', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
                           >
                             Dispute
                           </button>
@@ -440,17 +440,17 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
       {/* ── MODAL 3: LAST ATTENDANCE LOG DETAILS MODAL ── */}
       {showLastLogModal && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ width: '100%', maxWidth: '550px', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+          <div style={{ width: '100%', maxWidth: '550px', borderRadius: '18px', border: '1px solid #e4dfd5', padding: '28px', background: '#ffffff', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e4dfd5', paddingBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Calendar color="#7c3aed" size={24} />
-                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Latest Check-in Log Details</h3>
+                <h3 style={{ margin: 0, color: '#25231f', fontSize: '1.2rem', fontWeight: 800 }}>Latest Check-in Log Details</h3>
               </div>
-              <button onClick={() => setShowLastLogModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
+              <button onClick={() => setShowLastLogModal(false)} style={{ background: 'none', border: 'none', color: '#696358', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
             {!latestLog ? (
-              <p style={{ color: '#64748b', fontSize: '0.85rem' }}>No attendance log recorded yet in real database.</p>
+              <p style={{ color: '#696358', fontSize: '0.85rem' }}>No attendance log recorded yet in real database.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '16px', borderRadius: '12px' }}>
@@ -461,30 +461,30 @@ function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 14px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Subject / Class</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginTop: '3px' }}>
+                  <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', padding: '12px 14px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 600 }}>Subject / Class</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f', marginTop: '3px' }}>
                       {latestLog.subject_name ? `${latestLog.subject_name} (${latestLog.subject_code || ''})` : 'General Class'}
                     </div>
                   </div>
 
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 14px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Status</div>
+                  <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', padding: '12px 14px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 600 }}>Status</div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 700, color: latestLog.attendance === 'Present' || latestLog.attendance === 'Late' ? '#059669' : '#dc2626', marginTop: '3px' }}>
                       {latestLog.attendance || 'Present'}
                     </div>
                   </div>
 
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 14px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Session / Period</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0284c7', marginTop: '3px' }}>
+                  <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', padding: '12px 14px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 600 }}>Session / Period</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#80602c', marginTop: '3px' }}>
                       {latestLog.period_label || latestLog.session_time || 'Regular Session'}
                     </div>
                   </div>
 
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 14px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Verification Method</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginTop: '3px' }}>
+                  <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', padding: '12px 14px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 600 }}>Verification Method</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f', marginTop: '3px' }}>
                       {latestLog.verification_method || 'AI Face Scan'}
                     </div>
                   </div>
@@ -580,12 +580,12 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#faf5ea', border: '1px solid #dfcfaf', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
             🤖
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>AI Attendance Forecaster & Bunk Simulator</h3>
-            <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>Select a subject to project future attendance and safety margins</p>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>AI Attendance Forecaster & Bunk Simulator</h3>
+            <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#696358' }}>Select a subject to project future attendance and safety margins</p>
           </div>
         </div>
 
@@ -593,7 +593,7 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
         <select value={activeSubId} onChange={e => {
           setSelectedSubId(e.target.value);
           if (playCyberSound) playCyberSound('click');
-        }} style={{ padding: '8px 14px', borderRadius: '8px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}>
+        }} style={{ padding: '8px 14px', borderRadius: '8px', background: '#ffffff', border: '1px solid #cfc8ba', color: '#25231f', fontSize: '0.8rem', outline: 'none' }}>
           {blueprintData.map(sub => (
             <option key={sub.subject_id} value={sub.subject_id}>{sub.subject_name} ({sub.subject_code})</option>
           ))}
@@ -605,12 +605,12 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Toggle Type */}
           <div>
-            <label style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px', fontWeight: 600 }}>Simulation Scenario</label>
-            <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '10px', padding: '4px', border: '1px solid #cbd5e1' }}>
-              <button onClick={() => { setSimType('attend'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'attend' ? '#10b981' : 'transparent', color: simType === 'attend' ? '#fff' : '#475569', transition: 'all 0.2s' }}>
+            <label style={{ fontSize: '0.72rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px', fontWeight: 600 }}>Simulation Scenario</label>
+            <div style={{ display: 'flex', background: '#f4f1eb', borderRadius: '10px', padding: '4px', border: '1px solid #cfc8ba' }}>
+              <button onClick={() => { setSimType('attend'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'attend' ? '#10b981' : 'transparent', color: simType === 'attend' ? '#fff' : '#58534a', transition: 'all 0.2s' }}>
                 🟢 Attend Lectures
               </button>
-              <button onClick={() => { setSimType('bunk'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'bunk' ? '#ef4444' : 'transparent', color: simType === 'bunk' ? '#fff' : '#475569', transition: 'all 0.2s' }}>
+              <button onClick={() => { setSimType('bunk'); if (playCyberSound) playCyberSound('click'); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: simType === 'bunk' ? '#ef4444' : 'transparent', color: simType === 'bunk' ? '#fff' : '#58534a', transition: 'all 0.2s' }}>
                 🔴 Bunk Lectures
               </button>
             </div>
@@ -619,23 +619,23 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
           {/* Slider Count */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <label style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Number of Classes</label>
+              <label style={{ fontSize: '0.72rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Number of Classes</label>
               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: simType === 'attend' ? '#059669' : '#dc2626' }}>{simCount} class{simCount !== 1 ? 'es' : ''}</span>
             </div>
             <input type="range" min="1" max="15" value={simCount} onChange={e => setSimCount(parseInt(e.target.value))}
-              style={{ width: '100%', accentColor: simType === 'attend' ? '#10b981' : '#ef4444', height: '6px', borderRadius: '3px', background: '#e2e8f0', cursor: 'pointer' }} />
+              style={{ width: '100%', accentColor: simType === 'attend' ? '#10b981' : '#ef4444', height: '6px', borderRadius: '3px', background: '#e4dfd5', cursor: 'pointer' }} />
           </div>
         </div>
 
         {/* Right Side: Projections Output */}
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+        <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>Current Attendance</span>
+            <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 500 }}>Current Attendance</span>
             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: currentRate >= 75 ? '#059669' : '#dc2626' }}>{currentRate.toFixed(1)}%</span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#0f172a', fontWeight: 600 }}>Forecasted Attendance</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cfc8ba', paddingTop: '10px' }}>
+            <span style={{ fontSize: '0.75rem', color: '#25231f', fontWeight: 600 }}>Forecasted Attendance</span>
             <span style={{
               fontSize: '1.2rem', fontWeight: 800,
               color: isSafe ? '#059669' : '#dc2626'
@@ -643,7 +643,7 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
           </div>
 
           {/* Progress bar */}
-          <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '8px', background: '#e4dfd5', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ width: `${Math.min(simRate, 100)}%`, height: '100%', background: isSafe ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #ef4444, #f87171)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
           </div>
 
@@ -666,9 +666,9 @@ function AiAttendanceForecaster({ blueprintData = [], playCyberSound }) {
         marginTop: '16px', padding: '12px 16px', borderRadius: '10px',
         background: isSafe ? '#f0fdf4' : '#fef2f2',
         borderLeft: `3px solid ${isSafe ? '#10b981' : '#ef4444'}`,
-        color: '#334155', fontSize: '0.8rem', lineHeight: 1.45
+        color: '#46423b', fontSize: '0.8rem', lineHeight: 1.45
       }}>
-        <strong style={{ color: '#0f172a' }}>🤖 AI Coach:</strong> {getRecommendation()}
+        <strong style={{ color: '#25231f' }}>🤖 AI Coach:</strong> {getRecommendation()}
       </div>
     </div>
   );
@@ -782,8 +782,8 @@ export default function StudentAttendanceDashboardView({
       title: 'Campus notices',
       subtitle: 'Official academic circulars, emergency announcements & PDF notices',
       icon: Megaphone,
-      iconColor: '#2563eb',
-      iconBg: '#eff6ff',
+      iconColor: '#785927',
+      iconBg: '#faf5ea',
       isDirectTab: 'broadcast',
     },
     {
@@ -791,8 +791,8 @@ export default function StudentAttendanceDashboardView({
       title: 'Subject-wise Attendance',
       subtitle: `${statsList.length} subjects registered • ${overallRate}% average`,
       icon: BookOpen,
-      iconColor: '#2563eb',
-      iconBg: '#eff6ff',
+      iconColor: '#785927',
+      iconBg: '#faf5ea',
     },
     {
       id: 'blueprint',
@@ -807,7 +807,7 @@ export default function StudentAttendanceDashboardView({
       title: 'Academic Calendar & Notices',
       subtitle: 'Official holidays, exam sessions, and schedule alerts',
       icon: Bell,
-      iconColor: '#0284c7',
+      iconColor: '#80602c',
       iconBg: '#f0f9ff',
     },
     {
@@ -839,16 +839,16 @@ export default function StudentAttendanceDashboardView({
       title: 'Campus Geofence Location',
       subtitle: geofenceStatus.checked ? (geofenceStatus.inside ? 'Inside authorized zone' : 'Outside authorized zone') : 'Tap to check location',
       icon: MapPin,
-      iconColor: geofenceStatus.checked ? (geofenceStatus.inside ? '#059669' : '#dc2626') : '#64748b',
-      iconBg: geofenceStatus.checked ? (geofenceStatus.inside ? '#ecfdf5' : '#fef2f2') : '#f1f5f9',
+      iconColor: geofenceStatus.checked ? (geofenceStatus.inside ? '#059669' : '#dc2626') : '#696358',
+      iconBg: geofenceStatus.checked ? (geofenceStatus.inside ? '#ecfdf5' : '#fef2f2') : '#f4f1eb',
     },
     {
       id: 'disputes',
       title: 'Leave Applications & Disputes',
       subtitle: `${safeLeaveRequests.length} leave requests • ${myDisputes.length} disputes`,
       icon: FileText,
-      iconColor: '#6366f1',
-      iconBg: '#eef2ff',
+      iconColor: '#89662e',
+      iconBg: '#f8f3e8',
     },
   ];
 
@@ -871,8 +871,8 @@ export default function StudentAttendanceDashboardView({
               height: '36px',
               borderRadius: '10px',
               background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              color: '#0f172a',
+              border: '1px solid #cfc8ba',
+              color: '#25231f',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -884,7 +884,7 @@ export default function StudentAttendanceDashboardView({
           >
             <ArrowLeft size={18} />
           </button>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#25231f' }}>
             {hubSections.find(s => s.id === activeSection)?.label || 'Section Details'}
           </h2>
         </div>
@@ -915,8 +915,8 @@ export default function StudentAttendanceDashboardView({
               padding: '16px 18px',
               background: '#ffffff',
               borderRadius: '16px',
-              border: '1.5px solid #bfdbfe',
-              color: '#0f172a',
+              border: '1.5px solid #dfcfaf',
+              color: '#25231f',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
@@ -933,26 +933,26 @@ export default function StudentAttendanceDashboardView({
                   width: '34px',
                   height: '34px',
                   borderRadius: '10px',
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
+                  background: '#faf5ea',
+                  border: '1px solid #dfcfaf',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#2563eb'
+                  color: '#785927'
                 }}>
                   <CreditCard size={18} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#2563eb' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#785927' }}>
                     Institutional Identity Pass
                   </div>
-                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#25231f' }}>
                     Student Virtual ID Card
                   </div>
                 </div>
               </div>
 
-              <div style={{ color: '#2563eb', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
+              <div style={{ color: '#785927', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
                 <QrCode size={18} />
                 <span>Show QR</span>
               </div>
@@ -964,25 +964,25 @@ export default function StudentAttendanceDashboardView({
               gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
               gap: '8px',
               padding: '10px 12px',
-              background: '#f8fafc',
+              background: '#faf9f6',
               borderRadius: '10px',
-              border: '1px solid #e2e8f0'
+              border: '1px solid #e4dfd5'
             }}>
               <div>
-                <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Student Name</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Student Name</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentUser?.name || 'Enrolled Student'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Roll Number</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#2563eb' }}>
+                <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Roll Number</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#785927' }}>
                   {currentUser?.details?.roll || currentUser?.roll || 'N/A'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Department</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Department</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#46423b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentUser?.details?.dep || currentUser?.dep || currentUser?.department || 'General Academic'}
                 </div>
               </div>
@@ -990,8 +990,8 @@ export default function StudentAttendanceDashboardView({
 
             {/* Bottom row: Touchless QR Scanner trigger CTA */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#475569' }}>
-                <QrCode size={15} color="#2563eb" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#58534a' }}>
+                <QrCode size={15} color="#785927" />
                 <span>Show live dynamic QR to kiosk or teacher for instant attendance</span>
               </div>
               <button
@@ -1006,7 +1006,7 @@ export default function StudentAttendanceDashboardView({
                   alignItems: 'center',
                   gap: '6px',
                   padding: '7px 14px',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  background: 'linear-gradient(135deg, #785927 0%, #684c20 100%)',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
@@ -1025,7 +1025,7 @@ export default function StudentAttendanceDashboardView({
 
           {/* Clean Portal Hub Sections */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: '4px 0 2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#25231f', margin: '4px 0 2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>📑</span> Student Services & Portals
             </h3>
             <div style={{
@@ -1049,7 +1049,7 @@ export default function StudentAttendanceDashboardView({
                     className="hover-elevate active-haptic"
                     style={{
                       background: '#ffffff',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #e4dfd5',
                       borderRadius: '12px',
                       padding: '12px 14px',
                       display: 'flex',
@@ -1076,7 +1076,7 @@ export default function StudentAttendanceDashboardView({
                         <Icon size={18} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{sec.title}</h4>
+                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#25231f' }}>{sec.title}</h4>
                       </div>
                     </div>
                     <ChevronRight size={18} style={{ color: '#94a3b8', flexShrink: 0 }} />
@@ -1164,19 +1164,19 @@ export default function StudentAttendanceDashboardView({
             const pct = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
 
             return (
-              <div style={{ padding: 'clamp(14px, 3vw, 24px)', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+              <div style={{ padding: 'clamp(14px, 3vw, 24px)', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#faf5ea', border: '1px solid #dfcfaf', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>My Attendance Blueprint</h3>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#25231f' }}>My Attendance Blueprint</h3>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => fetchBlueprint(token)}
                     disabled={blueprintLoading}
-                    style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: blueprintLoading ? 'not-allowed' : 'pointer', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0369a1', fontWeight: 600 }}
+                    style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: blueprintLoading ? 'not-allowed' : 'pointer', border: '1px solid #cfc8ba', background: '#faf9f6', color: '#0369a1', fontWeight: 600 }}
                   >
                     <span style={{ display: 'inline-block', animation: blueprintLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
                     {blueprintLoading ? 'Updating...' : 'Refresh'}
@@ -1184,19 +1184,19 @@ export default function StudentAttendanceDashboardView({
                 </div>
 
                 {blueprintLoading ? (
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#64748b', gap: '12px', alignItems: 'center' }}>
-                    <div style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#696358', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ width: '28px', height: '28px', border: '3px solid #cfc8ba', borderTopColor: '#785927', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                     Loading blueprint...
                   </div>
                 ) : effectiveBlueprintData.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '36px 20px', color: '#64748b' }}>
-                    <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#64748b' }}>
+                  <div style={{ textAlign: 'center', padding: '36px 20px', color: '#696358' }}>
+                    <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#696358' }}>
                       No attendance records found yet. Your blueprint will appear once attendance is marked.
                     </p>
                     <button
                       type="button"
                       onClick={() => fetchBlueprint(token)}
-                      style={{ padding: '7px 18px', fontSize: '0.82rem', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ padding: '7px 18px', fontSize: '0.82rem', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #dfcfaf', background: '#faf5ea', color: '#684c20', cursor: 'pointer', fontWeight: 600 }}
                     >
                       🔄 Check Again
                     </button>
@@ -1216,12 +1216,12 @@ export default function StudentAttendanceDashboardView({
                             fontWeight: 600,
                             cursor: 'pointer',
                             border: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
-                              ? '1px solid #3b82f6'
-                              : '1px solid #cbd5e1',
+                              ? '1px solid #916d30'
+                              : '1px solid #cfc8ba',
                             background: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
-                              ? '#eff6ff'
-                              : '#f8fafc',
-                            color: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id)) ? '#1d4ed8' : '#64748b'
+                              ? '#faf5ea'
+                              : '#faf9f6',
+                            color: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id)) ? '#684c20' : '#696358'
                           }}
                         >
                           {sub.subject_code} — {sub.subject_name}
@@ -1241,32 +1241,32 @@ export default function StudentAttendanceDashboardView({
                             alignItems: 'center',
                             marginBottom: (pct < 75 && stats.total > 0) ? '10px' : '16px',
                             padding: '10px 6px',
-                            background: '#f8fafc',
+                            background: '#faf9f6',
                             borderRadius: '12px',
-                            border: '1px solid #e2e8f0',
+                            border: '1px solid #e4dfd5',
                             textAlign: 'center',
                             boxSizing: 'border-box'
                           }}
                         >
                           <div style={{ minWidth: 0, padding: '2px 4px' }}>
                             <div style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)', fontWeight: 800, color: pct >= 75 ? '#059669' : '#dc2626', lineHeight: 1.1 }}>{pct}%</div>
-                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Attendance</div>
+                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Attendance</div>
                           </div>
-                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e4dfd5' }}>
                             <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#059669', lineHeight: 1.1 }}>{stats.present}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Present</div>
+                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Present</div>
                           </div>
-                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e4dfd5' }}>
                             <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#d97706', lineHeight: 1.1 }}>{stats.late}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Late</div>
+                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Late</div>
                           </div>
-                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
+                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e4dfd5' }}>
                             <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#dc2626', lineHeight: 1.1 }}>{stats.absent}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Absent</div>
+                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Absent</div>
                           </div>
-                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e2e8f0' }}>
-                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#0f172a', lineHeight: 1.1 }}>{stats.total}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total Days</div>
+                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e4dfd5' }}>
+                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#25231f', lineHeight: 1.1 }}>{stats.total}</div>
+                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total Days</div>
                           </div>
                         </div>
                         {pct < 75 && stats.total > 0 && (
@@ -1281,19 +1281,19 @@ export default function StudentAttendanceDashboardView({
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                       <button
                         onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() - 1); return d; })}
-                        style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
+                        style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: '8px', background: '#faf9f6', border: '1px solid #cfc8ba', color: '#46423b', cursor: 'pointer', fontWeight: 600 }}
                       >◀ Prev</button>
-                      <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a' }}>{monthName}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#25231f' }}>{monthName}</span>
                       <button
                         onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() + 1); return d; })}
-                        style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
+                        style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: '8px', background: '#faf9f6', border: '1px solid #cfc8ba', color: '#46423b', cursor: 'pointer', fontWeight: 600 }}
                       >Next ▶</button>
                     </div>
 
                     {/* Calendar Grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '6px' }}>
                       {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-                        <div key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', padding: '4px 0' }}>{d}</div>
+                        <div key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: '#696358', padding: '4px 0' }}>{d}</div>
                       ))}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
@@ -1327,9 +1327,9 @@ export default function StudentAttendanceDashboardView({
                         const today = new Date();
                         const isToday = today.getDate() === day && today.getMonth() === calMonth && today.getFullYear() === calYear;
 
-                        let bg = '#f8fafc';
-                        let border = '1px solid #e2e8f0';
-                        let color = '#64748b';
+                        let bg = '#faf9f6';
+                        let border = '1px solid #e4dfd5';
+                        let color = '#696358';
                         let dot = null;
                         let label = null;
 
@@ -1354,7 +1354,7 @@ export default function StudentAttendanceDashboardView({
                         }
 
                         if (isToday) {
-                          border = '2px solid #2563eb';
+                          border = '2px solid #785927';
                         }
 
                         return (
@@ -1379,7 +1379,7 @@ export default function StudentAttendanceDashboardView({
                               cursor: 'pointer'
                             }}
                           >
-                            <span style={{ fontSize: '0.8rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#2563eb' : color }}>{day}</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#785927' : color }}>{day}</span>
                             {dot && (
                               <span style={{ fontSize: '0.64rem', fontWeight: 700, color, marginTop: '1px' }}>{label}</span>
                             )}
@@ -1389,12 +1389,12 @@ export default function StudentAttendanceDashboardView({
                     </div>
 
                     {/* Legend */}
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '14px', fontSize: '0.72rem', color: '#64748b', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '14px', fontSize: '0.72rem', color: '#696358', alignItems: 'center' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#d1fae5', border: '1px solid #a7f3d0', display: 'inline-block' }}/>P = Present</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#fee2e2', border: '1px solid #fecaca', display: 'inline-block' }}/>A = Absent</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#fef3c7', border: '1px solid #fde68a', display: 'inline-block' }}/>L = Late</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', border: '2px solid #2563eb', display: 'inline-block' }}/>Today</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto', color: '#2563eb', fontWeight: 600 }}>💡 Click date cell for details</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', border: '2px solid #785927', display: 'inline-block' }}/>Today</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto', color: '#785927', fontWeight: 600 }}>💡 Click date cell for details</span>
                     </div>
 
                     <BlueprintDayBreakdownModal
@@ -1466,8 +1466,8 @@ export default function StudentAttendanceDashboardView({
       {activeSection === 'disputes' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Apply Leave Form */}
-          <div style={{ padding: 'clamp(14px, 3vw, 22px)', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ padding: 'clamp(14px, 3vw, 22px)', borderRadius: '16px', border: '1px solid #e4dfd5', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '1.2rem' }}>📝</span> Apply for Leave
             </h3>
             <LeaveApplicationForm
@@ -1483,18 +1483,18 @@ export default function StudentAttendanceDashboardView({
           {/* Leave Requests List */}
           {studentLeaveRequests.length > 0 && (
             <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#25231f', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>📋</span> My Leave Requests
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {studentLeaveRequests.map(req => (
                   <div key={req.id} style={{ padding: '14px 16px', borderRadius: '12px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fed7aa'}` }}>
                     <div>
-                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                      <span style={{ fontSize: '0.74rem', color: '#696358' }}>
                         {req.leave_type} {req.subject_name ? `(${req.subject_name} - ${req.subject_code})` : ' (General)'}
                       </span>
-                      <p style={{ fontWeight: 600, fontSize: '0.88rem', color: '#0f172a', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
-                      <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>{req.reason}</p>
+                      <p style={{ fontWeight: 600, fontSize: '0.88rem', color: '#25231f', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
+                      <p style={{ fontSize: '0.78rem', color: '#696358', margin: 0 }}>{req.reason}</p>
                     </div>
                     <span style={{
                       padding: '4px 12px', borderRadius: '20px', fontSize: '0.74rem', fontWeight: 700,
@@ -1513,9 +1513,9 @@ export default function StudentAttendanceDashboardView({
           {/* Attendance Disputes List */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>⚖️</span> My Attendance Disputes & Status
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '12px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#faf5ea', color: '#61471e', padding: '2px 8px', borderRadius: '12px' }}>
                   {myDisputes.length}
                 </span>
               </h3>
@@ -1526,9 +1526,9 @@ export default function StudentAttendanceDashboardView({
                   setShowDisputeModal(true);
                 }}
                 style={{
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  color: '#1d4ed8',
+                  background: '#faf5ea',
+                  border: '1px solid #dfcfaf',
+                  color: '#684c20',
                   borderRadius: '8px',
                   padding: '6px 14px',
                   fontSize: '0.8rem',
@@ -1541,7 +1541,7 @@ export default function StudentAttendanceDashboardView({
             </div>
 
             {myDisputes.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.84rem' }}>
+              <div style={{ padding: '20px', textAlign: 'center', color: '#696358', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5', fontSize: '0.84rem' }}>
                 No active attendance disputes filed.
               </div>
             ) : (
@@ -1562,7 +1562,7 @@ export default function StudentAttendanceDashboardView({
                       border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fed7aa'}`
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>
                           {d.subject_name ? `${d.subject_name} (${d.subject_code || ''})` : 'General Class'} • Date: {d.date}
                         </span>
                         <span style={{
@@ -1577,16 +1577,16 @@ export default function StudentAttendanceDashboardView({
                           {isApproved ? '✅ Approved & Corrected' : isRejected ? '❌ Rejected' : '⏳ ' + (d.status || 'Under Review')}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '0.78rem', color: '#475569' }}>
-                        <span>Reason: <strong style={{ color: '#0f172a' }}>{d.reason}</strong> ({d.original_status} → {d.requested_status})</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '0.78rem', color: '#58534a' }}>
+                        <span>Reason: <strong style={{ color: '#25231f' }}>{d.reason}</strong> ({d.original_status} → {d.requested_status})</span>
                         <button
                           onClick={() => generateDisputePdf({ ...d, student_name: currentUser?.name || d.student_name, student_roll: currentUser?.details?.roll_number || d.student_roll })}
                           style={{
                             padding: '4px 10px',
                             borderRadius: '6px',
-                            background: '#f8fafc',
-                            border: '1px solid #cbd5e1',
-                            color: '#334155',
+                            background: '#faf9f6',
+                            border: '1px solid #cfc8ba',
+                            color: '#46423b',
                             fontSize: '0.72rem',
                             fontWeight: 600,
                             cursor: 'pointer'
@@ -1596,7 +1596,7 @@ export default function StudentAttendanceDashboardView({
                         </button>
                       </div>
                       {d.reviewer_comments && (
-                        <div style={{ fontSize: '0.76rem', color: '#1e40af', background: '#eff6ff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                        <div style={{ fontSize: '0.76rem', color: '#61471e', background: '#faf5ea', padding: '6px 12px', borderRadius: '8px', border: '1px solid #dfcfaf' }}>
                           <strong>Teacher / HOD Note:</strong> {d.reviewer_comments}
                         </div>
                       )}
@@ -1618,18 +1618,18 @@ export default function StudentAttendanceDashboardView({
           alignItems: 'center', 
           flexWrap: 'wrap', 
           gap: '12px',
-          borderLeft: '4px solid #2563eb',
+          borderLeft: '4px solid #785927',
           background: '#ffffff',
           borderRadius: '14px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
           marginTop: '6px'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ 
-            background: '#eff6ff', 
-            color: '#2563eb', 
+            background: '#faf5ea', 
+            color: '#785927', 
             borderRadius: '10px', 
             padding: '10px',
             display: 'flex',
@@ -1639,7 +1639,7 @@ export default function StudentAttendanceDashboardView({
             <MessageSquare size={20} />
           </div>
           <div>
-            <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Help Us Improve the Platform</h4>
+            <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f', margin: 0 }}>Help Us Improve the Platform</h4>
           </div>
         </div>
         <button

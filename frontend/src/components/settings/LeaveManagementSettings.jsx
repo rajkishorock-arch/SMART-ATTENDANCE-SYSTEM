@@ -64,7 +64,7 @@ export default function LeaveManagementSettings({
       <div 
         style={{ 
           background: '#ffffff', 
-          border: '1px solid #e2e8f0', 
+          border: '1px solid #e4dfd5', 
           borderRadius: '16px', 
           padding: '16px 20px', 
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
@@ -76,11 +76,11 @@ export default function LeaveManagementSettings({
         }}
       >
         <div style={{ minWidth: '220px' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={20} color="#2563eb" />
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FileText size={20} color="#785927" />
             <span>Leave Management & History</span>
           </h3>
-          <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '4px 0 0 0', fontWeight: 500 }}>
+          <p style={{ color: '#696358', fontSize: '0.8rem', margin: '4px 0 0 0', fontWeight: 500 }}>
             Review, approve, or download certified PDF slips for student leaves.
           </p>
         </div>
@@ -99,9 +99,9 @@ export default function LeaveManagementSettings({
             borderRadius: '10px', 
             fontSize: '0.8rem',
             fontWeight: 600,
-            background: '#f8fafc',
-            border: '1px solid #cbd5e1',
-            color: '#334155',
+            background: '#faf9f6',
+            border: '1px solid #cfc8ba',
+            color: '#46423b',
             cursor: isFetchingLeaves ? 'not-allowed' : 'pointer',
             transition: 'all 0.15s ease'
           }}
@@ -124,8 +124,8 @@ export default function LeaveManagementSettings({
         <div 
           onClick={() => setLeaveTabFilter('all')}
           style={{
-            background: leaveTabFilter === 'all' ? '#eff6ff' : '#ffffff',
-            border: leaveTabFilter === 'all' ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+            background: leaveTabFilter === 'all' ? '#faf5ea' : '#ffffff',
+            border: leaveTabFilter === 'all' ? '1.5px solid #916d30' : '1px solid #e4dfd5',
             borderRadius: '12px',
             padding: '12px 10px',
             cursor: 'pointer',
@@ -134,10 +134,10 @@ export default function LeaveManagementSettings({
             transition: 'all 0.15s ease'
           }}
         >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: '#696358', letterSpacing: '0.04em' }}>
             Total
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e40af', marginTop: '2px' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#61471e', marginTop: '2px' }}>
             {totalCount}
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function LeaveManagementSettings({
           onClick={() => setLeaveTabFilter('pending')}
           style={{
             background: leaveTabFilter === 'pending' ? '#fffbeb' : '#ffffff',
-            border: leaveTabFilter === 'pending' ? '1.5px solid #f59e0b' : '1px solid #e2e8f0',
+            border: leaveTabFilter === 'pending' ? '1.5px solid #f59e0b' : '1px solid #e4dfd5',
             borderRadius: '12px',
             padding: '12px 10px',
             cursor: 'pointer',
@@ -169,7 +169,7 @@ export default function LeaveManagementSettings({
           onClick={() => setLeaveTabFilter('approved')}
           style={{
             background: leaveTabFilter === 'approved' ? '#ecfdf5' : '#ffffff',
-            border: leaveTabFilter === 'approved' ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+            border: leaveTabFilter === 'approved' ? '1.5px solid #10b981' : '1px solid #e4dfd5',
             borderRadius: '12px',
             padding: '12px 10px',
             cursor: 'pointer',
@@ -191,7 +191,7 @@ export default function LeaveManagementSettings({
           onClick={() => setLeaveTabFilter('rejected')}
           style={{
             background: leaveTabFilter === 'rejected' ? '#fef2f2' : '#ffffff',
-            border: leaveTabFilter === 'rejected' ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
+            border: leaveTabFilter === 'rejected' ? '1.5px solid #ef4444' : '1px solid #e4dfd5',
             borderRadius: '12px',
             padding: '12px 10px',
             cursor: 'pointer',
@@ -246,9 +246,9 @@ export default function LeaveManagementSettings({
                 borderRadius: '24px',
                 fontSize: '0.78rem',
                 fontWeight: isActive ? 700 : 600,
-                border: isActive ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                background: isActive ? '#eff6ff' : '#ffffff',
-                color: isActive ? '#1d4ed8' : '#64748b',
+                border: isActive ? '1px solid #916d30' : '1px solid #e4dfd5',
+                background: isActive ? '#faf5ea' : '#ffffff',
+                color: isActive ? '#684c20' : '#696358',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -264,8 +264,8 @@ export default function LeaveManagementSettings({
                   padding: '1px 7px',
                   borderRadius: '10px',
                   fontSize: '0.7rem',
-                  background: isActive ? '#2563eb' : '#f1f5f9',
-                  color: isActive ? '#ffffff' : '#64748b',
+                  background: isActive ? '#785927' : '#f4f1eb',
+                  color: isActive ? '#ffffff' : '#696358',
                   fontWeight: 700
                 }}
               >
@@ -278,20 +278,20 @@ export default function LeaveManagementSettings({
 
       {/* Main Leave Records List */}
       {isFetchingLeaves ? (
-        <div style={{ textAlign: 'center', color: '#64748b', padding: '36px 16px', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-          <RefreshCw size={24} className="spin-animation" style={{ margin: '0 auto 8px', color: '#2563eb' }} />
+        <div style={{ textAlign: 'center', color: '#696358', padding: '36px 16px', background: '#ffffff', borderRadius: '16px', border: '1px solid #e4dfd5' }}>
+          <RefreshCw size={24} className="spin-animation" style={{ margin: '0 auto 8px', color: '#785927' }} />
           <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>Loading leave requests & history...</p>
         </div>
       ) : adminLeaveRequests.length === 0 ? (
-        <div style={{ padding: '36px 20px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+        <div style={{ padding: '36px 20px', textAlign: 'center', color: '#696358', background: '#ffffff', borderRadius: '16px', border: '1px solid #e4dfd5' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
             <CheckCircle2 size={26} />
           </div>
-          <h4 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>No Leave Requests</h4>
-          <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>No student leave applications found in the records.</p>
+          <h4 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, color: '#25231f' }}>No Leave Requests</h4>
+          <p style={{ margin: 0, fontSize: '0.82rem', color: '#696358' }}>No student leave applications found in the records.</p>
         </div>
       ) : filteredLeaves.length === 0 ? (
-        <div style={{ padding: '32px 20px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+        <div style={{ padding: '32px 20px', textAlign: 'center', color: '#696358', background: '#ffffff', borderRadius: '16px', border: '1px solid #e4dfd5' }}>
           <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600 }}>No requests found in this &quot;{leaveTabFilter}&quot; category.</p>
         </div>
       ) : (
@@ -323,9 +323,9 @@ export default function LeaveManagementSettings({
                         width: '38px',
                         height: '38px',
                         borderRadius: '10px',
-                        background: '#eff6ff',
-                        color: '#2563eb',
-                        border: '1px solid #bfdbfe',
+                        background: '#faf5ea',
+                        color: '#785927',
+                        border: '1px solid #dfcfaf',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -337,10 +337,10 @@ export default function LeaveManagementSettings({
                       {(req.student_name || 'S').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p style={{ fontWeight: 800, color: '#0f172a', margin: 0, fontSize: '0.95rem' }}>
+                      <p style={{ fontWeight: 800, color: '#25231f', margin: 0, fontSize: '0.95rem' }}>
                         {req.student_name}
                       </p>
-                      <p style={{ color: '#64748b', margin: '2px 0 0', fontSize: '0.78rem', fontWeight: 500 }}>
+                      <p style={{ color: '#696358', margin: '2px 0 0', fontSize: '0.78rem', fontWeight: 500 }}>
                         Roll: <strong>{req.student_roll || 'N/A'}</strong> · {req.student_dep || 'General'}
                       </p>
                     </div>
@@ -380,9 +380,9 @@ export default function LeaveManagementSettings({
                         borderRadius: '8px',
                         fontSize: '0.74rem',
                         fontWeight: 600,
-                        border: '1px solid #bfdbfe',
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
+                        border: '1px solid #dfcfaf',
+                        background: '#faf5ea',
+                        color: '#684c20',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -398,12 +398,12 @@ export default function LeaveManagementSettings({
                 </div>
 
                 {/* Details Row: Dates & Leave Type */}
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.8rem', color: '#46423b', background: '#faf9f6', padding: '8px 12px', borderRadius: '8px' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <Calendar size={13} color="#2563eb" />
+                    <Calendar size={13} color="#785927" />
                     <strong>{req.start_date}</strong> → <strong>{req.end_date}</strong>
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#64748b' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#696358' }}>
                     <GraduationCap size={13} />
                     {req.leave_type || 'Casual'} {req.subject_name ? `(${req.subject_name})` : ''}
                   </span>
@@ -411,7 +411,7 @@ export default function LeaveManagementSettings({
 
                 {/* Reason Bubble */}
                 {req.reason && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', color: '#475569', fontStyle: 'italic', paddingLeft: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', color: '#58534a', fontStyle: 'italic', paddingLeft: '4px' }}>
                     <MessageSquare size={13} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <span>&quot;{req.reason}&quot;</span>
                   </div>
@@ -419,7 +419,7 @@ export default function LeaveManagementSettings({
 
                 {/* Approval Action Buttons if Pending */}
                 {isPending && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #f4f1eb' }}>
                     <button
                       type="button"
                       style={{ 

@@ -34,7 +34,7 @@ export function StudentsDirectoryHeaderAction({
         gap: '8px', 
         fontSize: '0.9rem',
         fontWeight: 600,
-        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+        background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)',
         border: 'none',
         color: '#ffffff',
         boxShadow: '0 2px 10px rgba(30, 64, 175, 0.2)',
@@ -156,7 +156,7 @@ export default function StudentsDirectoryView({
               gap: '8px', 
               fontSize: '0.88rem',
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+              background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)',
               border: 'none',
               color: '#ffffff',
               boxShadow: '0 4px 14px rgba(30, 64, 175, 0.25)',
@@ -176,7 +176,7 @@ export default function StudentsDirectoryView({
       {/* List */}
       {filteredStudents.length === 0 ? (
         <div className="flex-center" style={{ padding: '60px 0', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '16px' }}>
-          <BookOpen size={44} style={{ color: '#cbd5e1' }} />
+          <BookOpen size={44} style={{ color: '#cfc8ba' }} />
           <span style={{ fontWeight: 500 }}>No registered students found.</span>
         </div>
       ) : (
@@ -216,9 +216,9 @@ export default function StudentsDirectoryView({
                         style={{ 
                           padding: '7px 12px', 
                           fontSize: '0.82rem',
-                          color: '#1d4ed8', 
-                          border: '1.5px solid #3b82f6', 
-                          background: '#eff6ff',
+                          color: '#684c20', 
+                          border: '1.5px solid #916d30', 
+                          background: '#faf5ea',
                           borderRadius: '8px',
                           fontWeight: 700,
                           cursor: 'pointer',

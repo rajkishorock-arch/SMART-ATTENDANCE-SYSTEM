@@ -91,7 +91,7 @@ export default function LiveScannerSessionHubView({
               {/* Subject Details */}
               {userRole === 'admin' ? (
                 selectedSubjectId && (
-                  <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.9rem', textAlign: 'left', animation: 'fadeInUp 0.3s ease both' }}>
+                  <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.9rem', textAlign: 'left', animation: 'fadeInUp 0.3s ease both' }}>
                     <div>
                       <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>Selected Subject</span>
                       <strong style={{ color: 'var(--color-text-main)' }}>{subjects.find(s => s.id === parseInt(selectedSubjectId))?.name || 'None Selected'}</strong>
@@ -107,7 +107,7 @@ export default function LiveScannerSessionHubView({
                   </div>
                 )
               ) : (
-                <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.9rem', textAlign: 'left' }}>
+                <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.9rem', textAlign: 'left' }}>
                   <div>
                     <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>Assigned Subject</span>
                     <strong style={{ color: 'var(--color-text-main)' }}>{currentUser?.details?.subject_name || 'N/A'}</strong>
@@ -133,7 +133,7 @@ export default function LiveScannerSessionHubView({
                     type="button"
                     onClick={() => { playCyberSound('click'); shiftDate(sessionDate, -1, setSessionDate); }}
                     style={{
-                      background: '#f8fafc',
+                      background: '#faf9f6',
                       border: '1px solid var(--border-subtle)',
                       borderRadius: '8px',
                       color: 'var(--color-text-secondary)',
@@ -168,7 +168,7 @@ export default function LiveScannerSessionHubView({
                     type="button"
                     onClick={() => { playCyberSound('click'); shiftDate(sessionDate, 1, setSessionDate); }}
                     style={{
-                      background: '#f8fafc',
+                      background: '#faf9f6',
                       border: '1px solid var(--border-subtle)',
                       borderRadius: '8px',
                       color: 'var(--color-text-secondary)',
@@ -270,7 +270,7 @@ export default function LiveScannerSessionHubView({
                   fontWeight: 700, 
                   fontSize: '1rem', 
                   marginTop: '16px',
-                  background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                  background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)',
                   border: 'none',
                   color: '#ffffff',
                   boxShadow: '0 4px 14px rgba(30, 64, 175, 0.25)'
@@ -374,7 +374,7 @@ export default function LiveScannerSessionHubView({
                   justifyContent: 'center',
                   gap: '8px',
                   border: '1px solid rgba(2, 132, 199, 0.35)',
-                  color: '#0284c7',
+                  color: '#80602c',
                   background: 'rgba(2, 132, 199, 0.06)',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease'
@@ -492,8 +492,8 @@ export default function LiveScannerSessionHubView({
                       <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '2px', margin: 0 }}>Opens camera in a fullscreen modal for optimal scanning</p>
                     </div>
                     <span style={{
-                      background: attendanceActive ? 'rgba(16,185,129,0.1)' : '#f1f5f9',
-                      border: `1px solid ${attendanceActive ? '#10b981' : '#cbd5e1'}`,
+                      background: attendanceActive ? 'rgba(16,185,129,0.1)' : '#f4f1eb',
+                      border: `1px solid ${attendanceActive ? '#10b981' : '#cfc8ba'}`,
                       color: attendanceActive ? '#10b981' : 'var(--color-text-muted)',
                       borderRadius: '8px', padding: '3px 12px',
                       fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
@@ -502,15 +502,15 @@ export default function LiveScannerSessionHubView({
 
                   {/* Stats row */}
                   <div style={{ display: 'flex', gap: '16px', alignSelf: 'stretch', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '80px', background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ flex: 1, minWidth: '80px', background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
                       <p style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px' }}>LOGGED</p>
                       <p style={{ color: '#10b981', fontSize: '1.5rem', fontWeight: 800, lineHeight: 1 }}>{recognizedStudents.length}</p>
                     </div>
-                    <div style={{ flex: 1, minWidth: '80px', background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ flex: 1, minWidth: '80px', background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
                       <p style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px' }}>STATUS</p>
                       <p style={{ color: attendanceActive ? '#10b981' : 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 700, lineHeight: 1, marginTop: '4px' }}>{scanStatus}</p>
                     </div>
-                    <div style={{ flex: 1, minWidth: '80px', background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ flex: 1, minWidth: '80px', background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
                       <p style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px' }}>LIVENESS</p>
                       <p style={{ color: livenessStatus === 'verified' ? '#10b981' : '#d97706', fontSize: '0.75rem', fontWeight: 700, lineHeight: 1, marginTop: '4px' }}>{livenessStatus.toUpperCase()}</p>
                     </div>
@@ -525,7 +525,7 @@ export default function LiveScannerSessionHubView({
                       className="btn-primary"
                       style={{
                         flex: 1, minWidth: '160px', padding: '14px 24px',
-                        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                        background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)',
                         border: 'none', borderRadius: '12px',
                         color: '#ffffff', fontWeight: 700, fontSize: '0.95rem',
                         cursor: 'pointer', letterSpacing: '0.02em',
@@ -580,7 +580,7 @@ export default function LiveScannerSessionHubView({
                         background: '#f0f9ff',
                         border: '1px solid #bae6fd',
                         borderRadius: '12px',
-                        color: '#0284c7', fontWeight: 700, fontSize: '0.92rem',
+                        color: '#80602c', fontWeight: 700, fontSize: '0.92rem',
                         cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                       }}

@@ -135,7 +135,7 @@ export default function LowConfidenceReviewQueue({
 
   return (
     <div className="review-queue-container" style={{
-      color: '#0f172a',
+      color: '#25231f',
       padding: '0',
       width: '100%',
       maxWidth: '100%',
@@ -145,7 +145,7 @@ export default function LowConfidenceReviewQueue({
       {/* Header Banner - Clean and uncluttered */}
       <div style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '14px',
         padding: '16px 18px',
         marginBottom: '16px',
@@ -167,7 +167,7 @@ export default function LowConfidenceReviewQueue({
               }}>
                 <ScanFace size={18} />
               </div>
-              <h2 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#0f172a' }}>
+              <h2 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#25231f' }}>
                 Low-Confidence Face Match Review Queue
               </h2>
             </div>
@@ -177,9 +177,9 @@ export default function LowConfidenceReviewQueue({
             onClick={() => { playCyberSound('click'); fetchQueue(); }}
             disabled={isLoading}
             style={{
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              color: '#334155',
+              background: '#faf9f6',
+              border: '1px solid #cfc8ba',
+              color: '#46423b',
               padding: '8px 16px',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -238,7 +238,7 @@ export default function LowConfidenceReviewQueue({
         display: 'flex',
         gap: '10px',
         marginBottom: '20px',
-        borderBottom: '1px solid #e2e8f0',
+        borderBottom: '1px solid #e4dfd5',
         paddingBottom: '12px',
         overflowX: 'auto'
       }}>
@@ -248,8 +248,8 @@ export default function LowConfidenceReviewQueue({
             onClick={() => { playCyberSound('click'); setStatusFilter(tab); }}
             style={{
               background: statusFilter === tab ? '#e0f2fe' : '#ffffff',
-              border: statusFilter === tab ? '1px solid #38bdf8' : '1px solid #cbd5e1',
-              color: statusFilter === tab ? '#0369a1' : '#64748b',
+              border: statusFilter === tab ? '1px solid #38bdf8' : '1px solid #cfc8ba',
+              color: statusFilter === tab ? '#0369a1' : '#696358',
               padding: '6px 16px',
               borderRadius: '8px',
               fontSize: '0.85rem',
@@ -267,17 +267,17 @@ export default function LowConfidenceReviewQueue({
       {reviews.length === 0 ? (
         <div style={{
           background: '#ffffff',
-          border: '1px dashed #cbd5e1',
+          border: '1px dashed #cfc8ba',
           borderRadius: '14px',
           padding: '48px 24px',
           textAlign: 'center',
-          color: '#64748b'
+          color: '#696358'
         }}>
           <ScanFace size={40} style={{ opacity: 0.35, marginBottom: '12px', color: '#94a3b8' }} />
-          <h4 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '1.1rem' }}>
+          <h4 style={{ margin: '0 0 6px 0', color: '#25231f', fontSize: '1.1rem' }}>
             No {statusFilter === 'PENDING' ? 'Pending' : ''} Staged Matches
           </h4>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#696358' }}>
             All camera scanner recognitions are currently operating above the high-confidence threshold.
           </p>
         </div>
@@ -296,7 +296,7 @@ export default function LowConfidenceReviewQueue({
                 key={item.id}
                 style={{
                   background: '#ffffff',
-                  border: item.status === 'PENDING' ? '1px solid #f59e0b' : '1px solid #e2e8f0',
+                  border: item.status === 'PENDING' ? '1px solid #f59e0b' : '1px solid #e4dfd5',
                   borderRadius: '14px',
                   padding: '20px',
                   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
@@ -309,10 +309,10 @@ export default function LowConfidenceReviewQueue({
                   {/* Card Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                     <div>
-                      <h3 style={{ margin: '0 0 3px 0', fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
+                      <h3 style={{ margin: '0 0 3px 0', fontSize: '1.15rem', fontWeight: 700, color: '#25231f' }}>
                         {item.candidate_name}
                       </h3>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Roll: {item.candidate_roll}</span>
+                      <span style={{ fontSize: '0.8rem', color: '#696358' }}>Roll: {item.candidate_roll}</span>
                     </div>
 
                     <span style={{
@@ -331,12 +331,12 @@ export default function LowConfidenceReviewQueue({
                   {/* Metadata Chips */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                     <span style={{
-                      background: '#f1f5f9',
-                      border: '1px solid #e2e8f0',
+                      background: '#f4f1eb',
+                      border: '1px solid #e4dfd5',
                       fontSize: '0.75rem',
                       padding: '3px 8px',
                       borderRadius: '6px',
-                      color: '#334155',
+                      color: '#46423b',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px'
@@ -346,12 +346,12 @@ export default function LowConfidenceReviewQueue({
 
                     {item.session_time && (
                       <span style={{
-                        background: '#f1f5f9',
-                        border: '1px solid #e2e8f0',
+                        background: '#f4f1eb',
+                        border: '1px solid #e4dfd5',
                         fontSize: '0.75rem',
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        color: '#334155',
+                        color: '#46423b',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px'
@@ -367,7 +367,7 @@ export default function LowConfidenceReviewQueue({
                         fontSize: '0.75rem',
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        color: '#0284c7'
+                        color: '#80602c'
                       }}>
                         {item.subject_name}
                       </span>
@@ -402,7 +402,7 @@ export default function LowConfidenceReviewQueue({
                 {/* Card Action Buttons (Pending only) */}
                 {item.status === 'PENDING' && (
                   <div style={{
-                    borderTop: '1px solid #e2e8f0',
+                    borderTop: '1px solid #e4dfd5',
                     paddingTop: '14px',
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr 1fr',
@@ -510,7 +510,7 @@ export default function LowConfidenceReviewQueue({
         }}>
           <div style={{
             background: '#ffffff',
-            border: '1px solid #cbd5e1',
+            border: '1px solid #cfc8ba',
             borderRadius: '16px',
             width: '100%',
             maxWidth: '480px',
@@ -526,7 +526,7 @@ export default function LowConfidenceReviewQueue({
                 right: '20px',
                 background: 'transparent',
                 border: 'none',
-                color: '#64748b',
+                color: '#696358',
                 cursor: 'pointer'
               }}
             >
@@ -535,17 +535,17 @@ export default function LowConfidenceReviewQueue({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               <ArrowRightLeft size={22} color="#7c3aed" />
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Reassign Face Detection</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#25231f', fontWeight: 700 }}>Reassign Face Detection</h3>
             </div>
 
-            <p style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '0.85rem' }}>
-              Candidate detected as: <strong style={{ color: '#0f172a' }}>{reassignModalItem.candidate_name}</strong> ({reassignModalItem.candidate_roll}).
+            <p style={{ margin: '0 0 16px 0', color: '#58534a', fontSize: '0.85rem' }}>
+              Candidate detected as: <strong style={{ color: '#25231f' }}>{reassignModalItem.candidate_name}</strong> ({reassignModalItem.candidate_roll}).
               Specify the student to whom this attendance record should be credited.
             </p>
 
             <form onSubmit={handleReassignSubmit}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', fontWeight: 600, marginBottom: '6px' }}>
                   Target Student Roll Number *
                 </label>
                 <input
@@ -557,8 +557,8 @@ export default function LowConfidenceReviewQueue({
                   style={{
                     width: '100%',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    border: '1px solid #cfc8ba',
+                    color: '#25231f',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '0.9rem'
@@ -567,7 +567,7 @@ export default function LowConfidenceReviewQueue({
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', fontWeight: 600, marginBottom: '6px' }}>
                   Reason / Reviewer Note
                 </label>
                 <textarea
@@ -578,8 +578,8 @@ export default function LowConfidenceReviewQueue({
                   style={{
                     width: '100%',
                     background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    border: '1px solid #cfc8ba',
+                    color: '#25231f',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '0.9rem',
@@ -593,9 +593,9 @@ export default function LowConfidenceReviewQueue({
                   type="button"
                   onClick={() => setReassignModalItem(null)}
                   style={{
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    color: '#475569',
+                    background: '#f4f1eb',
+                    border: '1px solid #cfc8ba',
+                    color: '#58534a',
                     padding: '8px 16px',
                     borderRadius: '8px',
                     cursor: 'pointer',

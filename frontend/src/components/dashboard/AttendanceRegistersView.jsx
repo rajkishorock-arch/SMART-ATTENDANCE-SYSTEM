@@ -110,7 +110,7 @@ export default function AttendanceRegistersView({
             padding: '10px 12px', 
             background: '#ffffff',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             borderLeft: '4px solid var(--color-primary)',
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             display: 'flex',
@@ -133,7 +133,7 @@ export default function AttendanceRegistersView({
             padding: '10px 12px', 
             background: '#ffffff',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             borderLeft: '4px solid var(--color-success)',
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             display: 'flex',
@@ -156,7 +156,7 @@ export default function AttendanceRegistersView({
             padding: '10px 12px', 
             background: '#ffffff',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             borderLeft: '4px solid var(--color-purple)',
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             display: 'flex',
@@ -251,7 +251,7 @@ export default function AttendanceRegistersView({
               type="button"
               onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, -1, setLogDateFilter); }}
               style={{
-                background: '#f8fafc',
+                background: '#faf9f6',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 color: 'var(--color-text-secondary)',
@@ -291,7 +291,7 @@ export default function AttendanceRegistersView({
               type="button"
               onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, 1, setLogDateFilter); }}
               style={{
-                background: '#f8fafc',
+                background: '#faf9f6',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 color: 'var(--color-text-secondary)',
@@ -314,7 +314,7 @@ export default function AttendanceRegistersView({
 
         {/* Row 3: Status Filters & View Mode Toggles */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', background: '#f4f1eb', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             {['all', 'present', 'absent'].map(status => (
               <button
                 key={status}
@@ -341,7 +341,7 @@ export default function AttendanceRegistersView({
             ))}
           </div>
 
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', background: '#f4f1eb', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
             <button
               type="button"
               onClick={() => {

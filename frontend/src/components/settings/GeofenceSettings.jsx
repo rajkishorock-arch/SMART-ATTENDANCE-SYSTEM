@@ -46,7 +46,7 @@ export default function GeofenceSettings({
       {/* Header - Clean bold heading without cluttering badges */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <h3 style={{ fontSize: '1.18rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+          <h3 style={{ fontSize: '1.18rem', fontWeight: 800, color: '#25231f', margin: 0 }}>
             Security Perimeter & Geofence Configuration
           </h3>
         </div>
@@ -65,13 +65,13 @@ export default function GeofenceSettings({
       )}
 
       {/* Section 1: Emergency Lockdown Control */}
-      <div style={{ background: lockdownActive ? '#fef2f2' : '#f8fafc', border: `1px solid ${lockdownActive ? '#f87171' : 'var(--border-subtle)'}`, borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ background: lockdownActive ? '#fef2f2' : '#faf9f6', border: `1px solid ${lockdownActive ? '#f87171' : 'var(--border-subtle)'}`, borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h4 style={{ color: lockdownActive ? '#dc2626' : '#0f172a', fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h4 style={{ color: lockdownActive ? '#dc2626' : '#25231f', fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertCircle size={20} style={{ color: lockdownActive ? '#dc2626' : '#d97706' }} /> Emergency Campus Lockdown Switch
             </h4>
-            <p style={{ color: '#475569', fontSize: '0.82rem', margin: '4px 0 0' }}>
+            <p style={{ color: '#58534a', fontSize: '0.82rem', margin: '4px 0 0' }}>
               Instantly suspends all live camera feeds campus-wide and stops active student attendance verification.
             </p>
           </div>
@@ -120,14 +120,14 @@ export default function GeofenceSettings({
 
       {/* Section 2: GPS Geofencing Campus Boundary */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <h4 style={{ color: '#0f172a', fontSize: '0.95rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <MapPin size={18} style={{ color: '#1e40af' }} /> GPS Geofence Campus Boundary
+        <h4 style={{ color: '#25231f', fontSize: '0.95rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <MapPin size={18} style={{ color: '#61471e' }} /> GPS Geofence Campus Boundary
         </h4>
-        <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.88rem', display: 'block' }}>GPS Radius Enforcement</span>
-              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Restricts student check-in strictly within allowed geographical campus radius.</span>
+              <span style={{ fontWeight: 600, color: '#25231f', fontSize: '0.88rem', display: 'block' }}>GPS Radius Enforcement</span>
+              <span style={{ fontSize: '0.78rem', color: '#696358' }}>Restricts student check-in strictly within allowed geographical campus radius.</span>
             </div>
             <button
               type="button"
@@ -138,7 +138,7 @@ export default function GeofenceSettings({
                 background: settingsGeoEnabled ? '#ecfdf5' : '#ffffff',
                 border: `1px solid ${settingsGeoEnabled ? '#a7f3d0' : 'var(--border-subtle)'}`,
                 borderRadius: '8px',
-                color: settingsGeoEnabled ? '#059669' : '#64748b',
+                color: settingsGeoEnabled ? '#059669' : '#696358',
                 fontWeight: 700,
                 fontSize: '0.78rem',
                 cursor: userRole === 'student' ? 'not-allowed' : 'pointer'
@@ -151,7 +151,7 @@ export default function GeofenceSettings({
           {settingsGeoEnabled && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.8rem', color: '#334155', fontWeight: 600 }}>Center Latitude</label>
+                <label style={{ fontSize: '0.8rem', color: '#46423b', fontWeight: 600 }}>Center Latitude</label>
                 <input 
                   type="number" 
                   step="any"
@@ -159,11 +159,11 @@ export default function GeofenceSettings({
                   value={settingsLat} 
                   onChange={e => setSettingsLat(e.target.value)} 
                   disabled={userRole === 'student'}
-                  style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', color: '#0f172a', padding: '10px 12px', borderRadius: '8px' }}
+                  style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', color: '#25231f', padding: '10px 12px', borderRadius: '8px' }}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.8rem', color: '#334155', fontWeight: 600 }}>Center Longitude</label>
+                <label style={{ fontSize: '0.8rem', color: '#46423b', fontWeight: 600 }}>Center Longitude</label>
                 <input 
                   type="number" 
                   step="any"
@@ -171,18 +171,18 @@ export default function GeofenceSettings({
                   value={settingsLon} 
                   onChange={e => setSettingsLon(e.target.value)} 
                   disabled={userRole === 'student'}
-                  style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', color: '#0f172a', padding: '10px 12px', borderRadius: '8px' }}
+                  style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', color: '#25231f', padding: '10px 12px', borderRadius: '8px' }}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.8rem', color: '#334155', fontWeight: 600 }}>Allowed Radius (meters)</label>
+                <label style={{ fontSize: '0.8rem', color: '#46423b', fontWeight: 600 }}>Allowed Radius (meters)</label>
                 <input 
                   type="number" 
                   className="form-input" 
                   value={settingsRadius} 
                   onChange={e => setSettingsRadius(e.target.value)} 
                   disabled={userRole === 'student'}
-                  style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', color: '#0f172a', padding: '10px 12px', borderRadius: '8px' }}
+                  style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', color: '#25231f', padding: '10px 12px', borderRadius: '8px' }}
                 />
               </div>
               {userRole !== 'student' && (
@@ -205,7 +205,7 @@ export default function GeofenceSettings({
                         );
                       }
                     }}
-                    style={{ width: '100%', height: '42px', borderRadius: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}
+                    style={{ width: '100%', height: '42px', borderRadius: '8px', background: '#faf5ea', border: '1px solid #dfcfaf', color: '#61471e', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}
                   >
                     📍 Set Current Location
                   </button>
@@ -218,14 +218,14 @@ export default function GeofenceSettings({
 
       {/* Section 3: IP Subnet Network Gate */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <h4 style={{ color: '#0f172a', fontSize: '0.95rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <h4 style={{ color: '#25231f', fontSize: '0.95rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Globe size={18} style={{ color: '#7c3aed' }} /> Wi-Fi / IP Subnet Restriction Gate
         </h4>
-        <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.88rem', display: 'block' }}>IP Address Restriction</span>
-              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Restricts attendance logging strictly to authorized Wi-Fi networks.</span>
+              <span style={{ fontWeight: 600, color: '#25231f', fontSize: '0.88rem', display: 'block' }}>IP Address Restriction</span>
+              <span style={{ fontSize: '0.78rem', color: '#696358' }}>Restricts attendance logging strictly to authorized Wi-Fi networks.</span>
             </div>
             <button
               type="button"
@@ -236,7 +236,7 @@ export default function GeofenceSettings({
                 background: settingsIpEnabled ? '#f5f3ff' : '#ffffff',
                 border: `1px solid ${settingsIpEnabled ? '#ddd6fe' : 'var(--border-subtle)'}`,
                 borderRadius: '8px',
-                color: settingsIpEnabled ? '#7c3aed' : '#64748b',
+                color: settingsIpEnabled ? '#7c3aed' : '#696358',
                 fontWeight: 700,
                 fontSize: '0.78rem',
                 cursor: userRole === 'student' ? 'not-allowed' : 'pointer'
@@ -248,7 +248,7 @@ export default function GeofenceSettings({
 
           {settingsIpEnabled && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
-              <label style={{ fontSize: '0.8rem', color: '#334155', fontWeight: 600 }}>Permitted IP Addresses / Subnets (comma separated)</label>
+              <label style={{ fontSize: '0.8rem', color: '#46423b', fontWeight: 600 }}>Permitted IP Addresses / Subnets (comma separated)</label>
               <input 
                 type="text" 
                 className="form-input" 
@@ -256,9 +256,9 @@ export default function GeofenceSettings({
                 value={settingsIpRanges} 
                 onChange={e => setSettingsIpRanges(e.target.value)} 
                 disabled={userRole === 'student'}
-                style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', color: '#0f172a', padding: '10px 12px', borderRadius: '8px' }}
+                style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', color: '#25231f', padding: '10px 12px', borderRadius: '8px' }}
               />
-              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+              <span style={{ fontSize: '0.76rem', color: '#696358' }}>
                 Separate multiple IP addresses or CIDR subnets with a comma. Examples: <code>127.0.0.1</code>, <code>192.168.1.0/24</code>.
               </span>
             </div>
@@ -285,7 +285,7 @@ export default function GeofenceSettings({
           {isSavingSettings ? 'Saving settings...' : 'Save Security & Geofence Settings'}
         </button>
       ) : (
-        <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.85rem', margin: 0 }}>🔒 Read-Only Mode (Configured by Administrator)</p>
+        <p style={{ textAlign: 'center', color: '#696358', fontSize: '0.85rem', margin: 0 }}>🔒 Read-Only Mode (Configured by Administrator)</p>
       )}
     </div>
   );

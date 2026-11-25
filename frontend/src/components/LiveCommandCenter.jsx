@@ -117,19 +117,19 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
 
           <div style={{ margin: '8px 0 10px', height: '18px' }}>
             <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none">
-              <path d="M0,9 L35,9 L40,3 L48,15 L55,4 L60,9 L100,9" fill="none" stroke={scannerLive ? '#0ea5e9' : 'var(--border-strong)'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M0,9 L35,9 L40,3 L48,15 L55,4 L60,9 L100,9" fill="none" stroke={scannerLive ? '#987235' : 'var(--border-strong)'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: scannerLive ? '#0ea5e9' : 'var(--color-text-dim)', display: 'inline-block' }} />
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: scannerLive ? '#987235' : 'var(--color-text-dim)', display: 'inline-block' }} />
             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
               {scannerLive ? 'Live Biometric Sync' : 'Ready to Launch'}
             </span>
           </div>
         </div>
 
-        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: scannerLive ? 'var(--color-primary-light)' : '#f1f5f9', color: scannerLive ? 'var(--color-primary)' : 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: scannerLive ? 'var(--color-primary-light)' : '#f4f1eb', color: scannerLive ? 'var(--color-primary)' : 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Radio size={20} />
         </div>
       </div>
@@ -151,12 +151,12 @@ export default function LiveCommandCenter({ stats, scannerLive, lateCount = 0 })
           </div>
 
           {/* Progress Track */}
-          <div style={{ margin: '10px 0 10px', height: '6px', width: '100%', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+          <div style={{ margin: '10px 0 10px', height: '6px', width: '100%', background: '#e4dfd5', borderRadius: '9999px', overflow: 'hidden' }}>
             <div 
               style={{
                 width: `${Math.min(100, Math.max(0, animated.rate))}%`,
                 height: '100%',
-                background: 'linear-gradient(90deg, #0ea5e9, #10b981)',
+                background: 'linear-gradient(90deg, #987235, #10b981)',
                 borderRadius: '9999px',
                 transition: 'width 0.5s ease'
               }}

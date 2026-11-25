@@ -56,19 +56,19 @@ export default function LeaveApplicationForm({
   return (
     <div>
       {/* Sub Tabs: Apply vs History */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', borderBottom: '1px solid #e4dfd5', paddingBottom: '8px' }}>
         <button
           type="button"
           onClick={() => setActiveSubTab('apply')}
           style={{
             padding: '6px 14px',
             borderRadius: '10px',
-            border: activeSubTab === 'apply' ? '1px solid #fdba74' : '1px solid #e2e8f0',
+            border: activeSubTab === 'apply' ? '1px solid #fdba74' : '1px solid #e4dfd5',
             fontSize: '0.82rem',
             fontWeight: 700,
             cursor: 'pointer',
-            background: activeSubTab === 'apply' ? '#fff7ed' : '#f8fafc',
-            color: activeSubTab === 'apply' ? '#c2410c' : '#64748b',
+            background: activeSubTab === 'apply' ? '#fff7ed' : '#faf9f6',
+            color: activeSubTab === 'apply' ? '#c2410c' : '#696358',
             transition: 'all 0.15s'
           }}
         >
@@ -80,21 +80,21 @@ export default function LeaveApplicationForm({
           style={{
             padding: '6px 14px',
             borderRadius: '10px',
-            border: activeSubTab === 'history' ? '1px solid #bae6fd' : '1px solid #e2e8f0',
+            border: activeSubTab === 'history' ? '1px solid #bae6fd' : '1px solid #e4dfd5',
             fontSize: '0.82rem',
             fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            background: activeSubTab === 'history' ? '#f0f9ff' : '#f8fafc',
-            color: activeSubTab === 'history' ? '#0369a1' : '#64748b',
+            background: activeSubTab === 'history' ? '#f0f9ff' : '#faf9f6',
+            color: activeSubTab === 'history' ? '#0369a1' : '#696358',
             transition: 'all 0.15s'
           }}
         >
           📜 My Leave History
           {studentLeaveRequests.length > 0 && (
-            <span style={{ background: '#0284c7', color: '#ffffff', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>
+            <span style={{ background: '#80602c', color: '#ffffff', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>
               {studentLeaveRequests.length}
             </span>
           )}
@@ -105,7 +105,7 @@ export default function LeaveApplicationForm({
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>From Date</label>
+              <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>From Date</label>
               <input 
                 type="date" 
                 value={form.start_date} 
@@ -115,8 +115,8 @@ export default function LeaveApplicationForm({
                   padding: '9px 12px', 
                   borderRadius: '10px', 
                   background: '#ffffff', 
-                  border: '1.5px solid #e2e8f0', 
-                  color: '#0f172a', 
+                  border: '1.5px solid #e4dfd5', 
+                  color: '#25231f', 
                   fontSize: '0.84rem',
                   fontWeight: 500,
                   boxSizing: 'border-box' 
@@ -124,7 +124,7 @@ export default function LeaveApplicationForm({
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>To Date</label>
+              <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>To Date</label>
               <input 
                 type="date" 
                 value={form.end_date} 
@@ -134,8 +134,8 @@ export default function LeaveApplicationForm({
                   padding: '9px 12px', 
                   borderRadius: '10px', 
                   background: '#ffffff', 
-                  border: '1.5px solid #e2e8f0', 
-                  color: '#0f172a', 
+                  border: '1.5px solid #e4dfd5', 
+                  color: '#25231f', 
                   fontSize: '0.84rem',
                   fontWeight: 500,
                   boxSizing: 'border-box' 
@@ -144,7 +144,7 @@ export default function LeaveApplicationForm({
             </div>
           </div>
           <div>
-            <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Subject (Optional)</label>
+            <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Subject (Optional)</label>
             <select 
               value={form.subject_id} 
               onChange={e => setForm(p => ({ ...p, subject_id: e.target.value }))}
@@ -153,8 +153,8 @@ export default function LeaveApplicationForm({
                 padding: '9px 12px', 
                 borderRadius: '10px', 
                 background: '#ffffff', 
-                border: '1.5px solid #e2e8f0', 
-                color: '#0f172a', 
+                border: '1.5px solid #e4dfd5', 
+                color: '#25231f', 
                 fontSize: '0.84rem',
                 fontWeight: 500,
                 boxSizing: 'border-box' 
@@ -167,7 +167,7 @@ export default function LeaveApplicationForm({
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Leave Type</label>
+            <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Leave Type</label>
             <select 
               value={form.leave_type} 
               onChange={e => setForm(p => ({ ...p, leave_type: e.target.value }))}
@@ -176,8 +176,8 @@ export default function LeaveApplicationForm({
                 padding: '9px 12px', 
                 borderRadius: '10px', 
                 background: '#ffffff', 
-                border: '1.5px solid #e2e8f0', 
-                color: '#0f172a', 
+                border: '1.5px solid #e4dfd5', 
+                color: '#25231f', 
                 fontSize: '0.84rem',
                 fontWeight: 500,
                 boxSizing: 'border-box' 
@@ -191,7 +191,7 @@ export default function LeaveApplicationForm({
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Reason</label>
+            <label style={{ fontSize: '0.78rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Reason</label>
             <textarea 
               value={form.reason} 
               onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} 
@@ -202,8 +202,8 @@ export default function LeaveApplicationForm({
                 padding: '9px 12px', 
                 borderRadius: '10px', 
                 background: '#ffffff', 
-                border: '1.5px solid #e2e8f0', 
-                color: '#0f172a', 
+                border: '1.5px solid #e4dfd5', 
+                color: '#25231f', 
                 fontSize: '0.84rem', 
                 resize: 'vertical', 
                 boxSizing: 'border-box' 
@@ -235,7 +235,7 @@ export default function LeaveApplicationForm({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '350px', overflowY: 'auto' }}>
           {studentLeaveRequests.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '28px 10px', color: '#64748b', fontSize: '0.84rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+            <div style={{ textAlign: 'center', padding: '28px 10px', color: '#696358', fontSize: '0.84rem', background: '#faf9f6', borderRadius: '12px', border: '1px dashed #cfc8ba' }}>
               No leave applications submitted yet.
             </div>
           ) : (
@@ -244,9 +244,9 @@ export default function LeaveApplicationForm({
               const isApproved = st === 'approved';
               const isRejected = st === 'rejected';
               return (
-                <div key={req.id} style={{ padding: '12px 14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div key={req.id} style={{ padding: '12px 14px', borderRadius: '12px', background: '#faf9f6', border: '1px solid #e4dfd5', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#25231f' }}>
                       {req.leave_type || 'Leave Request'} #{req.id}
                     </span>
                     <span style={{
@@ -261,11 +261,11 @@ export default function LeaveApplicationForm({
                       {st.toUpperCase()}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#475569', display: 'flex', gap: '10px', flexWrap: 'wrap', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.78rem', color: '#58534a', display: 'flex', gap: '10px', flexWrap: 'wrap', fontWeight: 500 }}>
                     <span>📅 {req.start_date} → {req.end_date}</span>
                     <span>📚 {req.subject_name || 'General (All Subjects)'}</span>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#334155', fontStyle: 'italic', background: '#ffffff', border: '1px solid #e2e8f0', padding: '6px 10px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#46423b', fontStyle: 'italic', background: '#ffffff', border: '1px solid #e4dfd5', padding: '6px 10px', borderRadius: '6px' }}>
                     "{req.reason}"
                   </div>
                   <button
@@ -278,9 +278,9 @@ export default function LeaveApplicationForm({
                       alignSelf: 'flex-end',
                       padding: '5px 12px',
                       borderRadius: '8px',
-                      border: '1px solid #bfdbfe',
-                      background: '#eff6ff',
-                      color: '#1d4ed8',
+                      border: '1px solid #dfcfaf',
+                      background: '#faf5ea',
+                      color: '#684c20',
                       fontSize: '0.76rem',
                       fontWeight: 700,
                       cursor: 'pointer',

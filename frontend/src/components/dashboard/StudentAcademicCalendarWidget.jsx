@@ -31,9 +31,9 @@ const EVENT_TYPE_CONFIG = {
     icon: Megaphone
   },
   NOTICE: {
-    bg: '#eff6ff',
-    border: '#bfdbfe',
-    text: '#2563eb',
+    bg: '#faf5ea',
+    border: '#dfcfaf',
+    text: '#785927',
     label: '📌 Campus Notice',
     icon: Bell
   },
@@ -45,9 +45,9 @@ const EVENT_TYPE_CONFIG = {
     icon: UserX
   },
   INSTITUTION_CLOSED: { 
-    bg: '#f8fafc', 
-    border: '#cbd5e1', 
-    text: '#475569', 
+    bg: '#faf9f6', 
+    border: '#cfc8ba', 
+    text: '#58534a', 
     label: '🏛️ Campus Closed', 
     icon: ShieldCheck
   },
@@ -198,7 +198,7 @@ export default function StudentAcademicCalendarWidget({
       {/* ── Top Bar: Title & Action Button ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
             Academic Calendar, Events & Official Notices
           </h3>
         </div>
@@ -214,9 +214,9 @@ export default function StudentAcademicCalendarWidget({
               gap: '6px',
               padding: '7px 12px',
               background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              border: '1px solid #cfc8ba',
               borderRadius: '8px',
-              color: '#475569',
+              color: '#58534a',
               fontSize: '0.8rem',
               fontWeight: 700,
               cursor: 'pointer'
@@ -234,7 +234,7 @@ export default function StudentAcademicCalendarWidget({
               alignItems: 'center',
               gap: '6px',
               padding: '7px 14px',
-              background: '#2563eb',
+              background: '#785927',
               color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
@@ -257,29 +257,29 @@ export default function StudentAcademicCalendarWidget({
         gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
         gap: '10px'
       }}>
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Total Schedule Entries</span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{totalCount} Active</div>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
+          <span style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 700, textTransform: 'uppercase' }}>Total Schedule Entries</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>{totalCount} Active</div>
         </div>
 
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
           <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700, textTransform: 'uppercase' }}>Gazetted Holidays</span>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>{holidayCount} Days</div>
         </div>
 
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
           <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700, textTransform: 'uppercase' }}>Exams & Audits</span>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>{examCount} Sessions</div>
         </div>
 
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700, textTransform: 'uppercase' }}>Campus Circulars</span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>{noticeCount} Notices</div>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
+          <span style={{ fontSize: '0.72rem', color: '#785927', fontWeight: 700, textTransform: 'uppercase' }}>Campus Circulars</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#785927', marginTop: '2px' }}>{noticeCount} Notices</div>
         </div>
       </div>
 
       {/* ── Category Filter Pills ── */}
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderBottom: '1px solid #f4f1eb', paddingBottom: '8px' }}>
         {[
           { id: 'ALL', label: `All (${totalCount})` },
           { id: 'HOLIDAYS', label: `Holidays (${holidayCount})` },
@@ -297,9 +297,9 @@ export default function StudentAcademicCalendarWidget({
               fontSize: '0.78rem',
               fontWeight: 700,
               cursor: 'pointer',
-              border: activeFilter === cat.id ? '1px solid #2563eb' : '1px solid #e2e8f0',
-              background: activeFilter === cat.id ? '#2563eb' : '#ffffff',
-              color: activeFilter === cat.id ? '#ffffff' : '#64748b',
+              border: activeFilter === cat.id ? '1px solid #785927' : '1px solid #e4dfd5',
+              background: activeFilter === cat.id ? '#785927' : '#ffffff',
+              color: activeFilter === cat.id ? '#ffffff' : '#696358',
               transition: 'all 0.15s ease'
             }}
           >
@@ -313,13 +313,13 @@ export default function StudentAcademicCalendarWidget({
         <div style={{
           padding: '36px 16px',
           textAlign: 'center',
-          background: '#f8fafc',
+          background: '#faf9f6',
           borderRadius: '12px',
-          border: '1px dashed #cbd5e1',
-          color: '#64748b'
+          border: '1px dashed #cfc8ba',
+          color: '#696358'
         }}>
           <Calendar size={30} style={{ opacity: 0.5, marginBottom: '6px' }} />
-          <h4 style={{ margin: '0 0 4px', fontSize: '0.94rem', color: '#334155' }}>No Entries Under This Category</h4>
+          <h4 style={{ margin: '0 0 4px', fontSize: '0.94rem', color: '#46423b' }}>No Entries Under This Category</h4>
           <p style={{ margin: 0, fontSize: '0.82rem' }}>All institution activities and circulars will be displayed here as they are published.</p>
         </div>
       ) : (
@@ -335,7 +335,7 @@ export default function StudentAcademicCalendarWidget({
 
             // Compute relative timing badge
             let timingText = '';
-            let timingColor = '#64748b';
+            let timingColor = '#696358';
             if (entry.date) {
               const today = new Date();
               today.setHours(0, 0, 0, 0);
@@ -343,8 +343,8 @@ export default function StudentAcademicCalendarWidget({
               target.setHours(0, 0, 0, 0);
               const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
               if (diffDays === 0) { timingText = 'TODAY'; timingColor = '#059669'; }
-              else if (diffDays === 1) { timingText = 'TOMORROW'; timingColor = '#2563eb'; }
-              else if (diffDays > 1 && diffDays <= 7) { timingText = `IN ${diffDays} DAYS`; timingColor = '#2563eb'; }
+              else if (diffDays === 1) { timingText = 'TOMORROW'; timingColor = '#785927'; }
+              else if (diffDays > 1 && diffDays <= 7) { timingText = `IN ${diffDays} DAYS`; timingColor = '#785927'; }
               else if (diffDays < 0) { timingText = `${Math.abs(diffDays)} DAYS AGO`; timingColor = '#94a3b8'; }
             }
 
@@ -355,7 +355,7 @@ export default function StudentAcademicCalendarWidget({
                 style={{
                   padding: '14px 16px',
                   borderRadius: '14px',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid #e4dfd5',
                   background: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
@@ -412,12 +412,12 @@ export default function StudentAcademicCalendarWidget({
                       )}
                     </div>
 
-                    <h4 style={{ margin: '4px 0 2px', fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+                    <h4 style={{ margin: '4px 0 2px', fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
                       {entry.title}
                     </h4>
 
                     {entry.description && (
-                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.4, marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#58534a', lineHeight: 1.4, marginTop: '2px' }}>
                         {entry.description}
                       </div>
                     )}
@@ -443,9 +443,9 @@ export default function StudentAcademicCalendarWidget({
                         gap: '6px',
                         padding: '6px 12px',
                         borderRadius: '8px',
-                        background: '#eff6ff',
-                        border: '1px solid #bfdbfe',
-                        color: '#1d4ed8',
+                        background: '#faf5ea',
+                        border: '1px solid #dfcfaf',
+                        color: '#684c20',
                         fontSize: '0.78rem',
                         fontWeight: 700,
                         cursor: 'pointer'
@@ -467,14 +467,14 @@ export default function StudentAcademicCalendarWidget({
       <div style={{
         padding: '12px 14px',
         borderRadius: '10px',
-        background: '#f8fafc',
-        border: '1px solid #e2e8f0',
+        background: '#faf9f6',
+        border: '1px solid #e4dfd5',
         display: 'flex',
         alignItems: 'center',
         gap: '10px'
       }}>
         <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.4 }}>
+        <span style={{ fontSize: '0.78rem', color: '#58534a', lineHeight: 1.4 }}>
           <strong>Statutory Attendance Safe Guard:</strong> Officially scheduled institution holidays, semester recesses, and authorized examination windows are automatically protected and are never counted as student absences.
         </span>
       </div>

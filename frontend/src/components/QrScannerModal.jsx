@@ -246,7 +246,7 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
               boxShadow: isProcessing ? '0 0 8px #f59e0b' : '0 0 8px #00f2fe',
               animation: 'pulse 1.5s infinite'
             }} />
-            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '0.04em', fontFamily: 'monospace' }}>QR CODE ATTENDANCE SCANNER</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#faf9f6', letterSpacing: '0.04em', fontFamily: 'monospace' }}>QR CODE ATTENDANCE SCANNER</span>
           </div>
           <button onClick={onClose} style={{
             background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',

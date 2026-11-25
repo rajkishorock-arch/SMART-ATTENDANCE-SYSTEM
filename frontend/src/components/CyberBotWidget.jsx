@@ -181,7 +181,7 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                   ONLINE & READY
                 </span>
               </div>
-              <span className="ai-header-desktop-title" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#334155' }}>
+              <span className="ai-header-desktop-title" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#46423b' }}>
                 • Smart Attendance AI
               </span>
             </div>
@@ -213,9 +213,9 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                     fontSize: '0.72rem', 
                     fontWeight: 700, 
                     padding: '0 8px',
-                    border: botWakeWordEnabled ? '1px solid #86efac' : '1px solid #e2e8f0',
-                    background: botWakeWordEnabled ? '#f0fdf4' : '#f8fafc',
-                    color: botWakeWordEnabled ? '#15803d' : '#64748b'
+                    border: botWakeWordEnabled ? '1px solid #86efac' : '1px solid #e4dfd5',
+                    background: botWakeWordEnabled ? '#f0fdf4' : '#faf9f6',
+                    color: botWakeWordEnabled ? '#15803d' : '#696358'
                   }}
                 >
                   WAKE: {botWakeWordEnabled ? 'ON' : 'OFF'}
@@ -225,7 +225,7 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                   className="ai-icon-btn" 
                   onClick={startVoiceAssistantMode} 
                   title="Voice Call"
-                  style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#2563eb' }}
+                  style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#785927' }}
                 >
                   <Phone size={14} />
                 </button>
@@ -295,7 +295,7 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                       <div className="ai-message-content">
                         <div className="ai-message-text">
                           {displayContent.split('\n').map((para, i) => (
-                            <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 12px 0' : 0, color: '#0f172a' }}>
+                            <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 12px 0' : 0, color: '#25231f' }}>
                               {para.split('**').map((text, idx) =>
                                 idx % 2 === 1 ? <strong key={idx} style={{ color: '#020617', fontWeight: 700 }}>{text}</strong> : text
                               )}
@@ -398,7 +398,7 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                 maxWidth: '800px',
                 gap: '8px',
                 background: '#ffffff',
-                border: '1.5px solid #cbd5e1',
+                border: '1.5px solid #cfc8ba',
                 borderRadius: '24px',
                 padding: '4px 6px 4px 12px',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
@@ -429,9 +429,9 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                   flexShrink: 0,
                   margin: 0,
                   padding: 0,
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  color: '#475569'
+                  background: '#faf9f6',
+                  border: '1px solid #e4dfd5',
+                  color: '#58534a'
                 }}
               >
                 <Paperclip size={16} />
@@ -455,9 +455,9 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                   flexShrink: 0,
                   margin: 0,
                   padding: 0,
-                  background: isListeningSpeech ? '#fee2e2' : '#f8fafc',
-                  border: isListeningSpeech ? '1px solid #f87171' : '1px solid #e2e8f0',
-                  color: isListeningSpeech ? '#ef4444' : '#475569'
+                  background: isListeningSpeech ? '#fee2e2' : '#faf9f6',
+                  border: isListeningSpeech ? '1px solid #f87171' : '1px solid #e4dfd5',
+                  color: isListeningSpeech ? '#ef4444' : '#58534a'
                 }}
               >
                 <Mic size={16} />
@@ -477,7 +477,7 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#0f172a',
+                  color: '#25231f',
                   fontSize: '0.92rem',
                   padding: '8px 4px',
                   margin: 0
@@ -502,7 +502,7 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                   margin: 0,
                   padding: 0,
                   border: 'none',
-                  background: !chatInput.trim() ? '#e2e8f0' : '#2563eb',
+                  background: !chatInput.trim() ? '#e4dfd5' : '#785927',
                   color: !chatInput.trim() ? '#94a3b8' : '#ffffff',
                   boxShadow: !chatInput.trim() ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.3)'
                 }}
@@ -712,7 +712,7 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                         <div className="ai-message-content">
                           <div className="ai-message-text">
                             {displayContent.split('\n').map((para, i) => (
-                              <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 12px 0' : 0, color: '#0f172a' }}>
+                              <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 12px 0' : 0, color: '#25231f' }}>
                                 {para.split('**').map((text, idx) =>
                                   idx % 2 === 1 ? <strong key={idx} style={{ color: '#020617', fontWeight: 700 }}>{text}</strong> : text
                                 )}

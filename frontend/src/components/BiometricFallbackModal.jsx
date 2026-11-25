@@ -199,17 +199,17 @@ export default function BiometricFallbackModal({
     }}>
       <div style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         width: '100%', maxWidth: '580px',
         padding: '28px', position: 'relative',
         boxShadow: '0 20px 48px rgba(15, 23, 42, 0.15)',
-        color: '#0f172a'
+        color: '#25231f'
       }}>
         {/* Close Button */}
         <button
           onClick={onClose}
-          style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+          style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#696358', cursor: 'pointer' }}
         >
           <X size={20} />
         </button>
@@ -226,10 +226,10 @@ export default function BiometricFallbackModal({
             <QrCode size={22} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#25231f' }}>
               Biometric Fallback Authorization
             </h3>
-            <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+            <span style={{ fontSize: '0.82rem', color: '#696358' }}>
               Time-Bound Rotating QR & Emergency Session PIN (Phase 9)
             </span>
           </div>
@@ -263,21 +263,21 @@ export default function BiometricFallbackModal({
           <div>
             {!activeSession ? (
               <div>
-                <p style={{ margin: '0 0 16px 0', fontSize: '0.88rem', color: '#475569', lineHeight: 1.5 }}>
+                <p style={{ margin: '0 0 16px 0', fontSize: '0.88rem', color: '#58534a', lineHeight: 1.5 }}>
                   When camera equipment malfunctions or a student cannot be scanned due to physical bandages or optical occlusion, 
                   generate a secure time-bound session. Students can verify via rolling dynamic QR or an emergency PIN.
                 </p>
 
                 <div style={{ marginBottom: '18px' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', fontWeight: 600, marginBottom: '6px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', fontWeight: 600, marginBottom: '6px' }}>
                     Select Course / Lecture *
                   </label>
                   <select
                     value={selectedSubjectId}
                     onChange={e => setSelectedSubjectId(e.target.value)}
                     style={{
-                      width: '100%', background: '#f8fafc',
-                      border: '1px solid #cbd5e1', color: '#0f172a',
+                      width: '100%', background: '#faf9f6',
+                      border: '1px solid #cfc8ba', color: '#25231f',
                       padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem'
                     }}
                   >
@@ -291,7 +291,7 @@ export default function BiometricFallbackModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '9px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ background: '#f4f1eb', border: '1px solid #cfc8ba', color: '#46423b', padding: '9px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Cancel
                   </button>
@@ -300,7 +300,7 @@ export default function BiometricFallbackModal({
                     disabled={isGenerating}
                     onClick={handleStartSession}
                     style={{
-                      background: '#0284c7',
+                      background: '#80602c',
                       border: 'none', color: '#fff', padding: '9px 20px', borderRadius: '8px',
                       fontWeight: 700, cursor: isGenerating ? 'not-allowed' : 'pointer'
                     }}
@@ -314,21 +314,21 @@ export default function BiometricFallbackModal({
               <div>
                 {/* Active Session Display Screen */}
                 <div style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  background: '#faf9f6',
+                  border: '1px solid #e4dfd5',
                   borderRadius: '14px',
                   padding: '20px',
                   textAlign: 'center',
                   marginBottom: '18px'
                 }}>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.8rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
                     Session #{activeSession.id} Emergency PIN
                   </div>
                   <div style={{
                     fontSize: '2.5rem',
                     fontWeight: 900,
                     letterSpacing: '0.25em',
-                    color: '#0284c7',
+                    color: '#80602c',
                     fontFamily: 'monospace',
                     margin: '10px 0'
                   }}>
@@ -342,8 +342,8 @@ export default function BiometricFallbackModal({
                     }}
                     style={{
                       background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      color: '#334155',
+                      border: '1px solid #cfc8ba',
+                      color: '#46423b',
                       padding: '4px 12px',
                       borderRadius: '6px',
                       fontSize: '0.78rem',
@@ -361,22 +361,22 @@ export default function BiometricFallbackModal({
 
                 {/* Rolling Dynamic QR Code Box */}
                 <div style={{
-                  background: '#f8fafc',
-                  border: '1px dashed #cbd5e1',
+                  background: '#faf9f6',
+                  border: '1px dashed #cfc8ba',
                   borderRadius: '14px',
                   padding: '16px',
                   textAlign: 'center',
                   marginBottom: '20px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.8rem', color: '#80602c', fontWeight: 600 }}>
                       ⚡ 30-Second Rolling Token
                     </span>
                     <span style={{
                       fontSize: '0.78rem',
                       fontWeight: 700,
                       color: secondsRemaining <= 5 ? '#dc2626' : '#059669',
-                      background: '#f1f5f9',
+                      background: '#f4f1eb',
                       padding: '2px 8px',
                       borderRadius: '6px'
                     }}>
@@ -388,19 +388,19 @@ export default function BiometricFallbackModal({
                   <div style={{
                     fontFamily: 'monospace',
                     fontSize: '0.85rem',
-                    color: '#0f172a',
+                    color: '#25231f',
                     wordBreak: 'break-all',
                     background: '#ffffff',
                     padding: '10px',
                     borderRadius: '8px',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid #e4dfd5'
                   }}>
                     {rollingToken || 'Generating rotating hash...'}
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#696358' }}>
                     Every fallback verification logs an immutable audit trail.
                   </span>
                   <button
@@ -430,10 +430,10 @@ export default function BiometricFallbackModal({
             {claimResult ? (
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
                 <CheckCircle2 size={48} color="#059669" style={{ margin: '0 auto 12px' }} />
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: '#0f172a', fontWeight: 700 }}>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: '#25231f', fontWeight: 700 }}>
                   Attendance Verified!
                 </h4>
-                <p style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '0.88rem' }}>
+                <p style={{ margin: '0 0 16px 0', color: '#58534a', fontSize: '0.88rem' }}>
                   Your attendance has been recorded using method <strong>{claimResult.verification_method}</strong>.
                 </p>
                 <button
@@ -458,9 +458,9 @@ export default function BiometricFallbackModal({
                     type="button"
                     onClick={() => setClaimTab('pin')}
                     style={{
-                      background: claimTab === 'pin' ? '#eff6ff' : '#f8fafc',
-                      border: claimTab === 'pin' ? '1px solid #93c5fd' : '1px solid #e2e8f0',
-                      color: claimTab === 'pin' ? '#1d4ed8' : '#64748b',
+                      background: claimTab === 'pin' ? '#faf5ea' : '#faf9f6',
+                      border: claimTab === 'pin' ? '1px solid #93c5fd' : '1px solid #e4dfd5',
+                      color: claimTab === 'pin' ? '#684c20' : '#696358',
                       padding: '10px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                     }}
@@ -473,9 +473,9 @@ export default function BiometricFallbackModal({
                     type="button"
                     onClick={() => setClaimTab('qr')}
                     style={{
-                      background: claimTab === 'qr' ? '#eff6ff' : '#f8fafc',
-                      border: claimTab === 'qr' ? '1px solid #93c5fd' : '1px solid #e2e8f0',
-                      color: claimTab === 'qr' ? '#1d4ed8' : '#64748b',
+                      background: claimTab === 'qr' ? '#faf5ea' : '#faf9f6',
+                      border: claimTab === 'qr' ? '1px solid #93c5fd' : '1px solid #e4dfd5',
+                      color: claimTab === 'qr' ? '#684c20' : '#696358',
                       padding: '10px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                     }}
@@ -489,7 +489,7 @@ export default function BiometricFallbackModal({
                   <div style={{ marginBottom: '16px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '12px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#334155', fontWeight: 600, marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#46423b', fontWeight: 600, marginBottom: '4px' }}>
                           Session # *
                         </label>
                         <input
@@ -499,14 +499,14 @@ export default function BiometricFallbackModal({
                           value={inputSessionId}
                           onChange={e => setInputSessionId(e.target.value)}
                           style={{
-                            width: '100%', background: '#f8fafc',
-                            border: '1px solid #cbd5e1', color: '#0f172a',
+                            width: '100%', background: '#faf9f6',
+                            border: '1px solid #cfc8ba', color: '#25231f',
                             padding: '10px', borderRadius: '8px', fontSize: '0.9rem'
                           }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#334155', fontWeight: 600, marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#46423b', fontWeight: 600, marginBottom: '4px' }}>
                           6-Digit PIN *
                         </label>
                         <input
@@ -517,8 +517,8 @@ export default function BiometricFallbackModal({
                           value={inputPin}
                           onChange={e => setInputPin(e.target.value)}
                           style={{
-                            width: '100%', background: '#f8fafc',
-                            border: '1px solid #cbd5e1', color: '#0284c7',
+                            width: '100%', background: '#faf9f6',
+                            border: '1px solid #cfc8ba', color: '#80602c',
                             padding: '10px', borderRadius: '8px', fontSize: '1.1rem',
                             fontFamily: 'monospace', letterSpacing: '0.15em', fontWeight: 700
                           }}
@@ -528,7 +528,7 @@ export default function BiometricFallbackModal({
                   </div>
                 ) : (
                   <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#334155', fontWeight: 600, marginBottom: '4px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#46423b', fontWeight: 600, marginBottom: '4px' }}>
                       Dynamic QR Token *
                     </label>
                     <input
@@ -538,8 +538,8 @@ export default function BiometricFallbackModal({
                       value={inputQrToken}
                       onChange={e => setInputQrToken(e.target.value)}
                       style={{
-                        width: '100%', background: '#f8fafc',
-                        border: '1px solid #cbd5e1', color: '#0f172a',
+                        width: '100%', background: '#faf9f6',
+                        border: '1px solid #cfc8ba', color: '#25231f',
                         padding: '10px', borderRadius: '8px', fontSize: '0.85rem',
                         fontFamily: 'monospace'
                       }}
@@ -549,7 +549,7 @@ export default function BiometricFallbackModal({
 
                 {/* Mandatory Reason */}
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#334155', fontWeight: 600, marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#46423b', fontWeight: 600, marginBottom: '4px' }}>
                     Mandatory Biometric Fallback Reason *
                   </label>
                   <input
@@ -559,12 +559,12 @@ export default function BiometricFallbackModal({
                     value={fallbackReason}
                     onChange={e => setFallbackReason(e.target.value)}
                     style={{
-                      width: '100%', background: '#f8fafc',
-                      border: '1px solid #cbd5e1', color: '#0f172a',
+                      width: '100%', background: '#faf9f6',
+                      border: '1px solid #cfc8ba', color: '#25231f',
                       padding: '10px', borderRadius: '8px', fontSize: '0.88rem'
                     }}
                   />
-                  <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#696358', marginTop: '4px', display: 'block' }}>
                     Recorded in institutional audit logs for verification compliance.
                   </span>
                 </div>
@@ -573,7 +573,7 @@ export default function BiometricFallbackModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '9px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ background: '#f4f1eb', border: '1px solid #cfc8ba', color: '#46423b', padding: '9px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Cancel
                   </button>
@@ -581,7 +581,7 @@ export default function BiometricFallbackModal({
                     type="submit"
                     disabled={isClaiming}
                     style={{
-                      background: '#0284c7',
+                      background: '#80602c',
                       border: 'none', color: '#fff', padding: '9px 20px', borderRadius: '8px',
                       fontWeight: 700, cursor: isClaiming ? 'not-allowed' : 'pointer'
                     }}

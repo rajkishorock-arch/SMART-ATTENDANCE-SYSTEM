@@ -164,7 +164,7 @@ export default function LmsSyncIntegrationView({
       {/* ── Header Card & Immediate Sync Triggers ── */}
       <div className="surface-card" style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         padding: '16px 18px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
@@ -190,7 +190,7 @@ export default function LmsSyncIntegrationView({
             }}>
               <Globe size={18} />
             </div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#25231f' }}>
               SIS & Enterprise LMS Sync Engine
             </h2>
           </div>
@@ -209,7 +209,7 @@ export default function LmsSyncIntegrationView({
               cursor: isSyncingRoster ? 'not-allowed' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               fontSize: '0.82rem', fontWeight: 700,
-              background: '#f8fafc', border: '1px solid #cbd5e1'
+              background: '#faf9f6', border: '1px solid #cfc8ba'
             }}
           >
             <DownloadCloud size={15} className={isSyncingRoster ? 'animate-spin' : ''} />
@@ -227,7 +227,7 @@ export default function LmsSyncIntegrationView({
               cursor: isSyncingAttendance ? 'not-allowed' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               fontSize: '0.82rem', fontWeight: 700,
-              background: '#2563eb', color: '#ffffff', border: 'none'
+              background: '#785927', color: '#ffffff', border: 'none'
             }}
           >
             <UploadCloud size={15} className={isSyncingAttendance ? 'animate-spin' : ''} />
@@ -247,53 +247,53 @@ export default function LmsSyncIntegrationView({
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          borderLeft: '4px solid #2563eb',
+          border: '1px solid #e4dfd5',
+          borderLeft: '4px solid #785927',
           padding: '10px 14px',
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
         }}>
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Integration Provider
           </span>
-          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#25231f', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
             {provider.replace('_', ' ')}
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Active connector</span>
+          <span style={{ fontSize: '0.72rem', color: '#696358' }}>Active connector</span>
         </div>
 
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderLeft: '4px solid #059669',
           padding: '10px 14px',
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
         }}>
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Total Sync Logs
           </span>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
             {logs.length}
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Outbound & inbound cycles</span>
+          <span style={{ fontSize: '0.72rem', color: '#696358' }}>Outbound & inbound cycles</span>
         </div>
 
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderLeft: '4px solid #7c3aed',
           padding: '10px 14px',
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
         }}>
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Auto-Sync Schedule
           </span>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#7c3aed', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {autoSyncEnabled ? syncCron : 'Disabled'}
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Nightly background worker</span>
+          <span style={{ fontSize: '0.72rem', color: '#696358' }}>Nightly background worker</span>
         </div>
       </div>
 
@@ -332,22 +332,22 @@ export default function LmsSyncIntegrationView({
         {/* Left: Configuration Form */}
         <div className="surface-card" style={{
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           padding: '16px 18px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
           width: '100%',
           boxSizing: 'border-box'
         }}>
-          <h3 style={{ margin: '0 0 14px 0', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Database size={16} color="#2563eb" />
+          <h3 style={{ margin: '0 0 14px 0', fontSize: '1.05rem', fontWeight: 800, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Database size={16} color="#785927" />
             <span>LMS Provider Credentials & Endpoint</span>
           </h3>
 
           <form onSubmit={handleSaveConfig} style={{ width: '100%', boxSizing: 'border-box' }}>
             {/* Horizontal Segmented Platform Selection */}
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', marginBottom: '6px', fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: '#46423b', marginBottom: '6px', fontWeight: 700 }}>
                 LMS / SIS Platform
               </label>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', width: '100%' }}>
@@ -361,9 +361,9 @@ export default function LmsSyncIntegrationView({
                       className="active-haptic"
                       style={{
                         flex: '1 1 auto',
-                        background: isActive ? '#eff6ff' : '#ffffff',
-                        border: isActive ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
-                        color: isActive ? '#1d4ed8' : '#475569',
+                        background: isActive ? '#faf5ea' : '#ffffff',
+                        border: isActive ? '1.5px solid #785927' : '1px solid #cfc8ba',
+                        color: isActive ? '#684c20' : '#58534a',
                         padding: '8px 12px',
                         borderRadius: '10px',
                         fontSize: '0.8rem',
@@ -382,7 +382,7 @@ export default function LmsSyncIntegrationView({
 
             {/* API Endpoint URL */}
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', marginBottom: '6px', fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: '#46423b', marginBottom: '6px', fontWeight: 700 }}>
                 REST API Base URL *
               </label>
               <input
@@ -395,8 +395,8 @@ export default function LmsSyncIntegrationView({
                 style={{
                   width: '100%',
                   background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  color: '#0f172a',
+                  border: '1px solid #cfc8ba',
+                  color: '#25231f',
                   padding: '9px 12px',
                   borderRadius: '10px',
                   fontSize: '0.85rem',
@@ -407,7 +407,7 @@ export default function LmsSyncIntegrationView({
 
             {/* API Token */}
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', marginBottom: '6px', fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: '#46423b', marginBottom: '6px', fontWeight: 700 }}>
                 API Bearer Token / Secret Key
               </label>
               <input
@@ -419,8 +419,8 @@ export default function LmsSyncIntegrationView({
                 style={{
                   width: '100%',
                   background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  color: '#0f172a',
+                  border: '1px solid #cfc8ba',
+                  color: '#25231f',
                   padding: '9px 12px',
                   borderRadius: '10px',
                   fontSize: '0.85rem',
@@ -431,7 +431,7 @@ export default function LmsSyncIntegrationView({
 
             {/* Sync Cron */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', marginBottom: '6px', fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: '#46423b', marginBottom: '6px', fontWeight: 700 }}>
                 Auto-Sync Schedule (Cron Expression)
               </label>
               <input
@@ -443,8 +443,8 @@ export default function LmsSyncIntegrationView({
                 style={{
                   width: '100%',
                   background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  color: '#0f172a',
+                  border: '1px solid #cfc8ba',
+                  color: '#25231f',
                   padding: '9px 12px',
                   borderRadius: '10px',
                   fontSize: '0.85rem',
@@ -452,7 +452,7 @@ export default function LmsSyncIntegrationView({
                   boxSizing: 'border-box'
                 }}
               />
-              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+              <span style={{ fontSize: '0.72rem', color: '#696358', marginTop: '3px', display: 'block' }}>
                 Default "0 23 * * *" triggers daily attendance push at 11:00 PM.
               </span>
             </div>
@@ -460,18 +460,18 @@ export default function LmsSyncIntegrationView({
             {/* Toggle */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 14px',
+              background: '#faf9f6', border: '1px solid #e4dfd5', padding: '10px 14px',
               borderRadius: '10px', marginBottom: '16px'
             }}>
               <div>
-                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>Automated Sync Worker</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Run background sync tasks on schedule</div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#25231f' }}>Automated Sync Worker</div>
+                <div style={{ fontSize: '0.72rem', color: '#696358' }}>Run background sync tasks on schedule</div>
               </div>
               <input
                 type="checkbox"
                 checked={autoSyncEnabled}
                 onChange={e => setAutoSyncEnabled(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: '#2563eb', cursor: 'pointer' }}
+                style={{ width: '18px', height: '18px', accentColor: '#785927', cursor: 'pointer' }}
               />
             </div>
 
@@ -487,7 +487,7 @@ export default function LmsSyncIntegrationView({
                 fontSize: '0.88rem',
                 cursor: isSaving ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                background: '#2563eb', color: '#ffffff', border: 'none'
+                background: '#785927', color: '#ffffff', border: 'none'
               }}
             >
               <Save size={16} />
@@ -499,7 +499,7 @@ export default function LmsSyncIntegrationView({
         {/* Right: Sync Job History */}
         <div className="surface-card" style={{
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           padding: '16px 18px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
@@ -507,14 +507,14 @@ export default function LmsSyncIntegrationView({
           boxSizing: 'border-box'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={16} color="#2563eb" />
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Clock size={16} color="#785927" />
               <span>Sync Telemetry History</span>
             </h3>
             <button
               type="button"
               onClick={() => { playCyberSound('click'); fetchData(); }}
-              style={{ background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: 'transparent', border: 'none', color: '#785927', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
               <span>Refresh</span>
@@ -523,13 +523,13 @@ export default function LmsSyncIntegrationView({
 
           {logs.length === 0 ? (
             <div style={{
-              background: '#f8fafc',
-              border: '1px dashed #cbd5e1',
-              borderRadius: '12px', padding: '28px 14px', textAlign: 'center', color: '#64748b'
+              background: '#faf9f6',
+              border: '1px dashed #cfc8ba',
+              borderRadius: '12px', padding: '28px 14px', textAlign: 'center', color: '#696358'
             }}>
-              <CheckCircle2 size={28} color="#2563eb" style={{ opacity: 0.6, marginBottom: '6px' }} />
-              <div style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 700 }}>No sync cycles recorded yet</div>
-              <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+              <CheckCircle2 size={28} color="#785927" style={{ opacity: 0.6, marginBottom: '6px' }} />
+              <div style={{ fontSize: '0.88rem', color: '#25231f', fontWeight: 700 }}>No sync cycles recorded yet</div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#696358' }}>
                 Click "Push Attendance Now" to trigger your first synchronization cycle.
               </p>
             </div>
@@ -539,8 +539,8 @@ export default function LmsSyncIntegrationView({
                 <div
                   key={log.id}
                   style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: '#faf9f6',
+                    border: '1px solid #e4dfd5',
                     borderRadius: '10px',
                     padding: '10px 14px',
                     display: 'flex',
@@ -550,11 +550,11 @@ export default function LmsSyncIntegrationView({
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {log.job_type === 'OUTBOUND_ATTENDANCE' ? <UploadCloud size={13} color="#0284c7" /> : <DownloadCloud size={13} color="#7c3aed" />}
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {log.job_type === 'OUTBOUND_ATTENDANCE' ? <UploadCloud size={13} color="#80602c" /> : <DownloadCloud size={13} color="#7c3aed" />}
                       <span>{log.job_type.replace('_', ' ')}</span>
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#696358', display: 'block', marginTop: '2px' }}>
                       {log.started_at ? new Date(log.started_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recent'}
                     </span>
                   </div>
@@ -569,7 +569,7 @@ export default function LmsSyncIntegrationView({
                     }}>
                       {log.status}
                     </span>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#696358', marginTop: '2px' }}>
                       {log.records_processed} processed
                     </div>
                   </div>

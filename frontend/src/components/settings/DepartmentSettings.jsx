@@ -134,17 +134,17 @@ export default function DepartmentSettings({
         boxSizing: 'border-box',
         overflowX: 'hidden',
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
       }}
     >
-      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
             <BookOpen size={22} style={{ color: '#ec4899', flexShrink: 0 }} /> Configure College Departments & Branches
           </h3>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
+          <p style={{ color: '#696358', fontSize: '0.85rem', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
             Manage the academic departments in your college. Changes will immediately update student registration, teacher mapping, and filter dropdowns.
           </p>
         </div>
@@ -154,8 +154,8 @@ export default function DepartmentSettings({
       <div 
         style={{ 
           padding: 'clamp(14px, 3vw, 24px)', 
-          background: '#f8fafc', 
-          border: '1px solid #e2e8f0',
+          background: '#faf9f6', 
+          border: '1px solid #e4dfd5',
           borderRadius: '12px',
           display: 'flex', 
           flexDirection: 'column', 
@@ -164,7 +164,7 @@ export default function DepartmentSettings({
           boxSizing: 'border-box'
         }}
       >
-        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>➕ Add New Department</h4>
+        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', margin: 0 }}>➕ Add New Department</h4>
 
         {deptError && (
           <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
@@ -179,7 +179,7 @@ export default function DepartmentSettings({
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
           <div className="form-group" style={{ margin: 0, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-            <label className="form-label" style={{ fontWeight: 600, color: '#0f172a' }}>Department Name</label>
+            <label className="form-label" style={{ fontWeight: 600, color: '#25231f' }}>Department Name</label>
             <input
               type="text"
               className="form-input"
@@ -190,7 +190,7 @@ export default function DepartmentSettings({
             />
           </div>
           <div className="form-group" style={{ margin: 0, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-            <label className="form-label" style={{ fontWeight: 600, color: '#0f172a' }}>Department Code (Optional)</label>
+            <label className="form-label" style={{ fontWeight: 600, color: '#25231f' }}>Department Code (Optional)</label>
             <input
               type="text"
               className="form-input"
@@ -226,14 +226,14 @@ export default function DepartmentSettings({
 
       {/* List of Departments */}
       <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-        <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: '14px' }}>🏫 Active Departments</h4>
+        <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#25231f', marginBottom: '14px' }}>🏫 Active Departments</h4>
 
         {departmentsList.length === 0 ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+          <div style={{ padding: '24px', textAlign: 'center', color: '#696358', background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px' }}>
             No custom departments configured. Using system default fallbacks:
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
               {departments.map(d => (
-                <span key={d} style={{ padding: '4px 10px', background: '#ffffff', borderRadius: '6px', fontSize: '0.8rem', color: '#0f172a', border: '1px solid #e2e8f0' }}>{d}</span>
+                <span key={d} style={{ padding: '4px 10px', background: '#ffffff', borderRadius: '6px', fontSize: '0.8rem', color: '#25231f', border: '1px solid #e4dfd5' }}>{d}</span>
               ))}
             </div>
           </div>
@@ -248,8 +248,8 @@ export default function DepartmentSettings({
                   justifyContent: 'space-between',
                   gap: '12px',
                   padding: '12px 16px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  background: '#faf9f6',
+                  border: '1px solid #e4dfd5',
                   borderRadius: '12px',
                   width: '100%',
                   maxWidth: '100%',
@@ -259,7 +259,7 @@ export default function DepartmentSettings({
                 }}
               >
                 <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {dept.name}
                   </div>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>

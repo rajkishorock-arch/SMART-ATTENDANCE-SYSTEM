@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Crown, Zap, Building2, Rocket, Check, CreditCard } from 'lucide-react';
 
 const PLAN_META = {
-  free: { icon: Zap, gradient: 'linear-gradient(135deg, #334155, #1e293b)', perks: ['100 students', 'Basic scanner', 'Email support'] },
+  free: { icon: Zap, gradient: 'linear-gradient(135deg, #46423b, #302d27)', perks: ['100 students', 'Basic scanner', 'Email support'] },
   starter: { icon: Rocket, gradient: 'linear-gradient(135deg, #0891b2, #0d9488)', perks: ['500 students', 'Turbo camera', 'Bulk CSV import', 'Parent alerts'] },
-  pro: { icon: Crown, gradient: 'linear-gradient(135deg, #7c3aed, #4f46e5)', perks: ['2000 students', 'Premium themes', 'Analytics AI', 'ERP API keys', 'Priority support'] },
+  pro: { icon: Crown, gradient: 'linear-gradient(135deg, #7c3aed, #765729)', perks: ['2000 students', 'Premium themes', 'Analytics AI', 'ERP API keys', 'Priority support'] },
   enterprise: { icon: Building2, gradient: 'linear-gradient(135deg, #b45309, #d97706)', perks: ['10000 students', 'Custom branding', 'SSO', 'Dedicated SLA', 'White-label APK'] },
 };
 
@@ -156,7 +156,7 @@ export default function PremiumUpgradeHub({ apiBaseUrl, token, currentUser, onPl
     <div className="glass-panel" style={{ padding: '28px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
         <Crown size={22} color="#fbbf24" />
-        <h3 style={{ color: '#f8fafc', margin: 0 }}>Premium & Subscription</h3>
+        <h3 style={{ color: '#faf9f6', margin: 0 }}>Premium & Subscription</h3>
       </div>
       <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '20px' }}>
         Upgrade your institution to unlock advanced analytics, unlimited scanning power, ERP integrations, and white-label branding.
@@ -234,7 +234,7 @@ export default function PremiumUpgradeHub({ apiBaseUrl, token, currentUser, onPl
                   borderRadius: '8px',
                   border: 'none',
                   background: isCurrent ? 'rgba(255,255,255,0.15)' : '#fff',
-                  color: isCurrent ? '#fff' : '#0f172a',
+                  color: isCurrent ? '#fff' : '#25231f',
                   fontWeight: 700,
                   cursor: isCurrent ? 'default' : 'pointer',
                   display: 'flex',

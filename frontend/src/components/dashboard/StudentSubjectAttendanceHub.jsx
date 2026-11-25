@@ -99,7 +99,7 @@ export default function StudentSubjectAttendanceHub({
       {/* ── Top Bar: Title & Filter Pills ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
             Subject-wise Academic Attendance & Lecture Registry
           </h3>
         </div>
@@ -120,9 +120,9 @@ export default function StudentSubjectAttendanceHub({
                 fontSize: '0.76rem',
                 fontWeight: 700,
                 cursor: 'pointer',
-                border: filterType === f.id ? '1px solid #2563eb' : '1px solid #cbd5e1',
-                background: filterType === f.id ? '#eff6ff' : '#ffffff',
-                color: filterType === f.id ? '#1d4ed8' : '#64748b'
+                border: filterType === f.id ? '1px solid #785927' : '1px solid #cfc8ba',
+                background: filterType === f.id ? '#faf5ea' : '#ffffff',
+                color: filterType === f.id ? '#684c20' : '#696358'
               }}
             >
               {f.label}
@@ -137,19 +137,19 @@ export default function StudentSubjectAttendanceHub({
         gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
         gap: '10px'
       }}>
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Enrolled Courses</span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{totalSubjects} Subjects</div>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
+          <span style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 700, textTransform: 'uppercase' }}>Enrolled Courses</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>{totalSubjects} Subjects</div>
         </div>
 
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
           <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700, textTransform: 'uppercase' }}>Exam Eligible</span>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>{eligibleCount} Cleared</div>
         </div>
 
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: shortageCount > 0 ? '#dc2626' : '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Shortage Warning</span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: shortageCount > 0 ? '#dc2626' : '#64748b', marginTop: '2px' }}>{shortageCount} Alerts</div>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
+          <span style={{ fontSize: '0.72rem', color: shortageCount > 0 ? '#dc2626' : '#696358', fontWeight: 700, textTransform: 'uppercase' }}>Shortage Warning</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: shortageCount > 0 ? '#dc2626' : '#696358', marginTop: '2px' }}>{shortageCount} Alerts</div>
         </div>
       </div>
 
@@ -158,13 +158,13 @@ export default function StudentSubjectAttendanceHub({
         <div style={{
           padding: '32px 16px',
           textAlign: 'center',
-          background: '#f8fafc',
+          background: '#faf9f6',
           borderRadius: '12px',
-          border: '1px dashed #cbd5e1',
-          color: '#64748b'
+          border: '1px dashed #cfc8ba',
+          color: '#696358'
         }}>
           <BookOpen size={28} style={{ opacity: 0.5, marginBottom: '6px' }} />
-          <h4 style={{ margin: '0 0 4px', fontSize: '0.92rem', color: '#334155' }}>No Subjects Under This Category</h4>
+          <h4 style={{ margin: '0 0 4px', fontSize: '0.92rem', color: '#46423b' }}>No Subjects Under This Category</h4>
           <p style={{ margin: 0, fontSize: '0.8rem' }}>Check back once department course allocation is published.</p>
         </div>
       ) : (
@@ -181,7 +181,7 @@ export default function StudentSubjectAttendanceHub({
                 className="surface-card"
                 style={{
                   background: '#ffffff',
-                  border: `1px solid ${sub.isEligible ? '#e2e8f0' : '#fca5a5'}`,
+                  border: `1px solid ${sub.isEligible ? '#e4dfd5' : '#fca5a5'}`,
                   borderRadius: '14px',
                   boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)',
                   overflow: 'hidden',
@@ -203,20 +203,20 @@ export default function StudentSubjectAttendanceHub({
                       <span style={{
                         padding: '2px 8px',
                         borderRadius: '6px',
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
+                        background: '#faf5ea',
+                        color: '#684c20',
                         fontSize: '0.74rem',
                         fontWeight: 800,
-                        border: '1px solid #bfdbfe'
+                        border: '1px solid #dfcfaf'
                       }}>
                         {sub.code}
                       </span>
-                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#25231f' }}>
                         {sub.name}
                       </h4>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', fontSize: '0.78rem', color: '#64748b', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', fontSize: '0.78rem', color: '#696358', flexWrap: 'wrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <User size={13} /> {sub.teacher}
                       </span>
@@ -231,7 +231,7 @@ export default function StudentSubjectAttendanceHub({
                       <div style={{ fontSize: '1.4rem', fontWeight: 900, color: statusColor, lineHeight: 1 }}>
                         {sub.percentage.toFixed(1)}%
                       </div>
-                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                      <span style={{ fontSize: '0.74rem', color: '#696358' }}>
                         {sub.presentDays} / {sub.totalDays} lectures attended
                       </span>
                     </div>
@@ -255,13 +255,13 @@ export default function StudentSubjectAttendanceHub({
                         width: '32px',
                         height: '32px',
                         borderRadius: '8px',
-                        background: '#f8fafc',
-                        border: '1px solid #cbd5e1',
+                        background: '#faf9f6',
+                        border: '1px solid #cfc8ba',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: 'pointer',
-                        color: '#475569'
+                        color: '#58534a'
                       }}
                       title="Expand Lecture Sessions Log"
                     >
@@ -272,7 +272,7 @@ export default function StudentSubjectAttendanceHub({
 
                 {/* Horizontal Progress Bar & Action Guidance */}
                 <div style={{ padding: '0 18px 14px' }}>
-                  <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                  <div style={{ width: '100%', height: '6px', background: '#f4f1eb', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
                     <div
                       style={{
                         width: `${Math.min(100, sub.percentage)}%`,
@@ -284,7 +284,7 @@ export default function StudentSubjectAttendanceHub({
                     />
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: '#696358' }}>
                     <span>
                       {sub.isEligible 
                         ? (sub.safeBuffer > 0 ? `🟢 Safe to miss up to ${sub.safeBuffer} lecture(s) without falling below 75%` : `Threshold border zone (maintain attendance)`)
@@ -294,7 +294,7 @@ export default function StudentSubjectAttendanceHub({
                     <button
                       type="button"
                       onClick={() => toggleExpand(sub.id)}
-                      style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                      style={{ background: 'none', border: 'none', color: '#785927', fontWeight: 700, cursor: 'pointer', padding: 0 }}
                     >
                       {isExpanded ? 'Hide Lecture Log' : `View ${sub.sessions.length} Lecture Log(s) ↓`}
                     </button>
@@ -304,8 +304,8 @@ export default function StudentSubjectAttendanceHub({
                 {/* Expandable Lecture Sessions Log Accordion */}
                 {isExpanded && (
                   <div style={{
-                    borderTop: '1px solid #f1f5f9',
-                    background: '#f8fafc',
+                    borderTop: '1px solid #f4f1eb',
+                    background: '#faf9f6',
                     padding: '14px 18px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -313,7 +313,7 @@ export default function StudentSubjectAttendanceHub({
                     animation: 'fadeIn 0.2s ease'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#46423b' }}>
                         Lecture Session Attendance Records ({sub.sessions.length})
                       </span>
                       <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
@@ -322,7 +322,7 @@ export default function StudentSubjectAttendanceHub({
                     </div>
 
                     {sub.sessions.length === 0 ? (
-                      <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.8rem', color: '#64748b' }}>
+                      <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.8rem', color: '#696358' }}>
                         No lecture sessions have been logged yet for this subject.
                       </div>
                     ) : (
@@ -335,7 +335,7 @@ export default function StudentSubjectAttendanceHub({
                               style={{
                                 padding: '8px 12px',
                                 background: '#ffffff',
-                                border: '1px solid #e2e8f0',
+                                border: '1px solid #e4dfd5',
                                 borderRadius: '8px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -345,11 +345,11 @@ export default function StudentSubjectAttendanceHub({
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Calendar size={14} color="#64748b" />
-                                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
+                                <Calendar size={14} color="#696358" />
+                                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#25231f' }}>
                                   {sess.date}
                                 </span>
-                                <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                                <span style={{ fontSize: '0.76rem', color: '#696358' }}>
                                   {sess.time || sess.period || 'Scheduled Slot'}
                                 </span>
                               </div>
@@ -379,9 +379,9 @@ export default function StudentSubjectAttendanceHub({
                                     style={{
                                       padding: '3px 8px',
                                       borderRadius: '6px',
-                                      background: '#eff6ff',
-                                      border: '1px solid #bfdbfe',
-                                      color: '#1d4ed8',
+                                      background: '#faf5ea',
+                                      border: '1px solid #dfcfaf',
+                                      color: '#684c20',
                                       fontSize: '0.7rem',
                                       fontWeight: 700,
                                       cursor: 'pointer'

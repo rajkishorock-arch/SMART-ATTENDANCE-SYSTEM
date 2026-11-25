@@ -304,7 +304,7 @@ export default function TeachersDirectoryView({
                   style={{ 
                     padding: '10px 24px', 
                     borderRadius: '10px', 
-                    background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', 
+                    background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)', 
                     border: 'none', 
                     color: '#ffffff', 
                     fontWeight: 600,
@@ -333,7 +333,7 @@ export default function TeachersDirectoryView({
                     setTeacherSuccess('');
                   }}
                   className="btn-primary"
-                  style={{ padding: '6px 14px', fontSize: '0.78rem', minHeight: '34px', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', borderRadius: '8px' }}
+                  style={{ padding: '6px 14px', fontSize: '0.78rem', minHeight: '34px', background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)', border: 'none', color: '#ffffff', borderRadius: '8px' }}
                 >
                   + Add New Teacher
                 </button>
@@ -468,7 +468,7 @@ export default function TeachersDirectoryView({
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
                   <div key={day} style={{ display: 'grid', gridTemplateColumns: '100px repeat(6, 1fr)', gap: '10px', alignItems: 'stretch' }}>
                     {/* Day Name */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-main)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-main)' }}>
                       {day.toUpperCase()}
                     </div>
 
@@ -613,7 +613,7 @@ export default function TeachersDirectoryView({
                     ))}
                   </select>
                 </div>
-                <button type="submit" disabled={isSubmittingSubject} className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600, cursor: isSubmittingSubject ? 'not-allowed' : 'pointer', opacity: isSubmittingSubject ? 0.75 : 1 }}>
+                <button type="submit" disabled={isSubmittingSubject} className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)', border: 'none', color: '#ffffff', fontWeight: 600, cursor: isSubmittingSubject ? 'not-allowed' : 'pointer', opacity: isSubmittingSubject ? 0.75 : 1 }}>
                   {isSubmittingSubject ? '⏳ Registering Subject...' : 'Register Subject'}
                 </button>
               </form>
@@ -682,7 +682,7 @@ export default function TeachersDirectoryView({
                     />
                   </div>
                 </div>
-                <button type="submit" disabled={isSubmittingSchedule} className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none', color: '#ffffff', fontWeight: 600, cursor: isSubmittingSchedule ? 'not-allowed' : 'pointer', opacity: isSubmittingSchedule ? 0.75 : 1 }}>
+                <button type="submit" disabled={isSubmittingSchedule} className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)', border: 'none', color: '#ffffff', fontWeight: 600, cursor: isSubmittingSchedule ? 'not-allowed' : 'pointer', opacity: isSubmittingSchedule ? 0.75 : 1 }}>
                   {isSubmittingSchedule ? '⏳ Creating Schedule...' : 'Create Schedule'}
                 </button>
               </form>

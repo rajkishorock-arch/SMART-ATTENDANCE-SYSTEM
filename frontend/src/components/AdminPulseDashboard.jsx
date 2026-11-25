@@ -107,7 +107,7 @@ export default function AdminPulseDashboard({
           padding: '20px',
           background: '#ffffff',
           borderRadius: '16px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
           display: 'flex',
           flexDirection: 'column',
@@ -117,11 +117,11 @@ export default function AdminPulseDashboard({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#25231f' }}>
                 {lang === 'hi' ? 'आज की उपस्थिति' : "Today's Attendance"}
               </h2>
             </div>
-            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#696358', fontWeight: 500 }}>
               {totalStudents} {lang === 'hi' ? 'नामांकित परिसर छात्र' : 'Enrolled Campus Students'}
             </p>
           </div>
@@ -137,10 +137,10 @@ export default function AdminPulseDashboard({
             display: 'grid', 
             gridTemplateColumns: 'repeat(3, 1fr)', 
             gap: '8px', 
-            background: '#f8fafc', 
+            background: '#faf9f6', 
             padding: '12px 10px', 
             borderRadius: '12px',
-            border: '1px solid #f1f5f9'
+            border: '1px solid #f4f1eb'
           }}
         >
           {/* Present */}
@@ -149,38 +149,38 @@ export default function AdminPulseDashboard({
               <UserCheck size={13} />
               <span>{lang === 'hi' ? 'उपस्थित' : 'PRESENT'}</span>
             </div>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginTop: '2px' }}>
+            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', lineHeight: 1.2, marginTop: '2px' }}>
               {presentToday}
             </span>
-            <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>
+            <span style={{ fontSize: '0.65rem', color: '#696358', fontWeight: 500 }}>
               {lang === 'hi' ? 'छात्र' : 'students'}
             </span>
           </div>
 
           {/* Absent */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', borderLeft: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', borderLeft: '1px solid #e4dfd5', borderRight: '1px solid #e4dfd5' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontSize: '0.72rem', fontWeight: 700 }}>
               <UserX size={13} />
               <span>{lang === 'hi' ? 'अनुपस्थित' : 'ABSENT'}</span>
             </div>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginTop: '2px' }}>
+            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', lineHeight: 1.2, marginTop: '2px' }}>
               {absentToday}
             </span>
-            <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>
+            <span style={{ fontSize: '0.65rem', color: '#696358', fontWeight: 500 }}>
               {lang === 'hi' ? 'लंबित' : 'pending'}
             </span>
           </div>
 
           {/* Rate */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#2563eb', fontSize: '0.72rem', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#785927', fontSize: '0.72rem', fontWeight: 700 }}>
               <TrendingUp size={13} />
               <span>{lang === 'hi' ? 'दर' : 'RATE'}</span>
             </div>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginTop: '2px' }}>
+            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', lineHeight: 1.2, marginTop: '2px' }}>
               {attendanceRate}%
             </span>
-            <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>
+            <span style={{ fontSize: '0.65rem', color: '#696358', fontWeight: 500 }}>
               {lang === 'hi' ? 'औसत' : 'average'}
             </span>
           </div>
@@ -195,7 +195,7 @@ export default function AdminPulseDashboard({
               flex: '1 1 180px',
               padding: '10px 16px',
               borderRadius: '10px',
-              background: '#2563eb',
+              background: '#785927',
               color: '#ffffff',
               border: 'none',
               fontSize: '0.85rem',
@@ -220,11 +220,11 @@ export default function AdminPulseDashboard({
               style={{
                 padding: '10px 14px',
                 borderRadius: '10px',
-                background: '#f8fafc',
-                border: '1px solid #cbd5e1',
+                background: '#faf9f6',
+                border: '1px solid #cfc8ba',
                 fontSize: '0.82rem',
                 fontWeight: 600,
-                color: '#334155',
+                color: '#46423b',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -246,7 +246,7 @@ export default function AdminPulseDashboard({
           padding: '16px 18px',
           background: '#ffffff',
           borderRadius: '16px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
           display: 'flex',
           flexDirection: 'column',
@@ -254,7 +254,7 @@ export default function AdminPulseDashboard({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ShieldAlert size={18} color="#d97706" />
             <span>{lang === 'hi' ? 'त्वरित ध्यान केंद्र (Action Required)' : 'Action Required Center'}</span>
           </h3>
@@ -272,7 +272,7 @@ export default function AdminPulseDashboard({
             style={{
               padding: '12px 14px',
               borderRadius: '12px',
-              border: pendingDisputesCount > 0 ? '1.5px solid #fed7aa' : '1px solid #e2e8f0',
+              border: pendingDisputesCount > 0 ? '1.5px solid #fed7aa' : '1px solid #e4dfd5',
               background: pendingDisputesCount > 0 ? '#fffaf5' : '#ffffff',
               cursor: 'pointer',
               display: 'flex',
@@ -289,7 +289,7 @@ export default function AdminPulseDashboard({
                   height: '36px', 
                   borderRadius: '10px', 
                   background: pendingDisputesCount > 0 ? '#fff7ed' : '#f0f9ff', 
-                  color: pendingDisputesCount > 0 ? '#ea580c' : '#0284c7',
+                  color: pendingDisputesCount > 0 ? '#ea580c' : '#80602c',
                   border: pendingDisputesCount > 0 ? '1px solid #ffedd5' : '1px solid #bae6fd',
                   display: 'flex', 
                   alignItems: 'center', 
@@ -300,7 +300,7 @@ export default function AdminPulseDashboard({
                 <FileText size={18} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
                   {lang === 'hi' ? 'छात्र उपस्थिति आपत्तियां' : 'Attendance Disputes'}
                 </span>
               </div>
@@ -320,7 +320,7 @@ export default function AdminPulseDashboard({
             style={{
               padding: '12px 14px',
               borderRadius: '12px',
-              border: borderlineMatchesCount > 0 ? '1.5px solid #fde68a' : '1px solid #e2e8f0',
+              border: borderlineMatchesCount > 0 ? '1.5px solid #fde68a' : '1px solid #e4dfd5',
               background: borderlineMatchesCount > 0 ? '#fffdf5' : '#ffffff',
               cursor: 'pointer',
               display: 'flex',
@@ -348,7 +348,7 @@ export default function AdminPulseDashboard({
                 <Camera size={18} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
                   {lang === 'hi' ? 'कम सटीकता वाले चेहरे' : 'Borderline Matches'}
                 </span>
               </div>
@@ -368,7 +368,7 @@ export default function AdminPulseDashboard({
             style={{
               padding: '12px 14px',
               borderRadius: '12px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               background: '#ffffff',
               cursor: 'pointer',
               display: 'flex',
@@ -396,7 +396,7 @@ export default function AdminPulseDashboard({
                 <Smartphone size={18} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
                   {lang === 'hi' ? 'कियोस्क एवं कैमरा फ्लीट' : 'Scanner Kiosk Fleet'}
                 </span>
               </div>
@@ -416,7 +416,7 @@ export default function AdminPulseDashboard({
             style={{
               padding: '12px 14px',
               borderRadius: '12px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               background: '#ffffff',
               cursor: 'pointer',
               display: 'flex',
@@ -432,9 +432,9 @@ export default function AdminPulseDashboard({
                   width: '36px', 
                   height: '36px', 
                   borderRadius: '10px', 
-                  background: '#eff6ff', 
-                  color: '#2563eb',
-                  border: '1px solid #bfdbfe',
+                  background: '#faf5ea', 
+                  color: '#785927',
+                  border: '1px solid #dfcfaf',
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
@@ -444,7 +444,7 @@ export default function AdminPulseDashboard({
                 <Calendar size={18} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
                   {lang === 'hi' ? 'अकादमिक कैलेंडर' : 'Academic Calendar'}
                 </span>
               </div>

@@ -5,7 +5,7 @@ export default function QuickActionsDock({ onScan, onManual, onReport, onNotify 
   const [open, setOpen] = useState(false);
 
   const actions = [
-    { id: 'scan', label: 'Face Scanner', icon: Camera, onClick: onScan, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    { id: 'scan', label: 'Face Scanner', icon: Camera, onClick: onScan, color: '#785927', bg: '#faf5ea', border: '#dfcfaf' },
     { id: 'manual', label: 'Manual Check-in', icon: Plus, onClick: onManual, color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
     { id: 'report', label: 'Export Analytics', icon: FileSpreadsheet, onClick: onReport, color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
     { id: 'notify', label: 'Broadcast Alert', icon: Bell, onClick: onNotify, color: '#d97706', bg: '#fffbeb', border: '#fcd34d' },
@@ -36,7 +36,7 @@ export default function QuickActionsDock({ onScan, onManual, onReport, onNotify 
                 background: '#ffffff',
                 border: `1px solid ${a.border}`,
                 borderRadius: '30px',
-                color: '#0f172a',
+                color: '#25231f',
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -71,7 +71,7 @@ export default function QuickActionsDock({ onScan, onManual, onReport, onNotify 
           width: '52px',
           height: '52px',
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+          background: 'linear-gradient(135deg, #785927 0%, #916d30 100%)',
           border: '2px solid #ffffff',
           color: '#ffffff',
           display: 'flex',

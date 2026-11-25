@@ -33,7 +33,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
         width: 260,
         margin: 1,
         color: {
-          dark: '#0f172a',
+          dark: '#25231f',
           light: '#ffffff'
         },
         errorCorrectionLevel: 'M'
@@ -137,7 +137,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
           maxWidth: '380px',
           boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.25)',
           overflow: 'hidden',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative'
@@ -146,7 +146,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
         {/* Top Institutional Header */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #785927 100%)',
             color: '#ffffff',
             padding: '16px 18px',
             position: 'relative',
@@ -172,7 +172,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
               <School size={20} color="#ffffff" />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#bfdbfe' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#dfcfaf' }}>
                 STUDENT DIGITAL ID PASS
               </div>
               <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -206,11 +206,11 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
 
         {/* Student Name & Roll Callout */}
         <div style={{ padding: '16px 20px 8px', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: '0 0 2px' }}>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', margin: '0 0 2px' }}>
             {currentUser?.name || 'Enrolled Student'}
           </h2>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
-            Roll: <span style={{ color: '#0f172a', fontWeight: 700 }}>{studentRoll}</span> · <span>{studentDep}</span>
+          <div style={{ fontSize: '0.8rem', color: '#696358', fontWeight: 600 }}>
+            Roll: <span style={{ color: '#25231f', fontWeight: 700 }}>{studentRoll}</span> · <span>{studentDep}</span>
           </div>
         </div>
 
@@ -231,7 +231,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
               padding: '12px',
               background: '#ffffff',
               borderRadius: '16px',
-              border: '1.5px solid #e2e8f0',
+              border: '1.5px solid #e4dfd5',
               boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
               display: 'flex',
               alignItems: 'center',
@@ -239,10 +239,10 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
             }}
           >
             {/* Viewfinder Target Corner Accents for instant scanning */}
-            <div style={{ position: 'absolute', top: '6px', left: '6px', width: '16px', height: '16px', borderTop: '3px solid #2563eb', borderLeft: '3px solid #2563eb', borderTopLeftRadius: '6px' }} />
-            <div style={{ position: 'absolute', top: '6px', right: '6px', width: '16px', height: '16px', borderTop: '3px solid #2563eb', borderRight: '3px solid #2563eb', borderTopRightRadius: '6px' }} />
-            <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '16px', height: '16px', borderBottom: '3px solid #2563eb', borderLeft: '3px solid #2563eb', borderBottomLeftRadius: '6px' }} />
-            <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '16px', height: '16px', borderBottom: '3px solid #2563eb', borderRight: '3px solid #2563eb', borderBottomRightRadius: '6px' }} />
+            <div style={{ position: 'absolute', top: '6px', left: '6px', width: '16px', height: '16px', borderTop: '3px solid #785927', borderLeft: '3px solid #785927', borderTopLeftRadius: '6px' }} />
+            <div style={{ position: 'absolute', top: '6px', right: '6px', width: '16px', height: '16px', borderTop: '3px solid #785927', borderRight: '3px solid #785927', borderTopRightRadius: '6px' }} />
+            <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '16px', height: '16px', borderBottom: '3px solid #785927', borderLeft: '3px solid #785927', borderBottomLeftRadius: '6px' }} />
+            <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '16px', height: '16px', borderBottom: '3px solid #785927', borderRight: '3px solid #785927', borderBottomRightRadius: '6px' }} />
 
             {qrDataUrl ? (
               <img
@@ -258,7 +258,7 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
                 }}
               />
             ) : loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#2563eb', fontSize: '0.82rem', fontWeight: 600 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#785927', fontSize: '0.82rem', fontWeight: 600 }}>
                 <RefreshCw size={24} className="spin-anim" />
                 <span>Loading QR...</span>
               </div>
@@ -269,9 +269,9 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
                   type="button"
                   onClick={fetchQrToken}
                   style={{
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    color: '#1d4ed8',
+                    background: '#faf5ea',
+                    border: '1px solid #dfcfaf',
+                    color: '#684c20',
                     padding: '6px 14px',
                     borderRadius: '8px',
                     fontSize: '0.75rem',
@@ -292,22 +292,22 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
                 <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
                 <span>Live Encrypted QR</span>
               </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: countdown <= 10 ? '#dc2626' : '#2563eb' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: countdown <= 10 ? '#dc2626' : '#785927' }}>
                 {countdown}s remaining
               </span>
             </div>
-            <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '5px', background: '#f4f1eb', borderRadius: '999px', overflow: 'hidden' }}>
               <div
                 style={{
                   height: '100%',
                   width: `${Math.max(0, Math.min(100, (countdown / (maxTtl || 45)) * 100))}%`,
-                  background: countdown <= 10 ? '#dc2626' : 'linear-gradient(90deg, #2563eb, #10b981)',
+                  background: countdown <= 10 ? '#dc2626' : 'linear-gradient(90deg, #785927, #10b981)',
                   borderRadius: '999px',
                   transition: 'width 1s linear'
                 }}
               />
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.68rem', color: '#696358', textAlign: 'center', marginTop: '4px' }}>
               Aim at kiosk camera or show to teacher for touchless check-in
             </div>
           </div>
@@ -316,8 +316,8 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
         {/* Compact Bottom Details: Small & Clean ("niche me chhota sa details ho") */}
         <div
           style={{
-            background: '#f8fafc',
-            borderTop: '1px solid #e2e8f0',
+            background: '#faf9f6',
+            borderTop: '1px solid #e4dfd5',
             padding: '12px 18px',
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -326,20 +326,20 @@ export default function VirtualIdCardModal({ currentUser, token, API_BASE_URL, o
           }}
         >
           <div>
-            <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Course</div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Course</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#25231f', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {studentCourse}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Semester</div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Semester</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#25231f', marginTop: '2px' }}>
               {studentSemester}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Mentor</div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Mentor</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#25231f', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {studentMentor}
             </div>
           </div>

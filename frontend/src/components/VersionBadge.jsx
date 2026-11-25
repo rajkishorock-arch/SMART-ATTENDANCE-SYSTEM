@@ -58,7 +58,7 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
       display: 'flex',
       flexDirection: 'column',
       gap: '18px',
-      color: '#0f172a'
+      color: '#25231f'
     }}>
       {/* Header Info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
@@ -80,7 +80,7 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: isNewAvailable ? '#92400e' : '#166534' }}>
               {isNewAvailable ? '🔥 New Feature Update Available!' : (isNative ? '✨ App is Fully Up to Date!' : '✨ Web App is Running Latest Production Build!')}
             </div>
-            <div style={{ fontSize: '0.84rem', color: '#475569', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.84rem', color: '#58534a', marginTop: '2px' }}>
               Running Version: <strong style={{ color: isNewAvailable ? '#b45309' : '#15803d' }}>v{activeVersion}</strong>
               {serverLatest ? ` • Latest Server Build: v${serverLatest}` : ' • Production Channel'}
             </div>
@@ -95,8 +95,8 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
             padding: '10px 18px',
             borderRadius: '10px',
             background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            color: '#0f172a',
+            border: '1px solid #cfc8ba',
+            color: '#25231f',
             fontSize: '0.84rem',
             fontWeight: 700,
             cursor: checking ? 'wait' : 'pointer',
@@ -114,7 +114,7 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
       {/* Changelog Highlights */}
       <div style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         padding: '16px',
         display: 'flex',
@@ -125,7 +125,7 @@ export default function VersionBadge({ serverLatest, updateActive, compact = fal
         <div style={{ fontSize: '0.78rem', color: '#6d28d9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           📦 Version v{serverLatest || APP_VERSION} Release Highlights:
         </div>
-        <div style={{ fontSize: '0.86rem', color: '#1e293b', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ fontSize: '0.86rem', color: '#302d27', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div>✨ <strong>1-Tap WhatsApp & SMTP Parent Alert Dispatcher</strong></div>
           <div>⏰ <strong>Automated 5:01 PM Daily Attendance Email Digest Engine</strong></div>
           <div>🎨 <strong>Enterprise High-Contrast Light Theme & Corporate Controls</strong></div>

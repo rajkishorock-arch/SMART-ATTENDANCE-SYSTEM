@@ -165,7 +165,7 @@ export default function SmartCardNfcModal({
         maxHeight: '90vh',
         overflowY: 'auto',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         display: 'flex',
         flexDirection: 'column',
         animation: 'fadeInUp 0.3s ease'
@@ -173,11 +173,11 @@ export default function SmartCardNfcModal({
         {/* Modal Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid #f1f5f9',
+          borderBottom: '1px solid #f4f1eb',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'linear-gradient(to right, #f8fafc, #ffffff)'
+          background: 'linear-gradient(to right, #faf9f6, #ffffff)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -189,15 +189,15 @@ export default function SmartCardNfcModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#1e40af'
+              color: '#61471e'
             }}>
               <CreditCard size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#25231f' }}>
                 Smart NFC & RFID Card Tap
               </h3>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#696358' }}>
                 Contactless physical student badge reader & attendance check-in
               </p>
             </div>
@@ -205,7 +205,7 @@ export default function SmartCardNfcModal({
           <button
             onClick={() => { playCyberSound('click'); onClose(); }}
             style={{
-              background: '#f1f5f9',
+              background: '#f4f1eb',
               border: 'none',
               borderRadius: '50%',
               width: '32px',
@@ -213,7 +213,7 @@ export default function SmartCardNfcModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#64748b',
+              color: '#696358',
               cursor: 'pointer'
             }}
           >
@@ -226,8 +226,8 @@ export default function SmartCardNfcModal({
           
           {/* Active Session Info Pill */}
           <div style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
+            background: '#faf9f6',
+            border: '1px solid #e4dfd5',
             borderRadius: '12px',
             padding: '12px 16px',
             display: 'flex',
@@ -236,20 +236,20 @@ export default function SmartCardNfcModal({
             fontSize: '0.85rem'
           }}>
             <div>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Active Period & Date</span>
-              <strong style={{ color: '#0f172a' }}>{sessionPeriod || 'Standard Period'} — {sessionDate || 'Today'}</strong>
+              <span style={{ color: '#696358', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Active Period & Date</span>
+              <strong style={{ color: '#25231f' }}>{sessionPeriod || 'Standard Period'} — {sessionDate || 'Today'}</strong>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Mode</span>
-              <span style={{ color: '#1e40af', fontWeight: 700 }}>Dual NFC / USB Wedge</span>
+              <span style={{ color: '#696358', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Mode</span>
+              <span style={{ color: '#61471e', fontWeight: 700 }}>Dual NFC / USB Wedge</span>
             </div>
           </div>
 
           {/* Web NFC Antenna Section (Android / Tablets) */}
           {nfcSupported && (
             <div style={{
-              background: nfcListening ? '#f0fdf4' : '#eff6ff',
-              border: `1px solid ${nfcListening ? '#bbf7d0' : '#bfdbfe'}`,
+              background: nfcListening ? '#f0fdf4' : '#faf5ea',
+              border: `1px solid ${nfcListening ? '#bbf7d0' : '#dfcfaf'}`,
               borderRadius: '14px',
               padding: '16px',
               display: 'flex',
@@ -258,12 +258,12 @@ export default function SmartCardNfcModal({
               gap: '12px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Radio size={24} style={{ color: nfcListening ? '#16a34a' : '#2563eb', animation: nfcListening ? 'pulse 1.5s infinite' : 'none' }} />
+                <Radio size={24} style={{ color: nfcListening ? '#16a34a' : '#785927', animation: nfcListening ? 'pulse 1.5s infinite' : 'none' }} />
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: nfcListening ? '#166534' : '#1e40af' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: nfcListening ? '#166534' : '#61471e' }}>
                     {nfcListening ? 'NFC Antenna Active — Ready to Tap' : 'Hardware Web NFC Available'}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: nfcListening ? '#15803d' : '#3b82f6' }}>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: nfcListening ? '#15803d' : '#916d30' }}>
                     {nfcListening ? 'Hold student ID card against tablet back' : 'Enable antenna for tablet contactless tapping'}
                   </p>
                 </div>
@@ -273,7 +273,7 @@ export default function SmartCardNfcModal({
                   type="button"
                   onClick={startNfcScanning}
                   style={{
-                    background: '#1e40af',
+                    background: '#61471e',
                     color: '#ffffff',
                     border: 'none',
                     padding: '8px 14px',
@@ -291,9 +291,9 @@ export default function SmartCardNfcModal({
 
           {/* USB RFID Reader / Roll Input Box */}
           <form onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#46423b', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>USB Card Reader Tap / Manual Roll Input:</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b' }}>(Auto-listens for USB RFID swipe)</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#696358' }}>(Auto-listens for USB RFID swipe)</span>
             </label>
             <div style={{ display: 'flex', gap: '10px' }}>
               <input
@@ -307,7 +307,7 @@ export default function SmartCardNfcModal({
                   flex: 1,
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '2px solid #cbd5e1',
+                  border: '2px solid #cfc8ba',
                   fontSize: '0.95rem',
                   fontWeight: 600,
                   outline: 'none',
@@ -318,7 +318,7 @@ export default function SmartCardNfcModal({
                 type="submit"
                 disabled={loading || !cardInput.trim()}
                 style={{
-                  background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                  background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)',
                   color: '#ffffff',
                   border: 'none',
                   padding: '0 20px',
@@ -408,7 +408,7 @@ export default function SmartCardNfcModal({
           {/* Recent Taps Log */}
           {recentTaps.length > 0 && (
             <div style={{ marginTop: '4px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#696358', display: 'block', marginBottom: '8px' }}>
                 Recent RFID/NFC Taps in this Session:
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -417,13 +417,13 @@ export default function SmartCardNfcModal({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: '#f8fafc',
+                    background: '#faf9f6',
                     padding: '8px 12px',
                     borderRadius: '8px',
                     fontSize: '0.82rem',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid #e4dfd5'
                   }}>
-                    <span style={{ fontWeight: 700, color: '#1e293b' }}>{item.name} ({item.roll})</span>
+                    <span style={{ fontWeight: 700, color: '#302d27' }}>{item.name} ({item.roll})</span>
                     <span style={{ color: '#059669', fontWeight: 600 }}>{item.time || 'Present'}</span>
                   </div>
                 ))}
@@ -436,10 +436,10 @@ export default function SmartCardNfcModal({
         {/* Modal Footer */}
         <div style={{
           padding: '16px 24px',
-          borderTop: '1px solid #f1f5f9',
+          borderTop: '1px solid #f4f1eb',
           display: 'flex',
           justifyContent: 'flex-end',
-          background: '#f8fafc'
+          background: '#faf9f6'
         }}>
           <button
             type="button"
@@ -447,9 +447,9 @@ export default function SmartCardNfcModal({
             style={{
               padding: '10px 20px',
               borderRadius: '10px',
-              border: '1px solid #cbd5e1',
+              border: '1px solid #cfc8ba',
               background: '#ffffff',
-              color: '#475569',
+              color: '#58534a',
               fontWeight: 700,
               cursor: 'pointer'
             }}

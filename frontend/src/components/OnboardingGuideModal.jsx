@@ -10,7 +10,7 @@ function StepCard({ num, icon, title, desc, tag }) {
       gap: '12px',
       alignItems: 'flex-start',
       background: '#ffffff',
-      border: '1px solid #cbd5e1',
+      border: '1px solid #cfc8ba',
       borderRadius: '12px',
       padding: '12px 14px',
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
@@ -20,9 +20,9 @@ function StepCard({ num, icon, title, desc, tag }) {
         width: '30px',
         height: '30px',
         borderRadius: '8px',
-        background: '#eff6ff',
-        border: '1px solid #bfdbfe',
-        color: '#1d4ed8',
+        background: '#faf5ea',
+        border: '1px solid #dfcfaf',
+        color: '#684c20',
         fontWeight: 800,
         fontSize: '0.88rem',
         display: 'flex',
@@ -34,12 +34,12 @@ function StepCard({ num, icon, title, desc, tag }) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
-          <span style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.88rem' }}>{title}</span>
+          <span style={{ color: '#25231f', fontWeight: 700, fontSize: '0.88rem' }}>{title}</span>
           {tag && (
-            <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#475569', fontWeight: 600 }}>{tag}</span>
+            <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: '#f4f1eb', color: '#58534a', fontWeight: 600 }}>{tag}</span>
           )}
         </div>
-        <div style={{ color: '#1e293b', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: 500 }}>
+        <div style={{ color: '#302d27', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: 500 }}>
           {desc}
         </div>
       </div>
@@ -55,7 +55,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
       title: "🧭 Welcome to Smart Attendance!",
       desc: "Let's take a quick 1-minute tour to understand how to use and navigate the system easily.",
       icon: "✨",
-      color: "#1e40af",
+      color: "#61471e",
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <StepCard 
@@ -151,7 +151,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
             title="Voice Speech Commands" 
             desc={
               <span>
-                Click the microphone to control the app: <strong style={{ color: '#1d4ed8' }}>"start scanner"</strong> launches face scanner, <strong style={{ color: '#1d4ed8' }}>"open profile"</strong> navigates to profile, or <strong style={{ color: '#1d4ed8' }}>"logout"</strong> signs out.
+                Click the microphone to control the app: <strong style={{ color: '#684c20' }}>"start scanner"</strong> launches face scanner, <strong style={{ color: '#684c20' }}>"open profile"</strong> navigates to profile, or <strong style={{ color: '#684c20' }}>"logout"</strong> signs out.
               </span>
             }
           />
@@ -190,7 +190,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
         className="onboarding-guide-card"
         style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '24px', 
         padding: 'clamp(20px, 4vw, 32px)',
         width: '100%', 
@@ -218,12 +218,12 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
             position: 'absolute', 
             top: '16px', 
             right: '16px', 
-            background: '#f1f5f9', 
-            border: '1px solid #cbd5e1', 
+            background: '#f4f1eb', 
+            border: '1px solid #cfc8ba', 
             borderRadius: '50%', 
             width: '36px', 
             height: '36px', 
-            color: '#475569', 
+            color: '#58534a', 
             cursor: 'pointer', 
             fontSize: '1rem', 
             fontWeight: 800,
@@ -234,7 +234,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
             zIndex: 10
           }} 
           onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444'; }} 
-          onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#475569'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#f4f1eb'; e.currentTarget.style.borderColor = '#cfc8ba'; e.currentTarget.style.color = '#58534a'; }}
         >
           ✕
         </button>
@@ -245,13 +245,13 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
             {current.icon}
           </div>
           <div>
-            <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.35rem)', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.25 }}>{current.title}</h2>
-            <p style={{ color: '#334155', fontSize: '0.85rem', margin: '5px 0 0', lineHeight: 1.4, fontWeight: 600 }}>{current.desc}</p>
+            <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.35rem)', fontWeight: 800, color: '#25231f', margin: 0, lineHeight: 1.25 }}>{current.title}</h2>
+            <p style={{ color: '#46423b', fontSize: '0.85rem', margin: '5px 0 0', lineHeight: 1.4, fontWeight: 600 }}>{current.desc}</p>
           </div>
         </div>
 
         {/* Slide Content */}
-        <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '14px', borderRadius: '16px', minHeight: '180px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ background: '#faf9f6', border: '1px solid #cfc8ba', padding: '14px', borderRadius: '16px', minHeight: '180px', marginBottom: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {current.content}
         </div>
 
@@ -267,7 +267,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
                   width: idx === slide ? '28px' : '9px', 
                   height: '8px', 
                   borderRadius: '4px', 
-                  background: idx === slide ? current.color : '#cbd5e1', 
+                  background: idx === slide ? current.color : '#cfc8ba', 
                   transition: 'all 0.3s ease',
                   cursor: 'pointer'
                 }} 
@@ -282,16 +282,16 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
                 style={{ 
                   padding: '9px 18px', 
                   borderRadius: '10px', 
-                  background: '#f1f5f9', 
-                  border: '1px solid #cbd5e1', 
-                  color: '#334155', 
+                  background: '#f4f1eb', 
+                  border: '1px solid #cfc8ba', 
+                  color: '#46423b', 
                   fontSize: '0.85rem', 
                   fontWeight: 700, 
                   cursor: 'pointer', 
                   transition: 'all 0.2s' 
                 }} 
-                onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'} 
-                onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
+                onMouseEnter={e => e.currentTarget.style.background = '#e4dfd5'} 
+                onMouseLeave={e => e.currentTarget.style.background = '#f4f1eb'}
               >
                 Back
               </button>
@@ -301,7 +301,7 @@ export default function OnboardingGuideModal({ onClose, playCyberSound }) {
               style={{ 
                 padding: '10px 24px', 
                 borderRadius: '10px', 
-                background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', 
+                background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)', 
                 border: 'none', 
                 color: '#ffffff', 
                 fontSize: '0.88rem', 

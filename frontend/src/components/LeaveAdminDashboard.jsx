@@ -81,7 +81,7 @@ export default function LeaveAdminDashboard({ token }) {
     <div className="mobile-tab-panel" style={{ animation: 'fadeInUp 0.5s ease both' }}>
       <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#faf9f6', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Calendar size={20} color="#38bdf8" />
             Institutional Leave Requests Management
           </h3>
@@ -161,7 +161,7 @@ export default function LeaveAdminDashboard({ token }) {
                         {req.student_name ? req.student_name.charAt(0).toUpperCase() : 'S'}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f8fafc' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#faf9f6' }}>
                           {req.student_name || 'Student'} <span style={{ fontSize: '0.78rem', color: '#9ca3af', fontWeight: 400 }}>(Roll: {req.student_roll || 'N/A'} · {req.student_dep || 'N/A'})</span>
                         </div>
                         <div style={{ fontSize: '0.76rem', color: '#9ca3af' }}>
@@ -183,12 +183,12 @@ export default function LeaveAdminDashboard({ token }) {
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#cfc8ba', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '6px' }}>
                     "{req.reason}"
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.04)', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#696358' }}>
                       Subject: {req.subject_name || 'General Leave (All Subjects)'}
                     </div>
 

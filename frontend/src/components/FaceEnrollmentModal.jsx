@@ -122,14 +122,14 @@ export default function FaceEnrollmentModal({
     }}>
       <div style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         width: '100%',
         maxWidth: '560px',
         padding: '28px',
         boxShadow: '0 20px 48px rgba(15, 23, 42, 0.15)',
         position: 'relative',
-        color: '#0f172a'
+        color: '#25231f'
       }}>
         {/* Close Button */}
         <button
@@ -140,7 +140,7 @@ export default function FaceEnrollmentModal({
             right: '20px',
             background: 'transparent',
             border: 'none',
-            color: '#64748b',
+            color: '#696358',
             cursor: 'pointer'
           }}
         >
@@ -154,16 +154,16 @@ export default function FaceEnrollmentModal({
             border: '1px solid #bae6fd',
             borderRadius: '10px',
             padding: '8px',
-            color: '#0284c7'
+            color: '#80602c'
           }}>
             <Camera size={22} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#25231f' }}>
               Multi-Sample Biometric QA Enrollment
             </h3>
-            <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
-              Student: <strong style={{ color: '#0f172a' }}>{student.name}</strong> ({student.roll})
+            <span style={{ fontSize: '0.82rem', color: '#696358' }}>
+              Student: <strong style={{ color: '#25231f' }}>{student.name}</strong> ({student.roll})
             </span>
           </div>
         </div>
@@ -196,16 +196,16 @@ export default function FaceEnrollmentModal({
                 }}
                 style={{
                   background: isActive 
-                    ? '#eff6ff' 
+                    ? '#faf5ea' 
                     : isDone 
                     ? '#ecfdf5' 
-                    : '#f8fafc',
+                    : '#faf9f6',
                   border: isActive 
-                    ? '1px solid #3b82f6' 
+                    ? '1px solid #916d30' 
                     : isDone 
                     ? '1px solid #10b981' 
-                    : '1px solid #e2e8f0',
-                  color: isActive ? '#1d4ed8' : isDone ? '#059669' : '#64748b',
+                    : '1px solid #e4dfd5',
+                  color: isActive ? '#684c20' : isDone ? '#059669' : '#696358',
                   padding: '8px',
                   borderRadius: '8px',
                   fontSize: '0.8rem',
@@ -274,8 +274,8 @@ export default function FaceEnrollmentModal({
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
-              background: '#f8fafc',
-              border: '2px dashed #cbd5e1',
+              background: '#faf9f6',
+              border: '2px dashed #cfc8ba',
               borderRadius: '14px',
               padding: '36px 20px',
               textAlign: 'center',
@@ -284,11 +284,11 @@ export default function FaceEnrollmentModal({
               transition: 'border 0.2s'
             }}
           >
-            <Upload size={32} color="#0284c7" style={{ margin: '0 auto 10px' }} />
-            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+            <Upload size={32} color="#80602c" style={{ margin: '0 auto 10px' }} />
+            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#25231f', marginBottom: '4px' }}>
               Upload {currentPose} Profile Photo
             </div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#696358' }}>
               JPG or PNG format • Minimum 80x80px face resolution
             </p>
           </div>
@@ -297,8 +297,8 @@ export default function FaceEnrollmentModal({
             display: 'flex',
             gap: '16px',
             alignItems: 'center',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
+            background: '#faf9f6',
+            border: '1px solid #e4dfd5',
             padding: '16px',
             borderRadius: '12px',
             marginBottom: '18px'
@@ -311,12 +311,12 @@ export default function FaceEnrollmentModal({
                 height: '90px',
                 borderRadius: '10px',
                 objectFit: 'cover',
-                border: '2px solid #0284c7'
+                border: '2px solid #80602c'
               }}
             />
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#25231f' }}>
                   {currentPose} Angle Sample
                 </span>
                 <button
@@ -325,7 +325,7 @@ export default function FaceEnrollmentModal({
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#0284c7',
+                    color: '#80602c',
                     fontSize: '0.78rem',
                     cursor: 'pointer',
                     fontWeight: 600,
@@ -337,7 +337,7 @@ export default function FaceEnrollmentModal({
               </div>
 
               {isValidating ? (
-                <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ fontSize: '0.8rem', color: '#696358', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <RefreshCw size={14} className="animate-spin" />
                   Running automated biometric QA checks...
                 </div>
@@ -359,7 +359,7 @@ export default function FaceEnrollmentModal({
                     {qaResult.is_valid ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
                     {qaResult.quality_rating}: {qaResult.feedback_message}
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#696358' }}>
                     Sharpness: {qaResult.blur_score} • Brightness: {qaResult.brightness_score}/255
                   </div>
                 </div>
@@ -374,9 +374,9 @@ export default function FaceEnrollmentModal({
             type="button"
             onClick={onClose}
             style={{
-              background: '#f1f5f9',
-              border: '1px solid #cbd5e1',
-              color: '#334155',
+              background: '#f4f1eb',
+              border: '1px solid #cfc8ba',
+              color: '#46423b',
               padding: '9px 18px',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -393,7 +393,7 @@ export default function FaceEnrollmentModal({
               disabled={isSaving}
               onClick={handleSaveSample}
               style={{
-                background: '#0284c7',
+                background: '#80602c',
                 border: 'none',
                 color: '#fff',
                 padding: '9px 20px',

@@ -140,7 +140,7 @@ export default function HodDashboardView({
   });
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', color: '#0f172a' }}>
+    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', color: '#25231f' }}>
       {/* HEADER SECTION */}
       <div style={{
         display: 'flex',
@@ -151,7 +151,7 @@ export default function HodDashboardView({
         marginBottom: '24px',
         padding: '20px 24px',
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
       }}>
@@ -181,12 +181,12 @@ export default function HodDashboardView({
               }}>
                 HOD COMMAND CENTER
               </span>
-              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{currentDateStr}</span>
+              <span style={{ fontSize: '0.8rem', color: '#696358' }}>{currentDateStr}</span>
             </div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '4px 0 0 0', color: '#0f172a' }}>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '4px 0 0 0', color: '#25231f' }}>
               {departmentName} Department
             </h1>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#58534a' }}>
               Welcome back, {currentUser?.name || 'Department Head'}
             </p>
           </div>
@@ -201,10 +201,10 @@ export default function HodDashboardView({
               alignItems: 'center',
               gap: '8px',
               padding: '9px 16px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              background: '#faf9f6',
+              border: '1px solid #cfc8ba',
               borderRadius: '8px',
-              color: '#334155',
+              color: '#46423b',
               fontSize: '0.85rem',
               fontWeight: 600,
               cursor: isRefreshing ? 'wait' : 'pointer',
@@ -246,12 +246,12 @@ export default function HodDashboardView({
         <div style={{
           padding: '20px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '14px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Dept Attendance Today</span>
+            <span style={{ fontSize: '0.8rem', color: '#696358', fontWeight: 600 }}>Dept Attendance Today</span>
             <TrendingUp size={18} color="#10b981" />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#059669' }}>
@@ -259,7 +259,7 @@ export default function HodDashboardView({
               ? `${deptStats?.average_attendance ?? deptStats?.percentage}%`
               : (isLoading ? '...' : 'N/A')}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#696358', marginTop: '4px' }}>
             Target: 75% minimum threshold
           </div>
         </div>
@@ -268,18 +268,18 @@ export default function HodDashboardView({
         <div style={{
           padding: '20px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '14px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Present Students</span>
-            <CheckCircle2 size={18} color="#2563eb" />
+            <span style={{ fontSize: '0.8rem', color: '#696358', fontWeight: 600 }}>Present Students</span>
+            <CheckCircle2 size={18} color="#785927" />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#2563eb' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#785927' }}>
             {deptStats?.present_count ?? (isLoading ? '...' : 0)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#696358', marginTop: '4px' }}>
             Total Enrolled: {deptStats?.total_students ?? 0}
           </div>
         </div>
@@ -288,18 +288,18 @@ export default function HodDashboardView({
         <div style={{
           padding: '20px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '14px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Absent Students</span>
+            <span style={{ fontSize: '0.8rem', color: '#696358', fontWeight: 600 }}>Absent Students</span>
             <UserX size={18} color="#dc2626" />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#dc2626' }}>
             {deptStats?.absent_count ?? (isLoading ? '...' : 0)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#696358', marginTop: '4px' }}>
             Requires monitoring
           </div>
         </div>
@@ -319,7 +319,7 @@ export default function HodDashboardView({
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#d97706' }}>
             {pendingLeaves.length + openDisputes.length}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#696358', marginTop: '4px' }}>
             {pendingLeaves.length} Leaves | {openDisputes.length} Disputes
           </div>
         </div>
@@ -336,12 +336,12 @@ export default function HodDashboardView({
         <div style={{
           padding: '20px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 16px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TrendingUp size={18} color="#2563eb" />
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 16px 0', color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={18} color="#785927" />
             Department Attendance Analytics
           </h3>
           <AttendanceChartsWidget stats={deptStats || {}} />
@@ -351,12 +351,12 @@ export default function HodDashboardView({
         <div style={{
           padding: '20px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangle size={18} color="#dc2626" />
               Low Attendance Risk Alerts (&lt; 75%)
             </h3>
@@ -366,7 +366,7 @@ export default function HodDashboardView({
           </div>
 
           {lowAttendanceStudents.length === 0 ? (
-            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#64748b', fontSize: '0.88rem' }}>
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#696358', fontSize: '0.88rem' }}>
               <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px', opacity: 0.8 }} />
               <div>All students meet the department attendance threshold!</div>
             </div>
@@ -374,7 +374,7 @@ export default function HodDashboardView({
             <div style={{ overflowX: 'auto', maxHeight: '320px', overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', background: '#f8fafc' }}>
+                  <tr style={{ borderBottom: '1px solid #e4dfd5', color: '#696358', background: '#faf9f6' }}>
                     <th style={{ padding: '10px' }}>Student</th>
                     <th style={{ padding: '10px' }}>Roll</th>
                     <th style={{ padding: '10px' }}>Attendance</th>
@@ -383,9 +383,9 @@ export default function HodDashboardView({
                 </thead>
                 <tbody>
                   {lowAttendanceStudents.slice(0, 8).map(st => (
-                    <tr key={st.id || st.roll} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px', fontWeight: 600, color: '#0f172a' }}>{st.name}</td>
-                      <td style={{ padding: '10px', color: '#64748b' }}>{st.roll}</td>
+                    <tr key={st.id || st.roll} style={{ borderBottom: '1px solid #f4f1eb' }}>
+                      <td style={{ padding: '10px', fontWeight: 600, color: '#25231f' }}>{st.name}</td>
+                      <td style={{ padding: '10px', color: '#696358' }}>{st.roll}</td>
                       <td style={{ padding: '10px', fontWeight: 700, color: '#dc2626' }}>
                         {st.percentage != null ? `${st.percentage}%` : 'Low'}
                       </td>
@@ -429,24 +429,24 @@ export default function HodDashboardView({
         <div style={{
           padding: '20px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 16px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UserCheck size={18} color="#2563eb" />
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 16px 0', color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UserCheck size={18} color="#785927" />
             Faculty Attendance Today (Read-Only)
           </h3>
 
           {!staffToday || !Array.isArray(staffToday.staff_logs) || staffToday.staff_logs.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+            <div style={{ padding: '24px', textAlign: 'center', color: '#696358', fontSize: '0.85rem' }}>
               No faculty check-in logs recorded for today yet.
             </div>
           ) : (
             <div style={{ overflowX: 'auto', maxHeight: '280px', overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', background: '#f8fafc' }}>
+                  <tr style={{ borderBottom: '1px solid #e4dfd5', color: '#696358', background: '#faf9f6' }}>
                     <th style={{ padding: '8px' }}>Faculty Member</th>
                     <th style={{ padding: '8px' }}>Check-In</th>
                     <th style={{ padding: '8px' }}>Status</th>
@@ -454,11 +454,11 @@ export default function HodDashboardView({
                 </thead>
                 <tbody>
                   {staffToday.staff_logs.slice(0, 6).map((log, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px', color: '#0f172a', fontWeight: 600 }}>
+                    <tr key={idx} style={{ borderBottom: '1px solid #f4f1eb' }}>
+                      <td style={{ padding: '8px', color: '#25231f', fontWeight: 600 }}>
                         {log.user_name || log.user_email}
                       </td>
-                      <td style={{ padding: '8px', color: '#64748b' }}>
+                      <td style={{ padding: '8px', color: '#696358' }}>
                         {log.check_in_time || '--:--'}
                       </td>
                       <td style={{ padding: '8px' }}>
@@ -485,11 +485,11 @@ export default function HodDashboardView({
         <div style={{
           padding: '20px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 16px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 16px 0', color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FileText size={18} color="#d97706" />
             Actionable Pending Reviews
           </h3>
@@ -501,15 +501,15 @@ export default function HodDashboardView({
               justify: 'space-between',
               alignItems: 'center',
               padding: '14px 16px',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: '#faf9f6',
+              border: '1px solid #e4dfd5',
               borderRadius: '10px'
             }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#0f172a' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#25231f' }}>
                   Pending Leave Applications ({pendingLeaves.length})
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.75rem', color: '#696358' }}>
                   Student & Faculty Tier 2 approvals
                 </div>
               </div>
@@ -542,15 +542,15 @@ export default function HodDashboardView({
               justify: 'space-between',
               alignItems: 'center',
               padding: '14px 16px',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: '#faf9f6',
+              border: '1px solid #e4dfd5',
               borderRadius: '10px'
             }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#0f172a' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#25231f' }}>
                   Escalated Attendance Disputes ({openDisputes.length})
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.75rem', color: '#696358' }}>
                   Attendance claims requiring HOD sign-off
                 </div>
               </div>
@@ -584,11 +584,11 @@ export default function HodDashboardView({
       <div style={{
         padding: '20px 24px',
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
       }}>
-        <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 14px 0', color: '#0f172a' }}>
+        <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 14px 0', color: '#25231f' }}>
           Department Navigation Shortcuts
         </h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
@@ -596,10 +596,10 @@ export default function HodDashboardView({
             onClick={() => { playCyberSound('click'); navigateToTab('attendance'); }}
             style={{
               padding: '9px 16px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              background: '#faf9f6',
+              border: '1px solid #cfc8ba',
               borderRadius: '8px',
-              color: '#334155',
+              color: '#46423b',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer'
@@ -611,10 +611,10 @@ export default function HodDashboardView({
             onClick={() => { playCyberSound('click'); navigateToTab('reports'); }}
             style={{
               padding: '9px 16px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              background: '#faf9f6',
+              border: '1px solid #cfc8ba',
               borderRadius: '8px',
-              color: '#334155',
+              color: '#46423b',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer'
@@ -626,10 +626,10 @@ export default function HodDashboardView({
             onClick={() => { playCyberSound('click'); navigateToTab('interventions'); }}
             style={{
               padding: '9px 16px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              background: '#faf9f6',
+              border: '1px solid #cfc8ba',
               borderRadius: '8px',
-              color: '#334155',
+              color: '#46423b',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer'
@@ -641,10 +641,10 @@ export default function HodDashboardView({
             onClick={() => { playCyberSound('click'); navigateToTab('students'); }}
             style={{
               padding: '9px 16px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              background: '#faf9f6',
+              border: '1px solid #cfc8ba',
               borderRadius: '8px',
-              color: '#334155',
+              color: '#46423b',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer'

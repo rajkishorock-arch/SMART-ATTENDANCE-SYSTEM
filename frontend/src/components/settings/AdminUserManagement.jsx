@@ -179,22 +179,22 @@ export default function AdminUserManagement({
 
   return (
     <>
-      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-        <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UserPlus size={22} style={{ color: '#2563eb' }} /> Register Administrators
+      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+        <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UserPlus size={22} style={{ color: '#785927' }} /> Register Administrators
           </h3>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '4px' }}>
+          <p style={{ color: '#696358', fontSize: '0.875rem', marginTop: '4px' }}>
             Seed and manage new auxiliary administrator credentials.
           </p>
         </div>
 
         {/* CREATE NEW ADMIN */}
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UserPlus size={16} style={{ color: '#2563eb' }} /> Create New Admin Account
+        <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '20px' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UserPlus size={16} style={{ color: '#785927' }} /> Create New Admin Account
           </h4>
-          <p style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '16px' }}>Multiple admins can be added. Create a new admin and give them separate login credentials.</p>
+          <p style={{ color: '#696358', fontSize: '0.8rem', marginBottom: '16px' }}>Multiple admins can be added. Create a new admin and give them separate login credentials.</p>
 
           {createAdminMsg && (
             <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem', marginBottom: '14px' }}>
@@ -259,13 +259,13 @@ export default function AdminUserManagement({
       )}
 
       {/* Registered Admins Directory */}
-      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-        <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+        <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
               <ShieldCheck size={22} style={{ color: '#7c3aed' }} /> Registered Administrators
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
+            <p style={{ color: '#696358', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
               List of all system administrators with their login and active status details.
             </p>
           </div>
@@ -284,10 +284,10 @@ export default function AdminUserManagement({
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', margin: 0 }}>
             📋 Admin User Directory
           </h4>
-          <span className="mobile-scroll-hint" style={{ fontSize: '0.72rem', color: '#0284c7', background: '#e0f2fe', padding: '3px 8px', borderRadius: '6px', border: '1px solid #bae6fd', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span className="mobile-scroll-hint" style={{ fontSize: '0.72rem', color: '#80602c', background: '#e0f2fe', padding: '3px 8px', borderRadius: '6px', border: '1px solid #bae6fd', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             👉 Swipe horizontally for full table
           </span>
         </div>
@@ -297,7 +297,7 @@ export default function AdminUserManagement({
           <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.85rem' }}>
+                <tr style={{ borderBottom: '1px solid #e4dfd5', color: '#696358', fontSize: '0.85rem' }}>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL (USERNAME)</th>
@@ -309,19 +309,19 @@ export default function AdminUserManagement({
               </thead>
               <tbody>
                 {adminList.map((adminUser) => (
-                  <tr key={adminUser.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
-                    <td style={{ padding: '14px 16px', color: '#64748b', fontFamily: 'monospace', fontSize: '0.8rem' }}>#{adminUser.id}</td>
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0f172a' }}>{adminUser.name}</td>
-                    <td style={{ padding: '14px 16px', color: '#475569' }}>{adminUser.email}</td>
+                  <tr key={adminUser.id} style={{ borderBottom: '1px solid #f4f1eb', fontSize: '0.85rem' }}>
+                    <td style={{ padding: '14px 16px', color: '#696358', fontFamily: 'monospace', fontSize: '0.8rem' }}>#{adminUser.id}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#25231f' }}>{adminUser.name}</td>
+                    <td style={{ padding: '14px 16px', color: '#58534a' }}>{adminUser.email}</td>
                     <td style={{ padding: '14px 16px' }}>
                       <span style={{
                         padding: '2px 8px',
                         borderRadius: '4px',
                         fontSize: '0.72rem',
                         fontWeight: 'bold',
-                        background: '#eff6ff',
-                        color: '#2563eb',
-                        border: '1px solid #bfdbfe'
+                        background: '#faf5ea',
+                        color: '#785927',
+                        border: '1px solid #dfcfaf'
                       }}>
                         SYSTEM ADMIN
                       </span>
@@ -339,7 +339,7 @@ export default function AdminUserManagement({
                         {adminUser.is_active ? 'ACTIVE' : 'DEACTIVATED'}
                       </span>
                     </td>
-                    <td style={{ padding: '14px 16px', color: '#64748b' }}>
+                    <td style={{ padding: '14px 16px', color: '#696358' }}>
                       {new Date(adminUser.created_at).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
@@ -390,7 +390,7 @@ export default function AdminUserManagement({
               key={adminUser.id}
               style={{
                 background: '#ffffff',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #e4dfd5',
                 borderRadius: '14px',
                 padding: '16px',
                 display: 'flex',
@@ -403,14 +403,14 @@ export default function AdminUserManagement({
             >
               {/* Header: Name + ID */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.96rem' }}>{adminUser.name}</span>
-                <span style={{ color: '#64748b', fontFamily: 'monospace', fontSize: '0.78rem', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
+                <span style={{ fontWeight: 700, color: '#25231f', fontSize: '0.96rem' }}>{adminUser.name}</span>
+                <span style={{ color: '#696358', fontFamily: 'monospace', fontSize: '0.78rem', background: '#f4f1eb', padding: '2px 8px', borderRadius: '4px' }}>
                   #{adminUser.id}
                 </span>
               </div>
 
               {/* Email */}
-              <div style={{ color: '#475569', fontSize: '0.82rem', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+              <div style={{ color: '#58534a', fontSize: '0.82rem', wordBreak: 'break-all', fontFamily: 'monospace' }}>
                 {adminUser.email}
               </div>
 

@@ -119,7 +119,7 @@ export default function UniversalSearch({ apiBaseUrl, token, open, onClose, onNa
             <button
               type="button"
               onClick={() => setQ('')}
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'none', border: 'none', color: '#696358', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
             >
               <X size={16} />
             </button>
@@ -128,14 +128,14 @@ export default function UniversalSearch({ apiBaseUrl, token, open, onClose, onNa
         </div>
 
         {/* Category Label */}
-        <div style={{ padding: '8px 18px 4px', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ padding: '8px 18px 4px', fontSize: '0.72rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {q.trim() ? `Search Results (${results.length})` : 'Quick Navigation & Shortcuts'}
         </div>
 
         {/* Results List */}
         <div className="universal-search-results-list no-scrollbar">
           {activeList.length === 0 ? (
-            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#696358', fontSize: '0.85rem' }}>
               No matches found for &quot;{q}&quot;
             </div>
           ) : (
@@ -153,7 +153,7 @@ export default function UniversalSearch({ apiBaseUrl, token, open, onClose, onNa
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isSelected ? '#00f2fe' : '#f1f5f9' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isSelected ? '#00f2fe' : '#f4f1eb' }}>
                         {r.label}
                       </span>
                       <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '6px', background: 'rgba(255,255,255,0.06)', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>
@@ -161,7 +161,7 @@ export default function UniversalSearch({ apiBaseUrl, token, open, onClose, onNa
                       </span>
                     </div>
                     {r.subtitle && (
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#696358', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {r.subtitle}
                       </div>
                     )}

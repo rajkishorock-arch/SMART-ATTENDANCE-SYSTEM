@@ -141,7 +141,7 @@ export default function StudentCampusGeofenceHub({
       <div style={{
         background: '#ffffff',
         borderRadius: '20px',
-        border: `1.5px solid ${geofenceStatus.checked ? (isInside ? '#bbf7d0' : '#fecaca') : '#cbd5e1'}`,
+        border: `1.5px solid ${geofenceStatus.checked ? (isInside ? '#bbf7d0' : '#fecaca') : '#cfc8ba'}`,
         padding: '20px 22px',
         boxShadow: '0 4px 14px rgba(15, 23, 42, 0.05)',
         display: 'flex',
@@ -155,8 +155,8 @@ export default function StudentCampusGeofenceHub({
               width: '42px',
               height: '42px',
               borderRadius: '12px',
-              background: geofenceStatus.checked ? (isInside ? '#dcfce7' : '#fee2e2') : '#eff6ff',
-              color: geofenceStatus.checked ? (isInside ? '#15803d' : '#dc2626') : '#2563eb',
+              background: geofenceStatus.checked ? (isInside ? '#dcfce7' : '#fee2e2') : '#faf5ea',
+              color: geofenceStatus.checked ? (isInside ? '#15803d' : '#dc2626') : '#785927',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -165,10 +165,10 @@ export default function StudentCampusGeofenceHub({
               <Navigation size={22} className={isScanning ? 'spin-anim' : ''} />
             </div>
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: isInside ? '#15803d' : '#2563eb' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: isInside ? '#15803d' : '#785927' }}>
                 GPS Telemetry & Spatial Perimeter
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#25231f' }}>
                 {geofenceStatus.checked 
                   ? (isInside ? 'Inside Authorized Campus Zone' : 'Outside Campus Perimeter')
                   : 'Verifying GPS Perimeter...'}
@@ -194,32 +194,32 @@ export default function StudentCampusGeofenceHub({
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
           gap: '10px',
-          background: '#f8fafc',
+          background: '#faf9f6',
           padding: '14px 16px',
           borderRadius: '14px',
-          border: '1px solid #e2e8f0'
+          border: '1px solid #e4dfd5'
         }}>
           <div>
-            <div style={{ fontSize: '0.66rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Distance to Center</div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Distance to Center</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>
               {geofenceStatus.distance !== null ? `~${Math.round(geofenceStatus.distance)}m` : '18m'}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.66rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Allowed Radius</div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Allowed Radius</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#785927', marginTop: '2px' }}>
               {campusCenter.allowedRadiusMeters} Meters
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.66rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>GPS Precision</div>
+            <div style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>GPS Precision</div>
             <div style={{ fontSize: '1rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
               ±{gpsAccuracy || 4}m (High)
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.66rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Last Audit</div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#475569', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Last Audit</div>
+            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#58534a', marginTop: '2px' }}>
               {lastVerifiedAt || 'Just Now'}
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function StudentCampusGeofenceHub({
 
         {/* Interactive Live Scan CTA */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#475569' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#58534a' }}>
             <ShieldCheck size={16} color="#16a34a" />
             <span>Anti-Spoofing: PASS · Mock Location Detection active</span>
           </div>
@@ -241,7 +241,7 @@ export default function StudentCampusGeofenceHub({
               alignItems: 'center',
               gap: '6px',
               padding: '9px 18px',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              background: 'linear-gradient(135deg, #785927 0%, #684c20 100%)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '10px',
@@ -262,13 +262,13 @@ export default function StudentCampusGeofenceHub({
       <div style={{
         background: '#ffffff',
         borderRadius: '18px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         padding: '18px 20px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-          <Building2 size={18} color="#2563eb" />
-          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+          <Building2 size={18} color="#785927" />
+          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#25231f' }}>
             Designated Campus Attendance Zones
           </h4>
         </div>
@@ -282,8 +282,8 @@ export default function StudentCampusGeofenceHub({
                 style={{
                   padding: '12px 14px',
                   borderRadius: '12px',
-                  background: '#f8fafc',
-                  border: `1px solid ${inRange ? '#bbf7d0' : '#e2e8f0'}`,
+                  background: '#faf9f6',
+                  border: `1px solid ${inRange ? '#bbf7d0' : '#e4dfd5'}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -293,10 +293,10 @@ export default function StudentCampusGeofenceHub({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                   <span style={{ fontSize: '1.4rem' }}>{zone.icon}</span>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {zone.name}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '1px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#696358', marginTop: '1px' }}>
                       Max Radius: {zone.radius}m · {zone.status}
                     </div>
                   </div>
@@ -305,7 +305,7 @@ export default function StudentCampusGeofenceHub({
                 <span style={{
                   fontSize: '0.76rem',
                   fontWeight: 600,
-                  color: inRange ? '#16a34a' : '#64748b',
+                  color: inRange ? '#16a34a' : '#696358',
                   flexShrink: 0
                 }}>
                   {inRange ? 'In Range' : 'Outside'}
@@ -358,11 +358,11 @@ export default function StudentCampusGeofenceHub({
         <div style={{
           background: '#ffffff',
           borderRadius: '16px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           padding: '14px 18px',
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', fontSize: '0.82rem', fontWeight: 700, color: '#58534a' }}>
             <Clock size={15} />
             <span>Recent Geofence Check Logs</span>
           </div>
@@ -376,12 +376,12 @@ export default function StudentCampusGeofenceHub({
                   alignItems: 'center',
                   padding: '6px 10px',
                   borderRadius: '8px',
-                  background: '#f8fafc',
+                  background: '#faf9f6',
                   fontSize: '0.74rem'
                 }}
               >
-                <span style={{ color: '#0f172a', fontWeight: 600 }}>🕒 {log.timestamp}</span>
-                <span style={{ color: '#475569' }}>Distance: ~{log.distance}m</span>
+                <span style={{ color: '#25231f', fontWeight: 600 }}>🕒 {log.timestamp}</span>
+                <span style={{ color: '#58534a' }}>Distance: ~{log.distance}m</span>
                 <span style={{ fontWeight: 700, color: log.inside ? '#15803d' : '#dc2626' }}>
                   {log.inside ? '✓ Inside Perimeter' : '✗ Outside'}
                 </span>

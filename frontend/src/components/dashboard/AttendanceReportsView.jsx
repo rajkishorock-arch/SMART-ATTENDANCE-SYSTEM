@@ -37,7 +37,7 @@ export function AttendanceReportsHeaderAction({
       <button 
         onClick={downloadReportPDF}
         className="bg-gradient-btn"
-        style={{ padding: '10px 18px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', borderColor: '#0284c7' }}
+        style={{ padding: '10px 18px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #80602c 0%, #0369a1 100%)', borderColor: '#80602c' }}
         disabled={!hasStudents}
       >
         <FileDown size={18} />
@@ -125,17 +125,17 @@ export default function AttendanceReportsView({
       )}
 
       {/* Filter Bar */}
-      <div className="glass-panel hide-on-print" style={{ padding: '20px 18px', borderRadius: '16px', background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
+      <div className="glass-panel hide-on-print" style={{ padding: '20px 18px', borderRadius: '16px', background: '#ffffff', border: '1px solid #e4dfd5', boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0 }}>
               Report Parameters & Filters
             </h4>
-            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#696358' }}>
               Select timeframe, academic branch, and course
             </p>
           </div>
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#faf5ea', color: '#684c20', border: '1px solid #dfcfaf' }}>
             Official Records
           </span>
         </div>
@@ -150,7 +150,7 @@ export default function AttendanceReportsView({
         }}>
           {/* Start Date */}
           <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-            <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>
+            <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#58534a', marginBottom: '5px', display: 'block' }}>
               Start Date
             </label>
             <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%', boxSizing: 'border-box' }}>
@@ -158,10 +158,10 @@ export default function AttendanceReportsView({
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, -1, setReportStartDate); }}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
+                  background: '#faf9f6',
+                  border: '1px solid #cfc8ba',
                   borderRadius: '8px',
-                  color: '#475569',
+                  color: '#58534a',
                   padding: '0',
                   width: '36px',
                   minWidth: '36px',
@@ -184,16 +184,16 @@ export default function AttendanceReportsView({
                 className="form-input flex-input" 
                 value={reportStartDate} 
                 onChange={e => setReportStartDate(e.target.value)} 
-                style={{ height: '40px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.84rem' }}
+                style={{ height: '40px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cfc8ba', padding: '0 8px', fontSize: '0.84rem' }}
               />
               <button
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportStartDate, 1, setReportStartDate); }}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
+                  background: '#faf9f6',
+                  border: '1px solid #cfc8ba',
                   borderRadius: '8px',
-                  color: '#475569',
+                  color: '#58534a',
                   padding: '0',
                   width: '36px',
                   minWidth: '36px',
@@ -216,7 +216,7 @@ export default function AttendanceReportsView({
 
           {/* End Date */}
           <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-            <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>
+            <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#58534a', marginBottom: '5px', display: 'block' }}>
               End Date
             </label>
             <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%', boxSizing: 'border-box' }}>
@@ -224,10 +224,10 @@ export default function AttendanceReportsView({
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, -1, setReportEndDate); }}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
+                  background: '#faf9f6',
+                  border: '1px solid #cfc8ba',
                   borderRadius: '8px',
-                  color: '#475569',
+                  color: '#58534a',
                   padding: '0',
                   width: '36px',
                   minWidth: '36px',
@@ -250,16 +250,16 @@ export default function AttendanceReportsView({
                 className="form-input flex-input" 
                 value={reportEndDate} 
                 onChange={e => setReportEndDate(e.target.value)} 
-                style={{ height: '40px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.84rem' }}
+                style={{ height: '40px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cfc8ba', padding: '0 8px', fontSize: '0.84rem' }}
               />
               <button
                 type="button"
                 onClick={() => { playCyberSound('click'); shiftDate(reportEndDate, 1, setReportEndDate); }}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
+                  background: '#faf9f6',
+                  border: '1px solid #cfc8ba',
                   borderRadius: '8px',
-                  color: '#475569',
+                  color: '#58534a',
                   padding: '0',
                   width: '36px',
                   minWidth: '36px',
@@ -284,12 +284,12 @@ export default function AttendanceReportsView({
           {userRole === 'admin' ? (
             <>
               <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-                <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>Department</label>
+                <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#58534a', marginBottom: '5px', display: 'block' }}>Department</label>
                 <select 
                   className="form-input" 
                   value={reportDeptFilter} 
                   onChange={e => { setReportDeptFilter(e.target.value); setSelectedReportSubjectId(''); }}
-                  style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
+                  style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cfc8ba', padding: '0 10px', fontSize: '0.84rem' }}
                 >
                   <option value="">All Departments</option>
                   {departments.map(dept => (
@@ -300,12 +300,12 @@ export default function AttendanceReportsView({
 
               {/* Subject */}
               <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-                <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>Subject</label>
+                <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#58534a', marginBottom: '5px', display: 'block' }}>Subject</label>
                 <select 
                   className="form-input" 
                   value={selectedReportSubjectId} 
                   onChange={e => setSelectedReportSubjectId(e.target.value)}
-                  style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
+                  style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cfc8ba', padding: '0 10px', fontSize: '0.84rem' }}
                 >
                   <option value="">All Subjects</option>
                   {(reportDeptFilter 
@@ -319,12 +319,12 @@ export default function AttendanceReportsView({
             </>
           ) : userRole === 'teacher' ? (
             <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px', display: 'block' }}>Subject</label>
+              <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700, color: '#58534a', marginBottom: '5px', display: 'block' }}>Subject</label>
               <select 
                 className="form-input" 
                 value={selectedReportSubjectId} 
                 onChange={e => setSelectedReportSubjectId(e.target.value)}
-                style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem', cursor: 'default' }}
+                style={{ height: '40px', width: '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: '8px', border: '1px solid #cfc8ba', padding: '0 10px', fontSize: '0.84rem', cursor: 'default' }}
                 disabled={true}
               >
                 {subjects.filter(s => s.teacher_id === currentUser?.details?.id).map(s => (
@@ -354,7 +354,7 @@ export default function AttendanceReportsView({
                 fontWeight: 700,
                 fontSize: '0.88rem',
                 height: '42px',
-                background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)',
                 border: 'none',
                 color: '#ffffff',
                 display: 'inline-flex',
@@ -380,8 +380,8 @@ export default function AttendanceReportsView({
                   fontSize: '0.88rem',
                   height: '42px',
                   background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  color: '#1e293b',
+                  border: '1px solid #cfc8ba',
+                  color: '#302d27',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -430,7 +430,7 @@ export default function AttendanceReportsView({
       }}>
         <div style={{
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '14px',
           padding: '12px 8px',
           display: 'flex',
@@ -440,20 +440,20 @@ export default function AttendanceReportsView({
           boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
           gap: '4px'
         }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#faf5ea', color: '#684c20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Users size={17} />
           </div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', lineHeight: 1.1 }}>
             {students.length}
           </div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Scanned Students
           </div>
         </div>
 
         <div style={{
           background: students.filter(s => s.low_attendance).length > 0 ? '#fef2f2' : '#ffffff',
-          border: students.filter(s => s.low_attendance).length > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
+          border: students.filter(s => s.low_attendance).length > 0 ? '1px solid #fecaca' : '1px solid #e4dfd5',
           borderRadius: '14px',
           padding: '12px 8px',
           display: 'flex',
@@ -467,7 +467,7 @@ export default function AttendanceReportsView({
             width: '32px',
             height: '32px',
             borderRadius: '8px',
-            background: students.filter(s => s.low_attendance).length > 0 ? '#fee2e2' : '#f1f5f9',
+            background: students.filter(s => s.low_attendance).length > 0 ? '#fee2e2' : '#f4f1eb',
             color: students.filter(s => s.low_attendance).length > 0 ? '#dc2626' : '#94a3b8',
             display: 'flex',
             alignItems: 'center',
@@ -478,19 +478,19 @@ export default function AttendanceReportsView({
           <div style={{
             fontSize: '1.35rem',
             fontWeight: 800,
-            color: students.filter(s => s.low_attendance).length > 0 ? '#dc2626' : '#0f172a',
+            color: students.filter(s => s.low_attendance).length > 0 ? '#dc2626' : '#25231f',
             lineHeight: 1.1
           }}>
             {students.filter(s => s.low_attendance).length}
           </div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Low Attendance
           </div>
         </div>
 
         <div style={{
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '14px',
           padding: '12px 8px',
           display: 'flex',
@@ -503,12 +503,12 @@ export default function AttendanceReportsView({
           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <TrendingUp size={17} />
           </div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', lineHeight: 1.1 }}>
             {students.length > 0 
               ? (students.reduce((acc, s) => acc + s.percentage, 0) / students.length).toFixed(1)
               : '0.0'}%
           </div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Avg Presence
           </div>
         </div>
@@ -540,9 +540,9 @@ export default function AttendanceReportsView({
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    border: attendanceFilterPill === 'ALL' ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                    background: attendanceFilterPill === 'ALL' ? '#eff6ff' : '#ffffff',
-                    color: attendanceFilterPill === 'ALL' ? '#1d4ed8' : '#64748b',
+                    border: attendanceFilterPill === 'ALL' ? '1.5px solid #916d30' : '1px solid #cfc8ba',
+                    background: attendanceFilterPill === 'ALL' ? '#faf5ea' : '#ffffff',
+                    color: attendanceFilterPill === 'ALL' ? '#684c20' : '#696358',
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -557,9 +557,9 @@ export default function AttendanceReportsView({
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    border: attendanceFilterPill === 'SHORTAGE' ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                    border: attendanceFilterPill === 'SHORTAGE' ? '1.5px solid #ef4444' : '1px solid #cfc8ba',
                     background: attendanceFilterPill === 'SHORTAGE' ? '#fef2f2' : '#ffffff',
-                    color: attendanceFilterPill === 'SHORTAGE' ? '#dc2626' : '#64748b',
+                    color: attendanceFilterPill === 'SHORTAGE' ? '#dc2626' : '#696358',
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -574,16 +574,16 @@ export default function AttendanceReportsView({
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    border: attendanceFilterPill === 'SATISFACTORY' ? '1.5px solid #10b981' : '1px solid #cbd5e1',
+                    border: attendanceFilterPill === 'SATISFACTORY' ? '1.5px solid #10b981' : '1px solid #cfc8ba',
                     background: attendanceFilterPill === 'SATISFACTORY' ? '#ecfdf5' : '#ffffff',
-                    color: attendanceFilterPill === 'SATISFACTORY' ? '#059669' : '#64748b',
+                    color: attendanceFilterPill === 'SATISFACTORY' ? '#059669' : '#696358',
                     transition: 'all 0.15s ease'
                   }}
                 >
                   ✅ Satisfactory (≥75%) ({students.filter(s => s.percentage >= 75 && !s.low_attendance).length})
                 </button>
               </div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>
+              <span style={{ fontSize: '0.78rem', color: '#696358', fontWeight: 500 }}>
                 Showing <strong>{displayedStudents.length}</strong> of {students.length} students
               </span>
             </div>
@@ -591,7 +591,7 @@ export default function AttendanceReportsView({
             {/* Mobile-Friendly Student Cards View */}
             <div className="reports-mobile-cards hide-on-desktop" style={{ display: 'none', flexDirection: 'column', gap: '10px' }}>
               {displayedStudents.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '0.85rem' }}>
+                <div style={{ textAlign: 'center', padding: '24px', color: '#696358', fontSize: '0.85rem' }}>
                   No students match the selected filter.
                 </div>
               ) : (
@@ -600,7 +600,7 @@ export default function AttendanceReportsView({
                     key={student.id}
                     style={{
                       background: '#ffffff',
-                      border: student.low_attendance ? '1.5px solid #fecaca' : '1px solid #e2e8f0',
+                      border: student.low_attendance ? '1.5px solid #fecaca' : '1px solid #e4dfd5',
                       borderRadius: '12px',
                       padding: '12px 14px',
                       display: 'flex',
@@ -611,10 +611,10 @@ export default function AttendanceReportsView({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {student.name}
                         </div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#696358' }}>
                           Roll #{student.roll} • <span style={{ color: '#7c3aed', fontWeight: 600 }}>{student.dep}</span>
                         </div>
                       </div>
@@ -639,9 +639,9 @@ export default function AttendanceReportsView({
                         </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', paddingTop: '4px', borderTop: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#696358', paddingTop: '4px', borderTop: '1px solid #f4f1eb' }}>
                       <span>Attended: <strong>{student.present_days} / {student.total_days}</strong> days</span>
-                      <div style={{ width: '80px', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: '80px', height: '6px', background: '#f4f1eb', borderRadius: '3px', overflow: 'hidden' }}>
                         <div style={{
                           width: `${Math.min(student.percentage, 100)}%`,
                           height: '100%',
@@ -672,7 +672,7 @@ export default function AttendanceReportsView({
                 <tbody>
                   {displayedStudents.length === 0 ? (
                     <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', padding: '28px', color: '#64748b' }}>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '28px', color: '#696358' }}>
                         No students match the selected filter.
                       </td>
                     </tr>

@@ -22,14 +22,14 @@ export default function AppVersionSettings({
       padding: '32px',
       borderRadius: '20px',
       background: '#ffffff',
-      border: '1px solid #e2e8f0',
+      border: '1px solid #e4dfd5',
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
       display: 'flex',
       flexDirection: 'column',
       gap: '24px',
-      color: '#0f172a'
+      color: '#25231f'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid #e4dfd5', paddingBottom: '18px' }}>
         <div style={{
           width: '46px',
           height: '46px',
@@ -39,20 +39,20 @@ export default function AppVersionSettings({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#0284c7'
+          color: '#80602c'
         }}>
           <Smartphone size={24} />
         </div>
         <div>
           <h3 style={{
-            color: '#0f172a',
+            color: '#25231f',
             margin: 0,
             fontSize: '1.35rem',
             fontWeight: 800
           }}>
             App Version & Update Status Console
           </h3>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
+          <p style={{ color: '#696358', fontSize: '0.85rem', margin: '4px 0 0' }}>
             Monitor production releases, mobile APK updates, and server synchronization
           </p>
         </div>
@@ -83,7 +83,7 @@ export default function AppVersionSettings({
                 Admin Release Management Console
               </h4>
             </div>
-            <p style={{ margin: 0, color: '#475569', fontSize: '0.85rem', lineHeight: 1.4 }}>
+            <p style={{ margin: 0, color: '#58534a', fontSize: '0.85rem', lineHeight: 1.4 }}>
               Publish a new system version, trigger GitHub Actions automated APK builds, and control the live update download banner for all users.
             </p>
           </div>
@@ -117,13 +117,13 @@ export default function AppVersionSettings({
       <div style={{
         padding: '20px',
         borderRadius: '16px',
-        background: '#f8fafc',
-        border: '1px solid #e2e8f0',
+        background: '#faf9f6',
+        border: '1px solid #e4dfd5',
         display: 'flex',
         flexDirection: 'column',
         gap: '12px'
       }}>
-        <div style={{ color: '#334155', fontSize: '0.85rem', lineHeight: 1.5 }}>
+        <div style={{ color: '#46423b', fontSize: '0.85rem', lineHeight: 1.5 }}>
           💡 <strong>Installation Confirmation:</strong> After installing a new APK or deploying an update, tap the button below to confirm installation and dismiss update alerts until the next release.
         </div>
 
@@ -141,7 +141,7 @@ export default function AppVersionSettings({
             alignSelf: 'flex-start',
             padding: '12px 22px',
             borderRadius: '10px',
-            background: '#0284c7',
+            background: '#80602c',
             border: 'none',
             color: '#ffffff',
             fontWeight: 700,

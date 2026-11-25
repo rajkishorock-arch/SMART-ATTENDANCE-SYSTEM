@@ -170,10 +170,10 @@ export default function TodaySessionHub({
             <button
               onClick={() => onNavigateTab('broadcast')}
               className="btn-secondary active-haptic"
-              style={{ minHeight: '40px', padding: '8px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8' }}
+              style={{ minHeight: '40px', padding: '8px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#faf5ea', border: '1px solid #dfcfaf', color: '#684c20' }}
               title="View Official Notice Board & Circulars"
             >
-              <Megaphone size={14} color="#2563eb" />
+              <Megaphone size={14} color="#785927" />
               <span>Notice Board</span>
             </button>
           )}
@@ -290,7 +290,7 @@ export default function TodaySessionHub({
                   style={{
                     padding: '8px 4px',
                     borderRadius: '10px',
-                    border: `1.5px solid ${isSelected ? '#0ea5e9' : 'rgba(255, 255, 255, 0.12)'}`,
+                    border: `1.5px solid ${isSelected ? '#987235' : 'rgba(255, 255, 255, 0.12)'}`,
                     background: isSelected ? 'rgba(14, 165, 233, 0.22)' : 'rgba(255, 255, 255, 0.04)',
                     color: isSelected ? '#38bdf8' : 'var(--color-text-secondary)',
                     fontSize: '0.78rem',
@@ -314,7 +314,7 @@ export default function TodaySessionHub({
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
                 {lang === 'hi' ? 'विषय चुनें' : 'Select Subject / Course'}
               </label>
-              <span style={{ fontSize: '0.72rem', color: '#0ea5e9', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', color: '#987235', fontWeight: 700 }}>
                 • {selectedPeriod}
               </span>
             </div>
@@ -334,9 +334,9 @@ export default function TodaySessionHub({
 
           {/* Quick Enrolled & Present Snapshot */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('total_enrolled', lang)}</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{enrolledStudents.length}</div>
+            <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', color: '#696358' }}>{t('total_enrolled', lang)}</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>{enrolledStudents.length}</div>
             </div>
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
               <div style={{ fontSize: '0.7rem', color: '#059669' }}>{t('marked_present', lang)}</div>
@@ -367,7 +367,7 @@ export default function TodaySessionHub({
               gap: '10px',
               borderRadius: 'var(--radius-md)',
               cursor: 'pointer',
-              background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+              background: 'linear-gradient(135deg, #987235 0%, #80602c 100%)',
               boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)'
             }}
           >
@@ -413,20 +413,20 @@ export default function TodaySessionHub({
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '8px 12px',
-                  background: '#f8fafc',
+                  background: '#faf9f6',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid #e2e8f0'
+                  border: '1px solid #e4dfd5'
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{stu.name}</div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{stu.roll} · {stu.dep}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#25231f' }}>{stu.name}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#696358' }}>{stu.roll} · {stu.dep}</div>
                 </div>
 
                 <button
                   onClick={onOpenManualAttendance}
                   className="btn-ghost"
-                  style={{ minHeight: '30px', padding: '3px 8px', fontSize: '0.72rem', color: '#0ea5e9' }}
+                  style={{ minHeight: '30px', padding: '3px 8px', fontSize: '0.72rem', color: '#987235' }}
                 >
                   {t('mark_manual', lang)}
                 </button>
@@ -461,7 +461,7 @@ export default function TodaySessionHub({
               maxWidth: '480px',
               padding: '24px',
               background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
               borderRadius: 'var(--radius-xl)',
               animation: 'scaleIn 0.25s ease'
@@ -471,28 +471,28 @@ export default function TodaySessionHub({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={22} color="#10b981" />
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#25231f' }}>
                   {t('session_summary', lang)}
                 </h3>
               </div>
               <button
                 onClick={() => setShowSummaryModal(false)}
                 className="clean-back-btn"
-                style={{ width: '36px', height: '36px', color: '#64748b' }}
+                style={{ width: '36px', height: '36px', color: '#696358' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '16px' }}>
+            <div style={{ color: '#696358', fontSize: '0.82rem', marginBottom: '16px' }}>
               {lastEndedSummary.subjectName} · {lastEndedSummary.period} · {lastEndedSummary.timestamp}
             </div>
 
             {/* Scoreboard */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('total_enrolled', lang)}</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>{lastEndedSummary.totalEnrolled}</div>
+              <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', color: '#696358' }}>{t('total_enrolled', lang)}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#25231f' }}>{lastEndedSummary.totalEnrolled}</div>
               </div>
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.72rem', color: '#059669' }}>{t('marked_present', lang)}</div>
@@ -507,16 +507,16 @@ export default function TodaySessionHub({
             {/* Absent List with Action */}
             {lastEndedSummary.absentList.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#58534a', marginBottom: '8px' }}>
                   {t('absent_students', lang)}:
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
                   {lastEndedSummary.absentList.map(stu => (
-                    <div key={stu.id || stu.roll} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#0f172a' }}>{stu.name} ({stu.roll})</span>
+                    <div key={stu.id || stu.roll} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '6px' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#25231f' }}>{stu.name} ({stu.roll})</span>
                       <button
                         onClick={onOpenManualAttendance}
-                        style={{ background: 'none', border: 'none', color: '#0ea5e9', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
+                        style={{ background: 'none', border: 'none', color: '#987235', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
                       >
                         {t('mark_manual', lang)}
                       </button>

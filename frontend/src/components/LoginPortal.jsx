@@ -32,7 +32,7 @@ const ROLES = [
     id: 'teacher',
     label: 'Teacher',
     icon: UserCog,
-    color: '#3b82f6',
+    color: '#916d30',
     description: 'Mark attendance, manage logs & sessions'
   },
   {
@@ -186,8 +186,8 @@ export default function LoginPortal({
         admin_name: regName.trim(),
         admin_email: regEmail.trim().toLowerCase(),
         admin_password: regPassword,
-        primary_color: '#0284c7',
-        secondary_color: '#0ea5e9',
+        primary_color: '#80602c',
+        secondary_color: '#987235',
         subscription_plan: 'free'
       };
     } else if (isStudent) {
@@ -261,7 +261,7 @@ export default function LoginPortal({
       justifyContent: 'center',
       padding: '20px 16px',
       fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
-      color: '#0f172a',
+      color: '#25231f',
       boxSizing: 'border-box'
     }}>
       <div 
@@ -304,7 +304,7 @@ export default function LoginPortal({
                 <ShieldCheck size={20} color="#ffffff" />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#25231f', margin: 0 }}>
                   Smart Attendance
                 </h3>
               </div>
@@ -313,10 +313,10 @@ export default function LoginPortal({
 
           {/* Login / Register Toggle Header */}
           <div style={{ marginBottom: '24px' }}>
-            <h1 style={{ fontSize: 'clamp(1.65rem, 4vw, 2rem)', fontWeight: 650, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: 'clamp(1.65rem, 4vw, 2rem)', fontWeight: 650, color: '#25231f', margin: 0, letterSpacing: '-0.02em' }}>
               {isRegister ? 'Create Your Account' : 'Welcome back'}
             </h1>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>
+            <p style={{ fontSize: '0.85rem', color: '#696358', margin: '4px 0 0' }}>
               {isRegister 
                 ? 'Join your institutional workspace in 3 quick steps'
                 : 'Sign in to access your attendance workspace'}
@@ -413,8 +413,8 @@ export default function LoginPortal({
             <div style={{
               padding: '24px',
               borderRadius: '16px',
-              background: '#f8fafc',
-              border: '1.5px solid #cbd5e1',
+              background: '#faf9f6',
+              border: '1.5px solid #cfc8ba',
               boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
               marginBottom: '20px'
             }}>
@@ -423,27 +423,27 @@ export default function LoginPortal({
                   <CheckCircle2 size={22} color="#059669" />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
                     Institution Workspace Provisioned!
                   </h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#696358' }}>
                     Your multi-tenant workspace is live and isolated.
                   </p>
                 </div>
               </div>
 
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.82rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                  <span style={{ color: '#64748b', fontWeight: 600 }}>Institution Name:</span>
-                  <span style={{ color: '#0f172a', fontWeight: 700 }}>{regSuccessData.institution_name}</span>
+              <div style={{ background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.82rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '8px' }}>
+                  <span style={{ color: '#696358', fontWeight: 600 }}>Institution Name:</span>
+                  <span style={{ color: '#25231f', fontWeight: 700 }}>{regSuccessData.institution_name}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                  <span style={{ color: '#64748b', fontWeight: 600 }}>Institution code:</span>
-                  <span style={{ color: '#0284c7', fontWeight: 800, fontFamily: 'monospace' }}>{regSuccessData.institution_code}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '8px' }}>
+                  <span style={{ color: '#696358', fontWeight: 600 }}>Institution code:</span>
+                  <span style={{ color: '#80602c', fontWeight: 800, fontFamily: 'monospace' }}>{regSuccessData.institution_code}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                  <span style={{ color: '#64748b', fontWeight: 600 }}>Admin Login Email:</span>
-                  <span style={{ color: '#0f172a', fontWeight: 600 }}>{regSuccessData.admin_email}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '8px' }}>
+                  <span style={{ color: '#696358', fontWeight: 600 }}>Admin Login Email:</span>
+                  <span style={{ color: '#25231f', fontWeight: 600 }}>{regSuccessData.admin_email}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '10px', padding: '10px 14px' }}>
                   <div>
@@ -481,7 +481,7 @@ export default function LoginPortal({
                 </div>
               </div>
 
-              <p style={{ margin: '12px 0 16px', fontSize: '0.75rem', color: '#475569', lineHeight: 1.45 }}>
+              <p style={{ margin: '12px 0 16px', fontSize: '0.75rem', color: '#58534a', lineHeight: 1.45 }}>
                 🔒 <strong>Please note down this Master Key!</strong> It is required to approve critical administrative actions (reset operations, student deletions, and master password modifications). A copy has also been sent to your email.
               </p>
 
@@ -507,7 +507,7 @@ export default function LoginPortal({
             <div style={{ padding: '28px', borderRadius: '16px', background: '#ecfdf5', border: '1px solid #a7f3d0', textAlign: 'center' }}>
               <CheckCircle2 size={44} color="#059669" style={{ margin: '0 auto 12px auto' }} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46', margin: 0 }}>Account Created Successfully!</h3>
-              <p style={{ fontSize: '0.84rem', color: '#334155', margin: '8px 0 20px 0', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.84rem', color: '#46423b', margin: '8px 0 20px 0', lineHeight: 1.5 }}>
                 You can now log in using your credentials. Face enrollment is recommended for biometric attendance scanning.
               </p>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
@@ -542,8 +542,8 @@ export default function LoginPortal({
                 gap: '6px',
                 padding: '4px',
                 borderRadius: '12px',
-                background: '#f1f5f9',
-                border: '1px solid #e2e8f0',
+                background: '#f4f1eb',
+                border: '1px solid #e4dfd5',
                 marginBottom: '20px',
                 width: '100%',
                 boxSizing: 'border-box'
@@ -560,7 +560,7 @@ export default function LoginPortal({
                       borderRadius: '8px',
                       border: 'none',
                       background: loginRole === role.id ? '#ffffff' : 'transparent',
-                      color: loginRole === role.id ? '#0f172a' : '#64748b',
+                      color: loginRole === role.id ? '#25231f' : '#696358',
                       fontSize: '0.82rem',
                       fontWeight: loginRole === role.id ? 700 : 500,
                       boxShadow: loginRole === role.id ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
@@ -574,7 +574,7 @@ export default function LoginPortal({
                       minWidth: 0
                     }}
                   >
-                    <role.icon size={15} color={loginRole === role.id ? 'var(--color-primary)' : '#64748b'} style={{ flexShrink: 0 }} />
+                    <role.icon size={15} color={loginRole === role.id ? 'var(--color-primary)' : '#696358'} style={{ flexShrink: 0 }} />
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{role.label}</span>
                   </button>
                 ))}
@@ -583,7 +583,7 @@ export default function LoginPortal({
               <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* Institution / Workspace Code (Optional) */}
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                     Institution Code <span style={{ color: '#94a3b8', fontWeight: 400 }}>(e.g. rit — leave blank for default)</span>
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -598,21 +598,21 @@ export default function LoginPortal({
                         padding: '12px 14px 12px 40px',
                         borderRadius: '10px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid #cfc8ba',
+                        color: '#25231f',
                         fontSize: '0.88rem',
                         outline: 'none',
                         boxSizing: 'border-box',
                         transition: 'border-color 0.15s ease'
                       }}
                     />
-                    <Building2 size={16} color="#64748b" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <Building2 size={16} color="#696358" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   </div>
                 </div>
 
                 {/* Email / Roll / Username */}
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                     {loginRole === 'student' ? 'Student Roll No. or Email' : 'Email or Username'}
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -629,21 +629,21 @@ export default function LoginPortal({
                         padding: '12px 14px 12px 40px',
                         borderRadius: '10px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid #cfc8ba',
+                        color: '#25231f',
                         fontSize: '0.88rem',
                         outline: 'none',
                         boxSizing: 'border-box',
                         transition: 'border-color 0.15s ease'
                       }}
                     />
-                    <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <Mail size={16} color="#696358" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   </div>
                 </div>
 
                 {/* Password with Eye Toggle */}
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                     Password
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -660,14 +660,14 @@ export default function LoginPortal({
                         padding: '12px 40px 12px 40px',
                         borderRadius: '10px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid #cfc8ba',
+                        color: '#25231f',
                         fontSize: '0.88rem',
                         outline: 'none',
                         boxSizing: 'border-box'
                       }}
                     />
-                    <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <Lock size={16} color="#696358" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
@@ -678,7 +678,7 @@ export default function LoginPortal({
                         transform: 'translateY(-50%)',
                         background: 'none',
                         border: 'none',
-                        color: '#64748b',
+                        color: '#696358',
                         cursor: 'pointer',
                         padding: '4px',
                         display: 'flex',
@@ -692,12 +692,12 @@ export default function LoginPortal({
 
                 {/* Remember Me & Forgot Password Row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#58534a', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      style={{ accentColor: '#0284c7', width: '15px', height: '15px' }}
+                      style={{ accentColor: '#80602c', width: '15px', height: '15px' }}
                     />
                     <span>Remember me</span>
                   </label>
@@ -705,7 +705,7 @@ export default function LoginPortal({
                   <button
                     type="button"
                     onClick={() => { setShowForgotPasswordModal(true); setForgotSubmitted(false); setForgotEmail(loginEmail || ''); }}
-                    style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ background: 'none', border: 'none', color: '#80602c', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Forgot password?
                   </button>
@@ -741,9 +741,9 @@ export default function LoginPortal({
 
               {/* Divider & SSO Option */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0 16px 0' }}>
-                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>or continue with</span>
-                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                <div style={{ flex: 1, height: '1px', background: '#e4dfd5' }} />
+                <span style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 600, textTransform: 'uppercase' }}>or continue with</span>
+                <div style={{ flex: 1, height: '1px', background: '#e4dfd5' }} />
               </div>
 
               {/* Guest / SSO Quick Action */}
@@ -754,9 +754,9 @@ export default function LoginPortal({
                   width: '100%',
                   padding: '10px 16px',
                   borderRadius: '10px',
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  color: '#334155',
+                  background: '#faf9f6',
+                  border: '1px solid #cfc8ba',
+                  color: '#46423b',
                   fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -766,12 +766,12 @@ export default function LoginPortal({
                   gap: '8px'
                 }}
               >
-                <Sparkles size={15} color="#0284c7" />
+                <Sparkles size={15} color="#80602c" />
                 <span>Explore Guest Demo Mode</span>
               </button>
 
               {/* Signup Link Footer */}
-              <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
+              <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.82rem', color: '#696358' }}>
                 Don't have an account or onboarding a new school?{' '}
                 <button
                   type="button"
@@ -780,7 +780,7 @@ export default function LoginPortal({
                     setIsRegister(true);
                     setRegStep(1);
                   }}
-                  style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontWeight: 700, padding: 0 }}
+                  style={{ background: 'none', border: 'none', color: '#80602c', cursor: 'pointer', fontWeight: 700, padding: 0 }}
                 >
                   Sign up now
                 </button>
@@ -791,11 +791,11 @@ export default function LoginPortal({
             <div>
               {/* Wizard Progress Bar */}
               <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#0284c7', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#80602c', marginBottom: '8px' }}>
                   <span>Step {regStep} of 3</span>
                   <span>{regStep === 1 ? 'Personal Details' : regStep === 2 ? (loginRole === 'admin' ? 'Institution Info' : 'Academic Info') : 'Security & Consent'}</span>
                 </div>
-                <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ width: '100%', height: '4px', background: '#e4dfd5', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ width: `${(regStep / 3) * 100}%`, height: '100%', background: 'var(--color-primary)', transition: 'width 0.25s ease' }} />
                 </div>
               </div>
@@ -804,14 +804,14 @@ export default function LoginPortal({
               {regStep === 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                       Registering As
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                       {[
                         { id: 'admin', label: 'New Institution', icon: Crown, color: '#8b5cf6' },
                         { id: 'student', label: 'Student', icon: GraduationCap, color: '#10b981' },
-                        { id: 'teacher', label: 'Teacher', icon: UserCog, color: '#0284c7' }
+                        { id: 'teacher', label: 'Teacher', icon: UserCog, color: '#80602c' }
                       ].map(role => (
                         <button
                           key={role.id}
@@ -821,9 +821,9 @@ export default function LoginPortal({
                           style={{
                             padding: '10px 6px',
                             borderRadius: '10px',
-                            border: loginRole === role.id ? `2px solid ${role.color}` : '1px solid #cbd5e1',
-                            background: loginRole === role.id ? '#f8fafc' : '#ffffff',
-                            color: loginRole === role.id ? '#0f172a' : '#64748b',
+                            border: loginRole === role.id ? `2px solid ${role.color}` : '1px solid #cfc8ba',
+                            background: loginRole === role.id ? '#faf9f6' : '#ffffff',
+                            color: loginRole === role.id ? '#25231f' : '#696358',
                             fontSize: '0.8rem',
                             fontWeight: loginRole === role.id ? 700 : 500,
                             cursor: 'pointer',
@@ -849,7 +849,7 @@ export default function LoginPortal({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                       {loginRole === 'admin' ? 'Administrator Full Name' : 'Full Name'}
                     </label>
                     <input
@@ -863,8 +863,8 @@ export default function LoginPortal({
                         padding: '12px 14px',
                         borderRadius: '10px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid #cfc8ba',
+                        color: '#25231f',
                         fontSize: '0.88rem',
                         outline: 'none',
                         boxSizing: 'border-box'
@@ -873,7 +873,7 @@ export default function LoginPortal({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                       {loginRole === 'admin' ? 'Administrator Work Email' : 'Email Address'}
                     </label>
                     <input
@@ -887,8 +887,8 @@ export default function LoginPortal({
                         padding: '12px 14px',
                         borderRadius: '10px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid #cfc8ba',
+                        color: '#25231f',
                         fontSize: '0.88rem',
                         outline: 'none',
                         boxSizing: 'border-box'
@@ -930,7 +930,7 @@ export default function LoginPortal({
                   {loginRole === 'admin' ? (
                     <>
                       <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                           Institution / Organization Name
                         </label>
                         <input
@@ -949,8 +949,8 @@ export default function LoginPortal({
                             padding: '12px 14px',
                             borderRadius: '10px',
                             background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            color: '#0f172a',
+                            border: '1px solid #cfc8ba',
+                            color: '#25231f',
                             fontSize: '0.88rem',
                             outline: 'none',
                             boxSizing: 'border-box'
@@ -959,7 +959,7 @@ export default function LoginPortal({
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                           Unique Institution Code / Slug
                         </label>
                         <input
@@ -973,20 +973,20 @@ export default function LoginPortal({
                             padding: '12px 14px',
                             borderRadius: '10px',
                             background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            color: '#0f172a',
+                            border: '1px solid #cfc8ba',
+                            color: '#25231f',
                             fontSize: '0.88rem',
                             outline: 'none',
                             boxSizing: 'border-box'
                           }}
                         />
-                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#696358', display: 'block', marginTop: '4px' }}>
                           This unique identifier scopes your data and gives your staff and students a clean portal access code.
                         </span>
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                           Primary Contact Phone (Optional)
                         </label>
                         <input
@@ -1000,8 +1000,8 @@ export default function LoginPortal({
                             padding: '12px 14px',
                             borderRadius: '10px',
                             background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            color: '#0f172a',
+                            border: '1px solid #cfc8ba',
+                            color: '#25231f',
                             fontSize: '0.88rem',
                             outline: 'none',
                             boxSizing: 'border-box'
@@ -1012,7 +1012,7 @@ export default function LoginPortal({
                   ) : (
                     <>
                       <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                           Institution Code
                         </label>
                         <input
@@ -1026,8 +1026,8 @@ export default function LoginPortal({
                             padding: '12px 14px',
                             borderRadius: '10px',
                             background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            color: '#0f172a',
+                            border: '1px solid #cfc8ba',
+                            color: '#25231f',
                             fontSize: '0.88rem',
                             outline: 'none',
                             boxSizing: 'border-box'
@@ -1038,7 +1038,7 @@ export default function LoginPortal({
                       {loginRole === 'student' ? (
                         <>
                           <div>
-                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                               Student Roll Number / ID
                             </label>
                             <input
@@ -1052,8 +1052,8 @@ export default function LoginPortal({
                                 padding: '12px 14px',
                                 borderRadius: '10px',
                                 background: '#ffffff',
-                                border: '1px solid #cbd5e1',
-                                color: '#0f172a',
+                                border: '1px solid #cfc8ba',
+                                color: '#25231f',
                                 fontSize: '0.88rem',
                                 outline: 'none',
                                 boxSizing: 'border-box'
@@ -1062,7 +1062,7 @@ export default function LoginPortal({
                           </div>
 
                           <div>
-                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                               Academic Department
                             </label>
                             <input
@@ -1076,8 +1076,8 @@ export default function LoginPortal({
                                 padding: '12px 14px',
                                 borderRadius: '10px',
                                 background: '#ffffff',
-                                border: '1px solid #cbd5e1',
-                                color: '#0f172a',
+                                border: '1px solid #cfc8ba',
+                                color: '#25231f',
                                 fontSize: '0.88rem',
                                 outline: 'none',
                                 boxSizing: 'border-box'
@@ -1087,7 +1087,7 @@ export default function LoginPortal({
                         </>
                       ) : (
                         <div>
-                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                             Teaching Department
                           </label>
                           <input
@@ -1101,8 +1101,8 @@ export default function LoginPortal({
                               padding: '12px 14px',
                               borderRadius: '10px',
                               background: '#ffffff',
-                              border: '1px solid #cbd5e1',
-                              color: '#0f172a',
+                              border: '1px solid #cfc8ba',
+                              color: '#25231f',
                               fontSize: '0.88rem',
                               outline: 'none',
                               boxSizing: 'border-box'
@@ -1122,8 +1122,8 @@ export default function LoginPortal({
                         padding: '12px 16px',
                         borderRadius: '10px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#475569',
+                        border: '1px solid #cfc8ba',
+                        color: '#58534a',
                         fontSize: '0.88rem',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -1169,7 +1169,7 @@ export default function LoginPortal({
               {regStep === 3 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                       Password
                     </label>
                     <div style={{ position: 'relative' }}>
@@ -1184,8 +1184,8 @@ export default function LoginPortal({
                           padding: '12px 40px 12px 14px',
                           borderRadius: '10px',
                           background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          color: '#0f172a',
+                          border: '1px solid #cfc8ba',
+                          color: '#25231f',
                           fontSize: '0.88rem',
                           outline: 'none',
                           boxSizing: 'border-box'
@@ -1201,7 +1201,7 @@ export default function LoginPortal({
                           transform: 'translateY(-50%)',
                           background: 'none',
                           border: 'none',
-                          color: '#64748b',
+                          color: '#696358',
                           cursor: 'pointer'
                         }}
                       >
@@ -1211,7 +1211,7 @@ export default function LoginPortal({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
                       Confirm Password
                     </label>
                     <input
@@ -1225,8 +1225,8 @@ export default function LoginPortal({
                         padding: '12px 14px',
                         borderRadius: '10px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid #cfc8ba',
+                        color: '#25231f',
                         fontSize: '0.88rem',
                         outline: 'none',
                         boxSizing: 'border-box'
@@ -1234,12 +1234,12 @@ export default function LoginPortal({
                     />
                   </div>
 
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.78rem', color: '#475569', cursor: 'pointer', marginTop: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.78rem', color: '#58534a', cursor: 'pointer', marginTop: '4px' }}>
                     <input
                       type="checkbox"
                       checked={regConsent}
                       onChange={(e) => setRegConsent(e.target.checked)}
-                      style={{ accentColor: '#0284c7', width: '16px', height: '16px', marginTop: '2px' }}
+                      style={{ accentColor: '#80602c', width: '16px', height: '16px', marginTop: '2px' }}
                     />
                     <span>
                       {loginRole === 'admin'
@@ -1257,8 +1257,8 @@ export default function LoginPortal({
                         padding: '12px 16px',
                         borderRadius: '10px',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#475569',
+                        border: '1px solid #cfc8ba',
+                        color: '#58534a',
                         fontSize: '0.88rem',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -1305,12 +1305,12 @@ export default function LoginPortal({
               )}
 
               {/* Back to Login */}
-              <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
+              <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.82rem', color: '#696358' }}>
                 Already registered?{' '}
                 <button
                   type="button"
                   onClick={() => setIsRegister(false)}
-                  style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontWeight: 700, padding: 0 }}
+                  style={{ background: 'none', border: 'none', color: '#80602c', cursor: 'pointer', fontWeight: 700, padding: 0 }}
                 >
                   Sign in
                 </button>
@@ -1329,18 +1329,18 @@ export default function LoginPortal({
         }}>
           <div style={{
             maxWidth: '440px', width: '100%', background: '#ffffff',
-            borderRadius: '16px', border: '1px solid #e2e8f0', padding: '28px',
+            borderRadius: '16px', border: '1px solid #e4dfd5', padding: '28px',
             boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
             animation: 'fadeInUp 0.25s ease'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', color: '#80602c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Lock size={20} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Password Recovery</h3>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>Account credentials assistance</p>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#25231f' }}>Password Recovery</h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#696358' }}>Account credentials assistance</p>
                 </div>
               </div>
               <button 
@@ -1357,11 +1357,11 @@ export default function LoginPortal({
                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
                   <CheckCircle2 size={28} />
                 </div>
-                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>Reset Request Dispatched</h4>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.5 }}>
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#25231f' }}>Reset Request Dispatched</h4>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#58534a', lineHeight: 1.5 }}>
                   If an account associated with <strong>{forgotEmail}</strong> exists in this workspace, password reset instructions and institutional admin notification have been generated.
                 </p>
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', fontSize: '0.78rem', color: '#64748b', textAlign: 'left' }}>
+                <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '10px', padding: '12px', fontSize: '0.78rem', color: '#696358', textAlign: 'left' }}>
                   💡 <strong>Tip for Students & Teachers:</strong> You can also request a temporary access token directly from your Department HOD or College Admin office.
                 </div>
                 <button
@@ -1376,11 +1376,11 @@ export default function LoginPortal({
               </div>
             ) : (
               <form onSubmit={handleForgotPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#58534a', lineHeight: 1.5 }}>
                   Enter your registered institutional email address. We will verify your workspace membership and assist with resetting your password.
                 </p>
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0f172a' }}>Registered Email Address</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#25231f' }}>Registered Email Address</label>
                   <input
                     type="email"
                     className="form-input"
@@ -1395,7 +1395,7 @@ export default function LoginPortal({
                   <button
                     type="button"
                     onClick={() => setShowForgotPasswordModal(false)}
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#475569', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', background: '#faf9f6', border: '1px solid #cfc8ba', color: '#58534a', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
                   >
                     Cancel
                   </button>

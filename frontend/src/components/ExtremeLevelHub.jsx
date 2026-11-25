@@ -409,7 +409,7 @@ export default function ExtremeLevelHub({
 
   return (
     <div className="extreme-hub glass-panel" style={{ padding: '20px' }}>
-      <h2 style={{ color: '#f8fafc', margin: '0 0 6px' }}>🌌 Extreme Level Hub (1–8)</h2>
+      <h2 style={{ color: '#faf9f6', margin: '0 0 6px' }}>🌌 Extreme Level Hub (1–8)</h2>
       <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 12px' }}>
         All {TOTAL_EXTREME_FEATURES} table features — Level 1 Pro App through Level 8 Monetization.
         {onOpenSearch && (
@@ -436,7 +436,7 @@ export default function ExtremeLevelHub({
         ))}
       </div>
 
-      <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '8px 0' }}>
+      <p style={{ color: '#696358', fontSize: '0.75rem', margin: '8px 0' }}>
         Level {currentLevel.id} — {currentLevel.features.length} features
       </p>
 

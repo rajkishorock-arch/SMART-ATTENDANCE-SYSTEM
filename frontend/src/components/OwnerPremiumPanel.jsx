@@ -122,7 +122,7 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
         border: '1px solid rgba(251,191,36,0.15)',
       }}>
         <div style={{ flex: 1, minWidth: '200px' }}>
-          <label style={{ color: '#cbd5e1', fontSize: '0.75rem', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+          <label style={{ color: '#cfc8ba', fontSize: '0.75rem', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
             <Shield size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
             Master Password (required for all changes)
           </label>
@@ -183,7 +183,7 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
       {activeTab === 'own' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '360px', overflowY: 'auto' }}>
           {users.length === 0 && (
-            <div style={{ color: '#64748b', textAlign: 'center', padding: '24px', fontSize: '0.85rem' }}>No users found in your institution.</div>
+            <div style={{ color: '#696358', textAlign: 'center', padding: '24px', fontSize: '0.85rem' }}>No users found in your institution.</div>
           )}
           {users.map((u) => (
             <div key={u.id} style={{
@@ -193,8 +193,8 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
               flexWrap: 'wrap',
             }}>
               <div>
-                <div style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '0.88rem' }}>{u.name}</div>
-                <div style={{ color: '#64748b', fontSize: '0.72rem' }}>{u.email} · {u.role}</div>
+                <div style={{ color: '#f4f1eb', fontWeight: 600, fontSize: '0.88rem' }}>{u.name}</div>
+                <div style={{ color: '#696358', fontSize: '0.72rem' }}>{u.email} · {u.role}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{
@@ -221,7 +221,7 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
             </div>
           ))}
           <div style={{ padding: '10px 14px', background: 'rgba(14, 165, 233, 0.05)', borderRadius: '10px', border: '1px solid rgba(14, 165, 233, 0.15)', fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>
-            💡 <strong style={{ color: '#e2e8f0' }}>Note:</strong> When you grant premium to an admin in any institution, ALL users (teachers + students) in that institution automatically inherit premium access.
+            💡 <strong style={{ color: '#e4dfd5' }}>Note:</strong> When you grant premium to an admin in any institution, ALL users (teachers + students) in that institution automatically inherit premium access.
           </div>
         </div>
       )}
@@ -234,11 +234,11 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
               <Plus size={16} /> Grant Premium to Any Admin (Cross-Institution)
             </h4>
             <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0 0 16px' }}>
-              Enter the admin's email ID. When granted, <strong style={{ color: '#e2e8f0' }}>ALL students and teachers</strong> in that admin's institution will also get premium access automatically.
+              Enter the admin's email ID. When granted, <strong style={{ color: '#e4dfd5' }}>ALL students and teachers</strong> in that admin's institution will also get premium access automatically.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ color: '#cbd5e1', fontSize: '0.75rem', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                <label style={{ color: '#cfc8ba', fontSize: '0.75rem', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
                   Admin Email / ID *
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -251,11 +251,11 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
                     onKeyDown={(e) => { if (e.key === 'Enter') grantByEmail(true); }}
                     style={{ flex: 1, padding: '9px 14px' }}
                   />
-                  <Search size={16} style={{ alignSelf: 'center', color: '#64748b', flexShrink: 0 }} />
+                  <Search size={16} style={{ alignSelf: 'center', color: '#696358', flexShrink: 0 }} />
                 </div>
               </div>
               <div>
-                <label style={{ color: '#cbd5e1', fontSize: '0.75rem', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                <label style={{ color: '#cfc8ba', fontSize: '0.75rem', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
                   Note / Reason (optional)
                 </label>
                 <input
@@ -317,7 +317,7 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
       {activeTab === 'all' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {allGrants.length === 0 && (
-            <div style={{ color: '#64748b', textAlign: 'center', padding: '32px', fontSize: '0.85rem' }}>
+            <div style={{ color: '#696358', textAlign: 'center', padding: '32px', fontSize: '0.85rem' }}>
               <Crown size={24} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.3 }} />
               No cross-institution premium grants yet.
             </div>
@@ -339,11 +339,11 @@ export default function OwnerPremiumPanel({ apiBaseUrl, token, isAdmin = false }
                     <Building2 size={18} color="#fbbf24" />
                   </div>
                   <div>
-                    <div style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '0.88rem' }}>{g.name}</div>
-                    <div style={{ color: '#64748b', fontSize: '0.72rem' }}>{g.email} · {g.role}</div>
+                    <div style={{ color: '#f4f1eb', fontWeight: 600, fontSize: '0.88rem' }}>{g.name}</div>
+                    <div style={{ color: '#696358', fontSize: '0.72rem' }}>{g.email} · {g.role}</div>
                     <div style={{ color: '#fbbf24', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                       <Building2 size={10} /> {g.institution_name}
-                      <span style={{ color: '#475569', marginLeft: '6px' }}>
+                      <span style={{ color: '#58534a', marginLeft: '6px' }}>
                         <Users size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> {g.users_in_institution} users benefit
                       </span>
                     </div>

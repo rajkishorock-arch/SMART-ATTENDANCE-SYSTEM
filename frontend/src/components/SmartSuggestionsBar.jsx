@@ -71,7 +71,7 @@ export default function SmartSuggestionsBar({ onAction, hasPremium, scannerUsed 
             borderRadius: '20px',
             fontSize: '0.78rem',
             fontWeight: 600,
-            color: '#e2e8f0',
+            color: '#e4dfd5',
             cursor: 'pointer',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
             transition: 'all 0.2s ease',

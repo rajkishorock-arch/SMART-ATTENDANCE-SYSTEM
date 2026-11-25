@@ -94,30 +94,30 @@ export default function MasterKeySettings({ token, playCyberSound }) {
   return (
     <div style={{
       background: '#ffffff',
-      border: '1px solid #e2e8f0',
+      border: '1px solid #e4dfd5',
       borderRadius: '16px',
       padding: '28px',
       boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
       display: 'flex',
       flexDirection: 'column',
       gap: '24px',
-      color: '#0f172a'
+      color: '#25231f'
     }}>
       {/* Header */}
-      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+      <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px' }}>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
           <Key size={22} color="#8b5cf6" />
           <span>Workspace Master Security Key</span>
         </h3>
-        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
+        <p style={{ color: '#696358', fontSize: '0.85rem', marginTop: '6px', margin: 0, lineHeight: 1.5 }}>
           Your Institution Master Key authorizes critical administrative privileges, emergency database actions, and security override operations.
         </p>
       </div>
 
       {/* Current Master Key Display Card */}
       <div style={{
-        background: '#f8fafc',
-        border: '1.5px solid #e2e8f0',
+        background: '#faf9f6',
+        border: '1.5px solid #e4dfd5',
         borderRadius: '12px',
         padding: '18px 20px',
         display: 'flex',
@@ -128,11 +128,11 @@ export default function MasterKeySettings({ token, playCyberSound }) {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Current Master Key
             </span>
             {institutionSlug && (
-              <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '2px 6px', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.72rem', background: '#faf5ea', color: '#684c20', border: '1px solid #dfcfaf', borderRadius: '4px', padding: '2px 6px', fontWeight: 600 }}>
                 {institutionName || institutionSlug}
               </span>
             )}
@@ -143,7 +143,7 @@ export default function MasterKeySettings({ token, playCyberSound }) {
               fontFamily: 'Consolas, monospace',
               fontSize: '1.15rem',
               fontWeight: 800,
-              color: '#0f172a',
+              color: '#25231f',
               letterSpacing: showKey ? '1px' : '3px'
             }}>
               {isLoadingKey
@@ -158,11 +158,11 @@ export default function MasterKeySettings({ token, playCyberSound }) {
               title={showKey ? 'Hide Master Key' : 'Reveal Master Key'}
               style={{
                 background: '#ffffff',
-                border: '1px solid #cbd5e1',
+                border: '1px solid #cfc8ba',
                 borderRadius: '6px',
                 padding: '5px 8px',
                 cursor: 'pointer',
-                color: '#64748b',
+                color: '#696358',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -187,7 +187,7 @@ export default function MasterKeySettings({ token, playCyberSound }) {
             style={{
               padding: '9px 16px',
               borderRadius: '8px',
-              background: copiedKey ? '#059669' : '#0284c7',
+              background: copiedKey ? '#059669' : '#80602c',
               border: 'none',
               color: '#ffffff',
               fontSize: '0.82rem',
@@ -237,15 +237,15 @@ export default function MasterKeySettings({ token, playCyberSound }) {
       )}
 
       {/* Change Key Form */}
-      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '18px' }}>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Lock size={16} color="#64748b" />
+      <div style={{ borderTop: '1px solid #e4dfd5', paddingTop: '18px' }}>
+        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#25231f', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Lock size={16} color="#696358" />
           <span>Change / Rotate Master Key</span>
         </h4>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '16px' }}>
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
               Current Master Key
             </label>
             <input
@@ -258,8 +258,8 @@ export default function MasterKeySettings({ token, playCyberSound }) {
                 padding: '10px 14px',
                 borderRadius: '8px',
                 background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                color: '#0f172a',
+                border: '1px solid #cfc8ba',
+                color: '#25231f',
                 fontSize: '0.88rem',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -267,7 +267,7 @@ export default function MasterKeySettings({ token, playCyberSound }) {
             />
           </div>
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
               New Master Key
             </label>
             <input
@@ -280,8 +280,8 @@ export default function MasterKeySettings({ token, playCyberSound }) {
                 padding: '10px 14px',
                 borderRadius: '8px',
                 background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                color: '#0f172a',
+                border: '1px solid #cfc8ba',
+                color: '#25231f',
                 fontSize: '0.88rem',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -297,7 +297,7 @@ export default function MasterKeySettings({ token, playCyberSound }) {
             borderRadius: '10px',
             fontSize: '0.88rem',
             fontWeight: 700,
-            background: '#0f172a',
+            background: '#25231f',
             border: 'none',
             color: '#ffffff',
             cursor: isUpdatingMasterKey ? 'not-allowed' : 'pointer',

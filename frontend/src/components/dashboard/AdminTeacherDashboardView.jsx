@@ -256,9 +256,9 @@ export default function AdminTeacherDashboardView({
                               flexDirection: 'column',
                               gap: '8px',
                               cursor: 'pointer',
-                              background: '#f8fafc',
+                              background: '#faf9f6',
                               borderRadius: '12px',
-                              border: '1px solid #e2e8f0'
+                              border: '1px solid #e4dfd5'
                             }}
                           >
                             {/* Top Row: Avatar, Student Name, Roll/Dep, Status Pill */}
@@ -275,10 +275,10 @@ export default function AdminTeacherDashboardView({
                                   {log.name ? log.name.charAt(0).toUpperCase() : 'S'}
                                 </div>
                                 <div style={{ minWidth: 0 }}>
-                                  <div style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <div style={{ color: '#25231f', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     {log.name}
                                   </div>
-                                  <div style={{ color: '#64748b', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  <div style={{ color: '#696358', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <span>Roll: {log.roll || 'N/A'}</span>
                                     {(log.dep || log.department) && <span>· {log.dep || log.department}</span>}
                                   </div>
@@ -298,13 +298,13 @@ export default function AdminTeacherDashboardView({
                               justifyContent: 'space-between',
                               gap: '8px',
                               paddingTop: '6px',
-                              borderTop: '1px solid #e2e8f0',
+                              borderTop: '1px solid #e4dfd5',
                               fontSize: '0.76rem',
-                              color: '#64748b'
+                              color: '#696358'
                             }}>
                               {/* Subject & Period badges */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#faf5ea', color: '#785927', border: '1px solid #dfcfaf', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
                                   📚 {log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance')}
                                 </span>
                                 {(log.period_label || log.period) && (
@@ -315,7 +315,7 @@ export default function AdminTeacherDashboardView({
                               </div>
 
                               {/* Date & Time info */}
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', color: '#cbd5e1', fontSize: '0.76rem' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', color: '#cfc8ba', fontSize: '0.76rem' }}>
                                 {log.date && <span>📅 {log.date}</span>}
                                 <span>🕒 {log.time || 'N/A'}</span>
                               </div>
@@ -407,7 +407,7 @@ export default function AdminTeacherDashboardView({
                         style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px' }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <ScanFace size={16} style={{ color: '#0ea5e9' }} /> Borderline Face Matches
+                          <ScanFace size={16} style={{ color: '#987235' }} /> Borderline Face Matches
                         </span>
                         <span className="status-pill status-pill-cyan" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>Review</span>
                       </button>
@@ -465,7 +465,7 @@ export default function AdminTeacherDashboardView({
                       className="btn-secondary"
                       style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
                     >
-                      <Activity size={18} style={{ color: '#0ea5e9' }} />
+                      <Activity size={18} style={{ color: '#987235' }} />
                       <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Live Telemetry</span>
                     </button>
                     <button
@@ -556,14 +556,14 @@ export default function AdminTeacherDashboardView({
                 <div style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#25231f' }}>
                         Attendance overview
                       </h3>
-                      <span style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+                      <span style={{ background: '#faf5ea', border: '1px solid #dfcfaf', color: '#61471e', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
                         REALTIME
                       </span>
                     </div>
-                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                    <p style={{ color: '#696358', fontSize: '0.85rem', margin: '4px 0 0' }}>
                       Real-time student attendance and live telemetry.
                     </p>
                   </div>
@@ -572,7 +572,7 @@ export default function AdminTeacherDashboardView({
                     <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #a7f3d0' }}>
                       Attendance Rate: {stats?.average_attendance_rate || 0}%
                     </span>
-                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#eff6ff', color: '#1e40af', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #bfdbfe' }}>
+                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#faf5ea', color: '#61471e', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #dfcfaf' }}>
                       Active Users: {activeTelemetry?.total_active ?? '—'}
                     </span>
                   </div>
@@ -585,15 +585,15 @@ export default function AdminTeacherDashboardView({
                 <div className="dashboard-grid">
                   <div className="surface-card metric-card" style={{ 
                     animationDelay: '100ms',
-                    borderLeft: '4px solid #1e40af',
+                    borderLeft: '4px solid #61471e',
                     borderRadius: '16px',
                     background: '#ffffff'
                   }}>
                     <div className="metric-info">
-                      <h3 style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Total Enrolled Students</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: '4px 0 0' }}>{stats?.total_students || 0}</p>
+                      <h3 style={{ color: '#696358', fontSize: '0.85rem', fontWeight: 600 }}>Total Enrolled Students</h3>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#25231f', margin: '4px 0 0' }}>{stats?.total_students || 0}</p>
                     </div>
-                    <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: '#1e40af', borderRadius: '12px', padding: '12px' }}>
+                    <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: '#61471e', borderRadius: '12px', padding: '12px' }}>
                       <Users size={24} />
                     </div>
                   </div>
@@ -605,7 +605,7 @@ export default function AdminTeacherDashboardView({
                     background: '#ffffff'
                   }}>
                     <div className="metric-info">
-                      <h3 style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Present Today</h3>
+                      <h3 style={{ color: '#696358', fontSize: '0.85rem', fontWeight: 600 }}>Present Today</h3>
                       <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#059669', margin: '4px 0 0' }}>{displayStats?.total_present_today || 0}</p>
                     </div>
                     <div className="metric-icon" style={{ background: 'rgba(5, 150, 105, 0.08)', color: '#059669', borderRadius: '12px', padding: '12px' }}>
@@ -620,7 +620,7 @@ export default function AdminTeacherDashboardView({
                     background: '#ffffff'
                   }}>
                     <div className="metric-info">
-                      <h3 style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Absent Today</h3>
+                      <h3 style={{ color: '#696358', fontSize: '0.85rem', fontWeight: 600 }}>Absent Today</h3>
                       <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#dc2626', margin: '4px 0 0' }}>{displayStats?.total_absent_today || 0}</p>
                     </div>
                     <div className="metric-icon" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626', borderRadius: '12px', padding: '12px' }}>
@@ -635,7 +635,7 @@ export default function AdminTeacherDashboardView({
                     background: '#ffffff'
                   }}>
                     <div className="metric-info">
-                      <h3 style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Presence Rate</h3>
+                      <h3 style={{ color: '#696358', fontSize: '0.85rem', fontWeight: 600 }}>Presence Rate</h3>
                       <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#7c3aed', margin: '4px 0 0' }}>{stats?.average_attendance_rate || 0}%</p>
                     </div>
                     <div className="metric-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: '#7c3aed', borderRadius: '12px', padding: '12px' }}>
@@ -658,30 +658,30 @@ export default function AdminTeacherDashboardView({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#059669', boxShadow: '0 0 10px rgba(5, 150, 105, 0.4)' }} />
-                      <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#25231f' }}>
                         Users online
                       </h4>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#696358', fontFamily: 'monospace' }}>
                       SOCKET STATUS: CONNECTED (24ms)
                     </span>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
-                    <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>TOTAL ACTIVE USERS</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e40af' }}>{activeTelemetry?.total_active ?? '—'}</span>
+                    <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 600 }}>TOTAL ACTIVE USERS</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#61471e' }}>{activeTelemetry?.total_active ?? '—'}</span>
                     </div>
-                    <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>STUDENTS ONLINE</span>
+                    <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 600 }}>STUDENTS ONLINE</span>
                       <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669' }}>{activeTelemetry?.students ?? '—'}</span>
                     </div>
-                    <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>TEACHERS ONLINE</span>
+                    <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 600 }}>TEACHERS ONLINE</span>
                       <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#d97706' }}>{activeTelemetry?.teachers ?? '—'}</span>
                     </div>
-                    <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>ADMINISTRATORS</span>
+                    <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 600 }}>ADMINISTRATORS</span>
                       <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7c3aed' }}>{activeTelemetry?.admins ?? '—'}</span>
                     </div>
                   </div>
@@ -696,20 +696,20 @@ export default function AdminTeacherDashboardView({
                 <div style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#25231f' }}>
                         Attendance Trends & Department Distribution
                       </h3>
-                      <span style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+                      <span style={{ background: '#faf5ea', border: '1px solid #dfcfaf', color: '#61471e', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
                         ANALYTICS
                       </span>
                     </div>
-                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                    <p style={{ color: '#696358', fontSize: '0.85rem', margin: '4px 0 0' }}>
                       Weekly attendance trends and department distribution.
                     </p>
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#eff6ff', color: '#1e40af', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #bfdbfe' }}>
+                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#faf5ea', color: '#61471e', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #dfcfaf' }}>
                       Analytics: Active
                     </span>
                     <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #a7f3d0' }}>
@@ -722,40 +722,40 @@ export default function AdminTeacherDashboardView({
                 <div className="dashboard-charts-grid">
                   {/* Weekly Trend Line Area Chart */}
                   <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Calendar size={18} style={{ color: '#1e40af' }} /> Weekly Attendance Trends (7 Days)
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Calendar size={18} style={{ color: '#61471e' }} /> Weekly Attendance Trends (7 Days)
                     </h4>
                     <div ref={chartRef1} style={{ width: '100%', height: '230px', minWidth: 0, position: 'relative' }}>
                       <AreaChart width={chartWidth1} height={230} data={stats?.weekly_trends || []}>
                         <defs>
                           <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25}/>
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#916d30" stopOpacity={0.25}/>
+                            <stop offset="95%" stopColor="#916d30" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="day" stroke="#64748b" fontSize={11} tickLine={false} />
-                        <YAxis stroke="#64748b" fontSize={11} tickLine={false} allowDecimals={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f4f1eb" />
+                        <XAxis dataKey="day" stroke="#696358" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#696358" fontSize={11} tickLine={false} allowDecimals={false} />
                         <Tooltip contentStyle={{ 
                           background: '#ffffff', 
                           border: '1px solid var(--border-subtle)', 
                           borderRadius: '8px', 
-                          color: '#0f172a',
+                          color: '#25231f',
                           boxShadow: 'var(--shadow-card)'
                         }} />
-                        <Area type="monotone" dataKey="present" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#colorTrend)" />
+                        <Area type="monotone" dataKey="present" stroke="#785927" strokeWidth={2.5} fillOpacity={1} fill="url(#colorTrend)" />
                       </AreaChart>
                     </div>
                   </div>
 
                   {/* Department distribution Bar Chart */}
                   <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <Layers size={18} style={{ color: '#7c3aed' }} /> Present Today by Department
                     </h4>
                     <div ref={chartRef2} style={{ width: '100%', height: '230px', minWidth: 0, position: 'relative' }}>
                       {!stats?.department_stats || Object.keys(stats.department_stats).length === 0 ? (
-                        <div className="flex-center" style={{ height: '100%', color: '#64748b', flexDirection: 'column', gap: '12px' }}>
+                        <div className="flex-center" style={{ height: '100%', color: '#696358', flexDirection: 'column', gap: '12px' }}>
                           <AlertCircle size={32} style={{ color: '#dc2626' }} />
                           <span>No department attendance marked yet today.</span>
                         </div>
@@ -768,17 +768,17 @@ export default function AdminTeacherDashboardView({
                           <defs>
                             <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.9}/>
-                              <stop offset="95%" stopColor="#6366f1" stopOpacity={0.7}/>
+                              <stop offset="95%" stopColor="#89662e" stopOpacity={0.7}/>
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                          <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} />
-                          <YAxis stroke="#64748b" fontSize={11} tickLine={false} allowDecimals={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f4f1eb" />
+                          <XAxis dataKey="name" stroke="#696358" fontSize={11} tickLine={false} />
+                          <YAxis stroke="#696358" fontSize={11} tickLine={false} allowDecimals={false} />
                           <Tooltip contentStyle={{ 
                             background: '#ffffff', 
                             border: '1px solid var(--border-subtle)', 
                             borderRadius: '8px', 
-                            color: '#0f172a',
+                            color: '#25231f',
                             boxShadow: 'var(--shadow-card)'
                           }} />
                           <Bar dataKey="count" fill="url(#colorBar)" radius={[6, 6, 0, 0]} barSize={35} />
@@ -792,25 +792,25 @@ export default function AdminTeacherDashboardView({
                 <div className="dashboard-charts-grid">
                   {/* Biometric Status Summary */}
                   <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <TrendingUp size={18} style={{ color: '#1e40af' }} /> Biometric Scanner Health
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <TrendingUp size={18} style={{ color: '#61471e' }} /> Biometric Scanner Health
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '20px' }}>
-                      <div style={{ width: '100%', background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.84rem' }}>
-                        <div><span style={{ color: '#64748b' }}>STATUS:</span> <span style={{ color: '#059669', fontWeight: 700 }}>ACTIVE</span></div>
-                        <div><span style={{ color: '#64748b' }}>BEACONS:</span> <span style={{ color: '#0f172a', fontWeight: 700 }}>4 CONNECTED</span></div>
-                        <div><span style={{ color: '#64748b' }}>LIVENESS:</span> <span style={{ color: '#1e40af', fontWeight: 700 }}>VERIFIED</span></div>
-                        <div><span style={{ color: '#64748b' }}>FRAME RATE:</span> <span style={{ color: '#0f172a', fontWeight: 700 }}>{hudMetrics?.fps || 30} FPS</span></div>
+                      <div style={{ width: '100%', background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.84rem' }}>
+                        <div><span style={{ color: '#696358' }}>STATUS:</span> <span style={{ color: '#059669', fontWeight: 700 }}>ACTIVE</span></div>
+                        <div><span style={{ color: '#696358' }}>BEACONS:</span> <span style={{ color: '#25231f', fontWeight: 700 }}>4 CONNECTED</span></div>
+                        <div><span style={{ color: '#696358' }}>LIVENESS:</span> <span style={{ color: '#61471e', fontWeight: 700 }}>VERIFIED</span></div>
+                        <div><span style={{ color: '#696358' }}>FRAME RATE:</span> <span style={{ color: '#25231f', fontWeight: 700 }}>{hudMetrics?.fps || 30} FPS</span></div>
                       </div>
                     </div>
                   </div>
                   
                   {/* Neural Mesh Verification Node Map */}
                   <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', minHeight: '300px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <ShieldCheck size={18} style={{ color: '#7c3aed' }} /> Face Landmark Mesh Engine
                     </h4>
-                    <div style={{ position: 'relative', flex: 1, minHeight: '200px', width: '100%', overflow: 'hidden', borderRadius: '12px', background: '#f8fafc', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ position: 'relative', flex: 1, minHeight: '200px', width: '100%', overflow: 'hidden', borderRadius: '12px', background: '#faf9f6', border: '1px solid var(--border-subtle)' }}>
                       <canvas ref={neuralMeshCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                     </div>
                   </div>
@@ -863,7 +863,7 @@ export default function AdminTeacherDashboardView({
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px', fontFamily: 'monospace' }}>
                             <span style={{ color: 'var(--color-text-muted)' }}>CPU ENGINE:</span>
-                            <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.cpu_percent}%` : '0.0%'}</span>
+                            <span style={{ color: '#f4f1eb', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.cpu_percent}%` : '0.0%'}</span>
                           </div>
                           <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ 
@@ -878,7 +878,7 @@ export default function AdminTeacherDashboardView({
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px', fontFamily: 'monospace' }}>
                             <span style={{ color: 'var(--color-text-muted)' }}>RAM BUFFER:</span>
-                            <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.memory_percent}%` : '0.0%'}</span>
+                            <span style={{ color: '#f4f1eb', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.memory_percent}%` : '0.0%'}</span>
                           </div>
                           <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ 
@@ -953,7 +953,7 @@ export default function AdminTeacherDashboardView({
 
                       {/* System details */}
                       <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div>UPTIME: <span style={{ color: '#f1f5f9' }}>{systemHealth ? (() => {
+                        <div>UPTIME: <span style={{ color: '#f4f1eb' }}>{systemHealth ? (() => {
                           const sec = systemHealth.metrics.uptime_seconds;
                           const d = Math.floor(sec / (3600*24));
                           const h = Math.floor((sec % (3600*24)) / 3600);
@@ -961,8 +961,8 @@ export default function AdminTeacherDashboardView({
                           const s = sec % 60;
                           return `${d}d ${h}h ${m}m ${s}s`;
                         })() : '0d 0h 0m 0s'}</span></div>
-                        <div>PLATFORM: <span style={{ color: '#f1f5f9' }}>{systemHealth ? `${systemHealth.platform.system} (${systemHealth.platform.release})` : 'DETECTING...'}</span></div>
-                        <div>ENVIRONMENT: <span style={{ color: '#f1f5f9' }}>Python {systemHealth ? systemHealth.platform.python_version : '...'}</span></div>
+                        <div>PLATFORM: <span style={{ color: '#f4f1eb' }}>{systemHealth ? `${systemHealth.platform.system} (${systemHealth.platform.release})` : 'DETECTING...'}</span></div>
+                        <div>ENVIRONMENT: <span style={{ color: '#f4f1eb' }}>Python {systemHealth ? systemHealth.platform.python_version : '...'}</span></div>
                       </div>
                       {/* Manual trigger button */}
                       <button 
@@ -1055,7 +1055,7 @@ export default function AdminTeacherDashboardView({
                               <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--color-primary)' }}>
                                 #{item.user_id !== null && item.user_id !== undefined ? item.user_id : 'N/A'}
                               </td>
-                              <td style={{ padding: '14px 16px', color: '#f1f5f9' }}>{item.user_email}</td>
+                              <td style={{ padding: '14px 16px', color: '#f4f1eb' }}>{item.user_email}</td>
                               <td style={{ padding: '14px 16px' }}>
                                 <span style={{ 
                                   padding: '2px 8px', 
@@ -1089,7 +1089,7 @@ export default function AdminTeacherDashboardView({
                                       height="14" 
                                       viewBox="0 0 24 24" 
                                       fill={star <= item.rating ? "#fbbf24" : "none"} 
-                                      stroke={star <= item.rating ? "#fbbf24" : "#cbd5e1"} 
+                                      stroke={star <= item.rating ? "#fbbf24" : "#cfc8ba"} 
                                       strokeWidth="2.5"
                                     >
                                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>

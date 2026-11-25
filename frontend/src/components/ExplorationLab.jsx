@@ -98,7 +98,7 @@ export default function ExplorationLab({
       border: '1px solid rgba(167, 139, 250, 0.3)',
       borderRadius: '24px',
       boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(167, 139, 250, 0.1)',
-      color: '#f8fafc',
+      color: '#faf9f6',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* Title Header */}
@@ -256,7 +256,7 @@ export default function ExplorationLab({
                           paddingTop: '6px'
                         }}
                       >
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isChecked ? color : '#64748b' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isChecked ? color : '#696358' }}>
                           {isChecked ? '🟢 ACTIVE & ENABLED' : '⚪ DISABLED'}
                         </span>
 

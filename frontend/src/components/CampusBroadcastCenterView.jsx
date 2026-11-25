@@ -287,7 +287,7 @@ export default function CampusBroadcastCenterView({
       case 'EVENT':
         return { bg: '#fdf4ff', border: '#f5d0fe', text: '#c026d3', label: '🎯 EVENT' };
       default:
-        return { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', label: '📌 GENERAL NOTICE' };
+        return { bg: '#faf5ea', border: '#dfcfaf', text: '#785927', label: '📌 GENERAL NOTICE' };
     }
   };
 
@@ -302,8 +302,8 @@ export default function CampusBroadcastCenterView({
       const holidays = broadcasts.filter(b => String(b.category).toUpperCase() === 'HOLIDAY').length;
       const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
       return [
-        { label: 'Total Circulars', val: total, color: '#0f172a' },
-        { label: 'Academic & Exams', val: exams, color: '#2563eb' },
+        { label: 'Total Circulars', val: total, color: '#25231f' },
+        { label: 'Academic & Exams', val: exams, color: '#785927' },
         { label: 'Gazetted Holidays', val: holidays, color: '#059669' },
         { label: 'Urgent Alerts', val: urgent, color: '#dc2626' }
       ];
@@ -314,9 +314,9 @@ export default function CampusBroadcastCenterView({
       const exams = broadcasts.filter(b => ['EXAM', 'EXAMINATION', 'CIRCULAR'].includes(String(b.category).toUpperCase())).length;
       const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
       return [
-        { label: 'Total Notices', val: total, color: '#0f172a' },
+        { label: 'Total Notices', val: total, color: '#25231f' },
         { label: 'Staff & Faculty', val: staffCount, color: '#059669' },
-        { label: 'Academic & Exams', val: exams, color: '#2563eb' },
+        { label: 'Academic & Exams', val: exams, color: '#785927' },
         { label: 'Urgent Notices', val: urgent, color: '#dc2626' }
       ];
     }
@@ -326,8 +326,8 @@ export default function CampusBroadcastCenterView({
     const staff = broadcasts.filter(b => !b.target_roles || b.target_roles.includes('staff') || b.target_roles.includes('teacher') || b.target_roles.includes('all')).length;
     const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
     return [
-      { label: 'Total Notices', val: total, color: '#0f172a' },
-      { label: 'Students Reach', val: students, color: '#2563eb' },
+      { label: 'Total Notices', val: total, color: '#25231f' },
+      { label: 'Students Reach', val: students, color: '#785927' },
       { label: 'Staff & Faculty', val: staff, color: '#059669' },
       { label: 'Urgent Alerts', val: urgent, color: '#dc2626' }
     ];
@@ -352,9 +352,9 @@ export default function CampusBroadcastCenterView({
               gap: '6px',
               padding: '8px 14px',
               background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              border: '1px solid #cfc8ba',
               borderRadius: '10px',
-              color: '#475569',
+              color: '#58534a',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer'
@@ -377,10 +377,10 @@ export default function CampusBroadcastCenterView({
               alignItems: 'center',
               gap: '6px',
               padding: '8px 14px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              background: '#faf9f6',
+              border: '1px solid #cfc8ba',
               borderRadius: '10px',
-              color: '#334155',
+              color: '#46423b',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: broadcasts.length > 0 ? 'pointer' : 'not-allowed',
@@ -399,7 +399,7 @@ export default function CampusBroadcastCenterView({
         className="surface-card"
         style={{
           padding: '18px 20px',
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%)',
+          background: 'linear-gradient(135deg, #1e3a8a 0%, #61471e 50%, #785927 100%)',
           borderRadius: '16px',
           color: '#ffffff',
           boxShadow: '0 4px 16px rgba(30, 58, 138, 0.18)',
@@ -441,7 +441,7 @@ export default function CampusBroadcastCenterView({
         gap: '10px'
       }}>
         {statsMetrics.map((stat, idx) => (
-          <div key={idx} className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <div key={idx} className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
             <span style={{ fontSize: '0.72rem', color: stat.color, fontWeight: 600, textTransform: 'uppercase' }}>{stat.label}</span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: stat.color, marginTop: '2px' }}>{stat.val}</div>
           </div>
@@ -455,7 +455,7 @@ export default function CampusBroadcastCenterView({
           style={{
             background: '#ffffff',
             borderRadius: '16px',
-            border: '1px solid #cbd5e1',
+            border: '1px solid #cfc8ba',
             boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
             overflow: 'hidden'
           }}
@@ -465,8 +465,8 @@ export default function CampusBroadcastCenterView({
             onClick={() => setShowComposeForm(prev => !prev)}
             style={{
               padding: '14px 18px',
-              background: '#f8fafc',
-              borderBottom: showComposeForm ? '1px solid #e2e8f0' : 'none',
+              background: '#faf9f6',
+              borderBottom: showComposeForm ? '1px solid #e4dfd5' : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -474,8 +474,8 @@ export default function CampusBroadcastCenterView({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Send size={18} color="#2563eb" />
-              <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+              <Send size={18} color="#785927" />
+              <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#25231f' }}>
                 Dispatch New Broadcast Announcement
               </h3>
             </div>
@@ -484,7 +484,7 @@ export default function CampusBroadcastCenterView({
               style={{
                 border: 'none',
                 background: 'transparent',
-                color: '#64748b',
+                color: '#696358',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -506,7 +506,7 @@ export default function CampusBroadcastCenterView({
               
               {/* Category Pills */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '8px' }}>
                   Notice Category *
                 </label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -531,9 +531,9 @@ export default function CampusBroadcastCenterView({
                           fontWeight: 700,
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
-                          border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
-                          background: isSelected ? '#eff6ff' : '#ffffff',
-                          color: isSelected ? '#1d4ed8' : '#475569'
+                          border: isSelected ? '1.5px solid #785927' : '1px solid #cfc8ba',
+                          background: isSelected ? '#faf5ea' : '#ffffff',
+                          color: isSelected ? '#684c20' : '#58534a'
                         }}
                       >
                         {cat.label}
@@ -545,7 +545,7 @@ export default function CampusBroadcastCenterView({
 
               {/* Audience Selector Pills */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '8px' }}>
                   Recipient Audience (Select All That Apply) *
                 </label>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -569,9 +569,9 @@ export default function CampusBroadcastCenterView({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          border: isSelected ? '1.5px solid #059669' : '1px solid #cbd5e1',
+                          border: isSelected ? '1.5px solid #059669' : '1px solid #cfc8ba',
                           background: isSelected ? '#f0fdf4' : '#ffffff',
-                          color: isSelected ? '#047857' : '#64748b'
+                          color: isSelected ? '#047857' : '#696358'
                         }}
                       >
                         <span>{role.label}</span>
@@ -584,7 +584,7 @@ export default function CampusBroadcastCenterView({
 
               {/* Title Input */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '6px' }}>
                   Announcement Title *
                 </label>
                 <input
@@ -597,12 +597,12 @@ export default function CampusBroadcastCenterView({
                     width: '100%',
                     height: '42px',
                     borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
+                    border: '1.5px solid #cfc8ba',
                     background: '#ffffff',
                     padding: '0 12px',
                     fontSize: '0.9rem',
                     fontWeight: 600,
-                    color: '#0f172a',
+                    color: '#25231f',
                     boxSizing: 'border-box'
                   }}
                   required
@@ -611,7 +611,7 @@ export default function CampusBroadcastCenterView({
 
               {/* Message Textarea */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '6px' }}>
                   Detailed Circular Body / Instructions *
                 </label>
                 <textarea
@@ -623,12 +623,12 @@ export default function CampusBroadcastCenterView({
                   style={{
                     width: '100%',
                     borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
+                    border: '1.5px solid #cfc8ba',
                     background: '#ffffff',
                     padding: '10px 12px',
                     fontSize: '0.88rem',
                     fontWeight: 500,
-                    color: '#0f172a',
+                    color: '#25231f',
                     lineHeight: 1.5,
                     resize: 'vertical',
                     boxSizing: 'border-box'
@@ -639,7 +639,7 @@ export default function CampusBroadcastCenterView({
 
               {/* Urgent Toggle & Action Row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', paddingTop: '4px' }}>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600, color: '#475569' }}>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600, color: '#58534a' }}>
                   <input
                     type="checkbox"
                     checked={formIsUrgent}
@@ -655,7 +655,7 @@ export default function CampusBroadcastCenterView({
                   style={{
                     padding: '11px 24px',
                     borderRadius: '10px',
-                    background: isSubmitting ? '#94a3b8' : '#2563eb',
+                    background: isSubmitting ? '#94a3b8' : '#785927',
                     color: '#ffffff',
                     border: 'none',
                     fontSize: '0.9rem',
@@ -702,7 +702,7 @@ export default function CampusBroadcastCenterView({
         style={{
           background: '#ffffff',
           borderRadius: '16px',
-          border: '1px solid #cbd5e1',
+          border: '1px solid #cfc8ba',
           padding: '18px 20px',
           boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
           display: 'flex',
@@ -712,11 +712,11 @@ export default function CampusBroadcastCenterView({
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
               Notice History Archive ({filteredBroadcasts.length})
             </h3>
             {userRole !== 'student' && userRole !== 'teacher' && (
-              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#696358' }}>
                 Chronological log of all campus broadcasts with downloadable verified PDF notices
               </p>
             )}
@@ -737,11 +737,11 @@ export default function CampusBroadcastCenterView({
                 width: '100%',
                 height: '38px',
                 borderRadius: '10px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid #cfc8ba',
                 paddingLeft: '36px',
                 paddingRight: '12px',
                 fontSize: '0.85rem',
-                color: '#0f172a',
+                color: '#25231f',
                 boxSizing: 'border-box'
               }}
             />
@@ -762,9 +762,9 @@ export default function CampusBroadcastCenterView({
                     fontSize: '0.76rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    border: isActive ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                    background: isActive ? '#2563eb' : '#f8fafc',
-                    color: isActive ? '#ffffff' : '#64748b',
+                    border: isActive ? '1px solid #785927' : '1px solid #e4dfd5',
+                    background: isActive ? '#785927' : '#faf9f6',
+                    color: isActive ? '#ffffff' : '#696358',
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -777,7 +777,7 @@ export default function CampusBroadcastCenterView({
 
         {/* Notices Cards List */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b', fontSize: '0.9rem' }}>
+          <div style={{ textAlign: 'center', padding: '36px 0', color: '#696358', fontSize: '0.9rem' }}>
             <RefreshCw size={24} className="spin-anim" style={{ margin: '0 auto 8px auto', display: 'block' }} />
             <span>Loading institution notices archive...</span>
           </div>
@@ -785,13 +785,13 @@ export default function CampusBroadcastCenterView({
           <div style={{
             textAlign: 'center',
             padding: '36px 16px',
-            background: '#f8fafc',
+            background: '#faf9f6',
             borderRadius: '12px',
-            border: '1px dashed #cbd5e1',
-            color: '#64748b'
+            border: '1px dashed #cfc8ba',
+            color: '#696358'
           }}>
             <FileText size={32} style={{ opacity: 0.5, marginBottom: '6px' }} />
-            <h4 style={{ margin: '0 0 4px 0', color: '#334155', fontSize: '0.95rem' }}>No Circulars Found</h4>
+            <h4 style={{ margin: '0 0 4px 0', color: '#46423b', fontSize: '0.95rem' }}>No Circulars Found</h4>
             <p style={{ margin: 0, fontSize: '0.82rem' }}>
               {searchQuery ? 'No notices matched your search query.' : 'No announcements have been dispatched under this category yet.'}
             </p>
@@ -814,7 +814,7 @@ export default function CampusBroadcastCenterView({
                   style={{
                     padding: '16px 18px',
                     borderRadius: '14px',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid #e4dfd5',
                     background: '#ffffff',
                     boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)',
                     display: 'flex',
@@ -846,8 +846,8 @@ export default function CampusBroadcastCenterView({
                               borderRadius: '6px',
                               fontSize: '0.68rem',
                               fontWeight: 600,
-                              background: '#f1f5f9',
-                              color: '#475569'
+                              background: '#f4f1eb',
+                              color: '#58534a'
                             }}
                           >
                             {r.toUpperCase()}
@@ -856,27 +856,27 @@ export default function CampusBroadcastCenterView({
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#696358' }}>
                       <Clock size={12} />
                       <span>{dateStr}</span>
                     </div>
                   </div>
 
                   {/* Title */}
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 }}>
+                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#25231f', lineHeight: 1.35 }}>
                     {notice.title}
                   </h4>
 
                   {/* Message Body */}
                   <div style={{
                     fontSize: '0.86rem',
-                    color: '#334155',
+                    color: '#46423b',
                     lineHeight: 1.55,
                     whiteSpace: 'pre-wrap',
-                    background: '#f8fafc',
+                    background: '#faf9f6',
                     padding: '10px 14px',
                     borderRadius: '10px',
-                    border: '1px solid #f1f5f9'
+                    border: '1px solid #f4f1eb'
                   }}>
                     {notice.message}
                   </div>
@@ -898,8 +898,8 @@ export default function CampusBroadcastCenterView({
                           padding: '6px 10px',
                           borderRadius: '8px',
                           background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          color: '#475569',
+                          border: '1px solid #cfc8ba',
+                          color: '#58534a',
                           fontSize: '0.78rem',
                           fontWeight: 600,
                           cursor: 'pointer'
@@ -932,9 +932,9 @@ export default function CampusBroadcastCenterView({
                           gap: '6px',
                           padding: '6px 12px',
                           borderRadius: '8px',
-                          background: '#eff6ff',
-                          border: '1px solid #bfdbfe',
-                          color: '#1d4ed8',
+                          background: '#faf5ea',
+                          border: '1px solid #dfcfaf',
+                          color: '#684c20',
                           fontSize: '0.78rem',
                           fontWeight: 700,
                           cursor: 'pointer',

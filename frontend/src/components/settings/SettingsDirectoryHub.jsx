@@ -32,13 +32,13 @@ export default function SettingsDirectoryHub({
       id: 'geofencing',
       label: 'Security Perimeter & Geofence',
       icon: ShieldCheck,
-      iconColor: '#1d4ed8',
-      iconBg: '#eff6ff',
-      iconBorder: '#bfdbfe',
+      iconColor: '#684c20',
+      iconBg: '#faf5ea',
+      iconBorder: '#dfcfaf',
       badge: 'Security',
-      badgeBg: '#eff6ff',
-      badgeColor: '#1e40af',
-      badgeBorder: '#bfdbfe',
+      badgeBg: '#faf5ea',
+      badgeColor: '#61471e',
+      badgeBorder: '#dfcfaf',
       visible: userRole === 'admin',
       onClick: () => {
         setActiveSubSetting('geofencing');
@@ -86,13 +86,13 @@ export default function SettingsDirectoryHub({
       id: 'admins',
       label: 'Staff & Administrator Accounts',
       icon: UserPlus,
-      iconColor: '#2563eb',
-      iconBg: '#eff6ff',
-      iconBorder: '#bfdbfe',
+      iconColor: '#785927',
+      iconBg: '#faf5ea',
+      iconBorder: '#dfcfaf',
       badge: 'Administrators',
-      badgeBg: '#eff6ff',
-      badgeColor: '#2563eb',
-      badgeBorder: '#bfdbfe',
+      badgeBg: '#faf5ea',
+      badgeColor: '#785927',
+      badgeBorder: '#dfcfaf',
       visible: userRole === 'admin',
       onClick: () => {
         setActiveSubSetting('admins');
@@ -141,13 +141,13 @@ export default function SettingsDirectoryHub({
       id: 'app_version',
       label: 'System Version & Build',
       icon: ArrowUpCircle,
-      iconColor: '#1d4ed8',
-      iconBg: '#eff6ff',
-      iconBorder: '#bfdbfe',
+      iconColor: '#684c20',
+      iconBg: '#faf5ea',
+      iconBorder: '#dfcfaf',
       badge: `v${appVersion}`,
-      badgeBg: '#eff6ff',
-      badgeColor: '#1d4ed8',
-      badgeBorder: '#bfdbfe',
+      badgeBg: '#faf5ea',
+      badgeColor: '#684c20',
+      badgeBorder: '#dfcfaf',
       visible: true,
       onClick: () => {
         setActiveSubSetting('app_version');
@@ -203,7 +203,7 @@ export default function SettingsDirectoryHub({
             }}
             style={{
               background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               borderRadius: '14px',
               padding: '12px 14px',
               display: 'flex',
@@ -241,7 +241,7 @@ export default function SettingsDirectoryHub({
 
             {/* Middle Label - Clean bold heading */}
             <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f', lineHeight: 1.3 }}>
                 {item.label}
               </span>
             </div>

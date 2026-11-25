@@ -362,7 +362,7 @@ export default function ClassroomKioskModal({
             width: '36px',
             height: '36px',
             borderRadius: '10px',
-            background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
+            background: 'linear-gradient(135deg, #61471e, #916d30)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -524,7 +524,7 @@ export default function ClassroomKioskModal({
           <span style={{
             fontSize: '0.88rem',
             fontWeight: 700,
-            color: '#f8fafc',
+            color: '#faf9f6',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'
@@ -600,14 +600,14 @@ export default function ClassroomKioskModal({
               </p>
 
               <div style={{
-                background: '#f8fafc',
+                background: '#faf9f6',
                 borderRadius: '12px',
                 padding: '12px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #e4dfd5',
                 display: 'flex',
                 justifyContent: 'space-around',
                 fontSize: '0.85rem',
-                color: '#475569'
+                color: '#58534a'
               }}>
                 <span>Time: <strong>{activeStudent.time}</strong></span>
                 <span>Streak: <strong>🔥 {activeStudent.streak_days || 1} Days</strong></span>
@@ -637,8 +637,8 @@ export default function ClassroomKioskModal({
             width: '100%',
             padding: '24px',
             boxShadow: '0 25px 50px rgba(0, 0, 0, 0.4)',
-            border: '1px solid #e2e8f0',
-            color: '#0f172a'
+            border: '1px solid #e4dfd5',
+            color: '#25231f'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -656,7 +656,7 @@ export default function ClassroomKioskModal({
               </button>
             </div>
 
-            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 16px', lineHeight: '1.4' }}>
+            <p style={{ color: '#696358', fontSize: '0.85rem', margin: '0 0 16px', lineHeight: '1.4' }}>
               Enter staff passcode to exit kiosk mode. (Default PIN: <strong>1234</strong>)
             </p>
 
@@ -670,7 +670,7 @@ export default function ClassroomKioskModal({
                 style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
-                  border: '2px solid #cbd5e1',
+                  border: '2px solid #cfc8ba',
                   fontSize: '1.1rem',
                   outline: 'none',
                   textAlign: 'center',
@@ -692,9 +692,9 @@ export default function ClassroomKioskModal({
                     flex: 1,
                     padding: '12px',
                     borderRadius: '10px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid #cfc8ba',
                     background: '#ffffff',
-                    color: '#475569',
+                    color: '#58534a',
                     fontWeight: 700,
                     cursor: 'pointer'
                   }}

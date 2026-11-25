@@ -146,7 +146,7 @@ export default function StudentTodayView({
           <button
             onClick={() => onRequestDispute({ attendance: 'Absent', date: new Date().toISOString().split('T')[0] })}
             className="btn-ghost"
-            style={{ minHeight: '32px', padding: '4px 12px', fontSize: '0.76rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#1e293b' }}
+            style={{ minHeight: '32px', padding: '4px 12px', fontSize: '0.76rem', borderRadius: '8px', border: '1px solid #cfc8ba', background: '#ffffff', color: '#302d27' }}
           >
             <FileText size={13} />
             <span>{lang === 'hi' ? 'सुधार अनुरोध' : 'Request Correction'}</span>
@@ -165,14 +165,14 @@ export default function StudentTodayView({
           height: '100%',
           boxSizing: 'border-box',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <TrendingUp size={18} color="#2563eb" />
-              <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+              <TrendingUp size={18} color="#785927" />
+              <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
                 {lang === 'hi' ? 'मेरी उपस्थिति दर' : 'My Attendance Rate'}
               </h3>
             </div>
@@ -182,13 +182,13 @@ export default function StudentTodayView({
             <span style={{ fontSize: '2.1rem', fontWeight: 900, color: isSafe ? '#16a34a' : '#dc2626', letterSpacing: '-0.5px' }}>
               {totalClasses > 0 ? `${attendanceRate}%` : '0%'}
             </span>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.78rem', color: '#696358', fontWeight: 600 }}>
               ({attendedClasses}/{totalClasses} {lang === 'hi' ? 'कक्षाएं' : 'classes'})
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div style={{ width: '100%', height: '7px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden', position: 'relative', marginBottom: '12px' }}>
+          <div style={{ width: '100%', height: '7px', background: '#f4f1eb', borderRadius: '999px', overflow: 'hidden', position: 'relative', marginBottom: '12px' }}>
             <div
               style={{
                 height: '100%',
@@ -225,21 +225,21 @@ export default function StudentTodayView({
           height: '100%',
           boxSizing: 'border-box',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
         }}>
           {/* Header Row with Tabs */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={18} color="#2563eb" />
-              <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+              <Calendar size={18} color="#785927" />
+              <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
                 {lang === 'hi' ? 'हालिया उपस्थिति रिकॉर्ड' : 'Recent Check-in History'}
               </h3>
             </div>
 
             {/* Quick Filter: All vs Today */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f4f1eb', padding: '3px', borderRadius: '8px' }}>
               <button
                 type="button"
                 onClick={() => setHistoryScope('all')}
@@ -251,7 +251,7 @@ export default function StudentTodayView({
                   fontWeight: 700,
                   cursor: 'pointer',
                   background: historyScope === 'all' ? '#ffffff' : 'transparent',
-                  color: historyScope === 'all' ? '#1d4ed8' : '#64748b',
+                  color: historyScope === 'all' ? '#684c20' : '#696358',
                   boxShadow: historyScope === 'all' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   transition: 'all 0.15s ease'
                 }}
@@ -269,7 +269,7 @@ export default function StudentTodayView({
                   fontWeight: 700,
                   cursor: 'pointer',
                   background: historyScope === 'today' ? '#ffffff' : 'transparent',
-                  color: historyScope === 'today' ? '#1d4ed8' : '#64748b',
+                  color: historyScope === 'today' ? '#684c20' : '#696358',
                   boxShadow: historyScope === 'today' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   transition: 'all 0.15s ease'
                 }}
@@ -281,7 +281,7 @@ export default function StudentTodayView({
 
           {/* Logs List */}
           {displayLogs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '28px 10px', color: '#64748b', fontSize: '0.82rem', margin: 'auto' }}>
+            <div style={{ textAlign: 'center', padding: '28px 10px', color: '#696358', fontSize: '0.82rem', margin: 'auto' }}>
               {historyScope === 'today'
                 ? (lang === 'hi' ? 'आज का कोई उपस्थिति रिकॉर्ड उपलब्ध नहीं है।' : 'No attendance recorded for today yet.')
                 : (lang === 'hi' ? 'कोई उपस्थिति रिकॉर्ड उपलब्ध नहीं है।' : 'No attendance records logged yet.')}
@@ -300,33 +300,33 @@ export default function StudentTodayView({
                       alignItems: 'center',
                       padding: '10px 12px',
                       borderRadius: '10px',
-                      background: isToday ? '#f0fdf4' : '#f8fafc',
-                      border: `1px solid ${isToday ? '#bbf7d0' : '#e2e8f0'}`,
+                      background: isToday ? '#f0fdf4' : '#faf9f6',
+                      border: `1px solid ${isToday ? '#bbf7d0' : '#e4dfd5'}`,
                       transition: 'all 0.15s ease'
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#25231f', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         {isToday ? (
                           <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', padding: '1px 6px', borderRadius: '4px' }}>
                             🟢 Today
                           </span>
                         ) : (
-                          <span style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 700 }}>
+                          <span style={{ fontSize: '0.74rem', color: '#58534a', fontWeight: 700 }}>
                             📅 {log.date}
                           </span>
                         )}
                         {log.period_label && (
-                          <span style={{ fontSize: '0.68rem', color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#684c20', background: '#faf5ea', border: '1px solid #dfcfaf', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
                             {log.period_label}
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ color: '#334155', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.74rem', color: '#696358', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ color: '#46423b', fontWeight: 600 }}>
                           📚 {log.subject_name || (log.subject_code ? `${log.subject_code}` : (log.department || 'General Attendance'))}
                         </span>
-                        {log.time && <span style={{ color: '#64748b' }}>· 🕒 {log.time}</span>}
+                        {log.time && <span style={{ color: '#696358' }}>· 🕒 {log.time}</span>}
                       </div>
                     </div>
 
@@ -340,7 +340,7 @@ export default function StudentTodayView({
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#0284c7',
+                            color: '#80602c',
                             fontSize: '0.7rem',
                             cursor: 'pointer',
                             textDecoration: 'underline'

@@ -134,14 +134,14 @@ export default function AttendancePlannerWidget({
 
   return (
     <div className="attendance-planner-wrapper" style={{
-      color: '#f8fafc',
+      color: '#faf9f6',
       fontFamily: 'inherit',
       margin: '0 0 24px 0'
     }}>
       {/* Planner Card Container */}
       <div style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '16px',
         padding: '24px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
@@ -158,11 +158,11 @@ export default function AttendancePlannerWidget({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
+              background: '#faf5ea',
+              border: '1px solid #dfcfaf',
               borderRadius: '10px',
               padding: '8px',
-              color: '#2563eb',
+              color: '#785927',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -171,13 +171,13 @@ export default function AttendancePlannerWidget({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#25231f', fontWeight: 700 }}>
                   Smart 75% Attendance Planner
                 </h3>
                 <span style={{
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  color: '#1d4ed8',
+                  background: '#faf5ea',
+                  border: '1px solid #dfcfaf',
+                  color: '#684c20',
                   fontSize: '0.7rem',
                   fontWeight: 700,
                   padding: '2px 8px',
@@ -187,7 +187,7 @@ export default function AttendancePlannerWidget({
                   Phase 4 AI Forecast
                 </span>
               </div>
-              <p style={{ margin: 0, color: '#475569', fontSize: '0.85rem' }}>
+              <p style={{ margin: 0, color: '#58534a', fontSize: '0.85rem' }}>
                 Mathematical attendance recovery solver, surplus bunk allowance calculator, and what-if projection engine.
               </p>
             </div>
@@ -196,7 +196,7 @@ export default function AttendancePlannerWidget({
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             {/* Target Threshold Selector */}
             <div className="planner-target-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
-              <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600, flexShrink: 0 }}>Target:</span>
+              <span style={{ fontSize: '0.82rem', color: '#696358', fontWeight: 600, flexShrink: 0 }}>Target:</span>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 {[75, 80, 85].map(t => (
                   <button
@@ -209,9 +209,9 @@ export default function AttendancePlannerWidget({
                       fetchPlanner(t);
                     }}
                     style={{
-                      background: targetPct === t ? '#eff6ff' : '#f8fafc',
-                      border: targetPct === t ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                      color: targetPct === t ? '#1d4ed8' : '#64748b',
+                      background: targetPct === t ? '#faf5ea' : '#faf9f6',
+                      border: targetPct === t ? '1.5px solid #916d30' : '1px solid #cfc8ba',
+                      color: targetPct === t ? '#684c20' : '#696358',
                       padding: '5px 12px',
                       borderRadius: '8px',
                       fontSize: '0.82rem',
@@ -237,9 +237,9 @@ export default function AttendancePlannerWidget({
                 setShowWhatIf(!showWhatIf);
               }}
               style={{
-                background: showWhatIf ? '#f3e8ff' : '#f8fafc',
-                border: showWhatIf ? '1px solid #a855f7' : '1px solid #cbd5e1',
-                color: showWhatIf ? '#7e22ce' : '#475569',
+                background: showWhatIf ? '#f3e8ff' : '#faf9f6',
+                border: showWhatIf ? '1px solid #a855f7' : '1px solid #cfc8ba',
+                color: showWhatIf ? '#7e22ce' : '#58534a',
                 padding: '6px 14px',
                 borderRadius: '8px',
                 fontSize: '0.82rem',
@@ -263,7 +263,7 @@ export default function AttendancePlannerWidget({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#64748b',
+                color: '#696358',
                 cursor: 'pointer',
                 padding: '4px',
                 width: 'auto'
@@ -305,8 +305,8 @@ export default function AttendancePlannerWidget({
             }}>
               {/* Overall Percentage Card */}
               <div style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: '#faf9f6',
+                border: '1px solid #e4dfd5',
                 borderRadius: '12px',
                 padding: '16px 20px',
                 display: 'flex',
@@ -329,14 +329,14 @@ export default function AttendancePlannerWidget({
                   {plannerData.overall_percentage}%
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Overall Standing
                   </span>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {getStatusBadge(plannerData.overall_status).icon}
                     {getStatusBadge(plannerData.overall_status).label}
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#696358' }}>
                     {plannerData.overall_attended} / {plannerData.overall_conducted} classes
                   </span>
                 </div>
@@ -371,15 +371,15 @@ export default function AttendancePlannerWidget({
                   {plannerData.overall_percentage < targetPct ? plannerData.overall_classes_needed : plannerData.overall_bunk_allowance}
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {plannerData.overall_percentage < targetPct ? 'Consecutive Classes Needed' : 'Safe Bunk Allowance'}
                   </span>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#25231f' }}>
                     {plannerData.overall_percentage < targetPct 
                       ? `Attend ${plannerData.overall_classes_needed} to reach ${targetPct}%` 
                       : `Can miss up to ${plannerData.overall_bunk_allowance} session(s)`}
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#696358' }}>
                     {plannerData.overall_percentage < targetPct ? 'Zero absences allowed' : `Stays ≥ ${targetPct}%`}
                   </span>
                 </div>
@@ -387,8 +387,8 @@ export default function AttendancePlannerWidget({
 
               {/* Advice Box */}
               <div style={{
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
+                background: '#faf5ea',
+                border: '1px solid #dfcfaf',
                 borderRadius: '12px',
                 padding: '16px 20px',
                 display: 'flex',
@@ -396,7 +396,7 @@ export default function AttendancePlannerWidget({
                 gap: '12px',
                 gridColumn: 'span 1'
               }}>
-                <Sparkles size={22} color="#2563eb" style={{ flexShrink: 0 }} />
+                <Sparkles size={22} color="#785927" style={{ flexShrink: 0 }} />
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#1e3a8a', lineHeight: 1.45 }}>
                   {plannerData.advice_message}
                 </p>
@@ -406,8 +406,8 @@ export default function AttendancePlannerWidget({
             {/* WHAT-IF SIMULATOR DRAWER */}
             {showWhatIf && (
               <div style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: '#faf9f6',
+                border: '1px solid #e4dfd5',
                 borderRadius: '14px',
                 padding: '20px',
                 marginBottom: '24px',
@@ -416,7 +416,7 @@ export default function AttendancePlannerWidget({
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                   <Sliders size={18} color="#7c3aed" />
-                  <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a', fontWeight: 700 }}>
+                  <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#25231f', fontWeight: 700 }}>
                     Multi-Session What-If Projection Simulator
                   </h4>
                 </div>
@@ -430,7 +430,7 @@ export default function AttendancePlannerWidget({
                 }}>
                   {/* Subject Scope */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#58534a', fontWeight: 600, marginBottom: '6px' }}>
                       Simulation Scope:
                     </label>
                     <select
@@ -439,8 +439,8 @@ export default function AttendancePlannerWidget({
                       style={{
                         width: '100%',
                         background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid #cfc8ba',
+                        color: '#25231f',
                         padding: '8px 12px',
                         borderRadius: '8px',
                         fontSize: '0.85rem'
@@ -458,7 +458,7 @@ export default function AttendancePlannerWidget({
                   {/* Upcoming Classes Slider */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>Upcoming Classes:</label>
+                      <label style={{ fontSize: '0.8rem', color: '#58534a', fontWeight: 600 }}>Upcoming Classes:</label>
                       <span style={{ fontSize: '0.8rem', color: '#7c3aed', fontWeight: 700 }}>{simUpcoming}</span>
                     </div>
                     <input
@@ -478,7 +478,7 @@ export default function AttendancePlannerWidget({
                   {/* Planned Attendance Slider */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>Planned to Attend:</label>
+                      <label style={{ fontSize: '0.8rem', color: '#58534a', fontWeight: 600 }}>Planned to Attend:</label>
                       <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 700 }}>{simPlanned} / {simUpcoming}</span>
                     </div>
                     <input
@@ -516,7 +516,7 @@ export default function AttendancePlannerWidget({
                         <AlertTriangle size={24} color="#dc2626" />
                       )}
                       <div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#25231f' }}>
                           Projected Standing: {simResult.simulated_percentage}% 
                           <span style={{
                             fontSize: '0.8rem',
@@ -527,7 +527,7 @@ export default function AttendancePlannerWidget({
                             ({simResult.difference_percentage >= 0 ? `+${simResult.difference_percentage}%` : `${simResult.difference_percentage}%`})
                           </span>
                         </div>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#696358' }}>
                           Current: {simResult.current_percentage}% → After {simPlanned} / {simUpcoming} sessions: {simResult.simulated_percentage}%
                         </span>
                       </div>
@@ -563,7 +563,7 @@ export default function AttendancePlannerWidget({
                     key={sub.subject_id}
                     style={{
                       background: '#ffffff',
-                      border: `1px solid ${isUnder ? '#fca5a5' : '#e2e8f0'}`,
+                      border: `1px solid ${isUnder ? '#fca5a5' : '#e4dfd5'}`,
                       borderRadius: '12px',
                       padding: '16px',
                       display: 'flex',
@@ -576,11 +576,11 @@ export default function AttendancePlannerWidget({
                       {/* Top row */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                         <div>
-                          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 600, color: '#0f172a' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 600, color: '#25231f' }}>
                             {sub.subject_name}
                           </h4>
                           {sub.subject_code && (
-                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{sub.subject_code}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#696358' }}>{sub.subject_code}</span>
                           )}
                         </div>
 
@@ -603,7 +603,7 @@ export default function AttendancePlannerWidget({
                       {/* Progress Bar */}
                       <div style={{
                         height: '6px',
-                        background: '#e2e8f0',
+                        background: '#e4dfd5',
                         borderRadius: '3px',
                         overflow: 'hidden',
                         marginBottom: '12px'
@@ -641,14 +641,14 @@ export default function AttendancePlannerWidget({
 
                     {/* Footer Forecasts */}
                     <div style={{
-                      borderTop: '1px solid #e2e8f0',
+                      borderTop: '1px solid #e4dfd5',
                       paddingTop: '10px',
                       display: 'flex',
                       justifyContent: 'space-between',
                       fontSize: '0.75rem',
-                      color: '#64748b'
+                      color: '#696358'
                     }}>
-                      <span>If attend next 3: <strong style={{ color: '#0284c7' }}>{sub.projection_attend_next_3}%</strong></span>
+                      <span>If attend next 3: <strong style={{ color: '#80602c' }}>{sub.projection_attend_next_3}%</strong></span>
                       <span>If miss next 3: <strong style={{ color: '#dc2626' }}>{sub.projection_miss_next_3}%</strong></span>
                     </div>
                   </div>

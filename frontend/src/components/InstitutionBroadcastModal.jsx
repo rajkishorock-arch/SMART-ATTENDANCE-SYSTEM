@@ -132,7 +132,7 @@ export default function InstitutionBroadcastModal({
           maxWidth: '520px',
           maxHeight: '92vh',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           boxShadow: '0 20px 50px rgba(15, 23, 42, 0.15)',
           overflow: 'hidden',
@@ -144,7 +144,7 @@ export default function InstitutionBroadcastModal({
         {/* Header */}
         <div style={{
           padding: '14px 18px',
-          borderBottom: '1px solid #e2e8f0',
+          borderBottom: '1px solid #e4dfd5',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -155,20 +155,20 @@ export default function InstitutionBroadcastModal({
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
+              background: '#faf5ea',
+              border: '1px solid #dfcfaf',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#1d4ed8'
+              color: '#684c20'
             }}>
               <Megaphone size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#25231f', margin: 0 }}>
                 Campus Broadcast
               </h3>
-              <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '1px 0 0' }}>
+              <p style={{ fontSize: '0.74rem', color: '#696358', margin: '1px 0 0' }}>
                 Instant notice across selected roles
               </p>
             </div>
@@ -177,10 +177,10 @@ export default function InstitutionBroadcastModal({
           <button
             onClick={onClose}
             style={{
-              background: '#f1f5f9',
-              border: '1px solid #cbd5e1',
+              background: '#f4f1eb',
+              border: '1px solid #cfc8ba',
               borderRadius: '8px',
-              color: '#64748b',
+              color: '#696358',
               padding: '6px',
               cursor: 'pointer'
             }}
@@ -221,7 +221,7 @@ export default function InstitutionBroadcastModal({
 
           {/* Announcement Category - strictly 1 horizontal row */}
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '5px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
               Announcement Type:
             </label>
             <div 
@@ -235,7 +235,7 @@ export default function InstitutionBroadcastModal({
               }}
             >
               {[
-                { id: 'ANNOUNCEMENT', label: '📢 Notice', color: '#2563eb', bg: '#eff6ff' },
+                { id: 'ANNOUNCEMENT', label: '📢 Notice', color: '#785927', bg: '#faf5ea' },
                 { id: 'HOLIDAY', label: '🏖️ Holiday', color: '#d97706', bg: '#fffbeb' },
                 { id: 'EMERGENCY', label: '🚨 Urgent Alert', color: '#dc2626', bg: '#fef2f2' },
               ].map(cat => (
@@ -248,9 +248,9 @@ export default function InstitutionBroadcastModal({
                     minWidth: 0,
                     padding: '8px 4px',
                     borderRadius: '8px',
-                    border: category === cat.id ? `1.5px solid ${cat.color}` : '1px solid #e2e8f0',
+                    border: category === cat.id ? `1.5px solid ${cat.color}` : '1px solid #e4dfd5',
                     background: category === cat.id ? cat.bg : '#ffffff',
-                    color: category === cat.id ? cat.color : '#64748b',
+                    color: category === cat.id ? cat.color : '#696358',
                     fontSize: '0.78rem',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -269,7 +269,7 @@ export default function InstitutionBroadcastModal({
 
           {/* Target Audience - strictly 1 horizontal row */}
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '5px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
               Recipient Audience:
             </label>
             <div 
@@ -303,9 +303,9 @@ export default function InstitutionBroadcastModal({
                       gap: '4px',
                       padding: '7px 4px',
                       borderRadius: '18px',
-                      border: isSelected ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
-                      background: isSelected ? '#eff6ff' : '#f8fafc',
-                      color: isSelected ? '#1d4ed8' : '#64748b',
+                      border: isSelected ? '1.5px solid #785927' : '1px solid #e4dfd5',
+                      background: isSelected ? '#faf5ea' : '#faf9f6',
+                      color: isSelected ? '#684c20' : '#696358',
                       fontSize: '0.75rem',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -324,7 +324,7 @@ export default function InstitutionBroadcastModal({
 
           {/* Title */}
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '4px' }}>
               Announcement Title:
             </label>
             <input 
@@ -336,10 +336,10 @@ export default function InstitutionBroadcastModal({
                 width: '100%',
                 padding: '9px 12px',
                 borderRadius: '8px',
-                border: '1.5px solid #e2e8f0',
+                border: '1.5px solid #e4dfd5',
                 background: '#ffffff',
                 fontSize: '0.84rem',
-                color: '#0f172a',
+                color: '#25231f',
                 boxSizing: 'border-box'
               }}
             />
@@ -347,7 +347,7 @@ export default function InstitutionBroadcastModal({
 
           {/* Message */}
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '4px' }}>
               Detailed Message:
             </label>
             <textarea
@@ -359,10 +359,10 @@ export default function InstitutionBroadcastModal({
                 width: '100%',
                 padding: '9px 12px',
                 borderRadius: '8px',
-                border: '1.5px solid #e2e8f0',
+                border: '1.5px solid #e4dfd5',
                 background: '#ffffff',
                 fontSize: '0.84rem',
-                color: '#0f172a',
+                color: '#25231f',
                 boxSizing: 'border-box',
                 resize: 'vertical'
               }}
@@ -388,9 +388,9 @@ export default function InstitutionBroadcastModal({
                 flex: '1 1 0',
                 padding: '9px 14px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid #cfc8ba',
                 background: '#ffffff',
-                color: '#475569',
+                color: '#58534a',
                 fontSize: '0.82rem',
                 fontWeight: 600,
                 cursor: 'pointer',

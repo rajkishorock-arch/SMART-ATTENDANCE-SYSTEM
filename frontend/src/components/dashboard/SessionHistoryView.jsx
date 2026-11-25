@@ -80,8 +80,8 @@ export default function SessionHistoryView({
             ) : (
               /* Teacher Info Card */
               <div style={{ 
-                background: '#eff6ff', 
-                border: '1px solid #bfdbfe', 
+                background: '#faf5ea', 
+                border: '1px solid #dfcfaf', 
                 borderRadius: '8px', 
                 padding: '10px 16px', 
                 display: 'flex', 
@@ -126,7 +126,7 @@ export default function SessionHistoryView({
                     height: '42px',
                     boxSizing: 'border-box'
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--color-primary)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f4f1eb'; e.currentTarget.style.color = 'var(--color-primary)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
                   title="Previous Day"
                 >
@@ -162,7 +162,7 @@ export default function SessionHistoryView({
                     height: '42px',
                     boxSizing: 'border-box'
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--color-primary)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f4f1eb'; e.currentTarget.style.color = 'var(--color-primary)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
                   title="Next Day"
                 >
@@ -243,7 +243,7 @@ export default function SessionHistoryView({
                 </div>
                 <div style={{ position: 'relative', width: '38px', height: '38px' }}>
                   <svg width="38" height="38" viewBox="0 0 36 36">
-                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" strokeWidth="3.5" />
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e4dfd5" strokeWidth="3.5" />
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--color-primary)" strokeWidth="3.5" strokeDasharray={`${avgAttendanceRate}, 100`} />
                   </svg>
                 </div>
@@ -316,7 +316,7 @@ export default function SessionHistoryView({
                         justifyContent: 'space-between', 
                         alignItems: 'center', 
                         cursor: 'pointer',
-                        background: isExpanded ? '#f8fafc' : '#ffffff',
+                        background: isExpanded ? '#faf9f6' : '#ffffff',
                         transition: 'background 0.3s'
                       }}
                     >
@@ -324,7 +324,7 @@ export default function SessionHistoryView({
                         {/* Circular Filling progress SVG */}
                         <div style={{ position: 'relative', width: '38px', height: '38px' }}>
                           <svg width="38" height="38" viewBox="0 0 36 36">
-                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e4dfd5" strokeWidth="3" />
                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={sessionFillRate >= 75 ? '#10b981' : sessionFillRate >= 50 ? '#f59e0b' : '#ef4444'} strokeWidth="3" strokeDasharray={`${sessionFillRate}, 100`} />
                           </svg>
                           <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '0.65rem', fontFamily: 'monospace', fontWeight: 'bold', color: 'var(--color-text-main)' }}>
@@ -336,7 +336,7 @@ export default function SessionHistoryView({
                             Session: {session.date.split('/').join(' / ')}
                           </h4>
                           <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', marginTop: '2px', fontFamily: 'monospace' }}>
-                            TIME SLOT: <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{session.period_label || getPeriodSlotLabel(session.period)}</span> | SUBJECT: <span style={{ color: '#4f46e5', fontWeight: 600 }}>{session.subject_name || 'Class Subject'}</span> | ENROLLED: {totalStudentsCount}
+                            TIME SLOT: <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{session.period_label || getPeriodSlotLabel(session.period)}</span> | SUBJECT: <span style={{ color: '#765729', fontWeight: 600 }}>{session.subject_name || 'Class Subject'}</span> | ENROLLED: {totalStudentsCount}
                           </p>
                         </div>
                       </div>
@@ -365,7 +365,7 @@ export default function SessionHistoryView({
                       <div style={{ 
                         borderTop: '1px solid var(--border-subtle)', 
                         padding: '24px 28px', 
-                        background: '#f8fafc',
+                        background: '#faf9f6',
                         animation: 'slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                         position: 'relative'
                       }}>
@@ -387,7 +387,7 @@ export default function SessionHistoryView({
 
                           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                             {/* Filter chips */}
-                            <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                            <div style={{ display: 'flex', background: '#f4f1eb', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                               {['all', 'present', 'absent'].map(status => (
                                 <button
                                   key={status}
@@ -414,7 +414,7 @@ export default function SessionHistoryView({
                             </div>
 
                             {/* Mode switcher */}
-                            <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                            <div style={{ display: 'flex', background: '#f4f1eb', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                               <button
                                 onClick={() => {
                                   playCyberSound('click');

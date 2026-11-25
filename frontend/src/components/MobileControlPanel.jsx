@@ -60,7 +60,7 @@ export default function MobileControlPanel({
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Control Center</h3>
             {userRole !== 'student' && userRole !== 'teacher' && (
-              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>Full Institutional System Features & Navigation</p>
+              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#696358' }}>Full Institutional System Features & Navigation</p>
             )}
           </div>
           <button type="button" className="control-panel-close" onClick={onClose} aria-label="Close">
@@ -81,7 +81,7 @@ export default function MobileControlPanel({
               style={{ position: 'relative' }}
             >
               <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%', alignItems: 'center' }}>
-                <Icon size={22} style={{ color: activeTab === id ? '#1d4ed8' : '#2563eb' }} />
+                <Icon size={22} style={{ color: activeTab === id ? '#684c20' : '#785927' }} />
               </div>
               <span style={{ fontSize: '0.78rem', lineHeight: '1.25', fontWeight: 600 }}>{label}</span>
             </button>

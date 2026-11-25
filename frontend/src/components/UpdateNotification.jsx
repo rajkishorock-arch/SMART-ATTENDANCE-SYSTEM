@@ -60,7 +60,7 @@ export default function UpdateNotification({
             margin: isMobileView ? '0 auto' : 0,
             borderRadius: '16px',
             background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
+            border: '1.5px solid #e4dfd5',
             boxShadow: '0 16px 40px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(0, 0, 0, 0.06)',
             padding: '16px 18px',
             boxSizing: 'border-box',
@@ -77,8 +77,8 @@ export default function UpdateNotification({
                   height: '40px',
                   minWidth: '40px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
-                  border: '1px solid #bfdbfe',
+                  background: 'linear-gradient(135deg, #faf5ea, #f2e7d1)',
+                  border: '1px solid #dfcfaf',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -91,14 +91,14 @@ export default function UpdateNotification({
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#25231f', lineHeight: 1.2 }}>
                     Update v{updateAvailable.version}
                   </span>
                   <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
                     READY
                   </span>
                 </div>
-                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.35 }}>
+                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#696358', lineHeight: 1.35 }}>
                   A newer version with performance and UI upgrades is available.
                 </p>
               </div>
@@ -114,9 +114,9 @@ export default function UpdateNotification({
                 height: '32px',
                 minWidth: '32px',
                 borderRadius: '50%',
-                background: '#f1f5f9',
-                border: '1px solid #e2e8f0',
-                color: '#64748b',
+                background: '#f4f1eb',
+                border: '1px solid #e4dfd5',
+                color: '#696358',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -145,7 +145,7 @@ export default function UpdateNotification({
                 flex: 1,
                 padding: '10px 16px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: 'linear-gradient(135deg, #785927, #916d30)',
                 color: '#ffffff',
                 border: 'none',
                 fontWeight: 700,
@@ -168,9 +168,9 @@ export default function UpdateNotification({
               style={{
                 padding: '10px 16px',
                 borderRadius: '10px',
-                background: '#f8fafc',
-                color: '#64748b',
-                border: '1px solid #cbd5e1',
+                background: '#faf9f6',
+                color: '#696358',
+                border: '1px solid #cfc8ba',
                 fontWeight: 600,
                 fontSize: '0.82rem',
                 cursor: 'pointer',

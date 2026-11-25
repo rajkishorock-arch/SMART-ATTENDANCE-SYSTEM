@@ -230,13 +230,13 @@ export default function ReleaseSettings({
   return (
     <>
       {/* ═══ SYSTEM RELEASE UPDATE CONTROL ═══ */}
-      <div className="surface-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="surface-card" style={{ background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               🚀 System Release & APK Control
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
+            <p style={{ color: '#696358', fontSize: '0.85rem', marginTop: '4px', margin: 0 }}>
               Trigger automated GitHub Actions APK compilation or manually deploy new version releases.
             </p>
           </div>
@@ -272,15 +272,15 @@ export default function ReleaseSettings({
         {/* ═══ OWNER BETA CHANNEL — test on your phone first ═══ */}
         <div style={{
           background: currentBetaActive ? '#fffbeb' : '#ffffff',
-          border: currentBetaActive ? '1px solid #fcd34d' : '1px solid #e2e8f0',
+          border: currentBetaActive ? '1px solid #fcd34d' : '1px solid #e4dfd5',
           borderRadius: '16px', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap',
           boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
         }}>
           <div style={{ flex: 1 }}>
-            <h4 style={{ margin: '0 0 6px', color: currentBetaActive ? '#d97706' : '#0f172a' }}>
+            <h4 style={{ margin: '0 0 6px', color: currentBetaActive ? '#d97706' : '#25231f' }}>
               🧪 Step 1: Owner Beta Test (Your Phone Only)
             </h4>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.82rem' }}>
+            <p style={{ margin: 0, color: '#696358', fontSize: '0.82rem' }}>
               {currentBetaActive
                 ? 'Update banner shows ONLY on your device. Test the APK, then use Step 2 to release to everyone.'
                 : 'Enable beta to receive the update on your phone first before all users.'}
@@ -309,7 +309,7 @@ export default function ReleaseSettings({
             : '#ffffff',
           border: currentUpdateActive
             ? '1px solid #86efac'
-            : '1px solid #e2e8f0',
+            : '1px solid #e4dfd5',
           borderRadius: '16px',
           padding: '24px',
           display: 'flex',
@@ -323,11 +323,11 @@ export default function ReleaseSettings({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
               <span style={{ fontSize: '1.4rem' }}>{currentUpdateActive ? '🟢' : '⚫'}</span>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: currentUpdateActive ? '#059669' : '#0f172a' }}>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: currentUpdateActive ? '#059669' : '#25231f' }}>
                 {currentUpdateActive ? 'Step 2: LIVE for ALL Users' : 'Step 2: Public Release (All Users)'}
               </h4>
             </div>
-            <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ color: '#696358', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
               {currentUpdateActive
                 ? `🚀 Version update is currently active. All users will see the download banner. Turn OFF to hide it.`
                 : '💤 Toggle ON to instantly release the update banner to ALL users (requires Master Key).'}
@@ -351,8 +351,8 @@ export default function ReleaseSettings({
               borderRadius: '17px',
               background: currentUpdateActive
                 ? 'linear-gradient(135deg, #10b981, #0891b2)'
-                : '#e2e8f0',
-              border: currentUpdateActive ? '2px solid rgba(16,185,129,0.5)' : '2px solid #cbd5e1',
+                : '#e4dfd5',
+              border: currentUpdateActive ? '2px solid rgba(16,185,129,0.5)' : '2px solid #cfc8ba',
               cursor: 'pointer',
               position: 'relative',
               transition: 'all 0.3s ease',
@@ -397,15 +397,15 @@ export default function ReleaseSettings({
         )}
 
         {/* Current Active Release Info */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <div>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>CURRENT PUBLISHED VERSION</span>
+            <span style={{ fontSize: '0.8rem', color: '#696358', display: 'block', marginBottom: '4px' }}>CURRENT PUBLISHED VERSION</span>
             <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>{activeReleaseVersion ? `v${activeReleaseVersion}` : 'None'}</span>
           </div>
           <div>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>APK DOWNLOAD LINK</span>
+            <span style={{ fontSize: '0.8rem', color: '#696358', display: 'block', marginBottom: '4px' }}>APK DOWNLOAD LINK</span>
             {activeReleaseUrl ? (
-              <a href={activeReleaseUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#3b82f6', textDecoration: 'underline', wordBreak: 'break-all', display: 'block' }}>
+              <a href={activeReleaseUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#916d30', textDecoration: 'underline', wordBreak: 'break-all', display: 'block' }}>
                 {activeReleaseUrl}
               </a>
             ) : (
@@ -432,12 +432,12 @@ export default function ReleaseSettings({
                   <div style={{
                     width: '18px', height: '18px',
                     border: '2px solid rgba(59, 130, 246, 0.2)',
-                    borderTop: '2px solid #3b82f6',
+                    borderTop: '2px solid #916d30',
                     borderRadius: '50%',
                     animation: 'spin 1s infinite linear'
                   }} />
                 )}
-                <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: buildStatus === 'building' ? '#3b82f6' : buildStatus === 'success' ? '#10b981' : '#ef4444' }}>
+                <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: buildStatus === 'building' ? '#916d30' : buildStatus === 'success' ? '#10b981' : '#ef4444' }}>
                   {buildStatus === 'building' && `⚡ Automated Build in Progress (v${buildVersion})`}
                   {buildStatus === 'success' && `✅ Build Succeeded (v${buildVersion})`}
                   {buildStatus === 'failed' && `❌ Build Failed (v${buildVersion})`}
@@ -449,20 +449,20 @@ export default function ReleaseSettings({
                     setBuildStatus('idle');
                     setBuildError('');
                   }}
-                  style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer' }}
+                  style={{ background: '#f4f1eb', border: '1px solid #cfc8ba', color: '#58534a', padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer' }}
                 >
                   Dismiss Status
                 </button>
               )}
             </div>
-            <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ color: '#696358', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
               {buildStatus === 'building' && `React code is compiling, assets are syncing, and Android APK v${buildVersion} is being signed and packaged on GitHub Actions. Usually takes ~3 mins. The update goes live automatically when complete.`}
               {buildStatus === 'success' && `Automated release build of APK v${buildVersion} finished successfully. The version is live and download link is set.`}
               {buildStatus === 'failed' && `Auto-build pipeline failed. Error: ${buildError}`}
             </p>
             {buildStatus === 'building' && (
-              <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden', marginTop: '6px', position: 'relative' }}>
-                <div className="progress-bar-loading" style={{ height: '100%', background: '#3b82f6', borderRadius: '2px', width: '35%', position: 'absolute' }} />
+              <div style={{ width: '100%', height: '4px', background: '#e4dfd5', borderRadius: '2px', overflow: 'hidden', marginTop: '6px', position: 'relative' }}>
+                <div className="progress-bar-loading" style={{ height: '100%', background: '#916d30', borderRadius: '2px', width: '35%', position: 'absolute' }} />
               </div>
             )}
           </div>
@@ -470,11 +470,11 @@ export default function ReleaseSettings({
 
         {/* ═══ AUTO BUILD / MANUAL RELEASE FORM ═══ */}
         {!showManualReleaseForm ? (
-          <form onSubmit={handleTriggerBuild} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <form onSubmit={handleTriggerBuild} style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               🚀 Auto-Build & Release APK via GitHub Actions
             </h4>
-            <p style={{ color: '#475569', fontSize: '0.85rem', margin: '0', lineHeight: 1.5 }}>
+            <p style={{ color: '#58534a', fontSize: '0.85rem', margin: '0', lineHeight: 1.5 }}>
               Specify the new release version and enter your master password. The system will automatically build the signed APK and publish it without any manual Android Studio compiling.
             </p>
 
@@ -536,11 +536,11 @@ export default function ReleaseSettings({
             </div>
           </form>
         ) : (
-          <form onSubmit={handlePublishReleaseUpdate} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <form onSubmit={handlePublishReleaseUpdate} style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               💾 Configure Version & Download URL Manually
             </h4>
-            <p style={{ color: '#475569', fontSize: '0.85rem', margin: '0', lineHeight: 1.5 }}>
+            <p style={{ color: '#58534a', fontSize: '0.85rem', margin: '0', lineHeight: 1.5 }}>
               Directly save the version number and custom .apk download link.
             </p>
 
@@ -605,13 +605,13 @@ export default function ReleaseSettings({
           </form>
         )}
 
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>ℹ️ How It Works (Automated Release)</h4>
-          <ul style={{ color: '#475569', fontSize: '0.82rem', margin: '4px 0 0 20px', padding: 0, lineHeight: 1.8 }}>
-            <li><strong style={{ color: '#0f172a' }}>Step 1:</strong> Enter the target release version and your master key, then click "Trigger Auto-Build".</li>
-            <li><strong style={{ color: '#0f172a' }}>Step 2:</strong> GitHub Actions compiles, signs, uploads the APK to GitHub Releases, and calls back this backend.</li>
-            <li><strong style={{ color: '#0f172a' }}>Step 3:</strong> Once compiled, the download link updates automatically, and the update is made LIVE for all users.</li>
-            <li><strong style={{ color: '#0f172a' }}>Step 4:</strong> To stop displaying the update banner, simply toggle the master active switch above to OFF.</li>
+        <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#25231f', margin: 0 }}>ℹ️ How It Works (Automated Release)</h4>
+          <ul style={{ color: '#58534a', fontSize: '0.82rem', margin: '4px 0 0 20px', padding: 0, lineHeight: 1.8 }}>
+            <li><strong style={{ color: '#25231f' }}>Step 1:</strong> Enter the target release version and your master key, then click "Trigger Auto-Build".</li>
+            <li><strong style={{ color: '#25231f' }}>Step 2:</strong> GitHub Actions compiles, signs, uploads the APK to GitHub Releases, and calls back this backend.</li>
+            <li><strong style={{ color: '#25231f' }}>Step 3:</strong> Once compiled, the download link updates automatically, and the update is made LIVE for all users.</li>
+            <li><strong style={{ color: '#25231f' }}>Step 4:</strong> To stop displaying the update banner, simply toggle the master active switch above to OFF.</li>
           </ul>
         </div>
       </div>
@@ -643,10 +643,10 @@ export default function ReleaseSettings({
                 {pendingToggleValue ? '🚀' : '🔕'}
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#25231f' }}>
                   {pendingToggleValue ? 'Activate Update for All Users?' : 'Deactivate Update Banner?'}
                 </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.4 }}>
+                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#696358', lineHeight: 1.4 }}>
                   {pendingToggleValue
                     ? 'All users will see the update download banner immediately.'
                     : 'The update banner will be hidden from all users.'}

@@ -18,23 +18,23 @@ const CustomTooltip = ({ active, payload, label }) => {
     return (
       <div style={{
         background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #e4dfd5',
         borderRadius: '10px',
         padding: '10px 14px',
         boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
-        color: '#0f172a',
+        color: '#25231f',
         fontSize: '0.8rem'
       }}>
-        <div style={{ fontWeight: 700, marginBottom: '6px', color: '#0f172a' }}>
+        <div style={{ fontWeight: 700, marginBottom: '6px', color: '#25231f' }}>
           {label ? `${label}` : 'Metrics'}
         </div>
         {payload.map((entry, index) => (
           <div key={`item-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', alignItems: 'center', margin: '3px 0' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#696358' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: entry.color || entry.fill }} />
               {entry.name}:
             </span>
-            <span style={{ fontWeight: 700, color: '#0f172a' }}>{entry.value}</span>
+            <span style={{ fontWeight: 700, color: '#25231f' }}>{entry.value}</span>
           </div>
         ))}
       </div>
@@ -181,7 +181,7 @@ export default function AttendanceChartsWidget({ stats = {} }) {
             flexDirection: 'column',
             gap: '14px',
             borderRadius: '16px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             background: '#ffffff',
             boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
             minWidth: 0,
@@ -190,21 +190,21 @@ export default function AttendanceChartsWidget({ stats = {} }) {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="stat-icon-wrapper" style={{ background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd', borderRadius: '10px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="stat-icon-wrapper" style={{ background: '#e0f2fe', color: '#80602c', border: '1px solid #bae6fd', borderRadius: '10px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TrendingUp size={20} />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.01em' }}>Attendance Trends</h3>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Real-time verification velocity</span>
+                <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#25231f', margin: 0, letterSpacing: '-0.01em' }}>Attendance Trends</h3>
+                <span style={{ fontSize: '0.74rem', color: '#696358' }}>Real-time verification velocity</span>
               </div>
             </div>
 
             <div style={{
               display: 'flex',
-              background: '#f1f5f9',
+              background: '#f4f1eb',
               padding: '3px',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0'
+              border: '1px solid #e4dfd5'
             }}>
               <button
                 type="button"
@@ -214,7 +214,7 @@ export default function AttendanceChartsWidget({ stats = {} }) {
                   borderRadius: '6px',
                   border: 'none',
                   background: timeRange === 'weekly' ? '#ffffff' : 'transparent',
-                  color: timeRange === 'weekly' ? '#0f172a' : '#64748b',
+                  color: timeRange === 'weekly' ? '#25231f' : '#696358',
                   fontSize: '0.72rem',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -232,7 +232,7 @@ export default function AttendanceChartsWidget({ stats = {} }) {
                   borderRadius: '6px',
                   border: 'none',
                   background: timeRange === 'monthly' ? '#ffffff' : 'transparent',
-                  color: timeRange === 'monthly' ? '#0f172a' : '#64748b',
+                  color: timeRange === 'monthly' ? '#25231f' : '#696358',
                   fontSize: '0.72rem',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -249,26 +249,26 @@ export default function AttendanceChartsWidget({ stats = {} }) {
             <AreaChart width={chartWidth1} height={230} data={weeklyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0284c7" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#0284c7" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#80602c" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#80602c" stopOpacity={0.0} />
                 </linearGradient>
                 <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="day" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f4f1eb" />
+              <XAxis dataKey="day" stroke="#696358" fontSize={11} tickLine={false} axisLine={{ stroke: '#e4dfd5' }} />
               <YAxis
-                stroke="#64748b"
+                stroke="#696358"
                 fontSize={11}
                 tickLine={false}
-                axisLine={{ stroke: '#e2e8f0' }}
+                axisLine={{ stroke: '#e4dfd5' }}
                 domain={[0, (dataMax) => (dataMax > 0 ? Math.ceil(dataMax * 1.2) : 5)]}
                 allowDecimals={false}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="present" name="Present" stroke="#0284c7" strokeWidth={2.5} fillOpacity={1} fill="url(#presentGrad)" />
+              <Area type="monotone" dataKey="present" name="Present" stroke="#80602c" strokeWidth={2.5} fillOpacity={1} fill="url(#presentGrad)" />
               <Area type="monotone" dataKey="absent" name="Absent" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#absentGrad)" />
             </AreaChart>
           </div>
@@ -283,7 +283,7 @@ export default function AttendanceChartsWidget({ stats = {} }) {
             flexDirection: 'column',
             gap: '14px',
             borderRadius: '16px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             background: '#ffffff',
             boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
             minWidth: 0,
@@ -295,15 +295,15 @@ export default function AttendanceChartsWidget({ stats = {} }) {
               <PieIcon size={20} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.01em' }}>Daily Ratio</h3>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Real-time status breakdown</span>
+              <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#25231f', margin: 0, letterSpacing: '-0.01em' }}>Daily Ratio</h3>
+              <span style={{ fontSize: '0.74rem', color: '#696358' }}>Real-time status breakdown</span>
             </div>
           </div>
 
           <div ref={containerRef2} style={{ width: '100%', minWidth: 0, height: 230, position: 'relative', overflow: 'hidden' }}>
             <PieChart width={chartWidth2} height={230}>
               <Pie
-                data={isDataEmpty || activePieSlices.length === 0 ? [{ name: 'Awaiting Scans', value: 1, color: '#cbd5e1' }] : activePieSlices}
+                data={isDataEmpty || activePieSlices.length === 0 ? [{ name: 'Awaiting Scans', value: 1, color: '#cfc8ba' }] : activePieSlices}
                 cx="50%"
                 cy="44%"
                 innerRadius={55}
@@ -311,7 +311,7 @@ export default function AttendanceChartsWidget({ stats = {} }) {
                 paddingAngle={isDataEmpty ? 0 : 4}
                 dataKey="value"
               >
-                {(isDataEmpty || activePieSlices.length === 0 ? [{ color: '#cbd5e1' }] : activePieSlices).map((entry, index) => (
+                {(isDataEmpty || activePieSlices.length === 0 ? [{ color: '#cfc8ba' }] : activePieSlices).map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
                 ))}
               </Pie>
@@ -324,8 +324,8 @@ export default function AttendanceChartsWidget({ stats = {} }) {
                     {distributionData.map((item, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem' }}>
                         <span style={{ width: 8, height: 8, borderRadius: '2px', background: item.color }} />
-                        <span style={{ color: '#64748b' }}>{item.name}:</span>
-                        <span style={{ color: '#0f172a', fontWeight: 700 }}>{item.value}</span>
+                        <span style={{ color: '#696358' }}>{item.name}:</span>
+                        <span style={{ color: '#25231f', fontWeight: 700 }}>{item.value}</span>
                       </div>
                     ))}
                   </div>
@@ -342,10 +342,10 @@ export default function AttendanceChartsWidget({ stats = {} }) {
               textAlign: 'center',
               pointerEvents: 'none'
             }}>
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1.1 }}>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#25231f', display: 'block', lineHeight: 1.1 }}>
                 {isDataEmpty ? '0%' : `${attendancePercent}%`}
               </span>
-              <span style={{ fontSize: '0.66rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <span style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {isDataEmpty ? 'No Scans' : 'Present'}
               </span>
             </div>

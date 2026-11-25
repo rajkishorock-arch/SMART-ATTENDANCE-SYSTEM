@@ -135,7 +135,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
           width: '100%',
           maxWidth: '520px',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e4dfd5',
           borderRadius: '16px',
           boxShadow: '0 20px 50px rgba(15, 23, 42, 0.15)',
           overflow: 'hidden',
@@ -147,7 +147,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
         {/* Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid #e2e8f0',
+          borderBottom: '1px solid #e4dfd5',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
@@ -163,13 +163,13 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <Sliders size={20} color="#0284c7" />
+              <Sliders size={20} color="#80602c" />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#25231f', margin: 0 }}>
                 Notification Preferences
               </h3>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0' }}>
+              <p style={{ fontSize: '0.78rem', color: '#696358', margin: '2px 0 0' }}>
                 Role alert channels & quiet hours settings
               </p>
             </div>
@@ -178,10 +178,10 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
           <button
             onClick={onClose}
             style={{
-              background: '#f1f5f9',
-              border: '1px solid #cbd5e1',
+              background: '#f4f1eb',
+              border: '1px solid #cfc8ba',
               borderRadius: '8px',
-              color: '#64748b',
+              color: '#696358',
               padding: '6px',
               cursor: 'pointer'
             }}
@@ -195,7 +195,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
           
           {/* Category Toggles */}
           <div>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#25231f', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Notification Categories
             </h4>
 
@@ -212,8 +212,8 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
                   style={{
                     padding: '12px 16px',
                     borderRadius: '10px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: '#faf9f6',
+                    border: '1px solid #e4dfd5',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -223,10 +223,10 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <item.icon size={18} color={item.color} />
                     <div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#0f172a' }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#25231f' }}>
                         {item.label}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#696358' }}>
                         {item.desc}
                       </div>
                     </div>
@@ -239,7 +239,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
                     style={{
                       width: '18px',
                       height: '18px',
-                      accentColor: '#0284c7',
+                      accentColor: '#80602c',
                       cursor: 'pointer'
                     }}
                   />
@@ -252,20 +252,20 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
           <div style={{
             padding: '16px',
             borderRadius: '12px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
+            background: '#faf9f6',
+            border: '1px solid #e4dfd5',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <VolumeX size={18} color="#0284c7" />
+                <VolumeX size={18} color="#80602c" />
                 <div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>
                     Quiet Hours
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#696358' }}>
                     Suppress push notifications during sleep hours
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
                 style={{
                   width: '18px',
                   height: '18px',
-                  accentColor: '#0284c7',
+                  accentColor: '#80602c',
                   cursor: 'pointer'
                 }}
               />
@@ -287,7 +287,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
             {preferences.quiet_hours_enabled && (
               <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Start Time</label>
+                  <label style={{ fontSize: '0.75rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Start Time</label>
                   <input
                     type="time"
                     value={preferences.quiet_start_time}
@@ -297,14 +297,14 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
                       padding: '8px 12px',
                       borderRadius: '8px',
                       background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      color: '#0f172a',
+                      border: '1px solid #cfc8ba',
+                      color: '#25231f',
                       fontSize: '0.85rem'
                     }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '4px' }}>End Time</label>
+                  <label style={{ fontSize: '0.75rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>End Time</label>
                   <input
                     type="time"
                     value={preferences.quiet_end_time}
@@ -314,8 +314,8 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
                       padding: '8px 12px',
                       borderRadius: '8px',
                       background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      color: '#0f172a',
+                      border: '1px solid #cfc8ba',
+                      color: '#25231f',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -356,7 +356,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
         {/* Footer Actions */}
         <div style={{
           padding: '16px 24px',
-          borderTop: '1px solid #e2e8f0',
+          borderTop: '1px solid #e4dfd5',
           display: 'flex',
           justifyContent: 'flex-end',
           gap: '12px'
@@ -366,9 +366,9 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
             style={{
               padding: '10px 18px',
               borderRadius: '8px',
-              background: '#f1f5f9',
-              border: '1px solid #cbd5e1',
-              color: '#334155',
+              background: '#f4f1eb',
+              border: '1px solid #cfc8ba',
+              color: '#46423b',
               fontSize: '0.85rem',
               fontWeight: 600,
               cursor: 'pointer'
@@ -383,7 +383,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
             style={{
               padding: '10px 22px',
               borderRadius: '8px',
-              background: '#0284c7',
+              background: '#80602c',
               border: 'none',
               color: '#ffffff',
               fontSize: '0.85rem',

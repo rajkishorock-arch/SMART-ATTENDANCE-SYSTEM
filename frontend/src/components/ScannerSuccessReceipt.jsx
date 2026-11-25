@@ -39,7 +39,7 @@ export function ScannerSuccessReceipt({
         border: `2px solid ${primaryColor}`,
         borderRadius: '20px',
         boxShadow: '0 20px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0,0,0,0.06)',
-        color: '#0f172a',
+        color: '#25231f',
         width: 'calc(100% - 24px)',
         maxWidth: '480px',
         margin: '0 auto',
@@ -79,10 +79,10 @@ export function ScannerSuccessReceipt({
             type="button"
             onClick={onDismiss}
             style={{
-              background: '#f1f5f9',
+              background: '#f4f1eb',
               border: 'none',
               borderRadius: '50%',
-              color: '#64748b',
+              color: '#696358',
               cursor: 'pointer',
               width: '28px',
               height: '28px',
@@ -95,7 +95,7 @@ export function ScannerSuccessReceipt({
             title="Dismiss card"
             aria-label="Dismiss receipt"
           >
-            <X size={16} color="#475569" />
+            <X size={16} color="#58534a" />
           </button>
         )}
       </div>
@@ -138,7 +138,7 @@ export function ScannerSuccessReceipt({
               justifyContent: 'center',
               width: '100%',
               height: '100%',
-              background: 'linear-gradient(135deg, #0ea5e9, #3b82f6)',
+              background: 'linear-gradient(135deg, #987235, #916d30)',
               color: '#ffffff'
             }}>
               <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.05em' }}>
@@ -170,7 +170,7 @@ export function ScannerSuccessReceipt({
           <div style={{
             fontSize: '1.18rem',
             fontWeight: 900,
-            color: '#0f172a',
+            color: '#25231f',
             lineHeight: 1.25,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -181,20 +181,20 @@ export function ScannerSuccessReceipt({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <span style={{
-              background: '#eff6ff',
-              color: '#1d4ed8',
+              background: '#faf5ea',
+              color: '#684c20',
               fontSize: '0.74rem',
               fontWeight: 800,
               padding: '2px 8px',
               borderRadius: '6px',
-              border: '1px solid #bfdbfe'
+              border: '1px solid #dfcfaf'
             }}>
               Roll: {student.roll || 'N/A'}
             </span>
 
             {(student.dep || student.course) && (
               <span style={{
-                color: '#475569',
+                color: '#58534a',
                 fontSize: '0.76rem',
                 fontWeight: 600,
                 whiteSpace: 'nowrap',
@@ -213,20 +213,20 @@ export function ScannerSuccessReceipt({
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: '8px',
-        background: '#f8fafc',
+        background: '#faf9f6',
         borderRadius: '12px',
         padding: '10px 12px',
-        border: '1px solid #e2e8f0'
+        border: '1px solid #e4dfd5'
       }}>
         {/* Subject / Session */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <BookOpen size={14} color="#0284c7" style={{ flexShrink: 0 }} />
+          <BookOpen size={14} color="#80602c" style={{ flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Subject / Slot</div>
+            <div style={{ fontSize: '0.66rem', color: '#696358', fontWeight: 600, textTransform: 'uppercase' }}>Subject / Slot</div>
             <div style={{
               fontSize: '0.78rem',
               fontWeight: 700,
-              color: '#0f172a',
+              color: '#25231f',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
@@ -240,11 +240,11 @@ export function ScannerSuccessReceipt({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
           <Clock size={14} color="#16a34a" style={{ flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Check-in Time</div>
+            <div style={{ fontSize: '0.66rem', color: '#696358', fontWeight: 600, textTransform: 'uppercase' }}>Check-in Time</div>
             <div style={{
               fontSize: '0.78rem',
               fontWeight: 700,
-              color: '#0f172a',
+              color: '#25231f',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
@@ -258,8 +258,8 @@ export function ScannerSuccessReceipt({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
           <ShieldCheck size={14} color="#7c3aed" style={{ flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>AI Precision</div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+            <div style={{ fontSize: '0.66rem', color: '#696358', fontWeight: 600, textTransform: 'uppercase' }}>AI Precision</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#25231f' }}>
               {confidenceText} Match
             </div>
           </div>
@@ -273,10 +273,10 @@ export function ScannerSuccessReceipt({
             <Cloud size={14} color={isLocalSaved ? '#d97706' : '#059669'} style={{ flexShrink: 0 }} />
           )}
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.66rem', color: '#696358', fontWeight: 600, textTransform: 'uppercase' }}>
               {student.streak_days > 1 ? 'Attendance Streak' : 'Cloud Status'}
             </div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#25231f' }}>
               {student.streak_days > 1
                 ? `${student.streak_days} Days Streak`
                 : (isLocalSaved ? 'Local Cache' : 'Synced Cloud')}
@@ -293,7 +293,7 @@ export function ScannerSuccessReceipt({
         gap: '6px',
         paddingTop: '2px',
         fontSize: '0.72rem',
-        color: '#64748b',
+        color: '#696358',
         fontWeight: 600
       }}>
         <div style={{
@@ -348,7 +348,7 @@ export function ScannerFallbackOptions({ onManual, onQr, lang = 'en' }) {
             gap: '5px'
           }}
         >
-          <Edit3 size={12} color="#0ea5e9" />
+          <Edit3 size={12} color="#987235" />
           <span>{t('manual_entry', lang)}</span>
         </button>
       )}

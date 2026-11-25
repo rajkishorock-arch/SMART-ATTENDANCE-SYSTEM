@@ -192,7 +192,7 @@ export default function StudentAttendanceRecoveryWidget({
             <Scale size={20} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
               Attendance Compliance & Grievance Complaints Desk
             </h3>
           </div>
@@ -207,9 +207,9 @@ export default function StudentAttendanceRecoveryWidget({
             gap: '6px',
             padding: '7px 14px',
             background: '#ffffff',
-            border: '1px solid #cbd5e1',
+            border: '1px solid #cfc8ba',
             borderRadius: '10px',
-            color: '#475569',
+            color: '#58534a',
             fontSize: '0.82rem',
             fontWeight: 700,
             cursor: 'pointer'
@@ -229,7 +229,7 @@ export default function StudentAttendanceRecoveryWidget({
         width: '100%'
       }}>
         {/* Card 1: Statutory Compliance Status */}
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
           <span style={{ fontSize: '0.72rem', color: isCompliant ? '#059669' : '#dc2626', fontWeight: 700, textTransform: 'uppercase' }}>
             Standing Status
           </span>
@@ -239,28 +239,28 @@ export default function StudentAttendanceRecoveryWidget({
         </div>
 
         {/* Card 2: Attendance Rate */}
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
+          <span style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 700, textTransform: 'uppercase' }}>
             Current Attendance
           </span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '3px' }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{attendancePct}%</span>
-            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>({totalAttended}/{totalConducted} classes)</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#25231f' }}>{attendancePct}%</span>
+            <span style={{ fontSize: '0.74rem', color: '#696358' }}>({totalAttended}/{totalConducted} classes)</span>
           </div>
         </div>
 
         {/* Card 3: Safe Buffer or Recovery Need */}
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: isCompliant ? '#0284c7' : '#d97706', fontWeight: 700, textTransform: 'uppercase' }}>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
+          <span style={{ fontSize: '0.72rem', color: isCompliant ? '#80602c' : '#d97706', fontWeight: 700, textTransform: 'uppercase' }}>
             {isCompliant ? 'Safe Leave Buffer' : 'Recovery Classes'}
           </span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: isCompliant ? '#0284c7' : '#d97706', marginTop: '3px' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: isCompliant ? '#80602c' : '#d97706', marginTop: '3px' }}>
             {isCompliant ? `${safeBuffer} classes safe` : `+${neededClasses} to 75%`}
           </div>
         </div>
 
         {/* Card 4: Grievance Complaints */}
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
           <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 700, textTransform: 'uppercase' }}>
             Filed Complaints
           </span>
@@ -274,7 +274,7 @@ export default function StudentAttendanceRecoveryWidget({
       <div style={{
         display: 'flex',
         gap: '8px',
-        borderBottom: '1px solid #e2e8f0',
+        borderBottom: '1px solid #e4dfd5',
         paddingBottom: '8px'
       }}>
         <button
@@ -287,9 +287,9 @@ export default function StudentAttendanceRecoveryWidget({
             fontWeight: 700,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
-            border: activeTab === 'complaints' ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
-            background: activeTab === 'complaints' ? '#eff6ff' : '#ffffff',
-            color: activeTab === 'complaints' ? '#1d4ed8' : '#64748b'
+            border: activeTab === 'complaints' ? '1.5px solid #785927' : '1px solid #e4dfd5',
+            background: activeTab === 'complaints' ? '#faf5ea' : '#ffffff',
+            color: activeTab === 'complaints' ? '#684c20' : '#696358'
           }}
         >
           📋 Grievance Complaints & Disputes ({disputes.length})
@@ -305,9 +305,9 @@ export default function StudentAttendanceRecoveryWidget({
             fontWeight: 700,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
-            border: activeTab === 'regulatory' ? '1.5px solid #059669' : '1px solid #e2e8f0',
+            border: activeTab === 'regulatory' ? '1.5px solid #059669' : '1px solid #e4dfd5',
             background: activeTab === 'regulatory' ? '#f0fdf4' : '#ffffff',
-            color: activeTab === 'regulatory' ? '#047857' : '#64748b'
+            color: activeTab === 'regulatory' ? '#047857' : '#696358'
           }}
         >
           🛡️ Statutory 75% Rule & Mentor Desk
@@ -319,7 +319,7 @@ export default function StudentAttendanceRecoveryWidget({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Action Row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#334155' }}>
+            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#46423b' }}>
               Official Attendance Grievance Records
             </span>
 
@@ -332,7 +332,7 @@ export default function StudentAttendanceRecoveryWidget({
                 gap: '6px',
                 padding: '8px 14px',
                 borderRadius: '8px',
-                background: '#2563eb',
+                background: '#785927',
                 color: '#ffffff',
                 border: 'none',
                 fontSize: '0.82rem',
@@ -354,15 +354,15 @@ export default function StudentAttendanceRecoveryWidget({
               style={{
                 padding: '16px 18px',
                 borderRadius: '14px',
-                border: '1.5px solid #bfdbfe',
-                background: '#f8fafc',
+                border: '1.5px solid #dfcfaf',
+                background: '#faf9f6',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
                 animation: 'fadeInUp 0.2s ease'
               }}
             >
-              <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#1e40af' }}>
+              <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#61471e' }}>
                 Lodge Official Attendance Grievance Complaint
               </h4>
 
@@ -373,7 +373,7 @@ export default function StudentAttendanceRecoveryWidget({
                 gap: '12px'
               }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#46423b', marginBottom: '4px' }}>
                     Session Date *
                   </label>
                   <input
@@ -385,7 +385,7 @@ export default function StudentAttendanceRecoveryWidget({
                       width: '100%',
                       height: '38px',
                       borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid #cfc8ba',
                       padding: '0 10px',
                       fontSize: '0.86rem',
                       background: '#ffffff',
@@ -395,7 +395,7 @@ export default function StudentAttendanceRecoveryWidget({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#46423b', marginBottom: '4px' }}>
                     Affected Subject (Optional)
                   </label>
                   <select
@@ -405,7 +405,7 @@ export default function StudentAttendanceRecoveryWidget({
                       width: '100%',
                       height: '38px',
                       borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid #cfc8ba',
                       padding: '0 10px',
                       fontSize: '0.86rem',
                       background: '#ffffff',
@@ -420,7 +420,7 @@ export default function StudentAttendanceRecoveryWidget({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#46423b', marginBottom: '4px' }}>
                     Grievance Type *
                   </label>
                   <select
@@ -430,7 +430,7 @@ export default function StudentAttendanceRecoveryWidget({
                       width: '100%',
                       height: '38px',
                       borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid #cfc8ba',
                       padding: '0 10px',
                       fontSize: '0.86rem',
                       background: '#ffffff',
@@ -447,7 +447,7 @@ export default function StudentAttendanceRecoveryWidget({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#46423b', marginBottom: '4px' }}>
                   Detailed Grievance Explanation *
                 </label>
                 <textarea
@@ -459,7 +459,7 @@ export default function StudentAttendanceRecoveryWidget({
                   style={{
                     width: '100%',
                     borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid #cfc8ba',
                     padding: '8px 10px',
                     fontSize: '0.86rem',
                     background: '#ffffff',
@@ -490,9 +490,9 @@ export default function StudentAttendanceRecoveryWidget({
                   style={{
                     padding: '7px 14px',
                     borderRadius: '8px',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    color: '#475569',
+                    background: '#f4f1eb',
+                    border: '1px solid #cfc8ba',
+                    color: '#58534a',
                     fontSize: '0.82rem',
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -506,7 +506,7 @@ export default function StudentAttendanceRecoveryWidget({
                   style={{
                     padding: '7px 18px',
                     borderRadius: '8px',
-                    background: '#2563eb',
+                    background: '#785927',
                     color: '#ffffff',
                     border: 'none',
                     fontSize: '0.84rem',
@@ -525,13 +525,13 @@ export default function StudentAttendanceRecoveryWidget({
             <div style={{
               textAlign: 'center',
               padding: '32px 16px',
-              background: '#f8fafc',
+              background: '#faf9f6',
               borderRadius: '12px',
-              border: '1px dashed #cbd5e1',
-              color: '#64748b'
+              border: '1px dashed #cfc8ba',
+              color: '#696358'
             }}>
               <CheckCircle2 size={30} color="#10b981" style={{ margin: '0 auto 8px auto', display: 'block' }} />
-              <h4 style={{ margin: '0 0 4px', fontSize: '0.94rem', color: '#1e293b' }}>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.94rem', color: '#302d27' }}>
                 No Attendance Grievance Claims Registered
               </h4>
               <p style={{ margin: 0, fontSize: '0.82rem' }}>
@@ -554,7 +554,7 @@ export default function StudentAttendanceRecoveryWidget({
                     style={{
                       padding: '14px 16px',
                       borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #e4dfd5',
                       background: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
@@ -577,17 +577,17 @@ export default function StudentAttendanceRecoveryWidget({
                         }}>
                           {dispute.status}
                         </span>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#25231f' }}>
                           Session: {dispute.date}
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155' }}>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 600, color: '#46423b' }}>
                         {dispute.reason ? dispute.reason.replace(/_/g, ' ') : 'Attendance Discrepancy'}
                       </div>
 
                       {dispute.notes && (
-                        <div style={{ fontSize: '0.78rem', color: '#64748b', fontStyle: 'italic' }}>
+                        <div style={{ fontSize: '0.78rem', color: '#696358', fontStyle: 'italic' }}>
                           "{dispute.notes}"
                         </div>
                       )}
@@ -608,9 +608,9 @@ export default function StudentAttendanceRecoveryWidget({
                             gap: '4px',
                             padding: '6px 10px',
                             borderRadius: '8px',
-                            background: '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            color: '#1d4ed8',
+                            background: '#faf5ea',
+                            border: '1px solid #dfcfaf',
+                            color: '#684c20',
                             fontSize: '0.76rem',
                             fontWeight: 700,
                             cursor: 'pointer'
@@ -639,7 +639,7 @@ export default function StudentAttendanceRecoveryWidget({
           <div style={{
             padding: '14px 16px',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #faf5ea 100%)',
             border: '1px solid #bbf7d0',
             display: 'flex',
             alignItems: 'center',
@@ -651,7 +651,7 @@ export default function StudentAttendanceRecoveryWidget({
               <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#065f46' }}>
                 75% Statutory Academic Regulatory Minimum
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.78rem', color: '#46423b', marginTop: '2px' }}>
                 Students maintaining ≥ 75.0% are unconditionally certified for end-term examinations and campus recruitment drives.
               </div>
             </div>
@@ -672,7 +672,7 @@ export default function StudentAttendanceRecoveryWidget({
           <div className="surface-card" style={{
             padding: '16px 18px',
             borderRadius: '14px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             background: '#ffffff',
             display: 'flex',
             alignItems: 'center',
@@ -685,19 +685,19 @@ export default function StudentAttendanceRecoveryWidget({
                 width: '42px',
                 height: '42px',
                 borderRadius: '10px',
-                background: '#eff6ff',
+                background: '#faf5ea',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#2563eb'
+                color: '#785927'
               }}>
                 <UserCheck size={22} />
               </div>
               <div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#25231f' }}>
                   {data?.counselor_name || 'Academic Counselor Desk'}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.78rem', color: '#696358' }}>
                   {data?.counselor_email || 'Assigned per academic department'} • Academic Guidance Office
                 </div>
               </div>
@@ -749,28 +749,28 @@ export default function StudentAttendanceRecoveryWidget({
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#25231f' }}>
                     Request Academic Counselor Session
                   </h4>
-                  <button type="button" onClick={() => setShowCounselorModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                  <button type="button" onClick={() => setShowCounselorModal(false)} style={{ background: 'none', border: 'none', color: '#696358', cursor: 'pointer' }}>
                     <X size={18} />
                   </button>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#46423b', marginBottom: '4px' }}>
                     Preferred Session Date
                   </label>
                   <input
                     type="date"
                     value={preferredDate}
                     onChange={(e) => setPreferredDate(e.target.value)}
-                    style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.86rem', boxSizing: 'border-box' }}
+                    style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cfc8ba', padding: '0 10px', fontSize: '0.86rem', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#46423b', marginBottom: '4px' }}>
                     Discussion Topic / Reason
                   </label>
                   <textarea
@@ -779,7 +779,7 @@ export default function StudentAttendanceRecoveryWidget({
                     placeholder="Enter attendance recovery query, timetable clashes, or medical leave submission..."
                     rows={3}
                     required
-                    style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: '0.86rem', boxSizing: 'border-box', resize: 'vertical' }}
+                    style={{ width: '100%', borderRadius: '8px', border: '1px solid #cfc8ba', padding: '8px 10px', fontSize: '0.86rem', boxSizing: 'border-box', resize: 'vertical' }}
                   />
                 </div>
 
@@ -797,7 +797,7 @@ export default function StudentAttendanceRecoveryWidget({
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-                  <button type="button" onClick={() => setShowCounselorModal(false)} style={{ padding: '7px 14px', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
+                  <button type="button" onClick={() => setShowCounselorModal(false)} style={{ padding: '7px 14px', borderRadius: '8px', background: '#f4f1eb', border: '1px solid #cfc8ba', color: '#58534a', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
                     Cancel
                   </button>
                   <button type="submit" disabled={submittingCounselor} style={{ padding: '7px 18px', borderRadius: '8px', background: '#059669', color: '#ffffff', border: 'none', fontSize: '0.84rem', fontWeight: 700, cursor: submittingCounselor ? 'not-allowed' : 'pointer' }}>

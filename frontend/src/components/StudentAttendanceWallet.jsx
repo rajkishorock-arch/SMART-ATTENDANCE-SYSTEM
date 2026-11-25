@@ -82,19 +82,19 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
             subtitle: 'University Academic Record',
             rate: `${overallRate}%`,
             classes: `${attendedLogs} of ${totalLogs} classes attended`,
-            bg: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            bg: 'linear-gradient(135deg, #1e3a8a 0%, #785927 100%)',
             textColor: '#ffffff'
           });
         }}
         className="hover-elevate active-haptic"
         style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+          background: 'linear-gradient(135deg, #1e3a8a 0%, #785927 100%)',
           borderRadius: '16px',
           padding: '20px 22px',
           color: '#ffffff',
           boxShadow: '0 4px 14px rgba(30, 58, 138, 0.2)',
           cursor: 'pointer',
-          border: '1px solid #3b82f6',
+          border: '1px solid #916d30',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px'
@@ -102,7 +102,7 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#bfdbfe' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#dfcfaf' }}>
               University Credential Pass
             </div>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
@@ -117,7 +117,7 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
             <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1 }}>
               {overallRate}%
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#bfdbfe', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.78rem', color: '#dfcfaf', marginTop: '4px' }}>
               {attendedLogs}/{totalLogs} classes
             </div>
           </div>
@@ -182,7 +182,7 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
             <ShieldCheck size={20} />
           </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a' }}>
+            <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#25231f' }}>
               Semester Exam Clearance Status
             </div>
             <div style={{ fontSize: '0.78rem', color: isExamClear ? '#15803d' : '#dc2626', marginTop: '1px', fontWeight: 600 }}>
@@ -195,7 +195,7 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
 
       {/* ── Subject Course Passes (Clean White Cards) ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <h3 style={{ margin: '6px 0 2px', fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+        <h3 style={{ margin: '6px 0 2px', fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
           Course Passes
         </h3>
 
@@ -217,7 +217,7 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
               className="hover-elevate active-haptic"
               style={{
                 background: '#ffffff',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #e4dfd5',
                 borderRadius: '12px',
                 padding: '14px 18px',
                 display: 'flex',
@@ -233,22 +233,22 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
+                  background: '#faf5ea',
+                  border: '1px solid #dfcfaf',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#2563eb',
+                  color: '#785927',
                   fontWeight: 800,
                   flexShrink: 0
                 }}>
                   <BookOpen size={18} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {sub.name}
                   </div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '1px' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#696358', marginTop: '1px' }}>
                     {sub.code} · {sub.mentor}
                   </div>
                 </div>
@@ -259,7 +259,7 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
                   <div style={{ fontSize: '1.1rem', fontWeight: 800, color: subRate >= 75 ? '#16a34a' : '#dc2626' }}>
                     {subRate}%
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#696358' }}>
                     {sub.attended}/{sub.total}
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
               maxWidth: '380px',
               boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.25)',
               overflow: 'hidden',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e4dfd5',
               display: 'flex',
               flexDirection: 'column',
               position: 'relative'
@@ -348,20 +348,20 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: '10px',
-                background: '#f8fafc',
+                background: '#faf9f6',
                 padding: '12px 14px',
                 borderRadius: '12px',
-                border: '1px solid #e2e8f0'
+                border: '1px solid #e4dfd5'
               }}>
                 <div>
-                  <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Attendance</div>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Attendance</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#785927', marginTop: '2px' }}>
                     {selectedPass.rate}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.64rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Records</div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
+                  <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Records</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f', marginTop: '4px' }}>
                     {selectedPass.classes}
                   </div>
                 </div>
@@ -370,18 +370,18 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
               {/* Barcode Strip */}
               <div style={{
                 background: '#ffffff',
-                border: '1px dashed #cbd5e1',
+                border: '1px dashed #cfc8ba',
                 borderRadius: '12px',
                 padding: '14px',
                 textAlign: 'center'
               }}>
                 <div style={{
                   height: '40px',
-                  background: 'repeating-linear-gradient(90deg, #0f172a 0px, #0f172a 3px, transparent 3px, transparent 6px, #0f172a 6px, #0f172a 10px, transparent 10px, transparent 12px, #0f172a 12px, #0f172a 13px, transparent 13px, transparent 17px, #0f172a 17px, #0f172a 20px)',
+                  background: 'repeating-linear-gradient(90deg, #25231f 0px, #25231f 3px, transparent 3px, transparent 6px, #25231f 6px, #25231f 10px, transparent 10px, transparent 12px, #25231f 12px, #25231f 13px, transparent 13px, transparent 17px, #25231f 17px, #25231f 20px)',
                   margin: '0 auto 6px',
                   width: '80%'
                 }} />
-                <div style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: '#64748b', letterSpacing: '1.5px' }}>
+                <div style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: '#696358', letterSpacing: '1.5px' }}>
                   PASS-AUTH-2026-OK
                 </div>
               </div>
@@ -398,7 +398,7 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
                     justifyContent: 'center',
                     gap: '6px',
                     padding: '10px',
-                    background: '#2563eb',
+                    background: '#785927',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
@@ -416,9 +416,9 @@ export default function StudentAttendanceWallet({ logs = [], studentName = 'Stud
                   onClick={() => setSelectedPass(null)}
                   style={{
                     padding: '10px 16px',
-                    background: '#f1f5f9',
-                    color: '#334155',
-                    border: '1px solid #cbd5e1',
+                    background: '#f4f1eb',
+                    color: '#46423b',
+                    border: '1px solid #cfc8ba',
                     borderRadius: '10px',
                     fontSize: '0.84rem',
                     fontWeight: 700,

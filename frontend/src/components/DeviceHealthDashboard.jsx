@@ -225,11 +225,11 @@ export default function DeviceHealthDashboard({
             }}>
               <Monitor size={22} />
             </div>
-            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#0f172a' }}>
+            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#25231f' }}>
               Kiosk & Camera Device Fleet Telemetry
             </h2>
           </div>
-          <p style={{ margin: 0, color: '#475569', fontSize: '0.85rem', maxWidth: '750px' }}>
+          <p style={{ margin: 0, color: '#58534a', fontSize: '0.85rem', maxWidth: '750px' }}>
             Continuous heartbeat monitoring, automatic offline kiosk detection, camera optical health verification, and edge sync backlog telemetry.
           </p>
         </div>
@@ -325,24 +325,24 @@ export default function DeviceHealthDashboard({
         }}>
           <div style={{
             background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderLeft: '4px solid #3b82f6',
+            border: '1px solid #e4dfd5',
+            borderLeft: '4px solid #916d30',
             borderRadius: '12px',
             padding: '10px 12px',
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
-            <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
+            <span style={{ fontSize: '0.68rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
               Total Deployed Fleet
             </span>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>
               {effectiveSummary.total_devices}
             </div>
-            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Scanners & kiosks</span>
+            <span style={{ fontSize: '0.68rem', color: '#696358' }}>Scanners & kiosks</span>
           </div>
 
           <div style={{
             background: '#ffffff',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             borderLeft: '4px solid #059669',
             borderRadius: '12px',
             padding: '10px 12px',
@@ -354,41 +354,41 @@ export default function DeviceHealthDashboard({
             <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
               {effectiveSummary.online_count}
             </div>
-            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Heartbeat &lt; 5m</span>
+            <span style={{ fontSize: '0.68rem', color: '#696358' }}>Heartbeat &lt; 5m</span>
           </div>
 
           <div style={{
             background: '#ffffff',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e4dfd5',
             borderLeft: '4px solid #dc2626',
             borderRadius: '12px',
             padding: '10px 12px',
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
-            <span style={{ fontSize: '0.68rem', color: effectiveSummary.offline_count > 0 ? '#dc2626' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
+            <span style={{ fontSize: '0.68rem', color: effectiveSummary.offline_count > 0 ? '#dc2626' : '#696358', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
               Offline / Stalled
             </span>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: effectiveSummary.offline_count > 0 ? '#dc2626' : '#0f172a', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: effectiveSummary.offline_count > 0 ? '#dc2626' : '#25231f', marginTop: '2px' }}>
               {effectiveSummary.offline_count}
             </div>
-            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Inspection alert</span>
+            <span style={{ fontSize: '0.68rem', color: '#696358' }}>Inspection alert</span>
           </div>
 
           <div style={{
             background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderLeft: '4px solid #0284c7',
+            border: '1px solid #e4dfd5',
+            borderLeft: '4px solid #80602c',
             borderRadius: '12px',
             padding: '10px 12px',
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
-            <span style={{ fontSize: '0.68rem', color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
+            <span style={{ fontSize: '0.68rem', color: '#80602c', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
               Cameras Functional
             </span>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#80602c', marginTop: '2px' }}>
               {effectiveSummary.healthy_cameras}
             </div>
-            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Clear optics & focus</span>
+            <span style={{ fontSize: '0.68rem', color: '#696358' }}>Clear optics & focus</span>
           </div>
         </div>
       )}
@@ -408,7 +408,7 @@ export default function DeviceHealthDashboard({
             style={{
               background: statusFilter === f ? 'var(--color-primary-light)' : '#ffffff',
               border: statusFilter === f ? '1px solid rgba(30, 64, 175, 0.25)' : '1px solid var(--border-subtle)',
-              color: statusFilter === f ? 'var(--color-primary)' : '#475569',
+              color: statusFilter === f ? 'var(--color-primary)' : '#58534a',
               padding: '6px 14px',
               borderRadius: '8px',
               fontSize: '0.82rem',
@@ -430,11 +430,11 @@ export default function DeviceHealthDashboard({
           borderRadius: '16px',
           padding: '48px 24px',
           textAlign: 'center',
-          color: '#64748b'
+          color: '#696358'
         }}>
           <Monitor size={40} style={{ opacity: 0.35, marginBottom: '12px' }} />
-          <h4 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 700 }}>No Devices Found</h4>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
+          <h4 style={{ margin: '0 0 6px 0', color: '#25231f', fontSize: '1.1rem', fontWeight: 700 }}>No Devices Found</h4>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#58534a' }}>
             Click "Onboard Kiosk" above to register your first scanning station or facial checkpoint.
           </p>
         </div>
@@ -469,10 +469,10 @@ export default function DeviceHealthDashboard({
                   {/* Top: Name and Status */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                     <div>
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: '#25231f' }}>
                         {d.name}
                       </h3>
-                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>ID: {d.device_identifier}</span>
+                      <span style={{ fontSize: '0.78rem', color: '#696358' }}>ID: {d.device_identifier}</span>
                     </div>
 
                     <span style={{
@@ -493,8 +493,8 @@ export default function DeviceHealthDashboard({
                   </div>
 
                   {/* Location & Type */}
-                  <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: '#475569' }}>
-                    📍 {d.location || 'Location not specified'} • <span style={{ color: '#64748b' }}>{d.device_type}</span>
+                  <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: '#58534a' }}>
+                    📍 {d.location || 'Location not specified'} • <span style={{ color: '#696358' }}>{d.device_type}</span>
                   </p>
 
                   {/* Telemetry Metrics */}
@@ -502,7 +502,7 @@ export default function DeviceHealthDashboard({
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
                     gap: '10px',
-                    background: '#f8fafc',
+                    background: '#faf9f6',
                     border: '1px solid var(--border-subtle)',
                     padding: '12px',
                     borderRadius: '10px',
@@ -510,28 +510,28 @@ export default function DeviceHealthDashboard({
                     fontSize: '0.8rem'
                   }}>
                     <div>
-                      <span style={{ color: '#64748b' }}>Camera Sensor:</span>
+                      <span style={{ color: '#696358' }}>Camera Sensor:</span>
                       <div style={{ fontWeight: 600, color: d.camera_status === 'OK' ? '#059669' : '#dc2626' }}>
                         {d.camera_status}
                       </div>
                     </div>
 
                     <div>
-                      <span style={{ color: '#64748b' }}>Latency:</span>
-                      <div style={{ fontWeight: 600, color: '#0284c7' }}>
+                      <span style={{ color: '#696358' }}>Latency:</span>
+                      <div style={{ fontWeight: 600, color: '#80602c' }}>
                         {d.network_latency_ms ? `${d.network_latency_ms} ms` : 'N/A'}
                       </div>
                     </div>
 
                     <div>
-                      <span style={{ color: '#64748b' }}>Battery:</span>
+                      <span style={{ color: '#696358' }}>Battery:</span>
                       <div style={{ fontWeight: 600, color: '#d97706' }}>
                         {d.battery_level ? `${d.battery_level}%` : 'Mains Power'}
                       </div>
                     </div>
 
                     <div>
-                      <span style={{ color: '#64748b' }}>Sync Backlog:</span>
+                      <span style={{ color: '#696358' }}>Sync Backlog:</span>
                       <div style={{ fontWeight: 600, color: d.pending_sync_count > 0 ? '#d97706' : '#059669' }}>
                         {d.pending_sync_count} pending
                       </div>
@@ -547,7 +547,7 @@ export default function DeviceHealthDashboard({
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#696358', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Clock size={12} /> Ping: {d.minutes_since_heartbeat}m ago
                   </span>
 
@@ -612,7 +612,7 @@ export default function DeviceHealthDashboard({
                 right: '20px',
                 background: 'transparent',
                 border: 'none',
-                color: '#64748b',
+                color: '#696358',
                 cursor: 'pointer'
               }}
             >
@@ -632,12 +632,12 @@ export default function DeviceHealthDashboard({
               }}>
                 <Monitor size={20} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Onboard Attendance Device</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#25231f', fontWeight: 700 }}>Onboard Attendance Device</h3>
             </div>
 
             <form onSubmit={handleRegister}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '5px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '5px', fontWeight: 600 }}>
                   Unique Device Identifier *
                 </label>
                 <input
@@ -650,7 +650,7 @@ export default function DeviceHealthDashboard({
                     width: '100%',
                     background: '#ffffff',
                     border: '1px solid var(--border-strong)',
-                    color: '#0f172a',
+                    color: '#25231f',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '0.9rem'
@@ -659,7 +659,7 @@ export default function DeviceHealthDashboard({
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '5px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '5px', fontWeight: 600 }}>
                   Device Friendly Name *
                 </label>
                 <input
@@ -672,7 +672,7 @@ export default function DeviceHealthDashboard({
                     width: '100%',
                     background: '#ffffff',
                     border: '1px solid var(--border-strong)',
-                    color: '#0f172a',
+                    color: '#25231f',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '0.9rem'
@@ -682,7 +682,7 @@ export default function DeviceHealthDashboard({
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '5px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '5px', fontWeight: 600 }}>
                     Device Type
                   </label>
                   <select
@@ -692,7 +692,7 @@ export default function DeviceHealthDashboard({
                       width: '100%',
                       background: '#ffffff',
                       border: '1px solid var(--border-strong)',
-                      color: '#0f172a',
+                      color: '#25231f',
                       padding: '10px 12px',
                       borderRadius: '8px',
                       fontSize: '0.88rem'
@@ -706,7 +706,7 @@ export default function DeviceHealthDashboard({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#334155', marginBottom: '5px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '5px', fontWeight: 600 }}>
                     Campus Location
                   </label>
                   <input
@@ -718,7 +718,7 @@ export default function DeviceHealthDashboard({
                       width: '100%',
                       background: '#ffffff',
                       border: '1px solid var(--border-strong)',
-                      color: '#0f172a',
+                      color: '#25231f',
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '0.9rem'

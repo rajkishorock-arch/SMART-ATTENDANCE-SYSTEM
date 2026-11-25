@@ -23,7 +23,7 @@ const TABS = [
   { id: 'polls', label: 'Polls & Quiz', icon: BarChart2, color: '#8b5cf6' },
   { id: 'parent', label: 'Parent Digest', icon: MessageCircle, color: '#22c55e' },
   { id: 'push', label: 'Push Setup', icon: Bell, color: '#eab308' },
-  { id: 'session', label: 'Auto Session', icon: Calendar, color: '#3b82f6' },
+  { id: 'session', label: 'Auto Session', icon: Calendar, color: '#916d30' },
   { id: 'absent', label: 'Batch Absent', icon: Users, color: '#f97316' },
   { id: 'premium', label: 'Premium Control', icon: Award, color: '#ef4444' },
 ];
@@ -187,7 +187,7 @@ export default function FuturisticFeaturesHub({
       border: '1px solid rgba(0, 242, 254, 0.25)',
       borderRadius: '28px',
       boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 242, 254, 0.1)',
-      color: '#f8fafc',
+      color: '#faf9f6',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* Title Header */}
@@ -442,7 +442,7 @@ export default function FuturisticFeaturesHub({
                       <CheckCircle size={14} /> UNLOCKED (+100 XP)
                     </span>
                   ) : (
-                    <span style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '6px' }}>🔒 Locked</span>
+                    <span style={{ color: '#696358', fontSize: '0.75rem', marginTop: '6px' }}>🔒 Locked</span>
                   )}
                 </div>
               );
@@ -537,7 +537,7 @@ export default function FuturisticFeaturesHub({
               type="button"
               onClick={loadHealth}
               disabled={loading}
-              style={{ padding: '8px 16px', borderRadius: '10px', background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ padding: '8px 16px', borderRadius: '10px', background: 'linear-gradient(135deg, #06b6d4, #916d30)', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <RefreshCw size={16} /> Run Diagnostics
             </button>
@@ -620,7 +620,7 @@ export default function FuturisticFeaturesHub({
             <button
               type="button"
               onClick={createPoll}
-              style={{ padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', marginTop: '6px' }}
+              style={{ padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg, #8b5cf6, #89662e)', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', marginTop: '6px' }}
             >
               🚀 Publish Class Poll
             </button>
@@ -706,8 +706,8 @@ export default function FuturisticFeaturesHub({
       {/* TAB 11: Auto Session */}
       {tab === 'session' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ color: '#3b82f6', margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>📅 Timetable Auto-Session Selector</h3>
-          <div style={{ padding: '20px', borderRadius: '18px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(0, 242, 254, 0.12))', border: '1.5px solid #3b82f6' }}>
+          <h3 style={{ color: '#916d30', margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>📅 Timetable Auto-Session Selector</h3>
+          <div style={{ padding: '20px', borderRadius: '18px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(0, 242, 254, 0.12))', border: '1.5px solid #916d30' }}>
             <h4 style={{ color: '#fff', margin: '0 0 8px', fontSize: '1.1rem', fontWeight: 800 }}>
               {sessionSuggestion?.subject_name || 'Period 3: Computer Networks'}
             </h4>

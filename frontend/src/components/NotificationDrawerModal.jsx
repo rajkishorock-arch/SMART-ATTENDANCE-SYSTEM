@@ -222,7 +222,7 @@ export default function NotificationDrawerModal({
             maxWidth: '420px',
             height: '100%',
             background: '#ffffff',
-            borderLeft: '1px solid #e2e8f0',
+            borderLeft: '1px solid #e4dfd5',
             boxShadow: '-10px 0 30px rgba(15, 23, 42, 0.1)',
             display: 'flex',
             flexDirection: 'column',
@@ -234,7 +234,7 @@ export default function NotificationDrawerModal({
           {/* Drawer Header */}
           <div style={{
             padding: '20px 24px',
-            borderBottom: '1px solid #e2e8f0',
+            borderBottom: '1px solid #e4dfd5',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center'
@@ -250,11 +250,11 @@ export default function NotificationDrawerModal({
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Bell size={18} color="#0284c7" />
+                <Bell size={18} color="#80602c" />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#25231f', margin: 0 }}>
                     Notifications
                   </h3>
                   {unreadCount > 0 && (
@@ -270,7 +270,7 @@ export default function NotificationDrawerModal({
                     </span>
                   )}
                 </div>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0' }}>
+                <p style={{ fontSize: '0.75rem', color: '#696358', margin: '2px 0 0' }}>
                   Real-time role alerts & push updates
                 </p>
               </div>
@@ -281,10 +281,10 @@ export default function NotificationDrawerModal({
                 onClick={() => { setShowSettingsModal(true); playCyberSound('click'); }}
                 title="Notification Settings"
                 style={{
-                  background: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
+                  background: '#f4f1eb',
+                  border: '1px solid #cfc8ba',
                   borderRadius: '8px',
-                  color: '#334155',
+                  color: '#46423b',
                   padding: '6px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -298,10 +298,10 @@ export default function NotificationDrawerModal({
               <button
                 onClick={onClose}
                 style={{
-                  background: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
+                  background: '#f4f1eb',
+                  border: '1px solid #cfc8ba',
                   borderRadius: '8px',
-                  color: '#64748b',
+                  color: '#696358',
                   padding: '6px',
                   cursor: 'pointer'
                 }}
@@ -314,7 +314,7 @@ export default function NotificationDrawerModal({
           {/* Category Filters & Mark Read */}
           <div style={{
             padding: '14px 20px',
-            borderBottom: '1px solid #e2e8f0',
+            borderBottom: '1px solid #e4dfd5',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -339,9 +339,9 @@ export default function NotificationDrawerModal({
                     borderRadius: '14px',
                     fontSize: '0.72rem',
                     fontWeight: 600,
-                    border: activeCategory === tab.key ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
-                    background: activeCategory === tab.key ? '#eff6ff' : '#f8fafc',
-                    color: activeCategory === tab.key ? '#1d4ed8' : '#64748b',
+                    border: activeCategory === tab.key ? '1px solid #dfcfaf' : '1px solid #e4dfd5',
+                    background: activeCategory === tab.key ? '#faf5ea' : '#faf9f6',
+                    color: activeCategory === tab.key ? '#684c20' : '#696358',
                     cursor: 'pointer'
                   }}
                 >
@@ -356,7 +356,7 @@ export default function NotificationDrawerModal({
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#0284c7',
+                  color: '#80602c',
                   fontSize: '0.72rem',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -373,16 +373,16 @@ export default function NotificationDrawerModal({
           {/* Quick Jump to Campus Notice Board Archive */}
           <div style={{
             padding: '10px 20px',
-            background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
-            borderBottom: '1px solid #dbeafe',
+            background: 'linear-gradient(135deg, #faf5ea 0%, #f0fdf4 100%)',
+            borderBottom: '1px solid #f2e7d1',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-              <Megaphone size={16} color="#2563eb" />
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e40af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <Megaphone size={16} color="#785927" />
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#61471e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Campus Notice Board Archive
               </span>
             </div>
@@ -398,7 +398,7 @@ export default function NotificationDrawerModal({
                 fontSize: '0.72rem',
                 fontWeight: 700,
                 color: '#ffffff',
-                background: '#2563eb',
+                background: '#785927',
                 border: 'none',
                 borderRadius: '6px',
                 padding: '4px 10px',
@@ -420,8 +420,8 @@ export default function NotificationDrawerModal({
                     style={{
                       padding: '14px',
                       borderRadius: '12px',
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
+                      background: '#faf9f6',
+                      border: '1px solid #e4dfd5',
                       display: 'flex',
                       gap: '12px',
                       animation: 'pulse 1.5s infinite ease-in-out'
@@ -429,17 +429,17 @@ export default function NotificationDrawerModal({
                   >
                     <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#e0f2fe' }}></div>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ width: '50%', height: '14px', background: '#e2e8f0', borderRadius: '4px' }}></div>
-                      <div style={{ width: '80%', height: '12px', background: '#f1f5f9', borderRadius: '4px' }}></div>
+                      <div style={{ width: '50%', height: '14px', background: '#e4dfd5', borderRadius: '4px' }}></div>
+                      <div style={{ width: '80%', height: '12px', background: '#f4f1eb', borderRadius: '4px' }}></div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : loadError && filteredNotifications.length === 0 ? null : filteredNotifications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#696358' }}>
                 <Bell size={32} style={{ margin: '0 auto 10px auto', opacity: 0.4 }} />
-                <p style={{ margin: 0, fontSize: '0.88rem', color: '#0f172a', fontWeight: 600 }}>No Notifications</p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#64748b' }}>You're all caught up!</p>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#25231f', fontWeight: 600 }}>No Notifications</p>
+                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#696358' }}>You're all caught up!</p>
               </div>
             ) : (
               filteredNotifications.map(n => (
@@ -450,7 +450,7 @@ export default function NotificationDrawerModal({
                     padding: '14px',
                     borderRadius: '12px',
                     background: n.is_read ? '#ffffff' : '#f0f9ff',
-                    border: n.is_read ? '1px solid #e2e8f0' : '1px solid #bae6fd',
+                    border: n.is_read ? '1px solid #e4dfd5' : '1px solid #bae6fd',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     position: 'relative'
@@ -482,7 +482,7 @@ export default function NotificationDrawerModal({
                       width: '8px',
                       height: '8px',
                       borderRadius: '50%',
-                      background: '#0284c7'
+                      background: '#80602c'
                     }}></span>
                   )}
                   
@@ -491,7 +491,7 @@ export default function NotificationDrawerModal({
                       width: '32px',
                       height: '32px',
                       borderRadius: '8px',
-                      background: '#f1f5f9',
+                      background: '#f4f1eb',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -501,15 +501,15 @@ export default function NotificationDrawerModal({
                     </div>
                     <div style={{ flex: 1, paddingRight: n.is_read ? '16px' : '20px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#25231f', margin: 0 }}>
                           {n.title}
                         </h4>
                       </div>
-                      <p style={{ fontSize: '0.78rem', color: '#475569', margin: '4px 0 6px 0', lineHeight: 1.35 }}>
+                      <p style={{ fontSize: '0.78rem', color: '#58534a', margin: '4px 0 6px 0', lineHeight: 1.35 }}>
                         {n.message}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                        <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.72rem', color: '#80602c', fontWeight: 600 }}>
                           {formatTimeAgo(n.created_at)}
                         </span>
                         {n.created_at && (
