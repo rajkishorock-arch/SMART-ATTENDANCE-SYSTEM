@@ -163,7 +163,7 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
   // Frame decoding loop
   React.useEffect(() => {
     const tick = (time) => {
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+      if (!isProcessingRef.current && window.jsQR && videoRef.current?.videoWidth && videoRef.current.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
         if (time - lastScanTimeRef.current >= 150) {
           lastScanTimeRef.current = time;
           const video = videoRef.current;
@@ -176,8 +176,8 @@ export default function QrScannerModal({ token, API_BASE_URL, selectedSubjectId,
             const scale = targetWidth / video.videoWidth;
             const targetHeight = Math.round(video.videoHeight * scale);
 
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
+            if (canvas.width !== targetWidth) canvas.width = targetWidth;
+            if (canvas.height !== targetHeight) canvas.height = targetHeight;
 
             ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
             const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);

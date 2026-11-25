@@ -913,7 +913,7 @@ export default function StudentAttendanceDashboardView({
             className="surface-card hover-elevate active-haptic"
             style={{
               padding: '16px 18px',
-              background: '#ffffff',
+              background: 'linear-gradient(115deg, #f2e2bd, #fffdf7 75%)', borderLeft: '5px solid #886627',
               borderRadius: '16px',
               border: '1.5px solid #dfcfaf',
               color: '#25231f',
@@ -944,7 +944,7 @@ export default function StudentAttendanceDashboardView({
                 </div>
                 <div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#785927' }}>
-                    Institutional Identity Pass
+                    Student identification
                   </div>
                   <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#25231f' }}>
                     Student Virtual ID Card

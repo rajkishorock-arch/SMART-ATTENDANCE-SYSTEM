@@ -1,0 +1,10 @@
+.id-pass-overlay { position: fixed; inset: 0; z-index: 99999; background: #25231fc4; display: grid; place-items: center; padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)); }
+.id-pass-overlay .id-pass { box-sizing: border-box; width: min(100%, 400px); min-width: 0; max-height: 100%; overflow: auto; background: #fffdf9; border: 1px solid #d6c7a5; border-radius: 18px; color: #29251e; }
+.id-pass header { display: flex; align-items: center; gap: 12px; padding: 16px; background: linear-gradient(115deg,#332a1e,#74582e); color: white; }
+.id-pass header h2 { margin: 0; font-size: 1.2rem; color: white; }
+.id-pass header button { margin-left: auto; min-width: 44px; height: 44px; border: 0; border-radius: 50%; background: #ffffff20; color: white; }
+.id-pass-owner,.id-pass-code { display: grid; gap: 4px; padding: 14px; overflow-wrap: anywhere; }
+.id-pass-owner { border-bottom: 1px solid #ded2ba; }
+.id-pass-owner strong { font-size: 1.35rem; }
+.id-pass-code { justify-items: center; text-align: center; font-size: .85rem; }
+.id-pass .id-pass-code img { display: block; width: min(100%, 264px) !important; height: auto !important; aspect-ratio: 1; position: static; image-rendering: pixelated; }

@@ -84,6 +84,21 @@ def verify(directory):
                     consent = page.get_by_role("button", name="I Agree", exact=True)
                     if consent.is_visible():
                         consent.click()
+                    if role == "student":
+                        page.get_by_text("Open ID & QR", exact=True).click()
+                        dialog = page.get_by_role("dialog", name="Student ID Card")
+                        image = dialog.get_by_alt_text("Attendance QR pass")
+                        image.wait_for()
+                        for width in (320, 440, 1280):
+                            page.set_viewport_size({"width": width, "height": 956})
+                            assert image.evaluate("""img => {
+                                const r = img.getBoundingClientRect();
+                                const timer = img.nextElementSibling.getBoundingClientRect();
+                                const card = img.closest('section').getBoundingClientRect();
+                                return r.width > 0 && r.left >= card.left && r.right <= card.right &&
+                                       card.left >= 0 && card.right <= innerWidth && r.bottom <= timer.top;
+                            }""")
+                        dialog.get_by_role("button", name="Close student ID").click()
                     if role == "admin":
                         page.evaluate("location.hash = '/attendance'")
                         card = page.locator(".scanner-session-setup > .glass-panel")
