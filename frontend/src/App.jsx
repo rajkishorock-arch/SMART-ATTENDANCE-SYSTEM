@@ -1,3 +1,4 @@
+import { startLivenessChallenge, reportLivenessStep } from './utils/livenessClient';
 import { attendanceCoordinates } from './utils/attendanceCoordinates';
 import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
@@ -1812,7 +1813,7 @@ export default function App() {
   const [biometricMatchThreshold, setBiometricMatchThreshold] = useState(parseFloat(localStorage.getItem('biometricMatchThreshold') || '0.92'));
   const [biometricConfidenceFilterEnabled, setBiometricConfidenceFilterEnabled] = useState(localStorage.getItem('biometricConfidenceFilterEnabled') === 'true');
   const [antiSpoofingThreshold, setAntiSpoofingThreshold] = useState(parseFloat(localStorage.getItem('antiSpoofingThreshold') || '0.15'));
-  const [livenessBypass, setLivenessBypass] = useState(localStorage.getItem('livenessBypass') !== 'false');
+  const [livenessBypass, setLivenessBypass] = useState(false);
   const livenessBypassRef = React.useRef(livenessBypass);
   const [aiCognitiveLevel, setAiCognitiveLevel] = useState(localStorage.getItem('aiCognitiveLevel') || 'standard');
   const [diagnosticLevel, setDiagnosticLevel] = useState(localStorage.getItem('diagnosticLevel') || 'DEBUG');
@@ -1927,6 +1928,7 @@ export default function App() {
     if (isScanning) {
       return { type: 'recognizing', text: 'Verifying face...', icon: <RefreshCw size={14} className="spin-fast" /> };
     }
+    if (['No confirmed match', 'Verification unavailable'].includes(scanStatus)) return { type: 'failed', text: scanStatus, icon: <AlertCircle size={14} /> };
     if (scanStatus && (scanStatus.toLowerCase().includes('failed') || scanStatus.toLowerCase().includes('low confidence') || scanStatus.toLowerCase().includes('unrecognized'))) {
       return { type: 'failed', text: 'Face Not Recognized', icon: <AlertCircle size={14} /> };
     }
@@ -3149,7 +3151,13 @@ export default function App() {
       preset.captureHeight,
       preset.jpegQuality
     );
-    if (!blob) return;
+    if (!blob) {
+      livenessTokenRef.current = null;
+      livenessStatusRef.current = 'verifying';
+      setLivenessStatus('verifying');
+      setLivenessMessage('Camera frame unavailable. Hold steady and retry.');
+      return;
+    }
     recognitionBusyRef.current = true;
     let matchSuccess = false;
 
@@ -3320,7 +3328,7 @@ export default function App() {
           if (data.results && data.results.length > 0) {
             const validMatches = data.results.filter((m) => {
               const confidenceVal = parseFloat(m.confidence);
-              return !biometricConfidenceFilterEnabled || isNaN(confidenceVal) || (confidenceVal / 100) >= biometricMatchThreshold;
+              return !m.staged_for_review && (m.newly_marked || m.already_marked) && (!biometricConfidenceFilterEnabled || confidenceVal / 100 >= biometricMatchThreshold);
             });
 
             if (validMatches.length === 0) {
@@ -3443,9 +3451,10 @@ export default function App() {
             }
           } else {
             playCyberSound('error');
-            setScanStatus('Face recognition failed. Look straight at the camera.');
+            setScanStatus('No confirmed match');
+            setLivenessMessage('No enrolled match confirmed. Check the enrollment photo or try better lighting.');
             addDiagnosticLog('Match failed: Face signature unrecognized');
-            handleSpeak("Face not recognized. Please try again.");
+            handleSpeak("No enrolled match confirmed.");
           }
         } else if (res.status === 403) {
           playCyberSound('error');
@@ -3462,114 +3471,14 @@ export default function App() {
         }
       } catch (err) {
         console.error('Error matching face embedding:', err);
-        addDiagnosticLog('ERROR: Match server offline/timeout. Attempting local offline verification...');
-        
-        try {
-          await fastFaceEngine.loadFromCache(activeInstId || 1);
-          const cachedStudentsRaw = localStorage.getItem('cached_students');
-          let cachedStudents = cachedStudentsRaw ? JSON.parse(cachedStudentsRaw) : [];
-          
-          if ((!cachedStudents || cachedStudents.length === 0) && fastFaceEngine.studentsList && fastFaceEngine.studentsList.length > 0) {
-            cachedStudents = fastFaceEngine.studentsList;
-          }
-
-          if ((!cachedStudents || cachedStudents.length === 0) && currentUser) {
-            cachedStudents = [{
-              id: currentUser.student_id || currentUser.id || 10001,
-              student_id: currentUser.student_id || currentUser.id || 10001,
-              name: currentUser.name || currentUser.username || 'Offline Student',
-              roll: currentUser.roll || currentUser.roll_number || 'N/A',
-              dep: currentUser.dep || currentUser.department || 'CSE'
-            }];
-          }
-
-          if (!cachedStudents || cachedStudents.length === 0) {
-            cachedStudents = [{
-              id: 10001,
-              student_id: 10001,
-              name: 'Offline Student',
-              roll: 'OFFLINE-01',
-              dep: 'CSE'
-            }];
-          }
-
-          const matchedStudent = cachedStudents[0];
-          const now = new Date();
-          const clockStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-          
-          const queuedRecord = {
-            student_id: matchedStudent.id || matchedStudent.student_id || 10001,
-            name: matchedStudent.name,
-            roll: matchedStudent.roll || 'N/A',
-            dep: matchedStudent.dep || matchedStudent.course || 'CSE',
-            date: dateStr,
-            time: clockStr,
-            subject_id: effectiveSubId,
-            sync_status: 'PENDING'
-          };
-          
-          const enqueued = offlineAttendanceQueue.enqueue(queuedRecord);
-          matchSuccess = true;
-          const isOfflineAlready = !enqueued;
-          
-          showScannedStudentWithTimeout({
-            name: matchedStudent.name,
-            roll: matchedStudent.roll || 'N/A',
-            dep: matchedStudent.dep || matchedStudent.course || 'CSE',
-            time: clockStr,
-            clockTime: clockStr,
-            period: 'Offline Scan',
-            period_label: 'Offline Mode (Local Check-in)',
-            subject_name: 'Offline Attendance',
-            confidence: 94,
-            status: isOfflineAlready ? 'Already Marked' : 'Present (Offline)',
-            already_marked: isOfflineAlready,
-            isOffline: true,
-            sync_status: isOfflineAlready ? 'ALREADY_SYNCED' : 'PENDING'
-          });
-          
-          if (isOfflineAlready) {
-            playCyberSound('click');
-            setScanStatus(`${matchedStudent.name}: Attendance already recorded today.`);
-            handleSpeak(`${matchedStudent.name}, your attendance is already marked.`);
-            speakScanner(`${matchedStudent.name}, already marked today!`);
-          } else {
-            playCyberSound('success');
-            if (explorationSettings.confettiOnMatch) triggerConfettiBurst();
-            triggerHaptic([40, 30, 40]);
-            triggerNativeHaptic('medium');
-            setScanStatus(`Recognized (Offline): ${matchedStudent.name} • Attendance saved on this device and will sync when you're online.`);
-            handleSpeak(`Attendance queued offline for ${matchedStudent.name}.`);
-            speakScanner(`${matchedStudent.name} marked!`);
-          }
-        } catch (offlineErr) {
-          console.error('Offline match execution error:', offlineErr);
-          const now = new Date();
-          const clockStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-          const fallbackName = currentUser?.name || 'Offline Student';
-          const queuedRecord = {
-            student_id: currentUser?.student_id || 10001,
-            name: fallbackName,
-            roll: currentUser?.roll || 'OFFLINE-01',
-            dep: currentUser?.department || 'CSE',
-            date: dateStr,
-            time: clockStr,
-            subject_id: effectiveSubId,
-            sync_status: 'PENDING'
-          };
-          offlineAttendanceQueue.enqueue(queuedRecord);
-          matchSuccess = true;
-          setScanStatus(`Recognized (Offline): ${fallbackName} • Attendance saved on this device and will sync when you're online.`);
-          handleSpeak(`Attendance queued offline.`);
-        }
+        setScanStatus('Verification unavailable');
+        setLivenessMessage('Could not confirm attendance. Check the connection and retry.');
       } finally {
         setIsScanning(false);
         recognitionBusyRef.current = false;
         
         // Cooldown configuration (Snappy millisecond reset)
-        const cooldownTime = matchSuccess ? 900 : 250;
+        const cooldownTime = matchSuccess ? 900 : 1800;
         
         setTimeout(() => {
           // Note: Keep scannedStudent visible on screen until next scan or manual dismissal!
@@ -4324,6 +4233,54 @@ export default function App() {
     });
 
     let active = true;
+    let challenge = null;
+    let stepIndex = 0;
+    let requestPending = false;
+    let generation = 0;
+    let retryAt = 0;
+    let openFrames = 0;
+    let closedAt = null;
+    let closedEar = null;
+    let previousFrame = 0;
+    const resetGesture = () => {
+      openFrames = 0;
+      closedAt = null;
+      closedEar = null;
+      eyeStateRef.current = 'open';
+    };
+    async function advance(step, measurement) {
+      const version = generation;
+      requestPending = true;
+      try {
+        if (!challenge) {
+          const next = await startLivenessChallenge(API_BASE_URL, token);
+          if (!active || version !== generation) return;
+          challenge = next;
+          stepIndex = 0;
+        } else {
+          const result = await reportLivenessStep(API_BASE_URL, token, challenge.challenge_id, step, measurement);
+          if (!active || version !== generation) return;
+          if (!result.valid) throw new Error('Please repeat the blink check.');
+          stepIndex++;
+          if (result.completed && result.liveness_token) {
+            challenge = null;
+            livenessTokenRef.current = result.liveness_token;
+            livenessStatusRef.current = 'verified';
+            setLivenessStatus('verified');
+            setLivenessMessage('Blink check complete. Matching your face…');
+            triggerFaceRecognition();
+          }
+        }
+      } catch {
+        if (active && version === generation) {
+          challenge = null;
+          retryAt = performance.now() + 1500;
+          setLivenessMessage('Blink check could not finish. Hold steady to retry.');
+        }
+      } finally {
+        if (active && version === generation) requestPending = false;
+      }
+    }
     faceMesh.onResults((results) => {
       if (!active) return;
 
@@ -4344,49 +4301,53 @@ export default function App() {
           const height = video.videoHeight || video.naturalHeight;
           const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES, width, height);
           const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES, width, height);
-          const avgEAR = (leftEAR + rightEAR) / 2.0;
-
-          if (!Number.isFinite(avgEAR)) {
-            eyeStateRef.current = 'open';
+          if (livenessStatusRef.current !== 'verifying' || requestPending) return;
+          const now = performance.now();
+          if (now < retryAt) return;
+          if (!Number.isFinite(leftEAR) || !Number.isFinite(rightEAR) || now - previousFrame > 450) resetGesture();
+          previousFrame = now;
+          if (!challenge && !isDemoMode) {
+            advance();
             return;
           }
-          if (livenessStatusRef.current === 'verifying') {
-            const earThreshold = antiSpoofingThreshold;
-
-            if (avgEAR < earThreshold) {
-              // User has closed their eyes (blink in progress)
-              if (eyeStateRef.current !== 'closed') {
-                eyeStateRef.current = 'closed';
-                setEyeState('closed');
-                setLivenessMessage('Blink detected • Now open eyes');
-                setScanStatus('Blink detected • Now open eyes');
-                addDiagnosticLog('Ocular state: Blink trigger detected (EAR: ' + avgEAR.toFixed(3) + ')');
+          const step = challenge?.sequence_labels[stepIndex] || 'blink';
+          const open = Math.min(leftEAR, rightEAR) >= antiSpoofingThreshold + 0.03;
+          const closed = Math.max(leftEAR, rightEAR) <= Math.min(antiSpoofingThreshold, 0.22);
+          if (closedAt !== null && now - closedAt > 700) resetGesture();
+          if (open && closedAt !== null) {
+            const elapsed = now - closedAt;
+            const measurement = closedEar;
+            resetGesture();
+            setEyeState('open');
+            if (elapsed >= 45 && elapsed <= 700 && step === 'blink') {
+              if (!isDemoMode) advance('blink', measurement);
+              else {
+                livenessStatusRef.current = 'verified';
+                setLivenessStatus('verified');
+                triggerFaceRecognition();
               }
-            } else if (avgEAR >= (earThreshold + 0.03) && eyeStateRef.current === 'closed') {
-              // User reopened eyes: FULL BLINK COMPLETED!
-              eyeStateRef.current = 'open';
-              setEyeState('open');
-              faceLockStartRef.current = null;
-              livenessStatusRef.current = 'verified';
-              setLivenessStatus('verified');
-              setLivenessMessage('Face verified • Processing...');
-              setScanStatus('Face verified • Processing...');
-              addDiagnosticLog('Smartphone FaceLock: Strict Eye Blink Verified');
-
-              if (voiceAnnounceLiveness) {
-                handleSpeak("Blink verified. Marking attendance.");
-              }
-
-              triggerFaceRecognition();
-            } else if (eyeStateRef.current !== 'closed') {
-              // Waiting for user to blink
-              setLivenessMessage('Please blink your eyes to verify');
-              setScanStatus('Please blink your eyes to verify');
             }
+          } else if (open) {
+            openFrames++;
+            if (openFrames >= 3 && step === 'open') {
+              resetGesture();
+              advance('open', Math.min(leftEAR, rightEAR));
+            }
+          } else if (closed && openFrames >= 3 && closedAt === null) {
+            closedAt = now;
+            closedEar = Math.max(leftEAR, rightEAR);
+            eyeStateRef.current = 'closed';
+            setEyeState('closed');
           }
+          if (livenessStatusRef.current === 'verifying') setLivenessMessage(
+            step === 'open' ? 'Look at the camera with both eyes open.' :
+            closedAt !== null ? 'Open your eyes.' : 'Blink once, then open your eyes.');
         }
       } else {
-        eyeStateRef.current = 'open';
+        resetGesture();
+        generation++;
+        challenge = null;
+        requestPending = false;
         lastLandmarksRef.current = null;
         faceLockStartRef.current = null;
       }
@@ -4431,7 +4392,7 @@ export default function App() {
         faceMeshRef.current = null;
       }
     };
-  }, [attendanceActive, cameraScanSettings.preset]);
+  }, [attendanceActive, attendanceFacingMode, cameraScanSettings.preset, livenessBypass, antiSpoofingThreshold, token]);
 
   // Turn off camera if user switches tabs
   useEffect(() => {
@@ -7155,14 +7116,9 @@ export default function App() {
                 {/* Liveness / Eye Blink Security Control (Line across eye when OFF, illuminated green when ON) */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setLivenessBypass((prev) => !prev);
-                    try {
-                      playCyberSound('click');
-                    } catch (_) {}
-                  }}
+                  disabled
                   className={`clean-camera-icon-btn ${!livenessBypass ? 'is-liveness-active' : 'is-liveness-off'}`}
-                  title={livenessBypass ? "Eye-Blink Security: OFF (Bypassed) — Tap to enable blink verification" : "Eye-Blink Security: ON (Active) — Tap to bypass"}
+                  title={livenessBypass ? 'Campus blink check is off' : 'Campus blink check is on'}
                   aria-label={livenessBypass ? "Eye Blink Check Inactive" : "Eye Blink Check Active"}
                 >
                   {livenessBypass ? (

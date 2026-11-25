@@ -8061,3 +8061,26 @@ button:active:not(:disabled),
 }
 @keyframes campus-pause-enter { from { opacity: 0; transform: translateY(6px); } }
 @keyframes campus-pause-glow { 50% { box-shadow: 0 0 0 8px #d8ae5430; } }
+
+#scanner-modal-overlay .clean-camera-inner {
+  background: #191610;
+  border-color: #af915a;
+}
+#scanner-modal-overlay .clean-camera-header,
+#scanner-modal-overlay .scanner-instruction-pill {
+  background: linear-gradient(120deg, #30291ff2, #211d17ed);
+  color: #fff8e9;
+  border-color: #806b47;
+}
+#scanner-modal-overlay .clean-scanner-state-bar.state-liveness,
+#scanner-modal-overlay .clean-scanner-state-bar.state-recognizing {
+  background: #302719ee;
+  border-color: #b8995e;
+  color: #ffe8b6;
+}
+#scanner-modal-overlay .is-liveness-active { border-color: #bf9b58; box-shadow: none; }
+#scanner-modal-overlay .is-liveness-active svg { color: #f5d390; }
+#scanner-modal-overlay .clean-camera-viewport > video,
+#scanner-modal-overlay .clean-camera-viewport > img {
+  position: absolute; inset: 0; max-width: none; max-height: none;
+}

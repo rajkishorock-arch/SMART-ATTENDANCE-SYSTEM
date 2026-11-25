@@ -354,9 +354,8 @@ async def recognize_and_mark_attendance(
             )
         except Exception as mark_err:
             print(f"[RECOGNIZE FRAME] Warning: mark_student_attendance exception for {user_id}: {mark_err}")
-            # Attempt soft recovery: attendance might already be marked in database
-            db_attendance = None
-            newly_marked = False
+            db.rollback()
+            raise HTTPException(503, "Attendance could not be confirmed. Please retry.") from mark_err
 
         student = None
         try:
