@@ -91,7 +91,7 @@ export default function CampusBroadcastCenterView({
         effective_date: effectiveDate || null,
         title: formTitle.trim(),
         message: formMessage.trim(),
-        category: formCategory,
+        category: formIsUrgent ? 'URGENT' : formCategory,
         target_roles: formTargetRoles,
         is_urgent: formIsUrgent,
         sender_role: userRole,
@@ -227,7 +227,7 @@ export default function CampusBroadcastCenterView({
       const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
       return [
         { label: 'Total Notices', val: total, color: '#25231f' },
-        { label: 'Staff & Faculty', val: staffCount, color: '#059669' },
+        { label: 'Staff notices', val: staffCount, color: '#059669' },
         { label: 'Academic & Exams', val: exams, color: '#785927' },
         { label: 'Urgent Notices', val: urgent, color: '#dc2626' }
       ];
@@ -239,8 +239,8 @@ export default function CampusBroadcastCenterView({
     const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
     return [
       { label: 'Total Notices', val: total, color: '#25231f' },
-      { label: 'Students Reach', val: students, color: '#785927' },
-      { label: 'Staff & Faculty', val: staff, color: '#059669' },
+      { label: 'Student notices', val: students, color: '#785927' },
+      { label: 'Staff notices', val: staff, color: '#059669' },
       { label: 'Urgent Alerts', val: urgent, color: '#dc2626' }
     ];
   }, [broadcasts, userRole]);
@@ -759,7 +759,7 @@ export default function CampusBroadcastCenterView({
                   {notice.effective_date && <span>Notice date · {notice.effective_date}</span>}
                   {canDispatch && <div>
                     <button type="button" onClick={() => {
-                      setEditing(notice.id); setFormTitle(notice.title); setFormMessage(notice.message);
+                      setFormIsUrgent(notice.category === 'URGENT'); setEditing(notice.id); setFormTitle(notice.title); setFormMessage(notice.message);
                       setEffectiveDate(notice.effective_date || notice.created_at.slice(0, 10));
                       setFormTargetRoles(notice.target_roles); setFormCategory(notice.category);
                       setShowComposeForm(true);

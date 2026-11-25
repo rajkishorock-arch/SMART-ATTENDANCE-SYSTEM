@@ -4062,7 +4062,7 @@ export default function App() {
     setLockdownActive(false);
     if (!token || isDemoMode) return;
     let active = true;
-    let initial = true;
+    let lastBiometricPolicy = '';
     const refresh = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/settings/campus-policy`, {headers: {Authorization: `Bearer ${token}`}, cache: 'no-store'});
@@ -4070,12 +4070,13 @@ export default function App() {
         const policy = await res.json();
         if (!active) return;
         setLockdownActive(policy.locked);
-        if (initial && policy.similarity != null) {
+        const biometricPolicy = JSON.stringify([policy.similarity, policy.blink_ear, policy.confidence_filter, policy.strict_liveness]);
+        if (policy.similarity != null && lastBiometricPolicy !== biometricPolicy) {
           setAntiSpoofingThreshold(policy.blink_ear);
           setBiometricConfidenceFilterEnabled(policy.confidence_filter);
           setBiometricMatchThreshold(policy.similarity);
           setLivenessBypass(!policy.strict_liveness);
-          initial = false;
+          lastBiometricPolicy = biometricPolicy;
         }
       } catch { /* Server-side policy continues to apply. */ }
     };

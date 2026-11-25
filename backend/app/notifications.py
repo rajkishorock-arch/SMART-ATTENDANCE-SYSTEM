@@ -579,6 +579,7 @@ def editable_notice_rows(db, identity, notice_id):
 
 
 class NoticeRevision(BaseModel):
+    category: Optional[str] = None
     title: str
     message: str
     effective_date: date
@@ -589,12 +590,16 @@ def republish_notice(notice_id: int, payload: NoticeRevision, db: Session = Depe
                      identity: security.AuthIdentity = Depends(security.get_current_identity)):
     if not payload.title.strip() or len(payload.title.strip()) > 200 or not payload.message.strip():
         raise HTTPException(422, "A title and message are required.")
+    if payload.category and payload.category not in ("ANNOUNCEMENT", "NOTICE", "HOLIDAY", "URGENT", "CIRCULAR", "EVENT", "EXAM"):
+        raise HTTPException(422, "Unsupported notice category.")
     group_id = str(uuid4())
     for row in editable_notice_rows(db, identity, notice_id):
         entry = db.get(BroadcastEntry, row.id) or BroadcastEntry(notification_id=row.id, group_id=group_id)
         entry.effective_date = payload.effective_date.isoformat()
         db.add(entry)
         db.query(NotificationReceipt).filter_by(notification_id=row.id).delete(synchronize_session=False)
+        if payload.category:
+            row.category = payload.category
         row.title, row.message = payload.title.strip(), payload.message.strip()
         row.created_at, row.is_read = datetime.now(timezone.utc), False
     db.commit()
