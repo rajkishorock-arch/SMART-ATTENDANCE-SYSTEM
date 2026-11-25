@@ -4347,115 +4347,71 @@ export default function App() {
       minTrackingConfidence: Math.max(0.5, preset.minDetectionConfidence - 0.05),
     });
 
+    let active = true;
     faceMesh.onResults((results) => {
-      if (!attendanceActive) return;
+      if (!active) return;
 
-      const canvas = attendanceCanvasRef.current;
-      if (canvas) {
-        const isVideo = video instanceof HTMLVideoElement;
-        canvas.width = (isVideo ? video.videoWidth : video.naturalWidth) || 640;
-        canvas.height = (isVideo ? video.videoHeight : video.naturalHeight) || 480;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const landmarks = results.multiFaceLandmarks[0];
+        lastLandmarksRef.current = landmarks;
 
-        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-          const landmarks = results.multiFaceLandmarks[0];
-          lastLandmarksRef.current = landmarks;
-
-          // Calculate average brightness from video frame
-          let avgBrightness = 100;
-          try {
-            const offscreen = document.createElement('canvas');
-            offscreen.width = 40;
-            offscreen.height = 30;
-            const offCtx = offscreen.getContext('2d');
-            offCtx.drawImage(video, 0, 0, 40, 30);
-            const imgData = offCtx.getImageData(0, 0, 40, 30);
-            const data = imgData.data;
-            let totalLuminance = 0;
-            for (let i = 0; i < data.length; i += 4) {
-              const r = data[i];
-              const g = data[i+1];
-              const b = data[i+2];
-              totalLuminance += (0.299 * r + 0.587 * g + 0.114 * b);
-            }
-            avgBrightness = totalLuminance / (data.length / 4);
-          } catch (err) {
-            console.error("Luminance sampling error:", err);
-          }
-
-          // Calculate eye distance
-          const pt33 = landmarks[33];
-          const pt263 = landmarks[263];
-          const eyeDistance = Math.hypot(pt33.x - pt263.x, pt33.y - pt263.y);
-
-          // Diagnostic warnings disabled for cleaner mobile UX
-          // setDiagnosticWarnings({
-          //   lighting: avgBrightness < 50 ? 'Lighting Too Dark' : '',
-          //   distance: eyeDistance < 0.24 ? 'Please Move Closer' : ''
-          // });
-
-          if (livenessBypassRef.current) {
-            if (livenessStatusRef.current === 'verifying') {
-              livenessStatusRef.current = 'verified';
-              setLivenessStatus('verified');
-              setLivenessMessage('Verifying face...');
-              addDiagnosticLog('Liveness verification: BYPASSED (Instant scan active)');
-              triggerFaceRecognition();
-            }
-          } else {
-            const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES);
-            const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES);
-            const avgEAR = (leftEAR + rightEAR) / 2.0;
-
-            if (livenessStatusRef.current === 'verifying') {
-              const earThreshold = Math.max(antiSpoofingThreshold, 0.20);
-
-              if (avgEAR < earThreshold) {
-                // User has closed their eyes (blink in progress)
-                if (eyeStateRef.current !== 'closed') {
-                  eyeStateRef.current = 'closed';
-                  setEyeState('closed');
-                  setLivenessMessage('Blink detected • Now open eyes');
-                  setScanStatus('Blink detected • Now open eyes');
-                  addDiagnosticLog('Ocular state: Blink trigger detected (EAR: ' + avgEAR.toFixed(3) + ')');
-                }
-              } else if (avgEAR >= (earThreshold + 0.03) && eyeStateRef.current === 'closed') {
-                // User reopened eyes: FULL BLINK COMPLETED!
-                eyeStateRef.current = 'open';
-                setEyeState('open');
-                faceLockStartRef.current = null;
-                livenessStatusRef.current = 'verified';
-                setLivenessStatus('verified');
-                setLivenessMessage('Face verified • Processing...');
-                setScanStatus('Face verified • Processing...');
-                addDiagnosticLog('Smartphone FaceLock: Strict Eye Blink Verified');
-                
-                if (voiceAnnounceLiveness) {
-                  handleSpeak("Blink verified. Marking attendance.");
-                }
-                
-                triggerFaceRecognition();
-              } else if (eyeStateRef.current !== 'closed') {
-                // Waiting for user to blink
-                setLivenessMessage('Please blink your eyes to verify');
-                setScanStatus('Please blink your eyes to verify');
-              }
-            }
+        if (livenessBypassRef.current) {
+          if (livenessStatusRef.current === 'verifying') {
+            livenessStatusRef.current = 'verified';
+            setLivenessStatus('verified');
+            setLivenessMessage('Verifying face...');
+            addDiagnosticLog('Liveness verification: BYPASSED (Instant scan active)');
+            triggerFaceRecognition();
           }
         } else {
-          faceLockStartRef.current = null;
-        }
+          const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES);
+          const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES);
+          const avgEAR = (leftEAR + rightEAR) / 2.0;
 
-        // Video feed kept 100% clean and natural - no dots or box overlay on face
+          if (livenessStatusRef.current === 'verifying') {
+            const earThreshold = Math.max(antiSpoofingThreshold, 0.20);
+
+            if (avgEAR < earThreshold) {
+              // User has closed their eyes (blink in progress)
+              if (eyeStateRef.current !== 'closed') {
+                eyeStateRef.current = 'closed';
+                setEyeState('closed');
+                setLivenessMessage('Blink detected • Now open eyes');
+                setScanStatus('Blink detected • Now open eyes');
+                addDiagnosticLog('Ocular state: Blink trigger detected (EAR: ' + avgEAR.toFixed(3) + ')');
+              }
+            } else if (avgEAR >= (earThreshold + 0.03) && eyeStateRef.current === 'closed') {
+              // User reopened eyes: FULL BLINK COMPLETED!
+              eyeStateRef.current = 'open';
+              setEyeState('open');
+              faceLockStartRef.current = null;
+              livenessStatusRef.current = 'verified';
+              setLivenessStatus('verified');
+              setLivenessMessage('Face verified • Processing...');
+              setScanStatus('Face verified • Processing...');
+              addDiagnosticLog('Smartphone FaceLock: Strict Eye Blink Verified');
+
+              if (voiceAnnounceLiveness) {
+                handleSpeak("Blink verified. Marking attendance.");
+              }
+
+              triggerFaceRecognition();
+            } else if (eyeStateRef.current !== 'closed') {
+              // Waiting for user to blink
+              setLivenessMessage('Please blink your eyes to verify');
+              setScanStatus('Please blink your eyes to verify');
+            }
+          }
+        }
+      } else {
+        faceLockStartRef.current = null;
       }
+
     });
 
     faceMeshRef.current = faceMesh;
 
-    let active = true;
     let meshRafId = null;
-    let meshTimerId = null;
 
     const sendFrames = async () => {
       if (!active || !attendanceActive) return;
@@ -4479,12 +4435,11 @@ export default function App() {
       }
     };
 
-    meshTimerId = setTimeout(sendFrames, 300);
+    meshRafId = requestAnimationFrame(sendFrames);
 
     return () => {
       active = false;
       if (meshRafId) cancelAnimationFrame(meshRafId);
-      if (meshTimerId) clearTimeout(meshTimerId);
       livenessStatusRef.current = 'pending';
       setLivenessStatus('pending');
       if (faceMeshRef.current) {
