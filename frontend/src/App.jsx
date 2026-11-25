@@ -4057,6 +4057,9 @@ export default function App() {
 
 
 
+  const policyVersion = useRef(0);
+  const policySaving = useRef(false);
+  const [savingPolicy, setSavingPolicy] = useState(false);
   const [policyMessage, setPolicyMessage] = useState('');
   useEffect(() => {
     setLockdownActive(false);
@@ -4064,11 +4067,13 @@ export default function App() {
     let active = true;
     let lastBiometricPolicy = '';
     const refresh = async () => {
+      if (policySaving.current) return;
+      const version = ++policyVersion.current;
       try {
         const res = await fetch(`${API_BASE_URL}/settings/campus-policy`, {headers: {Authorization: `Bearer ${token}`}, cache: 'no-store'});
         if (!res.ok) return;
         const policy = await res.json();
-        if (!active) return;
+        if (!active || version !== policyVersion.current) return;
         setLockdownActive(policy.locked);
         const biometricPolicy = JSON.stringify([policy.similarity, policy.blink_ear, policy.confidence_filter, policy.strict_liveness]);
         if (policy.similarity != null && lastBiometricPolicy !== biometricPolicy) {
@@ -4085,14 +4090,33 @@ export default function App() {
     return () => { active = false; clearInterval(timer); };
   }, [token, isDemoMode, API_BASE_URL]);
   const saveCampusPolicy = async (changes) => {
+    if (policySaving.current) return;
+    if (isDemoMode) {
+      setPolicyMessage('Sign in with your institution admin account to change campus policy.');
+      return;
+    }
+    policySaving.current = true;
+    ++policyVersion.current;
+    setSavingPolicy(true);
+    setPolicyMessage('Saving campus policy…');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      const res = await fetch(`${API_BASE_URL}/settings/campus-policy`, {method: 'PUT',
+      const res = await fetch(`${API_BASE_URL}/settings/campus-policy`, {method: 'PUT', signal: controller.signal,
         headers: {Authorization: `Bearer ${token}`, 'Content-Type': 'application/json'}, body: JSON.stringify(changes)});
-      if (!res.ok) throw new Error();
-      const policy = await res.json();
+      const policy = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(typeof policy?.detail === 'string' ? policy.detail : `Campus policy service returned HTTP ${res.status}.`);
+      if (typeof policy?.locked !== 'boolean' || ('locked' in changes && policy.locked !== changes.locked))
+        throw new Error('The server did not confirm the requested campus policy.');
       setLockdownActive(policy.locked);
       setPolicyMessage('Campus policy saved.');
-    } catch { setPolicyMessage('Unable to save campus policy. Please retry.'); }
+    } catch (err) {
+      setPolicyMessage(err.name === 'AbortError' ? 'Confirmation timed out. Check the current campus status before retrying.' : err.message);
+    } finally {
+      clearTimeout(timer);
+      policySaving.current = false;
+      setSavingPolicy(false);
+    }
   };
 
   // Automatic camera shutoff when lockdown is activated
@@ -6906,7 +6930,7 @@ export default function App() {
   if (token && lockdownActive) {
     return <main className="enrolment-sheet"><h1>Campus access paused</h1>
       <p>Your institution has paused access. This screen updates when access resumes.</p>
-      {userRole === 'admin' && <button className="bg-gradient-btn" onClick={() => saveCampusPolicy({locked:false})}>Restore campus access</button>}
+      {userRole === 'admin' && <button className="bg-gradient-btn" disabled={savingPolicy} onClick={() => saveCampusPolicy({locked:false})}>Restore campus access</button>}
       <p role="status">{policyMessage}</p></main>;
   }
   if (!token) {
@@ -8378,6 +8402,8 @@ export default function App() {
                 {/* ===== MERGED SECURITY PERIMETER, GEOFENCING & EMERGENCY LOCKDOWN CONSOLE ===== */}
                 {(activeSubSetting === 'geofencing' || activeSubSetting === 'ip' || activeSubSetting === 'lockdown') && userRole === 'admin' && (
                   <GeofenceSettings
+                    policyMessage={policyMessage}
+                    savingPolicy={savingPolicy}
                     userRole={userRole}
                     settingsGeoEnabled={settingsGeoEnabled}
                     setSettingsGeoEnabled={setSettingsGeoEnabled}

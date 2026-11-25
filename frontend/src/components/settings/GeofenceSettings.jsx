@@ -16,6 +16,8 @@ export default function GeofenceSettings({
   settingsIpRanges,
   setSettingsIpRanges,
   lockdownActive,
+  policyMessage,
+  savingPolicy,
   setLockdownActive,
   saveSystemSettings,
   isSavingSettings,
@@ -78,7 +80,7 @@ export default function GeofenceSettings({
 
           <button
             type="button"
-            disabled={userRole === 'student'}
+            disabled={savingPolicy || userRole !== 'admin'}
             onClick={() => {
               const newLock = !lockdownActive;
               setLockdownActive(newLock);
@@ -103,6 +105,7 @@ export default function GeofenceSettings({
           </button>
         </div>
 
+        {policyMessage && <p role="status">{policyMessage}</p>}
         {lockdownActive && (
           <div style={{ padding: '12px 16px', background: '#fee2e2', border: '1px solid #f87171', borderRadius: '8px', color: '#991b1b', fontSize: '0.84rem' }}>
             <span><strong>Lockdown Active:</strong> Camera scanner sessions are currently suspended. Click 'Disarm' to resume normal operation.</span>
