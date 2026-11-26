@@ -260,6 +260,25 @@ function calculateEAR(landmarks, eyeIndices, width, height) {
 // =====================================================================
 // AI ATTENDANCE FORECASTER & BUNK SIMULATOR CARD
 // =====================================================================
+function subjectCacheKey(token) {
+  try {
+    const claims = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!claims.sub || !claims.role || claims.institution_id == null) return null;
+    return 'subjects:v1:' + JSON.stringify([getApiBaseUrl(), claims.institution_id, claims.role, claims.sub]);
+  } catch {
+    return null;
+  }
+}
+
+function readSubjectCache(key) {
+  try {
+    const rows = key && JSON.parse(localStorage.getItem(key));
+    return Array.isArray(rows) ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
   const API_BASE_URL = getApiBaseUrl();
   const [masterKeyPrompt, setMasterKeyPrompt] = useState({
@@ -1532,7 +1551,6 @@ export default function App() {
     }
     if (lowerSpeech.includes('capture face') || lowerSpeech.includes('webcam chalu') || lowerSpeech.includes('open webcam')) {
       setShowWebcamModal(true);
-      setTimeout(() => { try { startWebcam(); } catch (err) { /* ignore fallback error */ } }, 300);
       playCyberSound('success');
       return true;
     }
@@ -2123,7 +2141,10 @@ export default function App() {
   const [geoTrackingError, setGeoTrackingError] = useState('');
 
   // Subject & Timetable States
-  const [subjects, setSubjects] = useState([]);
+  const subjectScope = subjectCacheKey(token) || token;
+  const [rowsScope, setRowsScope] = useState(subjectScope);
+  const [subjectRows, setSubjects] = useState(() => readSubjectCache(subjectCacheKey(token)) || []);
+  const subjects = isDemoMode || rowsScope === subjectScope ? subjectRows : [];
   const [subjectLoadState, setSubjectLoadState] = useState('loading');
   const subjectRequest = useRef(0);
   const [schedules, setSchedules] = useState(() => {
@@ -2447,9 +2468,17 @@ export default function App() {
     const usedToken = authToken || token;
     if (!usedToken) return;
     const request = ++subjectRequest.current;
-    setSubjectLoadState('loading');
+    const key = subjectCacheKey(usedToken);
+    const saved = readSubjectCache(key);
+    const scope = key || usedToken;
+    if (!saved && scope !== rowsScope) setSubjects([]);
+    setRowsScope(scope);
+    if (saved) setSubjects(saved);
+    setSubjectLoadState(saved ? 'ready' : 'loading');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await systemApi.fetchSubjects(usedToken);
+      const res = await systemApi.fetchSubjects(usedToken, controller.signal);
       if (request !== subjectRequest.current) return;
       if (res.status === 401) {
         handleLogout();
@@ -2461,10 +2490,11 @@ export default function App() {
       if (!Array.isArray(data)) throw new Error('Invalid subject list');
       setSubjects(data);
       setSubjectLoadState('ready');
-      localStorage.setItem('cached_subjects', JSON.stringify(data));
-      localStorage.setItem('cached_subjects_timestamp', Date.now().toString());
+      try { if (key) localStorage.setItem(key, JSON.stringify(data)); } catch { /* Storage can be disabled. */ }
     } catch {
       if (request === subjectRequest.current) setSubjectLoadState('error');
+    } finally {
+      clearTimeout(timer);
     }
   };
 
@@ -2941,44 +2971,36 @@ export default function App() {
 
   // Webcam Capture & Training handlers
 
+  const enrollmentRequest = useRef(0);
   const startWebcam = async () => {
+    const request = ++enrollmentRequest.current;
     setWebcamError('');
     setWebcamBootActive(true);
     try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
-        });
-      } catch (e1) {
-        console.warn("HD camera constraints failed, trying 640x480 fallback", e1);
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 640, height: 480, facingMode: 'user' } 
-          });
-        } catch (e2) {
-          console.warn("SD camera constraints failed, trying general video fallback", e2);
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        }
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: 'user' } }
+      });
+      if (request !== enrollmentRequest.current || !videoRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
       }
       streamRef.current = stream;
+      videoRef.current.srcObject = stream;
     } catch (err) {
+      if (request !== enrollmentRequest.current) return;
       setWebcamBootActive(false);
-      setWebcamError("Camera access is blocked. Allow camera access from your browser's address-bar permissions, then try again.");
+      setWebcamError(err.name === 'NotAllowedError' ? 'Allow camera access to register your face.' : 'Could not open the camera. Check the device and retry.');
     }
   };
 
-  const handleWebcamBootComplete = useCallback(() => {
-    setWebcamBootActive(false);
-    setWebcamActive(true);
-    playCyberSound('success');
-    addDiagnosticLog('Admin capture optics online.');
-  }, []);
+  useEffect(() => {
+    if (!showWebcamModal || !captureStudent?.id) return;
+    startWebcam();
+    return stopWebcam;
+  }, [showWebcamModal, captureStudent?.id]);
 
   const stopWebcam = () => {
+    enrollmentRequest.current++;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -9623,177 +9645,29 @@ export default function App() {
 
       {/* Webcam Capture Modal */}
       {showWebcamModal && captureStudent && (
-        <div className="webcam-capture-modal-overlay">
-          <div className="webcam-capture-modal-inner glass-panel">
-            {/* Header */}
-            <div className="webcam-capture-modal-header">
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#25231f' }}>📸 Capture Face Samples</h3>
-                <p style={{ color: '#696358', fontSize: '0.82rem', margin: '4px 0 0' }}>
-                  Student: <strong style={{ color: '#785927' }}>{captureStudent.name}</strong> ({captureStudent.roll})
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeWebcamModal}
-                disabled={isCapturing}
-                style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '8px', color: '#696358', cursor: 'pointer', padding: '6px 10px', fontSize: '1.1rem', lineHeight: 1 }}
-                aria-label="Close"
-              >✕</button>
+        <div className="enroll-overlay">
+          <section className="enroll-camera" role="dialog" aria-modal="true" aria-labelledby="enroll-heading">
+            <header><div><h2 id="enroll-heading">Register face</h2><p>{captureStudent.name} · {captureStudent.roll}</p></div>
+              <button type="button" aria-label="Close camera" disabled={isCapturing} onClick={closeWebcamModal}><X size={20} /></button>
+            </header>
+            <div className="enroll-preview">
+              <video ref={videoRef} autoPlay playsInline muted onPlaying={() => {
+                if (videoRef.current?.srcObject && streamRef.current === videoRef.current.srcObject) {
+                  setWebcamBootActive(false);
+                  setWebcamActive(true);
+                }
+              }} />
+              {webcamActive && <div className="enroll-guide" aria-hidden="true" />}
+              <canvas ref={canvasRef} hidden />
             </div>
-
-            {webcamError && (
-              <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', textAlign: 'left' }}>
-                <AlertCircle size={16} />
-                <span>{webcamError}</span>
-              </div>
-            )}
-
-
-            {/* Video Feed Area */}
-            <div className="webcam-capture-modal-video scanner-container" style={{ position: 'relative', width: '100%', background: '#111827', borderRadius: '12px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.05)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
-              <div className="scanner-bracket bracket-tl" />
-              <div className="scanner-bracket bracket-tr" />
-              <div className="scanner-bracket bracket-bl" />
-              <div className="scanner-bracket bracket-br" />
-              <div style={{ position: 'absolute', left: 0, width: '100%', height: '2px', background: 'var(--color-primary)', boxShadow: '0 0 8px var(--color-primary)', zIndex: 5, animation: (webcamActive && !webcamBootActive) ? 'scan 3s linear infinite' : 'none', opacity: (webcamActive && !webcamBootActive) ? 1 : 0 }} />
-
-              <ScannerBootOverlay
-                active={webcamBootActive}
-                onComplete={handleWebcamBootComplete}
-                label="ADMIN_SEC_01"
-                lines={[
-                  'INITIALIZING ADMIN OPTICS...',
-                  'LOADING FACE SAMPLING ENGINE...',
-                  'CALIBRATING CAPTURE MATRIX...',
-                  'SYNCING STUDENT BIOMETRICS...',
-                  'ADMIN_SEC_01 ONLINE — READY',
-                ]}
-              />
-
-              {webcamActive && !webcamBootActive && (
-                <div className="scanner-live-hud">
-                  <div className="scanner-live-grid" />
-                  <div className="scanner-live-radar-mini" />
-                  <div className="scanner-live-status">● ADMIN SAMPLING ACTIVE</div>
-                </div>
-              )}
-
-              <CameraAttractHud
-                active={webcamActive && !webcamBootActive}
-                mode="register"
-              />
-              
-              {/* HUD Sci-Fi telemetry overlay */}
-              {webcamActive && !webcamBootActive && (
-                <>
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    left: '12px',
-                    zIndex: 10,
-                    fontFamily: 'monospace',
-                    fontSize: '0.7rem',
-                    color: 'var(--color-primary)',
-                    background: 'rgba(5, 10, 20, 0.65)',
-                    backdropFilter: 'blur(4px)',
-                    border: '1px solid var(--border-color-glow)',
-                    borderRadius: '4px',
-                    padding: '8px 12px',
-                    pointerEvents: 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                    textAlign: 'left'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
-                      <span style={{ fontWeight: 'bold' }}>AI MATRIX CAP v1.4.2</span>
-                    </div>
-                    <div>SYS_STATE: <span style={{ color: '#fff' }}>ADMIN_SAMPLING</span></div>
-                    <div>SYS_FPS: <span style={{ color: '#fff' }}>{hudMetrics.fps}</span></div>
-                    <div>SYS_LIGHT: <span style={{ color: '#fff' }}>{hudMetrics.lighting}</span></div>
-                    <div>SYS_QUALITY: <span style={{ color: '#fff' }}>{hudMetrics.quality}</span></div>
-                  </div>
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '12px',
-                    right: '12px',
-                    zIndex: 10,
-                    fontFamily: 'monospace',
-                    fontSize: '0.65rem',
-                    color: 'rgba(255,255,255,0.4)',
-                    pointerEvents: 'none'
-                  }}>
-                    LOC: ADMIN_SEC_01
-                  </div>
-                </>
-              )}
-
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                muted 
-                className={webcamBootActive ? 'scanner-video-booting' : ''}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  transform: 'scaleX(-1)',
-                  display: (webcamActive || webcamBootActive) ? 'block' : 'none',
-                }} 
-              />
-              <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-              {/* Glowing Overlay border when capturing */}
-              {isCapturing && (
-                <div style={{ position: 'absolute', inset: 0, border: '4px solid #00f2fe', animation: 'pulse 1.5s infinite', pointerEvents: 'none', borderRadius: '10px' }} />
-              )}
-
-              {!webcamActive && !webcamBootActive && (
-                <div className="flex-center" style={{ position: 'absolute', inset: 0, flexDirection: 'column', gap: '12px', color: '#9ca3af' }}>
-                  <Video size={48} />
-                  <span>Webcam is currently disabled</span>
-                </div>
-              )}
-            </div>
-
-            {/* Controls */}
-            <div className="webcam-capture-modal-controls">
-              <button 
-                type="button" 
-                onClick={closeWebcamModal} 
-                className="btn-secondary" 
-                style={{ flex: 1 }}
-                disabled={isCapturing}
-              >
-                Cancel
+            <footer>
+              <p role="status">{webcamError || (isCapturing ? 'Registering face…' : webcamBootActive ? 'Opening camera…' : webcamActive ? 'Center your face in the frame and look at the camera.' : 'Camera unavailable.')}</p>
+              <button type="button" className="btn-primary" disabled={isCapturing || webcamBootActive}
+                onClick={webcamActive ? startCaptureProcess : startWebcam}>
+                {webcamActive ? 'Register face' : webcamBootActive ? 'Opening camera…' : 'Retry camera'}
               </button>
-
-              {!webcamActive && !webcamBootActive ? (
-                <button 
-                  type="button" 
-                  onClick={startWebcam} 
-                  className="bg-gradient-btn" 
-                  style={{ flex: 1, padding: '12px', borderRadius: '8px' }}
-                >
-                  Enable Webcam
-                </button>
-              ) : (
-                <button 
-                  type="button" 
-                  onClick={startCaptureProcess} 
-                  className="bg-gradient-btn" 
-                  style={{ flex: 1, padding: '12px', borderRadius: '8px' }}
-                  disabled={isCapturing}
-                >
-                  {isCapturing ? 'Registering...' : 'Register Face'}
-                </button>
-              )}
-            </div>
-          </div>
+            </footer>
+          </section>
         </div>
       )}
 

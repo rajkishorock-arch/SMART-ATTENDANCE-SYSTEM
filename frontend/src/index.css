@@ -8140,3 +8140,28 @@ button:active:not(:disabled),
     flex-shrink: 0;
   }
 }
+
+.enroll-overlay {
+  position: fixed; inset: 0; z-index: 100040;
+  display: grid; place-items: center; padding: 12px;
+  background: rgb(27 23 17 / 58%); backdrop-filter: blur(6px);
+}
+.enroll-camera {
+  box-sizing: border-box; width: min(100%, 610px); max-height: calc(100dvh - 24px);
+  overflow: auto; border: 1px solid #dfcba6; border-radius: 20px;
+  background: linear-gradient(145deg, #fffdfa, #f4ebdc); color: #302719;
+  box-shadow: 0 18px 60px rgb(24 19 12 / 28%);
+}
+.enroll-camera header, .enroll-camera footer {
+  padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.enroll-camera h2, .enroll-camera p { margin: 0; color: #352b20; }
+.enroll-camera h2 { font-size: 1.15rem; }
+.enroll-camera header button { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-radius: 50%; background: #fffaf2; color: #46351e; border: 1px solid #d9c8aa; }
+.enroll-camera footer button { flex-shrink: 0; }
+.enroll-preview { position: relative; width: 100%; height: min(52dvh, 395px); background: #211f1c; overflow: hidden; }
+.enroll-preview > video { position: absolute!important; inset: 0; width: 100%!important; height: 100%!important; max-height: none!important; object-fit: cover!important; object-position: center; transform: scaleX(-1); }
+.enroll-guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); height: 74%; aspect-ratio: 3/4; max-width: 74%; border: 2px solid #ffe4a7; border-radius: 48%; pointer-events: none; }
+@media(max-width: 500px) { .enroll-camera footer { align-items: stretch; flex-direction: column; } }
+@media(prefers-reduced-motion: no-preference) { .enroll-camera { animation: enroll-appear 140ms ease-out; } }
+@keyframes enroll-appear { from { opacity: .85; transform: translateY(4px); } }

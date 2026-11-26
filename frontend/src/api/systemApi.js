@@ -141,8 +141,8 @@ export const systemApi = {
   /**
    * Fetch subjects list (/subjects)
    */
-  async fetchSubjects(token) {
-    return apiGet('/subjects', { token });
+  async fetchSubjects(token, signal) {
+    return apiGet('/subjects', { token, signal });
   },
 
   /**
