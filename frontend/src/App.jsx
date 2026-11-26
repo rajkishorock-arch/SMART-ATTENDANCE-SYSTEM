@@ -2541,9 +2541,14 @@ export default function App() {
 
       const coordinates = await attendanceCoordinates(settingsGeoEnabled);
       const response = await attendanceApi.submitManualAttendance(token, { records, ...coordinates });
-      const result = await response.json();
-      if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'Register could not be saved.');
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !Number.isInteger(result?.success_count)) {
+        throw new Error(typeof result?.detail === 'string' ? result.detail : `Register save could not be confirmed (HTTP ${response.status}). Please retry.`);
+      }
       const errorDetail = Array.isArray(result.errors) && result.errors.length > 0 ? ` (${result.errors[0]})` : '';
+      if (result.success_count === 0) {
+        throw new Error(`No attendance records were saved for ${manualDate}, ${manualPeriod}.${errorDetail}`);
+      }
       setManualFeedback(`Saved ${result.success_count} of ${records.length} attendance records for ${manualDate}, ${manualPeriod}.${errorDetail}`);
       playCyberSound(result.fail_count ? 'error' : 'success');
       setSelectedHistorySubjectId(String(parsedSubjectId));
@@ -4097,6 +4102,8 @@ export default function App() {
       if (!res.ok) throw new Error(typeof policy?.detail === 'string' ? policy.detail : `Campus policy service returned HTTP ${res.status}.`);
       if (typeof policy?.locked !== 'boolean' || ('locked' in changes && policy.locked !== changes.locked))
         throw new Error('The server did not confirm the requested campus policy.');
+      if ('strict_liveness' in changes && policy.strict_liveness !== changes.strict_liveness)
+        throw new Error('The server did not confirm the blink setting.');
       setLockdownActive(policy.locked);
       if (policy.similarity != null) {
         lastBiometricPolicyRef.current = JSON.stringify([policy.similarity, policy.blink_ear, policy.confidence_filter, policy.strict_liveness]);
@@ -4105,6 +4112,7 @@ export default function App() {
         }
       }
       setPolicyMessage('Campus policy saved.');
+      return true;
     } catch (err) {
       setPolicyMessage(err.name === 'AbortError' ? 'Confirmation timed out. Check the current campus status before retrying.' : err.message);
     } finally {
@@ -7249,9 +7257,18 @@ export default function App() {
                 {/* Liveness / Eye Blink Security Control (Line across eye when OFF, illuminated green when ON) */}
                 <button
                   type="button"
-                  onClick={() => {
+                  disabled={savingPolicy}
+                  onClick={async () => {
                     try { playCyberSound('click'); } catch (_) {}
                     const nextBypass = !livenessBypass;
+                    if (userRole === 'admin' && !isDemoMode) {
+                      const saved = await saveCampusPolicy({ strict_liveness: !nextBypass });
+                      if (!saved) {
+                        setAttendanceError('Liveness setting could not be confirmed. Check your connection and retry.');
+                        return;
+                      }
+                      setAttendanceError('');
+                    }
                     setLivenessBypass(nextBypass);
                     livenessBypassRef.current = nextBypass;
                     livenessTokenRef.current = null;
@@ -7273,21 +7290,7 @@ export default function App() {
                       setScanStatus('Blink to verify');
                       addDiagnosticLog('Liveness verification: ACTIVE (Blink pattern required)');
                     }
-                    if (userRole === 'admin' && !isDemoMode && token) {
-                      const reqVer = ++policyVersion.current;
-                      fetch(`${API_BASE_URL}/settings/campus-policy`, {
-                        method: 'PUT',
-                        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ strict_liveness: !nextBypass }),
-                      })
-                        .then((r) => (r.ok ? r.json() : null))
-                        .then((policy) => {
-                          if (policy && reqVer === policyVersion.current && policy.similarity != null) {
-                            lastBiometricPolicyRef.current = JSON.stringify([policy.similarity, policy.blink_ear, policy.confidence_filter, policy.strict_liveness]);
-                          }
-                        })
-                        .catch(() => {});
-                    }
+
                   }}
                   className={`clean-camera-icon-btn ${!livenessBypass ? 'is-liveness-active' : 'is-liveness-off'}`}
                   title={livenessBypass ? 'Liveness blink check is OFF — click to activate' : 'Liveness blink check is ON — click to turn off'}
