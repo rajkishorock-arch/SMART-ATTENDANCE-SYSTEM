@@ -1942,7 +1942,7 @@ export default function App() {
       if (eyeState === 'closed') {
         return { type: 'liveness', text: 'Blink detected • Open eyes', icon: <Eye size={14} /> };
       }
-      return { type: 'liveness', text: 'Please blink your eyes', icon: <Eye size={14} /> };
+      return { type: 'liveness', text: 'Blink check active', icon: <Eye size={14} /> };
     }
     if (faceDetected) {
       return { type: 'detected', text: 'Face detected • Hold steady', icon: <ScanFace size={14} /> };
@@ -2124,6 +2124,8 @@ export default function App() {
 
   // Subject & Timetable States
   const [subjects, setSubjects] = useState([]);
+  const [subjectLoadState, setSubjectLoadState] = useState('loading');
+  const subjectRequest = useRef(0);
   const [schedules, setSchedules] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_schedules');
@@ -2443,20 +2445,26 @@ export default function App() {
   const fetchSubjects = async (authToken) => {
     if (isDemoMode) return;
     const usedToken = authToken || token;
+    if (!usedToken) return;
+    const request = ++subjectRequest.current;
+    setSubjectLoadState('loading');
     try {
       const res = await systemApi.fetchSubjects(usedToken);
+      if (request !== subjectRequest.current) return;
       if (res.status === 401) {
         handleLogout();
         return;
       }
-      if (res.ok) {
-        const data = await res.json();
-        setSubjects(data);
-        localStorage.setItem('cached_subjects', JSON.stringify(data));
-        localStorage.setItem('cached_subjects_timestamp', Date.now().toString());
-      }
-    } catch (err) {
-      console.error('Error fetching subjects, retaining cached data:', err);
+      if (!res.ok) throw new Error('Subject list unavailable');
+      const data = await res.json();
+      if (request !== subjectRequest.current) return;
+      if (!Array.isArray(data)) throw new Error('Invalid subject list');
+      setSubjects(data);
+      setSubjectLoadState('ready');
+      localStorage.setItem('cached_subjects', JSON.stringify(data));
+      localStorage.setItem('cached_subjects_timestamp', Date.now().toString());
+    } catch {
+      if (request === subjectRequest.current) setSubjectLoadState('error');
     }
   };
 
@@ -3188,7 +3196,8 @@ export default function App() {
    const triggerFaceRecognition = async () => {
     const isExternal = cameraScanSettings?.cameraSource === 'external';
     const video = isExternal ? attendanceImageRef.current : attendanceVideoRef.current;
-    if (!video || recognitionBusyRef.current) return;
+    if (!video || recognitionBusyRef.current || policySaving.current) return;
+    if (!isDemoMode && !livenessBypassRef.current && !livenessTokenRef.current) return;
     if (!lastLandmarksRef.current?.length && !lastFaceDetectedRef.current) {
       setScanStatus('No face detected — look at camera');
       return;
@@ -3208,6 +3217,8 @@ export default function App() {
       setLivenessMessage('Camera frame unavailable. Hold steady and retry.');
       return;
     }
+    if (recognitionBusyRef.current || policySaving.current ||
+        (!isDemoMode && !livenessBypassRef.current && !livenessTokenRef.current)) return;
     recognitionBusyRef.current = true;
     let matchSuccess = false;
 
@@ -4055,6 +4066,7 @@ export default function App() {
   const policyVersion = useRef(0);
   const policySaving = useRef(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
+  const [scannerPolicyMessage, setScannerPolicyMessage] = useState('');
   const [policyMessage, setPolicyMessage] = useState('');
   useEffect(() => {
     setLockdownActive(false);
@@ -4136,6 +4148,7 @@ export default function App() {
   // Auto-start camera when scanner modal opens — removes need for a separate "Start Scanner" click
   useEffect(() => {
     if (!showScannerModal) return undefined;
+    setScannerPolicyMessage('');
     if (attendanceActive || scannerBootActive) return undefined;
     // Short delay allows the modal's <video> element to mount in the DOM first
     const autoStartTimer = setTimeout(() => {
@@ -4199,7 +4212,6 @@ export default function App() {
                 }
               } else {
                 const isClosed = eyeStateRef.current === 'closed';
-                setLivenessMessage(isClosed ? 'Blink detected • Now open eyes' : 'Please blink your eyes to verify');
                 setScanStatus(isClosed ? 'Blink detected • Now open eyes' : 'Please blink your eyes');
               }
             }
@@ -4209,7 +4221,7 @@ export default function App() {
             lastFaceDetectedRef.current = false;
             setFaceDetected(false);
             setLiveFaceGrid([]);
-            if (livenessStatusRef.current === 'verifying') {
+            if (livenessStatusRef.current === 'verifying' && !lastLandmarksRef.current?.length) {
               setLivenessMessage('Position face in frame');
               setScanStatus('Position face in frame');
             }
@@ -4364,12 +4376,12 @@ export default function App() {
       try {
         if (!challenge) {
           const next = await startLivenessChallenge(API_BASE_URL, token);
-          if (!active || version !== generation) return;
+          if (!active || version !== generation || livenessBypassRef.current) return;
           challenge = next;
           stepIndex = 0;
         } else {
           const result = await reportLivenessStep(API_BASE_URL, token, challenge.challenge_id, step, measurement);
-          if (!active || version !== generation) return;
+          if (!active || version !== generation || livenessBypassRef.current) return;
           if (!result.valid) throw new Error('Please repeat the blink check.');
           stepIndex++;
           if (result.completed && result.liveness_token) {
@@ -4394,8 +4406,17 @@ export default function App() {
         }
       }
     }
+    let lastMode = livenessBypassRef.current;
     faceMesh.onResults((results) => {
       if (!active) return;
+      if (lastMode !== livenessBypassRef.current) {
+        lastMode = livenessBypassRef.current;
+        generation++;
+        challenge = null;
+        requestPending = false;
+        retryAt = 0;
+        resetGesture();
+      }
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         faceLostAt = null;
@@ -4427,6 +4448,7 @@ export default function App() {
           if (!Number.isFinite(leftEAR) || !Number.isFinite(rightEAR) || (previousFrame > 0 && now - previousFrame > 900)) resetGesture();
           previousFrame = now;
           if (!challenge && !isDemoMode) {
+            setLivenessMessage('Preparing blink check. Keep your eyes open.');
             advance();
             return;
           }
@@ -4442,7 +4464,7 @@ export default function App() {
             const measurement = closedEar;
             resetGesture();
             setEyeState('open');
-            if (elapsed >= 40 && elapsed <= 900 && step === 'blink') {
+            if (elapsed > 0 && elapsed <= 900 && step === 'blink') {
               if (!isDemoMode) advance('blink', measurement);
               else {
                 livenessStatusRef.current = 'verified';
@@ -4453,7 +4475,6 @@ export default function App() {
           } else if (open) {
             openFrames++;
             if (openFrames >= 2 && step === 'open') {
-              resetGesture();
               advance('open', Math.min(leftEAR, rightEAR));
             }
           } else if (closed && openFrames >= 2 && closedAt === null) {
@@ -4491,7 +4512,7 @@ export default function App() {
       const isVideo = video instanceof HTMLVideoElement;
       const isReady = isVideo ? (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) : (video.complete && video.naturalWidth > 0);
       if (isReady) {
-        const skip = preset.meshSkipFrames || 0;
+        const skip = livenessBypassRef.current ? preset.meshSkipFrames || 0 : 0;
         meshFrameSkipRef.current = (meshFrameSkipRef.current + 1) % (skip + 1);
         if (meshFrameSkipRef.current === 0) {
           try {
@@ -7258,13 +7279,19 @@ export default function App() {
                 <button
                   type="button"
                   disabled={savingPolicy}
-                  onClick={async () => {
+                  onClick={async (event) => {
+                    event.stopPropagation();
                     try { playCyberSound('click'); } catch (_) {}
-                    const nextBypass = !livenessBypass;
+                    if (userRole !== 'admin' && !isDemoMode) {
+                      setScannerPolicyMessage('Your institution admin manages the blink requirement.');
+                      return;
+                    }
+                    setScannerPolicyMessage('');
+                    const nextBypass = !livenessBypassRef.current;
                     if (userRole === 'admin' && !isDemoMode) {
                       const saved = await saveCampusPolicy({ strict_liveness: !nextBypass });
                       if (!saved) {
-                        setAttendanceError('Liveness setting could not be confirmed. Check your connection and retry.');
+                        setScannerPolicyMessage('Blink setting could not be saved. Tap the eye button to retry.');
                         return;
                       }
                       setAttendanceError('');
@@ -7524,7 +7551,7 @@ export default function App() {
                     }}
                   />
                   <p className="scanner-instruction-text">
-                    {attendanceError 
+                    {savingPolicy ? 'Saving blink setting…' : scannerPolicyMessage ? scannerPolicyMessage : attendanceError
                       ? attendanceError
                       : livenessMessage && attendanceActive 
                         ? livenessMessage 
@@ -8400,6 +8427,8 @@ export default function App() {
             setRecognizedStudents={setRecognizedStudents}
             scanStatus={scanStatus}
             livenessStatus={livenessStatus}
+            subjectLoadState={subjectLoadState}
+            reloadSubjects={() => fetchSubjects(token)}
             subjects={subjects}
             setShowScannerModal={setShowScannerModal}
             setShowQrScannerModal={setShowQrScannerModal}

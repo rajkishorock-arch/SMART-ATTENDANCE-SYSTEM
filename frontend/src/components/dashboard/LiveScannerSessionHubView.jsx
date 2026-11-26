@@ -22,6 +22,8 @@ export default function LiveScannerSessionHubView({
   scanStatus,
   livenessStatus,
   subjects,
+  subjectLoadState,
+  reloadSubjects,
   setShowScannerModal,
   setShowQrScannerModal,
   setShowKioskModal,
@@ -39,16 +41,11 @@ export default function LiveScannerSessionHubView({
   const { playCyberSound } = useUI();
   const [validationError, setValidationError] = useState('');
 
-  const teacherId = currentUser?.details?.id ?? currentUser?.id;
-  const teacherSubjects = (subjects || []).filter(
-    (s) => teacherId != null && Number(s.teacher_id) === Number(teacherId)
-  );
-  const selectableSubjects = userRole === 'admin'
-    ? (subjects || [])
-    : teacherSubjects;
+  // The subjects endpoint already scopes this list to the signed-in staff member.
+  const selectableSubjects = subjects || [];
   const effectiveSelectedSubjectId = selectedSubjectId && selectableSubjects.some((s) => s.id.toString() === selectedSubjectId.toString())
     ? selectedSubjectId.toString()
-    : (userRole === 'teacher' && selectableSubjects.length > 0 ? selectableSubjects[0].id.toString() : (userRole === 'admin' ? (selectedSubjectId || '') : ''));
+    : (userRole === 'teacher' && selectableSubjects.length > 0 ? selectableSubjects[0].id.toString() : '');
   const selectedSubjectObj = selectableSubjects.find(
     (s) => s.id.toString() === effectiveSelectedSubjectId.toString()
   ) || null;
@@ -101,7 +98,10 @@ export default function LiveScannerSessionHubView({
                   </select>
                 ) : (
                   <div style={{ fontSize: '0.86rem', color: 'var(--color-text-muted)', padding: '10px 12px', background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '10px' }}>
-                    {currentUser?.details?.subject_name ? `${currentUser.details.subject_name} (${currentUser.details.subject_code || 'N/A'})` : 'No subjects available yet. Add a subject first.'}
+                    {subjectLoadState === 'loading' ? 'Loading subjects…' :
+                      subjectLoadState === 'error' ? 'Could not load subjects.' :
+                      userRole === 'admin' ? 'No subjects have been added.' : 'No subjects assigned to this account.'}
+                    {subjectLoadState !== 'loading' && <button type="button" onClick={reloadSubjects}>Refresh subjects</button>}
                   </div>
                 )}
               </div>
