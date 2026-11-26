@@ -151,6 +151,10 @@ def test_unassigned_subject_visibility_and_schedules_endpoint(client_and_db):
     )
     assert r2.status_code == 201, r2.text
 
+    # A historical subject can outlive its branch, but must disappear from active selectors.
+    db.add(models.Subject(name="Legacy subject", code="OLD101", department="Removed branch", institution_id=1))
+    db.commit()
+
     # Admin sees all institution subjects including teacher_id=None
     admin_subs = client.get("/api/v1/subjects", headers=_auth(tokens["admin"]))
     assert admin_subs.status_code == 200

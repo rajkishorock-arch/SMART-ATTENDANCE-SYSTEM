@@ -8587,6 +8587,7 @@ export default function App() {
           <div className="settings-section" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '20px', boxSizing: 'border-box' }}>
             {activeSubSetting === null ? (
               <SettingsDirectoryHub
+                openTeachers={() => navigateToTab('teachers')}
                 setActiveSubSetting={setActiveSubSetting}
                 playCyberSound={playCyberSound}
                 userRole={userRole}

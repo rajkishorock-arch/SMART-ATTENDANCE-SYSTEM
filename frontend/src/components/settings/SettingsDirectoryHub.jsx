@@ -14,6 +14,7 @@ import { getActiveTenantSlug as getTenantSlugUtil } from '../../utils/tenantConf
 
 export default function SettingsDirectoryHub({
   setActiveSubSetting,
+  openTeachers,
   playCyberSound,
   userRole,
   currentUser,
@@ -98,6 +99,16 @@ export default function SettingsDirectoryHub({
         setActiveSubSetting('admins');
         if (playCyberSound) playCyberSound('click');
       }
+    },
+    {
+      id: 'teachers',
+      label: 'Teachers & Subjects',
+      icon: BookOpen,
+      iconColor: '#684c20',
+      iconBg: '#faf5ea',
+      iconBorder: '#dfcfaf',
+      visible: userRole === 'admin',
+      onClick: openTeachers
     },
     // 5. Departments & Branches
     {

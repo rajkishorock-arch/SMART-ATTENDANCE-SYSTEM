@@ -38,6 +38,11 @@ export default function TeachersDirectoryView({
   const { userRole } = useAuth();
   const { playCyberSound } = useUI();
   const [timetableSubTab, setTimetableSubTab] = useState('directory');
+  const [search, setSearch] = useState('');
+  const query = search.trim().toLowerCase();
+  const matches = (...fields) => fields.some(field => String(field ?? '').toLowerCase().includes(query));
+  const visibleTeachers = teachers.filter(t => t.role === 'teacher' && matches(t.name, t.email));
+  const visibleSubjects = subjects.filter(s => matches(s.name, s.code, s.department, s.teacher_name));
   const [deletingTeacherId, setDeletingTeacherId] = useState(null);
   const [isSubmittingTeacher, setIsSubmittingTeacher] = useState(false);
   const [isSubmittingSubject, setIsSubmittingSubject] = useState(false);
@@ -92,41 +97,15 @@ export default function TeachersDirectoryView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'fadeInUp 0.6s ease both', width: '100%' }}>
-      {/* Sub-tab navigation */}
-      <div className="glass-panel" style={{ padding: '16px 24px' }}>
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <button 
-            onClick={() => { setTimetableSubTab('directory'); playCyberSound('click'); }}
-            className={`btn-secondary ${timetableSubTab === 'directory' ? 'active' : ''}`}
-            style={{ 
-              padding: '10px 20px', 
-              borderRadius: '10px', 
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              border: timetableSubTab === 'directory' ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-              color: timetableSubTab === 'directory' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-              background: timetableSubTab === 'directory' ? 'rgba(30, 64, 175, 0.08)' : '#ffffff'
-            }}
-          >
-            🏫 Teacher Directory
+      <nav aria-label="Teacher and subject management" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {[['directory', 'Teachers'], ['subjects', 'Subjects'], ['planner', 'Timetable']].map(([id, label]) => (
+          <button type="button" key={id} aria-pressed={timetableSubTab === id}
+            className={timetableSubTab === id ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => { setTimetableSubTab(id); setSearch(''); }}>
+            {label}
           </button>
-          <button 
-            onClick={() => { setTimetableSubTab('planner'); playCyberSound('click'); }}
-            className={`btn-secondary ${timetableSubTab === 'planner' ? 'active' : ''}`}
-            style={{ 
-              padding: '10px 20px', 
-              borderRadius: '10px', 
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              border: timetableSubTab === 'planner' ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-              color: timetableSubTab === 'planner' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-              background: timetableSubTab === 'planner' ? 'rgba(30, 64, 175, 0.08)' : '#ffffff'
-            }}
-          >
-            📅 Weekly Timetable Planner
-          </button>
-        </div>
-      </div>
+        ))}
+      </nav>
 
       {timetableSubTab === 'directory' ? (
         <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1.2fr 1.8fr', gap: isMobileView ? '20px' : '32px', width: '100%', minWidth: 0, maxWidth: '100%' }}>
@@ -340,6 +319,7 @@ export default function TeachersDirectoryView({
               )}
             </div>
 
+            <input className="form-input" type="search" aria-label="Search teachers" placeholder="Search by name or email" value={search} onChange={e => setSearch(e.target.value)} />
             <div className="table-container" style={{ maxHeight: '550px', overflowY: 'auto', overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
               <table className="custom-table">
                 <thead>
@@ -352,12 +332,12 @@ export default function TeachersDirectoryView({
                   </tr>
                 </thead>
                 <tbody>
-                  {teachers.filter(t => t.role === 'teacher').length === 0 ? (
+                  {visibleTeachers.length === 0 ? (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>No teachers registered.</td>
+                      <td colSpan="5" style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>{query ? 'No matching teachers.' : 'No teachers registered.'}</td>
                     </tr>
                   ) : (
-                    teachers.filter(t => t.role === 'teacher').map(t => {
+                    visibleTeachers.map(t => {
                       const tSubjects = subjects.filter(sub => sub.teacher_id === t.id);
                       
                       return (
@@ -439,6 +419,87 @@ export default function TeachersDirectoryView({
             </div>
           </div>
         </div>
+      ) : timetableSubTab === 'subjects' ? (
+        <>
+          <section className="surface-card" style={{ padding: 16 }}>
+            <h3>Subject directory ({subjects.length})</h3>
+            <input type="search" className="form-input" aria-label="Search subjects" placeholder="Search subject, code, branch or teacher" value={search} onChange={e => setSearch(e.target.value)} />
+            {visibleSubjects.map(subject => (
+              <div key={subject.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                <strong>{subject.name} ({subject.code})</strong>
+                <div>{subject.department} · {subject.teacher_name || teachers.find(t => t.id === subject.teacher_id)?.name || 'Not assigned'}</div>
+              </div>
+            ))}
+            {!visibleSubjects.length && <p>{query ? 'No matching subjects.' : 'No registered subjects.'}</p>}
+          </section>
+            {/* Register Subject Card */}
+            <div className="glass-panel" style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-main)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🏫 Register Subject
+              </h3>
+              {subjectError && <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{subjectError}</div>}
+              {subjectSuccess && <div style={{ padding: '8px 12px', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{subjectSuccess}</div>}
+
+              <form onSubmit={onSubmitSubject} style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', textAlign: 'left' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Subject Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Mathematics"
+                      value={newSubject.name}
+                      onChange={e => setNewSubject({...newSubject, name: e.target.value})}
+                      style={{ padding: '8px 12px', fontSize: '0.8rem' }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Subject Code</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. MATH-101"
+                      value={newSubject.code}
+                      onChange={e => setNewSubject({...newSubject, code: e.target.value})}
+                      style={{ padding: '8px 12px', fontSize: '0.8rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Department</label>
+                  <select
+                    className="form-input"
+                    value={newSubject.department}
+                    onChange={e => setNewSubject({...newSubject, department: e.target.value})}
+                    style={{ padding: '8px 12px', fontSize: '0.8rem' }}
+                  >
+                    {departments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Teacher Mapping</label>
+                  <select
+                    className="form-input"
+                    value={newSubject.teacher_id}
+                    onChange={e => setNewSubject({...newSubject, teacher_id: e.target.value})}
+                    style={{ padding: '8px 12px', fontSize: '0.8rem' }}
+                  >
+                    <option value="">-- Select Teacher --</option>
+                    {visibleTeachers.map(t => (
+                      <option key={t.id} value={t.id.toString()}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <button type="submit" disabled={isSubmittingSubject} className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)', border: 'none', color: '#ffffff', fontWeight: 600, cursor: isSubmittingSubject ? 'not-allowed' : 'pointer', opacity: isSubmittingSubject ? 0.75 : 1 }}>
+                  {isSubmittingSubject ? '⏳ Registering Subject...' : 'Register Subject'}
+                </button>
+              </form>
+            </div>
+        </>
       ) : (
         /* Planner Sub-tab View */
         <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '32px', width: '100%' }}>
@@ -551,73 +612,7 @@ export default function TeachersDirectoryView({
 
           {/* Right Column: Creators */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Register Subject Card */}
-            <div className="glass-panel" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-main)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🏫 Register Subject
-              </h3>
-              {subjectError && <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{subjectError}</div>}
-              {subjectSuccess && <div style={{ padding: '8px 12px', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '12px' }}>{subjectSuccess}</div>}
-              
-              <form onSubmit={onSubmitSubject} style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', textAlign: 'left' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Subject Name</label>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="e.g. Mathematics" 
-                      value={newSubject.name} 
-                      onChange={e => setNewSubject({...newSubject, name: e.target.value})} 
-                      style={{ padding: '8px 12px', fontSize: '0.8rem' }}
-                      required 
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Subject Code</label>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="e.g. MATH-101" 
-                      value={newSubject.code} 
-                      onChange={e => setNewSubject({...newSubject, code: e.target.value})} 
-                      style={{ padding: '8px 12px', fontSize: '0.8rem' }}
-                      required 
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Department</label>
-                  <select 
-                    className="form-input" 
-                    value={newSubject.department} 
-                    onChange={e => setNewSubject({...newSubject, department: e.target.value})}
-                    style={{ padding: '8px 12px', fontSize: '0.8rem' }}
-                  >
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Teacher Mapping</label>
-                  <select 
-                    className="form-input" 
-                    value={newSubject.teacher_id} 
-                    onChange={e => setNewSubject({...newSubject, teacher_id: e.target.value})}
-                    style={{ padding: '8px 12px', fontSize: '0.8rem' }}
-                  >
-                    <option value="">-- Select Teacher --</option>
-                    {teachers.filter(t => t.role === 'teacher').map(t => (
-                      <option key={t.id} value={t.id.toString()}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <button type="submit" disabled={isSubmittingSubject} className="btn-primary" style={{ padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginTop: '4px', width: '100%', background: 'linear-gradient(135deg, #61471e 0%, #916d30 100%)', border: 'none', color: '#ffffff', fontWeight: 600, cursor: isSubmittingSubject ? 'not-allowed' : 'pointer', opacity: isSubmittingSubject ? 0.75 : 1 }}>
-                  {isSubmittingSubject ? '⏳ Registering Subject...' : 'Register Subject'}
-                </button>
-              </form>
-            </div>
+
 
             {/* Create Schedule Card */}
             <div className="glass-panel" style={{ padding: '24px' }}>

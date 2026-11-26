@@ -514,11 +514,16 @@ def get_subjects(db: Session, department: str = None, teacher_id: int = None, in
     query = db.query(models.Subject)
     if institution_id is not None:
         query = query.filter(models.Subject.institution_id == institution_id)
+        branches = db.query(models.Department.name, models.Department.code).filter_by(institution_id=institution_id).all()
+        aliases = {alias.strip().casefold() for branch in branches for alias in branch if alias}
     if department:
         query = query.filter(models.Subject.department == department)
     if teacher_id:
         query = query.filter(models.Subject.teacher_id == teacher_id)
-    return query.all()
+    subjects = query.all()
+    if institution_id is not None and aliases:
+        return [subject for subject in subjects if (subject.department or "").strip().casefold() in aliases]
+    return subjects
 
 def create_schedule(db: Session, schedule: schemas.ScheduleCreate, institution_id: Optional[int] = None) -> models.Schedule:
     db_schedule = models.Schedule(
