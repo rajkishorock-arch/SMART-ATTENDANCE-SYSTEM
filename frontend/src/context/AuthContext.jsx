@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/authApi.js';
-import { getActiveTenantSlug, getSubdomainTenantSlug } from '../utils/tenantConfig';
+import { getSubdomainTenantSlug } from '../utils/tenantConfig';
 import { getApiBaseUrl } from '../utils/platform';
 import { wakeBackend } from '../utils/cameraScanner';
 import { clearApiClientCache } from '../utils/apiClient';
@@ -11,6 +11,27 @@ export const getRoleMismatchMessage = (expectedRole, actualRole) => {
   const portalNames = { student: 'Student', teacher: 'Teacher', hod: 'HOD', admin: 'Admin', parent: 'Parent' };
   const actual = portalNames[actualRole] || actualRole;
   return `This is a ${actual} account. Please select the "${actual}" tab to log in.`;
+};
+
+const resolveLoginTenantSlug = (workspaceSlug) => {
+  const rawEnteredSlug = (workspaceSlug || '').trim().toLowerCase();
+  const subdomainSlug = getSubdomainTenantSlug();
+  return {
+    targetSlug: rawEnteredSlug || subdomainSlug || 'default',
+    isImplicitDefault: !rawEnteredSlug && !subdomainSlug,
+  };
+};
+
+const syncStoredTenantSlug = (slug) => {
+  const normalized = (slug || '').trim().toLowerCase();
+  if (!normalized || normalized === 'default') {
+    localStorage.removeItem('override_tenant');
+    localStorage.removeItem('active_tenant_slug');
+    localStorage.removeItem('cached_tenant_branding');
+    return;
+  }
+  localStorage.setItem('override_tenant', normalized);
+  localStorage.setItem('active_tenant_slug', normalized);
 };
 
 export function AuthProvider({ children }) {
@@ -97,6 +118,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('cached_schedules');
     localStorage.removeItem('override_tenant');
     localStorage.removeItem('active_tenant_slug');
+    localStorage.removeItem('cached_tenant_branding');
     localStorage.removeItem('cached_students_inst_id');
     localStorage.removeItem('cached_student_logs');
     localStorage.removeItem('cached_campus_broadcasts');
@@ -137,8 +159,7 @@ export function AuthProvider({ children }) {
         localStorage.setItem('userRole', data.role);
         localStorage.setItem('cached_user', JSON.stringify(data));
         if (data.institution_slug) {
-          localStorage.setItem('override_tenant', data.institution_slug);
-          localStorage.setItem('active_tenant_slug', data.institution_slug);
+          syncStoredTenantSlug(data.institution_slug);
         }
         if (typeof onSuccess === 'function') {
           onSuccess(data, authToken);
@@ -178,8 +199,10 @@ export function AuthProvider({ children }) {
 
     const isParentLogin = loginRole === 'parent';
     const loginEndpoint = isParentLogin ? `${API_BASE_URL}/parents/login` : `${API_BASE_URL}/auth/token`;
-    const rawEnteredSlug = (loginWorkspaceSlug || '').trim().toLowerCase();
-    const targetSlug = rawEnteredSlug || getSubdomainTenantSlug() || 'default';
+    const { targetSlug, isImplicitDefault } = resolveLoginTenantSlug(loginWorkspaceSlug);
+    if (isImplicitDefault) {
+      syncStoredTenantSlug('default');
+    }
     const loginHeaders = isParentLogin
       ? { 'Content-Type': 'application/json', 'X-Tenant-Slug': targetSlug }
       : { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Tenant-Slug': targetSlug };
@@ -272,8 +295,7 @@ export function AuthProvider({ children }) {
         localStorage.setItem('userRole', meData.role);
         localStorage.setItem('cached_user', JSON.stringify(meData));
         if (meData.institution_slug) {
-          localStorage.setItem('override_tenant', meData.institution_slug);
-          localStorage.setItem('active_tenant_slug', meData.institution_slug);
+          syncStoredTenantSlug(meData.institution_slug);
         }
         sessionStorage.setItem('just_logged_in_tour', 'true');
         setToken(data.access_token);
@@ -321,13 +343,18 @@ export function AuthProvider({ children }) {
     setAuthError('');
     setIsLoading(true);
 
+    const { targetSlug, isImplicitDefault } = resolveLoginTenantSlug(loginWorkspaceSlug);
+    if (isImplicitDefault) {
+      syncStoredTenantSlug('default');
+    }
+
     const API_BASE_URL = getApiBaseUrl();
     try {
       const res = await fetch(`${API_BASE_URL}/sso/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant-Slug': getActiveTenantSlug(),
+          'X-Tenant-Slug': targetSlug,
         },
         body: JSON.stringify({ provider, email_hint: emailHint }),
       });
@@ -367,7 +394,7 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [loginWorkspaceSlug]);
 
   // Heartbeat ping interval
   useEffect(() => {

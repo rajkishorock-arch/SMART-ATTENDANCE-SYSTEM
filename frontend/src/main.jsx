@@ -13,10 +13,19 @@ window.fetch = async function (url, options = {}) {
   const urlStr = typeof url === 'string' ? url : (url instanceof URL ? url.href : '');
   
   if (urlStr.includes('/api/v1') || (apiBase && urlStr.startsWith(apiBase))) {
-    options.headers = {
-      ...options.headers,
-      'X-Tenant-Slug': getActiveTenantSlug()
-    };
+    const rawHeaders = options.headers;
+    if (typeof Headers !== 'undefined' && rawHeaders instanceof Headers) {
+      if (!rawHeaders.has('X-Tenant-Slug')) {
+        rawHeaders.set('X-Tenant-Slug', getActiveTenantSlug());
+      }
+    } else {
+      const headerMap = { ...(rawHeaders || {}) };
+      const hasTenantHeader = Object.keys(headerMap).some((k) => k.toLowerCase() === 'x-tenant-slug');
+      if (!hasTenantHeader) {
+        headerMap['X-Tenant-Slug'] = getActiveTenantSlug();
+      }
+      options.headers = headerMap;
+    }
   }
   const response = await originalFetch.call(this, url, options);
   if (response.ok && apiBase && urlStr.startsWith(apiBase + '/') &&

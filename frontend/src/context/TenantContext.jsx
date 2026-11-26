@@ -188,6 +188,14 @@ export function TenantProvider({ children }) {
   // Switch tenant helper
   const switchTenant = useCallback(async (newSlug) => {
     const slug = (newSlug || 'default').toLowerCase().trim();
+    if (!slug || slug === 'default') {
+      localStorage.removeItem('override_tenant');
+      localStorage.removeItem('active_tenant_slug');
+      localStorage.removeItem('cached_tenant_branding');
+      setTenantSlug('default');
+      await loadTenantBranding('default');
+      return;
+    }
     localStorage.setItem('override_tenant', slug);
     localStorage.setItem('active_tenant_slug', slug);
     setTenantSlug(slug);

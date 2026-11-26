@@ -622,7 +622,11 @@ export default function LoginPortal({
                       placeholder="e.g. rit"
                       value={loginWorkspaceSlug || ''}
                       onChange={(e) => {
-                        setLoginWorkspaceSlug?.(e.target.value);
+                        const nextVal = e.target.value;
+                        setLoginWorkspaceSlug?.(nextVal);
+                        if (!nextVal.trim()) {
+                          onTenantSwitch?.('default');
+                        }
                         onClearAuthError?.();
                       }}
                       style={{
