@@ -60,7 +60,7 @@ import {
   ChevronRight,
   X,
 } from 'lucide-react';
-import { openCameraStream, captureFrameBlob, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
+import { openCameraStream, captureFrameBlob, getCaptureDimensions, loadCameraSettings, getCameraPreset, wakeBackend } from './utils/cameraScanner';
 import { createFaceDetector, extractFaceBox, drawFaceBox } from './utils/faceDetectionEngine';
 import { APP_VERSION } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
@@ -1812,7 +1812,9 @@ export default function App() {
   // Extreme Control & Security States
   const [biometricMatchThreshold, setBiometricMatchThreshold] = useState(parseFloat(localStorage.getItem('biometricMatchThreshold') || '0.92'));
   const [biometricConfidenceFilterEnabled, setBiometricConfidenceFilterEnabled] = useState(localStorage.getItem('biometricConfidenceFilterEnabled') === 'true');
-  const [antiSpoofingThreshold, setAntiSpoofingThreshold] = useState(parseFloat(localStorage.getItem('antiSpoofingThreshold') || '0.15'));
+  const [antiSpoofingThreshold, setAntiSpoofingThreshold] = useState(parseFloat(localStorage.getItem('antiSpoofingThreshold') || '0.20'));
+  const antiSpoofingThresholdRef = React.useRef(antiSpoofingThreshold);
+  const lastBiometricPolicyRef = React.useRef('');
   const [livenessBypass, setLivenessBypass] = useState(false);
   const livenessBypassRef = React.useRef(livenessBypass);
   const [aiCognitiveLevel, setAiCognitiveLevel] = useState(localStorage.getItem('aiCognitiveLevel') || 'standard');
@@ -1855,6 +1857,7 @@ export default function App() {
   }, [biometricConfidenceFilterEnabled]);
   useEffect(() => {
     localStorage.setItem('antiSpoofingThreshold', antiSpoofingThreshold);
+    antiSpoofingThresholdRef.current = antiSpoofingThreshold;
   }, [antiSpoofingThreshold]);
   useEffect(() => {
     localStorage.setItem('livenessBypass', livenessBypass);
@@ -1928,7 +1931,7 @@ export default function App() {
     if (isScanning) {
       return { type: 'recognizing', text: 'Verifying face...', icon: <RefreshCw size={14} className="spin-fast" /> };
     }
-    if (['No confirmed match', 'Verification unavailable'].includes(scanStatus)) return { type: 'failed', text: scanStatus, icon: <AlertCircle size={14} /> };
+    if (['No confirmed match', 'Verification unavailable', 'No enrolled faces', 'No clear face detected'].includes(scanStatus)) return { type: 'failed', text: scanStatus, icon: <AlertCircle size={14} /> };
     if (scanStatus && (scanStatus.toLowerCase().includes('failed') || scanStatus.toLowerCase().includes('low confidence') || scanStatus.toLowerCase().includes('unrecognized'))) {
       return { type: 'failed', text: 'Face Not Recognized', icon: <AlertCircle size={14} /> };
     }
@@ -2048,6 +2051,34 @@ export default function App() {
   });
   const [departments, setDepartments] = useState([]);
   const [departmentsList, setDepartmentsList] = useState([]);
+
+  const departmentsMatch = useCallback((deptA, deptB) => {
+    const a = (deptA || '').trim();
+    const b = (deptB || '').trim();
+    if (!a || !b) return false;
+    const norm = (val) => val.toLowerCase().replace(/[\s()_-]/g, '');
+    if (a.toLowerCase() === b.toLowerCase() || norm(a) === norm(b)) return true;
+    const collectAliases = (val) => {
+      const lower = val.toLowerCase();
+      const normalized = norm(val);
+      const aliases = new Set([lower, normalized]);
+      (departmentsList || []).forEach((d) => {
+        const name = (d?.name || '').trim();
+        const code = (d?.code || '').trim();
+        const variants = [name.toLowerCase(), code.toLowerCase(), norm(name), norm(code)].filter(Boolean);
+        if (variants.includes(lower) || variants.includes(normalized)) {
+          variants.forEach((v) => aliases.add(v));
+        }
+      });
+      return aliases;
+    };
+    const aliasesA = collectAliases(a);
+    const aliasesB = collectAliases(b);
+    for (const item of aliasesA) {
+      if (aliasesB.has(item)) return true;
+    }
+    return false;
+  }, [departmentsList]);
 
   // Search & Filter States
   const [studentSearch, setStudentSearch] = useState('');
@@ -2470,16 +2501,29 @@ export default function App() {
 
   // Handle Manual Attendance submission - uses new bulk POST endpoint
   const handleSubmitManualAttendance = async () => {
-    if (!manualSubjectId || Number.isNaN(parseInt(manualSubjectId, 10))) {
+    const targetSubjectId = manualSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '');
+    const parsedSubjectId = parseInt(targetSubjectId, 10);
+    if (!targetSubjectId || Number.isNaN(parsedSubjectId)) {
       alert('Please select a subject before submitting manual attendance.');
       return;
     }
+    if (!manualSubjectId) {
+      setManualSubjectId(targetSubjectId);
+    }
     setIsSubmittingManual(true);
+    setManualFeedback('');
     playCyberSound('click');
 
-    const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
+    const selectedSubject = subjects.find(sub => sub.id === parsedSubjectId);
     const subjectDept = selectedSubject ? selectedSubject.department : '';
-    const classStudents = students.filter(s => !subjectDept || s.dep === subjectDept);
+    const classStudents = students.filter(s => !subjectDept || departmentsMatch(s.dep || s.department, subjectDept));
+
+    if (classStudents.length === 0) {
+      setManualFeedback(subjectDept ? `No students enrolled in department: ${subjectDept}.` : 'No students found for this subject.');
+      playCyberSound('error');
+      setIsSubmittingManual(false);
+      return;
+    }
 
     try {
       // Build bulk records array
@@ -2488,7 +2532,7 @@ export default function App() {
         return {
           student_id: student.id,
           attendance_status: stateData.status,
-          subject_id: parseInt(manualSubjectId),
+          subject_id: parsedSubjectId,
           custom_date: manualDate,
           period: manualPeriod,
           remarks: stateData.remarks || null
@@ -2499,12 +2543,13 @@ export default function App() {
       const response = await attendanceApi.submitManualAttendance(token, { records, ...coordinates });
       const result = await response.json();
       if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'Register could not be saved.');
-      setManualFeedback(`Saved ${result.success_count} of ${records.length} attendance records for ${manualDate}, ${manualPeriod}.`);
+      const errorDetail = Array.isArray(result.errors) && result.errors.length > 0 ? ` (${result.errors[0]})` : '';
+      setManualFeedback(`Saved ${result.success_count} of ${records.length} attendance records for ${manualDate}, ${manualPeriod}.${errorDetail}`);
       playCyberSound(result.fail_count ? 'error' : 'success');
-      setSelectedHistorySubjectId(String(manualSubjectId));
+      setSelectedHistorySubjectId(String(parsedSubjectId));
       setHistoryFilterDate(manualDate);
       setHistoryFilterPeriod(manualPeriod);
-      fetchSessionHistory(manualSubjectId, manualDate, manualPeriod);
+      fetchSessionHistory(parsedSubjectId, manualDate, manualPeriod);
       fetchStats();
       fetchLogs();
     } catch (err) {
@@ -3326,13 +3371,32 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           if (data.results && data.results.length > 0) {
+            const minRawThreshold = biometricMatchThreshold >= 0.80
+              ? 0.36 + (biometricMatchThreshold - 0.80) * 0.80
+              : biometricMatchThreshold;
             const validMatches = data.results.filter((m) => {
               const confidenceVal = parseFloat(m.confidence);
-              return !m.staged_for_review && (m.newly_marked || m.already_marked) && (!biometricConfidenceFilterEnabled || confidenceVal / 100 >= biometricMatchThreshold);
+              const rawScore = m.raw_score !== undefined && m.raw_score !== null ? parseFloat(m.raw_score) : (confidenceVal / 100);
+              return !m.staged_for_review && !m.branch_mismatch && (m.newly_marked || m.already_marked) && (!biometricConfidenceFilterEnabled || rawScore >= minRawThreshold);
             });
 
             if (validMatches.length === 0) {
-              setScanStatus('Low confidence on all detected faces — adjust position/lighting');
+              const branchMismatch = data.results.find((m) => m.branch_mismatch);
+              const stagedMatch = data.results.find((m) => m.staged_for_review);
+              if (branchMismatch) {
+                const msg = branchMismatch.status || `${branchMismatch.name || 'Student'} belongs to a different department than the selected subject.`;
+                setScanStatus(msg);
+                setLivenessMessage(msg);
+                addDiagnosticLog(`BRANCH MISMATCH: ${msg}`);
+              } else if (stagedMatch) {
+                const msg = stagedMatch.status || 'Low-confidence face capture staged for admin review.';
+                setScanStatus(msg);
+                setLivenessMessage(msg);
+                addDiagnosticLog(`STAGED FOR REVIEW: ${msg}`);
+              } else {
+                setScanStatus('Low confidence on all detected faces — adjust position/lighting');
+                setLivenessMessage('Move slightly closer or improve lighting, then blink again.');
+              }
               playCyberSound('error');
               setIsScanning(false);
               return;
@@ -3406,11 +3470,12 @@ export default function App() {
               sync_status: 'SYNCED'
             });
             
+            const capDims = getCaptureDimensions(video, preset.captureWidth, preset.captureHeight);
             updateServerRecognizedFaces({
               faces: validMatches,
               timestamp: Date.now(),
-              captureWidth: preset.captureWidth,
-              captureHeight: preset.captureHeight,
+              captureWidth: capDims.width,
+              captureHeight: capDims.height,
             });
 
             if (data.metrics) {
@@ -3451,9 +3516,20 @@ export default function App() {
             }
           } else {
             playCyberSound('error');
-            setScanStatus('No confirmed match');
-            setLivenessMessage('No enrolled match confirmed. Check the enrollment photo or try better lighting.');
-            addDiagnosticLog('Match failed: Face signature unrecognized');
+            const reason = data.diagnostic_reason;
+            if (reason === 'no_enrolled_faces') {
+              setScanStatus('No enrolled faces');
+              setLivenessMessage('No student face photos enrolled in this institute yet.');
+              addDiagnosticLog('Match failed: 0 enrolled student face templates in institution.');
+            } else if (reason === 'no_face_in_frame') {
+              setScanStatus('No clear face detected');
+              setLivenessMessage('Hold your face steady inside the frame with clear lighting.');
+              addDiagnosticLog('Match failed: Detector could not isolate a clear face in frame.');
+            } else {
+              setScanStatus('No confirmed match');
+              setLivenessMessage('Face did not match any enrolled student — check enrollment photo or lighting.');
+              addDiagnosticLog('Match failed: Face signature unrecognized');
+            }
             handleSpeak("No enrolled match confirmed.");
           }
         } else if (res.status === 403) {
@@ -3465,9 +3541,14 @@ export default function App() {
           handleSpeak("Access denied.");
         } else {
           playCyberSound('error');
-          setScanStatus('Scanning failed. Server error.');
-          addDiagnosticLog('ERROR: Frame matching failed.');
-          handleSpeak("Scanning failed. Server error.");
+          const errData = await res.json().catch(() => ({}));
+          const detail = typeof errData?.detail === 'string' && errData.detail.trim()
+            ? errData.detail.trim()
+            : `Scanning failed (HTTP ${res.status}).`;
+          setScanStatus(detail);
+          setLivenessMessage(detail);
+          addDiagnosticLog(`ERROR: Frame matching failed (${res.status}): ${detail}`);
+          handleSpeak("Scanning failed.");
         }
       } catch (err) {
         console.error('Error matching face embedding:', err);
@@ -3477,8 +3558,8 @@ export default function App() {
         setIsScanning(false);
         recognitionBusyRef.current = false;
         
-        // Cooldown configuration (Snappy millisecond reset)
-        const cooldownTime = matchSuccess ? 900 : 1800;
+        // Cooldown configuration (give errors enough time to remain readable)
+        const cooldownTime = matchSuccess ? 900 : 2500;
         
         setTimeout(() => {
           // Note: Keep scannedStudent visible on screen until next scan or manual dismissal!
@@ -3974,7 +4055,6 @@ export default function App() {
     setLockdownActive(false);
     if (!token || isDemoMode) return;
     let active = true;
-    let lastBiometricPolicy = '';
     const refresh = async () => {
       if (policySaving.current) return;
       const version = ++policyVersion.current;
@@ -3985,12 +4065,12 @@ export default function App() {
         if (!active || version !== policyVersion.current) return;
         setLockdownActive(policy.locked);
         const biometricPolicy = JSON.stringify([policy.similarity, policy.blink_ear, policy.confidence_filter, policy.strict_liveness]);
-        if (policy.similarity != null && lastBiometricPolicy !== biometricPolicy) {
+        if (policy.similarity != null && lastBiometricPolicyRef.current !== biometricPolicy) {
           setAntiSpoofingThreshold(policy.blink_ear);
           setBiometricConfidenceFilterEnabled(policy.confidence_filter);
           setBiometricMatchThreshold(policy.similarity);
           setLivenessBypass(!policy.strict_liveness);
-          lastBiometricPolicy = biometricPolicy;
+          lastBiometricPolicyRef.current = biometricPolicy;
         }
       } catch { /* Server-side policy continues to apply. */ }
     };
@@ -4018,6 +4098,12 @@ export default function App() {
       if (typeof policy?.locked !== 'boolean' || ('locked' in changes && policy.locked !== changes.locked))
         throw new Error('The server did not confirm the requested campus policy.');
       setLockdownActive(policy.locked);
+      if (policy.similarity != null) {
+        lastBiometricPolicyRef.current = JSON.stringify([policy.similarity, policy.blink_ear, policy.confidence_filter, policy.strict_liveness]);
+        if ('strict_liveness' in changes) {
+          setLivenessBypass(!policy.strict_liveness);
+        }
+      }
       setPolicyMessage('Campus policy saved.');
     } catch (err) {
       setPolicyMessage(err.name === 'AbortError' ? 'Confirmation timed out. Check the current campus status before retrying.' : err.message);
@@ -4096,8 +4182,13 @@ export default function App() {
             })));
             if (livenessStatusRef.current === 'verifying') {
               if (livenessBypassRef.current) {
-                setLivenessMessage('Looking for face...');
-                setScanStatus('Looking for face...');
+                if (!recognitionBusyRef.current) {
+                  livenessStatusRef.current = 'verified';
+                  setLivenessStatus('verified');
+                  setLivenessMessage('Verifying face...');
+                  setScanStatus('Scanning...');
+                  triggerFaceRecognition();
+                }
               } else {
                 const isClosed = eyeStateRef.current === 'closed';
                 setLivenessMessage(isClosed ? 'Blink detected • Now open eyes' : 'Please blink your eyes to verify');
@@ -4210,14 +4301,24 @@ export default function App() {
       return;
     }
 
+    const hasFaceMesh = typeof window.FaceMesh === 'function';
     livenessStatusRef.current = 'verifying';
     setLivenessStatus('verifying');
-    setLivenessMessage('Please blink your eyes to verify.');
+    setLivenessMessage(
+      hasFaceMesh
+        ? 'Please blink your eyes to verify.'
+        : 'Blink detector unavailable. Check network/CDN or enable Liveness Bypass in settings.'
+    );
     eyeStateRef.current = 'open';
     addDiagnosticLog('Biometric acquisition initialized: Blink pattern required.');
 
-    if (voiceAnnounceLiveness) {
+    if (voiceAnnounceLiveness && hasFaceMesh) {
       handleSpeak("Please blink your eyes to verify.");
+    }
+
+    if (!hasFaceMesh) {
+      addDiagnosticLog('ERROR: window.FaceMesh script failed to load.');
+      return undefined;
     }
 
     const faceMesh = new window.FaceMesh({
@@ -4242,6 +4343,7 @@ export default function App() {
     let closedAt = null;
     let closedEar = null;
     let previousFrame = 0;
+    let faceLostAt = null;
     const resetGesture = () => {
       openFrames = 0;
       closedAt = null;
@@ -4278,13 +4380,17 @@ export default function App() {
           setLivenessMessage('Blink check could not finish. Hold steady to retry.');
         }
       } finally {
-        if (active && version === generation) requestPending = false;
+        if (active && version === generation) {
+          requestPending = false;
+          previousFrame = performance.now();
+        }
       }
     }
     faceMesh.onResults((results) => {
       if (!active) return;
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        faceLostAt = null;
         const landmarks = results.multiFaceLandmarks[0];
         lastLandmarksRef.current = landmarks;
 
@@ -4301,25 +4407,34 @@ export default function App() {
           const height = video.videoHeight || video.naturalHeight;
           const leftEAR = calculateEAR(landmarks, LEFT_EYE_INDICES, width, height);
           const rightEAR = calculateEAR(landmarks, RIGHT_EYE_INDICES, width, height);
-          if (livenessStatusRef.current !== 'verifying' || requestPending) return;
           const now = performance.now();
-          if (now < retryAt) return;
-          if (!Number.isFinite(leftEAR) || !Number.isFinite(rightEAR) || now - previousFrame > 450) resetGesture();
+          if (livenessStatusRef.current !== 'verifying' || requestPending) {
+            previousFrame = now;
+            return;
+          }
+          if (now < retryAt) {
+            previousFrame = now;
+            return;
+          }
+          if (!Number.isFinite(leftEAR) || !Number.isFinite(rightEAR) || (previousFrame > 0 && now - previousFrame > 900)) resetGesture();
           previousFrame = now;
           if (!challenge && !isDemoMode) {
             advance();
             return;
           }
           const step = challenge?.sequence_labels[stepIndex] || 'blink';
-          const open = Math.min(leftEAR, rightEAR) >= antiSpoofingThreshold + 0.03;
-          const closed = Math.max(leftEAR, rightEAR) <= Math.min(antiSpoofingThreshold, 0.22);
-          if (closedAt !== null && now - closedAt > 700) resetGesture();
+          const effectiveThreshold = Number.isFinite(antiSpoofingThresholdRef.current) ? antiSpoofingThresholdRef.current : 0.20;
+          const openThreshold = Math.max(effectiveThreshold + 0.03, 0.22);
+          const closeThreshold = Math.min(Math.max(effectiveThreshold, 0.19), 0.23);
+          const open = Math.min(leftEAR, rightEAR) >= openThreshold;
+          const closed = Math.max(leftEAR, rightEAR) <= closeThreshold;
+          if (closedAt !== null && now - closedAt > 900) resetGesture();
           if (open && closedAt !== null) {
             const elapsed = now - closedAt;
             const measurement = closedEar;
             resetGesture();
             setEyeState('open');
-            if (elapsed >= 45 && elapsed <= 700 && step === 'blink') {
+            if (elapsed >= 40 && elapsed <= 900 && step === 'blink') {
               if (!isDemoMode) advance('blink', measurement);
               else {
                 livenessStatusRef.current = 'verified';
@@ -4329,11 +4444,11 @@ export default function App() {
             }
           } else if (open) {
             openFrames++;
-            if (openFrames >= 3 && step === 'open') {
+            if (openFrames >= 2 && step === 'open') {
               resetGesture();
               advance('open', Math.min(leftEAR, rightEAR));
             }
-          } else if (closed && openFrames >= 3 && closedAt === null) {
+          } else if (closed && openFrames >= 2 && closedAt === null) {
             closedAt = now;
             closedEar = Math.max(leftEAR, rightEAR);
             eyeStateRef.current = 'closed';
@@ -4341,15 +4456,19 @@ export default function App() {
           }
           if (livenessStatusRef.current === 'verifying') setLivenessMessage(
             step === 'open' ? 'Look at the camera with both eyes open.' :
-            closedAt !== null ? 'Open your eyes.' : 'Blink once, then open your eyes.');
+            closedAt !== null ? 'Open your eyes to complete blink.' : 'Blink once naturally now.');
         }
       } else {
-        resetGesture();
-        generation++;
-        challenge = null;
-        requestPending = false;
+        const now = performance.now();
+        if (faceLostAt === null) faceLostAt = now;
         lastLandmarksRef.current = null;
         faceLockStartRef.current = null;
+        if (now - faceLostAt > 1500) {
+          resetGesture();
+          generation++;
+          challenge = null;
+          requestPending = false;
+        }
       }
 
     });
@@ -4392,7 +4511,7 @@ export default function App() {
         faceMeshRef.current = null;
       }
     };
-  }, [attendanceActive, attendanceFacingMode, cameraScanSettings.preset, livenessBypass, antiSpoofingThreshold, token]);
+  }, [attendanceActive, attendanceFacingMode, cameraScanSettings.preset, token]);
 
   // Turn off camera if user switches tabs
   useEffect(() => {
@@ -5501,6 +5620,10 @@ export default function App() {
         fetchSubjects();
         fetchStats();
         break;
+      case 'manual-register':
+        fetchSubjects();
+        fetchStudents();
+        break;
       case 'reports':
         // Reports are generated on-demand when user clicks "Generate Report"
         break;
@@ -5907,6 +6030,13 @@ export default function App() {
       setStudentLogs([]);
       setStudentSubjectStats({});
       setBlueprintData([]);
+      setSelectedSubjectId('');
+      setManualSubjectId('');
+      setSelectedTeacherSubjectId('');
+      setSelectedTeacherLogSubjectId('');
+      setSelectedHistorySubjectId('');
+      setSelectedReportSubjectId('');
+      setManualFeedback('');
       setActiveDashboardSubTab(null);
       setActiveSubSetting(null);
       tabHistoryRef.current = [];
@@ -6441,9 +6571,13 @@ export default function App() {
         department: newSubject.department,
         teacher_id: newSubject.teacher_id ? parseInt(newSubject.teacher_id) : null
       };
-      await systemApi.createSubject(token, payload);
+      const res = await systemApi.createSubject(token, payload);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(typeof errData?.detail === 'string' ? errData.detail : 'Failed to register subject.');
+      }
       setSubjectSuccess('Subject registered successfully!');
-      fetchSubjects();
+      await fetchSubjects();
       setNewSubject({ name: '', code: '', department: departments[0] || '', teacher_id: '' });
     } catch (err) {
       setSubjectError(err.message || 'Failed to register subject.');
@@ -6572,20 +6706,19 @@ export default function App() {
           matchesDept = true;
         } else if (selectedTeacherSubjectId) {
           const sub = subjects.find(s => s.id === parseInt(selectedTeacherSubjectId));
-          const subNorm = normalizeDeptStr(sub?.department);
-          // If subject found, match by dept; if not found, show all (fallback)
-          matchesDept = sub ? (normSDept === subNorm || normSDept.includes(subNorm) || subNorm.includes(normSDept)) : true;
+          matchesDept = sub ? (!sub.department || departmentsMatch(sDept, sub.department)) : true;
         } else {
           const teacherDepts = subjects
             .filter(s => s.teacher_id === currentUser?.details?.id)
-            .map(s => normalizeDeptStr(s.department));
+            .map(s => s.department)
+            .filter(Boolean);
           // If no dept found (subjects not assigned), show all
-          matchesDept = teacherDepts.length === 0 ? true : teacherDepts.some(td => td === normSDept || normSDept.includes(td) || td.includes(normSDept));
+          matchesDept = teacherDepts.length === 0 ? true : teacherDepts.some(td => departmentsMatch(sDept, td));
         }
       }
       return matchesSearch && matchesDept;
     });
-  }, [students, studentSearch, userRole, studentDeptFilter, subjects, selectedTeacherSubjectId, currentUser]);
+  }, [students, studentSearch, userRole, studentDeptFilter, subjects, selectedTeacherSubjectId, currentUser, departmentsMatch]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
@@ -7116,10 +7249,50 @@ export default function App() {
                 {/* Liveness / Eye Blink Security Control (Line across eye when OFF, illuminated green when ON) */}
                 <button
                   type="button"
-                  disabled
+                  onClick={() => {
+                    try { playCyberSound('click'); } catch (_) {}
+                    const nextBypass = !livenessBypass;
+                    setLivenessBypass(nextBypass);
+                    livenessBypassRef.current = nextBypass;
+                    livenessTokenRef.current = null;
+                    eyeStateRef.current = 'open';
+                    setEyeState('open');
+                    if (nextBypass) {
+                      livenessStatusRef.current = 'verified';
+                      setLivenessStatus('verified');
+                      setLivenessMessage('Instant face scan active (Liveness off)');
+                      setScanStatus('Scanning...');
+                      addDiagnosticLog('Liveness verification: BYPASSED (Instant scan active)');
+                      if (attendanceActive && !recognitionBusyRef.current && (lastLandmarksRef.current?.length || lastFaceDetectedRef.current)) {
+                        triggerFaceRecognition();
+                      }
+                    } else {
+                      livenessStatusRef.current = 'verifying';
+                      setLivenessStatus('verifying');
+                      setLivenessMessage('Please blink your eyes to verify.');
+                      setScanStatus('Blink to verify');
+                      addDiagnosticLog('Liveness verification: ACTIVE (Blink pattern required)');
+                    }
+                    if (userRole === 'admin' && !isDemoMode && token) {
+                      const reqVer = ++policyVersion.current;
+                      fetch(`${API_BASE_URL}/settings/campus-policy`, {
+                        method: 'PUT',
+                        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ strict_liveness: !nextBypass }),
+                      })
+                        .then((r) => (r.ok ? r.json() : null))
+                        .then((policy) => {
+                          if (policy && reqVer === policyVersion.current && policy.similarity != null) {
+                            lastBiometricPolicyRef.current = JSON.stringify([policy.similarity, policy.blink_ear, policy.confidence_filter, policy.strict_liveness]);
+                          }
+                        })
+                        .catch(() => {});
+                    }
+                  }}
                   className={`clean-camera-icon-btn ${!livenessBypass ? 'is-liveness-active' : 'is-liveness-off'}`}
-                  title={livenessBypass ? 'Campus blink check is off' : 'Campus blink check is on'}
-                  aria-label={livenessBypass ? "Eye Blink Check Inactive" : "Eye Blink Check Active"}
+                  title={livenessBypass ? 'Liveness blink check is OFF — click to activate' : 'Liveness blink check is ON — click to turn off'}
+                  aria-label={livenessBypass ? 'Activate Eye Blink Check' : 'Deactivate Eye Blink Check'}
+                  aria-pressed={!livenessBypass}
                 >
                   {livenessBypass ? (
                     <EyeOff size={18} color="rgba(255, 255, 255, 0.45)" />
@@ -10178,10 +10351,11 @@ export default function App() {
                   Subject / Class
                 </label>
                 <select
-                  value={manualSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '1')}
+                  value={manualSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '')}
                   onChange={e => {
                     setManualSubjectId(e.target.value);
                     setSelectedSubjectId(e.target.value);
+                    setManualFeedback('');
                   }}
                   className="form-input"
                   style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px' }}
@@ -10191,7 +10365,7 @@ export default function App() {
                       <option key={s.id} value={String(s.id)}>{s.name} ({s.code || s.id})</option>
                     ))
                   ) : (
-                    <option value="1">General Attendance</option>
+                    <option value="">No subjects configured</option>
                   )}
                 </select>
               </div>
@@ -10205,6 +10379,7 @@ export default function App() {
                   onChange={e => {
                     setManualPeriod(e.target.value);
                     setSessionPeriod(e.target.value);
+                    setManualFeedback('');
                   }}
                   className="form-input"
                   style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px' }}
@@ -10230,6 +10405,7 @@ export default function App() {
                   onChange={e => {
                     setManualDate(e.target.value);
                     setSessionDate(e.target.value);
+                    setManualFeedback('');
                   }}
                   className="form-input"
                   style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px', boxSizing: 'border-box' }}
@@ -10278,10 +10454,11 @@ export default function App() {
             {/* Students Register List */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 28px 16px', minHeight: 0, background: '#ffffff' }}>
               {(() => {
-                const selectedSubject = subjects.find(sub => sub.id === parseInt(manualSubjectId));
+                const activeManualSubId = manualSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '');
+                const selectedSubject = subjects.find(sub => sub.id === parseInt(activeManualSubId, 10));
                 const subjectDept = selectedSubject ? selectedSubject.department : '';
                 const classStudents = students.filter(s => {
-                  const matchesDept = !subjectDept || s.dep === subjectDept;
+                  const matchesDept = !subjectDept || departmentsMatch(s.dep || s.department, subjectDept);
                   const matchesSearch = !manualSearchQuery ||
                     s.name.toLowerCase().includes(manualSearchQuery.toLowerCase()) ||
                     s.roll.toLowerCase().includes(manualSearchQuery.toLowerCase());

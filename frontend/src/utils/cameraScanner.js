@@ -9,9 +9,9 @@ export const CAMERA_PRESETS = {
       frameRate: { ideal: 30, max: 60 },
       facingMode: 'user',
     },
-    captureWidth: 400,
-    captureHeight: 300,
-    jpegQuality: 0.68,
+    captureWidth: 640,
+    captureHeight: 480,
+    jpegQuality: 0.82,
     meshSkipFrames: 0,
     minDetectionConfidence: 0.38,
     faceDetectionConfidence: 0.40,
@@ -93,20 +93,33 @@ export async function openCameraStream(presetKey = 'turbo', facingMode = 'user')
 
 let _sharedCanvas = null;
 
-export function captureFrameBlob(video, width, height, quality = 0.7) {
+export function getCaptureDimensions(video, maxWidth = 640, maxHeight = 480) {
+  const isVideo = typeof HTMLVideoElement !== 'undefined' && video instanceof HTMLVideoElement;
+  const srcW = isVideo ? (video?.videoWidth || maxWidth) : (video?.naturalWidth || maxWidth);
+  const srcH = isVideo ? (video?.videoHeight || maxHeight) : (video?.naturalHeight || maxHeight);
+  const maxTarget = Math.max(maxWidth || 640, maxHeight || 480);
+  const scale = Math.min(1, maxTarget / Math.max(srcW, srcH));
+  return {
+    width: Math.max(1, Math.round(srcW * scale)),
+    height: Math.max(1, Math.round(srcH * scale)),
+  };
+}
+
+export function captureFrameBlob(video, width = 640, height = 480, quality = 0.8) {
   return new Promise((resolve) => {
     if (!_sharedCanvas) {
       _sharedCanvas = document.createElement('canvas');
     }
-    _sharedCanvas.width = width;
-    _sharedCanvas.height = height;
+    const { width: dstW, height: dstH } = getCaptureDimensions(video, width, height);
+    _sharedCanvas.width = dstW;
+    _sharedCanvas.height = dstH;
     const ctx = _sharedCanvas.getContext('2d', { alpha: false, desynchronized: true });
     if (!ctx) {
       resolve(null);
       return;
     }
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(video, 0, 0, width, height);
+    ctx.drawImage(video, 0, 0, dstW, dstH);
     _sharedCanvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
   });
 }

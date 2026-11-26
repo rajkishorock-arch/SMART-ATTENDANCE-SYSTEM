@@ -40,13 +40,14 @@ class Schedule(Base):
 
 class AttendanceModel(Base):
     __tablename__ = "attendence"
-    id = Column(String(50), primary_key=True)
+    record_id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(50), index=True, nullable=False)
     institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True, index=True)
     roll = Column(String(50))
     name = Column(String(100))
     department = Column(String(100))
-    time = Column(String(20), primary_key=True)
-    date = Column(String(20), primary_key=True)
+    time = Column(String(20), nullable=False)
+    date = Column(String(20), nullable=False)
     attendance = Column(String(20)) # 'Present', 'Absent', 'Late'
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
     verification_method = Column(String(50), default="FACE_SCAN")  # FACE_SCAN, DYNAMIC_QR, DYNAMIC_QR_UNVERIFIED_LOCATION, SESSION_PIN, MANUAL_STAFF
@@ -54,10 +55,7 @@ class AttendanceModel(Base):
     session_key = Column(String(255), unique=True, index=True, nullable=True)
 
     __table_args__ = (
-        UniqueConstraint(
-            'institution_id', 'id', 'date', 'time', 'subject_id',
-            name='_attendance_session_uc'
-        ),
+        Index('ix_attendence_inst_date_sub', 'institution_id', 'date', 'subject_id'),
     )
 
 

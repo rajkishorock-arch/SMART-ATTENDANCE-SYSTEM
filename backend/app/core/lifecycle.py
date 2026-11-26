@@ -332,6 +332,55 @@ def update_schema():
         # Create new tables for advanced features
         Base.metadata.create_all(bind=engine)
 
+        # Upgrade attendence primary key from legacy (id, time, date) to surrogate record_id
+        # so students can have attendance marked across multiple subjects in the same period.
+        try:
+            if db_dialect == 'postgresql':
+                safe_execute("ALTER TABLE attendence ADD COLUMN IF NOT EXISTS record_id SERIAL", "Added record_id column to attendence")
+                pk_cols = db.execute(text("""
+                    SELECT a.attname
+                    FROM pg_index i
+                    JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+                    WHERE i.indrelid = 'attendence'::regclass AND i.indisprimary
+                """)).fetchall()
+                pk_col_names = [row[0].lower() for row in pk_cols]
+                if pk_col_names and pk_col_names != ['record_id']:
+                    pk_row = db.execute(text("""
+                        SELECT conname FROM pg_constraint
+                        WHERE conrelid = 'attendence'::regclass AND contype = 'p'
+                    """)).fetchone()
+                    if pk_row:
+                        db.execute(text(f'ALTER TABLE attendence DROP CONSTRAINT IF EXISTS "{pk_row[0]}"'))
+                    db.execute(text("ALTER TABLE attendence ADD PRIMARY KEY (record_id)"))
+                    db.commit()
+                    print("Migrated attendence primary key to record_id (PostgreSQL)")
+                safe_execute("ALTER TABLE attendence DROP CONSTRAINT IF EXISTS _attendance_session_uc", "Dropped legacy _attendance_session_uc")
+                safe_execute("CREATE INDEX IF NOT EXISTS ix_attendence_id ON attendence (id)", "Created index ix_attendence_id")
+            elif db_dialect == 'mysql':
+                cols = [c['name'].lower() for c in inspect(engine).get_columns('attendence')]
+                if 'record_id' not in cols:
+                    safe_execute(
+                        "ALTER TABLE attendence DROP PRIMARY KEY, ADD COLUMN record_id INT AUTO_INCREMENT PRIMARY KEY FIRST",
+                        "Migrated attendence primary key to record_id (MySQL)"
+                    )
+                safe_execute("ALTER TABLE attendence DROP INDEX _attendance_session_uc", "Dropped legacy _attendance_session_uc")
+            elif db_dialect == 'sqlite':
+                cols_info = db.execute(text("PRAGMA table_info(attendence)")).fetchall()
+                existing_cols = [row[1] for row in cols_info]
+                if existing_cols and 'record_id' not in [c.lower() for c in existing_cols]:
+                    target_cols = [c.name for c in models.AttendanceModel.__table__.columns if c.name != 'record_id' and c.name in existing_cols]
+                    col_list = ", ".join(f'"{c}"' for c in target_cols)
+                    db.execute(text("ALTER TABLE attendence RENAME TO attendence_legacy_pk"))
+                    models.AttendanceModel.__table__.create(bind=engine)
+                    if target_cols:
+                        db.execute(text(f"INSERT INTO attendence ({col_list}) SELECT {col_list} FROM attendence_legacy_pk"))
+                    db.execute(text("DROP TABLE attendence_legacy_pk"))
+                    db.commit()
+                    print("Migrated attendence primary key to record_id (SQLite)")
+        except Exception as pk_mig_err:
+            db.rollback()
+            print(f"Notice during attendence PK migration: {pk_mig_err}")
+
         # Stage D & E: Unique Index idx_attendence_session_key Creation & Verification
         if db_dialect == 'mysql':
             try:

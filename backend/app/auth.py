@@ -101,6 +101,43 @@ def _verify_student_password(db: Session, student: models.StudentModel, raw_pass
     return bool(security.verify_password(raw_password, student.password_hash))
 
 
+def _build_user_session_payload(
+    db: Session,
+    user: models.User,
+    effective_inst_id: int,
+    inst_name: str,
+    inst_slug: str,
+) -> dict:
+    """Build canonical User session profile including details/assigned subject."""
+    subject = db.query(models.Subject).filter(models.Subject.teacher_id == user.id).first()
+    return {
+        "id": user.id,
+        "role": user.role,
+        "email": user.email,
+        "name": user.name,
+        "institution_id": effective_inst_id,
+        "institution_name": inst_name,
+        "institution_slug": inst_slug,
+        "profile_pic": getattr(user, "profile_pic", None),
+        "department": getattr(user, "department", None),
+        "phone": getattr(user, "phone", None),
+        "bio": getattr(user, "bio", None),
+        "details": {
+            "id": user.id,
+            "role": user.role,
+            "phone": getattr(user, "phone", None),
+            "bio": getattr(user, "bio", None),
+            "profile_pic": getattr(user, "profile_pic", None),
+            "department": getattr(user, "department", None),
+            "institution_name": inst_name,
+            "institution_slug": inst_slug,
+            "subject_name": subject.name if subject else None,
+            "subject_code": subject.code if subject else None,
+            "subject_department": subject.department if subject else None,
+        },
+    }
+
+
 def _issue_user_login_response(
     db: Session,
     user: models.User,
@@ -124,18 +161,7 @@ def _issue_user_login_response(
     inst = db.query(models.Institution).filter(models.Institution.id == user.institution_id).first()
     inst_name = inst.name if inst else "Smart Attendance System"
     inst_slug = inst.slug if inst else "default"
-    user_info = {
-        "role": user.role,
-        "email": user.email,
-        "name": user.name,
-        "institution_id": user.institution_id,
-        "institution_name": inst_name,
-        "institution_slug": inst_slug,
-        "profile_pic": getattr(user, "profile_pic", None),
-        "department": getattr(user, "department", None),
-        "phone": getattr(user, "phone", None),
-        "bio": getattr(user, "bio", None),
-    }
+    user_info = _build_user_session_payload(db, user, user.institution_id, inst_name, inst_slug)
     return {"access_token": access_token, "token_type": "bearer", "user": user_info}
 
 
@@ -538,32 +564,7 @@ def get_current_session_info(db: Session = Depends(get_db), token: str = Depends
     inst_name = inst.name if inst else "Smart Attendance System"
     inst_slug = inst.slug if inst else "default"
 
-    subject = db.query(models.Subject).filter(models.Subject.teacher_id == user.id).first()
-    return {
-        "role": user.role,
-        "email": user.email,
-        "name": user.name,
-        "institution_id": effective_inst_id,
-        "institution_name": inst_name,
-        "institution_slug": inst_slug,
-        "profile_pic": getattr(user, "profile_pic", None),
-        "department": getattr(user, "department", None),
-        "phone": getattr(user, "phone", None),
-        "bio": getattr(user, "bio", None),
-        "details": {
-            "id": user.id,
-            "role": user.role,
-            "phone": getattr(user, "phone", None),
-            "bio": getattr(user, "bio", None),
-            "profile_pic": getattr(user, "profile_pic", None),
-            "department": getattr(user, "department", None),
-            "institution_name": inst_name,
-            "institution_slug": inst_slug,
-            "subject_name": subject.name if subject else None,
-            "subject_code": subject.code if subject else None,
-            "subject_department": subject.department if subject else None
-        }
-    }
+    return _build_user_session_payload(db, user, effective_inst_id, inst_name, inst_slug)
 
 
 @router.post("/heartbeat", status_code=status.HTTP_200_OK)

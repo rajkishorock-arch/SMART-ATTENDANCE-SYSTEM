@@ -39,6 +39,20 @@ export default function LiveScannerSessionHubView({
   const { playCyberSound } = useUI();
   const [validationError, setValidationError] = useState('');
 
+  const teacherId = currentUser?.details?.id ?? currentUser?.id;
+  const teacherSubjects = (subjects || []).filter(
+    (s) => teacherId != null && Number(s.teacher_id) === Number(teacherId)
+  );
+  const selectableSubjects = userRole === 'admin'
+    ? (subjects || [])
+    : teacherSubjects;
+  const effectiveSelectedSubjectId = selectedSubjectId && selectableSubjects.some((s) => s.id.toString() === selectedSubjectId.toString())
+    ? selectedSubjectId.toString()
+    : (userRole === 'teacher' && selectableSubjects.length > 0 ? selectableSubjects[0].id.toString() : (userRole === 'admin' ? (selectedSubjectId || '') : ''));
+  const selectedSubjectObj = selectableSubjects.find(
+    (s) => s.id.toString() === effectiveSelectedSubjectId.toString()
+  ) || null;
+
   return (
     <>
       {!sessionActive ? (
@@ -65,60 +79,49 @@ export default function LiveScannerSessionHubView({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Subject Selection for Admin */}
-              {userRole === 'admin' && (
-                <div className="form-group" style={{ textAlign: 'left', marginBottom: 0 }}>
-                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <BookOpen size={14} style={{ color: 'var(--color-primary)' }} /> Select Active Subject
-                  </label>
-                  <select 
+              {/* Subject Selection (Admin & Teacher) */}
+              <div className="form-group" style={{ textAlign: 'left', marginBottom: 0 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <BookOpen size={14} style={{ color: 'var(--color-primary)' }} /> {userRole === 'admin' ? 'Select Active Subject' : 'Select Assigned Subject'}
+                </label>
+                {selectableSubjects.length > 0 ? (
+                  <select
                     className="form-input"
-                    value={selectedSubjectId}
+                    value={effectiveSelectedSubjectId}
                     onChange={e => { setSelectedSubjectId(e.target.value); setValidationError(''); }}
                     required
                     style={{ background: '#ffffff', border: '1px solid var(--border-subtle)' }}
                   >
-                    <option value="">-- Select Subject --</option>
-                    {subjects.map(s => (
+                    {userRole === 'admin' && <option value="">-- Select Subject --</option>}
+                    {selectableSubjects.map(s => (
                       <option key={s.id} value={s.id.toString()}>
                         {s.name} ({s.code}) - {s.department}
                       </option>
                     ))}
                   </select>
-                </div>
-              )}
+                ) : (
+                  <div style={{ fontSize: '0.86rem', color: 'var(--color-text-muted)', padding: '10px 12px', background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '10px' }}>
+                    {currentUser?.details?.subject_name ? `${currentUser.details.subject_name} (${currentUser.details.subject_code || 'N/A'})` : 'No subjects available yet. Add a subject first.'}
+                  </div>
+                )}
+              </div>
 
               {/* Subject Details */}
-              {userRole === 'admin' ? (
-                selectedSubjectId && (
-                  <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.9rem', textAlign: 'left', animation: 'fadeInUp 0.3s ease both' }}>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>Selected Subject</span>
-                      <strong style={{ color: 'var(--color-text-main)' }}>{subjects.find(s => s.id === parseInt(selectedSubjectId))?.name || 'None Selected'}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>Subject Code</span>
-                      <strong style={{ color: 'var(--color-text-main)' }}>{subjects.find(s => s.id === parseInt(selectedSubjectId))?.code || 'N/A'}</strong>
-                    </div>
-                    <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
-                      <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>Branch / Department</span>
-                      <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(selectedSubjectId))?.department || 'N/A'}</strong>
-                    </div>
-                  </div>
-                )
-              ) : (
-                <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.9rem', textAlign: 'left' }}>
+              {(selectedSubjectObj || (userRole !== 'admin' && currentUser?.details?.subject_name)) && (
+                <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.9rem', textAlign: 'left', animation: 'fadeInUp 0.3s ease both' }}>
                   <div>
-                    <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>Assigned Subject</span>
-                    <strong style={{ color: 'var(--color-text-main)' }}>{currentUser?.details?.subject_name || 'N/A'}</strong>
+                    <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>
+                      {userRole === 'admin' ? 'Selected Subject' : 'Assigned Subject'}
+                    </span>
+                    <strong style={{ color: 'var(--color-text-main)' }}>{selectedSubjectObj?.name || currentUser?.details?.subject_name || 'None Selected'}</strong>
                   </div>
                   <div>
                     <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>Subject Code</span>
-                    <strong style={{ color: 'var(--color-text-main)' }}>{currentUser?.details?.subject_code || 'N/A'}</strong>
+                    <strong style={{ color: 'var(--color-text-main)' }}>{selectedSubjectObj?.code || currentUser?.details?.subject_code || 'N/A'}</strong>
                   </div>
                   <div style={{ gridColumn: 'span 2', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
                     <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.8rem', marginBottom: '4px', fontWeight: 600 }}>Branch / Department</span>
-                    <strong style={{ color: 'var(--color-primary)' }}>{currentUser?.details?.subject_department || 'N/A'}</strong>
+                    <strong style={{ color: 'var(--color-primary)' }}>{selectedSubjectObj?.department || currentUser?.details?.subject_department || 'N/A'}</strong>
                   </div>
                 </div>
               )}
@@ -248,18 +251,15 @@ export default function LiveScannerSessionHubView({
               <button 
                 onClick={() => {
                   if (sessionDate && sessionPeriod) {
-                    if (userRole === 'admin' && !selectedSubjectId) {
+                    if (!effectiveSelectedSubjectId) {
                       setValidationError('Please select an active subject from the dropdown above before starting.');
                       if (playCyberSound) playCyberSound('error');
                       return;
                     }
-                    setSessionActive(true);
-                    if (userRole === 'teacher') {
-                      const teacherSub = subjects.find(s => s.teacher_id === currentUser?.details?.id);
-                      if (teacherSub) {
-                        setSelectedSubjectId(teacherSub.id.toString());
-                      }
+                    if (effectiveSelectedSubjectId !== selectedSubjectId) {
+                      setSelectedSubjectId(effectiveSelectedSubjectId);
                     }
+                    setSessionActive(true);
                     setShowScannerModal(true);
                   }
                 }}
@@ -282,15 +282,15 @@ export default function LiveScannerSessionHubView({
               {/* Manual Attendance Button */}
               <button
                 onClick={() => {
-                  if (userRole === 'admin' && !selectedSubjectId) {
+                  if (!effectiveSelectedSubjectId) {
                     setValidationError('Please select an active subject first to use Manual Register.');
                     if (playCyberSound) playCyberSound('error');
                     return;
                   }
-                  const subId = userRole === 'teacher'
-                    ? subjects.find(s => s.teacher_id === currentUser?.details?.id)?.id?.toString() || ''
-                    : selectedSubjectId;
-                  setManualSubjectId(subId);
+                  if (effectiveSelectedSubjectId !== selectedSubjectId) {
+                    setSelectedSubjectId(effectiveSelectedSubjectId);
+                  }
+                  setManualSubjectId(effectiveSelectedSubjectId);
                   setManualDate(sessionDate);
                   setManualPeriod(sessionPeriod);
                   setManualAttendanceData({});
@@ -320,10 +320,13 @@ export default function LiveScannerSessionHubView({
               {/* Scan Virtual ID Card Button (Phone & Laptop) */}
               <button
                 onClick={() => {
-                  if (userRole === 'admin' && !selectedSubjectId) {
+                  if (!effectiveSelectedSubjectId) {
                     setValidationError('Please select an active subject first to scan Virtual ID Card.');
                     if (playCyberSound) playCyberSound('error');
                     return;
+                  }
+                  if (effectiveSelectedSubjectId !== selectedSubjectId) {
+                    setSelectedSubjectId(effectiveSelectedSubjectId);
                   }
                   setShowQrScannerModal(true);
                   playCyberSound('click');
@@ -352,10 +355,13 @@ export default function LiveScannerSessionHubView({
               {/* Classroom Kiosk Mode Launcher */}
               <button
                 onClick={() => {
-                  if (userRole === 'admin' && !selectedSubjectId) {
+                  if (!effectiveSelectedSubjectId) {
                     setValidationError('Please select an active subject first to launch Classroom Kiosk Mode.');
                     if (playCyberSound) playCyberSound('error');
                     return;
+                  }
+                  if (effectiveSelectedSubjectId !== selectedSubjectId) {
+                    setSelectedSubjectId(effectiveSelectedSubjectId);
                   }
                   if (setShowKioskModal) {
                     setShowKioskModal(true);

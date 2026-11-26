@@ -51,7 +51,8 @@ export default function CameraAttractHud({
         style={{
           width: 'min(72vw, 260px)',
           height: 'min(78vw, 320px)',
-          maxHeight: 'min(58vh, 320px)',
+          maxWidth: '82%',
+          maxHeight: '82%',
           borderRadius: '32px',
           border: isAlreadyMarked ? '2.5px solid #f59e0b' : isVerified ? '2.5px solid #10b981' : isError ? '2px solid #ef4444' : `2px solid ${borderColor}`,
           boxShadow: `0 0 0 9999px rgba(0, 0, 0, 0.38), 0 0 20px ${glowColor}`,

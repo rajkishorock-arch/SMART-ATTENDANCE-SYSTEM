@@ -469,6 +469,39 @@ def create_subject(db: Session, subject: schemas.SubjectCreate, institution_id: 
     db.refresh(db_subject)
     return db_subject
 
+def get_department_aliases(db: Session, institution_id: Optional[int], value: Optional[str]) -> set:
+    """Return normalized casefolded aliases (name and code) for a branch/department value."""
+    norm = (value or "").strip().casefold()
+    if not norm:
+        return set()
+    aliases = {norm}
+    if institution_id is not None:
+        branches = db.query(models.Department.name, models.Department.code).filter_by(
+            institution_id=institution_id
+        ).all()
+        for b_name, b_code in branches:
+            pair = [a.strip().casefold() for a in (b_name, b_code) if a and a.strip()]
+            if norm in pair:
+                aliases.update(pair)
+    return aliases
+
+
+def departments_match(
+    db: Session,
+    institution_id: Optional[int],
+    dept_a: Optional[str],
+    dept_b: Optional[str],
+) -> bool:
+    """True when two branch/department strings match directly or via Department name/code alias."""
+    norm_a = (dept_a or "").strip().casefold()
+    norm_b = (dept_b or "").strip().casefold()
+    if not norm_a or not norm_b:
+        return False
+    if norm_a == norm_b:
+        return True
+    return bool(get_department_aliases(db, institution_id, norm_a) & get_department_aliases(db, institution_id, norm_b))
+
+
 def validate_department(db, institution_id, value):
     from fastapi import HTTPException
     branches = db.query(models.Department.name, models.Department.code).filter_by(institution_id=institution_id).all()

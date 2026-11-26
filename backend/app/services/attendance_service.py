@@ -59,6 +59,14 @@ class AttendanceService:
             )
             for cand in existing_candidates:
                 if (cand.session_key and cand.session_key == s_key) or cand.time == actual_clock_time or resolve_period_name(cand.time) == period_name:
+                    if (cand.attendance or "").strip().casefold() == "absent":
+                        cand.attendance = "Present"
+                        cand.verification_method = verification_method or "FACE_SCAN"
+                        cand.fallback_reason = fallback_reason or f"Scan at {actual_clock_time}"
+                        if commit:
+                            db.commit()
+                            db.refresh(cand)
+                        return cand, True
                     return cand, False
 
             # 2. Construct new attendance record

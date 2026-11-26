@@ -72,7 +72,7 @@ class AttendanceRepository:
     ) -> Optional[models.AttendanceModel]:
         """Finds attendance record matching student, date, period slot, subject, and institution."""
         return db.query(models.AttendanceModel).filter(
-            models.AttendanceModel.id == student_id,
+            models.AttendanceModel.id == str(student_id),
             models.AttendanceModel.date == date_str,
             models.AttendanceModel.time == period,
             models.AttendanceModel.subject_id == subject_id,

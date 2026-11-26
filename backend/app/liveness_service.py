@@ -11,9 +11,8 @@ CHALLENGE_TTL = 120
 def create_liveness_challenge(user_email: str) -> Dict:
     """Create a random blink challenge sequence for the client to perform."""
     sequence = secrets.choice([
-        ["blink", "open", "blink"],
-        ["open", "blink", "blink", "open"],
-        ["blink", "open", "open", "blink"],
+        ["open", "blink"],
+        ["blink", "open"],
     ])
     challenge_id = secrets.token_hex(16)
     cache_set(f"liveness:{challenge_id}", {
@@ -46,9 +45,9 @@ def report_liveness_step(challenge_id: str, step: str, ear_value: float) -> Dict
         cache_delete(f"liveness:{challenge_id}")
         return {"valid": False, "error": f"Wrong step. Expected {expected}, got {step}"}
 
-    if step == "blink" and ear_value > 0.22:
+    if step == "blink" and ear_value > 0.25:
         return {"valid": False, "error": "Eyes not closed enough for blink"}
-    if step == "open" and ear_value < 0.18:
+    if step == "open" and ear_value < 0.17:
         return {"valid": False, "error": "Eyes not open enough"}
 
     data["completed_steps"].append(step)

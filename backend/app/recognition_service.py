@@ -9,6 +9,7 @@ from .vector_index import vector_index_service
 class RecognitionService:
     def __init__(self):
         self.detector = None
+        self.low_light_detector = None
         self.recognizer = None
         self.student_records = {}
         self._institution_matrices = {}
@@ -35,10 +36,12 @@ class RecognitionService:
         try:
             from .face_utils import get_face_engines
             self.detector, self.recognizer = get_face_engines()
+            self.low_light_detector, _ = get_face_engines(score_threshold=0.25)
             print("SFace and YuNet models loaded successfully in RecognitionService.")
         except Exception as e:
             print(f"Error loading SFace/YuNet models: {e}")
             self.detector = None
+            self.low_light_detector = None
             self.recognizer = None
 
     def warmup(self):
@@ -61,13 +64,29 @@ class RecognitionService:
 
     def load_student_records(self, db: Session, institution_id: int = None):
         """Loads student embeddings, scoped by institution with version-based cache and pre-computed normalized matrices."""
+        from sqlalchemy import func
         from . import models
         from .cache_service import get_recognition_version
         
         if institution_id is not None:
             version = get_recognition_version(institution_id)
-            if self._cache_version.get(institution_id) == version and institution_id in self._institution_matrices:
-                return
+            cached = self._institution_matrices.get(institution_id)
+            if self._cache_version.get(institution_id) == version and cached is not None:
+                stats_row = (
+                    db.query(
+                        func.count(models.StudentModel.id),
+                        func.max(models.StudentModel.face_enrolled_at),
+                    )
+                    .filter(
+                        models.StudentModel.institution_id == institution_id,
+                        models.StudentModel.face_embedding != None,
+                    )
+                    .first()
+                )
+                db_count = int(stats_row[0] or 0) if stats_row else 0
+                db_max_at = stats_row[1] if stats_row else None
+                if db_count == len(cached["students"]) and db_max_at == cached.get("max_enrolled_at"):
+                    return
         
         try:
             query = db.query(models.StudentModel).filter(models.StudentModel.face_embedding != None)
@@ -75,6 +94,7 @@ class RecognitionService:
                 query = query.filter(models.StudentModel.institution_id == institution_id)
             students = query.all()
             records = {}
+            max_enrolled_by_inst = {}
             for s in students:
                 try:
                     from .encryption_service import decrypt_embedding
@@ -88,6 +108,11 @@ class RecognitionService:
                         "embedding": emb_np,
                         "institution_id": s.institution_id
                     }
+                    enrolled_at = getattr(s, "face_enrolled_at", None)
+                    if enrolled_at is not None:
+                        prev_max = max_enrolled_by_inst.get(s.institution_id)
+                        if prev_max is None or enrolled_at > prev_max:
+                            max_enrolled_by_inst[s.institution_id] = enrolled_at
                 except Exception as parse_err:
                     print(f"Failed to parse embedding for student ID {s.id}: {parse_err}")
             
@@ -112,11 +137,16 @@ class RecognitionService:
                     "institution_id": inst
                 })
 
+            if institution_id is not None and institution_id not in grouped:
+                self._institution_matrices.pop(institution_id, None)
+                vector_index_service.invalidate(institution_id)
+
             for inst, data in grouped.items():
                 if data["vectors"]:
                     self._institution_matrices[inst] = {
                         "matrix": np.vstack(data["vectors"]).astype(np.float32),
-                        "students": data["students"]
+                        "students": data["students"],
+                        "max_enrolled_at": max_enrolled_by_inst.get(inst),
                     }
                     vector_index_service.get_or_create(inst).build(data["vectors"], data["students"])
 
@@ -158,22 +188,37 @@ class RecognitionService:
             if self.detector is None or self.recognizer is None:
                 raise Exception("Models are not loaded. Cannot recognize faces.")
 
-        # --- Step 1: Pre-process frame for better detection ---
+        # --- Step 1: Pre-process frame & progressive detection for low light / glasses ---
         enhanced = self._enhance_image(image)
-
+        align_source = enhanced
         h, w = enhanced.shape[:2]
-        self.detector.setInputSize((w, h))
 
         t_detect_start = time.perf_counter()
-        retval, faces = self.detector.detect(enhanced)
-
-        # Two-pass: if enhanced image yields no face, retry with original
-        if not retval or faces is None or len(faces) == 0:
-            self.detector.setInputSize((image.shape[1], image.shape[0]))
-            retval, faces = self.detector.detect(image)
-            enhanced = image  # use original for alignment if fallback
+        retval, faces = False, None
+        detectors = [d for d in (self.detector, self.low_light_detector) if d is not None]
+        for det in detectors:
+            for candidate_img in (enhanced, image):
+                ch, cw = candidate_img.shape[:2]
+                det.setInputSize((cw, ch))
+                retval, faces = det.detect(candidate_img)
+                if retval and faces is not None and len(faces) > 0:
+                    align_source = candidate_img
+                    break
+            if retval and faces is not None and len(faces) > 0:
+                break
 
         metrics["detect_ms"] = round((time.perf_counter() - t_detect_start) * 1000, 2)
+        idx_service = vector_index_service.get_or_create(institution_id) if institution_id is not None else None
+        if institution_id is not None:
+            enrolled_count = (
+                len(idx_service.students)
+                if idx_service and idx_service.is_built
+                else len(self._institution_matrices.get(institution_id, {}).get("students", []))
+            )
+        else:
+            enrolled_count = len(self.student_records)
+        metrics["enrolled_count"] = enrolled_count
+        metrics["faces_detected"] = int(len(faces)) if retval and faces is not None else 0
 
         if not retval or faces is None or len(faces) == 0:
             metrics["total_ms"] = round((time.perf_counter() - t_start) * 1000, 2)
@@ -187,13 +232,13 @@ class RecognitionService:
             x, y, box_w, box_h = face[0:4]
 
             # Skip tiny / distant faces (too blurry to match reliably)
-            if box_w < 40 or box_h < 40:
+            if box_w < 30 or box_h < 30:
                 continue
 
             t_embed_start = time.perf_counter()
             try:
                 # Align and crop the face using YuNet landmarks
-                aligned = self.recognizer.alignCrop(enhanced, face)
+                aligned = self.recognizer.alignCrop(align_source, face)
                 # Extract the 128-D SFace feature vector
                 feat = self.recognizer.feature(aligned)
             except Exception as extract_err:
@@ -207,7 +252,6 @@ class RecognitionService:
             best_score = -1.0
             best_student = None
 
-            idx_service = vector_index_service.get_or_create(institution_id) if institution_id is not None else None
             if idx_service and idx_service.is_built and len(idx_service.students) > 0:
                 matches = idx_service.query(feat, top_k=1)
                 if matches:
@@ -241,11 +285,11 @@ class RecognitionService:
 
             total_match_time += (time.perf_counter() - t_match_start)
 
-            # Two-tier confidence threshold (Phase 5):
-            # >= 0.50: High confidence auto-attendance
-            # 0.35 <= score < 0.50: Borderline staged for human review
-            if best_id is not None and best_score >= 0.35 and best_student is not None:
-                match_quality = "HIGH" if best_score >= 0.50 else "BORDERLINE"
+            # Two-tier confidence threshold aligned with OpenCV SFace FR_COSINE (>= 0.363):
+            # >= 0.42: High confidence auto-attendance
+            # 0.34 <= score < 0.42: Borderline staged for human review
+            if best_id is not None and best_score >= 0.34 and best_student is not None:
+                match_quality = "HIGH" if best_score >= 0.42 else "BORDERLINE"
                 recognized_faces.append({
                     "user_id": best_id,
                     "name": best_student["name"],

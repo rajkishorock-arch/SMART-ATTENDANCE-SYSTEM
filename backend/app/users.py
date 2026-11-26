@@ -938,13 +938,17 @@ def list_students(
         if not teacher_subjects:
             # No subject assigned to teacher yet - return all students as fallback
             return crud.get_students(db, skip=skip, limit=limit, institution_id=current_user.institution_id)
-        teacher_departments = [s.department for s in teacher_subjects]
-        
-        # Primary: filter by department name
-        students = db.query(models.StudentModel).filter(
-            models.StudentModel.dep.in_(teacher_departments),
-            models.StudentModel.institution_id == current_user.institution_id
-        ).offset(skip).limit(limit).all()
+        teacher_aliases = set()
+        for s in teacher_subjects:
+            if s.department:
+                teacher_aliases.update(crud.get_department_aliases(db, current_user.institution_id, s.department))
+
+        # Primary: filter by department name or code aliases
+        all_inst_students = crud.get_students(db, skip=0, limit=max(limit, 500), institution_id=current_user.institution_id)
+        students = [
+            st for st in all_inst_students
+            if not teacher_aliases or (st.dep or "").strip().casefold() in teacher_aliases
+        ][skip:skip + limit]
         
         # Fallback: if no students found by dept (mismatch), return students who attended teacher's sessions
         if not students:

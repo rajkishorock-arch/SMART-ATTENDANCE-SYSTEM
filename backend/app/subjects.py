@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from . import crud, schemas, models, security
 from .database import get_db
@@ -67,12 +67,7 @@ def read_subjects(
         ).first()
         if not student:
             raise HTTPException(status_code=404, detail="Student record not found.")
-        db_subjects = db.query(models.Subject).join(
-            models.User, models.Subject.teacher_id == models.User.id
-        ).filter(
-            models.Subject.institution_id == institution_id,
-            models.User.role == "teacher"
-        ).all()
+        db_subjects = crud.get_subjects(db, institution_id=institution_id)
     else:
         user = db.query(models.User).filter(
             models.User.email == email,
@@ -83,21 +78,11 @@ def read_subjects(
         if user.role == "teacher":
             db_subjects = crud.get_subjects(db, teacher_id=user.id, institution_id=institution_id)
         else:  # admin
-            db_subjects = db.query(models.Subject).join(
-                models.User, models.Subject.teacher_id == models.User.id
-            ).filter(
-                models.Subject.institution_id == institution_id,
-                models.User.role == "teacher"
-            ).all()
+            db_subjects = crud.get_subjects(db, institution_id=institution_id)
             
-    branches = db.query(models.Department.name, models.Department.code).filter_by(institution_id=institution_id).all()
-    registered = {value.strip().casefold() for branch in branches for value in branch if value}
     res = []
     for s in db_subjects:
-        branch = (s.department or "").strip().casefold()
-        if branches and branch and branch not in registered:
-            continue
-        if role == "student" and branch and branch != (student.dep or "").strip().casefold():
+        if role == "student" and s.department and not crud.departments_match(db, institution_id, s.department, student.dep):
             continue
         teacher_name = "Not Assigned"
         if s.teacher_id:
@@ -154,8 +139,6 @@ def read_schedules(
             detail="Student scheduling views not authorized here."
         )
     schedules = crud.get_schedules(db, institution_id=current_user.institution_id)
-    branches = db.query(models.Department.name, models.Department.code).filter_by(institution_id=institution_id).all()
-    registered = {value.strip().casefold() for branch in branches for value in branch if value}
     res = []
     for sc in schedules:
         sub = db.query(models.Subject).filter(

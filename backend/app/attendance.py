@@ -297,11 +297,27 @@ async def recognize_and_mark_attendance(
         name = face["name"]
         roll = face["roll"]
         dep = face["dep"]
-        if active_subject and active_subject.department and (dep or "").strip().casefold() != active_subject.department.strip().casefold():
+        if active_subject and active_subject.department and not crud.departments_match(
+            db, current_user.institution_id, dep, active_subject.department
+        ):
+            face_details = face.copy()
+            face_details["newly_marked"] = False
+            face_details["already_marked"] = False
+            face_details["branch_mismatch"] = True
+            face_details["expected_department"] = active_subject.department
+            face_details["status"] = f"Branch mismatch ({dep or 'Unassigned'} vs {active_subject.department})"
+            marked_students.append(face_details)
             continue
         
-        # Phase 5: Stage borderline / low-confidence face matches (0.35 <= score < 0.50) into review queue
-        if face.get("match_quality") == "BORDERLINE" or (policy and policy.confidence_filter and float(face.get("raw_score") or 0) < policy.similarity):
+        # Phase 5: Stage borderline / low-confidence face matches into review queue.
+        # Map 0.80..0.99 policy similarity slider cleanly onto SFace FR_COSINE scale (0.36..0.512).
+        raw_similarity = float(getattr(policy, "similarity", 0.42) or 0.42) if policy else 0.42
+        effective_similarity_floor = (
+            0.36 + (raw_similarity - 0.80) * 0.80
+            if raw_similarity >= 0.80
+            else raw_similarity
+        )
+        if face.get("match_quality") == "BORDERLINE" or (policy and policy.confidence_filter and float(face.get("raw_score") or 0) < effective_similarity_floor):
             today_str = custom_date or datetime.now().strftime("%d/%m/%Y")
             try:
                 existing_review = db.query(models.LowConfidenceReview).filter(
@@ -411,6 +427,8 @@ async def recognize_and_mark_attendance(
 
     if marked_students:
         for m in marked_students:
+            if not (m.get("newly_marked") or m.get("already_marked")):
+                continue
             event_data = {
                 "event": "attendance_marked",
                 "name": m["name"],
@@ -425,7 +443,22 @@ async def recognize_and_mark_attendance(
             background_tasks.add_task(broadcast_attendance_event, event_data)
     
     metrics["server_total_ms"] = round((time.perf_counter() - t_api_start) * 1000, 2)
-    return {"results": marked_students, "metrics": metrics}
+    enrolled_count = int(metrics.get("enrolled_count", 0) or 0)
+    faces_detected = int(metrics.get("faces_detected", 0) or 0)
+    diagnostic_reason = None
+    if not marked_students:
+        if enrolled_count == 0:
+            diagnostic_reason = "no_enrolled_faces"
+        elif faces_detected == 0:
+            diagnostic_reason = "no_face_in_frame"
+        else:
+            diagnostic_reason = "unrecognized_face"
+    return {
+        "results": marked_students,
+        "metrics": metrics,
+        "diagnostic_reason": diagnostic_reason,
+        "enrolled_count": enrolled_count,
+    }
 
 @router.get("/report")
 def get_attendance_report(
@@ -899,30 +932,35 @@ def mark_manual_attendance_bulk(
 
     success_count = 0
     fail_count = 0
+    errors = []
 
     for rec in records:
         try:
             raw_student_id = rec.get("student_id", "")
             if not raw_student_id and raw_student_id != 0:
                 fail_count += 1
+                errors.append("Missing student ID.")
                 continue
             student_id = str(raw_student_id)
             attendance_status = rec.get("attendance_status", "Present")
-            subject_id = rec.get("subject_id")
+            raw_subject_id = rec.get("subject_id")
+            try:
+                subject_id = int(raw_subject_id) if raw_subject_id not in (None, "") else None
+            except (ValueError, TypeError):
+                subject_id = None
             custom_date = rec.get("custom_date")  # YYYY-MM-DD
-            period = rec.get("period", "Period 1")
-            remarks = rec.get("remarks")
+            period = resolve_period_name(rec.get("period", "Period 1"))
 
             # Convert date to DD/MM/YYYY
             date_str = datetime.now(IST).strftime("%d/%m/%Y")
             if custom_date:
                 if "-" in str(custom_date):
                     try:
-                        date_str = datetime.strptime(custom_date, "%Y-%m-%d").strftime("%d/%m/%Y")
+                        date_str = datetime.strptime(str(custom_date), "%Y-%m-%d").strftime("%d/%m/%Y")
                     except ValueError:
-                        date_str = custom_date
+                        date_str = str(custom_date)
                 else:
-                    date_str = custom_date
+                    date_str = str(custom_date)
 
             # Get subject info
             subject = None
@@ -937,6 +975,7 @@ def mark_manual_attendance_bulk(
                 student_int_id = int(student_id)
             except (ValueError, TypeError):
                 fail_count += 1
+                errors.append(f"Invalid student ID '{student_id}'.")
                 continue
 
             student = db.query(models.StudentModel).filter(
@@ -944,40 +983,85 @@ def mark_manual_attendance_bulk(
                 models.StudentModel.institution_id == current_user.institution_id
             ).first()
 
-            if (not student or not subject or not subject.department or
-                subject.department.strip().casefold() != (student.dep or "").strip().casefold() or
-                (current_user.role == "teacher" and subject.teacher_id != current_user.id) or
-                attendance_status not in ("Present", "Absent", "Late")):
+            if not student:
                 fail_count += 1
+                errors.append(f"Student #{student_id} not found in this institution.")
+                continue
+            if not subject:
+                fail_count += 1
+                errors.append("Selected subject was not found in this institution.")
+                continue
+            if current_user.role == "teacher" and subject.teacher_id != current_user.id:
+                fail_count += 1
+                errors.append(f"Subject '{subject.name}' is not assigned to your account.")
+                continue
+            if attendance_status not in ("Present", "Absent", "Late"):
+                fail_count += 1
+                errors.append(f"Invalid status '{attendance_status}'.")
+                continue
+            if subject.department and not crud.departments_match(
+                db, current_user.institution_id, subject.department, student.dep
+            ):
+                fail_count += 1
+                errors.append(
+                    f"{student.name}: branch '{student.dep or 'Unassigned'}' does not match subject branch '{subject.department}'."
+                )
                 continue
 
-            existing = db.query(models.AttendanceModel).filter_by(
-                id=student_id, date=date_str, time=period, subject_id=subject_id,
-                institution_id=current_user.institution_id).first()
+            s_key = generate_session_key(current_user.institution_id, student_id, date_str, period, subject_id)
+            existing = db.query(models.AttendanceModel).filter(
+                or_(
+                    models.AttendanceModel.session_key == s_key,
+                    and_(
+                        models.AttendanceModel.id == student_id,
+                        models.AttendanceModel.date == date_str,
+                        models.AttendanceModel.time == period,
+                        models.AttendanceModel.subject_id == subject_id,
+                        models.AttendanceModel.institution_id == current_user.institution_id,
+                    ),
+                )
+            ).first()
             changed = existing is None or existing.attendance != attendance_status
             if not existing:
-                existing = models.AttendanceModel(id=student_id, name=student.name, roll=student.roll,
-                    department=student.dep, date=date_str, time=period, subject_id=subject_id,
+                existing = models.AttendanceModel(
+                    id=student_id,
+                    name=student.name,
+                    roll=student.roll,
+                    department=student.dep,
+                    date=date_str,
+                    time=period,
+                    subject_id=subject_id,
                     institution_id=current_user.institution_id,
-                    session_key=generate_session_key(current_user.institution_id, student_id, date_str, period, subject_id))
+                    session_key=s_key,
+                )
                 db.add(existing)
+            else:
+                if not existing.session_key:
+                    existing.session_key = s_key
             existing.attendance = attendance_status
             existing.verification_method = "MANUAL_STAFF"
+            notice = None
             if changed:
-                notice = models.NotificationModel(institution_id=current_user.institution_id,
-                    recipient_id=student.id, recipient_email=student.email, recipient_role="student",
-                    category="ATTENDANCE", title=f"Attendance marked {attendance_status.lower()}",
+                notice = models.NotificationModel(
+                    institution_id=current_user.institution_id,
+                    recipient_id=student.id,
+                    recipient_email=student.email,
+                    recipient_role="student",
+                    category="ATTENDANCE",
+                    title=f"Attendance marked {attendance_status.lower()}",
                     message=f"{subject.name} · {date_str} · {period} · {attendance_status}",
-                    action_url="/#/student-attendance")
+                    action_url="/#/student-attendance",
+                )
                 db.add(notice)
             db.commit()
-            if changed and background_tasks is not None:
+            if changed and notice is not None and background_tasks is not None:
                 background_tasks.add_task(push_saved_notification, notice.id)
             success_count += 1
 
         except Exception as e:
             db.rollback()
             fail_count += 1
+            errors.append(str(e))
             continue
 
     # Audit log
@@ -1001,6 +1085,7 @@ def mark_manual_attendance_bulk(
         "status": "success",
         "success_count": success_count,
         "fail_count": fail_count,
+        "errors": errors,
         "message": f"Manual attendance saved: {success_count} records."
     }
 
@@ -1105,10 +1190,14 @@ def get_attendance_sessions_history(
     # 2. PLUS any students who actually have attendance logs (regardless of department)
     dept_students = []
     if subject and subject.department:
-        dept_students = db.query(models.StudentModel).filter(
-            models.StudentModel.dep == subject.department,
+        inst_students = db.query(models.StudentModel).filter(
             models.StudentModel.institution_id == current_user.institution_id
         ).all()
+        dept_aliases = crud.get_department_aliases(db, current_user.institution_id, subject.department)
+        dept_students = [
+            s for s in inst_students
+            if (s.dep or "").strip().casefold() in dept_aliases
+        ]
     dept_student_ids = set(str(s.id) for s in dept_students)
     
     # Students in logs but not in dept list (department mismatch case)
@@ -1137,7 +1226,8 @@ def get_attendance_sessions_history(
         key = (log.date, p_name)
         if key not in sessions_map:
             sessions_map[key] = set()
-        sessions_map[key].add(log.id) # Set of present student IDs
+        if (log.attendance or "Present").strip().casefold() in ("present", "late"):
+            sessions_map[key].add(log.id) # Set of present student IDs
         
     # Compile the sessions history list
     history = []
@@ -1395,7 +1485,7 @@ def checkin_via_student_qr(
             
         branch = (student.dep or "").strip()
         required = (subject.department or "").strip()
-        if not branch or not required or branch.casefold() != required.casefold():
+        if required and not crud.departments_match(db, institution_id, branch, required):
             message = f"Attendance not marked for {subject.name}. Class branch: {required or 'unassigned'}. Student branch: {branch or 'unassigned'}."
             record_result("Branch mismatch", message)
             db.commit()
@@ -1404,8 +1494,8 @@ def checkin_via_student_qr(
         # 8. Transactionally coordinated attendance creation/update
         now = datetime.now(timezone(timedelta(hours=5, minutes=30))) # India standard time
         time_str = now.strftime("%I:%M:%S %p")
-        date_str = now.strftime("%Y-%m-%d")
-        legacy_id = f"{student.id}_{date_str}_{active_subject_id or 'none'}"
+        date_str = now.strftime("%d/%m/%Y")
+        legacy_id = f"{student.id}_{now.strftime('%Y-%m-%d')}_{active_subject_id or 'none'}"
         attendance_id = str(student.id)
         period = payload.get("period") or resolve_period_name(now.strftime("%H:%M:%S"))
         session_key = generate_session_key(institution_id, attendance_id, date_str, period, active_subject_id)

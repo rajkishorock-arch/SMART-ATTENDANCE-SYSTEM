@@ -1239,7 +1239,9 @@ body:not(.theme-matrix):not(.theme-cyberpunk):not(.theme-obsidian) .crt-vignette
 }
 
 /* Global Responsive Overrides for Media & Viewports */
-img, video, canvas {
+img:not(.clean-camera-viewport img),
+video:not(.clean-camera-viewport video),
+canvas:not(.clean-camera-viewport canvas) {
   max-width: 100% !important;
   height: auto !important;
 }
@@ -2473,9 +2475,10 @@ button:active,
     object-fit: cover !important;
   }
 
-  img:not(.scanner-container img),
-  video:not(.scanner-container video):not(.scanner-modal-camera video),
-  canvas:not(.scanner-container canvas) {
+  img:not(.scanner-container img):not(.clean-camera-viewport img),
+  video:not(.scanner-container video):not(.scanner-modal-camera video):not(.clean-camera-viewport video),
+  canvas:not(.scanner-container canvas):not(.clean-camera-viewport canvas) {
+
     max-width: 100% !important;
     height: auto !important;
   }
@@ -8082,5 +8085,58 @@ button:active:not(:disabled),
 #scanner-modal-overlay .is-liveness-active svg { color: #f5d390; }
 #scanner-modal-overlay .clean-camera-viewport > video,
 #scanner-modal-overlay .clean-camera-viewport > img {
-  position: absolute; inset: 0; max-width: none; max-height: none;
+  position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; object-fit: cover !important;
+}
+#scanner-modal-overlay .clean-camera-viewport > canvas {
+  position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; object-fit: cover !important;
+}
+#scanner-modal-overlay .clean-camera-icon-btn:hover {
+  transform: translateY(-1px) scale(1.05);
+}
+#scanner-modal-overlay button[aria-label="Switch Camera"]:hover {
+  transform: translateY(-1px) rotate(180deg);
+}
+@media (max-width: 768px) {
+  #scanner-modal-overlay .clean-camera-inner {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 0 max(12px, env(safe-area-inset-bottom, 12px));
+    gap: 8px;
+  }
+  #scanner-modal-overlay .clean-camera-header {
+    position: relative;
+    width: 100%;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+  #scanner-modal-overlay .clean-scanner-state-bar {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    margin: 2px auto 0;
+    flex-shrink: 0;
+  }
+  #scanner-modal-overlay .clean-camera-viewport {
+    position: relative !important;
+    inset: auto !important;
+    width: calc(100% - 20px) !important;
+    max-width: 440px !important;
+    height: min(62dvh, 480px) !important;
+    margin: auto !important;
+    border-radius: 26px !important;
+    border: 1.5px solid rgba(175, 145, 90, 0.45);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+    flex-shrink: 0;
+  }
+  #scanner-modal-overlay .scanner-instruction-pill {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    margin: 4px auto;
+    flex-shrink: 0;
+  }
 }
