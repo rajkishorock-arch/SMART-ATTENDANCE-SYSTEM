@@ -1,3 +1,4 @@
+import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Calendar, Clock, Plus, Trash2, AlertTriangle, UserCheck, 
@@ -285,62 +286,10 @@ export default function AcademicCalendarView({
       margin: '0 auto',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Modern, Clean Header */}
-      <div className="surface-card" style={{
-        padding: '20px 24px',
-        marginBottom: '24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '16px',
-        background: '#ffffff',
-        border: '1px solid var(--border-subtle)',
-        boxShadow: 'var(--shadow-card)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            background: '#faf5ea',
-            border: '1px solid #dfcfaf',
-            borderRadius: '12px',
-            padding: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-primary)'
-          }}>
-            <Calendar size={22} />
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-text-main)', letterSpacing: '-0.01em' }}>
-              Academic Calendar
-            </h2>
-            <p style={{ margin: '4px 0 0 0', color: 'var(--color-text-secondary)', fontSize: '0.88rem' }}>
-              Manage holidays, schedules, and class events across your institution.
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      <div className="campus-actions">
           <button
             onClick={() => { playCyberSound('click'); fetchEvents(); fetchMetrics(selectedSubjectIdForMetrics); }}
             disabled={isLoading}
-            style={{
-              background: '#ffffff',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--color-text-main)',
-              padding: '9px 16px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.86rem',
-              fontWeight: 600,
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = '#f4f1eb'}
-            onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
           >
             <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
             Refresh
@@ -350,21 +299,11 @@ export default function AcademicCalendarView({
             <button
               onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
               className="btn-primary"
-              style={{
-                padding: '9px 18px',
-                borderRadius: '10px',
-                fontSize: '0.86rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
             >
               <Plus size={16} strokeWidth={2.5} />
               Add Event
             </button>
           )}
-        </div>
       </div>
 
       {/* Notifications */}

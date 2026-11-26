@@ -1,3 +1,4 @@
+import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
 import { 
   CheckCircle2, XCircle, Clock, FileText,
@@ -150,47 +151,9 @@ export default function AttendanceDisputesQueue({
 
   return (
     <div className="surface-card" style={{ padding: '28px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
-              Attendance Correction Requests & Disputes
-            </h2>
-            {pendingCount > 0 && (
-              <span style={{
-                background: '#fffbeb',
-                color: '#d97706',
-                border: '1px solid #fde68a',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: 700
-              }}>
-                {pendingCount} Pending Review
-              </span>
-            )}
-          </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '4px 0 0 0' }}>
-            Official dispute queue — approve or correct student attendance with complete immutable audit logs
-          </p>
-        </div>
-
+      <div className="campus-actions">
         <button
           onClick={() => { playCyberSound('click'); fetchQueue(); }}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '8px',
-            background: '#ffffff',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--color-text-main)',
-            fontSize: '0.82rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'background 0.2s'
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = '#f4f1eb'}
-          onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
         >
           Refresh Queue
         </button>

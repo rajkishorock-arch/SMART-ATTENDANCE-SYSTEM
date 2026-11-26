@@ -1,3 +1,4 @@
+import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Globe, Database, UploadCloud, DownloadCloud, CheckCircle2, 
@@ -12,10 +13,10 @@ export default function LmsSyncIntegrationView({
   playCyberSound = () => {}
 }) {
   const [provider, setProvider] = useState('CANVAS');
-  const [apiEndpoint, setApiEndpoint] = useState('https://canvas.institution.edu/api/v1');
+  const [apiEndpoint, setApiEndpoint] = useState('');
   const [apiToken, setApiToken] = useState('');
   const [syncCron, setSyncCron] = useState('0 23 * * *');
-  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
 
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -113,7 +114,7 @@ export default function LmsSyncIntegrationView({
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Attendance sync job dispatch failed.');
+      if (!res.ok) throw new Error((await res.json()).detail || 'Attendance sync job dispatch failed.');
       const data = await res.json();
       playCyberSound('success');
       setSuccessMsg(data.message);
@@ -136,7 +137,7 @@ export default function LmsSyncIntegrationView({
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Roster sync job failed.');
+      if (!res.ok) throw new Error((await res.json()).detail || 'Roster sync job failed.');
       const data = await res.json();
       playCyberSound('success');
       setSuccessMsg(data.message);
@@ -161,56 +162,12 @@ export default function LmsSyncIntegrationView({
       gap: '14px',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* ── Header Card & Immediate Sync Triggers ── */}
-      <div className="surface-card" style={{
-        background: '#ffffff',
-        border: '1px solid #e4dfd5',
-        borderRadius: '16px',
-        padding: '16px 18px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '12px',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
-        <div style={{ minWidth: '220px', flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-            <div style={{
-              background: '#f5f3ff',
-              border: '1px solid #ddd6fe',
-              borderRadius: '10px',
-              width: '36px',
-              height: '36px',
-              color: '#7c3aed',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <Globe size={18} />
-            </div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#25231f' }}>
-              SIS & Enterprise LMS Sync Engine
-            </h2>
-          </div>
-        </div>
-
-        {/* Quick Horizontal Action Buttons */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+      <div className="campus-actions">
           <button
             type="button"
             onClick={() => { playCyberSound('click'); handleSyncRoster(); }}
             disabled={isSyncingRoster}
             className="btn-secondary active-haptic"
-            style={{
-              padding: '8px 14px',
-              borderRadius: '10px',
-              cursor: isSyncingRoster ? 'not-allowed' : 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              fontSize: '0.82rem', fontWeight: 700,
-              background: '#faf9f6', border: '1px solid #cfc8ba'
-            }}
           >
             <DownloadCloud size={15} className={isSyncingRoster ? 'animate-spin' : ''} />
             <span>{isSyncingRoster ? 'Importing...' : 'Sync Roster'}</span>
@@ -221,29 +178,17 @@ export default function LmsSyncIntegrationView({
             onClick={() => { playCyberSound('click'); handleSyncAttendance(); }}
             disabled={isSyncingAttendance}
             className="btn-primary active-haptic"
-            style={{
-              padding: '8px 16px',
-              borderRadius: '10px',
-              cursor: isSyncingAttendance ? 'not-allowed' : 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              fontSize: '0.82rem', fontWeight: 700,
-              background: '#785927', color: '#ffffff', border: 'none'
-            }}
           >
             <UploadCloud size={15} className={isSyncingAttendance ? 'animate-spin' : ''} />
             <span>{isSyncingAttendance ? 'Syncing...' : 'Push Attendance Now'}</span>
           </button>
-        </div>
+        <button type="button" aria-label="Refresh" title="Refresh" onClick={fetchData} disabled={isLoading}>
+          <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+        </button>
       </div>
 
       {/* ── 3-Metric Horizontal Summary Row ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-        gap: '8px',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
+      <div className="campus-metrics">
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
@@ -253,7 +198,7 @@ export default function LmsSyncIntegrationView({
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
         }}>
           <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Integration Provider
+            Provider
           </span>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#25231f', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
@@ -271,7 +216,7 @@ export default function LmsSyncIntegrationView({
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
         }}>
           <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Total Sync Logs
+            Sync logs
           </span>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
             {logs.length}
@@ -288,7 +233,7 @@ export default function LmsSyncIntegrationView({
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
         }}>
           <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Auto-Sync Schedule
+            Schedule
           </span>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#7c3aed', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {autoSyncEnabled ? syncCron : 'Disabled'}
@@ -383,14 +328,14 @@ export default function LmsSyncIntegrationView({
             {/* API Endpoint URL */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '0.82rem', color: '#46423b', marginBottom: '6px', fontWeight: 700 }}>
-                REST API Base URL *
+                Integration gateway URL *
               </label>
               <input
                 type="url"
                 required
                 value={apiEndpoint}
                 onChange={e => setApiEndpoint(e.target.value)}
-                placeholder="https://canvas.institution.edu/api/v1"
+                placeholder="https://gateway.example.edu/lms"
                 className="form-input"
                 style={{
                   width: '100%',
@@ -432,7 +377,7 @@ export default function LmsSyncIntegrationView({
             {/* Sync Cron */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.82rem', color: '#46423b', marginBottom: '6px', fontWeight: 700 }}>
-                Auto-Sync Schedule (Cron Expression)
+                Schedule (Cron Expression)
               </label>
               <input
                 type="text"
@@ -453,7 +398,7 @@ export default function LmsSyncIntegrationView({
                 }}
               />
               <span style={{ fontSize: '0.72rem', color: '#696358', marginTop: '3px', display: 'block' }}>
-                Default "0 23 * * *" triggers daily attendance push at 11:00 PM.
+                The gateway receives POST /attendance and serves GET /roster.
               </span>
             </div>
 
@@ -511,14 +456,7 @@ export default function LmsSyncIntegrationView({
               <Clock size={16} color="#785927" />
               <span>Sync Telemetry History</span>
             </h3>
-            <button
-              type="button"
-              onClick={() => { playCyberSound('click'); fetchData(); }}
-              style={{ background: 'transparent', border: 'none', color: '#785927', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
-              <span>Refresh</span>
-            </button>
+
           </div>
 
           {logs.length === 0 ? (

@@ -265,6 +265,23 @@ def monthly_attendance_job():
     finally:
         db.close()
 
+def sync_due_lms_gateways():
+    from .lms_sync import run_sync
+    import logging
+
+    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    with SessionLocal() as db:
+        configs = db.query(models.LmsIntegrationConfig).filter_by(auto_sync_enabled=True).all()
+        for cfg in configs:
+            try:
+                trigger = CronTrigger.from_crontab(cfg.sync_schedule_cron, timezone="UTC")
+                if trigger.get_next_fire_time(None, now) == now:
+                    run_sync(db, cfg.institution_id, True)
+            except Exception:
+                db.rollback()
+                logging.getLogger(__name__).exception("Scheduled LMS synchronization failed")
+
+
 def start():
     """
     Initializes cron triggers and starts the scheduler background thread.
@@ -294,6 +311,7 @@ def start():
             replace_existing=True
         )
         
+        scheduler.add_job(sync_due_lms_gateways, "cron", minute="*", id="lms_sync", replace_existing=True)
         scheduler.start()
         print("Scheduler: Background task scheduler started. 5:01 PM Daily digest scheduled successfully.")
 

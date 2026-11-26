@@ -1,5 +1,5 @@
 """schemas/lms_staff.py — Lms_staff domain schemas"""
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from app.schemas.common import _OrmBase
@@ -60,9 +60,9 @@ class StaffAttendanceResponse(_OrmBase):
 
 
 class StaffPayrollCalculatePayload(BaseModel):
-    month_year: str  # MM/YYYY
-    working_days: Optional[int] = 26
-    default_base_salary: Optional[float] = 50000.0
+    month_year: str = Field(pattern=r"^(0[1-9]|1[0-2])/[0-9]{4}$")
+    working_days: int = Field(default=26, ge=1, le=31)
+    default_base_salary: float = Field(default=50000.0, ge=0, allow_inf_nan=False)
 
 
 class StaffPayrollResponse(_OrmBase):

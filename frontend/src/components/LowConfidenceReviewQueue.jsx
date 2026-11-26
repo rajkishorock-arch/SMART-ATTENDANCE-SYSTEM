@@ -1,3 +1,4 @@
+import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
 import { 
   ScanFace, UserCheck, UserX, AlertTriangle, CheckCircle2, 
@@ -142,58 +143,14 @@ export default function LowConfidenceReviewQueue({
       boxSizing: 'border-box',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Header Banner - Clean and uncluttered */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e4dfd5',
-        borderRadius: '14px',
-        padding: '16px 18px',
-        marginBottom: '16px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-        position: 'relative'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                background: '#fef3c7',
-                border: '1px solid #fde68a',
-                borderRadius: '8px',
-                padding: '6px',
-                color: '#d97706',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <ScanFace size={18} />
-              </div>
-              <h2 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#25231f' }}>
-                Low-Confidence Face Match Review Queue
-              </h2>
-            </div>
-          </div>
-
+      <div className="campus-actions">
           <button
             onClick={() => { playCyberSound('click'); fetchQueue(); }}
             disabled={isLoading}
-            style={{
-              background: '#faf9f6',
-              border: '1px solid #cfc8ba',
-              color: '#46423b',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.88rem',
-              fontWeight: 600
-            }}
           >
             <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
             Refresh Queue
           </button>
-        </div>
       </div>
 
       {/* Toast Messages */}

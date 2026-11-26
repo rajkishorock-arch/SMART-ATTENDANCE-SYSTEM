@@ -90,7 +90,21 @@ def test_configure_lms_provider(client):
     assert get_res.json()["provider"] == "CANVAS"
 
 
-def test_outbound_attendance_sync(client, test_db):
+@pytest.fixture
+def gateway(client, monkeypatch):
+    from unittest.mock import Mock
+    from app import lms_sync
+    endpoint = "https://gateway.example.edu"
+    monkeypatch.setenv("LMS_GATEWAY_URL_1", endpoint)
+    token = security.create_access_token(data={"sub": "admin@gpi.edu", "role": "admin", "institution_id": 1})
+    headers = {"Authorization": f"Bearer {token}"}
+    assert client.post("/api/v1/lms/config", headers=headers, json={"api_endpoint": endpoint}).status_code == 200
+    monkeypatch.setattr(lms_sync.requests, "post", Mock(return_value=Mock(status_code=200, json=lambda: {"records_processed": 2})))
+    monkeypatch.setattr(lms_sync.requests, "get", Mock(return_value=Mock(status_code=200, json=lambda: {"students": [
+        {"roll": "GPI2601", "name": "Anita D."}, {"roll": "NEW1", "name": "New Student"}]})))
+
+
+def test_outbound_attendance_sync(client, test_db, gateway):
     token = security.create_access_token(
         data={"sub": "admin@gpi.edu", "role": "admin", "institution_id": 1}
     )
@@ -112,7 +126,7 @@ def test_outbound_attendance_sync(client, test_db):
     assert logs[0]["records_processed"] == 2
 
 
-def test_inbound_roster_sync(client):
+def test_inbound_roster_sync(client, test_db, gateway):
     token = security.create_access_token(
         data={"sub": "admin@gpi.edu", "role": "admin", "institution_id": 1}
     )
@@ -124,3 +138,5 @@ def test_inbound_roster_sync(client):
     assert roster_data["status"] == "SUCCESS"
     assert roster_data["job_type"] == "INBOUND_ROSTER"
     assert roster_data["records_processed"] == 2
+
+    assert test_db.query(models.StudentModel).filter_by(roll="NEW1").one().name == "New Student"

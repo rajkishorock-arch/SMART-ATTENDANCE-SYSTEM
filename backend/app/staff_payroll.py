@@ -62,6 +62,9 @@ def staff_check_in(
 ):
     """Staff checks in for the day."""
     target_id = user_id if (user_id and current_user.role == "admin") else current_user.id
+    target = db.query(models.User).filter_by(id=target_id, institution_id=current_user.institution_id, is_active=True).first()
+    if not target or target.role not in ("admin", "teacher", "hod"):
+        raise HTTPException(status_code=403, detail="Active staff account required.")
     now_utc = datetime.now(timezone.utc)
     today_str = now_utc.strftime("%d/%m/%Y")
     time_str = now_utc.strftime("%H:%M")
@@ -95,6 +98,9 @@ def staff_check_out(
 ):
     """Staff checks out for the day; computes total hours and overtime."""
     target_id = user_id if (user_id and current_user.role == "admin") else current_user.id
+    target = db.query(models.User).filter_by(id=target_id, institution_id=current_user.institution_id, is_active=True).first()
+    if not target or target.role not in ("admin", "teacher", "hod"):
+        raise HTTPException(status_code=403, detail="Active staff account required.")
     now_utc = datetime.now(timezone.utc)
     today_str = now_utc.strftime("%d/%m/%Y")
     time_str = now_utc.strftime("%H:%M")
@@ -105,16 +111,10 @@ def staff_check_out(
         models.StaffAttendance.date == today_str
     ).first()
 
-    if not record:
-        record = models.StaffAttendance(
-            institution_id=current_user.institution_id,
-            user_id=target_id,
-            date=today_str,
-            check_in="09:00",
-            check_out=time_str,
-            status="PRESENT"
-        )
-        db.add(record)
+    if not record or not record.check_in:
+        raise HTTPException(status_code=409, detail="Punch in before punching out.")
+    if record.check_out:
+        return _format_staff_attendance(record, db)
 
     record.check_out = time_str
 
@@ -137,9 +137,8 @@ def staff_check_out(
         else:
             record.status = "HALF_DAY"
             record.overtime_hours = 0.0
-    except Exception:
-        record.hours_worked = 8.0
-        record.status = "PRESENT"
+    except (ValueError, IndexError):
+        raise HTTPException(status_code=409, detail="Invalid saved punch time.")
 
     db.commit()
     db.refresh(record)
@@ -150,12 +149,14 @@ def staff_check_out(
 def get_staff_attendance_logs(
     date: Optional[str] = None,
     db: Session = Depends(get_db),
-    identity: security.AuthIdentity = Depends(security.get_current_identity)
+    identity: models.User = Depends(security.get_current_user)
 ):
     """Retrieve daily staff check-in/out records."""
     query = db.query(models.StaffAttendance).filter(
         models.StaffAttendance.institution_id == identity.institution_id
     )
+    if identity.role != "admin":
+        query = query.filter(models.StaffAttendance.user_id == identity.id)
     if date:
         query = query.filter(models.StaffAttendance.date == date)
 
@@ -184,7 +185,7 @@ def calculate_monthly_payroll(
 
     results = []
     working_days = payload.working_days or 26
-    base_salary = payload.default_base_salary or 50000.0
+    base_salary = payload.default_base_salary
     daily_rate = base_salary / float(working_days)
 
     for staff in staff_users:
@@ -228,7 +229,8 @@ def calculate_monthly_payroll(
                 status="DRAFT"
             )
             db.add(rec)
-        else:
+        elif rec.status != "APPROVED":
+            rec.base_salary = base_salary
             rec.working_days = working_days
             rec.days_present = present_count
             rec.days_half = half_count
@@ -237,8 +239,7 @@ def calculate_monthly_payroll(
             rec.deductions = deductions
             rec.net_salary = net
 
-        db.commit()
-        db.refresh(rec)
+        db.flush()
         results.append(_format_payroll(rec, db))
 
     crud.create_audit_log(
@@ -261,12 +262,14 @@ def calculate_monthly_payroll(
 def list_payroll_records(
     month_year: Optional[str] = None,
     db: Session = Depends(get_db),
-    identity: security.AuthIdentity = Depends(security.get_current_identity)
+    identity: models.User = Depends(security.get_current_user)
 ):
     """List calculated payroll registers."""
     query = db.query(models.StaffPayrollRecord).filter(
         models.StaffPayrollRecord.institution_id == identity.institution_id
     )
+    if identity.role != "admin":
+        query = query.filter(models.StaffPayrollRecord.user_id == identity.id)
     if month_year:
         query = query.filter(models.StaffPayrollRecord.month_year == month_year)
 

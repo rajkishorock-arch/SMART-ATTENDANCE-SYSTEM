@@ -1,0 +1,44 @@
+.campus-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .4rem;
+  margin: 0 0 .5rem;
+}
+.campus-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 40px;
+  padding: .4rem .7rem;
+  border: 1px solid #d9c398;
+  border-radius: .75rem;
+  background: linear-gradient(145deg, #fffdf8, #f3e6cd);
+  color: #573c16;
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.campus-actions button:disabled { opacity: .55; cursor: wait; }
+.campus-metrics {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid #decba6;
+  border-radius: 12px;
+  background: linear-gradient(130deg, #fffdf9, #f8efde);
+}
+.campus-metrics > div {
+  padding: .5rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow-wrap: anywhere;
+}
+.campus-metrics > div + div { border-left: 1px solid #decba6 !important; }
+.campus-metrics > div > span:last-child { display: none; }

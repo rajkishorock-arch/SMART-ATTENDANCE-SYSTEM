@@ -1,3 +1,4 @@
+import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
 import {
   AlertOctagon, AlertTriangle, Bell, Calendar,
@@ -191,59 +192,6 @@ export default function InterventionsManagementView({
     }
   };
 
-  // High-fidelity fallback for instantaneous demonstration and real-world preview
-  const effectiveInterventions = (interventions && interventions.length > 0) ? interventions : [
-    {
-      id: 1,
-      student_id: 1,
-      student_name: 'Rajkishor Rock',
-      student_roll: '2385',
-      department: 'Computer Science',
-      attendance_percentage: 54.2,
-      tier: 'TIER_3',
-      tier_label: 'Tier 3: Debarment Risk',
-      status: 'OPEN',
-      parent_notified: false,
-      counseling_scheduled: false,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 2,
-      student_id: 2,
-      student_name: 'Aman Sharma',
-      student_roll: '2386',
-      department: 'Information Technology',
-      attendance_percentage: 67.5,
-      tier: 'TIER_2',
-      tier_label: 'Tier 2: Parent Alert',
-      status: 'OPEN',
-      parent_notified: true,
-      counseling_scheduled: false,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 3,
-      student_id: 3,
-      student_name: 'Priya Verma',
-      student_roll: '2387',
-      department: 'Electronics',
-      attendance_percentage: 72.0,
-      tier: 'TIER_1',
-      tier_label: 'Tier 1: Warning',
-      status: 'OPEN',
-      parent_notified: false,
-      counseling_scheduled: false,
-      created_at: new Date().toISOString()
-    }
-  ];
-
-  const effectiveSummary = summary || {
-    total_interventions: effectiveInterventions.length,
-    tier3_debarment_risk_count: effectiveInterventions.filter(i => i.tier === 'TIER_3').length,
-    tier2_parent_alert_count: effectiveInterventions.filter(i => i.tier === 'TIER_2').length,
-    tier1_warning_count: effectiveInterventions.filter(i => i.tier === 'TIER_1').length,
-  };
-
   return (
     <div className="interventions-container" style={{
       color: 'var(--color-text-main)',
@@ -255,59 +203,12 @@ export default function InterventionsManagementView({
       gap: '14px',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Header Card */}
-      <div className="surface-card" style={{
-        background: '#ffffff',
-        border: '1px solid #e4dfd5',
-        borderRadius: '16px',
-        padding: '16px 18px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '12px',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
-        <div style={{ minWidth: '220px', flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-            <div style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '10px',
-              width: '36px',
-              height: '36px',
-              color: '#dc2626',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <AlertOctagon size={18} />
-            </div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#25231f' }}>
-              Counselor & Parent Intervention Center
-            </h2>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+      <div className="campus-actions">
           <button
             type="button"
             onClick={() => { playCyberSound('click'); fetchData(); }}
             disabled={isLoading}
             className="btn-secondary active-haptic"
-            style={{
-              padding: '8px 14px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              background: '#faf9f6',
-              border: '1px solid #cfc8ba'
-            }}
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
             <span>Refresh</span>
@@ -318,24 +219,10 @@ export default function InterventionsManagementView({
             onClick={() => { playCyberSound('click'); handleRunEvaluation(); }}
             disabled={isScanning}
             className="btn-primary active-haptic"
-            style={{
-              padding: '8px 16px',
-              borderRadius: '10px',
-              cursor: isScanning ? 'not-allowed' : 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              background: '#dc2626',
-              color: '#ffffff',
-              border: 'none'
-            }}
           >
             <ShieldAlert size={15} className={isScanning ? 'animate-spin' : ''} />
             <span>{isScanning ? 'Scanning...' : 'Scan Campus Attendance'}</span>
           </button>
-        </div>
       </div>
 
       {/* Messages */}
@@ -376,14 +263,8 @@ export default function InterventionsManagementView({
       )}
 
       {/* Tier KPI Counters (Horizontal Responsive 4-card Grid) */}
-      {effectiveSummary && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: '8px',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}>
+      {summary && (
+        <div className="campus-metrics">
           <div style={{
             background: '#ffffff',
             border: '1px solid #e4dfd5',
@@ -396,7 +277,7 @@ export default function InterventionsManagementView({
               Debarment (&lt;60%)
             </span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
-              {effectiveSummary.tier3_debarment_risk_count}
+              {summary.tier3_debarment_risk_count}
             </div>
             <span style={{ fontSize: '0.7rem', color: '#696358' }}>HOD intervention</span>
           </div>
@@ -413,7 +294,7 @@ export default function InterventionsManagementView({
               Parent Alert (60-70%)
             </span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ea580c', marginTop: '2px' }}>
-              {effectiveSummary.tier2_parent_alert_count}
+              {summary.tier2_parent_alert_count}
             </div>
             <span style={{ fontSize: '0.7rem', color: '#696358' }}>Notify guardians</span>
           </div>
@@ -430,7 +311,7 @@ export default function InterventionsManagementView({
               Warning (70-75%)
             </span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>
-              {effectiveSummary.tier1_warning_count}
+              {summary.tier1_warning_count}
             </div>
             <span style={{ fontSize: '0.7rem', color: '#696358' }}>Near-cutoff boundary</span>
           </div>
@@ -444,10 +325,10 @@ export default function InterventionsManagementView({
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
             <span style={{ fontSize: '0.68rem', color: '#785927', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Total Interventions
+              Total cases
             </span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#785927', marginTop: '2px' }}>
-              {effectiveSummary.total_interventions}
+              {summary.total_interventions}
             </div>
             <span style={{ fontSize: '0.7rem', color: '#696358' }}>Active student logs</span>
           </div>
@@ -492,7 +373,7 @@ export default function InterventionsManagementView({
       </div>
 
       {/* Interventions List */}
-      {effectiveInterventions.length === 0 ? (
+      {interventions.length === 0 ? (
         <div className="surface-card" style={{
           background: '#ffffff',
           border: '1px dashed var(--border-strong)',
@@ -517,7 +398,7 @@ export default function InterventionsManagementView({
           width: '100%',
           boxSizing: 'border-box'
         }}>
-          {effectiveInterventions.map(item => {
+          {interventions.map(item => {
             const isCritical = item.tier === 'DEBARMENT_RISK';
             const isOrange = item.tier === 'PARENT_ALERT';
             const badgeColor = isCritical ? '#dc2626' : (isOrange ? '#ea580c' : '#d97706');

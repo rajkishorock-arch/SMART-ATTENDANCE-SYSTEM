@@ -1,3 +1,4 @@
+import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
 import { 
   DollarSign, Clock, CheckCircle2,
@@ -45,14 +46,16 @@ export default function StaffPayrollView({
         const res = await fetch(`${API_BASE_URL}/staff/payroll?month_year=${selectedMonth}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) {
+        if (!res.ok) throw new Error((await res.json()).detail || 'Could not load staff records.');
+        {
           setPayrollRecords(await res.json());
         }
       } else {
         const res = await fetch(`${API_BASE_URL}/staff/attendance`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) {
+        if (!res.ok) throw new Error((await res.json()).detail || 'Could not load staff records.');
+        {
           setAttendanceLogs(await res.json());
         }
       }
@@ -86,7 +89,7 @@ export default function StaffPayrollView({
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error(`Staff punch ${action} failed.`);
+      if (!res.ok) throw new Error((await res.json()).detail || `Staff punch ${action} failed.`);
       const data = await res.json();
       playCyberSound('success');
       setSuccessMsg(`Punched ${action.toUpperCase()} recorded at ${action === 'in' ? data.check_in : data.check_out}!`);
@@ -159,65 +162,10 @@ export default function StaffPayrollView({
       margin: '0 auto',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Banner Header */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: '16px',
-        padding: '24px 28px',
-        marginBottom: '24px',
-        boxShadow: 'var(--shadow-card)',
-        position: 'relative'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{
-                background: 'rgba(5, 150, 105, 0.08)',
-                border: '1px solid #a7f3d0',
-                borderRadius: '10px',
-                padding: '8px',
-                color: '#059669',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <DollarSign size={22} />
-              </div>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: '#25231f' }}>
-                Staff Attendance & Payroll
-              </h2>
-              <span style={{
-                background: '#ecfdf5',
-                border: '1px solid #a7f3d0',
-                color: '#059669',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '16px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase'
-              }}>
-                FACULTY & STAFF
-              </span>
-            </div>
-            <p style={{ margin: 0, color: '#58534a', fontSize: '0.88rem', maxWidth: '750px', lineHeight: 1.5 }}>
-              Biometric check-in and check-out logs, overtime auditing, leave deductions, 
-              and monthly salary disbursement calculations.
-            </p>
-          </div>
-
-          {/* Quick Actions */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <div className="campus-actions">
             <button
               onClick={() => handlePunch('in')}
               disabled={isPunching}
-              style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                color: '#34d399', padding: '10px 16px', borderRadius: '10px',
-                cursor: isPunching ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px',
-                fontSize: '0.88rem', fontWeight: 600
-              }}
             >
               <LogIn size={16} />
               Punch In
@@ -226,14 +174,6 @@ export default function StaffPayrollView({
             <button
               onClick={() => handlePunch('out')}
               disabled={isPunching}
-              style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                color: '#f87171', padding: '10px 16px', borderRadius: '10px',
-                cursor: isPunching ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px',
-                fontSize: '0.88rem', fontWeight: 600
-              }}
             >
               <LogOut size={16} />
               Punch Out
@@ -242,21 +182,14 @@ export default function StaffPayrollView({
             {isAdmin && (
               <button
                 onClick={() => { playCyberSound('click'); setShowCalcModal(true); }}
-                style={{
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  border: 'none', color: '#fff',
-                  padding: '10px 18px', borderRadius: '10px',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                  fontSize: '0.88rem', fontWeight: 700,
-                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
-                }}
               >
                 <CreditCard size={16} />
                 Generate Payroll
               </button>
             )}
-          </div>
-        </div>
+        <button type="button" aria-label="Refresh" title="Refresh" onClick={fetchData} disabled={isLoading}>
+          <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+        </button>
       </div>
 
       {/* Alerts */}
@@ -320,9 +253,10 @@ export default function StaffPayrollView({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Month:</span>
             <input
-              type="text"
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value)}
+              type="month"
+              aria-label="Payroll month"
+              value={selectedMonth.split('/').reverse().join('-')}
+              onChange={e => e.target.value && setSelectedMonth(e.target.value.split('-').reverse().join('/'))}
               placeholder="MM/YYYY"
               style={{
                 background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -330,12 +264,7 @@ export default function StaffPayrollView({
                 width: '100px', textAlign: 'center', fontFamily: 'monospace'
               }}
             />
-            <button
-              onClick={() => { playCyberSound('click'); fetchData(); }}
-              style={{ background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#cfc8ba', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem' }}
-            >
-              <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
-            </button>
+
           </div>
         )}
       </div>

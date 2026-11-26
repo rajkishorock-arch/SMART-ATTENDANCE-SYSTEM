@@ -1,3 +1,4 @@
+import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
 import {
   Monitor, Wifi, WifiOff,
@@ -7,11 +8,6 @@ import {
 import { getApiBaseUrl } from '../utils/platform';
 
 const API_BASE_URL = getApiBaseUrl();
-
-const getRandomTelemetryMetrics = () => ({
-  battery_level: Math.floor(Math.random() * 20) + 80,
-  network_latency_ms: Math.floor(Math.random() * 30) + 12
-});
 
 export default function DeviceHealthDashboard({
   token,
@@ -34,9 +30,6 @@ export default function DeviceHealthDashboard({
     app_version: '1.2.0'
   });
   const [isRegistering, setIsRegistering] = useState(false);
-
-  // Heartbeat ping state map { [deviceId]: boolean }
-  const [pingingIds, setPingingIds] = useState({});
 
   const fetchData = useCallback(async () => {
     if (!token) return;
@@ -86,40 +79,6 @@ export default function DeviceHealthDashboard({
     };
   }, [fetchData]);
 
-  // ── Send Test Heartbeat Ping ───────────────────────────────────────────────
-  const handleSendPing = async (device) => {
-    setPingingIds(prev => ({ ...prev, [device.id]: true }));
-    try {
-      const telemetry = getRandomTelemetryMetrics();
-      const res = await fetch(`${API_BASE_URL}/devices/heartbeat`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          device_identifier: device.device_identifier,
-          status: 'ONLINE',
-          battery_level: telemetry.battery_level,
-          camera_status: 'OK',
-          network_latency_ms: telemetry.network_latency_ms,
-          pending_sync_count: 0
-        })
-      });
-      if (!res.ok) throw new Error('Failed to send heartbeat ping.');
-      playCyberSound('success');
-      setSuccessMsg(`Telemetry heartbeat ping delivered to "${device.name}"!`);
-      fetchData();
-      setTimeout(() => setSuccessMsg(''), 4000);
-    } catch (err) {
-      setErrorMsg(err.message);
-      playCyberSound('error');
-    } finally {
-      setPingingIds(prev => ({ ...prev, [device.id]: false }));
-    }
-  };
-
-  // ── Register New Device ────────────────────────────────────────────────────
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!registerFormData.device_identifier.trim() || !registerFormData.name.trim()) {
@@ -160,31 +119,6 @@ export default function DeviceHealthDashboard({
     }
   };
 
-  // Primary active kiosk fallback for realistic immediate monitoring
-  const effectiveDevices = (devices && devices.length > 0) ? devices : [
-    {
-      id: 1,
-      device_identifier: 'KIOSK-MAIN-01',
-      name: 'Main Campus AI Scanner Kiosk',
-      location: 'Academic Gate Terminal 1',
-      device_type: 'KIOSK',
-      status: 'ONLINE',
-      is_online: true,
-      app_version: '1.2.0',
-      battery_level: 98,
-      network_latency_ms: 38,
-      camera_status: 'OK',
-      last_heartbeat: new Date().toISOString()
-    }
-  ];
-
-  const effectiveSummary = summary || {
-    total_devices: effectiveDevices.length,
-    online_count: effectiveDevices.filter(d => d.is_online || (d.status || '').toUpperCase() === 'ONLINE').length,
-    offline_count: effectiveDevices.filter(d => !d.is_online && (d.status || '').toUpperCase() === 'OFFLINE').length,
-    healthy_cameras: effectiveDevices.filter(d => (d.camera_status || 'OK').toUpperCase() === 'OK').length,
-  };
-
   return (
     <div className="device-dashboard-container" style={{
       color: 'var(--color-text-main)',
@@ -197,58 +131,11 @@ export default function DeviceHealthDashboard({
       gap: '14px',
       animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Header */}
-      <div className="surface-card" style={{
-        background: '#ffffff',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: '16px',
-        padding: '20px 24px',
-        marginBottom: '24px',
-        boxShadow: 'var(--shadow-card)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <div style={{
-              background: '#ecfdf5',
-              border: '1px solid #a7f3d0',
-              borderRadius: '10px',
-              padding: '8px',
-              color: '#059669',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Monitor size={22} />
-            </div>
-            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#25231f' }}>
-              Kiosk & Camera Device Fleet Telemetry
-            </h2>
-          </div>
-          <p style={{ margin: 0, color: '#58534a', fontSize: '0.85rem', maxWidth: '750px' }}>
-            Continuous heartbeat monitoring, automatic offline kiosk detection, camera optical health verification, and edge sync backlog telemetry.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px' }}>
+      <div className="campus-actions">
           <button
             onClick={() => { playCyberSound('click'); fetchData(); }}
             disabled={isLoading}
             className="btn-secondary"
-            style={{
-              padding: '9px 16px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 600
-            }}
           >
             <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
             Refresh
@@ -257,21 +144,10 @@ export default function DeviceHealthDashboard({
           <button
             onClick={() => { playCyberSound('click'); setShowRegisterModal(true); }}
             className="btn-primary"
-            style={{
-              padding: '9px 18px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 600
-            }}
           >
             <Plus size={16} strokeWidth={2.5} />
             Onboard Kiosk
           </button>
-        </div>
       </div>
 
       {/* Toast Messages */}
@@ -314,15 +190,8 @@ export default function DeviceHealthDashboard({
       )}
 
       {/* Fleet Summary KPI Cards in Responsive Horizontal Grid */}
-      {effectiveSummary && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: '10px',
-          marginBottom: '16px',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}>
+      {summary && (
+        <div className="campus-metrics">
           <div style={{
             background: '#ffffff',
             border: '1px solid #e4dfd5',
@@ -332,10 +201,10 @@ export default function DeviceHealthDashboard({
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
             <span style={{ fontSize: '0.68rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Total Deployed Fleet
+              Devices
             </span>
             <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>
-              {effectiveSummary.total_devices}
+              {summary.total_devices}
             </div>
             <span style={{ fontSize: '0.68rem', color: '#696358' }}>Scanners & kiosks</span>
           </div>
@@ -349,10 +218,10 @@ export default function DeviceHealthDashboard({
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
             <span style={{ fontSize: '0.68rem', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Online & Active
+              Online
             </span>
             <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
-              {effectiveSummary.online_count}
+              {summary.online_count}
             </div>
             <span style={{ fontSize: '0.68rem', color: '#696358' }}>Heartbeat &lt; 5m</span>
           </div>
@@ -365,11 +234,11 @@ export default function DeviceHealthDashboard({
             padding: '10px 12px',
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
-            <span style={{ fontSize: '0.68rem', color: effectiveSummary.offline_count > 0 ? '#dc2626' : '#696358', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Offline / Stalled
+            <span style={{ fontSize: '0.68rem', color: summary.offline_count > 0 ? '#dc2626' : '#696358', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
+              Offline
             </span>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: effectiveSummary.offline_count > 0 ? '#dc2626' : '#25231f', marginTop: '2px' }}>
-              {effectiveSummary.offline_count}
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: summary.offline_count > 0 ? '#dc2626' : '#25231f', marginTop: '2px' }}>
+              {summary.offline_count}
             </div>
             <span style={{ fontSize: '0.68rem', color: '#696358' }}>Inspection alert</span>
           </div>
@@ -383,10 +252,10 @@ export default function DeviceHealthDashboard({
             boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}>
             <span style={{ fontSize: '0.68rem', color: '#80602c', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Cameras Functional
+              Cameras
             </span>
             <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#80602c', marginTop: '2px' }}>
-              {effectiveSummary.healthy_cameras}
+              {summary.healthy_cameras}
             </div>
             <span style={{ fontSize: '0.68rem', color: '#696358' }}>Clear optics & focus</span>
           </div>
@@ -423,7 +292,7 @@ export default function DeviceHealthDashboard({
       </div>
 
       {/* Devices Fleet Grid */}
-      {effectiveDevices.length === 0 ? (
+      {devices.length === 0 ? (
         <div className="surface-card" style={{
           background: '#ffffff',
           border: '1px dashed var(--border-strong)',
@@ -446,9 +315,9 @@ export default function DeviceHealthDashboard({
           width: '100%',
           boxSizing: 'border-box'
         }}>
-          {effectiveDevices.map(d => {
+          {devices.map(d => {
             const isOnline = d.is_online;
-            const isPinging = pingingIds[d.id];
+
 
             return (
               <div
@@ -551,26 +420,7 @@ export default function DeviceHealthDashboard({
                     <Clock size={12} /> Ping: {d.minutes_since_heartbeat}m ago
                   </span>
 
-                  <button
-                    disabled={isPinging}
-                    onClick={() => handleSendPing(d)}
-                    style={{
-                      background: '#ffffff',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--color-primary)',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: isPinging ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}
-                  >
-                    <Send size={12} />
-                    {isPinging ? 'Pinging...' : 'Send Ping'}
-                  </button>
+
                 </div>
               </div>
             );
