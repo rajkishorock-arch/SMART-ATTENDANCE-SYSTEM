@@ -36,26 +36,16 @@ export default function DeviceHealthDashboard({
     setIsLoading(true);
     setErrorMsg('');
     try {
-      // 1. Fetch summary
-      const sumRes = await fetch(`${API_BASE_URL}/devices/summary`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (sumRes.ok) {
-        const sumData = await sumRes.json();
-        setSummary(sumData);
-      }
-
-      // 2. Fetch devices list
-      const url = statusFilter === 'ALL'
-        ? `${API_BASE_URL}/devices`
-        : `${API_BASE_URL}/devices?status=${statusFilter}`;
-      const devRes = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (devRes.ok) {
-        const devData = await devRes.json();
-        setDevices(devData);
-      }
+      const headers = { Authorization: `Bearer ${token}` };
+      const query = statusFilter === 'ALL' ? '' : `?status=${encodeURIComponent(statusFilter)}`;
+      const [summaryResponse, listResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/devices/summary`, { headers }),
+        fetch(`${API_BASE_URL}/devices${query}`, { headers })
+      ]);
+      if (!summaryResponse.ok || !listResponse.ok) throw new Error('Could not refresh devices.');
+      const [totals, rows] = await Promise.all([summaryResponse.json(), listResponse.json()]);
+      setSummary(totals);
+      setDevices(rows);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to load device health telemetry.');
     } finally {
@@ -135,7 +125,6 @@ export default function DeviceHealthDashboard({
           <button
             onClick={() => { playCyberSound('click'); fetchData(); }}
             disabled={isLoading}
-            className="btn-secondary"
           >
             <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
             Refresh
@@ -143,7 +132,6 @@ export default function DeviceHealthDashboard({
 
           <button
             onClick={() => { playCyberSound('click'); setShowRegisterModal(true); }}
-            className="btn-primary"
           >
             <Plus size={16} strokeWidth={2.5} />
             Onboard Kiosk

@@ -85,7 +85,6 @@ export default function AcademicCalendarView({
       setEvents(safeList);
     } catch (err) {
       setErrorMsg(err.message || 'Error connecting to academic calendar engine.');
-      setEvents([]);
     } finally {
       setIsLoading(false);
     }
@@ -144,17 +143,12 @@ export default function AcademicCalendarView({
   }, [token, isStaff]);
 
   useEffect(() => {
-    let ignore = false;
-    Promise.resolve().then(() => {
-      if (!ignore) {
-        fetchEvents();
-        fetchMetrics(selectedSubjectIdForMetrics);
-      }
-    });
-    return () => {
-      ignore = true;
-    };
-  }, [fetchEvents, fetchMetrics, selectedSubjectIdForMetrics]);
+    fetchEvents();
+  }, [fetchEvents]);
+
+  useEffect(() => {
+    if (activeTab === 'metrics') fetchMetrics(selectedSubjectIdForMetrics);
+  }, [activeTab, fetchMetrics, selectedSubjectIdForMetrics]);
 
   // ── Handle Create Event ────────────────────────────────────────────────────
   const handleCreateEvent = async (e) => {
@@ -288,7 +282,7 @@ export default function AcademicCalendarView({
     }}>
       <div className="campus-actions">
           <button
-            onClick={() => { playCyberSound('click'); fetchEvents(); fetchMetrics(selectedSubjectIdForMetrics); }}
+            onClick={() => { playCyberSound('click'); if (activeTab === 'metrics') fetchMetrics(selectedSubjectIdForMetrics); else fetchEvents(); }}
             disabled={isLoading}
           >
             <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
@@ -298,7 +292,6 @@ export default function AcademicCalendarView({
           {isStaff && (
             <button
               onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
-              className="btn-primary"
             >
               <Plus size={16} strokeWidth={2.5} />
               Add Event
@@ -479,7 +472,7 @@ export default function AcademicCalendarView({
           </div>
 
           {/* Events Grid */}
-          {(!Array.isArray(events) || events.length === 0) ? (
+          {events.length === 0 && (isLoading || errorMsg) ? null : events.length === 0 ? (
             <div style={{
               background: '#ffffff',
               border: '1px dashed var(--border-subtle)',
@@ -718,7 +711,6 @@ export default function AcademicCalendarView({
                 value={selectedSubjectIdForMetrics}
                 onChange={e => {
                   setSelectedSubjectIdForMetrics(e.target.value);
-                  fetchMetrics(e.target.value);
                 }}
                 style={{
                   background: '#ffffff',

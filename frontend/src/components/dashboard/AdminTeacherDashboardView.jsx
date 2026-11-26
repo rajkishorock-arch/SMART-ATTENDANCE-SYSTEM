@@ -102,8 +102,8 @@ export default function AdminTeacherDashboardView({
   };
 
   return (
-    <PullToRefresh onRefresh={async () => { await fetchStats(); await fetchLogs(); }}>
-      <div style={{ animation: 'fadeInUp 0.6s ease both' }}>
+    <PullToRefresh onRefresh={() => Promise.all([fetchStats(), fetchLogs()])}>
+      <div>
 
         {activeDashboardSubTab === null ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '100%', overflowX: 'hidden' }}>

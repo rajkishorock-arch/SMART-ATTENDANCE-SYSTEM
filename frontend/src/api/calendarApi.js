@@ -18,7 +18,7 @@ export const calendarApi = {
         const data = await res.json();
         return Array.isArray(data) ? data : (data?.events || []);
       }
-      return [];
+      throw new Error(`Could not load calendar events (HTTP ${res.status}).`);
     }
     if (Array.isArray(res)) return res;
     return [];

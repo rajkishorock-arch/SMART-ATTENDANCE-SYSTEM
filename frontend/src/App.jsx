@@ -130,7 +130,7 @@ import ThemeEqualizerSettings from './components/settings/ThemeEqualizerSettings
 import SettingsDirectoryHub from './components/settings/SettingsDirectoryHub';
 import FeaturesDirectoryHub from './components/settings/FeaturesDirectoryHub';
 import AdvancedBiometricSettings from './components/settings/AdvancedBiometricSettings';
-const AdminTeacherDashboardView = safeLazy(() => import('./components/dashboard/AdminTeacherDashboardView'));
+import AdminTeacherDashboardView from './components/dashboard/AdminTeacherDashboardView';
 import StudentsDirectoryView, { StudentsDirectoryHeaderAction } from './components/dashboard/StudentsDirectoryView';
 import TeachersDirectoryView from './components/dashboard/TeachersDirectoryView';
 import AttendanceRegistersView, { AttendanceRegistersHeaderAction } from './components/dashboard/AttendanceRegistersView';
@@ -4306,6 +4306,28 @@ export default function App() {
     };
   }, [attendanceActive, cameraScanSettings.preset, cameraScanSettings.autoFocusBox]);
 
+  const [meshLibraryState, setMeshLibraryState] = useState('idle');
+  const needsMeshLibrary = activeTab === 'attendance' || showScannerModal || attendanceActive;
+  useEffect(() => {
+    if (!needsMeshLibrary) return;
+    if (typeof window.FaceMesh === 'function') {
+      setMeshLibraryState('ready');
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = '/mediapipe/face_mesh.js';
+    script.async = true;
+    setMeshLibraryState('pending');
+    script.onload = () => setMeshLibraryState(typeof window.FaceMesh === 'function' ? 'ready' : 'error');
+    script.onerror = () => setMeshLibraryState('error');
+    document.head.appendChild(script);
+    return () => {
+      script.onload = null;
+      script.onerror = null;
+      script.remove();
+    };
+  }, [needsMeshLibrary]);
+
   // Initialize and run FaceMesh liveness detection loop
   useEffect(() => {
     const isExternal = cameraScanSettings?.cameraSource === 'external';
@@ -4321,6 +4343,10 @@ export default function App() {
       return;
     }
 
+    if (meshLibraryState === 'idle' || meshLibraryState === 'pending') {
+      setLivenessMessage('Preparing blink check…');
+      return;
+    }
     const hasFaceMesh = typeof window.FaceMesh === 'function';
     livenessStatusRef.current = 'verifying';
     setLivenessStatus('verifying');
@@ -4540,7 +4566,7 @@ export default function App() {
         faceMeshRef.current = null;
       }
     };
-  }, [attendanceActive, attendanceFacingMode, cameraScanSettings.preset, token]);
+  }, [attendanceActive, attendanceFacingMode, cameraScanSettings.preset, token, meshLibraryState]);
 
   // Turn off camera if user switches tabs
   useEffect(() => {
@@ -8266,7 +8292,6 @@ export default function App() {
               onNavigateTab={navigateToTab}
             />
           ) : (
-            <Suspense fallback={<p role='status'>Loading dashboard…</p>}>
             <AdminTeacherDashboardView
               fetchStats={fetchStats}
               fetchLogs={fetchLogs}
@@ -8320,7 +8345,6 @@ export default function App() {
               isLoadingFeedbacks={isLoadingFeedbacks}
               feedbacks={feedbacks}
             />
-            </Suspense>
           )
         )}
 

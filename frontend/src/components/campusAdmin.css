@@ -22,7 +22,21 @@
   font-weight: 650;
   cursor: pointer;
 }
-.campus-actions button:disabled { opacity: .55; cursor: wait; }
+/* Pair foreground and surface here because global primary-button themes set white text. */
+body .campus-actions button,
+body .campus-actions button :is(span, svg) {
+  color: #503711 !important;
+}
+body .campus-actions button {
+  background: linear-gradient(145deg, #fffdf8, #f3e6cd) !important;
+}
+body .campus-actions button:disabled {
+  opacity: 1;
+  color: #655844 !important;
+  background: #f1ece3 !important;
+  cursor: wait;
+}
+.campus-actions button:focus-visible { outline: 2px solid #775722; outline-offset: 2px; }
 .campus-metrics {
   display: grid;
   grid-auto-flow: column;
@@ -42,3 +56,5 @@
 }
 .campus-metrics > div + div { border-left: 1px solid #decba6 !important; }
 .campus-metrics > div > span:last-child { display: none; }
+.campus-metrics > div > span:first-child { color: #624c2e !important; }
+.campus-metrics > div > div { color: #352918 !important; }

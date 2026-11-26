@@ -31,10 +31,12 @@ export default function LmsSyncIntegrationView({
     setIsLoading(true);
     setErrorMsg('');
     try {
-      // 1. Fetch Config
-      const cfgRes = await fetch(`${API_BASE_URL}/lms/config`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const headers = { Authorization: `Bearer ${token}` };
+      const [cfgRes, logsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/lms/config`, { headers }),
+        fetch(`${API_BASE_URL}/lms/logs`, { headers })
+      ]);
+      if (!cfgRes.ok || !logsRes.ok) throw new Error('Could not refresh LMS settings and sync history.');
       if (cfgRes.ok) {
         const cfg = await cfgRes.json();
         if (cfg) {
@@ -45,10 +47,6 @@ export default function LmsSyncIntegrationView({
         }
       }
 
-      // 2. Fetch Logs
-      const logsRes = await fetch(`${API_BASE_URL}/lms/logs`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
       if (logsRes.ok) {
         setLogs(await logsRes.json());
       }
@@ -167,7 +165,6 @@ export default function LmsSyncIntegrationView({
             type="button"
             onClick={() => { playCyberSound('click'); handleSyncRoster(); }}
             disabled={isSyncingRoster}
-            className="btn-secondary active-haptic"
           >
             <DownloadCloud size={15} className={isSyncingRoster ? 'animate-spin' : ''} />
             <span>{isSyncingRoster ? 'Importing...' : 'Sync Roster'}</span>
@@ -177,7 +174,6 @@ export default function LmsSyncIntegrationView({
             type="button"
             onClick={() => { playCyberSound('click'); handleSyncAttendance(); }}
             disabled={isSyncingAttendance}
-            className="btn-primary active-haptic"
           >
             <UploadCloud size={15} className={isSyncingAttendance ? 'animate-spin' : ''} />
             <span>{isSyncingAttendance ? 'Syncing...' : 'Push Attendance Now'}</span>

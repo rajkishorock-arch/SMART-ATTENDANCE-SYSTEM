@@ -41,24 +41,16 @@ export default function InterventionsManagementView({
     setIsLoading(true);
     setErrorMsg('');
     try {
-      // 1. Fetch summary
-      const sumRes = await fetch(`${API_BASE_URL}/interventions/summary`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (sumRes.ok) {
-        setSummary(await sumRes.json());
-      }
-
-      // 2. Fetch list
-      const url = tierFilter === 'ALL'
-        ? `${API_BASE_URL}/interventions`
-        : `${API_BASE_URL}/interventions?tier=${tierFilter}`;
-      const listRes = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (listRes.ok) {
-        setInterventions(await listRes.json());
-      }
+      const headers = { Authorization: `Bearer ${token}` };
+      const query = tierFilter === 'ALL' ? '' : `?tier=${encodeURIComponent(tierFilter)}`;
+      const [summaryResponse, listResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/interventions/summary`, { headers }),
+        fetch(`${API_BASE_URL}/interventions${query}`, { headers })
+      ]);
+      if (!summaryResponse.ok || !listResponse.ok) throw new Error('Could not refresh interventions.');
+      const [totals, rows] = await Promise.all([summaryResponse.json(), listResponse.json()]);
+      setSummary(totals);
+      setInterventions(rows);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to fetch interventions data.');
     } finally {
@@ -208,7 +200,6 @@ export default function InterventionsManagementView({
             type="button"
             onClick={() => { playCyberSound('click'); fetchData(); }}
             disabled={isLoading}
-            className="btn-secondary active-haptic"
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
             <span>Refresh</span>
@@ -218,7 +209,6 @@ export default function InterventionsManagementView({
             type="button"
             onClick={() => { playCyberSound('click'); handleRunEvaluation(); }}
             disabled={isScanning}
-            className="btn-primary active-haptic"
           >
             <ShieldAlert size={15} className={isScanning ? 'animate-spin' : ''} />
             <span>{isScanning ? 'Scanning...' : 'Scan Campus Attendance'}</span>
