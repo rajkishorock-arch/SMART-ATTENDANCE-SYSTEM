@@ -8022,7 +8022,7 @@ export default function App() {
                   {activeTab === 'students' && 'Student Directory'}
                   {activeTab === 'teachers' && 'Teacher Directory'}
                   {activeTab === 'logs' && 'Attendance Logs'}
-                  {activeTab === 'attendance' && 'Face Scanner'}
+                  {activeTab === 'attendance' && 'Take Attendance'}
                   {activeTab === 'reports' && 'Reports & Analytics'}
                   {activeTab === 'session-history' && 'Session History'}
                   {activeTab === 'disputes' && 'Attendance Disputes'}
@@ -8071,7 +8071,7 @@ export default function App() {
                     {activeTab === 'students' && 'Registered students and face enrollments'}
                     {activeTab === 'teachers' && 'Faculty directory and subject timetables'}
                     {activeTab === 'logs' && 'Daily scan registers and export logs'}
-                    {activeTab === 'attendance' && 'Face recognition and kiosk check-in'}
+                    {activeTab === 'attendance' && 'Face scan, manual register, ID card & kiosk check-in'}
                     {activeTab === 'reports' && 'Shortage defaulters, exports, and alerts'}
                     {activeTab === 'session-history' && 'Class-wise daily session registers'}
                     {activeTab === 'disputes' && 'Student disputes and attendance corrections'}
