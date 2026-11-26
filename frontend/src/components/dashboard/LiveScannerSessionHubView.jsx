@@ -65,14 +65,37 @@ export default function LiveScannerSessionHubView({
   ) || null;
 
   const formattedSessionDate = sessionDate ? sessionDate.split('-').reverse().join('/') : 'Today';
+  const todayYmd = (() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  })();
+  const isFutureDateSelected = Boolean(sessionDate && sessionDate > todayYmd);
   const subjectDisplayName = selectedSubjectObj
     ? `${selectedSubjectObj.name} (${selectedSubjectObj.code})`
     : (userRole !== 'admin' && currentUser?.details?.subject_name
       ? `${currentUser.details.subject_name} (${currentUser.details.subject_code || ''})`
       : '');
-  const isClassReady = Boolean(effectiveSelectedSubjectId && sessionDate && sessionPeriod);
+
+  const handleDateChange = (nextDate) => {
+    if (nextDate && nextDate > todayYmd) {
+      setSessionDate(todayYmd);
+      setValidationError('Future dates cannot be selected — this date has not arrived yet.');
+      if (playCyberSound) playCyberSound('error');
+      return;
+    }
+    setValidationError('');
+    setSessionDate(nextDate);
+  };
 
   const requireSubjectSelected = (missingMsg, onReady) => {
+    if (isFutureDateSelected) {
+      setValidationError(`Future date (${formattedSessionDate}) cannot be marked yet — this date has not arrived.`);
+      if (playCyberSound) playCyberSound('error');
+      return;
+    }
     if (!effectiveSelectedSubjectId) {
       setValidationError(missingMsg);
       if (playCyberSound) playCyberSound('error');
@@ -141,22 +164,6 @@ export default function LiveScannerSessionHubView({
       {!sessionActive ? (
         <div className="scanner-session-setup" style={{ maxWidth: '640px', margin: '0 auto', width: '100%' }}>
           <div className="golden-os-window">
-            {/* macOS Golden Gate Window Titlebar */}
-            <div className="golden-os-titlebar">
-              <div className="golden-os-titlebar-left">
-                <span className="golden-os-traffic" aria-hidden="true">
-                  <span className="golden-os-dot golden-os-dot-close" />
-                  <span className="golden-os-dot golden-os-dot-min" />
-                  <span className="golden-os-dot golden-os-dot-zoom" />
-                </span>
-                <span className="golden-os-title-label">Attendance Studio</span>
-              </div>
-              <span className={`golden-os-status-pill ${isClassReady ? 'is-ready' : 'is-pending'}`}>
-                <span aria-hidden="true">{isClassReady ? '●' : '○'}</span>
-                {isClassReady ? 'Ready to Mark' : 'Pick Subject'}
-              </span>
-            </div>
-
             <div className="golden-os-body">
               {/* Clear Purpose Header */}
               <div className="golden-os-hero">
@@ -274,20 +281,31 @@ export default function LiveScannerSessionHubView({
                         </button>
                         <input
                           type="date"
+                          max={todayYmd}
                           className="form-input date-input-field flex-input"
                           value={sessionDate}
-                          onChange={e => setSessionDate(e.target.value)}
+                          onChange={e => handleDateChange(e.target.value)}
                           required
                           style={{ background: '#fffdf8', border: '1px solid #dfd1b1', borderRadius: '10px', height: '42px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box', fontWeight: 600 }}
                         />
                         <button
                           type="button"
-                          onClick={() => { playCyberSound('click'); shiftDate(sessionDate, 1, setSessionDate); }}
+                          onClick={() => {
+                            if (!sessionDate || sessionDate >= todayYmd) {
+                              setValidationError('Future dates cannot be selected — this date has not arrived yet.');
+                              if (playCyberSound) playCyberSound('error');
+                              return;
+                            }
+                            setValidationError('');
+                            playCyberSound('click');
+                            shiftDate(sessionDate, 1, setSessionDate, todayYmd);
+                          }}
                           style={{
                             background: '#faf5e8',
                             border: '1px solid #dfd1b1',
                             borderRadius: '10px',
                             color: '#5a431b',
+                            opacity: sessionDate >= todayYmd ? 0.55 : 1,
                             width: '38px',
                             minWidth: '38px',
                             height: '42px',
@@ -494,14 +512,26 @@ export default function LiveScannerSessionHubView({
             <>
               {sessionActive && (
                 <div className="golden-os-window" style={{ borderRadius: '18px' }}>
-                  <div className="golden-os-titlebar">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span className="golden-os-traffic" aria-hidden="true">
-                        <span className="golden-os-dot golden-os-dot-close" />
-                        <span className="golden-os-dot golden-os-dot-min" />
-                        <span className="golden-os-dot golden-os-dot-zoom" />
-                      </span>
-                      <span className="golden-os-title-label">Active Attendance Session</span>
+                  <div style={{ padding: '14px 18px', display: 'flex', gap: '16px', fontSize: '0.88rem', textAlign: 'left', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ color: '#7a5c28', display: 'block', fontSize: '0.72rem', fontWeight: 700 }}>Active Subject</span>
+                        <strong style={{ color: '#2b2112', fontSize: '0.92rem' }}>
+                          {userRole === 'teacher' ? (
+                            `${currentUser?.details?.subject_name} (${currentUser?.details?.subject_code})`
+                          ) : (
+                            `${subjects.find(s => s.id === parseInt(selectedSubjectId))?.name || 'General'} (${subjects.find(s => s.id === parseInt(selectedSubjectId))?.code || 'N/A'})`
+                          )}
+                        </strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#7a5c28', display: 'block', fontSize: '0.72rem', fontWeight: 700 }}>Session Date</span>
+                        <strong style={{ color: '#2b2112', fontSize: '0.92rem' }}>{formattedSessionDate}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#7a5c28', display: 'block', fontSize: '0.72rem', fontWeight: 700 }}>Period</span>
+                        <strong style={{ color: '#785927', fontSize: '0.92rem' }}>{sessionPeriod}</strong>
+                      </div>
                     </div>
                     <button
                       onClick={() => {
@@ -514,26 +544,6 @@ export default function LiveScannerSessionHubView({
                     >
                       Close Session
                     </button>
-                  </div>
-                  <div style={{ padding: '14px 18px', display: 'flex', gap: '20px', fontSize: '0.88rem', textAlign: 'left', flexWrap: 'wrap' }}>
-                    <div>
-                      <span style={{ color: '#7a5c28', display: 'block', fontSize: '0.72rem', fontWeight: 700 }}>Active Subject</span>
-                      <strong style={{ color: '#2b2112', fontSize: '0.92rem' }}>
-                        {userRole === 'teacher' ? (
-                          `${currentUser?.details?.subject_name} (${currentUser?.details?.subject_code})`
-                        ) : (
-                          `${subjects.find(s => s.id === parseInt(selectedSubjectId))?.name || 'General'} (${subjects.find(s => s.id === parseInt(selectedSubjectId))?.code || 'N/A'})`
-                        )}
-                      </strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#7a5c28', display: 'block', fontSize: '0.72rem', fontWeight: 700 }}>Session Date</span>
-                      <strong style={{ color: '#2b2112', fontSize: '0.92rem' }}>{formattedSessionDate}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#7a5c28', display: 'block', fontSize: '0.72rem', fontWeight: 700 }}>Period</span>
-                      <strong style={{ color: '#785927', fontSize: '0.92rem' }}>{sessionPeriod}</strong>
-                    </div>
                   </div>
                 </div>
               )}

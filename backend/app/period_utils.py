@@ -90,6 +90,25 @@ def normalize_date_str(date_str: Optional[str]) -> str:
             return d_clean
     return d_clean
 
+
+def validate_not_future_attendance_date(date_str: Optional[str]) -> Optional[str]:
+    """Return an error string if date_str falls after today's IST calendar date."""
+    if not date_str:
+        return None
+    d_clean = str(date_str).strip()
+    parsed = None
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            parsed = datetime.strptime(d_clean, fmt).date()
+            break
+        except ValueError:
+            continue
+    if parsed is None:
+        return None
+    if parsed > datetime.now(IST).date():
+        return f"Future attendance date ({parsed.strftime('%d/%m/%Y')}) is not allowed yet — this date has not arrived."
+    return None
+
 def generate_session_key(
     institution_id: Optional[int],
     student_id: Any,

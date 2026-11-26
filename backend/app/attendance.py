@@ -13,7 +13,13 @@ logger = logging.getLogger(__name__)
 IST = timezone(timedelta(hours=5, minutes=30))
 
 from . import crud, schemas, models, security, security_utils, cache_service
-from .period_utils import resolve_period_name, get_period_slot_label, PERIOD_SLOT_LABELS, generate_session_key
+from .period_utils import (
+    resolve_period_name,
+    get_period_slot_label,
+    PERIOD_SLOT_LABELS,
+    generate_session_key,
+    validate_not_future_attendance_date,
+)
 from .database import get_db
 from .recognition_service import recognition_service
 from .notifications import push_saved_notification
@@ -253,6 +259,10 @@ async def recognize_and_mark_attendance(
         custom_time = resolve_period_name(datetime.now(IST).strftime("%H:%M:%S"))
     if not custom_date:
         custom_date = datetime.now(IST).strftime("%d/%m/%Y")
+    else:
+        future_err = validate_not_future_attendance_date(custom_date)
+        if future_err:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=future_err)
 
     """
     Receives a webcam frame from the browser, runs face recognition,
@@ -930,6 +940,12 @@ def mark_manual_attendance_bulk(
     if not records:
         raise HTTPException(status_code=400, detail="No records provided.")
 
+    for rec in records:
+        if rec.get("custom_date"):
+            future_err = validate_not_future_attendance_date(rec.get("custom_date"))
+            if future_err:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=future_err)
+
     success_count = 0
     fail_count = 0
     errors = []
@@ -1304,6 +1320,10 @@ def update_attendance_status(
 
     # Resolve date and time
     date_str = payload.custom_date
+    if date_str:
+        future_err = validate_not_future_attendance_date(date_str)
+        if future_err:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=future_err)
     if not date_str:
         date_str = datetime.now(IST).strftime("%d/%m/%Y")
     else:

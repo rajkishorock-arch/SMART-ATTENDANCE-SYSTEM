@@ -8000,9 +8000,10 @@ button:active:not(:disabled),
     margin-left: 0 !important;
     margin-right: 0 !important;
     padding-inline: 2px !important;
+    min-height: 0 !important;
   }
-  .main-content .scanner-session-setup {
-    padding-bottom: 76px !important;
+  .app-container .main-content:has(.scanner-session-setup) {
+    padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 
@@ -8240,10 +8241,10 @@ button:active:not(:disabled),
   border: 1px solid rgba(180, 131, 43, 0.35);
 }
 .golden-os-body {
-  padding: 24px 26px 26px;
+  padding: 20px 24px 22px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 .golden-os-hero {
   display: flex;
@@ -8407,14 +8408,14 @@ button:active:not(:disabled),
   color: #92400e;
 }
 @media (max-width: 640px) {
-  .golden-os-body { padding: 16px 14px 18px; gap: 15px; }
-  .golden-os-titlebar { padding: 10px 14px; }
-  .golden-os-grid-2 { grid-template-columns: 1fr; }
-  .golden-os-mode-grid { grid-template-columns: 1fr; }
+  .golden-os-body { padding: 14px 14px 16px; gap: 12px; }
+  .golden-os-inset-card { padding: 13px; gap: 11px; }
+  .golden-os-grid-2 { grid-template-columns: 1fr; gap: 10px; }
+  .golden-os-mode-grid { grid-template-columns: 1fr; gap: 8px; }
   .golden-os-mode-card {
     flex-direction: row;
     align-items: center;
-    padding: 12px 14px;
-    gap: 12px;
+    padding: 11px 13px;
+    gap: 11px;
   }
 }

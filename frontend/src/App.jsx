@@ -149,7 +149,7 @@ const getLocalDateString = (d = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
-const shiftDate = (currentDateStr, days, setter) => {
+const shiftDate = (currentDateStr, days, setter, maxDateStr = null) => {
   if (!currentDateStr) return;
   const parts = currentDateStr.split('-');
   if (parts.length !== 3) return;
@@ -159,7 +159,11 @@ const shiftDate = (currentDateStr, days, setter) => {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  setter(`${yyyy}-${mm}-${dd}`);
+  const nextStr = `${yyyy}-${mm}-${dd}`;
+  if (maxDateStr && days > 0 && nextStr > maxDateStr) {
+    return;
+  }
+  setter(nextStr);
 };
 
 const isTodayDate = (dateStr) => {
@@ -2539,6 +2543,12 @@ export default function App() {
 
   // Handle Manual Attendance submission - uses new bulk POST endpoint
   const handleSubmitManualAttendance = async () => {
+    const todayStr = getLocalDateString();
+    if (manualDate && manualDate > todayStr) {
+      setManualFeedback(`Future attendance date (${manualDate}) cannot be marked — this date has not arrived yet.`);
+      playCyberSound('error');
+      return;
+    }
     const targetSubjectId = manualSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '');
     const parsedSubjectId = parseInt(targetSubjectId, 10);
     if (!targetSubjectId || Number.isNaN(parsedSubjectId)) {
@@ -10332,10 +10342,20 @@ export default function App() {
                 </label>
                 <input
                   type="date"
+                  max={getLocalDateString()}
                   value={manualDate}
                   onChange={e => {
-                    setManualDate(e.target.value);
-                    setSessionDate(e.target.value);
+                    const nextDate = e.target.value;
+                    const todayStr = getLocalDateString();
+                    if (nextDate && nextDate > todayStr) {
+                      setManualDate(todayStr);
+                      setSessionDate(todayStr);
+                      setManualFeedback('Future date cannot be selected — this date has not arrived yet.');
+                      playCyberSound('error');
+                      return;
+                    }
+                    setManualDate(nextDate);
+                    setSessionDate(nextDate);
                     setManualFeedback('');
                   }}
                   className="form-input"

@@ -677,3 +677,43 @@ def test_student_email_login_with_blank_tenant_and_non_digit_email(client_and_db
     assert payload["user"]["role"] == "student"
     assert payload["user"]["email"] == "anjo@gmail.com"
     assert payload["user"]["institution_id"] == 2
+
+
+def test_future_date_attendance_rejected_on_manual_and_recognize_frame(client_and_db):
+    from datetime import datetime, timedelta
+    from app.period_utils import IST
+
+    client, _, tokens = client_and_db
+    sub = client.post(
+        "/api/v1/subjects",
+        headers=_auth(tokens["admin"]),
+        json={"name": "Networks", "code": "CS501", "department": "Computer Science", "teacher_id": None},
+    ).json()
+
+    tomorrow_iso = (datetime.now(IST) + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    r_manual = client.post(
+        "/api/v1/attendance/manual",
+        headers=_auth(tokens["admin"]),
+        json={
+            "records": [
+                {
+                    "student_id": 101,
+                    "attendance_status": "Present",
+                    "subject_id": sub["id"],
+                    "custom_date": tomorrow_iso,
+                    "period": "Period 1",
+                }
+            ]
+        },
+    )
+    assert r_manual.status_code == 400, r_manual.text
+    assert "Future attendance date" in r_manual.json()["detail"]
+
+    r_scan = client.post(
+        f"/api/v1/attendance/recognize-frame?subject_id={sub['id']}&custom_date={tomorrow_iso}&custom_time=Period%201",
+        headers=_auth(tokens["admin"]),
+        files={"file": ("frame.jpg", _dummy_jpeg_bytes(), "image/jpeg")},
+    )
+    assert r_scan.status_code == 400, r_scan.text
+    assert "Future attendance date" in r_scan.json()["detail"]
