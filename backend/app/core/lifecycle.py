@@ -344,6 +344,7 @@ def update_schema():
                     WHERE i.indrelid = 'attendence'::regclass AND i.indisprimary
                 """)).fetchall()
                 pk_col_names = [row[0].lower() for row in pk_cols]
+                db.commit()
                 if pk_col_names and pk_col_names != ['record_id']:
                     pk_row = db.execute(text("""
                         SELECT conname FROM pg_constraint

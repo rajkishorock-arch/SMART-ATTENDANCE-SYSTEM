@@ -12,7 +12,12 @@ try:
     _redis_client = None
     _REDIS_URL = __import__("os").getenv("REDIS_URL", "")
     if _REDIS_URL:
-        _redis_client = redis.from_url(_REDIS_URL, decode_responses=True)
+        _redis_client = redis.from_url(
+            _REDIS_URL,
+            decode_responses=True,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+        )
         _redis_client.ping()
 except Exception:
     _redis_client = None

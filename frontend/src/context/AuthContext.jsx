@@ -158,15 +158,15 @@ export function AuthProvider({ children }) {
     }
   }, [handleLogout]);
 
-  // Pre-warm backend when on login screen so requests resolve in milliseconds
+  // Pre-warm backend when on login screen so cold-sleeping instances wake before Sign In is clicked
   useEffect(() => {
     if (!token) {
       const API_BASE_URL = getApiBaseUrl();
-      wakeBackend(API_BASE_URL, 6000).catch(() => {});
+      wakeBackend(API_BASE_URL, 20000).catch(() => {});
     }
   }, [token]);
 
-  // Handle Login submission with Render cold-start retry logic
+  // Handle Login submission with Render cold-start wake & automatic retry logic
   const handleLogin = useCallback(async (e, onSuccess) => {
     if (e && e.preventDefault) e.preventDefault();
     playSound('click');
@@ -198,15 +198,37 @@ export function AuthProvider({ children }) {
       setServerWarmingUp(false);
       return;
     }
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const executeLoginRequest = async (timeoutMs) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(loginEndpoint, {
+          method: 'POST',
+          headers: loginHeaders,
+          body: loginBody,
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    };
+
+    let timedOutOrWaking = false;
     try {
-      const res = await fetch(loginEndpoint, {
-        method: 'POST',
-        headers: loginHeaders,
-        body: loginBody,
-        signal: controller.signal,
-      });
+      let res;
+      try {
+        res = await executeLoginRequest(25000);
+        if (res.status >= 502 && res.status <= 504) {
+          await wakeBackend(API_BASE_URL, 25000).catch(() => {});
+          res = await executeLoginRequest(35000);
+        }
+      } catch (firstErr) {
+        if (!navigator.onLine) throw firstErr;
+        // Cold start on Render can exceed 25s; wake /health/ping cleanly and retry once
+        await wakeBackend(API_BASE_URL, 30000).catch(() => {});
+        res = await executeLoginRequest(35000);
+      }
 
       let data = {};
       const raw = await res.text();
@@ -219,15 +241,20 @@ export function AuthProvider({ children }) {
       if (res.ok && data.access_token) {
         let meData = data.user;
         if (!meData) {
-          const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: { Authorization: `Bearer ${data.access_token}` },
-            signal: controller.signal,
-          });
-
-          if (!meRes.ok) {
-            throw new Error('Session validation failed');
+          const meController = new AbortController();
+          const meTimer = setTimeout(() => meController.abort(), 15000);
+          try {
+            const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
+              headers: { Authorization: `Bearer ${data.access_token}` },
+              signal: meController.signal,
+            });
+            if (!meRes.ok) {
+              throw new Error('Session validation failed');
+            }
+            meData = await meRes.json();
+          } finally {
+            clearTimeout(meTimer);
           }
-          meData = await meRes.json();
         }
         if (meData.role !== loginRole) {
           playSound('error');
@@ -271,13 +298,20 @@ export function AuthProvider({ children }) {
       return;
     } catch (err) {
       playSound('error');
-      setAuthError(!navigator.onLine ? 'You are offline. Reconnect to sign in.'
-        : err.name === 'AbortError' ? 'Sign-in timed out. Please try again.'
-        : 'Could not reach the sign-in service. Check your connection and try again.');
+      if (!navigator.onLine) {
+        setAuthError('You are offline. Reconnect to sign in.');
+      } else if (err.name === 'AbortError') {
+        timedOutOrWaking = true;
+        setAuthError('Server is taking longer than expected to wake up. Please wait 10 seconds and tap Sign In again.');
+      } else {
+        timedOutOrWaking = true;
+        setAuthError(err?.message || 'Could not reach the sign-in service. Check your connection and try again.');
+      }
     } finally {
-      clearTimeout(timeoutId);
       setIsLoading(false);
-      setServerWarmingUp(false);
+      if (!timedOutOrWaking) {
+        setServerWarmingUp(false);
+      }
     }
   }, [loginEmail, loginPassword, loginRole, loginWorkspaceSlug]);
 

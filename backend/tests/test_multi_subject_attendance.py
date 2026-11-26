@@ -609,3 +609,71 @@ def test_recognition_service_low_light_detector_fallback_and_cache_refresh(monke
         assert results[0]["match_quality"] == "HIGH"
     finally:
         db.close()
+
+
+def test_recognition_service_defers_model_download_until_needed(monkeypatch):
+    from app import face_utils
+    from app.recognition_service import RecognitionService
+
+    load_calls = []
+
+    def _forbidden_download():
+        load_calls.append("download")
+        raise AssertionError("ONNX models must not download during RecognitionService.__init__()")
+
+    monkeypatch.setattr(face_utils, "download_onnx_models", _forbidden_download)
+    svc = RecognitionService()
+    assert svc.detector is None
+    assert svc.recognizer is None
+    assert load_calls == []
+
+    # Lazy loading triggers only when recognition actually runs without preloaded models
+    monkeypatch.setattr(svc, "_load_models", lambda: load_calls.append("lazy_load"))
+    with pytest.raises(Exception, match="Models are not loaded"):
+        svc.recognize_faces_in_frame(np.zeros((100, 100, 3), dtype=np.uint8), institution_id=1)
+    assert load_calls == ["lazy_load"]
+
+
+def test_student_email_login_with_blank_tenant_and_non_digit_email(client_and_db):
+    client, db, _ = client_and_db
+
+    # 1) Default-institution student (StudentModel only, non-digit email) must succeed cleanly
+    default_student = db.query(models.StudentModel).filter(models.StudentModel.email == "aarav@inst.edu").first()
+    default_student.password_hash = security.get_password_hash("123456")
+    db.commit()
+
+    r_default = client.post(
+        "/api/v1/auth/token",
+        headers={"X-Tenant-Slug": "default"},
+        data={"username": "aarav@inst.edu", "password": "123456"},
+    )
+    assert r_default.status_code == 200, r_default.text
+    assert r_default.json()["user"]["role"] == "student"
+    assert r_default.json()["user"]["email"] == "aarav@inst.edu"
+
+    # 2) Non-default active institution student signing in with blank Institution Code (X-Tenant-Slug: default)
+    non_default_inst = models.Institution(id=2, name="Sunrise Academy", slug="sunrise", is_active=True)
+    db.add(non_default_inst)
+    db.flush()
+    ext_student = models.StudentModel(
+        id=301,
+        institution_id=2,
+        name="Anjo Kumari",
+        roll="ANJ01",
+        dep="Computer Science",
+        email="anjo@gmail.com",
+        password_hash=security.get_password_hash("123456"),
+    )
+    db.add(ext_student)
+    db.commit()
+
+    r_ext = client.post(
+        "/api/v1/auth/token",
+        headers={"X-Tenant-Slug": "default"},
+        data={"username": "anjo@gmail.com", "password": "123456"},
+    )
+    assert r_ext.status_code == 200, r_ext.text
+    payload = r_ext.json()
+    assert payload["user"]["role"] == "student"
+    assert payload["user"]["email"] == "anjo@gmail.com"
+    assert payload["user"]["institution_id"] == 2

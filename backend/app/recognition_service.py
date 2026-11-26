@@ -3,6 +3,7 @@ import numpy as np
 import os
 import json
 import time
+import threading
 from sqlalchemy.orm import Session
 from .vector_index import vector_index_service
 
@@ -11,10 +12,10 @@ class RecognitionService:
         self.detector = None
         self.low_light_detector = None
         self.recognizer = None
+        self._models_lock = threading.Lock()
         self.student_records = {}
         self._institution_matrices = {}
         self._cache_version = {}
-        self._load_models()
 
     def invalidate_cache(self, institution_id: int = None):
         """Invalidate recognition cache for an institution or globally."""
@@ -33,20 +34,28 @@ class RecognitionService:
 
     def _load_models(self):
         """Loads the YuNet detector and SFace recognizer via face_utils helper."""
-        try:
-            from .face_utils import get_face_engines
-            self.detector, self.recognizer = get_face_engines()
-            self.low_light_detector, _ = get_face_engines(score_threshold=0.25)
-            print("SFace and YuNet models loaded successfully in RecognitionService.")
-        except Exception as e:
-            print(f"Error loading SFace/YuNet models: {e}")
-            self.detector = None
-            self.low_light_detector = None
-            self.recognizer = None
+        lock = getattr(self, "_models_lock", None)
+        if lock is None:
+            lock = threading.Lock()
+            self._models_lock = lock
+        with lock:
+            if self.detector is not None and self.recognizer is not None:
+                return
+            try:
+                from .face_utils import get_face_engines
+                self.detector, self.recognizer = get_face_engines()
+                self.low_light_detector, _ = get_face_engines(score_threshold=0.25)
+                print("SFace and YuNet models loaded successfully in RecognitionService.")
+            except Exception as e:
+                print(f"Error loading SFace/YuNet models: {e}")
+                self.detector = None
+                self.low_light_detector = None
+                self.recognizer = None
 
     def warmup(self):
-        """Warm up YuNet detector and SFace recognizer with a dummy frame to eliminate first-request cold JIT latency."""
+        """Load and warm up YuNet detector and SFace recognizer with a dummy frame."""
         try:
+            self._load_models()
             if self.detector is not None and self.recognizer is not None:
                 dummy = np.zeros((112, 112, 3), dtype=np.uint8)
                 self.detector.setInputSize((112, 112))

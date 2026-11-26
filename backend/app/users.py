@@ -14,23 +14,13 @@ from .database import get_db
 from .face_utils import preprocess_face
 from .train_service import train_model
 
-# Initialize Haar cascade face classifier
+# Initialize Haar cascade face classifier without network downloads during import
 app_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.dirname(app_dir)
 root_dir = os.path.dirname(backend_dir)
-cascade_path = os.path.join(root_dir, "haarcascade_frontalface_default.xml")
-
-if not os.path.exists(cascade_path):
-    import urllib.request
-    cascade_url = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml"
-    print(f"Haar cascade XML not found locally. Downloading from {cascade_url}...")
-    try:
-        urllib.request.urlretrieve(cascade_url, cascade_path)
-        print("Haar cascade XML downloaded successfully.")
-    except Exception as e:
-        print(f"Error downloading Haar cascade XML: {e}")
-        # Fallback
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+_local_cascade = os.path.join(root_dir, "haarcascade_frontalface_default.xml")
+_bundled_cascade = os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml")
+cascade_path = _local_cascade if os.path.exists(_local_cascade) else _bundled_cascade
 
 face_classifier = cv2.CascadeClassifier(cascade_path)
 

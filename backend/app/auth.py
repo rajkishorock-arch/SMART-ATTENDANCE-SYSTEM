@@ -356,13 +356,15 @@ def login_for_access_token(
                 )
 
             # 3. Try Student Login (Strictly Scoped to institution_id)
+            student_lookup_filters = [
+                func.lower(models.StudentModel.email) == clean_username,
+                func.lower(models.StudentModel.roll) == clean_username,
+            ]
+            if clean_username.isdigit():
+                student_lookup_filters.append(models.StudentModel.id == int(clean_username))
             student = db.query(models.StudentModel).filter(
                 models.StudentModel.institution_id == institution_id,
-                or_(
-                    func.lower(models.StudentModel.email) == clean_username,
-                    func.lower(models.StudentModel.roll) == clean_username,
-                    models.StudentModel.id == clean_username
-                )
+                or_(*student_lookup_filters),
             ).first()
 
             if student:
