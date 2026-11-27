@@ -1,7 +1,20 @@
 import { useState } from 'react';
-import { UserPlus, ShieldCheck } from 'lucide-react';
+import { UserPlus, ShieldCheck, Search, Plus, ChevronRight, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { getApiBaseUrl } from '../../utils/platform';
 import MasterKeySettings from './MasterKeySettings';
+
+const getInitials = (name) => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'AD';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
+const formatDate = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+};
 
 export default function AdminUserManagement({
   token,
@@ -11,31 +24,70 @@ export default function AdminUserManagement({
   teachers = [],
   fetchTeachers,
   requestMasterPassword,
-  onRequestMasterPassword
+  onRequestMasterPassword,
+  routeView = null,
+  setRouteView,
+  onCloseSubView,
 }) {
+  const [localRouteView, setLocalRouteView] = useState(null);
+  const activeRoute = setRouteView ? routeView : localRouteView;
+  const setActiveRoute = setRouteView || setLocalRouteView;
+
+  const [search, setSearch] = useState('');
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
-  const [createAdminMsg, setCreateAdminMsg] = useState('');
-  const [createAdminErr, setCreateAdminErr] = useState('');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
+  const [actionMsg, setActionMsg] = useState('');
+  const [actionErr, setActionErr] = useState('');
 
   const getMasterPassword = requestMasterPassword || onRequestMasterPassword;
+  const adminList = (teachers || []).filter(u => u.role === 'admin');
 
-  const handleCreateAdmin = async () => {
-    setCreateAdminMsg('');
-    setCreateAdminErr('');
+  const closeSubView = () => {
+    setActionMsg('');
+    setActionErr('');
+    if (onCloseSubView) {
+      onCloseSubView();
+    } else {
+      setActiveRoute(null);
+    }
+  };
+
+  const openRegisterPage = () => {
+    if (playCyberSound) playCyberSound('click');
+    setActionMsg('');
+    setActionErr('');
+    setNewAdminName('');
+    setNewAdminEmail('');
+    setNewAdminPassword('');
+    setActiveRoute({ sub: 'admins', mode: 'register' });
+  };
+
+  const openDetailPage = (adminUser) => {
+    if (playCyberSound) playCyberSound('click');
+    setActionMsg('');
+    setActionErr('');
+    setActiveRoute({ sub: 'admins', mode: 'detail', id: adminUser.id, item: adminUser });
+  };
+
+  const handleCreateAdmin = async (e) => {
+    if (e) e.preventDefault();
+    setActionMsg('');
+    setActionErr('');
     if (!newAdminName || !newAdminEmail || !newAdminPassword) {
-      setCreateAdminErr('Name, Email, and Password are all required!');
+      setActionErr('Name, Email, and Password are required.');
       return;
     }
 
     const masterPass = await getMasterPassword(
-      '🔐 Master Key Verification Required',
+      'Master Key Verification Required',
       `Enter Master Password to register new Admin "${newAdminName}":`
     );
     if (!masterPass) {
-      setCreateAdminErr('Registration cancelled. Master key is required.');
+      setActionErr('Registration cancelled. Master key verification is required.');
       return;
     }
 
@@ -43,14 +95,14 @@ export default function AdminUserManagement({
 
     if (isDemoMode) {
       setTimeout(() => {
-        setCreateAdminMsg(`SIMULATOR ACTION: Admin account created successfully! Log in using ${newAdminEmail}.`);
+        setActionMsg(`Admin account created successfully for ${newAdminEmail}.`);
         setNewAdminName('');
         setNewAdminEmail('');
         setNewAdminPassword('');
         setIsCreatingAdmin(false);
         if (playCyberSound) playCyberSound('success');
         if (fetchTeachers) fetchTeachers(token);
-      }, 1000);
+      }, 300);
       return;
     }
 
@@ -64,25 +116,25 @@ export default function AdminUserManagement({
           'X-Master-Password': masterPass
         },
         body: JSON.stringify({
-          name: newAdminName,
-          email: newAdminEmail,
+          name: newAdminName.trim(),
+          email: newAdminEmail.trim(),
           password: newAdminPassword,
           role: 'admin'
         })
       });
       if (!res.ok) {
-        const d = await res.json();
+        const d = await res.json().catch(() => ({}));
         throw new Error(d.detail || 'Failed to create admin.');
       }
-      setCreateAdminMsg(`Admin account created successfully! Log in using ${newAdminEmail}.`);
+      setActionMsg(`Admin account created for ${newAdminEmail}.`);
       setNewAdminName('');
       setNewAdminEmail('');
       setNewAdminPassword('');
       if (playCyberSound) playCyberSound('success');
-      if (fetchTeachers) fetchTeachers(token);
+      if (fetchTeachers) await fetchTeachers(token);
     } catch (err) {
       if (playCyberSound) playCyberSound('error');
-      setCreateAdminErr(err.message);
+      setActionErr(err.message || 'Failed to create admin.');
     } finally {
       setIsCreatingAdmin(false);
     }
@@ -90,16 +142,23 @@ export default function AdminUserManagement({
 
   const handleToggleAdminStatus = async (adminUser) => {
     if (playCyberSound) playCyberSound('click');
+    setActionMsg('');
+    setActionErr('');
     const masterPass = await getMasterPassword(
-      '🔐 Master Key Verification Required',
+      'Master Key Verification Required',
       `Enter Master Password to ${adminUser.is_active ? 'DEACTIVATE' : 'ACTIVATE'} admin "${adminUser.email}":`
     );
     if (!masterPass) return;
 
+    const nextActive = !adminUser.is_active;
+    setIsUpdatingStatus(true);
+
     if (isDemoMode) {
-      alert('SIMULATOR ACTION: Status updated successfully.');
+      setActionMsg(`Admin account marked as ${nextActive ? 'Active' : 'Deactivated'}.`);
+      setActiveRoute(prev => (prev && prev.item ? { ...prev, item: { ...prev.item, is_active: nextActive } } : prev));
       if (playCyberSound) playCyberSound('success');
       if (fetchTeachers) fetchTeachers(token);
+      setIsUpdatingStatus(false);
       return;
     }
 
@@ -116,40 +175,48 @@ export default function AdminUserManagement({
           name: adminUser.name,
           email: adminUser.email,
           role: adminUser.role,
-          is_active: !adminUser.is_active
+          is_active: nextActive
         })
       });
       if (res.ok) {
-        alert('Status updated successfully.');
         if (playCyberSound) playCyberSound('success');
-        if (fetchTeachers) fetchTeachers(token);
+        setActionMsg(`Admin account ${nextActive ? 'activated' : 'deactivated'} successfully.`);
+        setActiveRoute(prev => (prev && prev.item ? { ...prev, item: { ...prev.item, is_active: nextActive } } : prev));
+        if (fetchTeachers) await fetchTeachers(token);
       } else {
-        const errData = await res.json();
-        alert(errData.detail || 'Failed to update admin.');
+        const errData = await res.json().catch(() => ({}));
+        setActionErr(errData.detail || 'Failed to update admin status.');
       }
     } catch {
-      alert('Connection failed.');
+      setActionErr('Connection failed while updating admin.');
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
   const handleDeleteAdminUser = async (adminUser) => {
     if (playCyberSound) playCyberSound('click');
+    setActionMsg('');
+    setActionErr('');
     if (adminUser.email === 'rajkishorock@gmail.com' || adminUser.email === 'admin@face.com') {
-      alert('Cannot delete primary system admin!');
+      setActionErr('Primary system administrator account cannot be removed.');
       if (playCyberSound) playCyberSound('error');
       return;
     }
 
     const masterPass = await getMasterPassword(
-      '🔐 Master Key Verification Required',
-      `Enter Master Password to completely DELETE admin "${adminUser.email}":`
+      'Master Key Verification Required',
+      `Enter Master Password to remove admin "${adminUser.email}":`
     );
     if (!masterPass) return;
 
+    setIsDeletingAdmin(true);
+
     if (isDemoMode) {
-      alert('SIMULATOR ACTION: Admin deleted successfully.');
       if (playCyberSound) playCyberSound('success');
       if (fetchTeachers) fetchTeachers(token);
+      setIsDeletingAdmin(false);
+      closeSubView();
       return;
     }
 
@@ -163,327 +230,340 @@ export default function AdminUserManagement({
         }
       });
       if (res.ok) {
-        alert('Admin deleted successfully.');
         if (playCyberSound) playCyberSound('success');
-        if (fetchTeachers) fetchTeachers(token);
+        if (fetchTeachers) await fetchTeachers(token);
+        closeSubView();
       } else {
-        const errData = await res.json();
-        alert(errData.detail || 'Failed to delete admin.');
+        const errData = await res.json().catch(() => ({}));
+        setActionErr(errData.detail || 'Failed to delete admin.');
       }
     } catch {
-      alert('Connection failed.');
+      setActionErr('Connection failed while deleting admin.');
+    } finally {
+      setIsDeletingAdmin(false);
     }
   };
 
-  const adminList = (teachers || []).filter(u => u.role === 'admin');
+  /* ===== DEDICATED REGISTER ADMIN PAGE ===== */
+  if (activeRoute?.mode === 'register') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+        <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {actionMsg && (
+            <div className="feedback-banner is-success">
+              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{actionMsg}</span>
+            </div>
+          )}
+          {actionErr && (
+            <div className="feedback-banner is-error">
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{actionErr}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleCreateAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <UserPlus size={13} />
+                <span>Administrator Credentials</span>
+              </div>
+
+              <div className="golden-os-fields-2">
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Admin Name *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Rajkishore"
+                    value={newAdminName}
+                    onChange={e => setNewAdminName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Admin Email *</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="e.g. raj@college.com"
+                    value={newAdminEmail}
+                    onChange={e => setNewAdminEmail(e.target.value)}
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Password *</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Enter strong password"
+                  value={newAdminPassword}
+                  onChange={e => setNewAdminPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={closeSubView}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isCreatingAdmin}
+                className="golden-os-primary-action"
+                style={{ width: 'auto', padding: '10px 22px', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 700 }}
+              >
+                <span>{isCreatingAdmin ? 'Creating...' : 'Create Admin Account'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== DEDICATED ADMIN DETAIL & CONTROL PAGE ===== */
+  if (activeRoute?.mode === 'detail') {
+    const selectedAdmin =
+      adminList.find(u => String(u.id) === String(activeRoute.id)) ||
+      activeRoute.item;
+
+    if (!selectedAdmin) {
+      return (
+        <div className="golden-os-window golden-os-page-bottom-safe" style={{ padding: '24px', textAlign: 'center', color: '#6b5b3e' }}>
+          Administrator account not found.
+        </div>
+      );
+    }
+
+    const isActive = Boolean(selectedAdmin.is_active);
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+        <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Hero Admin Card */}
+          <div className="golden-os-inset-card" style={{ padding: '16px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 200px' }}>
+              <div className="golden-os-avatar" style={{ width: '46px', height: '46px', fontSize: '0.96rem' }}>
+                {getInitials(selectedAdmin.name)}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#2b2112', overflowWrap: 'anywhere' }}>
+                  {selectedAdmin.name}
+                </h3>
+                <div style={{ fontSize: '0.78rem', color: '#6b5b3e', fontWeight: 600, marginTop: '2px', overflowWrap: 'anywhere' }}>
+                  {selectedAdmin.email}
+                </div>
+              </div>
+            </div>
+
+            <span style={{
+              padding: '4px 10px',
+              borderRadius: '999px',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              background: isActive ? 'rgba(5, 150, 105, 0.1)' : '#fef2f2',
+              color: isActive ? '#047857' : '#dc2626',
+              border: `1px solid ${isActive ? 'rgba(5, 150, 105, 0.28)' : '#fecaca'}`,
+            }}>
+              {isActive ? 'Active' : 'Deactivated'}
+            </span>
+          </div>
+
+          {actionMsg && (
+            <div className="feedback-banner is-success">
+              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{actionMsg}</span>
+            </div>
+          )}
+          {actionErr && (
+            <div className="feedback-banner is-error">
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{actionErr}</span>
+            </div>
+          )}
+
+          {/* Account Summary */}
+          <div className="golden-os-form-section">
+            <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={13} />
+              <span>Account Details</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.86rem', gap: '10px' }}>
+              <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Full Name</span>
+              <span style={{ color: '#25231f', fontWeight: 700 }}>{selectedAdmin.name}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.86rem', gap: '10px' }}>
+              <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Email</span>
+              <span style={{ color: '#25231f', fontWeight: 700, wordBreak: 'break-all', textAlign: 'right' }}>{selectedAdmin.email}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.86rem' }}>
+              <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Role</span>
+              <span style={{ color: '#6e4e1c', fontWeight: 700 }}>System Admin</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.86rem' }}>
+              <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Created Date</span>
+              <span style={{ color: '#25231f', fontWeight: 700 }}>{formatDate(selectedAdmin.created_at)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.86rem' }}>
+              <span style={{ color: '#6b5b3e', fontWeight: 600 }}>User ID</span>
+              <span style={{ color: '#6e4e1c', fontWeight: 700, fontFamily: 'monospace' }}>#{selectedAdmin.id}</span>
+            </div>
+          </div>
+
+          {/* Account Controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
+            <button
+              type="button"
+              disabled={isDeletingAdmin}
+              onClick={() => handleDeleteAdminUser(selectedAdmin)}
+              style={{
+                padding: '10px 15px',
+                borderRadius: '10px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
+                fontWeight: 700,
+                fontSize: '0.84rem',
+                cursor: isDeletingAdmin ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Trash2 size={15} />
+              <span>{isDeletingAdmin ? 'Removing...' : 'Remove Admin'}</span>
+            </button>
+
+            <div style={{ display: 'flex', gap: '8px', flex: '1 1 200px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={() => handleToggleAdminStatus(selectedAdmin)}
+                className="golden-os-primary-action"
+                style={{
+                  width: 'auto',
+                  padding: '10px 18px',
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  background: isActive
+                    ? 'linear-gradient(135deg, #b45309, #92400e)'
+                    : 'linear-gradient(135deg, #059669, #047857)',
+                }}
+              >
+                <span>{isUpdatingStatus ? 'Updating...' : (isActive ? 'Deactivate' : 'Activate')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={closeSubView}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 16px', borderRadius: '10px', fontSize: '0.85rem' }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== MAIN GOLDEN GATE ADMINISTRATOR DIRECTORY (Clean 1-Line Rows, Form Hidden) ===== */
+  const query = search.trim().toLowerCase();
+  const visibleAdmins = adminList.filter(u =>
+    String(u.name || '').toLowerCase().includes(query) ||
+    String(u.email || '').toLowerCase().includes(query)
+  );
 
   return (
-    <>
-      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-        <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UserPlus size={22} style={{ color: '#785927' }} /> Register Administrators
-          </h3>
-          <p style={{ color: '#696358', fontSize: '0.875rem', marginTop: '4px' }}>
-            Seed and manage new auxiliary administrator credentials.
-          </p>
-        </div>
-
-        {/* CREATE NEW ADMIN */}
-        <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '20px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UserPlus size={16} style={{ color: '#785927' }} /> Create New Admin Account
-          </h4>
-          <p style={{ color: '#696358', fontSize: '0.8rem', marginBottom: '16px' }}>Multiple admins can be added. Create a new admin and give them separate login credentials.</p>
-
-          {createAdminMsg && (
-            <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem', marginBottom: '14px' }}>
-              ✅ {createAdminMsg}
-            </div>
-          )}
-          {createAdminErr && (
-            <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem', marginBottom: '14px' }}>
-              ❌ {createAdminErr}
-            </div>
-          )}
-
-          <div className="responsive-form-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Admin Name</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Example: Rajkishore"
-                value={newAdminName}
-                onChange={e => setNewAdminName(e.target.value)}
-              />
-            </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Admin Email</label>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="Example: raj@college.com"
-                value={newAdminEmail}
-                onChange={e => setNewAdminEmail(e.target.value)}
-                autoComplete="off"
-              />
-            </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Set Password</label>
-              <input
-                type="password"
-                className="form-input"
-                placeholder="Enter strong password"
-                value={newAdminPassword}
-                onChange={e => setNewAdminPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-            </div>
+    <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+      <div className="golden-os-window" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '160px' }}>
+            <input
+              type="search"
+              className="form-input"
+              aria-label="Search administrators"
+              placeholder="Search admin..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ paddingLeft: '38px', background: '#ffffff', width: '100%', boxSizing: 'border-box' }}
+            />
+            <Search size={15} style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
           </div>
 
           <button
-            onClick={handleCreateAdmin}
-            className="bg-gradient-btn"
-            style={{ marginTop: '16px', padding: '10px 28px', borderRadius: '8px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #00f2fe, #4facfe)' }}
-            disabled={isCreatingAdmin}
+            type="button"
+            onClick={openRegisterPage}
+            className="golden-os-primary-action"
+            style={{ width: 'auto', padding: '10px 16px', borderRadius: '11px', fontSize: '0.84rem', gap: '6px', flexShrink: 0 }}
           >
-            {isCreatingAdmin ? 'Creating...' : '➕ Create New Admin'}
+            <Plus size={16} />
+            <span>Register Admin</span>
           </button>
         </div>
+
+        {visibleAdmins.length === 0 ? (
+          <div className="golden-os-inset-card" style={{ padding: '32px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
+            <ShieldCheck size={28} style={{ color: '#9c8b6e' }} />
+            <span style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>
+              {query ? 'No matching administrators found' : 'No administrators registered'}
+            </span>
+          </div>
+        ) : (
+          <div className="golden-os-list-shell">
+            {visibleAdmins.map(adminUser => {
+              const isActive = Boolean(adminUser.is_active);
+              return (
+                <button
+                  key={adminUser.id}
+                  type="button"
+                  className="golden-os-list-row"
+                  onClick={() => openDetailPage(adminUser)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                    <div className="golden-os-avatar">{getInitials(adminUser.name)}</div>
+                    <span style={{ fontSize: '0.94rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {adminUser.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '999px',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      background: isActive ? 'rgba(5, 150, 105, 0.1)' : '#fef2f2',
+                      color: isActive ? '#047857' : '#dc2626',
+                      border: `1px solid ${isActive ? 'rgba(5, 150, 105, 0.25)' : '#fecaca'}`,
+                    }}>
+                      {isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    <ChevronRight size={16} color="#8c734b" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* CHANGE COLLEGE MASTER PASSWORD */}
+      {/* Workspace Master Key panel for non-default institution tenants */}
       {currentUser?.institution_id !== 1 && (
         <MasterKeySettings token={token} playCyberSound={playCyberSound} />
       )}
-
-      {/* Registered Admins Directory */}
-      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-        <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              <ShieldCheck size={22} style={{ color: '#7c3aed' }} /> Registered Administrators
-            </h3>
-            <p style={{ color: '#696358', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
-              List of all system administrators with their login and active status details.
-            </p>
-          </div>
-          <span className="telemetry-stat-pill admin" style={{
-            padding: '4px 14px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            background: '#f5f3ff',
-            color: '#7c3aed',
-            border: '1px solid #ddd6fe',
-            letterSpacing: '0.5px'
-          }}>
-            TOTAL ADMINS: {adminList.length}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', margin: 0 }}>
-            📋 Admin User Directory
-          </h4>
-          <span className="mobile-scroll-hint" style={{ fontSize: '0.72rem', color: '#80602c', background: '#e0f2fe', padding: '3px 8px', borderRadius: '6px', border: '1px solid #bae6fd', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            👉 Swipe horizontally for full table
-          </span>
-        </div>
-
-        {/* Desktop Table View */}
-        <div className="desktop-table-view" style={{ width: '100%' }}>
-          <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #e4dfd5', color: '#696358', fontSize: '0.85rem' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL (USERNAME)</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>ROLE</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>STATUS</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>CREATED DATE</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminList.map((adminUser) => (
-                  <tr key={adminUser.id} style={{ borderBottom: '1px solid #f4f1eb', fontSize: '0.85rem' }}>
-                    <td style={{ padding: '14px 16px', color: '#696358', fontFamily: 'monospace', fontSize: '0.8rem' }}>#{adminUser.id}</td>
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#25231f' }}>{adminUser.name}</td>
-                    <td style={{ padding: '14px 16px', color: '#58534a' }}>{adminUser.email}</td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontSize: '0.72rem',
-                        fontWeight: 'bold',
-                        background: '#faf5ea',
-                        color: '#785927',
-                        border: '1px solid #dfcfaf'
-                      }}>
-                        SYSTEM ADMIN
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontSize: '0.72rem',
-                        fontWeight: 'bold',
-                        background: adminUser.is_active ? '#ecfdf5' : '#fef2f2',
-                        color: adminUser.is_active ? '#059669' : '#dc2626',
-                        border: `1px solid ${adminUser.is_active ? '#a7f3d0' : '#fecaca'}`
-                      }}>
-                        {adminUser.is_active ? 'ACTIVE' : 'DEACTIVATED'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px 16px', color: '#696358' }}>
-                      {new Date(adminUser.created_at).toLocaleDateString()}
-                    </td>
-                    <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button
-                          onClick={() => handleToggleAdminStatus(adminUser)}
-                          className="action-btn"
-                          style={{
-                            padding: '5px 10px',
-                            fontSize: '0.75rem',
-                            background: adminUser.is_active ? '#fef2f2' : '#ecfdf5',
-                            border: `1px solid ${adminUser.is_active ? '#fecaca' : '#a7f3d0'}`,
-                            color: adminUser.is_active ? '#dc2626' : '#059669',
-                            borderRadius: '6px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {adminUser.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAdminUser(adminUser)}
-                          className="action-btn"
-                          style={{
-                            padding: '5px 10px',
-                            fontSize: '0.75rem',
-                            background: '#fef2f2',
-                            border: '1px solid #fecaca',
-                            color: '#dc2626',
-                            borderRadius: '6px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Mobile Cards View */}
-        <div className="mobile-cards-view" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-          {adminList.map((adminUser) => (
-            <div
-              key={adminUser.id}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e4dfd5',
-                borderRadius: '14px',
-                padding: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                width: '100%',
-                boxSizing: 'border-box'
-              }}
-            >
-              {/* Header: Name + ID */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <span style={{ fontWeight: 700, color: '#25231f', fontSize: '0.96rem' }}>{adminUser.name}</span>
-                <span style={{ color: '#696358', fontFamily: 'monospace', fontSize: '0.78rem', background: '#f4f1eb', padding: '2px 8px', borderRadius: '4px' }}>
-                  #{adminUser.id}
-                </span>
-              </div>
-
-              {/* Email */}
-              <div style={{ color: '#58534a', fontSize: '0.82rem', wordBreak: 'break-all', fontFamily: 'monospace' }}>
-                {adminUser.email}
-              </div>
-
-              {/* Badges: Role, Status, and Date */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                <span style={{
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  fontSize: '0.72rem',
-                  fontWeight: 'bold',
-                  background: 'rgba(0, 242, 254, 0.12)',
-                  color: '#00f2fe',
-                  border: '1px solid rgba(0, 242, 254, 0.25)'
-                }}>
-                  SYSTEM ADMIN
-                </span>
-
-                <span style={{
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  fontSize: '0.72rem',
-                  fontWeight: 'bold',
-                  background: adminUser.is_active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                  color: adminUser.is_active ? '#10b981' : '#ef4444',
-                  border: `1px solid ${adminUser.is_active ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`
-                }}>
-                  {adminUser.is_active ? 'ACTIVE' : 'DEACTIVATED'}
-                </span>
-
-                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginLeft: 'auto' }}>
-                  {new Date(adminUser.created_at).toLocaleDateString()}
-                </span>
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                <button
-                  onClick={() => handleToggleAdminStatus(adminUser)}
-                  className="action-btn"
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    fontSize: '0.82rem',
-                    borderRadius: '8px',
-                    background: adminUser.is_active ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-                    border: `1px solid ${adminUser.is_active ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
-                    color: adminUser.is_active ? '#ef4444' : '#10b981',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {adminUser.is_active ? 'Deactivate' : 'Activate'}
-                </button>
-                <button
-                  onClick={() => handleDeleteAdminUser(adminUser)}
-                  className="action-btn"
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    fontSize: '0.82rem',
-                    borderRadius: '8px',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#ef4444',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }

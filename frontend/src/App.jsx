@@ -627,7 +627,7 @@ export default function App() {
   const [settingsDetailRoute, setSettingsDetailRoute] = useState(() => {
     try {
       const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
-      if (parts[0] === 'settings' && ['departments', 'leave_management', 'multitenant'].includes(parts[1]) && parts[2]) {
+      if (parts[0] === 'settings' && ['departments', 'leave_management', 'multitenant', 'admins'].includes(parts[1]) && parts[2]) {
         if (parts[2] === 'register' && parts[1] !== 'leave_management') {
           return { sub: parts[1], mode: 'register' };
         }
@@ -5844,7 +5844,7 @@ export default function App() {
           if (targetSub !== activeSubSettingRef.current) {
             setActiveSubSetting(targetSub);
           }
-          if (['departments', 'leave_management', 'multitenant'].includes(targetSub) && subHash2) {
+          if (['departments', 'leave_management', 'multitenant', 'admins'].includes(targetSub) && subHash2) {
             if (subHash2 === 'register' && targetSub !== 'leave_management') {
               setSettingsDetailRoute({ sub: targetSub, mode: 'register' });
             } else {
@@ -8714,6 +8714,12 @@ export default function App() {
                         if (settingsDetailRoute.mode === 'register') return 'Register Institution';
                         return settingsDetailRoute.item?.name || 'Institution Details';
                       }
+                      if (activeSubSetting === 'admins') {
+                        if (settingsDetailRoute.mode === 'register') return 'Register Admin';
+                        return settingsDetailRoute.item?.name ||
+                          teachers.find(u => u.role === 'admin' && String(u.id) === String(settingsDetailRoute.id))?.name ||
+                          'Administrator Details';
+                      }
                     }
                     const subTitles = {
                       geofencing: 'Security Perimeter & Geofence',
@@ -8740,7 +8746,7 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -9522,7 +9528,7 @@ export default function App() {
 
             {/* ===== ADVANCED SYSTEM CONFIG & EXTREME SECURITY CONSOLE ===== */}
             {activeSubSetting === 'advanced' && (
-              <div><AdvancedBiometricSettings
+              <AdvancedBiometricSettings
                 biometricConfidenceFilterEnabled={biometricConfidenceFilterEnabled}
                 setBiometricConfidenceFilterEnabled={setBiometricConfidenceFilterEnabled}
                 biometricMatchThreshold={biometricMatchThreshold}
@@ -9537,12 +9543,15 @@ export default function App() {
                 setDiagnosticLevel={setDiagnosticLevel}
                 userRole={userRole}
                 playCyberSound={playCyberSound}
+                savingPolicy={savingPolicy}
+                policyMessage={policyMessage}
+                onSavePolicy={() => saveCampusPolicy({
+                  similarity: biometricMatchThreshold,
+                  blink_ear: antiSpoofingThreshold,
+                  strict_liveness: !livenessBypass,
+                  confidence_filter: biometricConfidenceFilterEnabled
+                })}
               />
-              {userRole === 'admin' && <button className="bg-gradient-btn" onClick={() => saveCampusPolicy({
-                similarity: biometricMatchThreshold, blink_ear: antiSpoofingThreshold, strict_liveness: !livenessBypass,
-                confidence_filter: biometricConfidenceFilterEnabled
-              })}>Save campus biometric settings</button>}
-              <p role="status">{policyMessage}</p></div>
             )}
 
             {/* ===== ADMIN ACCOUNT PROFILE SECTION ===== */}
@@ -9569,6 +9578,9 @@ export default function App() {
                 teachers={teachers}
                 fetchTeachers={fetchTeachers}
                 requestMasterPassword={requestMasterPassword}
+                routeView={settingsDetailRoute?.sub === 'admins' ? settingsDetailRoute : null}
+                setRouteView={setSettingsDetailRoute}
+                onCloseSubView={handleNavigateBack}
               />
             )}
 
