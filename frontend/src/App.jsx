@@ -73,6 +73,7 @@ import { openCameraStream, captureFrameBlob, getCaptureDimensions, loadCameraSet
 import { createFaceDetector, extractFaceBox, drawFaceBox } from './utils/faceDetectionEngine';
 import { APP_VERSION } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
+import { prefetchStudentQrPass } from './utils/qrPassPrefetch';
 import VersionBadge from './components/VersionBadge';
 
 const parseStudentHashParts = (parts) => {
@@ -129,6 +130,7 @@ const STUDENT_SECTION_TITLES = {
   compliance: 'Compliance & Grievance Desk',
   planner: 'Attendance Planner',
   wallet: 'Attendance Wallet',
+  'virtual-id': 'Virtual ID Card',
   geofence: 'Campus Geofence Location',
   disputes: 'Leave & Disputes',
   feedback: 'Feedback & Reviews',
@@ -6984,6 +6986,7 @@ export default function App() {
           fetchStudentDisputes(token),
           fetchBlueprint(token),
           fetchCalendarPrefetch(token),
+          prefetchStudentQrPass(API_BASE_URL, token),
           currentUser?.details ? fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id) : Promise.resolve()
         ]);
       } else if (userRole === 'teacher') {
@@ -7516,6 +7519,7 @@ export default function App() {
         fetchSubjects(newToken),
         fetchBroadcastsPrefetch(newToken),
         fetchCalendarPrefetch(newToken),
+        prefetchStudentQrPass(API_BASE_URL, newToken),
         ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
       ]);
       return;

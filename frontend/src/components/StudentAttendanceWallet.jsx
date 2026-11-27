@@ -514,9 +514,6 @@ export default function StudentAttendanceWallet({
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     University Credential Pass
                   </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                    {studentName} · {studentBranch || 'General'} · {branchSummary.rate}% ({branchSummary.attended}/{branchSummary.total})
-                  </div>
                 </div>
               </div>
               <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
@@ -534,9 +531,6 @@ export default function StudentAttendanceWallet({
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     Semester Exam Clearance &amp; Streaks
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                    {branchSummary.isExamClear ? 'Eligible for Exams' : 'Shortage Warning'} · {streak.current} day streak
                   </div>
                 </div>
               </div>
@@ -575,9 +569,6 @@ export default function StudentAttendanceWallet({
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {sub.name} ({sub.code})
-                        </div>
-                        <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                          {sub.department} · {sub.mentor} · {sub.attended}/{sub.total} classes
                         </div>
                       </div>
                     </div>

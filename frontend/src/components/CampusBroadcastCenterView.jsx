@@ -848,20 +848,7 @@ export default function CampusBroadcastCenterView({
                       {notice.title}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    <span style={{
-                      padding: '3px 8px',
-                      borderRadius: '999px',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      background: badge.bg,
-                      color: badge.text,
-                      border: `1px solid ${badge.border}`,
-                    }}>
-                      {badge.label}
-                    </span>
-                    <ChevronRight size={16} color="#8c734b" />
-                  </div>
+                  <ChevronRight size={16} color="#8c734b" style={{ flexShrink: 0 }} />
                 </button>
               );
             })}

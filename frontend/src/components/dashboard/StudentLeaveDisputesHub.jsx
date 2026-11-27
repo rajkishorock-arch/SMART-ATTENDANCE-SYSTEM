@@ -1385,10 +1385,7 @@ export default function StudentLeaveDisputesHub({
                         <div className="golden-os-avatar">{getLeaveShortCode(req.leave_type)}</div>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {req.leave_type || 'General'} Leave{req.subject_name ? ` · ${req.subject_code || req.subject_name}` : ''}
-                          </div>
-                          <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                            {req.start_date} → {req.end_date} · {req.status || 'Pending'}
+                            {req.leave_type || 'General'} Leave ({req.start_date} → {req.end_date})
                           </div>
                         </div>
                       </div>
@@ -1436,9 +1433,6 @@ export default function StudentLeaveDisputesHub({
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {d.subject_name ? `${d.subject_name}${d.subject_code ? ` (${d.subject_code})` : ''}` : 'General Class'} · {d.date}
-                          </div>
-                          <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                            {d.reason} · {d.original_status} → {d.requested_status} · {formatDisputeStatus(d.status)}
                           </div>
                         </div>
                       </div>

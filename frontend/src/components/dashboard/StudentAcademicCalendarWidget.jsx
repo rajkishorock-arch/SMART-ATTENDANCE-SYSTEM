@@ -411,9 +411,6 @@ export default function StudentAcademicCalendarWidget({
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
                     Interactive Full Calendar
                   </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', marginTop: '2px' }}>
-                    Open month-by-month holidays & exam schedule
-                  </div>
                 </div>
               </div>
               <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
@@ -423,7 +420,7 @@ export default function StudentAcademicCalendarWidget({
           {/* Notices & Schedule Single-Line List */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px 8px' }}>
-              <span className="golden-os-field-label" style={{ marginBottom: 0 }}>Official Notices & Events</span>
+              <span className="golden-os-field-label" style={{ marginBottom: 0 }}>Official Notices &amp; Events</span>
               <span style={{ fontSize: '0.73rem', color: '#6b5b3e', fontWeight: 700 }}>
                 {filteredEntries.length} {filteredEntries.length === 1 ? 'item' : 'items'}
               </span>
@@ -437,10 +434,6 @@ export default function StudentAcademicCalendarWidget({
               <div className="golden-os-list-shell">
                 {filteredEntries.map(entry => {
                   const meta = CATEGORY_META[entry.category] || CATEGORY_META.EVENT;
-                  const dateLabel = entry.date
-                    ? entry.date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
-                    : 'Notice';
-                  const relLabel = getRelativeTiming(entry.date);
                   return (
                     <button
                       key={entry.id}
@@ -455,9 +448,6 @@ export default function StudentAcademicCalendarWidget({
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {entry.title}
-                          </div>
-                          <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                            {dateLabel} · {meta.label}{relLabel ? ` · ${relLabel}` : ''} · {entry.source}
                           </div>
                         </div>
                       </div>

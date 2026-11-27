@@ -15,8 +15,10 @@ import StudentAcademicCalendarWidget from './StudentAcademicCalendarWidget';
 import StudentAttendanceRecoveryWidget from './StudentAttendanceRecoveryWidget';
 import StudentSubjectAttendanceHub from './StudentSubjectAttendanceHub';
 import StudentBlueprintHub from './StudentBlueprintHub';
+import StudentVirtualIdHub from './StudentVirtualIdHub';
 import StudentCampusGeofenceHub from './StudentCampusGeofenceHub';
 import { getInitials } from '../../utils/attendanceDateUtils';
+import { prefetchStudentQrPass } from '../../utils/qrPassPrefetch';
 import { disputeApi } from '../../api/disputeApi';
 
 function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}, onRequestDispute }) {
@@ -594,6 +596,9 @@ export default function StudentAttendanceDashboardView({
 
   React.useEffect(() => {
     let ignore = false;
+    if (token && API_BASE_URL) {
+      prefetchStudentQrPass(API_BASE_URL, token).catch(() => {});
+    }
     if (!token || propStudentDisputes !== null) return undefined;
     disputeApi.fetchMyDisputes(token)
       .then(res => (res.ok ? res.json() : null))
@@ -602,7 +607,7 @@ export default function StudentAttendanceDashboardView({
       })
       .catch(() => {});
     return () => { ignore = true; };
-  }, [token, propStudentDisputes]);
+  }, [token, API_BASE_URL, propStudentDisputes]);
 
   const openDisputeForm = React.useCallback(
     (prefillLog = null, { fromRoot = false } = {}) => {
@@ -866,13 +871,13 @@ export default function StudentAttendanceDashboardView({
             aria-label="Open Student Virtual ID and QR Check-in Pass"
             onClick={() => {
               if (playCyberSound) playCyberSound('click');
-              if (typeof setShowVirtualId === 'function') setShowVirtualId(true);
+              navigateStudentRoute({ section: 'virtual-id' });
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 if (playCyberSound) playCyberSound('click');
-                if (typeof setShowVirtualId === 'function') setShowVirtualId(true);
+                navigateStudentRoute({ section: 'virtual-id' });
               }
             }}
             className="hover-elevate active-haptic"
@@ -1204,6 +1209,16 @@ export default function StudentAttendanceDashboardView({
           routeView={activeRoute}
           onNavigateRoute={navigateStudentRoute}
           onNavigateBack={handleSubRouteBack}
+          playCyberSound={playCyberSound}
+        />
+      )}
+
+      {/* ===== 11. DEDICATED SECTION: VIRTUAL ID & QR PASS ===== */}
+      {activeSection === 'virtual-id' && (
+        <StudentVirtualIdHub
+          currentUser={currentUser}
+          token={token}
+          API_BASE_URL={API_BASE_URL}
           playCyberSound={playCyberSound}
         />
       )}

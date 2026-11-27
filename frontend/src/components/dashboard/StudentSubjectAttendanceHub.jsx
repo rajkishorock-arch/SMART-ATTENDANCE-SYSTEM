@@ -302,11 +302,8 @@ export default function StudentSubjectAttendanceHub({
                             <Calendar size={15} />
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {sess.date || 'Recorded Session'}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: isPres || isExempt ? '#6b5b3e' : '#b91c1c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px', fontWeight: isPres ? 500 : 700 }}>
-                              {formatStatusLabel(st)} · {sess.period_label ? String(sess.period_label).replace(/\s*\([^)]*\)/, '').trim() : sess.time || sess.period || 'Scheduled Slot'}
+                            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isPres || isExempt ? '#25231f' : '#b91c1c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {sess.date || 'Recorded Session'} · {formatStatusLabel(st)}
                             </div>
                           </div>
                         </div>
@@ -412,9 +409,6 @@ export default function StudentSubjectAttendanceHub({
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {sub.name} ({sub.code})
-                        </div>
-                        <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                          {sub.presentDays}/{sub.totalDays} lectures · {sub.teacher}
                         </div>
                       </div>
                     </div>

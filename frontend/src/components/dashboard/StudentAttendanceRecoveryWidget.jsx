@@ -720,10 +720,7 @@ export default function StudentAttendanceRecoveryWidget({
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
-                    Compliance Standing & Buffer
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', marginTop: '2px' }}>
-                    {isCompliant ? 'Good Standing' : 'Action Needed'} · {attendancePct}% ({totalAttended}/{totalConducted} classes)
+                    Compliance Standing &amp; Buffer
                   </div>
                 </div>
               </div>
@@ -741,10 +738,7 @@ export default function StudentAttendanceRecoveryWidget({
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
-                    Statutory 75% Rule & Mentor Desk
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', marginTop: '2px' }}>
-                    {data?.counselor_name || 'Department Counselor'} · Request 1-on-1 guidance
+                    Statutory 75% Rule &amp; Mentor Desk
                   </div>
                 </div>
               </div>
@@ -763,9 +757,6 @@ export default function StudentAttendanceRecoveryWidget({
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
                     Lodge Grievance Complaint
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', marginTop: '2px' }}>
-                    File missing biometric scan, absent mark, or kiosk issue
                   </div>
                 </div>
               </div>
@@ -788,32 +779,26 @@ export default function StudentAttendanceRecoveryWidget({
               </div>
             ) : (
               <div className="golden-os-list-shell">
-                {disputes.map(dispute => {
-                  const st = String(dispute.status || 'PENDING').toUpperCase();
-                  return (
-                    <button
-                      key={dispute.id}
-                      type="button"
-                      onClick={() => navigateTo({ section: 'compliance', mode: 'detail', id: dispute.id, item: dispute })}
-                      className="golden-os-list-row"
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
-                        <div className="golden-os-avatar">
-                          <FileText size={16} />
-                        </div>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            Session {dispute.date} · {dispute.reason ? String(dispute.reason).replace(/_/g, ' ') : 'Attendance Discrepancy'}
-                          </div>
-                          <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                            {STATUS_LABELS[st] || st} · Case #{dispute.id}
-                          </div>
+                {disputes.map(dispute => (
+                  <button
+                    key={dispute.id}
+                    type="button"
+                    onClick={() => navigateTo({ section: 'compliance', mode: 'detail', id: dispute.id, item: dispute })}
+                    className="golden-os-list-row"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                      <div className="golden-os-avatar">
+                        <FileText size={16} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          Session {dispute.date} · {dispute.reason ? String(dispute.reason).replace(/_/g, ' ') : 'Attendance Discrepancy'}
                         </div>
                       </div>
-                      <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
-                    </button>
-                  );
-                })}
+                    </div>
+                    <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                  </button>
+                ))}
               </div>
             )}
           </div>

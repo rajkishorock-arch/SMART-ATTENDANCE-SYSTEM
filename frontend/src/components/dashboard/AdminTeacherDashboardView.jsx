@@ -435,13 +435,10 @@ export default function AdminTeacherDashboardView({
                                       <div style={{ color: '#696358', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
                                         <span>Roll: {log.roll || 'N/A'}</span>
                                         {(log.dep || log.department) && <span>· {log.dep || log.department}</span>}
+                                        <span style={{ color: isPresent ? '#047857' : '#b91c1c', fontWeight: 700 }}>· {log.attendance || 'Present'}</span>
                                       </div>
                                     </div>
                                   </div>
-                                  
-                                  <span className={`status-pill ${isPresent ? 'status-pill-success' : 'status-pill-danger'}`} style={{ fontSize: '0.72rem', padding: '3px 10px', flexShrink: 0 }}>
-                                    {log.attendance || 'Present'}
-                                  </span>
                                 </div>
 
                                 <div style={{
@@ -1100,39 +1097,21 @@ export default function AdminTeacherDashboardView({
                           const stBadge = statusBadgeStyle(item.status);
                           const isEditing = reviewingId === item.id;
                           const isSaving = savingReviewId === item.id;
-                          const roleColor = item.role === 'student'
-                            ? { bg: 'rgba(109, 40, 217, 0.1)', color: '#6d28d9' }
-                            : item.role === 'teacher'
-                              ? { bg: 'rgba(5, 150, 105, 0.1)', color: '#047857' }
-                              : { bg: 'rgba(139, 101, 37, 0.12)', color: '#6e4e1c' };
-                          const typeColor = item.type === 'bug'
-                            ? { bg: 'rgba(220, 38, 38, 0.1)', color: '#b91c1c' }
-                            : item.type === 'suggestion'
-                              ? { bg: 'rgba(217, 119, 6, 0.12)', color: '#b45309' }
-                              : { bg: 'rgba(100, 116, 139, 0.12)', color: '#475569' };
 
                           return (
                             <div key={item.id} className="golden-os-feedback-card" data-testid={`feedback-card-${item.id}`}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: '1 1 180px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#6e4e1c', fontFamily: 'monospace' }}>
-                                      #{item.user_id !== null && item.user_id !== undefined ? item.user_id : item.id}
-                                    </span>
-                                    <span style={{ padding: '2px 7px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 700, background: roleColor.bg, color: roleColor.color }}>
-                                      {(item.role || 'user').toUpperCase()}
-                                    </span>
-                                    <span style={{ padding: '2px 7px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 700, background: typeColor.bg, color: typeColor.color }}>
-                                      {(item.type || 'general').toUpperCase()}
-                                    </span>
+                                  <div style={{ fontSize: '0.73rem', fontWeight: 700, color: '#6b5b3e' }}>
+                                    #{item.user_id !== null && item.user_id !== undefined ? item.user_id : item.id} · {(item.role || 'user').toUpperCase()} · {(item.type || 'general').toUpperCase()}
                                   </div>
                                   <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f', overflowWrap: 'anywhere' }}>
                                     {item.user_email}
                                   </span>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
-                                  <span style={{ padding: '3px 9px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800, background: stBadge.bg, color: stBadge.color, border: stBadge.border }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: stBadge.color }}>
                                     {stBadge.label}
                                   </span>
                                   <span style={{ fontSize: '0.72rem', color: '#6b5b3e', fontWeight: 600 }}>

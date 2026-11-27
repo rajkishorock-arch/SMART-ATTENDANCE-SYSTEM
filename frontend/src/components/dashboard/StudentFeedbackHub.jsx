@@ -375,7 +375,6 @@ export default function StudentFeedbackHub({
               ) : (
                 <div className="golden-os-list-shell">
                   {filteredReviews.map(item => {
-                    const stKey = String(item.status || 'pending').toLowerCase();
                     const tKey = String(item.type || 'general').toLowerCase();
                     return (
                       <button
@@ -394,9 +393,6 @@ export default function StudentFeedbackHub({
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {item.message}
-                            </div>
-                            <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                              {item.rating}/5 stars · {STATUS_LABEL[stKey] || 'Pending Review'}{item.created_at ? ` · ${new Date(item.created_at).toLocaleDateString()}` : ''}
                             </div>
                           </div>
                         </div>

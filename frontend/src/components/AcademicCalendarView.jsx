@@ -705,19 +705,6 @@ export default function AcademicCalendarView({
           </div>
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          <span
-            style={{
-              padding: '3px 8px',
-              borderRadius: '999px',
-              fontSize: '0.66rem',
-              fontWeight: 700,
-              background: meta.bg,
-              color: meta.color,
-              border: `1px solid ${meta.border}`,
-            }}
-          >
-            {meta.label}
-          </span>
           {allowQuickDelete && canDeleteEvent(evt) && (
             <button
               type="button"

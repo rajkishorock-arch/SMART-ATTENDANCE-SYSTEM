@@ -623,7 +623,6 @@ export default function AttendancePlannerWidget({
   }
 
   /* ===== PLANNER ROOT DIRECTORY (CLEAN SINGLE-LINE ROWS, NO GIANT STACKED BOXES) ===== */
-  const overallSafe = effectivePlanner.overall_percentage >= targetPct;
   return (
     <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
       <div className="golden-os-window">
@@ -683,9 +682,6 @@ export default function AttendancePlannerWidget({
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     Overall Target Standing ({targetPct}%)
                   </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                    {effectivePlanner.overall_percentage}% ({effectivePlanner.overall_attended}/{effectivePlanner.overall_conducted}) · {overallSafe ? `Can miss ${effectivePlanner.overall_bunk_allowance}` : `Need ${effectivePlanner.overall_classes_needed} consecutive`}
-                  </div>
                 </div>
               </div>
               <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
@@ -703,9 +699,6 @@ export default function AttendancePlannerWidget({
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     What-If Lecture Simulator
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                    Simulate upcoming lectures &amp; recovery scenarios
                   </div>
                 </div>
               </div>
@@ -730,32 +723,26 @@ export default function AttendancePlannerWidget({
               </div>
             ) : (
               <div className="golden-os-list-shell">
-                {effectivePlanner.subjects.map(sub => {
-                  const isUnder = sub.current_percentage < targetPct;
-                  return (
-                    <button
-                      key={sub.subject_id}
-                      type="button"
-                      onClick={() => navigateTo({ section: 'planner', mode: 'subject', id: sub.subject_id, item: sub })}
-                      className="golden-os-list-row"
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
-                        <div className="golden-os-avatar">
-                          <BookOpen size={17} />
-                        </div>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {sub.subject_name}{sub.subject_code ? ` (${sub.subject_code})` : ''}
-                          </div>
-                          <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                            {sub.total_attended}/{sub.total_conducted} classes · {isUnder ? `Attend ${sub.classes_needed} consecutive` : `Safe buffer: ${sub.bunk_allowance} session(s)`}
-                          </div>
+                {effectivePlanner.subjects.map(sub => (
+                  <button
+                    key={sub.subject_id}
+                    type="button"
+                    onClick={() => navigateTo({ section: 'planner', mode: 'subject', id: sub.subject_id, item: sub })}
+                    className="golden-os-list-row"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                      <div className="golden-os-avatar">
+                        <BookOpen size={17} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {sub.subject_name}{sub.subject_code ? ` (${sub.subject_code})` : ''}
                         </div>
                       </div>
-                      <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
-                    </button>
-                  );
-                })}
+                    </div>
+                    <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                  </button>
+                ))}
               </div>
             )}
           </div>
