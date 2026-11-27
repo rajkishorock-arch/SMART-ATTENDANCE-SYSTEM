@@ -1751,23 +1751,41 @@ def generate_student_qr_token(
     current_student: models.StudentModel = Depends(security.get_current_student)
 ):
     """
-    Generates a secure, single-use signed check-in token valid for 45 seconds with UUID4 jti.
+    Generates a secure, single-use signed check-in token valid for 45 seconds with UUID4 jti,
+    plus a rolling queue of upcoming single-use tokens for instant client auto-rotation.
     """
     from jose import jwt
     from .core import config
     import time, uuid
-    
+
     now = int(time.time())
-    payload = {
-        "jti": str(uuid.uuid4()),
-        "iat": now,
-        "exp": now + 45,  # 45 seconds lifetime
-        "student_id": current_student.id,
-        "roll": current_student.roll,
-        "name": current_student.name,
-        "institution_id": current_student.institution_id,
-        "purpose": "qr_checkin",
-        "type": "qr_checkin"
+    ttl = 45
+
+    def _mint(iat_ts: int, exp_ts: int) -> str:
+        return jwt.encode({
+            "jti": str(uuid.uuid4()),
+            "iat": iat_ts,
+            "exp": exp_ts,
+            "student_id": current_student.id,
+            "roll": current_student.roll,
+            "name": current_student.name,
+            "institution_id": current_student.institution_id,
+            "purpose": "qr_checkin",
+            "type": "qr_checkin"
+        }, config.JWT_SECRET_KEY, algorithm=config.ALGORITHM)
+
+    token = _mint(now, now + ttl)
+    upcoming = [
+        {
+            "token": _mint(now + step * ttl, now + (step + 1) * ttl),
+            "expires_in": (step + 1) * ttl,
+            "ttl": ttl,
+        }
+        for step in range(1, 13)
+    ]
+    return {
+        "token": token,
+        "expires_in": ttl,
+        "result_cursor": latest_qr_result(db, current_student)["id"],
+        "upcoming": upcoming,
     }
-    token = jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.ALGORITHM)
-    return {"token": token, "expires_in": 45, "result_cursor": latest_qr_result(db, current_student)["id"]}

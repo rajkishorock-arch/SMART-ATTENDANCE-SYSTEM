@@ -8,7 +8,11 @@ import {
   Clock,
 } from 'lucide-react';
 import { getInitials } from '../../utils/attendanceDateUtils';
-import { getCachedStudentQrPass, prefetchStudentQrPass } from '../../utils/qrPassPrefetch';
+import {
+  getCachedStudentQrPass,
+  prefetchStudentQrPass,
+  promoteQueuedStudentQrPass,
+} from '../../utils/qrPassPrefetch';
 
 export default function StudentVirtualIdHub({
   currentUser,
@@ -21,85 +25,139 @@ export default function StudentVirtualIdHub({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
-  const cursorRef = useRef(pass?.resultCursor ?? null);
 
-  const loadFreshPass = useCallback(async ({ force = false, silent = false } = {}) => {
-    if (!token || !API_BASE_URL) return;
-    if (!silent) setIsRefreshing(true);
+  const cursorRef = useRef(pass?.resultCursor ?? null);
+  const passRef = useRef(pass);
+  const mountedRef = useRef(true);
+  const renewingRef = useRef(false);
+
+  useEffect(() => {
+    passRef.current = pass;
+  }, [pass]);
+
+  const applyPass = useCallback((nextPass) => {
+    if (!mountedRef.current || !nextPass) return;
+    if (cursorRef.current === null) {
+      cursorRef.current = nextPass.resultCursor ?? 0;
+    }
+    passRef.current = nextPass;
     setError('');
+    setPass(nextPass);
+    setNow(Date.now());
+  }, []);
+
+  // Fetches a fresh queue from the server without ever stalling UI or cancelling on timer ticks
+  const syncFromServer = useCallback(async ({ force = false, silent = false } = {}) => {
+    if (!token || !API_BASE_URL || renewingRef.current) return null;
+    renewingRef.current = true;
+    if (!silent && mountedRef.current) setIsRefreshing(true);
     try {
       const nextPass = await prefetchStudentQrPass(API_BASE_URL, token, { force });
-      if (nextPass) {
-        if (cursorRef.current === null) {
-          cursorRef.current = nextPass.resultCursor ?? 0;
+      if (nextPass) applyPass(nextPass);
+      return nextPass;
+    } catch {
+      if (mountedRef.current && (!passRef.current || passRef.current.expiresAt <= Date.now())) {
+        setError('Unable to load check-in QR. Tap Refresh Code to retry.');
+      }
+      return null;
+    } finally {
+      renewingRef.current = false;
+      if (!silent && mountedRef.current) setIsRefreshing(false);
+    }
+  }, [API_BASE_URL, token, applyPass]);
+
+  // Manual Refresh Code: promotes a fresh single-use QR immediately (0ms) & replenishes queue in background
+  const handleManualRefresh = useCallback(async () => {
+    if (!token || !API_BASE_URL) return;
+    if (playCyberSound) playCyberSound('click');
+    setError('');
+
+    try {
+      const promoted = await promoteQueuedStudentQrPass(token);
+      if (promoted?.pass) {
+        applyPass(promoted.pass);
+        if (promoted.queueRemaining < 5) {
+          syncFromServer({ force: true, silent: true });
         }
-        setPass(nextPass);
-        setNow(Date.now());
+        return;
       }
     } catch {
-      setError('Unable to load check-in QR. Tap Refresh Code to retry.');
-    } finally {
-      if (!silent) setIsRefreshing(false);
+      // fall through to network fetch
     }
-  }, [API_BASE_URL, token]);
 
-  // Initial sync & smooth auto-renewal before expiration (never blanks already valid QR)
+    await syncFromServer({ force: true, silent: false });
+  }, [token, API_BASE_URL, playCyberSound, applyPass, syncFromServer]);
+
+  // Mount lifecycle, 500ms clock tick, and automatic expiry rollover (never cancelled by remaining ticks!)
   useEffect(() => {
-    let cancelled = false;
-    const cached = getCachedStudentQrPass(token);
-    if (cached && cached.expiresAt > Date.now() + 18000) {
-      if (cursorRef.current === null) {
-        cursorRef.current = cached.resultCursor ?? 0;
-      }
-    } else if (token && API_BASE_URL) {
-      prefetchStudentQrPass(API_BASE_URL, token, { force: true })
-        .then(nextPass => {
-          if (cancelled || !nextPass) return;
-          if (cursorRef.current === null) {
-            cursorRef.current = nextPass.resultCursor ?? 0;
-          }
-          setError('');
-          setPass(nextPass);
-          setNow(Date.now());
-        })
-        .catch(() => {
-          if (!cancelled) setError('Unable to load check-in QR. Tap Refresh Code to retry.');
-        });
-    }
+    mountedRef.current = true;
+    let active = true;
 
-    const tickInterval = setInterval(() => {
-      if (cancelled) return;
-      setNow(Date.now());
+    const initialBootstrap = async () => {
+      const cached = getCachedStudentQrPass(token);
+      if (cached) {
+        applyPass(cached);
+        // Replenish rolling queue silently if close to expiry
+        if (cached.expiresAt - Date.now() <= 20000) {
+          syncFromServer({ force: false, silent: true });
+        }
+        return;
+      }
+
+      // Check if an upcoming queued token is ready locally even if active pass aged out
+      try {
+        const promoted = await promoteQueuedStudentQrPass(token);
+        if (active && promoted?.pass) {
+          applyPass(promoted.pass);
+          if (promoted.queueRemaining < 5) {
+            syncFromServer({ force: true, silent: true });
+          }
+          return;
+        }
+      } catch {
+        // fall through to server fetch
+      }
+
+      if (active) {
+        await syncFromServer({ force: false, silent: false });
+      }
+    };
+
+    initialBootstrap();
+
+    const tickInterval = setInterval(async () => {
+      if (!active) return;
+      const tNow = Date.now();
+      setNow(tNow);
+
+      const cur = passRef.current;
+      // Rotate seamlessly when <= 2s remain OR if already expired — 0ms swap from queue, or background sync
+      if (!cur || cur.expiresAt - tNow <= 2000) {
+        try {
+          const promoted = await promoteQueuedStudentQrPass(token);
+          if (active && promoted?.pass) {
+            applyPass(promoted.pass);
+            if (promoted.queueRemaining < 4) {
+              syncFromServer({ force: true, silent: true });
+            }
+            return;
+          }
+        } catch {
+          // fallback to network
+        }
+
+        if (active && !renewingRef.current) {
+          syncFromServer({ force: true, silent: Boolean(cur && cur.expiresAt > tNow) });
+        }
+      }
     }, 500);
 
     return () => {
-      cancelled = true;
+      active = false;
+      mountedRef.current = false;
       clearInterval(tickInterval);
     };
-  }, [token, API_BASE_URL]);
-
-  // Trigger silent renewal when <= 5s left so scan stays uninterrupted
-  const remaining = pass ? Math.max(0, Math.ceil((pass.expiresAt - now) / 1000)) : 0;
-  useEffect(() => {
-    if (!token || !API_BASE_URL) return undefined;
-    let cancelled = false;
-    if (pass && remaining > 0 && remaining <= 5 && !isRefreshing) {
-      prefetchStudentQrPass(API_BASE_URL, token, { force: true })
-        .then(nextPass => {
-          if (cancelled || !nextPass) return;
-          if (cursorRef.current === null) {
-            cursorRef.current = nextPass.resultCursor ?? 0;
-          }
-          setError('');
-          setPass(nextPass);
-          setNow(Date.now());
-        })
-        .catch(() => {});
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [remaining, pass, isRefreshing, token, API_BASE_URL]);
+  }, [token, API_BASE_URL, applyPass, syncFromServer]);
 
   // Poll for live check-in confirmation
   useEffect(() => {
@@ -137,6 +195,7 @@ export default function StudentVirtualIdHub({
     };
   }, [API_BASE_URL, token, playCyberSound]);
 
+  const remaining = pass ? Math.max(0, Math.ceil((pass.expiresAt - now) / 1000)) : 0;
   const details = currentUser?.details || {};
   const studentRoll = details.roll || currentUser?.roll || 'N/A';
   const studentDept = details.dep || currentUser?.dep || currentUser?.department || 'General';
@@ -292,7 +351,7 @@ export default function StudentVirtualIdHub({
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#785927' }}>
                   <QrCode size={40} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>Syncing QR Pass...</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>Generating QR Pass...</span>
                 </div>
               )}
             </div>
@@ -300,15 +359,12 @@ export default function StudentVirtualIdHub({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.84rem', fontWeight: 800, color: remaining > 0 ? '#047857' : '#6b5b3e' }}>
                 <Clock size={15} />
-                {remaining > 0 ? `Valid for ${remaining}s` : isRefreshing ? 'Refreshing...' : 'Tap Refresh Code'}
+                {remaining > 0 ? `Valid for ${remaining}s` : 'Updating code...'}
               </span>
 
               <button
                 type="button"
-                onClick={() => {
-                  if (playCyberSound) playCyberSound('click');
-                  loadFreshPass({ force: true, silent: false });
-                }}
+                onClick={handleManualRefresh}
                 disabled={isRefreshing}
                 className="golden-os-feedback-filter-btn"
                 style={{ padding: '7px 12px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}

@@ -7008,13 +7008,13 @@ export default function App() {
       
       // Parallel background fetch - UI is already hydrated from cache in 0 milliseconds!
       if (userRole === 'student') {
+        prefetchStudentQrPass(API_BASE_URL, token);
         Promise.allSettled([
           fetchStudentLogs(token),
           fetchStudentLeaves(),
           fetchStudentDisputes(token),
           fetchBlueprint(token),
           fetchCalendarPrefetch(token),
-          prefetchStudentQrPass(API_BASE_URL, token),
           currentUser?.details ? fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id) : Promise.resolve()
         ]);
       } else if (userRole === 'teacher') {
@@ -7539,6 +7539,7 @@ export default function App() {
     if (meData.role === 'student') {
       const studentDept = meData.details?.dep || meData.department || meData.dep;
       const studentId = meData.details?.id || meData.id;
+      prefetchStudentQrPass(API_BASE_URL, newToken);
       Promise.allSettled([
         fetchStudentLogs(newToken),
         fetchStudentLeaves(newToken),
@@ -7547,7 +7548,6 @@ export default function App() {
         fetchSubjects(newToken),
         fetchBroadcastsPrefetch(newToken),
         fetchCalendarPrefetch(newToken),
-        prefetchStudentQrPass(API_BASE_URL, newToken),
         ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
       ]);
       return;
