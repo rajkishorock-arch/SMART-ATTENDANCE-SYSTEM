@@ -444,26 +444,11 @@ export default function AttendanceReportsView({
                           textOverflow: 'ellipsis',
                         }}
                       >
-                        Roll {student.roll || '—'} · {student.dep || 'Unassigned'} · {student.present_days}/{student.total_days} days
+                        Roll {student.roll || '—'} · {student.dep || 'Unassigned'} · {student.present_days}/{student.total_days} days · {student.percentage}%
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    <span
-                      style={{
-                        padding: '3px 9px',
-                        borderRadius: '999px',
-                        fontSize: '0.7rem',
-                        fontWeight: 800,
-                        background: isLow ? '#fef2f2' : '#ecfdf5',
-                        color: isLow ? '#b91c1c' : '#047857',
-                        border: `1px solid ${isLow ? '#fecaca' : '#a7f3d0'}`,
-                      }}
-                    >
-                      {student.percentage}%
-                    </span>
-                    <ChevronRight size={16} color="#8c734b" />
-                  </div>
+                  <ChevronRight size={16} color="#8c734b" style={{ flexShrink: 0 }} />
                 </button>
               );
             })}
@@ -482,21 +467,7 @@ export default function AttendanceReportsView({
         {renderPrintOnlyBlock()}
 
         <div className="golden-os-window hide-on-print">
-          <div className="golden-os-titlebar">
-            <div className="golden-os-titlebar-left">
-              <div className="golden-os-traffic" aria-hidden="true">
-                <span className="golden-os-dot golden-os-dot-close" />
-                <span className="golden-os-dot golden-os-dot-min" />
-                <span className="golden-os-dot golden-os-dot-zoom" />
-              </div>
-              <span className="golden-os-title-label">Filters, Analytics & Exports</span>
-            </div>
-            <span className="golden-os-status-pill is-ready">
-              {isLoadingReport ? 'Syncing...' : `${students.length} Students`}
-            </span>
-          </div>
-
-          <div className="golden-os-body">
+          <div className="golden-os-body" style={{ padding: '16px 18px 18px' }}>
             {/* Summary Metrics */}
             <div className="golden-os-kpi-strip">
               <div className="golden-os-kpi-tile is-compact">
@@ -667,28 +638,7 @@ export default function AttendanceReportsView({
       {renderPrintOnlyBlock()}
 
       <div className="golden-os-window hide-on-print">
-        <div className="golden-os-titlebar">
-          <div className="golden-os-titlebar-left">
-            <div className="golden-os-traffic" aria-hidden="true">
-              <span className="golden-os-dot golden-os-dot-close" />
-              <span className="golden-os-dot golden-os-dot-min" />
-              <span className="golden-os-dot golden-os-dot-zoom" />
-            </div>
-            <span className="golden-os-title-label">
-              {selectedDetailStudent?.name || 'Student Attendance Report'}
-            </span>
-          </div>
-          {selectedDetailStudent && (
-            <span
-              className={`golden-os-status-pill ${isDetailLow ? 'is-pending' : 'is-ready'}`}
-              style={isDetailLow ? { background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' } : undefined}
-            >
-              {isDetailLow ? 'Shortage (<75%)' : 'Safe Standing'}
-            </span>
-          )}
-        </div>
-
-        <div className="golden-os-body">
+        <div className="golden-os-body" style={{ padding: '16px 18px 18px' }}>
           {!selectedDetailStudent ? (
             <div className="golden-os-inset-card" style={{ padding: '28px 16px', textAlign: 'center', gap: '8px' }}>
               <div style={{ fontWeight: 700, color: '#2b2112' }}>Student report record not found</div>

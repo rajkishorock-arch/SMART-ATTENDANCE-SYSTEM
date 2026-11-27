@@ -747,6 +747,7 @@ export default function StudentAttendanceDashboardView({
   if (!displayStats && safeStudentLogs.length > 0) {
     const derived = {};
     safeStudentLogs.forEach(log => {
+      if (String(log.attendance || '').toUpperCase() === 'CLASS_CANCELLED') return;
       const subKey = log.subject_id ? String(log.subject_id) : (log.subject_name || 'General');
       if (!derived[subKey]) {
         derived[subKey] = {
@@ -759,7 +760,7 @@ export default function StudentAttendanceDashboardView({
         };
       }
       derived[subKey].totalDays += 1;
-      if (log.attendance === 'Present' || log.attendance === 'Late') {
+      if (['Present', 'Late', 'Excused'].includes(log.attendance)) {
         derived[subKey].presentDays += 1;
       }
     });
@@ -770,9 +771,10 @@ export default function StudentAttendanceDashboardView({
   }
   const statsList = displayStats ? (Array.isArray(displayStats) ? displayStats : Object.values(displayStats)) : [];
 
-  const totalClasses = safeStudentLogs.length;
-  const presentClasses = safeStudentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-  const overallRate = totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : '0.0';
+  const conductedStudentLogs = safeStudentLogs.filter(l => String(l.attendance || '').toUpperCase() !== 'CLASS_CANCELLED');
+  const totalClasses = conductedStudentLogs.length;
+  const presentClasses = conductedStudentLogs.filter(l => ['Present', 'Late', 'Excused'].includes(l.attendance)).length;
+  const overallRate = totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : (safeStudentLogs.length > 0 ? '100.0' : '0.0');
   const hasShortage = Number(overallRate) < 75.0 && totalClasses > 0;
 
   // Navigation Hub items
