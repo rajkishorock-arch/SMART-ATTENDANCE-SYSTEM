@@ -63,16 +63,25 @@ export default function AdminTeacherDashboardView({
   neuralMeshCanvasRef,
   systemHealth,
   apiLatency,
+  serverLatencyMs = null,
   healthLoading,
   setHealthLoading,
   fetchSystemHealth,
   isLoadingFeedbacks,
-  feedbacks
+  feedbacks,
+  reviewFeedback = null,
+  fetchFeedbacks = null
 }) {
   const { currentUser, userRole, token } = useAuth();
-  const { activeTheme, playCyberSound } = useUI();
+  const { playCyberSound } = useUI();
   const displayStats = scopedDashboardStats || stats;
   const [absentAlertFeedback, setAbsentAlertFeedback] = useState(null);
+  const [feedbackFilter, setFeedbackFilter] = useState('all');
+  const [reviewingId, setReviewingId] = useState(null);
+  const [reviewStatusDraft, setReviewStatusDraft] = useState('reviewed');
+  const [reviewReplyDraft, setReviewReplyDraft] = useState('');
+  const [savingReviewId, setSavingReviewId] = useState(null);
+  const [reviewNotice, setReviewNotice] = useState(null);
 
   // Direct Attendance Session Launcher (Auto-assigns valid subject so no blocking modal dims the screen)
   const launchDirectSession = (mode = 'scanner') => {
@@ -669,9 +678,14 @@ export default function AdminTeacherDashboardView({
                   color: systemHealth?.database_type === 'sqlite' ? '#b45309' : '#6e4e1c',
                 },
                 {
-                  label: 'API LATENCY',
+                  label: 'API LATENCY (RTT)',
                   value: apiLatency === -1 ? 'OFFLINE' : `${apiLatency} ms`,
-                  color: apiLatency === -1 ? '#b91c1c' : apiLatency < 250 ? '#047857' : apiLatency < 1000 ? '#b45309' : '#b91c1c',
+                  color: apiLatency === -1 ? '#b91c1c' : apiLatency < 400 ? '#047857' : apiLatency < 1200 ? '#b45309' : '#b91c1c',
+                },
+                {
+                  label: 'SERVER EXEC TIME',
+                  value: serverLatencyMs === null || serverLatencyMs === undefined ? 'WARMING...' : `${serverLatencyMs} ms`,
+                  color: serverLatencyMs === null || serverLatencyMs === undefined ? '#6e4e1c' : serverLatencyMs < 50 ? '#047857' : '#b45309',
                 },
                 {
                   label: 'YUNET DETECTOR',
@@ -801,8 +815,8 @@ export default function AdminTeacherDashboardView({
                         onClick={() => {
                           if (playCyberSound) playCyberSound('click');
                           setHealthLoading(true);
-                          fetchSystemHealth().finally(() => {
-                            setTimeout(() => setHealthLoading(false), 600);
+                          fetchSystemHealth({ fresh: true }).finally(() => {
+                            setTimeout(() => setHealthLoading(false), 450);
                           });
                         }}
                         disabled={healthLoading}
@@ -820,108 +834,301 @@ export default function AdminTeacherDashboardView({
               );
             })()}
 
-              {/* Module 5: User Feedback Submissions */}
-              {activeDashboardSubTab === 'feedback' && userRole === 'admin' && (
-                <div className="glass-panel" style={{ 
-                  marginTop: '28px', 
-                  padding: '28px', 
-                  animationDelay: '1000ms',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  width: '100%',
-                  overflow: 'hidden'
-                }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <MessageSquare size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} />
-                    <span>User Feedback Submissions</span>
-                  </h3>
-                  
-                  {isLoadingFeedbacks ? (
-                    <div className="flex-center" style={{ padding: '40px', color: 'var(--color-text-muted)' }}>
-                      <div style={{ width: '32px', height: '32px', border: '3px solid rgba(0, 242, 254, 0.1)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                      <span style={{ marginLeft: '12px' }}>Loading feedbacks...</span>
+              {/* Module 5: User Feedback & Admin Review Center (Golden OS) */}
+              {activeDashboardSubTab === 'feedback' && userRole === 'admin' && (() => {
+                const counts = {
+                  all: feedbacks.length,
+                  pending: feedbacks.filter((f) => !f.status || f.status === 'pending').length,
+                  reviewed: feedbacks.filter((f) => f.status === 'reviewed').length,
+                  resolved: feedbacks.filter((f) => f.status === 'resolved').length,
+                };
+                const filteredFeedbacks = feedbacks.filter((f) => {
+                  const st = (f.status || 'pending').toLowerCase();
+                  return feedbackFilter === 'all' ? true : st === feedbackFilter;
+                });
+                const startEditReview = (item) => {
+                  if (playCyberSound) playCyberSound('click');
+                  setReviewNotice(null);
+                  setReviewingId(item.id);
+                  setReviewStatusDraft(item.status && item.status !== 'pending' ? item.status : 'reviewed');
+                  setReviewReplyDraft(item.admin_reply || '');
+                };
+                const submitReview = async (feedbackId, forcedStatus = null, forcedReply = null) => {
+                  if (!reviewFeedback) return;
+                  const targetStatus = forcedStatus || reviewStatusDraft;
+                  const targetReply = forcedReply !== null ? forcedReply : reviewReplyDraft;
+                  setSavingReviewId(feedbackId);
+                  setReviewNotice(null);
+                  const result = await reviewFeedback(feedbackId, {
+                    status: targetStatus,
+                    admin_reply: targetReply,
+                  });
+                  setSavingReviewId(null);
+                  if (result?.ok) {
+                    setReviewingId(null);
+                    setReviewNotice({ type: 'success', text: `Feedback #${feedbackId} updated to ${targetStatus.toUpperCase()} and user notified.` });
+                    setTimeout(() => setReviewNotice(null), 4000);
+                  } else {
+                    setReviewNotice({ type: 'error', text: result?.detail || 'Could not save feedback review.' });
+                  }
+                };
+                const statusBadgeStyle = (rawStatus) => {
+                  const st = (rawStatus || 'pending').toLowerCase();
+                  if (st === 'resolved') return { label: 'RESOLVED', bg: 'rgba(5, 150, 105, 0.12)', color: '#047857', border: '1px solid rgba(5, 150, 105, 0.3)' };
+                  if (st === 'reviewed') return { label: 'REVIEWED', bg: 'rgba(30, 64, 175, 0.1)', color: '#1d4ed8', border: '1px solid rgba(30, 64, 175, 0.25)' };
+                  return { label: 'PENDING', bg: 'rgba(217, 119, 6, 0.12)', color: '#b45309', border: '1px solid rgba(217, 119, 6, 0.3)' };
+                };
+
+                return (
+                  <div className="golden-os-window" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', borderBottom: '1px solid #e7dac0', paddingBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                        <MessageSquare size={18} style={{ color: '#8b6525', flexShrink: 0 }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                          <h3 style={{ fontSize: '1.02rem', fontWeight: 800, margin: 0, color: '#2b2112' }}>
+                            User Feedback &amp; Reviews
+                          </h3>
+                          <span style={{ fontSize: '0.75rem', color: '#6b5b3e', fontWeight: 500 }}>
+                            {counts.pending} pending • {counts.resolved} resolved
+                          </span>
+                        </div>
+                      </div>
+                      {fetchFeedbacks && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (playCyberSound) playCyberSound('click');
+                            fetchFeedbacks(token, userRole);
+                          }}
+                          className="golden-os-badge-muted"
+                          style={{ cursor: 'pointer', padding: '5px 11px' }}
+                        >
+                          {isLoadingFeedbacks ? 'Refreshing...' : 'Refresh'}
+                        </button>
+                      )}
                     </div>
-                  ) : feedbacks.length === 0 ? (
-                    <div className="flex-center" style={{ padding: '40px', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '12px' }}>
-                      <AlertCircle size={32} style={{ color: 'var(--color-text-muted)' }} />
-                      <span>No feedbacks submitted yet.</span>
+
+                    <div className="golden-os-feedback-filters">
+                      {[
+                        { key: 'all', label: `All (${counts.all})` },
+                        { key: 'pending', label: `Pending (${counts.pending})` },
+                        { key: 'reviewed', label: `Reviewed (${counts.reviewed})` },
+                        { key: 'resolved', label: `Resolved (${counts.resolved})` },
+                      ].map((tab) => (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          className={`golden-os-feedback-filter-btn ${feedbackFilter === tab.key ? 'active' : ''}`}
+                          onClick={() => {
+                            if (playCyberSound) playCyberSound('click');
+                            setFeedbackFilter(tab.key);
+                          }}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
                     </div>
-                  ) : (
-                    <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                            <th style={{ padding: '12px 16px', fontWeight: 600 }}>USER REF (ID)</th>
-                            <th style={{ padding: '12px 16px', fontWeight: 600 }}>EMAIL</th>
-                            <th style={{ padding: '12px 16px', fontWeight: 600 }}>ROLE</th>
-                            <th style={{ padding: '12px 16px', fontWeight: 600 }}>CATEGORY</th>
-                            <th style={{ padding: '12px 16px', fontWeight: 600 }}>RATING</th>
-                            <th style={{ padding: '12px 16px', fontWeight: 600 }}>MESSAGE</th>
-                            <th style={{ padding: '12px 16px', fontWeight: 600 }}>DATE</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {feedbacks.map((item) => (
-                            <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.85rem' }}>
-                              <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--color-primary)' }}>
-                                #{item.user_id !== null && item.user_id !== undefined ? item.user_id : 'N/A'}
-                              </td>
-                              <td style={{ padding: '14px 16px', color: '#f4f1eb' }}>{item.user_email}</td>
-                              <td style={{ padding: '14px 16px' }}>
-                                <span style={{ 
-                                  padding: '2px 8px', 
-                                  borderRadius: '4px', 
-                                  fontSize: '0.75rem', 
-                                  fontWeight: 600,
-                                  background: item.role === 'student' ? 'rgba(167, 139, 250, 0.12)' : item.role === 'teacher' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(0, 242, 254, 0.12)',
-                                  color: item.role === 'student' ? '#a78bfa' : item.role === 'teacher' ? '#10b981' : '#00f2fe'
-                                }}>
-                                  {item.role.toUpperCase()}
-                                </span>
-                              </td>
-                              <td style={{ padding: '14px 16px' }}>
-                                <span style={{ 
-                                  padding: '2px 8px', 
-                                  borderRadius: '4px', 
-                                  fontSize: '0.75rem', 
-                                  fontWeight: 600,
-                                  background: item.type === 'bug' ? 'rgba(239, 68, 68, 0.12)' : item.type === 'suggestion' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(100, 116, 139, 0.12)',
-                                  color: item.type === 'bug' ? '#ef4444' : item.type === 'suggestion' ? '#f59e0b' : '#94a3b8'
-                                }}>
-                                  {item.type.toUpperCase()}
-                                </span>
-                              </td>
-                              <td style={{ padding: '14px 16px', color: '#fbbf24', minWidth: '110px' }}>
-                                <div style={{ display: 'flex', gap: '2px' }}>
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <svg 
-                                      key={star}
-                                      width="14" 
-                                      height="14" 
-                                      viewBox="0 0 24 24" 
-                                      fill={star <= item.rating ? "#fbbf24" : "none"} 
-                                      stroke={star <= item.rating ? "#fbbf24" : "#cfc8ba"} 
-                                      strokeWidth="2.5"
-                                    >
-                                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                                    </svg>
-                                  ))}
+
+                    {reviewNotice && (
+                      <div
+                        className={`feedback-banner ${reviewNotice.type === 'success' ? 'is-success' : 'is-error'}`}
+                        style={{ fontSize: '0.82rem', fontWeight: 600 }}
+                      >
+                        {reviewNotice.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                        <span>{reviewNotice.text}</span>
+                      </div>
+                    )}
+
+                    {isLoadingFeedbacks && feedbacks.length === 0 ? (
+                      <div style={{ padding: '32px 16px', textAlign: 'center', color: '#6b5b3e', fontSize: '0.88rem', fontWeight: 600 }}>
+                        Loading feedback submissions...
+                      </div>
+                    ) : filteredFeedbacks.length === 0 ? (
+                      <div className="golden-os-inset-card" style={{ padding: '28px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
+                        <AlertCircle size={26} style={{ color: '#8c7a5b' }} />
+                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#2b2112' }}>
+                          {feedbackFilter === 'all' ? 'No feedback submitted yet' : `No ${feedbackFilter} feedback items`}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', color: '#6b5b3e' }}>
+                          Submitted bug reports, suggestions, and reviews will appear here.
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                        {filteredFeedbacks.map((item) => {
+                          const stBadge = statusBadgeStyle(item.status);
+                          const isEditing = reviewingId === item.id;
+                          const isSaving = savingReviewId === item.id;
+                          const roleColor = item.role === 'student'
+                            ? { bg: 'rgba(109, 40, 217, 0.1)', color: '#6d28d9' }
+                            : item.role === 'teacher'
+                              ? { bg: 'rgba(5, 150, 105, 0.1)', color: '#047857' }
+                              : { bg: 'rgba(139, 101, 37, 0.12)', color: '#6e4e1c' };
+                          const typeColor = item.type === 'bug'
+                            ? { bg: 'rgba(220, 38, 38, 0.1)', color: '#b91c1c' }
+                            : item.type === 'suggestion'
+                              ? { bg: 'rgba(217, 119, 6, 0.12)', color: '#b45309' }
+                              : { bg: 'rgba(100, 116, 139, 0.12)', color: '#475569' };
+
+                          return (
+                            <div key={item.id} className="golden-os-feedback-card" data-testid={`feedback-card-${item.id}`}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: '1 1 180px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#6e4e1c', fontFamily: 'monospace' }}>
+                                      #{item.user_id !== null && item.user_id !== undefined ? item.user_id : item.id}
+                                    </span>
+                                    <span style={{ padding: '2px 7px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 700, background: roleColor.bg, color: roleColor.color }}>
+                                      {(item.role || 'user').toUpperCase()}
+                                    </span>
+                                    <span style={{ padding: '2px 7px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 700, background: typeColor.bg, color: typeColor.color }}>
+                                      {(item.type || 'general').toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f', overflowWrap: 'anywhere' }}>
+                                    {item.user_email}
+                                  </span>
                                 </div>
-                              </td>
-                              <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.message}>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                                  <span style={{ padding: '3px 9px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800, background: stBadge.bg, color: stBadge.color, border: stBadge.border }}>
+                                    {stBadge.label}
+                                  </span>
+                                  <span style={{ fontSize: '0.72rem', color: '#6b5b3e', fontWeight: 600 }}>
+                                    {item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <svg
+                                    key={star}
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill={star <= item.rating ? '#d97706' : 'none'}
+                                    stroke={star <= item.rating ? '#b45309' : '#cfc8ba'}
+                                    strokeWidth="2.2"
+                                  >
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                  </svg>
+                                ))}
+                                <span style={{ fontSize: '0.73rem', fontWeight: 700, color: '#6b5b3e', marginLeft: '5px' }}>
+                                  {item.rating}/5
+                                </span>
+                              </div>
+
+                              <div style={{ background: '#fcfaf4', border: '1px solid #ede2cb', borderRadius: '11px', padding: '10px 12px', fontSize: '0.86rem', color: '#25231f', lineHeight: 1.48, overflowWrap: 'anywhere' }}>
                                 {item.message}
-                              </td>
-                              <td style={{ padding: '14px 16px', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
-                                {new Date(item.created_at).toLocaleDateString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
+                              </div>
+
+                              {(item.admin_reply || item.reviewed_by) && !isEditing && (
+                                <div className="feedback-admin-reply-box" style={{ marginTop: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', fontWeight: 800, color: '#6e4e1c', textTransform: 'uppercase' }}>
+                                      <ShieldCheck size={13} />
+                                      Admin Reply {item.reviewed_by ? `• ${item.reviewed_by}` : ''}
+                                    </span>
+                                    {item.reviewed_at && (
+                                      <span style={{ fontSize: '0.68rem', color: '#6b5b3e' }}>
+                                        {new Date(item.reviewed_at).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {item.admin_reply && (
+                                    <p style={{ margin: 0, fontSize: '0.83rem', color: '#25231f', lineHeight: 1.42, overflowWrap: 'anywhere' }}>
+                                      {item.admin_reply}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {isEditing ? (
+                                <div style={{ background: '#faf5ea', border: '1px solid #dfd0ae', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#5c4b30', textTransform: 'uppercase' }}>
+                                      Update Review Status
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                      {['pending', 'reviewed', 'resolved'].map((stOpt) => (
+                                        <button
+                                          key={stOpt}
+                                          type="button"
+                                          onClick={() => setReviewStatusDraft(stOpt)}
+                                          className={`golden-os-feedback-filter-btn ${reviewStatusDraft === stOpt ? 'active' : ''}`}
+                                          style={{ padding: '4px 10px', fontSize: '0.72rem' }}
+                                        >
+                                          {stOpt.charAt(0).toUpperCase() + stOpt.slice(1)}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <textarea
+                                    className="feedback-textarea"
+                                    style={{ minHeight: '78px' }}
+                                    placeholder="Write your official review or resolution message for this user..."
+                                    value={reviewReplyDraft}
+                                    onChange={(e) => setReviewReplyDraft(e.target.value)}
+                                    maxLength={2000}
+                                    disabled={isSaving}
+                                  />
+
+                                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setReviewingId(null)}
+                                      disabled={isSaving}
+                                      className="golden-os-feedback-filter-btn"
+                                      style={{ padding: '7px 14px' }}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => submitReview(item.id)}
+                                      disabled={isSaving}
+                                      className="golden-os-primary-action"
+                                      style={{ width: 'auto', padding: '8px 16px', fontSize: '0.8rem', borderRadius: '10px' }}
+                                    >
+                                      <span>{isSaving ? 'Saving...' : 'Save Review & Notify User'}</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                  {(!item.status || item.status !== 'resolved') && reviewFeedback && (
+                                    <button
+                                      type="button"
+                                      onClick={() => submitReview(item.id, 'resolved', item.admin_reply || 'Marked as resolved by Admin.')}
+                                      disabled={isSaving}
+                                      className="golden-os-feedback-filter-btn"
+                                      style={{ borderColor: 'rgba(5, 150, 105, 0.35)', color: '#047857', background: 'rgba(5, 150, 105, 0.08)' }}
+                                    >
+                                      {isSaving ? 'Updating...' : 'Mark Resolved'}
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditReview(item)}
+                                    disabled={isSaving}
+                                    className="golden-os-primary-action"
+                                    style={{ width: 'auto', padding: '7px 14px', fontSize: '0.78rem', borderRadius: '10px', gap: '6px' }}
+                                  >
+                                    <Edit size={13} />
+                                    <span>{item.admin_reply || item.reviewed_by ? 'Edit Review & Reply' : 'Review & Reply'}</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
             </div>
           )}

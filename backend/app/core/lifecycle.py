@@ -148,6 +148,10 @@ def update_schema():
 
         # Feedbacks table columns
         safe_add_column('feedbacks', 'user_id', 'INT NULL')
+        safe_add_column('feedbacks', 'status', "VARCHAR(30) DEFAULT 'pending'")
+        safe_add_column('feedbacks', 'admin_reply', 'TEXT NULL')
+        safe_add_column('feedbacks', 'reviewed_by', 'VARCHAR(120) NULL')
+        safe_add_column('feedbacks', 'reviewed_at', 'TIMESTAMP NULL')
 
         # Institution branding columns
         safe_add_column('institutions', 'logo_url', 'VARCHAR(255) NULL')

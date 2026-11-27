@@ -1,6 +1,6 @@
 import { startLivenessChallenge, reportLivenessStep } from './utils/livenessClient';
 import { attendanceCoordinates } from './utils/attendanceCoordinates';
-import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { initKeepAliveEngine } from './utils/keepAlive';
@@ -131,7 +131,7 @@ import SettingsDirectoryHub from './components/settings/SettingsDirectoryHub';
 import FeaturesDirectoryHub from './components/settings/FeaturesDirectoryHub';
 import AdvancedBiometricSettings from './components/settings/AdvancedBiometricSettings';
 import AdminTeacherDashboardView from './components/dashboard/AdminTeacherDashboardView';
-import StudentsDirectoryView, { StudentsDirectoryHeaderAction } from './components/dashboard/StudentsDirectoryView';
+import StudentsDirectoryView from './components/dashboard/StudentsDirectoryView';
 import TeachersDirectoryView from './components/dashboard/TeachersDirectoryView';
 import AttendanceRegistersView, { AttendanceRegistersHeaderAction } from './components/dashboard/AttendanceRegistersView';
 import AttendanceReportsView, { AttendanceReportsHeaderAction } from './components/dashboard/AttendanceReportsView';
@@ -578,7 +578,106 @@ export default function App() {
     return null;
   });
 
-  const [activeDashboardSubTab, setActiveDashboardSubTab] = useState(null);
+  const [activeDashboardSubTab, setActiveDashboardSubTab] = useState(() => {
+    try {
+      const hash = window.location.hash.replace(/^#\/?/, '').trim();
+      if (hash.startsWith('dashboard/')) {
+        const sub = hash.replace('dashboard/', '').split('?')[0].trim();
+        if (['metrics', 'telemetry', 'trends', 'radar', 'diagnostics', 'feedback'].includes(sub)) {
+          return sub;
+        }
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  // Route Scroll Position Preservation (restores exact scroll position on Back navigation)
+  const getRouteScrollKey = (tab, subTab, subSet) => `${tab || ''}|${subTab || ''}|${subSet || ''}`;
+  const getScrollTop = () => {
+    try {
+      const mainEl = document.querySelector('.main-content');
+      const winTop = Math.max(window.scrollY || 0, document.documentElement?.scrollTop || 0, document.body?.scrollTop || 0);
+      const mainTop = mainEl ? mainEl.scrollTop || 0 : 0;
+      return Math.max(winTop, mainTop);
+    } catch {
+      return 0;
+    }
+  };
+  const setScrollTop = (y) => {
+    const target = Math.max(0, Number(y) || 0);
+    try {
+      window.scrollTo({ top: target, left: 0, behavior: 'auto' });
+      if (document.documentElement) document.documentElement.scrollTop = target;
+      if (document.body) document.body.scrollTop = target;
+      const mainEl = document.querySelector('.main-content');
+      if (mainEl && mainEl.scrollHeight > mainEl.clientHeight) {
+        mainEl.scrollTop = target;
+      }
+    } catch { /* ignore */ }
+  };
+
+  const scrollPositionsRef = useRef({});
+  const currentRouteKeyRef = useRef(getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting));
+  const pendingBackActionRef = useRef(false);
+  const scrollLockUntilRef = useRef(0);
+  const routeNavStackRef = useRef([getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting)]);
+
+  // Record user scroll position continuously while settled on the current view
+  useEffect(() => {
+    const handleScrollCapture = () => {
+      if (Date.now() < scrollLockUntilRef.current) return;
+      const key = currentRouteKeyRef.current;
+      if (!key) return;
+      scrollPositionsRef.current[key] = getScrollTop();
+    };
+    window.addEventListener('scroll', handleScrollCapture, { passive: true, capture: true });
+    return () => window.removeEventListener('scroll', handleScrollCapture, { capture: true });
+  }, []);
+
+  // Restore saved scroll position when navigating back; reset cleanly to top on forward navigation
+  useLayoutEffect(() => {
+    const nextKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting);
+    const prevKey = currentRouteKeyRef.current;
+    if (nextKey === prevKey) return;
+
+    scrollLockUntilRef.current = Date.now() + 180;
+    currentRouteKeyRef.current = nextKey;
+
+    const stack = routeNavStackRef.current;
+    const isBackToSubRoot =
+      (prevKey.startsWith('dashboard|') && !prevKey.startsWith('dashboard||') && nextKey === 'dashboard||') ||
+      (prevKey.startsWith('settings|') && !prevKey.startsWith('settings||') && nextKey === 'settings||');
+    const isBackInStack = stack.length >= 2 && stack[stack.length - 2] === nextKey;
+    const shouldRestore = pendingBackActionRef.current || isBackToSubRoot || isBackInStack;
+    pendingBackActionRef.current = false;
+
+    if (isBackInStack) {
+      stack.pop();
+    } else if (stack[stack.length - 1] !== nextKey) {
+      stack.push(nextKey);
+      if (stack.length > 30) stack.shift();
+    }
+
+    if (shouldRestore) {
+      const targetY = scrollPositionsRef.current[nextKey] || 0;
+      const restore = () => setScrollTop(targetY);
+      requestAnimationFrame(() => {
+        restore();
+        requestAnimationFrame(restore);
+      });
+      const timerId = setTimeout(() => {
+        scrollLockUntilRef.current = 0;
+        restore();
+      }, 100);
+      return () => clearTimeout(timerId);
+    }
+
+    setScrollTop(0);
+    const timerId = setTimeout(() => {
+      scrollLockUntilRef.current = 0;
+    }, 100);
+    return () => clearTimeout(timerId);
+  }, [activeTab, activeDashboardSubTab, activeSubSetting]);
 
   // Synchronize sub-settings to localStorage
   useEffect(() => {
@@ -612,13 +711,27 @@ export default function App() {
       if (activeTab !== 'settings') {
         setActiveSubSetting(null);
       }
-      setActiveDashboardSubTab(null);
+      if (activeTab !== 'dashboard') {
+        setActiveDashboardSubTab(null);
+      }
+      if (activeTab !== 'students') {
+        setShowAddModal(false);
+        setShowEditStudentModal(false);
+      }
       prevActiveTabRef.current = activeTab;
     }
   }, [activeTab]);
 
   const handleNavigateBack = useCallback(() => {
     if (playCyberSound) playCyberSound('click');
+    scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+    pendingBackActionRef.current = true;
+    if (activeTab === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) {
+      setShowAddModal(false);
+      setShowEditStudentModal(false);
+      setEditingStudent(null);
+      return;
+    }
     if (activeSubSetting !== null) {
       setActiveSubSetting(null);
       return;
@@ -682,6 +795,7 @@ export default function App() {
     setFeedbacks,
     isLoadingFeedbacks,
     fetchFeedbacks,
+    reviewFeedback,
   } = feedbackState;
 
 
@@ -724,6 +838,8 @@ export default function App() {
   const activeTabRef = useRef(activeTab);
   const activeSubSettingRef = useRef(activeSubSetting);
   const activeDashboardSubTabRef = useRef(activeDashboardSubTab);
+  const showAddModalRef = useRef(false);
+  const showEditStudentModalRef = useRef(false);
   const showFeedbackModalRef = useRef(showFeedbackModal);
   const showPrivacyPolicyRef = useRef(showPrivacyPolicy);
   const showDisputeModalRef = useRef(showDisputeModal);
@@ -788,12 +904,22 @@ export default function App() {
         return;
       }
 
-      // If dashboard sub-tab is open, close it
+      // If student sub-view (Register or Detail) is open, return to Student Directory cleanly
+      if (activeTabRef.current === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) {
+        pendingBackActionRef.current = true;
+        setShowAddModal(false);
+        setShowEditStudentModal(false);
+        setEditingStudent(null);
+        return;
+      }
+
+      // If dashboard sub-tab is open, close it cleanly while preserving scroll position
       if (activeDashboardSubTabRef.current) {
+        pendingBackActionRef.current = true;
         setActiveDashboardSubTab(null);
         return;
       }
-      // Note: tab & sub-setting navigation via browser back/forward is handled by window.onhashchange
+      // Note: tab & sub-setting navigation via browser back/forward is handled by handleHashChange
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -811,7 +937,14 @@ export default function App() {
           const currentSub = activeSubSettingRef.current;
           const currentTab = activeTabRef.current;
 
-          if (currentSub !== null) {
+          if (currentTab === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) {
+            pendingBackActionRef.current = true;
+            setShowAddModal(false);
+            setShowEditStudentModal(false);
+            setEditingStudent(null);
+            playCyberSound('click');
+          } else if (currentSub !== null) {
+            pendingBackActionRef.current = true;
             if (folderItems.includes(currentSub)) {
               setActiveSubSetting('features_folder');
             } else {
@@ -827,6 +960,7 @@ export default function App() {
           } else if (showFallbackModalRef.current) {
             setShowFallbackModal(false);
           } else if (activeDashboardSubTabRef.current) {
+            pendingBackActionRef.current = true;
             setActiveDashboardSubTab(null);
 
           } else if (showFeedbackModalRef.current) {
@@ -834,10 +968,12 @@ export default function App() {
           } else if (showPrivacyPolicyRef.current) {
             setShowPrivacyPolicy(false);
           } else if (tabHistoryRef.current.length > 0) {
+            pendingBackActionRef.current = true;
             const prev = tabHistoryRef.current.pop();
             setActiveTab(prev);
             playCyberSound('click');
           } else if (currentTab !== 'dashboard' && currentTab !== 'student-attendance') {
+            pendingBackActionRef.current = true;
             if (['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(currentTab)) {
               setActiveTab('control');
             } else if (userRoleRef.current === 'student') {
@@ -1845,6 +1981,7 @@ export default function App() {
   // System Health States
   const [systemHealth, setSystemHealth] = useState(null);
   const [apiLatency, setApiLatency] = useState(0);
+  const [serverLatencyMs, setServerLatencyMs] = useState(null);
   const [healthLoading, setHealthLoading] = useState(false);
 
   // Logs UI Upgrade States
@@ -2231,6 +2368,9 @@ export default function App() {
   const [editStudentError, setEditStudentError] = useState('');
   const [editStudentSuccess, setEditStudentSuccess] = useState('');
 
+  useEffect(() => { showAddModalRef.current = showAddModal; }, [showAddModal]);
+  useEffect(() => { showEditStudentModalRef.current = showEditStudentModal; }, [showEditStudentModal]);
+
   // Student Self Edit States
   const [showEditStudentSelfModal, setShowEditStudentSelfModal] = useState(false);
   const [editingStudentSelf, setEditingStudentSelf] = useState({ name: '', phone: '', address: '', gender: 'Male', dob: '' });
@@ -2272,17 +2412,34 @@ export default function App() {
 
 
   // Fetch System Health & Telemetry
-  const fetchSystemHealth = async () => {
+  const fetchSystemHealth = async (options = {}) => {
     if (isDemoMode) return;
+    const isFresh = Boolean(options && options.fresh);
     try {
       const startTime = performance.now();
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      let res = await fetchWithDedupe(`${API_BASE_URL}/health/detailed`, { headers });
+      const detailedUrl = isFresh
+        ? `${API_BASE_URL}/health/detailed?fresh=true&t=${Date.now()}`
+        : `${API_BASE_URL}/health/detailed`;
+      const fetchOpts = isFresh
+        ? { headers, skipCache: true, skipDedupe: true }
+        : { headers };
+      let res = await fetchWithDedupe(detailedUrl, fetchOpts);
       if (!res.ok) {
-        res = await fetchWithDedupe(`${API_BASE_URL}/health/`);
+        const basicUrl = isFresh
+          ? `${API_BASE_URL}/health/?fresh=true&t=${Date.now()}`
+          : `${API_BASE_URL}/health/`;
+        res = await fetchWithDedupe(basicUrl, isFresh ? { skipCache: true, skipDedupe: true } : {});
       }
       const endTime = performance.now();
       setApiLatency(Math.round(endTime - startTime));
+      const serverTimeHdr = res.headers?.get?.('X-Response-Time');
+      if (serverTimeHdr) {
+        const parsedMs = parseFloat(String(serverTimeHdr).replace(/[^0-9.]/g, ''));
+        if (!Number.isNaN(parsedMs)) {
+          setServerLatencyMs(Number(parsedMs.toFixed(1)));
+        }
+      }
       if (res.ok) {
         const data = await res.json();
         setSystemHealth(data);
@@ -2305,6 +2462,7 @@ export default function App() {
         platform: { system: 'OFFLINE', release: 'OFFLINE', python_version: 'OFFLINE' }
       }));
       setApiLatency(-1);
+      setServerLatencyMs(null);
     }
   };
 
@@ -5311,8 +5469,34 @@ export default function App() {
       ]);
 
       setFeedbacks([
-        { id: 1, user_id: 101, user_email: 'aarav@univ.edu', role: 'student', type: 'suggestion', rating: 5, message: 'Robotic scan layout works super smoothly. Loving the new HUD animations!', created_at: new Date().toISOString() },
-        { id: 2, user_id: 1, user_email: 'rksingh@univ.edu', role: 'teacher', type: 'bug', rating: 4, message: 'Geofencing parameters saved successfully. Dim-light accuracy is much improved.', created_at: new Date().toISOString() }
+        {
+          id: 1,
+          user_id: 101,
+          user_email: 'aarav@univ.edu',
+          role: 'student',
+          type: 'suggestion',
+          rating: 5,
+          message: 'Robotic scan layout works super smoothly. Loving the new HUD animations!',
+          status: 'resolved',
+          admin_reply: 'Thanks Aarav! Streamlined Golden OS controls have been enabled across all views.',
+          reviewed_by: 'Admin Master',
+          reviewed_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          user_id: 1,
+          user_email: 'rksingh@univ.edu',
+          role: 'teacher',
+          type: 'bug',
+          rating: 4,
+          message: 'Geofencing parameters saved successfully. Dim-light accuracy is much improved.',
+          status: 'pending',
+          admin_reply: null,
+          reviewed_by: null,
+          reviewed_at: null,
+          created_at: new Date().toISOString()
+        }
       ]);
 
       setActiveTelemetry({
@@ -5432,11 +5616,16 @@ export default function App() {
       return false;
     };
 
-    const handleHashChange = () => {
+    const handleHashChange = (evt) => {
       if (!token || !userRole) return;
+      if (evt && evt.type === 'popstate') {
+        scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+        pendingBackActionRef.current = true;
+      }
       const currentHash = window.location.hash.replace(/^#\/?/, '').trim();
       const baseHash = currentHash.split('/')[0].split('?')[0].trim();
       const subHash = currentHash.includes('/') ? currentHash.split('/')[1].split('?')[0].trim() : null;
+      const validDashSubs = ['metrics', 'telemetry', 'trends', 'radar', 'diagnostics', 'feedback'];
 
       if (baseHash && isTabValidForRole(baseHash, userRole)) {
         if (baseHash !== activeTabRef.current) {
@@ -5447,9 +5636,40 @@ export default function App() {
           if (targetSub !== activeSubSettingRef.current) {
             setActiveSubSetting(targetSub);
           }
+          if (activeDashboardSubTabRef.current !== null) {
+            setActiveDashboardSubTab(null);
+          }
+        } else if (baseHash === 'dashboard') {
+          const targetDashSub = subHash && validDashSubs.includes(subHash) ? subHash : null;
+          if (targetDashSub !== activeDashboardSubTabRef.current) {
+            setActiveDashboardSubTab(targetDashSub);
+          }
+          if (activeSubSettingRef.current !== null) {
+            setActiveSubSetting(null);
+          }
+        } else if (baseHash === 'students') {
+          if (activeSubSettingRef.current !== null) {
+            setActiveSubSetting(null);
+          }
+          if (activeDashboardSubTabRef.current !== null) {
+            setActiveDashboardSubTab(null);
+          }
+          if (!subHash) {
+            if (showAddModalRef.current) setShowAddModal(false);
+            if (showEditStudentModalRef.current) {
+              setShowEditStudentModal(false);
+              setEditingStudent(null);
+            }
+          } else if (subHash === 'register') {
+            setShowEditStudentModal(false);
+            setShowAddModal(true);
+          }
         } else {
           if (activeSubSettingRef.current !== null) {
             setActiveSubSetting(null);
+          }
+          if (activeDashboardSubTabRef.current !== null) {
+            setActiveDashboardSubTab(null);
           }
         }
       } else {
@@ -5459,6 +5679,9 @@ export default function App() {
         }
         if (activeSubSettingRef.current !== null) {
           setActiveSubSetting(null);
+        }
+        if (activeDashboardSubTabRef.current !== null) {
+          setActiveDashboardSubTab(null);
         }
       }
     };
@@ -5471,12 +5694,18 @@ export default function App() {
     };
   }, [token, userRole]);
 
-  // Synchronize React activeTab and activeSubSetting state change to window location hash
+  // Synchronize React activeTab, activeDashboardSubTab, activeSubSetting, and student sub-view to window hash
   useEffect(() => {
     if (token && userRole && activeTab) {
       const expectedHash = activeTab === 'settings' && activeSubSetting
         ? `#/${activeTab}/${activeSubSetting}`
-        : `#/${activeTab}`;
+        : activeTab === 'dashboard' && activeDashboardSubTab
+          ? `#/${activeTab}/${activeDashboardSubTab}`
+          : activeTab === 'students' && showAddModal
+            ? '#/students/register'
+            : activeTab === 'students' && showEditStudentModal && editingStudent?.id
+              ? `#/students/${editingStudent.id}`
+              : `#/${activeTab}`;
       if (window.location.hash !== expectedHash) {
         window.history.pushState(null, '', expectedHash);
       }
@@ -5486,7 +5715,7 @@ export default function App() {
         window.history.replaceState(null, '', window.location.pathname);
       }
     }
-  }, [activeTab, activeSubSetting, token, userRole]);
+  }, [activeTab, activeDashboardSubTab, activeSubSetting, showAddModal, showEditStudentModal, editingStudent?.id, token, userRole]);
 
   useEffect(() => {
     if (!showScannerModal || activeTab !== 'attendance') return;
@@ -5503,7 +5732,18 @@ export default function App() {
     return () => { scannerBackRef.current = null; };
   }, [showScannerModal, activeTab]);
 
+  const setDashboardSubTabPreservingScroll = useCallback((nextSub) => {
+    scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+    setActiveDashboardSubTab(nextSub);
+  }, []);
+
+  const setSubSettingPreservingScroll = useCallback((nextSub) => {
+    scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+    setActiveSubSetting(nextSub);
+  }, []);
+
   const navigateToTab = useCallback((tabId) => {
+    scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
     if (activeTab && activeTab !== tabId && !['login', 'signup'].includes(activeTab)) {
       const historyArr = tabHistoryRef.current;
       if (historyArr[historyArr.length - 1] !== activeTab) {
@@ -5775,15 +6015,21 @@ export default function App() {
     return () => clearInterval(interval);
   }, [token, userRole, activeTab]);
 
-  // System Health telemetry loop (throttled to 60s to prevent backend saturation)
+  // System Health telemetry loop (staggered 900ms on overview load to avoid MySQL connection burst contention; instant on Diagnostics view)
   useEffect(() => {
     if (token && userRole && userRole !== 'student' && activeTab === 'dashboard') {
-      fetchSystemHealth();
+      const delay = activeDashboardSubTabRef.current === 'diagnostics' ? 0 : 900;
+      const bootTimer = setTimeout(() => {
+        fetchSystemHealth();
+      }, delay);
       const interval = setInterval(() => {
         if (document.visibilityState !== 'visible') return;
         fetchSystemHealth();
       }, 60000);
-      return () => clearInterval(interval);
+      return () => {
+        clearTimeout(bootTimer);
+        clearInterval(interval);
+      };
     }
   }, [token, userRole, activeTab]);
 
@@ -6004,8 +6250,34 @@ export default function App() {
     ]);
 
     setFeedbacks([
-      { id: 1, user_id: 101, user_email: 'aarav@univ.edu', role: 'student', type: 'suggestion', rating: 5, message: 'Robotic scan layout works super smoothly. Loving the new HUD animations!', created_at: new Date().toISOString() },
-      { id: 2, user_id: 1, user_email: 'rksingh@univ.edu', role: 'teacher', type: 'bug', rating: 4, message: 'Geofencing parameters saved successfully. Dim-light accuracy is much improved.', created_at: new Date().toISOString() }
+      {
+        id: 1,
+        user_id: 101,
+        user_email: 'aarav@univ.edu',
+        role: 'student',
+        type: 'suggestion',
+        rating: 5,
+        message: 'Robotic scan layout works super smoothly. Loving the new HUD animations!',
+        status: 'resolved',
+        admin_reply: 'Thanks Aarav! Streamlined Golden OS controls have been enabled across all views.',
+        reviewed_by: 'Admin Master',
+        reviewed_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        user_id: 1,
+        user_email: 'rksingh@univ.edu',
+        role: 'teacher',
+        type: 'bug',
+        rating: 4,
+        message: 'Geofencing parameters saved successfully. Dim-light accuracy is much improved.',
+        status: 'pending',
+        admin_reply: null,
+        reviewed_by: null,
+        reviewed_at: null,
+        created_at: new Date().toISOString()
+      }
     ]);
 
     setActiveTelemetry({
@@ -7994,7 +8266,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -8029,7 +8301,9 @@ export default function App() {
                     if (activeDashboardSubTab === 'feedback') return 'User Feedback';
                     return userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard';
                   })()}
-                  {activeTab === 'students' && 'Student Directory'}
+                  {activeTab === 'students' && (
+                    showAddModal ? 'Register Student' : (showEditStudentModal && editingStudent ? editingStudent.name : 'Student Directory')
+                  )}
                   {activeTab === 'teachers' && 'Teacher Directory'}
                   {activeTab === 'logs' && 'Attendance Logs'}
                   {activeTab === 'attendance' && 'Take Attendance'}
@@ -8218,14 +8492,6 @@ export default function App() {
                 Sign Out
               </button>
             )}
-            {activeTab === 'students' && (
-              <StudentsDirectoryHeaderAction
-                serverWarmingUp={serverWarmingUp}
-                subjects={subjects}
-                setNewStudent={setNewStudent}
-                setShowAddModal={setShowAddModal}
-              />
-            )}
             {activeTab === 'logs' && (
               <AttendanceRegistersHeaderAction
                 exportToCSV={exportToCSV}
@@ -8328,7 +8594,7 @@ export default function App() {
               fetchStats={fetchStats}
               fetchLogs={fetchLogs}
               activeDashboardSubTab={activeDashboardSubTab}
-              setActiveDashboardSubTab={setActiveDashboardSubTab}
+              setActiveDashboardSubTab={setDashboardSubTabPreservingScroll}
               subjects={subjects}
               schedules={schedules}
               dashboardRecentLogs={dashboardRecentLogs}
@@ -8371,11 +8637,14 @@ export default function App() {
               neuralMeshCanvasRef={neuralMeshCanvasRef}
               systemHealth={systemHealth}
               apiLatency={apiLatency}
+              serverLatencyMs={serverLatencyMs}
               healthLoading={healthLoading}
               setHealthLoading={setHealthLoading}
               fetchSystemHealth={fetchSystemHealth}
               isLoadingFeedbacks={isLoadingFeedbacks}
               feedbacks={feedbacks}
+              reviewFeedback={reviewFeedback}
+              fetchFeedbacks={fetchFeedbacks}
             />
           )
         )}
@@ -8394,12 +8663,27 @@ export default function App() {
             handleDeleteStudent={handleDeleteStudent}
             setCaptureStudent={setCaptureStudent}
             setShowWebcamModal={setShowWebcamModal}
+            editingStudent={editingStudent}
             setEditingStudent={setEditingStudent}
+            showEditStudentModal={showEditStudentModal}
             setShowEditStudentModal={setShowEditStudentModal}
+            handleUpdateStudent={handleUpdateStudent}
+            editStudentError={editStudentError}
+            setEditStudentError={setEditStudentError}
+            editStudentSuccess={editStudentSuccess}
+            setEditStudentSuccess={setEditStudentSuccess}
             serverWarmingUp={serverWarmingUp}
             subjects={subjects}
+            newStudent={newStudent}
             setNewStudent={setNewStudent}
+            showAddModal={showAddModal}
             setShowAddModal={setShowAddModal}
+            handleAddStudent={handleAddStudent}
+            formError={formError}
+            setFormError={setFormError}
+            studentError={studentError}
+            setStudentError={setStudentError}
+            isSubmittingStudent={isSubmittingStudent}
             isMobileView={isMobileView}
           />
         )}
@@ -8620,7 +8904,7 @@ export default function App() {
             {activeSubSetting === null ? (
               <SettingsDirectoryHub
                 openTeachers={() => navigateToTab('teachers')}
-                setActiveSubSetting={setActiveSubSetting}
+                setActiveSubSetting={setSubSettingPreservingScroll}
                 playCyberSound={playCyberSound}
                 userRole={userRole}
                 currentUser={currentUser}
@@ -8713,7 +8997,7 @@ export default function App() {
                   updateActive: updateActiveFlag,
                   latestVersion: serverLatestVersion,
                 }}
-                onNavigateSettings={(sub) => setActiveSubSetting(sub)}
+                onNavigateSettings={(sub) => setSubSettingPreservingScroll(sub)}
               />
             )}
 
@@ -8983,8 +9267,6 @@ export default function App() {
             selfieError={selfieError}
             selfieSuccess={selfieSuccess}
             hudMetrics={hudMetrics}
-            setShowEditStudentSelfModal={setShowEditStudentSelfModal}
-            setShowEditTeacherSelfModal={setShowEditTeacherSelfModal}
             oldPassword={oldPassword}
             setOldPassword={setOldPassword}
             newPassword={newPassword}
@@ -9017,232 +9299,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Add Student Modal */}
-      {showEditStudentModal && editingStudent && (
-        <div className="modal-overlay" style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100050, overflowY: 'auto', padding: '40px 16px', display: 'block' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '32px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px', color: '#25231f' }}>Edit Student Profile</h3>
-            
-            {editStudentError && (
-              <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
-                <AlertCircle size={16} />
-                <span>{editStudentError}</span>
-              </div>
-            )}
-
-            {editStudentSuccess && (
-              <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', color: '#10b981', fontSize: '0.875rem', marginBottom: '20px' }}>
-                <CheckCircle2 size={16} />
-                <span>{editStudentSuccess}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleUpdateStudent}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Student ID (Cannot change)</label>
-                  <input 
-                    type="number" 
-                    className="form-input" 
-                    value={editingStudent.id}
-                    disabled
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Roll Number</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={editingStudent.roll}
-                    onChange={e => setEditingStudent({...editingStudent, roll: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Full Name</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={editingStudent.name}
-                  onChange={e => setEditingStudent({...editingStudent, name: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Department</label>
-                  <select 
-                    className="form-input"
-                    value={editingStudent.dep}
-                    onChange={e => setEditingStudent({...editingStudent, dep: e.target.value})}
-                  >
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Course</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={editingStudent.course}
-                    onChange={e => setEditingStudent({...editingStudent, course: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Year</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={editingStudent.year}
-                    onChange={e => setEditingStudent({...editingStudent, year: e.target.value})}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Semester</label>
-                  <select 
-                    className="form-input"
-                    value={editingStudent.semester}
-                    onChange={e => setEditingStudent({...editingStudent, semester: e.target.value})}
-                  >
-                    <option value="1st">1st</option>
-                    <option value="2nd">2nd</option>
-                    <option value="3rd">3rd</option>
-                    <option value="4th">4th</option>
-                    <option value="5th">5th</option>
-                    <option value="6th">6th</option>
-                    <option value="7th">7th</option>
-                    <option value="8th">8th</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Email Address</label>
-                  <input 
-                    type="email" 
-                    className="form-input" 
-                    value={editingStudent.email}
-                    onChange={e => setEditingStudent({...editingStudent, email: e.target.value})}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Phone Number</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={editingStudent.phone}
-                    onChange={e => setEditingStudent({...editingStudent, phone: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Gender</label>
-                  <select 
-                    className="form-input"
-                    value={editingStudent.gender}
-                    onChange={e => setEditingStudent({...editingStudent, gender: e.target.value})}
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Date of Birth</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="e.g. 15/08/2005"
-                    value={editingStudent.dob}
-                    onChange={e => setEditingStudent({...editingStudent, dob: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Home Address</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={editingStudent.address}
-                  onChange={e => setEditingStudent({...editingStudent, address: e.target.value})}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Assigned Teacher</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={editingStudent.teacher}
-                    onChange={e => setEditingStudent({...editingStudent, teacher: e.target.value})}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Update Password (Leave blank to keep same)</label>
-                  <input 
-                    type="password" 
-                    className="form-input" 
-                    placeholder="Set new student password"
-                    autoComplete="new-password"
-                    value={editingStudent.password || ''}
-                    onChange={e => setEditingStudent({...editingStudent, password: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              {/* Biometric Multi-Modal Enrollment Control */}
-              <div style={{ marginTop: '24px', padding: '18px', background: 'rgba(0, 242, 254, 0.05)', border: '1px solid rgba(0, 242, 254, 0.2)', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#00f2fe' }}>
-                    🛡️ Biometric Security Credentials (Face ID)
-                  </span>
-                  <span style={{ fontSize: '0.72rem', background: 'rgba(0, 242, 254, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '8px' }}>
-                    FACE BIOMETRIC ACTIVE
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-                  <button
-                    type="button"
-                    onClick={() => { setShowEditStudentModal(false); navigateToTab('attendance'); playCyberSound('click'); }}
-                    style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  >
-                    📸 Scan & Update Face ID
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '32px' }}>
-                <button type="button" onClick={() => { setShowEditStudentModal(false); setEditingStudent(null); }} className="btn-secondary" style={{ padding: '12px 24px', borderRadius: '8px' }}>
-                  Cancel
-                </button>
-                <button type="submit" className="bg-gradient-btn" style={{ padding: '12px 32px', borderRadius: '8px', fontWeight: 600 }}>
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Dedicated student edit & registration pages now render inline inside StudentsDirectoryView */}
 
       {/* Edit Student Self Modal */}
       {showEditStudentSelfModal && editingStudentSelf && (
@@ -9443,209 +9500,6 @@ export default function App() {
                 </button>
                 <button type="submit" className="bg-gradient-btn" style={{ padding: '12px 32px', borderRadius: '8px', fontWeight: 600 }}>
                   Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showAddModal && (
-        <div className="student-enrolment-page">
-          <div className="enrolment-sheet">
-            <h2>Register student</h2>
-            {(formError || studentError) && (
-              <div className="flex-center" style={{ gap: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.875rem', marginBottom: '20px' }}>
-                <AlertCircle size={16} />
-                <span>{formError || studentError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAddStudent}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Student ID</label>
-                  <input 
-                    type="number" 
-                    className="form-input" 
-                    value={newStudent.id}
-                    onChange={e => setNewStudent({...newStudent, id: e.target.value})}
-                    placeholder="e.g. 1" 
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Roll Number</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={newStudent.roll}
-                    onChange={e => setNewStudent({...newStudent, roll: e.target.value})}
-                    placeholder="e.g. CS2026-001" 
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Full Name</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={newStudent.name}
-                  onChange={e => setNewStudent({...newStudent, name: e.target.value})}
-                  placeholder="e.g. Raj Kumar" 
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Department</label>
-                  <select 
-                    className="form-input"
-                    value={newStudent.dep}
-                    onChange={e => setNewStudent({...newStudent, dep: e.target.value})}
-                  >
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Course</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={newStudent.course}
-                    onChange={e => setNewStudent({...newStudent, course: e.target.value})}
-                    placeholder="e.g. B.Tech"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Year</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={newStudent.year}
-                    onChange={e => setNewStudent({...newStudent, year: e.target.value})}
-                    placeholder="e.g. 2026"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Semester</label>
-                  <select 
-                    className="form-input"
-                    value={newStudent.semester}
-                    onChange={e => setNewStudent({...newStudent, semester: e.target.value})}
-                  >
-                    <option value="1st">1st</option>
-                    <option value="2nd">2nd</option>
-                    <option value="3rd">3rd</option>
-                    <option value="4th">4th</option>
-                    <option value="5th">5th</option>
-                    <option value="6th">6th</option>
-                    <option value="7th">7th</option>
-                    <option value="8th">8th</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Gender</label>
-                  <select 
-                    className="form-input"
-                    value={newStudent.gender}
-                    onChange={e => setNewStudent({...newStudent, gender: e.target.value})}
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Date of Birth</label>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={newStudent.dob}
-                    onChange={e => setNewStudent({...newStudent, dob: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input 
-                    type="email" 
-                    className="form-input" 
-                    value={newStudent.email}
-                    onChange={e => setNewStudent({...newStudent, email: e.target.value})}
-                    placeholder="e.g. student@gmail.com"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Phone</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={newStudent.phone}
-                    onChange={e => setNewStudent({...newStudent, phone: e.target.value})}
-                    placeholder="e.g. 9876543210"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Teacher Guide</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={newStudent.teacher}
-                  onChange={e => setNewStudent({...newStudent, teacher: e.target.value})}
-                  placeholder="e.g. Dr. A.K. Sharma"
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '32px' }}>
-                <label className="form-label">Address</label>
-                <textarea 
-                  className="form-input" 
-                  rows="2"
-                  value={newStudent.address}
-                  onChange={e => setNewStudent({...newStudent, address: e.target.value})}
-                  placeholder="e.g. Hostels Block-A, Campus"
-                />
-              </div>
-
-              <div className="flex-between" style={{ gap: '16px' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary" style={{ flex: 1 }}>
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmittingStudent}
-                  className="bg-gradient-btn" 
-                  style={{ 
-                    flex: 1, 
-                    padding: '12px 20px', 
-                    borderRadius: '8px',
-                    cursor: isSubmittingStudent ? 'not-allowed' : 'pointer',
-                    opacity: isSubmittingStudent ? 0.75 : 1
-                  }}
-                >
-                  {isSubmittingStudent ? '⏳ Registering Student...' : 'Register'}
                 </button>
               </div>
             </form>

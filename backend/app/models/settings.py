@@ -56,6 +56,10 @@ class Feedback(Base):
     type = Column(String(50)) # 'bug', 'suggestion', 'general'
     message = Column(Text, nullable=False)
     rating = Column(Integer, default=5)
+    status = Column(String(30), default="pending", index=True) # 'pending', 'reviewed', 'resolved'
+    admin_reply = Column(Text, nullable=True)
+    reviewed_by = Column(String(120), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

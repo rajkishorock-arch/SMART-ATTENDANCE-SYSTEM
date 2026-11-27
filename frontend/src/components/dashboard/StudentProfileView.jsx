@@ -292,20 +292,16 @@ export default function StudentProfileView({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1200px', margin: '0 auto', fontFamily: "'Inter', sans-serif" }}>
+    <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: "'Inter', sans-serif" }}>
       
       {/* Top Hero Profile Banner */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e4dfd5',
-        borderRadius: '20px',
-        padding: '32px',
-        boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
+      <div className="golden-os-window" style={{
+        padding: '22px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '24px'
+        gap: '18px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           {/* Avatar with Camera Overlay */}
@@ -507,18 +503,14 @@ export default function StudentProfileView({
       )}
 
       {/* Main Two-Column Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }}>
+      <div className="golden-os-profile-grid">
         
         {/* Left Column: Profile Information or Edit Form */}
-        <div style={{
-          background: '#ffffff',
-          border: '1px solid #e4dfd5',
-          borderRadius: '18px',
-          padding: '28px',
-          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
+        <div className="golden-os-window" style={{
+          padding: '22px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px'
+          gap: '18px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e4dfd5', paddingBottom: '14px' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -860,36 +852,32 @@ export default function StudentProfileView({
         </div>
 
         {/* Right Column: Security, Password & Camera/Preferences */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           
           {/* Change Password Card */}
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #e4dfd5',
-            borderRadius: '18px',
-            padding: '28px',
-            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)'
-          }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#25231f', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Lock size={18} color="#e11d48" />
+          <div className="golden-os-window" style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#2b2112', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Lock size={17} color="#b91c1c" />
               <span>Change Account Password</span>
             </h3>
 
             {passwordChangeError && (
-              <div style={{ padding: '10px 14px', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '8px', color: '#9f1239', fontSize: '0.82rem', marginBottom: '16px' }}>
-                ❌ {passwordChangeError}
+              <div className="feedback-banner is-error" style={{ marginBottom: '12px' }}>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{passwordChangeError}</span>
               </div>
             )}
 
             {passwordChangeSuccess && (
-              <div style={{ padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', color: '#065f46', fontSize: '0.82rem', marginBottom: '16px' }}>
-                ✅ {passwordChangeSuccess}
+              <div className="feedback-banner is-success" style={{ marginBottom: '12px' }}>
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{passwordChangeSuccess}</span>
               </div>
             )}
 
-            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '5px' }}>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#5c4b30', display: 'block', marginBottom: '5px' }}>
                   {userRole === 'student' ? 'Current Password / Default Roll No' : 'Current Password'}
                 </label>
                 <input
@@ -898,22 +886,13 @@ export default function StudentProfileView({
                   value={oldPassword}
                   onChange={e => setOldPassword(e.target.value)}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cfc8ba',
-                    color: '#25231f',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
+                  className="form-input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '5px' }}>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#5c4b30', display: 'block', marginBottom: '5px' }}>
                   New Password (min 6 characters)
                 </label>
                 <input
@@ -922,22 +901,13 @@ export default function StudentProfileView({
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cfc8ba',
-                    color: '#25231f',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
+                  className="form-input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '5px' }}>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#5c4b30', display: 'block', marginBottom: '5px' }}>
                   Confirm New Password
                 </label>
                 <input
@@ -946,90 +916,100 @@ export default function StudentProfileView({
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cfc8ba',
-                    color: '#25231f',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
+                  className="form-input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isChangingPassword}
+                className="golden-os-primary-action"
                 style={{
-                  marginTop: '6px',
+                  marginTop: '4px',
                   width: '100%',
                   padding: '11px',
-                  borderRadius: '10px',
-                  background: '#25231f',
-                  border: 'none',
-                  color: '#ffffff',
+                  borderRadius: '11px',
                   fontSize: '0.86rem',
                   fontWeight: 700,
                   cursor: isChangingPassword ? 'not-allowed' : 'pointer',
                   opacity: isChangingPassword ? 0.7 : 1
                 }}
               >
-                {isChangingPassword ? 'Updating Password...' : 'Update Password'}
+                <span>{isChangingPassword ? 'Updating Password...' : 'Update Password'}</span>
               </button>
             </form>
           </div>
 
-          {/* Student Biometric Registration Card */}
+          {/* Student Biometric Registration Card (Mirrored Live Camera + Clean Spacing) */}
           {userRole === 'student' && (
-            <div style={{
-              background: '#ffffff',
-              border: '1px solid #e4dfd5',
-              borderRadius: '18px',
-              padding: '28px',
-              boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)'
-            }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#25231f', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Camera size={18} color="#80602c" />
-                <span>Biometric Face Recognition Profile</span>
+            <div className="golden-os-window" style={{ padding: '20px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#2b2112', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Camera size={18} color="#8b6525" />
+                <span>Biometric Face Profile</span>
               </h3>
-              <p style={{ color: '#696358', fontSize: '0.8rem', margin: '0 0 16px 0', lineHeight: 1.45 }}>
-                Register or refresh your 128-D face embedding vector using real-time quality verification.
+              <p style={{ color: '#6b5b3e', fontSize: '0.78rem', margin: '0 0 14px 0', lineHeight: 1.45 }}>
+                Center your face inside the mirrored camera view to register or update Face ID.
               </p>
 
               {selfieError && (
-                <div style={{ padding: '10px 14px', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '8px', color: '#9f1239', fontSize: '0.82rem', marginBottom: '14px' }}>
-                  ❌ {selfieError}
+                <div className="feedback-banner is-error" style={{ marginBottom: '12px' }}>
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{selfieError}</span>
                 </div>
               )}
 
               {selfieSuccess && (
-                <div style={{ padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', color: '#065f46', fontSize: '0.82rem', marginBottom: '14px' }}>
-                  ✅ {selfieSuccess}
+                <div className="feedback-banner is-success" style={{ marginBottom: '12px' }}>
+                  <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{selfieSuccess}</span>
                 </div>
               )}
 
               {(studentWebcamActive || studentWebcamBootActive) ? (
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <div style={{ position: 'relative', width: '100%', maxWidth: '360px', margin: '0 auto', aspectRatio: '4/3', background: '#25231f', borderRadius: '12px', overflow: 'hidden' }}>
-                    <video ref={studentVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+                  <div className="golden-os-camera-frame">
+                    <video
+                      ref={studentVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      onPlaying={handleStudentWebcamBootComplete}
+                      style={{ transform: 'scaleX(-1)' }}
+                    />
+                    <div className="enroll-guide" aria-hidden="true" />
                     <canvas ref={studentCanvasRef} style={{ display: 'none' }} />
                   </div>
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '12px' }}>
+                  <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '360px', flexWrap: 'wrap' }}>
                     <button
                       type="button"
                       onClick={handleStudentWebcamCapture}
                       disabled={isUploadingSelfie}
-                      style={{ padding: '10px 20px', borderRadius: '8px', background: '#059669', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+                      style={{
+                        flex: '2 1 160px',
+                        padding: '11px 16px',
+                        borderRadius: '11px',
+                        background: 'linear-gradient(135deg, #059669, #047857)',
+                        color: '#ffffff',
+                        border: 'none',
+                        fontSize: '0.86rem',
+                        fontWeight: 700,
+                        cursor: isUploadingSelfie ? 'not-allowed' : 'pointer',
+                        opacity: isUploadingSelfie ? 0.7 : 1
+                      }}
                     >
-                      {isUploadingSelfie ? 'Validating...' : 'Capture & Save Face'}
+                      {isUploadingSelfie ? 'Validating Face...' : 'Capture & Save Face'}
                     </button>
                     <button
                       type="button"
                       onClick={stopStudentWebcam}
-                      style={{ padding: '10px 16px', borderRadius: '8px', background: '#f4f1eb', color: '#58534a', border: '1px solid #cfc8ba', fontWeight: 600, cursor: 'pointer' }}
+                      className="golden-os-feedback-filter-btn"
+                      style={{
+                        flex: '1 1 90px',
+                        padding: '11px 14px',
+                        borderRadius: '11px',
+                        fontSize: '0.84rem'
+                      }}
                     >
                       Cancel
                     </button>
@@ -1040,20 +1020,14 @@ export default function StudentProfileView({
                   <button
                     type="button"
                     onClick={startStudentWebcam}
+                    className="golden-os-primary-action"
                     style={{
                       flex: 1,
                       padding: '12px',
-                      borderRadius: '10px',
-                      background: '#80602c',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontSize: '0.84rem',
+                      borderRadius: '11px',
+                      fontSize: '0.86rem',
                       fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
+                      gap: '7px'
                     }}
                   >
                     <Video size={16} />
@@ -1065,13 +1039,7 @@ export default function StudentProfileView({
           )}
 
           {/* Preferences Card */}
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #e4dfd5',
-            borderRadius: '18px',
-            padding: '24px',
-            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)'
-          }}>
+          <div className="golden-os-window" style={{ padding: '20px' }}>
             <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#25231f', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Sliders size={16} color="#696358" />
               <span>Interface & Audio Preferences</span>

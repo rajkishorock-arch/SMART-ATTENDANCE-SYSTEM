@@ -3,12 +3,42 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from . import security, models
 from sqlalchemy import text
+import platform
 import time
 import os
 
 router = APIRouter()
 
 START_TIME = time.time()
+_MODEL_STATUS_CACHE = {"ts": 0.0, "data": None}
+_PUBLIC_HEALTH_CACHE = {"ts": 0.0, "data": None}
+_DETAILED_HEALTH_CACHE = {"ts": 0.0, "db_type": None, "data": None}
+_SYSTEM_PLATFORM_INFO = {
+    "system": platform.system(),
+    "release": platform.release(),
+    "python_version": platform.python_version(),
+}
+
+
+def _get_model_status() -> dict:
+    """Cache static ONNX model existence checks for 60s to avoid repeated disk stats."""
+    now = time.time()
+    if _MODEL_STATUS_CACHE["data"] is not None and (now - _MODEL_STATUS_CACHE["ts"]) < 60.0:
+        return _MODEL_STATUS_CACHE["data"]
+
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    backend_dir = os.path.dirname(app_dir)
+    models_dir = os.path.join(backend_dir, "models")
+    yunet_exists = os.path.exists(os.path.join(models_dir, "face_detection_yunet_2023mar.onnx"))
+    sface_exists = os.path.exists(os.path.join(models_dir, "face_recognition_sface_2021dec.onnx"))
+    data = {
+        "yunet": "READY" if yunet_exists else "MISSING",
+        "sface": "READY" if sface_exists else "MISSING",
+        "all_ready": yunet_exists and sface_exists,
+    }
+    _MODEL_STATUS_CACHE["ts"] = now
+    _MODEL_STATUS_CACHE["data"] = data
+    return data
 
 
 @router.get("/ping")
@@ -18,8 +48,12 @@ def ping():
 
 
 @router.get("/")
-def get_system_health(db: Session = Depends(get_db)):
-    """Public health check — minimal info only."""
+def get_system_health(db: Session = Depends(get_db), fresh: bool = False):
+    """Public health check — short 5s cache unless fresh=true to eliminate redundant DB round-trips."""
+    now = time.time()
+    if not fresh and _PUBLIC_HEALTH_CACHE["data"] is not None and (now - _PUBLIC_HEALTH_CACHE["ts"]) < 5.0:
+        return _PUBLIC_HEALTH_CACHE["data"]
+
     db_connected = False
     db_type = "unknown"
     try:
@@ -30,36 +64,49 @@ def get_system_health(db: Session = Depends(get_db)):
     except Exception:
         pass
 
-    app_dir = os.path.dirname(os.path.abspath(__file__))
-    backend_dir = os.path.dirname(app_dir)
-    models_dir = os.path.join(backend_dir, "models")
-    yunet_exists = os.path.exists(os.path.join(models_dir, "face_detection_yunet_2023mar.onnx"))
-    sface_exists = os.path.exists(os.path.join(models_dir, "face_recognition_sface_2021dec.onnx"))
-
-    healthy = db_connected and yunet_exists and sface_exists
-    return {
+    model_state = _get_model_status()
+    healthy = db_connected and model_state["all_ready"]
+    payload = {
         "status": "HEALTHY" if healthy else "DEGRADED",
         "database": "CONNECTED" if db_connected else "DISCONNECTED",
         "database_type": db_type,
         "models": {
-            "yunet": "READY" if yunet_exists else "MISSING",
-            "sface": "READY" if sface_exists else "MISSING",
+            "yunet": model_state["yunet"],
+            "sface": model_state["sface"],
         },
     }
+    _PUBLIC_HEALTH_CACHE["ts"] = now
+    _PUBLIC_HEALTH_CACHE["data"] = payload
+    return payload
 
 
 @router.get("/detailed")
 def get_detailed_health(
+    fresh: bool = False,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
 ):
-    """Detailed telemetry for authenticated admins/teachers only."""
+    """Detailed telemetry for authenticated admins/teachers only.
+    Reuses the live DB session verified by get_current_user instead of running a duplicate SELECT 1 round-trip.
+    """
     if current_user.role not in ["admin", "teacher"]:
-        from fastapi import HTTPException, status
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions.")
 
-    import platform
-    uptime = int(time.time() - START_TIME)
+    db_type = db.bind.dialect.name if (db.bind and db.bind.dialect) else "unknown"
+    now = time.time()
+    if (
+        not fresh
+        and _DETAILED_HEALTH_CACHE["data"] is not None
+        and _DETAILED_HEALTH_CACHE["db_type"] == db_type
+        and (now - _DETAILED_HEALTH_CACHE["ts"]) < 5.0
+    ):
+        cached = dict(_DETAILED_HEALTH_CACHE["data"])
+        cached_metrics = dict(cached["metrics"])
+        cached_metrics["uptime_seconds"] = int(now - START_TIME)
+        cached["metrics"] = cached_metrics
+        return cached
+
+    uptime = int(now - START_TIME)
     cpu_usage = 15.0
     memory_usage = 45.0
     try:
@@ -67,27 +114,21 @@ def get_detailed_health(
         cpu_usage = psutil.cpu_percent(interval=None) or 15.0
         memory_usage = psutil.virtual_memory().percent
     except ImportError:
-        t = time.time()
-        cpu_usage = round(15.0 + 8.5 * (t % 7) / 7.0, 1)
-        memory_usage = round(42.0 + 4.5 * (t % 11) / 11.0, 1)
+        cpu_usage = round(15.0 + 8.5 * (now % 7) / 7.0, 1)
+        memory_usage = round(42.0 + 4.5 * (now % 11) / 11.0, 1)
 
-    db_connected = False
-    db_type = "unknown"
-    try:
-        db.execute(text("SELECT 1"))
-        db_connected = True
-        if db.bind and db.bind.dialect:
-            db_type = db.bind.dialect.name
-    except Exception:
-        pass
+    # get_current_user already queried the database on this request; avoid a second cloud MySQL SELECT 1
+    db_connected = True
+    if db_type == "unknown":
+        try:
+            db.execute(text("SELECT 1"))
+            if db.bind and db.bind.dialect:
+                db_type = db.bind.dialect.name
+        except Exception:
+            db_connected = False
 
-    app_dir = os.path.dirname(os.path.abspath(__file__))
-    backend_dir = os.path.dirname(app_dir)
-    models_dir = os.path.join(backend_dir, "models")
-    yunet_exists = os.path.exists(os.path.join(models_dir, "face_detection_yunet_2023mar.onnx"))
-    sface_exists = os.path.exists(os.path.join(models_dir, "face_recognition_sface_2021dec.onnx"))
-
-    return {
+    model_state = _get_model_status()
+    payload = {
         "status": "HEALTHY" if db_connected else "DEGRADED",
         "database": "CONNECTED" if db_connected else "DISCONNECTED",
         "database_type": db_type,
@@ -96,16 +137,16 @@ def get_detailed_health(
             "memory_percent": memory_usage,
             "uptime_seconds": uptime,
         },
-        "platform": {
-            "system": platform.system(),
-            "release": platform.release(),
-            "python_version": platform.python_version(),
-        },
+        "platform": _SYSTEM_PLATFORM_INFO,
         "models": {
-            "yunet": "READY" if yunet_exists else "MISSING",
-            "sface": "READY" if sface_exists else "MISSING",
+            "yunet": model_state["yunet"],
+            "sface": model_state["sface"],
         },
     }
+    _DETAILED_HEALTH_CACHE["ts"] = now
+    _DETAILED_HEALTH_CACHE["db_type"] = db_type
+    _DETAILED_HEALTH_CACHE["data"] = payload
+    return payload
 
 
 @router.post("/test-smtp")

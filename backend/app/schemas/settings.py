@@ -94,6 +94,11 @@ class FeedbackCreate(BaseModel):
     rating: int
 
 
+class FeedbackReviewUpdate(BaseModel):
+    status: str = "reviewed"
+    admin_reply: Optional[str] = None
+
+
 class FeedbackResponse(_OrmBase):
     id: int
     user_id: Optional[int] = None
@@ -102,7 +107,11 @@ class FeedbackResponse(_OrmBase):
     type: str
     message: str
     rating: int
+    status: str = "pending"
+    admin_reply: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
     created_at: datetime
 
 
-__all__ = ['SystemSettingsBase', 'SystemSettingsUpdate', 'SystemSettingsResponse', 'ReleaseUpdatePayload', 'ToggleUpdatePayload', 'ToggleBetaPayload', 'TriggerBuildPayload', 'BuildCallbackPayload', 'FeedbackCreate', 'FeedbackResponse']
+__all__ = ['SystemSettingsBase', 'SystemSettingsUpdate', 'SystemSettingsResponse', 'ReleaseUpdatePayload', 'ToggleUpdatePayload', 'ToggleBetaPayload', 'TriggerBuildPayload', 'BuildCallbackPayload', 'FeedbackCreate', 'FeedbackReviewUpdate', 'FeedbackResponse']

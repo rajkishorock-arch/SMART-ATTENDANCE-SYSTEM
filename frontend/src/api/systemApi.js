@@ -125,10 +125,24 @@ export const systemApi = {
   },
 
   /**
+   * Fetch feedback submissions created by the current user (/feedbacks/mine)
+   */
+  async fetchMyFeedbacks(token) {
+    return apiGet('/feedbacks/mine', { token });
+  },
+
+  /**
    * Submit user feedback (/feedbacks/)
    */
   async submitFeedback(token, feedbackData) {
     return apiPost('/feedbacks/', feedbackData, { token });
+  },
+
+  /**
+   * Review & reply to user feedback (Admin only: /feedbacks/{id}/review)
+   */
+  async reviewFeedback(token, feedbackId, reviewData) {
+    return apiPut(`/feedbacks/${feedbackId}/review`, reviewData, { token });
   },
 
   /**

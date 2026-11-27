@@ -5,7 +5,8 @@
 import { getApiBaseUrl } from './platform';
 
 const API_BASE_URL = getApiBaseUrl();
-const PING_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
+const PING_INTERVAL_MS = 90 * 1000; // 90 seconds keep-alive while active
+const VISIBILITY_PING_THRESHOLD_MS = 60 * 1000; // Re-warm if hidden >= 60s
 
 let isInitialized = false;
 
@@ -37,9 +38,9 @@ export function initKeepAliveEngine() {
     }
   }, PING_INTERVAL_MS);
 
-  // 3. Throttle ping on tab visibility change (only if > 3 minutes since last ping)
+  // 3. Throttle ping on tab visibility change (only if hidden >= threshold)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && (Date.now() - lastPingTime > 3 * 60 * 1000)) {
+    if (document.visibilityState === 'visible' && (Date.now() - lastPingTime > VISIBILITY_PING_THRESHOLD_MS)) {
       pingServer();
       lastPingTime = Date.now();
     }

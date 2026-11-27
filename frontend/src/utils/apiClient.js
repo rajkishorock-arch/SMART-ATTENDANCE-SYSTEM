@@ -29,8 +29,14 @@ function getEndpointTtl(url, options = {}) {
   }
 
   // Frequently queried setting/metadata endpoints
-  if (url.includes('/departments') || url.includes('/institutions') || url.includes('/settings') || url.includes('/premium/status')) {
+  if (url.includes('/departments') || url.includes('/institutions') || url.includes('/settings') || url.includes('/premium/status') || url.includes('/schedules')) {
     return 45000; // 45 seconds
+  }
+  if (url.includes('/feedbacks')) {
+    return 25000; // 25 seconds
+  }
+  if (url.includes('/auth/active-users')) {
+    return 15000; // 15 seconds
   }
   if (url.includes('/health')) {
     return 15000; // 15 seconds

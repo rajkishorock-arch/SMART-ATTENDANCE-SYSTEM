@@ -19,7 +19,7 @@ from app.schemas.attendance import AttendanceBase, AttendanceCreate, Attendance,
 from app.schemas.qr import FallbackSessionCreate, FallbackSessionResponse, ActiveRollingTokenResponse, ClaimQrPayload, ClaimPinPayload, FallbackClaimResult
 from app.schemas.leave import LeaveRequestBase, LeaveRequestCreate, LeaveRequestResponse, LeaveStatusUpdate
 from app.schemas.audit import AuditLogCreate, AuditLogResponse
-from app.schemas.settings import SystemSettingsBase, SystemSettingsUpdate, SystemSettingsResponse, ReleaseUpdatePayload, ToggleUpdatePayload, ToggleBetaPayload, TriggerBuildPayload, BuildCallbackPayload, FeedbackCreate, FeedbackResponse
+from app.schemas.settings import SystemSettingsBase, SystemSettingsUpdate, SystemSettingsResponse, ReleaseUpdatePayload, ToggleUpdatePayload, ToggleBetaPayload, TriggerBuildPayload, BuildCallbackPayload, FeedbackCreate, FeedbackReviewUpdate, FeedbackResponse
 from app.schemas.device import AttendanceDeviceBase, AttendanceDeviceCreate, AttendanceDeviceUpdate, AttendanceDeviceResponse, DeviceHeartbeatPayload, DeviceFleetSummary
 from app.schemas.calendar import CalendarEventBase, CalendarEventCreate, CalendarEventUpdate, CalendarEventResponse, ClassCancellationPayload, SubstituteTeacherPayload, CalendarAttendanceMetrics
 from app.schemas.lms_staff import LmsConfigPayload, LmsConfigResponse, LmsSyncTriggerResponse, LmsSyncLogResponse, StaffAttendanceResponse, StaffPayrollCalculatePayload, StaffPayrollResponse
@@ -109,6 +109,7 @@ __all__ = [
     'TriggerBuildPayload',
     'BuildCallbackPayload',
     'FeedbackCreate',
+    'FeedbackReviewUpdate',
     'FeedbackResponse',
     'AttendanceDeviceBase',
     'AttendanceDeviceCreate',

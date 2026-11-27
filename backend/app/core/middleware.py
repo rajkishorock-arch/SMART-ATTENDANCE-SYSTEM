@@ -33,7 +33,7 @@ def setup_middlewares(app: FastAPI) -> None:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
-        allow_origin_regex=r"https://([a-zA-Z0-9-]+\.)*vercel\.app|https://([a-zA-Z0-9-]+\.)*onrender\.com|https?://localhost(:\d+)?|capacitor://localhost|https?://10\.\d+\.\d+\.\d+(:\d+)?|https?://192\.168\.\d+\.\d+(:\d+)?",
+        allow_origin_regex=r"https://([a-zA-Z0-9-]+\.)*vercel\.app|https://([a-zA-Z0-9-]+\.)*onrender\.com|https?://(localhost|127\.0\.0\.1)(:\d+)?|capacitor://localhost|https?://10\.\d+\.\d+\.\d+(:\d+)?|https?://192\.168\.\d+\.\d+(:\d+)?",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=[
@@ -54,6 +54,10 @@ def setup_middlewares(app: FastAPI) -> None:
             "x-device-id",
             "x-client-version",
             "*"
+        ],
+        expose_headers=[
+            "X-Response-Time",
+            "Server-Timing",
         ],
     )
 
