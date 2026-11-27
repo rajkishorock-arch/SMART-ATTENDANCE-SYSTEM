@@ -84,7 +84,7 @@ def read_subjects(
             
     res = []
     for s in db_subjects:
-        if role == "student" and s.department and not crud.departments_match(db, institution_id, s.department, student.dep):
+        if role == "student" and student.dep and (not s.department or not crud.departments_match(db, institution_id, s.department, student.dep)):
             continue
         teacher_name = "Not Assigned"
         if s.teacher_id:

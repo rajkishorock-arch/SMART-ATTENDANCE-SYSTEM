@@ -2,6 +2,34 @@ import { useState, useEffect, useCallback } from 'react';
 import useAuth from './useAuth';
 import useUI from './useUI';
 import { systemApi } from '../api/systemApi.js';
+import { getActiveTenantSlug } from '../utils/tenantConfig.js';
+
+const getMyFeedbackCacheKey = (tok) => {
+  const t = tok || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : '');
+  if (!t) return null;
+  const slug = getActiveTenantSlug() || 'default';
+  return `sg_my_feedbacks_v1_${slug}_${String(t).slice(-16)}`;
+};
+
+const readMyFeedbackCache = (tok) => {
+  try {
+    const key = getMyFeedbackCacheKey(tok);
+    if (!key) return null;
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeMyFeedbackCache = (tok, list) => {
+  try {
+    const key = getMyFeedbackCacheKey(tok);
+    if (!key || !Array.isArray(list)) return;
+    localStorage.setItem(key, JSON.stringify(list.slice(0, 100)));
+  } catch { /* ignore */ }
+};
 
 export default function useFeedback() {
   const { currentUser, userRole, token } = useAuth();
@@ -17,7 +45,7 @@ export default function useFeedback() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
-  const [myFeedbacks, setMyFeedbacks] = useState([]);
+  const [myFeedbacks, setMyFeedbacks] = useState(() => readMyFeedbackCache(token) || []);
   const [isLoadingMyFeedbacks, setIsLoadingMyFeedbacks] = useState(false);
 
   // Fetch All Feedbacks (Admins Only)
@@ -65,12 +93,19 @@ export default function useFeedback() {
     }
     const usedToken = authToken || token;
     if (!usedToken) return;
-    setIsLoadingMyFeedbacks(true);
+    const cached = readMyFeedbackCache(usedToken);
+    if (cached) {
+      setMyFeedbacks(prev => (prev.length > 0 ? prev : cached));
+    } else {
+      setIsLoadingMyFeedbacks(true);
+    }
     try {
       const res = await systemApi.fetchMyFeedbacks(usedToken);
       if (res.ok) {
         const data = await res.json();
-        setMyFeedbacks(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setMyFeedbacks(list);
+        writeMyFeedbackCache(usedToken, list);
       }
     } catch (err) {
       console.error('Error fetching my feedbacks:', err);
@@ -194,7 +229,11 @@ export default function useFeedback() {
         setFeedbackMessage('');
         setFeedbackRating(5);
         setFeedbackType('suggestion');
-        setMyFeedbacks((prev) => [data, ...prev]);
+        setMyFeedbacks((prev) => {
+          const next = [data, ...prev];
+          writeMyFeedbackCache(token, next);
+          return next;
+        });
         if (userRole === 'admin') {
           setFeedbacks((prev) => [data, ...prev]);
         }

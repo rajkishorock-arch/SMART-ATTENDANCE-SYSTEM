@@ -75,6 +75,94 @@ import { APP_VERSION } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
 import VersionBadge from './components/VersionBadge';
 
+const parseStudentHashParts = (parts) => {
+  if (!Array.isArray(parts) || parts[0] !== 'student-attendance' || !parts[1]) return null;
+  const section = decodeURIComponent(parts[1]);
+  const sub2 = parts[2] ? decodeURIComponent(parts[2]) : null;
+  const sub3 = parts[3] ? decodeURIComponent(parts[3]) : null;
+  if (section === 'disputes') {
+    if (sub2 === 'apply-leave') return { section: 'disputes', mode: 'apply-leave' };
+    if (sub2 === 'apply-dispute') return { section: 'disputes', mode: 'apply-dispute', prefill: null };
+    if (sub2 === 'leave' && sub3) return { section: 'disputes', mode: 'leave-detail', id: sub3 };
+    if (sub2 === 'dispute' && sub3) return { section: 'disputes', mode: 'dispute-detail', id: sub3 };
+    return { section: 'disputes' };
+  }
+  if (section === 'wallet') {
+    if (sub2 === 'credential' || sub2 === 'streaks') return { section: 'wallet', mode: sub2 };
+    if (sub2 === 'subject' && sub3) return { section: 'wallet', mode: 'subject', id: sub3 };
+    return { section: 'wallet' };
+  }
+  if (section === 'planner') {
+    if (sub2 === 'overall') return { section: 'planner', mode: 'overall' };
+    if (sub2 === 'simulator') return { section: 'planner', mode: 'simulator', subjectId: sub3 || null };
+    if (sub2 === 'subject' && sub3) return { section: 'planner', mode: 'subject', id: sub3 };
+    return { section: 'planner' };
+  }
+  if (section === 'feedback') {
+    if (sub2 === 'detail' && sub3) return { section: 'feedback', mode: 'detail', id: sub3 };
+    return { section: 'feedback' };
+  }
+  return { section };
+};
+
+const STUDENT_SECTION_TITLES = {
+  subjects: 'Subject-wise Attendance',
+  blueprint: 'Attendance Calendar',
+  calendar: 'Academic Calendar & Notices',
+  compliance: 'Compliance & Grievance Desk',
+  planner: 'Attendance Planner',
+  wallet: 'Attendance Wallet',
+  geofence: 'Campus Geofence Location',
+  disputes: 'Leave & Disputes',
+  feedback: 'Feedback & Reviews',
+};
+
+const getStudentRouteTitle = (route) => {
+  if (!route) return 'My Attendance';
+  if (route.section === 'wallet') {
+    if (route.mode === 'credential') return 'Credential Pass';
+    if (route.mode === 'streaks') return 'Clearance & Streaks';
+    if (route.mode === 'subject') return 'Course Pass';
+  }
+  if (route.section === 'planner') {
+    if (route.mode === 'overall') return 'Overall Plan';
+    if (route.mode === 'simulator') return 'What-If Simulator';
+    if (route.mode === 'subject') return 'Subject Plan';
+  }
+  if (route.section === 'feedback' && route.mode === 'detail') return 'Feedback Details';
+  if (route.mode === 'apply-leave') return 'Apply for Leave';
+  if (route.mode === 'leave-detail') return 'Leave Application';
+  if (route.mode === 'apply-dispute') return 'Request Correction';
+  if (route.mode === 'dispute-detail') return 'Attendance Dispute';
+  return STUDENT_SECTION_TITLES[route.section] || 'My Attendance';
+};
+
+const buildStudentRouteHash = (route) => {
+  if (!route?.section) return '#/student-attendance';
+  const sec = encodeURIComponent(route.section);
+  if (route.section === 'disputes') {
+    if (route.mode === 'apply-leave') return '#/student-attendance/disputes/apply-leave';
+    if (route.mode === 'apply-dispute') return '#/student-attendance/disputes/apply-dispute';
+    if (route.mode === 'leave-detail' && route.id != null) return `#/student-attendance/disputes/leave/${encodeURIComponent(route.id)}`;
+    if (route.mode === 'dispute-detail' && route.id != null) return `#/student-attendance/disputes/dispute/${encodeURIComponent(route.id)}`;
+  }
+  if (route.section === 'wallet') {
+    if (route.mode === 'credential' || route.mode === 'streaks') return `#/student-attendance/wallet/${route.mode}`;
+    if (route.mode === 'subject' && route.id != null) return `#/student-attendance/wallet/subject/${encodeURIComponent(route.id)}`;
+  }
+  if (route.section === 'planner') {
+    if (route.mode === 'overall') return '#/student-attendance/planner/overall';
+    if (route.mode === 'simulator') {
+      return route.subjectId ? `#/student-attendance/planner/simulator/${encodeURIComponent(route.subjectId)}` : '#/student-attendance/planner/simulator';
+    }
+    if (route.mode === 'subject' && route.id != null) return `#/student-attendance/planner/subject/${encodeURIComponent(route.id)}`;
+  }
+  if (route.section === 'feedback' && route.mode === 'detail' && route.id != null) {
+    return `#/student-attendance/feedback/detail/${encodeURIComponent(route.id)}`;
+  }
+  return `#/student-attendance/${sec}`;
+};
+
 const safeLazy = (importFn) => lazy(async () => {
   try {
     return await importFn();
@@ -712,6 +800,14 @@ export default function App() {
     return null;
   });
 
+  const [studentRoute, setStudentRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      return parseStudentHashParts(parts);
+    } catch { /* ignore */ }
+    return null;
+  });
+
   const getScopedListKey = useCallback((domain, authToken) => {
     try {
       const t = authToken || localStorage.getItem('token') || '';
@@ -868,6 +964,7 @@ export default function App() {
   const routeLogIdRef = useRef(routeLogId);
   const calendarRouteRef = useRef(calendarRoute);
   const reportRouteRef = useRef(reportRoute);
+  const studentRouteRef = useRef(studentRoute);
   const selectedAuditLogRef = useRef(null);
   const scheduleReturnTargetRef = useRef(null);
   const showWebcamModalRef = useRef(false);
@@ -878,6 +975,7 @@ export default function App() {
   const pushedHashStackRef = useRef([]);
   const expectedHashRef = useRef('');
   const uiBackPendingRef = useRef(false);
+  const pendingUiHistoryBackRef = useRef(0);
   const suppressTabHistoryPushRef = useRef(false);
 
   useEffect(() => { teachersSubTabRef.current = teachersSubTab; }, [teachersSubTab]);
@@ -892,6 +990,16 @@ export default function App() {
   useEffect(() => { routeLogIdRef.current = routeLogId; }, [routeLogId]);
   useEffect(() => { calendarRouteRef.current = calendarRoute; }, [calendarRoute]);
   useEffect(() => { reportRouteRef.current = reportRoute; }, [reportRoute]);
+  useEffect(() => { studentRouteRef.current = studentRoute; }, [studentRoute]);
+
+  // Disable browser automatic scroll restoration so manual exact scroll restore wins consistently
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // Record user scroll position continuously while settled on the current view
   useEffect(() => {
@@ -979,6 +1087,9 @@ export default function App() {
       if (activeTab !== 'reports') {
         setReportRoute(null);
       }
+      if (activeTab !== 'student-attendance' && !(activeTab === 'dashboard' && userRoleRef.current === 'student')) {
+        setStudentRoute(null);
+      }
       prevActiveTabRef.current = activeTab;
     }
   }, [activeTab]);
@@ -1061,6 +1172,17 @@ export default function App() {
     }
     if (activeTabRef.current === 'reports' && reportRouteRef.current !== null) {
       setReportRoute(null);
+      return;
+    }
+    if ((activeTabRef.current === 'student-attendance' || (activeTabRef.current === 'dashboard' && userRoleRef.current === 'student')) && studentRouteRef.current !== null) {
+      const curSt = studentRouteRef.current;
+      if (curSt.mode === 'apply-dispute' && curSt.fromRoot) {
+        setStudentRoute(null);
+      } else if (curSt.mode) {
+        setStudentRoute({ section: curSt.section || 'disputes' });
+      } else {
+        setStudentRoute(null);
+      }
       return;
     }
     if (activeTabRef.current === 'settings' && settingsDetailRouteRef.current !== null) {
@@ -1243,6 +1365,7 @@ export default function App() {
           const hasSubPageOpen =
             (curTab === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) ||
             (curTab === 'teachers' && (teacherFormViewRef.current !== 'list' || subjectFormViewRef.current !== 'list' || showScheduleFormRef.current)) ||
+            ((curTab === 'student-attendance' || (curTab === 'dashboard' && userRoleRef.current === 'student')) && studentRouteRef.current !== null) ||
             activeSubSettingRef.current !== null ||
             activeDashboardSubTabRef.current !== null ||
             tabHistoryRef.current.length > 0 ||
@@ -2742,6 +2865,9 @@ export default function App() {
   const reportScrollKey = activeTab === 'reports' && reportRoute
     ? `${reportRoute.mode}:${reportRoute.id ?? ''}`
     : '';
+  const studentScrollKey = (activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute
+    ? `${studentRoute.section ?? ''}:${studentRoute.mode ?? ''}:${studentRoute.id ?? ''}`
+    : '';
   const activeSubDetailKey = activeTab === 'students'
     ? studentSubScrollKey
     : activeTab === 'teachers'
@@ -2758,7 +2884,9 @@ export default function App() {
                 ? sessionHistoryScrollKey
                 : activeTab === 'calendar'
                   ? calendarScrollKey
-                  : (activeTab === 'reports' ? reportScrollKey : '');
+                  : activeTab === 'reports'
+                    ? reportScrollKey
+                    : (activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student') ? studentScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
 
   useLayoutEffect(() => {
@@ -2777,10 +2905,20 @@ export default function App() {
     const [nTab, , nSet, nDetail] = nextKey.split('|');
     const isBackToSettingsSubList =
       pTab === 'settings' && nTab === 'settings' && Boolean(pSet) && pSet === nSet && Boolean(pDetail) && !nDetail;
+    const isMasterDetailStepBack =
+      pTab === nTab &&
+      pSet === nSet &&
+      Boolean(pDetail) &&
+      (
+        !nDetail ||
+        (pDetail.split(':').filter(Boolean).length > nDetail.split(':').filter(Boolean).length) ||
+        (nDetail.split(':')[0] === pDetail.split(':')[0] && pDetail.split(':')[1] && !nDetail.split(':')[1])
+      );
     const isBackToSubRoot =
       (prevKey.startsWith('dashboard|') && !prevKey.startsWith('dashboard||') && nextKey === 'dashboard|||') ||
       (pTab === 'settings' && Boolean(pSet) && nTab === 'settings' && !nSet) ||
       isBackToSettingsSubList ||
+      isMasterDetailStepBack ||
       (prevKey.startsWith('settings||') && folderItems.some(f => prevKey.includes(`|${f}|`)) && nextKey.includes('|features_folder|')) ||
       ((prevKey === 'students|||register' || prevKey.startsWith('students|||edit:')) && nextKey === 'students|||') ||
       (prevKey.startsWith('teachers|||directory:') && !prevKey.endsWith(':') && nextKey === 'teachers|||directory:') ||
@@ -2791,10 +2929,14 @@ export default function App() {
     pendingBackActionRef.current = false;
 
     if (!shouldRestore) {
-      scrollPositionsRef.current[prevKey] = Math.max(scrollPositionsRef.current[prevKey] || 0, getScrollTop());
+      const curScroll = getScrollTop();
+      // Preserve live scroll captured before React shrunk DOM height on short target views
+      if (curScroll > 0 || scrollPositionsRef.current[prevKey] === undefined) {
+        scrollPositionsRef.current[prevKey] = curScroll;
+      }
     }
 
-    scrollLockUntilRef.current = Date.now() + 180;
+    scrollLockUntilRef.current = Date.now() + 260;
     currentRouteKeyRef.current = nextKey;
 
     const isTeacherSiblingTab =
@@ -2813,22 +2955,30 @@ export default function App() {
     if (shouldRestore) {
       const targetY = scrollPositionsRef.current[nextKey] || 0;
       const restore = () => setScrollTop(targetY);
+      restore();
       requestAnimationFrame(() => {
         restore();
         requestAnimationFrame(restore);
       });
-      const timerId = setTimeout(() => {
-        scrollLockUntilRef.current = 0;
-        restore();
-      }, 100);
-      return () => clearTimeout(timerId);
+      if (targetY > 0) {
+        const t1 = setTimeout(() => {
+          if (getScrollTop() < 20) restore();
+          scrollLockUntilRef.current = 0;
+        }, 90);
+        return () => clearTimeout(t1);
+      }
+      scrollLockUntilRef.current = 0;
+      return undefined;
     }
 
     setScrollTop(0);
-    const timerId = setTimeout(() => {
+    const rafId = requestAnimationFrame(() => {
+      setScrollTop(0);
       scrollLockUntilRef.current = 0;
-    }, 100);
-    return () => clearTimeout(timerId);
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
   }, [computedRouteKey]);
 
   // Student Self Edit States
@@ -3099,10 +3249,8 @@ export default function App() {
     setRowsScope(scope);
     if (saved) setSubjects(saved);
     setSubjectLoadState(saved ? 'ready' : 'loading');
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await systemApi.fetchSubjects(usedToken, controller.signal);
+      const res = await systemApi.fetchSubjects(usedToken);
       if (request !== subjectRequest.current) return;
       if (res.status === 401) {
         handleLogout();
@@ -3117,8 +3265,6 @@ export default function App() {
       try { if (key) localStorage.setItem(key, JSON.stringify(data)); } catch { /* Storage can be disabled. */ }
     } catch {
       if (request === subjectRequest.current) setSubjectLoadState('error');
-    } finally {
-      clearTimeout(timer);
     }
   };
 
@@ -3388,25 +3534,72 @@ export default function App() {
     }
   };
 
-  // Student subject stats
+  // Student subject stats, leaves & disputes (0ms instant scoped cache + background sync)
   const [studentSubjectStats, setStudentSubjectStats] = useState({});
-  const [studentLeaveRequests, setStudentLeaveRequests] = useState([]);
+  const [studentLeaveRequests, setStudentLeaveRequests] = useState(() => readScopedList('student_leaves') || []);
+  const [studentDisputes, setStudentDisputes] = useState(() => readScopedList('student_disputes') || []);
   const [adminLeaveRequests, setAdminLeaveRequests] = useState([]);
   const [isFetchingLeaves, setIsFetchingLeaves] = useState(false);
+
+  const handleSetStudentLeaveRequests = useCallback((updater) => {
+    setStudentLeaveRequests(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (Array.isArray(next) && token) {
+        writeScopedList('student_leaves', next, token);
+      }
+      return Array.isArray(next) ? next : [];
+    });
+  }, [token, writeScopedList]);
+
+  const handleSetStudentDisputes = useCallback((updater) => {
+    setStudentDisputes(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (Array.isArray(next) && token) {
+        writeScopedList('student_disputes', next, token);
+      }
+      return Array.isArray(next) ? next : [];
+    });
+  }, [token, writeScopedList]);
 
   const fetchStudentLeaves = async (authToken) => {
     if (isDemoMode) return;
     const usedToken = authToken || token;
+    if (!usedToken) return;
+    const cached = readScopedList('student_leaves', usedToken);
+    if (cached) {
+      setStudentLeaveRequests(prev => (prev.length > 0 ? prev : cached));
+    }
     try {
       const res = await studentApi.fetchMyLeaves(usedToken);
       if (res.ok) {
         const data = await res.json();
-        setStudentLeaveRequests(data);
+        const list = Array.isArray(data) ? data : [];
+        setStudentLeaveRequests(list);
+        writeScopedList('student_leaves', list, usedToken);
       }
     } catch (err) {
       console.error('Error fetching student leaves:', err);
     }
   };
+
+  const fetchStudentDisputes = useCallback(async (authToken) => {
+    if (isDemoMode) return;
+    const usedToken = authToken || token;
+    if (!usedToken) return;
+    const cached = readScopedList('student_disputes', usedToken);
+    if (cached) {
+      setStudentDisputes(prev => (prev.length > 0 ? prev : cached));
+    }
+    try {
+      const res = await disputeApi.fetchMyDisputes(usedToken);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setStudentDisputes(list);
+        writeScopedList('student_disputes', list, usedToken);
+      }
+    } catch { /* silent background prefetch */ }
+  }, [isDemoMode, token, readScopedList, writeScopedList]);
 
   const fetchAdminLeaves = async (authToken) => {
     if (isDemoMode) return;
@@ -3448,51 +3641,58 @@ export default function App() {
         subjectsList = subjectsList.ok ? await subjectsList.json() : [];
       }
       if (!Array.isArray(subjectsList) || subjectsList.length === 0) return;
-      
+
+      const deptMatched = studentDept
+        ? subjectsList.filter(sub => sub?.department && departmentsMatch(sub.department, studentDept))
+        : subjectsList;
+      const scopedSubjects = deptMatched.length > 0 ? deptMatched : subjectsList;
+
       const statsMap = {};
-      const CHUNK_SIZE = 2;
-      for (let i = 0; i < subjectsList.length; i += CHUNK_SIZE) {
-        const chunk = subjectsList.slice(i, i + CHUNK_SIZE);
-        await Promise.all(chunk.map(async (sub) => {
-          try {
-            const res = await attendanceApi.fetchMyReport(activeToken, sub.id);
-            if (res.ok) {
-              const data = await res.json();
-              const myRecord = data?.students?.find(s => s.id === studentId);
-              if (myRecord) {
-                const pDays = myRecord.present_days || 0;
-                const tDays = Math.max(myRecord.total_days || 0, pDays);
-                const pct = Math.min(100.0, Math.max(0.0, Number(myRecord.percentage) || 0));
-                statsMap[sub.id] = {
-                  subjectName: sub.name,
-                  subjectCode: sub.code,
-                  presentDays: pDays,
-                  totalDays: tDays,
-                  percentage: pct,
-                  lowAttendance: pct < 75.0 && tDays > 0
-                };
-              } else {
-                statsMap[sub.id] = {
-                  subjectName: sub.name,
-                  subjectCode: sub.code,
-                  presentDays: 0,
-                  totalDays: 0,
-                  percentage: 0.0,
-                  lowAttendance: false
-                };
-              }
+      await Promise.all(scopedSubjects.map(async (sub) => {
+        try {
+          const res = await attendanceApi.fetchMyReport(activeToken, sub.id);
+          if (res.ok) {
+            const data = await res.json();
+            const myRecord = data?.students?.find(s => s.id === studentId);
+            if (myRecord) {
+              const pDays = myRecord.present_days || 0;
+              const tDays = Math.max(myRecord.total_days || 0, pDays);
+              const pct = Math.min(100.0, Math.max(0.0, Number(myRecord.percentage) || 0));
+              statsMap[sub.id] = {
+                subject_id: sub.id,
+                subjectName: sub.name,
+                subjectCode: sub.code,
+                presentDays: pDays,
+                totalDays: tDays,
+                percentage: pct,
+                lowAttendance: pct < 75.0 && tDays > 0
+              };
+            } else {
+              statsMap[sub.id] = {
+                subject_id: sub.id,
+                subjectName: sub.name,
+                subjectCode: sub.code,
+                presentDays: 0,
+                totalDays: 0,
+                percentage: 0.0,
+                lowAttendance: false
+              };
             }
-          } catch (err) {
+          }
+        } catch (err) {
+          if (err?.name !== 'AbortError') {
             console.error(`Error fetching stats for subject ${sub.id}:`, err);
           }
-        }));
-      }
+        }
+      }));
       setStudentSubjectStats(statsMap);
       try {
         localStorage.setItem(`cached_student_subject_stats_${studentId}`, JSON.stringify(statsMap));
       } catch { /* ignore */ }
     } catch (err) {
-      console.error('Error in fetchStudentSubjectStats:', err);
+      if (err?.name !== 'AbortError') {
+        console.error('Error in fetchStudentSubjectStats:', err);
+      }
     }
   };
 
@@ -5613,6 +5813,8 @@ export default function App() {
           fetchBroadcastsPrefetch(tokenVal);
         } else {
           fetchStudentLogs(tokenVal);
+          fetchStudentLeaves(tokenVal);
+          fetchStudentDisputes(tokenVal);
           fetchBlueprint(tokenVal);
           fetchBroadcastsPrefetch(tokenVal);
         }
@@ -6157,18 +6359,26 @@ export default function App() {
 
     const handleHashChange = (evt) => {
       if (!token || !userRole) return;
+      if (evt && evt.type === 'popstate' && pendingUiHistoryBackRef.current > 0) {
+        pendingUiHistoryBackRef.current -= 1;
+        return;
+      }
       const currentFullHash = window.location.hash || '';
       if (currentFullHash === expectedHashRef.current) {
         return;
       }
       const pStack = pushedHashStackRef.current;
       if (pStack.length >= 2 && pStack[pStack.length - 2] === currentFullHash) {
-        scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+        if (Date.now() >= scrollLockUntilRef.current) {
+          scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+        }
         pendingBackActionRef.current = true;
         pStack.pop();
       } else {
         if (evt && evt.type === 'popstate') {
-          scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+          if (Date.now() >= scrollLockUntilRef.current) {
+            scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+          }
           pendingBackActionRef.current = true;
         }
         if (pStack[pStack.length - 1] !== currentFullHash) {
@@ -6222,6 +6432,9 @@ export default function App() {
         }
         if (activeBase !== 'reports' && reportRouteRef.current !== null) {
           setReportRoute(null);
+        }
+        if (activeBase !== 'student-attendance' && !(activeBase === 'dashboard' && userRole === 'student') && studentRouteRef.current !== null) {
+          setStudentRoute(null);
         }
       };
 
@@ -6391,6 +6604,8 @@ export default function App() {
               setTeacherFormView('list');
             }
           }
+        } else if (baseHash === 'student-attendance') {
+          setStudentRoute(parseStudentHashParts(parts));
         }
         expectedHashRef.current = currentFullHash;
       } else {
@@ -6461,7 +6676,9 @@ export default function App() {
                                               ? '#/reports/controls'
                                               : activeTab === 'reports' && reportRoute?.mode === 'detail' && reportRoute?.id != null
                                                 ? `#/reports/${encodeURIComponent(reportRoute.id)}`
-                                                : `#/${activeTab}`;
+                                                : activeTab === 'student-attendance' && studentRoute?.section
+                                                  ? buildStudentRouteHash(studentRoute)
+                                                  : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6480,6 +6697,7 @@ export default function App() {
         if (wasUiBack && stack.length >= 2 && stack[stack.length - 2] === expectedHash) {
           stack.pop();
           expectedHashRef.current = expectedHash;
+          pendingUiHistoryBackRef.current += 1;
           window.history.back();
         } else if (
           (isTeacherRootHash(topHash) && isTeacherRootHash(expectedHash)) ||
@@ -6540,6 +6758,10 @@ export default function App() {
     calendarRoute?.id,
     reportRoute?.mode,
     reportRoute?.id,
+    studentRoute?.section,
+    studentRoute?.mode,
+    studentRoute?.id,
+    studentRoute?.subjectId,
     token,
     userRole,
   ]);
@@ -6598,6 +6820,7 @@ export default function App() {
     setDisputeRoute(null);
     setBroadcastRoute(null);
     setSessionHistoryRoute(null);
+    setStudentRoute(null);
     setSelectedAuditLog(null);
     setRouteLogId(null);
     setMobileSidebarOpen(false);
@@ -6714,6 +6937,7 @@ export default function App() {
         Promise.allSettled([
           fetchStudentLogs(token),
           fetchStudentLeaves(),
+          fetchStudentDisputes(token),
           fetchBlueprint(token),
           fetchCalendarPrefetch(token),
           currentUser?.details ? fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id) : Promise.resolve()
@@ -6866,6 +7090,7 @@ export default function App() {
         fetchSubjects(token);
         fetchBlueprint(token);
         fetchStudentLeaves(token);
+        fetchStudentDisputes(token);
         fetchBroadcastsPrefetch(token);
         fetchCalendarPrefetch(token);
         {
@@ -7218,6 +7443,7 @@ export default function App() {
         Promise.allSettled([
           fetchStudentLogs(newToken),
           fetchStudentLeaves(newToken),
+          fetchStudentDisputes(newToken),
           fetchBlueprint(newToken),
           fetchSubjects(newToken),
           fetchBroadcastsPrefetch(newToken),
@@ -7264,6 +7490,7 @@ export default function App() {
         Promise.allSettled([
           fetchStudentLogs(newToken),
           fetchStudentLeaves(newToken),
+          fetchStudentDisputes(newToken),
           fetchBlueprint(newToken),
           fetchSubjects(newToken),
           fetchBroadcastsPrefetch(newToken),
@@ -7303,6 +7530,9 @@ export default function App() {
       setLogs([]);
       setStudentLogs([]);
       setStudentSubjectStats({});
+      setStudentLeaveRequests([]);
+      setStudentDisputes([]);
+      setStudentRoute(null);
       setBlueprintData([]);
       setDisputesQueue([]);
       setDisputesLoaded(false);
@@ -8960,7 +9190,7 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'student-attendance' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('student-attendance'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  onClick={() => { navigateToTab('student-attendance'); }}
                 >
                   <TrendingUp size={18} />
                   <span>My Attendance</span>
@@ -9236,7 +9466,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -9265,6 +9495,7 @@ export default function App() {
               <div className={activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''} style={{ flex: 1, minWidth: 0 }}>
                 <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, wordBreak: 'normal' }}>
                   {activeTab === 'dashboard' && (() => {
+                    if (userRole === 'student') return getStudentRouteTitle(studentRoute);
                     if (activeDashboardSubTab === 'metrics' || activeDashboardSubTab === 'telemetry') return 'Attendance Metrics';
                     if (activeDashboardSubTab === 'trends' || activeDashboardSubTab === 'radar') return 'Attendance Trends';
                     if (activeDashboardSubTab === 'diagnostics') return 'System Diagnostics';
@@ -9341,7 +9572,7 @@ export default function App() {
                     }
                     return 'Campus Notices';
                   })()}
-                  {activeTab === 'student-attendance' && 'My Attendance'}
+                  {activeTab === 'student-attendance' && getStudentRouteTitle(studentRoute)}
                   {activeTab === 'student-profile' && 'My Profile'}
                   {activeTab === 'settings' && (() => {
                     if (!activeSubSetting) return 'Settings Directory';
@@ -9616,6 +9847,10 @@ export default function App() {
               geofenceStatus={geofenceStatus}
               setGeofenceStatus={setGeofenceStatus}
               studentLeaveRequests={studentLeaveRequests}
+              setStudentLeaveRequests={handleSetStudentLeaveRequests}
+              studentDisputes={studentDisputes}
+              setStudentDisputes={handleSetStudentDisputes}
+              fetchStudentDisputes={fetchStudentDisputes}
               token={token}
               API_BASE_URL={API_BASE_URL}
               subjects={subjects}
@@ -9627,6 +9862,7 @@ export default function App() {
               setShowDisputeModal={setShowDisputeModal}
               setDisputePrefillSession={setDisputePrefillSession}
               setShowFeedbackModal={setShowFeedbackModal}
+              feedbackState={feedbackState}
               showBlueprintDayModal={showBlueprintDayModal}
               setShowBlueprintDayModal={setShowBlueprintDayModal}
               blueprintDayModalDate={blueprintDayModalDate}
@@ -9636,6 +9872,8 @@ export default function App() {
               currentUser={currentUser}
               onNavigateToCalendar={() => { navigateToTab('calendar'); playCyberSound('click'); }}
               onNavigateTab={navigateToTab}
+              routeView={studentRoute}
+              setRouteView={setStudentRoute}
             />
           ) : (
             <AdminTeacherDashboardView
@@ -10367,6 +10605,10 @@ export default function App() {
             geofenceStatus={geofenceStatus}
             setGeofenceStatus={setGeofenceStatus}
             studentLeaveRequests={studentLeaveRequests}
+            setStudentLeaveRequests={handleSetStudentLeaveRequests}
+            studentDisputes={studentDisputes}
+            setStudentDisputes={handleSetStudentDisputes}
+            fetchStudentDisputes={fetchStudentDisputes}
             token={token}
             API_BASE_URL={API_BASE_URL}
             subjects={subjects}
@@ -10377,6 +10619,7 @@ export default function App() {
             setShowDisputeModal={setShowDisputeModal}
             setDisputePrefillSession={setDisputePrefillSession}
             setShowFeedbackModal={setShowFeedbackModal}
+            feedbackState={feedbackState}
             showBlueprintDayModal={showBlueprintDayModal}
             setShowBlueprintDayModal={setShowBlueprintDayModal}
             blueprintDayModalDate={blueprintDayModalDate}
@@ -10384,6 +10627,8 @@ export default function App() {
             appLang={appLang}
             onNavigateToCalendar={() => { navigateToTab('calendar'); playCyberSound('click'); }}
             onNavigateTab={navigateToTab}
+            routeView={studentRoute}
+            setRouteView={setStudentRoute}
           />
         )}
 

@@ -197,3 +197,63 @@ def test_planner_what_if_simulation(client):
     assert sim_data["attended_before"] == 6
     assert sim_data["attended_after"] == 12
     assert sim_data["simulated_status"] == "SAFE"
+
+
+def test_planner_excludes_cross_branch_subjects(test_db, client):
+    ce_student = models.StudentModel(
+        id=802,
+        institution_id=1,
+        name="Rajan CE",
+        roll="7484",
+        dep="CE",
+        course="B.Tech",
+        email="rajan@tis.edu",
+        password_hash=security.get_password_hash("pass123")
+    )
+    ce_subject = models.Subject(
+        id=103,
+        institution_id=1,
+        name="Physics",
+        code="CE102",
+        department="CE"
+    )
+    test_db.add(ce_student)
+    test_db.add(ce_subject)
+    # 2 records for student's CE branch subject (103), 1 legacy/foreign record for CSE subject (101)
+    for i in range(1, 3):
+        test_db.add(models.AttendanceModel(
+            id=f"ce_p{i}",
+            institution_id=1,
+            roll="7484",
+            name="Rajan CE",
+            department="CE",
+            time="09:00:00 AM",
+            date=f"{i:02d}/11/2026",
+            attendance="Present",
+            subject_id=103
+        ))
+    test_db.add(models.AttendanceModel(
+        id="foreign_cse_1",
+        institution_id=1,
+        roll="7484",
+        name="Rajan CE",
+        department="CSE",
+        time="11:00:00 AM",
+        date="05/11/2026",
+        attendance="Absent",
+        subject_id=101
+    ))
+    test_db.commit()
+
+    ce_token = security.create_access_token(
+        data={"sub": "rajan@tis.edu", "role": "student", "institution_id": 1}
+    )
+    res = client.get("/api/v1/planner/summary?target_percentage=75.0", headers={"Authorization": f"Bearer {ce_token}"})
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert len(data["subjects"]) == 1
+    assert data["subjects"][0]["subject_id"] == 103
+    assert data["subjects"][0]["subject_name"] == "Physics"
+    assert data["overall_conducted"] == 2
+    assert data["overall_attended"] == 2
+    assert data["overall_percentage"] == 100.0

@@ -1,7 +1,7 @@
 /**
  * Leave Management Domain API Module
  */
-import { apiGet, apiPost, apiPut } from './client.js';
+import { apiGet, apiPost, apiPut, apiDelete } from './client.js';
 
 export const leaveApi = {
   /**
@@ -40,6 +40,13 @@ export const leaveApi = {
    */
   async submitStudentLeaveRequest(token, payload) {
     return apiPost('/users/students/me/leave-requests', payload, { token });
+  },
+
+  /**
+   * Withdraw a student's own pending leave request (/leaves/cancel/{id})
+   */
+  async cancelStudentLeaveRequest(token, id) {
+    return apiDelete(`/leaves/cancel/${encodeURIComponent(id)}`, { token });
   }
 };
 

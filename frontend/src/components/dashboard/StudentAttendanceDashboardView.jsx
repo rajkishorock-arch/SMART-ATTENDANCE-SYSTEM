@@ -9,15 +9,14 @@ import useUI from '../../hooks/useUI';
 import StudentTodayView from '../StudentTodayView';
 import StudentAttendanceWallet from '../StudentAttendanceWallet';
 import AttendancePlannerWidget from '../AttendancePlannerWidget';
-import GamificationHub from '../GamificationHub';
-import LeaveApplicationForm from '../LeaveApplicationForm';
+import StudentLeaveDisputesHub from './StudentLeaveDisputesHub';
+import StudentFeedbackHub from './StudentFeedbackHub';
 import StudentAcademicCalendarWidget from './StudentAcademicCalendarWidget';
 import StudentAttendanceRecoveryWidget from './StudentAttendanceRecoveryWidget';
 import StudentSubjectAttendanceHub from './StudentSubjectAttendanceHub';
 import StudentCampusGeofenceHub from './StudentCampusGeofenceHub';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { disputeApi } from '../../api/disputeApi';
-import { generateDisputePdf } from '../../utils/disputePdfGenerator';
 
 function BlueprintDayBreakdownModal({ 
   isOpen, 
@@ -687,6 +686,10 @@ export default function StudentAttendanceDashboardView({
   geofenceStatus = { checked: false, inside: false, distance: null },
   setGeofenceStatus = () => {},
   studentLeaveRequests = [],
+  setStudentLeaveRequests,
+  studentDisputes: propStudentDisputes = null,
+  setStudentDisputes: propSetStudentDisputes,
+  fetchStudentDisputes,
   token,
   API_BASE_URL,
   subjects = [],
@@ -694,9 +697,8 @@ export default function StudentAttendanceDashboardView({
   fetchStudentLeaves,
   exportToCSV,
   setShowVirtualId,
-  setShowDisputeModal,
-  setDisputePrefillSession,
   setShowFeedbackModal,
+  feedbackState = null,
   showBlueprintDayModal,
   setShowBlueprintDayModal,
   blueprintDayModalDate,
@@ -704,6 +706,8 @@ export default function StudentAttendanceDashboardView({
   appLang,
   onNavigateToCalendar = () => {},
   onNavigateTab = () => {},
+  routeView = undefined,
+  setRouteView = null,
 }) {
   const { currentUser } = useAuth();
   const { playCyberSound } = useUI();
@@ -712,42 +716,114 @@ export default function StudentAttendanceDashboardView({
   const safeSubjects = Array.isArray(subjects) ? subjects : [];
   const safeLeaveRequests = Array.isArray(studentLeaveRequests) ? studentLeaveRequests : [];
 
-  const [myDisputes, setMyDisputes] = React.useState(() => {
-    try {
-      const cached = localStorage.getItem('cached_my_disputes');
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
+  const [localDisputes, setLocalDisputes] = React.useState([]);
+  const [localRouteView, setLocalRouteView] = React.useState(null);
+
+  const myDisputes = propStudentDisputes ?? localDisputes;
+  const updateDisputesState = propSetStudentDisputes || setLocalDisputes;
+
+  const isControlledRoute = Boolean(setRouteView);
+  const activeRoute = routeView !== undefined && setRouteView ? routeView : localRouteView;
+  const navigateStudentRoute = React.useCallback(
+    (nextRoute) => {
+      if (setRouteView) {
+        setRouteView(nextRoute);
+      } else {
+        setLocalRouteView(nextRoute);
+      }
+    },
+    [setRouteView]
+  );
+
+  const activeSection = activeRoute?.section || null;
+
+  const refreshDisputesNow = React.useCallback(async (authToken) => {
+    const usedToken = authToken || token;
+    if (!usedToken) return;
+    if (fetchStudentDisputes) {
+      await fetchStudentDisputes(usedToken);
+      return;
     }
-  });
+    try {
+      const res = await disputeApi.fetchMyDisputes(usedToken);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setLocalDisputes(data);
+      }
+    } catch { /* ignore fallback error */ }
+  }, [fetchStudentDisputes, token]);
 
   React.useEffect(() => {
     let ignore = false;
-    if (!token) return;
+    if (!token || propStudentDisputes !== null) return undefined;
     disputeApi.fetchMyDisputes(token)
-      .then(res => res.json())
+      .then(res => (res.ok ? res.json() : null))
       .then(data => {
-        if (!ignore && Array.isArray(data)) {
-          setMyDisputes(data);
-          try {
-            localStorage.setItem('cached_my_disputes', JSON.stringify(data));
-          } catch {}
-        }
+        if (!ignore && Array.isArray(data)) setLocalDisputes(data);
       })
       .catch(() => {});
     return () => { ignore = true; };
-  }, [token]);
+  }, [token, propStudentDisputes]);
 
-  const [activeSection, setActiveSection] = React.useState(null);
+  const openDisputeForm = React.useCallback(
+    (prefillLog = null, { fromRoot = false } = {}) => {
+      if (playCyberSound) playCyberSound('click');
+      navigateStudentRoute({
+        section: 'disputes',
+        mode: 'apply-dispute',
+        prefill: prefillLog || null,
+        fromRoot,
+      });
+    },
+    [playCyberSound, navigateStudentRoute]
+  );
 
-  // Compute subject-wise attendance stats
+  const handleSubRouteBack = React.useCallback(() => {
+    if (playCyberSound) playCyberSound('click');
+    if (activeRoute?.mode === 'apply-dispute' && activeRoute?.fromRoot) {
+      navigateStudentRoute(null);
+      return;
+    }
+    if (activeRoute?.mode) {
+      navigateStudentRoute({ section: activeRoute.section });
+      return;
+    }
+    navigateStudentRoute(null);
+  }, [activeRoute, navigateStudentRoute, playCyberSound]);
+
+  // Compute subject-wise attendance stats (strictly scoped to registered branch subjects when configured)
+  const allowedSubjectIds = React.useMemo(
+    () => new Set(safeSubjects.map(s => String(s.id))),
+    [safeSubjects]
+  );
+
   const hasDirectStats = studentSubjectStats && (Array.isArray(studentSubjectStats) ? studentSubjectStats.length > 0 : Object.keys(studentSubjectStats).length > 0);
-  let displayStats = hasDirectStats ? studentSubjectStats : null;
+  let displayStats = null;
+  if (hasDirectStats) {
+    const rawList = Array.isArray(studentSubjectStats) ? studentSubjectStats : Object.values(studentSubjectStats);
+    const filtered = safeSubjects.length > 0
+      ? rawList.filter(s => s && (allowedSubjectIds.has(String(s.subject_id || s.id)) || safeSubjects.some(sub => sub.code && sub.code === s.subjectCode)))
+      : rawList;
+    if (filtered.length > 0) displayStats = filtered;
+  }
 
-  if (!displayStats && safeStudentLogs.length > 0) {
+  if (!displayStats && (safeSubjects.length > 0 || safeStudentLogs.length > 0)) {
     const derived = {};
+    if (safeSubjects.length > 0) {
+      safeSubjects.forEach(s => {
+        derived[String(s.id)] = {
+          subject_id: s.id,
+          subjectCode: s.code || `SUB-${s.id}`,
+          subjectName: s.name || `Subject #${s.id}`,
+          presentDays: 0,
+          totalDays: 0,
+          percentage: 0,
+        };
+      });
+    }
     safeStudentLogs.forEach(log => {
       if (String(log.attendance || '').toUpperCase() === 'CLASS_CANCELLED') return;
+      if (safeSubjects.length > 0 && (log.subject_id == null || !allowedSubjectIds.has(String(log.subject_id)))) return;
       const subKey = log.subject_id ? String(log.subject_id) : (log.subject_name || 'General');
       if (!derived[subKey]) {
         derived[subKey] = {
@@ -856,15 +932,12 @@ export default function StudentAttendanceDashboardView({
 
   return (
     <div className="student-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeInUp 0.3s ease' }}>
-      {/* Back Button and Section Title when inside a dedicated sub-section */}
-      {activeSection !== null && (
+      {/* Back Button and Section Title only when rendered standalone outside App header */}
+      {!isControlledRoute && activeSection !== null && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <button
             type="button"
-            onClick={() => {
-              if (playCyberSound) playCyberSound('click');
-              setActiveSection(null);
-            }}
+            onClick={handleSubRouteBack}
             className="back-icon-btn active-haptic"
             aria-label="Go Back"
             title="Go Back"
@@ -887,7 +960,15 @@ export default function StudentAttendanceDashboardView({
             <ArrowLeft size={18} />
           </button>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#25231f' }}>
-            {hubSections.find(s => s.id === activeSection)?.label || 'Section Details'}
+            {activeRoute?.mode === 'apply-leave'
+              ? 'Apply for Leave'
+              : activeRoute?.mode === 'leave-detail'
+                ? 'Leave Application'
+                : activeRoute?.mode === 'apply-dispute'
+                  ? 'Request Correction'
+                  : activeRoute?.mode === 'dispute-detail'
+                    ? 'Attendance Dispute'
+                    : (hubSections.find(s => s.id === activeSection)?.title || 'Portal Details')}
           </h2>
         </div>
       )}
@@ -898,10 +979,7 @@ export default function StudentAttendanceDashboardView({
           {/* Student Daily Driver Today Status & 75% Rule Card */}
           <StudentTodayView
             studentLogs={studentLogs}
-            onRequestDispute={(log) => {
-              setDisputePrefillSession(log);
-              setShowDisputeModal(true);
-            }}
+            onRequestDispute={(log) => openDisputeForm(log, { fromRoot: true })}
             onExportSummary={exportToCSV}
             lang={appLang}
           />
@@ -1046,7 +1124,7 @@ export default function StudentAttendanceDashboardView({
                         onNavigateTab(sec.isDirectTab);
                         return;
                       }
-                      setActiveSection(sec.id);
+                      navigateStudentRoute({ section: sec.id });
                     }}
                     className="hover-elevate active-haptic"
                     style={{
@@ -1097,10 +1175,7 @@ export default function StudentAttendanceDashboardView({
           subjects={subjects}
           studentLogs={studentLogs}
           blueprintData={blueprintData}
-          onOpenDispute={(log) => {
-            setDisputePrefillSession(log);
-            setShowDisputeModal(true);
-          }}
+          onOpenDispute={(log) => openDisputeForm(log)}
           playCyberSound={playCyberSound}
         />
       )}
@@ -1406,10 +1481,7 @@ export default function StudentAttendanceDashboardView({
                       studentLogs={studentLogs}
                       activeSubject={activeSubject}
                       playCyberSound={playCyberSound}
-                      onRequestDispute={(log) => {
-                        setDisputePrefillSession(log);
-                        setShowDisputeModal(true);
-                      }}
+                      onRequestDispute={(log) => openDisputeForm(log)}
                     />
                   </>
                 )}
@@ -1442,17 +1514,30 @@ export default function StudentAttendanceDashboardView({
 
       {/* ===== 6. DEDICATED SECTION: ATTENDANCE PLANNER & SIMULATOR ===== */}
       {activeSection === 'planner' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <AttendancePlannerWidget token={token} currentUser={currentUser} playCyberSound={playCyberSound} />
-          <AiAttendanceForecaster blueprintData={blueprintData} playCyberSound={playCyberSound} />
-        </div>
+        <AttendancePlannerWidget
+          token={token}
+          subjects={safeSubjects}
+          studentLogs={safeStudentLogs}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
+          onNavigateBack={handleSubRouteBack}
+          playCyberSound={playCyberSound}
+        />
       )}
 
       {/* ===== 7. DEDICATED SECTION: WALLET ===== */}
       {activeSection === 'wallet' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <StudentAttendanceWallet logs={studentLogs} studentName={currentUser?.name} subjects={subjects} />
-        </div>
+        <StudentAttendanceWallet
+          logs={safeStudentLogs}
+          studentName={currentUser?.name}
+          currentUser={currentUser}
+          subjects={safeSubjects}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
+          onNavigateBack={handleSubRouteBack}
+          onOpenDispute={(log) => openDisputeForm(log)}
+          playCyberSound={playCyberSound}
+        />
       )}
 
       {/* ===== 8. DEDICATED SECTION: CAMPUS GEOFENCE LOCATION ===== */}
@@ -1466,152 +1551,37 @@ export default function StudentAttendanceDashboardView({
 
       {/* ===== 9. DEDICATED SECTION: LEAVE APPLICATIONS & DISPUTES ===== */}
       {activeSection === 'disputes' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Apply Leave Form */}
-          <div style={{ padding: 'clamp(14px, 3vw, 22px)', borderRadius: '16px', border: '1px solid #e4dfd5', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>📝</span> Apply for Leave
-            </h3>
-            <LeaveApplicationForm
-              token={token}
-              API_BASE_URL={API_BASE_URL}
-              onLeaveApplied={fetchStudentLeaves}
-              playCyberSound={playCyberSound}
-              subjects={subjects}
-              studentLeaveRequests={studentLeaveRequests}
-            />
-          </div>
-
-          {/* Leave Requests List */}
-          {studentLeaveRequests.length > 0 && (
-            <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#25231f', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📋</span> My Leave Requests
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {studentLeaveRequests.map(req => (
-                  <div key={req.id} style={{ padding: '14px 16px', borderRadius: '12px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fed7aa'}` }}>
-                    <div>
-                      <span style={{ fontSize: '0.74rem', color: '#696358' }}>
-                        {req.leave_type} {req.subject_name ? `(${req.subject_name} - ${req.subject_code})` : ' (General)'}
-                      </span>
-                      <p style={{ fontWeight: 600, fontSize: '0.88rem', color: '#25231f', margin: '2px 0' }}>{req.start_date} → {req.end_date}</p>
-                      <p style={{ fontSize: '0.78rem', color: '#696358', margin: 0 }}>{req.reason}</p>
-                    </div>
-                    <span style={{
-                      padding: '4px 12px', borderRadius: '20px', fontSize: '0.74rem', fontWeight: 700,
-                      background: req.status === 'Approved' ? '#d1fae5' : req.status === 'Rejected' ? '#fee2e2' : '#fef3c7',
-                      color: req.status === 'Approved' ? '#065f46' : req.status === 'Rejected' ? '#991b1b' : '#b45309',
-                      border: `1px solid ${req.status === 'Approved' ? '#a7f3d0' : req.status === 'Rejected' ? '#fecaca' : '#fde68a'}`
-                    }}>
-                      {req.status === 'Approved' ? '✅' : req.status === 'Rejected' ? '❌' : '⏳'} {req.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Attendance Disputes List */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>⚖️</span> My Attendance Disputes & Status
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#faf5ea', color: '#61471e', padding: '2px 8px', borderRadius: '12px' }}>
-                  {myDisputes.length}
-                </span>
-              </h3>
-              <button
-                onClick={() => {
-                  if (playCyberSound) playCyberSound('click');
-                  setDisputePrefillSession(null);
-                  setShowDisputeModal(true);
-                }}
-                style={{
-                  background: '#faf5ea',
-                  border: '1px solid #dfcfaf',
-                  color: '#684c20',
-                  borderRadius: '8px',
-                  padding: '6px 14px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                + Submit New Dispute
-              </button>
-            </div>
-
-            {myDisputes.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#696358', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5', fontSize: '0.84rem' }}>
-                No active attendance disputes filed.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {myDisputes.map(d => {
-                  const st = (d.status || 'SUBMITTED').toUpperCase();
-                  const isApproved = st === 'APPROVED';
-                  const isRejected = st === 'REJECTED';
-                  return (
-                    <div key={d.id} style={{
-                      padding: '14px 16px',
-                      borderRadius: '12px',
-                      background: '#ffffff',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                      border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fed7aa'}`
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>
-                          {d.subject_name ? `${d.subject_name} (${d.subject_code || ''})` : 'General Class'} • Date: {d.date}
-                        </span>
-                        <span style={{
-                          padding: '3px 10px',
-                          borderRadius: '12px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          background: isApproved ? '#d1fae5' : isRejected ? '#fee2e2' : '#fef3c7',
-                          color: isApproved ? '#065f46' : isRejected ? '#991b1b' : '#b45309',
-                          border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecaca' : '#fde68a'}`
-                        }}>
-                          {isApproved ? '✅ Approved & Corrected' : isRejected ? '❌ Rejected' : '⏳ ' + (d.status || 'Under Review')}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '0.78rem', color: '#58534a' }}>
-                        <span>Reason: <strong style={{ color: '#25231f' }}>{d.reason}</strong> ({d.original_status} → {d.requested_status})</span>
-                        <button
-                          onClick={() => generateDisputePdf({ ...d, student_name: currentUser?.name || d.student_name, student_roll: currentUser?.details?.roll_number || d.student_roll })}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            background: '#faf9f6',
-                            border: '1px solid #cfc8ba',
-                            color: '#46423b',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          📄 Download PDF Proof
-                        </button>
-                      </div>
-                      {d.reviewer_comments && (
-                        <div style={{ fontSize: '0.76rem', color: '#61471e', background: '#faf5ea', padding: '6px 12px', borderRadius: '8px', border: '1px solid #dfcfaf' }}>
-                          <strong>Teacher / HOD Note:</strong> {d.reviewer_comments}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        <StudentLeaveDisputesHub
+          token={token}
+          API_BASE_URL={API_BASE_URL}
+          currentUser={currentUser}
+          subjects={safeSubjects}
+          studentLeaveRequests={safeLeaveRequests}
+          onUpdateLeaveRequests={setStudentLeaveRequests}
+          myDisputes={myDisputes}
+          onUpdateDisputes={updateDisputesState}
+          onRefreshLeaves={fetchStudentLeaves}
+          onRefreshDisputes={refreshDisputesNow}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
+          onNavigateBack={handleSubRouteBack}
+          playCyberSound={playCyberSound}
+        />
       )}
 
-      {/* Sleek Feedback Section */}
+      {/* ===== 10. DEDICATED SECTION: FEEDBACK & REVIEWS ===== */}
+      {activeSection === 'feedback' && (
+        <StudentFeedbackHub
+          feedbackState={feedbackState}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
+          onNavigateBack={handleSubRouteBack}
+          playCyberSound={playCyberSound}
+        />
+      )}
+
+      {/* Sleek Feedback Section (Root Home only) */}
+      {activeSection === null && (
       <div 
         style={{ 
           padding: '16px', 
@@ -1648,7 +1618,11 @@ export default function StudentAttendanceDashboardView({
           type="button"
           onClick={() => {
             if (playCyberSound) playCyberSound('click');
-            setShowFeedbackModal(true);
+            if (feedbackState) {
+              navigateStudentRoute({ section: 'feedback' });
+            } else if (typeof setShowFeedbackModal === 'function') {
+              setShowFeedbackModal(true);
+            }
           }}
           className="btn-primary"
           style={{
@@ -1665,6 +1639,7 @@ export default function StudentAttendanceDashboardView({
           <MessageSquare size={14} /> Share Feedback
         </button>
       </div>
+      )}
     </div>
   );
 }

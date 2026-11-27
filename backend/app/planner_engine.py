@@ -8,10 +8,25 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional, List
 
-from . import models, schemas, security
+from . import crud, models, schemas, security
 from .database import get_db
 
 router = APIRouter()
+
+
+def _get_student_branch_subjects(db: Session, institution_id: int, student: models.StudentModel):
+    """Returns registered subjects matching the student's branch/department (if configured)."""
+    all_inst_subjects = db.query(models.Subject).filter(
+        models.Subject.institution_id == institution_id
+    ).all()
+    if student.dep:
+        matched = [
+            s for s in all_inst_subjects
+            if s.department and crud.departments_match(db, institution_id, s.department, student.dep)
+        ]
+        if matched:
+            return matched, True
+    return all_inst_subjects, False
 
 
 def _get_status(pct: float, target: float = 75.0) -> str:
@@ -118,28 +133,27 @@ def get_attendance_planner_summary(
     ).all()
     cancelled_dates = {e.start_date for e in cancelled_events}
 
-    # 3. Group attendance by subject
-    subjects_db = db.query(models.Subject).filter(
-        models.Subject.institution_id == identity.institution_id
-    )
-    if student.dep:
-        subjects_db = subjects_db.filter(models.Subject.department == student.dep)
-    all_subjects = subjects_db.all()
-    subject_map = {s.id: s for s in all_subjects}
+    # 3. Group attendance strictly by registered branch subjects (when configured)
+    branch_subjects, strict_branch = _get_student_branch_subjects(db, identity.institution_id, student)
+    subject_map = {s.id: s for s in branch_subjects}
 
-    # Bucket records by subject_id
-    subject_stats = {}
+    # Bucket records by subject_id (seed all registered branch subjects so 0-log courses stay visible)
+    subject_stats = {s.id: {"attended": 0, "conducted": 0} for s in branch_subjects} if strict_branch else {}
     overall_attended = 0
     overall_conducted = 0
 
     for r in att_records:
-        sub_id = r.subject_id or 0
-        if sub_id not in subject_stats:
-            subject_stats[sub_id] = {"attended": 0, "conducted": 0}
-
         # Exclude cancelled sessions
         if r.attendance == "CLASS_CANCELLED" or r.date in cancelled_dates:
             continue
+
+        sub_id = r.subject_id or 0
+        if strict_branch and sub_id not in subject_map:
+            # Skip records belonging to other branches/deleted subjects to avoid "Subject #3" leaks
+            continue
+
+        if sub_id not in subject_stats:
+            subject_stats[sub_id] = {"attended": 0, "conducted": 0}
 
         subject_stats[sub_id]["conducted"] += 1
         overall_conducted += 1
@@ -150,6 +164,11 @@ def get_attendance_planner_summary(
 
     # 4. Build per-subject plans
     subject_plans: List[schemas.SubjectAttendancePlan] = []
+    teacher_ids = list({sub.teacher_id for sub in subject_map.values() if sub.teacher_id})
+    teacher_map = {}
+    if teacher_ids:
+        for t in db.query(models.User).filter(models.User.id.in_(teacher_ids)).all():
+            teacher_map[t.id] = t.name
 
     for sub_id, stats in subject_stats.items():
         if sub_id == 0:
@@ -160,8 +179,7 @@ def get_attendance_planner_summary(
             sub = subject_map.get(sub_id)
             name = sub.name if sub else f"Subject #{sub_id}"
             code = sub.code if sub else None
-            teacher = db.query(models.User).filter(models.User.id == sub.teacher_id).first() if sub and sub.teacher_id else None
-            teacher_name = teacher.name if teacher else None
+            teacher_name = teacher_map.get(sub.teacher_id) if sub and sub.teacher_id else None
 
         plan = _calculate_plan(stats["attended"], stats["conducted"], target_percentage)
 
@@ -180,6 +198,8 @@ def get_attendance_planner_summary(
             projection_attend_next_3=plan["projection_attend_next_3"],
             projection_miss_next_3=plan["projection_miss_next_3"]
         ))
+
+    subject_plans.sort(key=lambda sp: (sp.subject_name or "").lower())
 
     # Overall calculation
     overall_plan = _calculate_plan(overall_attended, overall_conducted, target_percentage)
@@ -239,6 +259,10 @@ def simulate_what_if(
     )
     if payload.subject_id:
         att_query = att_query.filter(models.AttendanceModel.subject_id == payload.subject_id)
+    else:
+        branch_subjects, strict_branch = _get_student_branch_subjects(db, identity.institution_id, student)
+        if strict_branch:
+            att_query = att_query.filter(models.AttendanceModel.subject_id.in_([s.id for s in branch_subjects]))
     records = att_query.all()
 
     conducted_before = 0

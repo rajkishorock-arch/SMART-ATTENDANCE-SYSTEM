@@ -1,437 +1,594 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  CreditCard, 
-  Share2, 
-  CheckCircle2, 
-  ShieldCheck, 
-  QrCode, 
-  ChevronRight, 
-  BookOpen, 
+import { useState, useMemo } from 'react';
+import {
+  Share2,
+  ShieldCheck,
+  ChevronRight,
+  BookOpen,
+  Award,
+  CreditCard,
+  CheckCircle2,
   Clock,
-  Calendar
 } from 'lucide-react';
-import useBodyScrollLock from '../hooks/useBodyScrollLock';
 
-export default function StudentAttendanceWallet({ logs = [], studentName = 'Student', subjects = [] }) {
-  const [selectedPass, setSelectedPass] = useState(null);
+const calculateAttendanceStreak = (logs) => {
+  const conducted = (Array.isArray(logs) ? logs : [])
+    .filter(l => String(l?.attendance || '').toUpperCase() !== 'CLASS_CANCELLED');
+  if (conducted.length === 0) return { current: 0, best: 0 };
 
-  // Lock body scrolling when pass modal is open
-  useBodyScrollLock(!!selectedPass);
-
-  // Overall attendance stats
-  const totalLogs = logs.length;
-  const attendedLogs = logs.filter(l => (l.attendance || '').toLowerCase() === 'present' || (l.attendance || '').toLowerCase() === 'late').length;
-  const overallRate = totalLogs > 0 ? Math.round((attendedLogs / totalLogs) * 100) : 100;
-  const isExamClear = overallRate >= 75;
-
-  // Group logs by subject
-  const subjectPasses = useMemo(() => {
-    const map = {};
-    logs.forEach(log => {
-      const key = log.subject_name || log.subject_code || 'General Attendance';
-      if (!map[key]) {
-        map[key] = {
-          name: key,
-          code: log.subject_code || 'GEN',
-          attended: 0,
-          total: 0,
-          lastDate: log.date,
-          mentor: log.teacher || 'Assigned Faculty'
-        };
-      }
-      map[key].total += 1;
-      if ((log.attendance || '').toLowerCase() === 'present' || (log.attendance || '').toLowerCase() === 'late') {
-        map[key].attended += 1;
-      }
-    });
-
-    const list = Object.values(map);
-    if (list.length === 0) {
-      list.push({
-        name: 'General Academic Attendance',
-        code: 'GEN-101',
-        attended: attendedLogs,
-        total: totalLogs || 1,
-        lastDate: new Date().toISOString().split('T')[0],
-        mentor: 'Faculty Coordinator'
-      });
-    }
-    return list;
-  }, [logs, attendedLogs, totalLogs]);
-
-  const handleSharePass = async (passTitle, extraText) => {
-    const text = `${studentName}'s ${passTitle}: ${extraText} — Smart Attendance System`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: passTitle, text });
-      } catch { /* cancelled */ }
+  let current = 0;
+  let best = 0;
+  let countingCurrent = true;
+  for (const log of conducted) {
+    const st = String(log.attendance || '').toLowerCase();
+    const ok = st === 'present' || st === 'late' || st === 'excused';
+    if (ok) {
+      best += 1;
+      if (countingCurrent) current += 1;
     } else {
-      await navigator.clipboard?.writeText(text);
-      alert('Pass details copied to clipboard!');
+      countingCurrent = false;
+      best = Math.max(best, current);
+    }
+  }
+  return { current, best: Math.max(best, current) };
+};
+
+/**
+ * Golden Gate Master-Detail Student Attendance Wallet & Branch Course Passes.
+ * Strictly filters courses to the student's registered branch subjects,
+ * without popup modals, 3-dot titlebars, or row badge pills.
+ */
+export default function StudentAttendanceWallet({
+  logs = [],
+  studentName = 'Student',
+  currentUser = null,
+  subjects = [],
+  routeView = null,
+  onNavigateRoute = null,
+  onNavigateBack = null,
+  onOpenDispute = null,
+  playCyberSound = () => {},
+}) {
+  const [localRoute, setLocalRoute] = useState(null);
+  const [shareNotice, setShareNotice] = useState('');
+
+  const activeRoute = routeView !== undefined && onNavigateRoute ? routeView : localRoute;
+  const navigateTo = (next) => {
+    if (playCyberSound) playCyberSound('click');
+    setShareNotice('');
+    if (onNavigateRoute) {
+      onNavigateRoute(next);
+    } else {
+      setLocalRoute(next);
+    }
+  };
+  const goBack = () => {
+    if (playCyberSound) playCyberSound('click');
+    setShareNotice('');
+    if (onNavigateBack) {
+      onNavigateBack();
+    } else if (activeRoute?.mode) {
+      setLocalRoute({ section: 'wallet' });
     }
   };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', animation: 'fadeInUp 0.3s ease both' }}>
-      
-      {/* ── Main Attendance Credential Card (High Contrast & Clear) ── */}
-      <div
-        onClick={() => {
-          setSelectedPass({
-            title: 'Attendance Credential Pass',
-            subtitle: 'University Academic Record',
-            rate: `${overallRate}%`,
-            classes: `${attendedLogs} of ${totalLogs} classes attended`,
-            bg: 'linear-gradient(135deg, #1e3a8a 0%, #785927 100%)',
-            textColor: '#ffffff'
-          });
-        }}
-        className="hover-elevate active-haptic"
-        style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #785927 100%)',
-          borderRadius: '16px',
-          padding: '20px 22px',
-          color: '#ffffff',
-          boxShadow: '0 4px 14px rgba(30, 58, 138, 0.2)',
-          cursor: 'pointer',
-          border: '1px solid #916d30',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#dfcfaf' }}>
-              University Credential Pass
-            </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
-              {studentName}
-            </div>
-            <div style={{ fontSize: '0.82rem', color: '#e0e7ff', marginTop: '2px' }}>
-              Academic Attendance Session 2026
-            </div>
-          </div>
+  const studentBranch = String(
+    currentUser?.details?.dep || currentUser?.dep || currentUser?.department || ''
+  ).trim();
+  const studentRoll = String(currentUser?.details?.roll || currentUser?.roll || '').trim();
+  const safeSubjects = useMemo(() => (Array.isArray(subjects) ? subjects : []), [subjects]);
+  const safeLogs = useMemo(
+    () => (Array.isArray(logs) ? logs : []).filter(l => String(l?.attendance || '').toUpperCase() !== 'CLASS_CANCELLED'),
+    [logs]
+  );
 
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1 }}>
-              {overallRate}%
-            </div>
-            <div style={{ fontSize: '0.78rem', color: '#dfcfaf', marginTop: '4px' }}>
-              {attendedLogs}/{totalLogs} classes
-            </div>
-          </div>
-        </div>
+  // Scoped course passes strictly matching registered branch subjects
+  const coursePasses = useMemo(() => {
+    if (safeSubjects.length > 0) {
+      return safeSubjects.map(sub => {
+        const subIdStr = String(sub.id);
+        const subCode = String(sub.code || '').trim();
+        const matchedLogs = safeLogs.filter(log => {
+          if (log.subject_id !== undefined && log.subject_id !== null) {
+            return String(log.subject_id) === subIdStr;
+          }
+          if (subCode && log.subject_code) {
+            return String(log.subject_code).trim().toLowerCase() === subCode.toLowerCase();
+          }
+          return false;
+        });
 
-        {/* Barcode & Tap row */}
-        <div style={{
-          paddingTop: '12px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: '0.8rem',
-          color: '#e0e7ff'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <QrCode size={16} />
-            <span>Tap to inspect pass details</span>
-          </div>
-          <ChevronRight size={18} color="#ffffff" />
-        </div>
-      </div>
+        const attended = matchedLogs.filter(l =>
+          ['present', 'late', 'excused'].includes(String(l.attendance || '').toLowerCase())
+        ).length;
+        const total = matchedLogs.length;
+        const rate = total > 0 ? Math.round((attended / total) * 100) : 100;
 
-      {/* ── Exam Clearance Card (Clean White & High Contrast) ── */}
-      <div
-        onClick={() => {
-          setSelectedPass({
-            title: 'Semester Exam Clearance',
-            subtitle: isExamClear ? 'Eligible for Term End Exams' : 'Attendance Shortage - Dean Review Required',
-            rate: `${overallRate}%`,
-            classes: isExamClear ? '75% threshold satisfied' : 'Deficit below 75%',
-            bg: isExamClear ? '#166534' : '#991b1b',
-            textColor: '#ffffff'
-          });
-        }}
-        className="hover-elevate active-haptic"
-        style={{
-          background: '#ffffff',
-          borderRadius: '14px',
-          padding: '16px 18px',
-          border: `1.5px solid ${isExamClear ? '#bbf7d0' : '#fecaca'}`,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '12px',
-          cursor: 'pointer',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            background: isExamClear ? '#dcfce7' : '#fee2e2',
-            color: isExamClear ? '#15803d' : '#dc2626',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#25231f' }}>
-              Semester Exam Clearance Status
-            </div>
-            <div style={{ fontSize: '0.78rem', color: isExamClear ? '#15803d' : '#dc2626', marginTop: '1px', fontWeight: 600 }}>
-              {isExamClear ? 'Eligible for Term End Exams (75% cleared)' : 'Attendance Shortage (Below 75%)'}
-            </div>
-          </div>
-        </div>
-        <ChevronRight size={18} color="#94a3b8" />
-      </div>
+        return {
+          id: sub.id,
+          name: sub.name || 'Academic Subject',
+          code: subCode || `SUB-${sub.id}`,
+          department: sub.department || studentBranch || 'Department',
+          mentor: sub.teacher_name || 'Assigned Faculty',
+          attended,
+          total,
+          rate,
+          sessions: matchedLogs,
+        };
+      });
+    }
 
-      {/* ── Subject Course Passes (Clean White Cards) ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <h3 style={{ margin: '6px 0 2px', fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
-          Course Passes
-        </h3>
+    // Legacy fallback only when institution has zero subject registry rows
+    const map = {};
+    safeLogs.forEach(log => {
+      const key = log.subject_id ? String(log.subject_id) : (log.subject_name || 'General');
+      if (!map[key]) {
+        map[key] = {
+          id: log.subject_id || key,
+          name: log.subject_name || 'General Academic Attendance',
+          code: log.subject_code || 'GEN',
+          department: studentBranch || log.department || 'General',
+          mentor: log.teacher || 'Assigned Faculty',
+          attended: 0,
+          total: 0,
+          sessions: [],
+        };
+      }
+      map[key].total += 1;
+      map[key].sessions.push(log);
+      if (['present', 'late', 'excused'].includes(String(log.attendance || '').toLowerCase())) {
+        map[key].attended += 1;
+      }
+    });
+    return Object.values(map).map(item => ({
+      ...item,
+      rate: item.total > 0 ? Math.round((item.attended / item.total) * 100) : 100,
+    }));
+  }, [safeSubjects, safeLogs, studentBranch]);
 
-        {subjectPasses.map((sub, idx) => {
-          const subRate = sub.total > 0 ? Math.round((sub.attended / sub.total) * 100) : 100;
-          return (
-            <div
-              key={sub.code || idx}
-              onClick={() => {
-                setSelectedPass({
-                  title: sub.name,
-                  subtitle: `Course Code: ${sub.code} · ${sub.mentor}`,
-                  rate: `${subRate}%`,
-                  classes: `${sub.attended} of ${sub.total} classes attended`,
-                  bg: '#1e3a8a',
-                  textColor: '#ffffff'
-                });
-              }}
-              className="hover-elevate active-haptic"
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e4dfd5',
-                borderRadius: '12px',
-                padding: '14px 18px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-                cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: '#faf5ea',
-                  border: '1px solid #dfcfaf',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#785927',
-                  fontWeight: 800,
-                  flexShrink: 0
-                }}>
-                  <BookOpen size={18} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {sub.name}
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: '#696358', marginTop: '1px' }}>
-                    {sub.code} · {sub.mentor}
-                  </div>
-                </div>
+  const branchSummary = useMemo(() => {
+    if (safeSubjects.length > 0) {
+      const total = coursePasses.reduce((sum, c) => sum + c.total, 0);
+      const attended = coursePasses.reduce((sum, c) => sum + c.attended, 0);
+      const rate = total > 0 ? Math.round((attended / total) * 100) : 100;
+      return { total, attended, rate, isExamClear: rate >= 75 };
+    }
+    const total = safeLogs.length;
+    const attended = safeLogs.filter(l =>
+      ['present', 'late', 'excused'].includes(String(l.attendance || '').toLowerCase())
+    ).length;
+    const rate = total > 0 ? Math.round((attended / total) * 100) : 100;
+    return { total, attended, rate, isExamClear: rate >= 75 };
+  }, [safeSubjects.length, coursePasses, safeLogs]);
+
+  const branchScopedLogs = useMemo(() => {
+    if (safeSubjects.length === 0) return safeLogs;
+    const allowedIds = new Set(safeSubjects.map(s => String(s.id)));
+    return safeLogs.filter(l => l.subject_id != null && allowedIds.has(String(l.subject_id)));
+  }, [safeSubjects, safeLogs]);
+
+  const streak = useMemo(() => calculateAttendanceStreak(branchScopedLogs), [branchScopedLogs]);
+
+  const handleSharePass = async (title, summaryText) => {
+    if (playCyberSound) playCyberSound('click');
+    const text = `${studentName}${studentRoll ? ` (${studentRoll})` : ''} · ${title}: ${summaryText}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text });
+        return;
+      } catch { /* fallback to clipboard */ }
+    }
+    try {
+      await navigator.clipboard?.writeText(text);
+      setShareNotice('Pass summary copied to clipboard.');
+    } catch {
+      setShareNotice('Share unavailable on this device.');
+    }
+  };
+
+  const mode = activeRoute?.mode || 'list';
+
+  /* ===== DEDICATED PAGE: UNIVERSITY CREDENTIAL PASS ===== */
+  if (mode === 'credential') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {shareNotice && (
+              <div role="status" className="feedback-banner is-success">
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{shareNotice}</span>
+              </div>
+            )}
+
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CreditCard size={13} />
+                <span>Academic Attendance Credential</span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: subRate >= 75 ? '#16a34a' : '#dc2626' }}>
-                    {subRate}%
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#696358' }}>
-                    {sub.attended}/{sub.total}
-                  </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Student Name</span>
+                <span style={{ color: '#25231f', fontWeight: 700, textAlign: 'right' }}>{studentName}</span>
+              </div>
+              {studentRoll && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                  <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Roll Number</span>
+                  <span style={{ color: '#25231f', fontWeight: 700, textAlign: 'right' }}>{studentRoll}</span>
                 </div>
-                <ChevronRight size={18} color="#94a3b8" />
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Branch / Department</span>
+                <span style={{ color: '#25231f', fontWeight: 700, textAlign: 'right' }}>{studentBranch || 'General'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Enrolled Courses</span>
+                <span style={{ color: '#25231f', fontWeight: 700, textAlign: 'right' }}>{coursePasses.length}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Standing</span>
+                <span style={{ color: branchSummary.isExamClear ? '#047857' : '#dc2626', fontWeight: 800, textAlign: 'right' }}>
+                  {branchSummary.rate}% ({branchSummary.attended}/{branchSummary.total})
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Exam Clearance</span>
+                <span style={{ color: branchSummary.isExamClear ? '#047857' : '#dc2626', fontWeight: 700, textAlign: 'right' }}>
+                  {branchSummary.isExamClear ? 'Eligible (75% Met)' : 'Review Required (< 75%)'}
+                </span>
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* ── Pass Detail Modal (Flip-Side) ── */}
-      {selectedPass && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 99999,
-            background: 'rgba(15, 23, 42, 0.7)',
-            backdropFilter: 'blur(6px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-            animation: 'fadeIn 0.2s ease',
-            touchAction: 'none'
-          }}
-          onClick={() => setSelectedPass(null)}
-        >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '20px',
-              width: '100%',
-              maxWidth: '380px',
-              boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.25)',
-              overflow: 'hidden',
-              border: '1px solid #e4dfd5',
-              display: 'flex',
-              flexDirection: 'column',
-              position: 'relative'
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{
-              background: selectedPass.bg,
-              color: '#ffffff',
-              padding: '18px 20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start'
-            }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
-                  {selectedPass.title}
-                </h3>
-                <div style={{ fontSize: '0.78rem', color: '#e0e7ff', marginTop: '2px' }}>
-                  {selectedPass.subtitle}
-                </div>
-              </div>
-
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => setSelectedPass(null)}
+                type="button"
+                onClick={() => handleSharePass('Academic Credential Pass', `${branchSummary.rate}% (${branchSummary.attended}/${branchSummary.total} classes)`)}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 16px', borderRadius: '11px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Share2 size={14} />
+                <span>Share Pass</span>
+              </button>
+              <button
+                type="button"
+                onClick={goBack}
                 style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '10px 20px',
+                  borderRadius: '11px',
                   border: 'none',
+                  background: 'linear-gradient(135deg, #785927, #684c20)',
                   color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: 700
                 }}
               >
-                ✕
+                Done
               </button>
-            </div>
-
-            {/* Metrics */}
-            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '10px',
-                background: '#faf9f6',
-                padding: '12px 14px',
-                borderRadius: '12px',
-                border: '1px solid #e4dfd5'
-              }}>
-                <div>
-                  <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Attendance</div>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#785927', marginTop: '2px' }}>
-                    {selectedPass.rate}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Records</div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f', marginTop: '4px' }}>
-                    {selectedPass.classes}
-                  </div>
-                </div>
-              </div>
-
-              {/* Barcode Strip */}
-              <div style={{
-                background: '#ffffff',
-                border: '1px dashed #cfc8ba',
-                borderRadius: '12px',
-                padding: '14px',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  height: '40px',
-                  background: 'repeating-linear-gradient(90deg, #25231f 0px, #25231f 3px, transparent 3px, transparent 6px, #25231f 6px, #25231f 10px, transparent 10px, transparent 12px, #25231f 12px, #25231f 13px, transparent 13px, transparent 17px, #25231f 17px, #25231f 20px)',
-                  margin: '0 auto 6px',
-                  width: '80%'
-                }} />
-                <div style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: '#696358', letterSpacing: '1.5px' }}>
-                  PASS-AUTH-2026-OK
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleSharePass(selectedPass.title, selectedPass.rate)}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '10px',
-                    background: '#785927',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Share2 size={15} />
-                  <span>Share Pass</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedPass(null)}
-                  style={{
-                    padding: '10px 16px',
-                    background: '#f4f1eb',
-                    color: '#46423b',
-                    border: '1px solid #cfc8ba',
-                    borderRadius: '10px',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Done
-                </button>
-              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  /* ===== DEDICATED PAGE: SEMESTER CLEARANCE & STREAKS ===== */
+  if (mode === 'streaks') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={13} />
+                <span>Clearance &amp; Consistency</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Term Clearance Status</span>
+                <span style={{ color: branchSummary.isExamClear ? '#047857' : '#dc2626', fontWeight: 800 }}>
+                  {branchSummary.isExamClear ? 'Cleared for Exams' : 'Below 75% Requirement'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Current Present Streak</span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>{streak.current} consecutive session(s)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Attended / Conducted</span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>{branchSummary.attended} / {branchSummary.total}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Branch Subjects Cleared</span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>
+                  {coursePasses.filter(c => c.rate >= 75).length} / {coursePasses.length}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={goBack}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #785927, #684c20)',
+                  color: '#ffffff',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== DEDICATED PAGE: SUBJECT COURSE PASS DETAIL ===== */
+  if (mode === 'subject') {
+    const sub = coursePasses.find(c => String(c.id) === String(activeRoute?.id)) || activeRoute?.item || null;
+    if (!sub) {
+      return (
+        <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+          <div className="golden-os-window">
+            <div className="golden-os-body" style={{ textAlign: 'center', padding: '24px', gap: '12px', alignItems: 'center' }}>
+              <Clock size={24} style={{ color: '#8c7a5b' }} />
+              <div style={{ fontWeight: 700, color: '#2b2112' }}>Course pass not found for your branch.</div>
+              <button type="button" onClick={goBack} className="golden-os-feedback-filter-btn" style={{ padding: '8px 16px', borderRadius: '10px' }}>
+                Back to Wallet
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const isEligible = sub.rate >= 75 || sub.total === 0;
+    const buffer = isEligible && sub.total > 0 ? Math.floor((sub.attended - 0.75 * sub.total) / 0.75) : 0;
+    const needed = !isEligible && sub.total > 0 ? Math.ceil((0.75 * sub.total - sub.attended) / 0.25) : 0;
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {shareNotice && (
+              <div role="status" className="feedback-banner is-success">
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{shareNotice}</span>
+              </div>
+            )}
+
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <BookOpen size={13} />
+                <span>{sub.name} ({sub.code})</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Branch</span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>{sub.department}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Faculty</span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>{sub.mentor}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Attendance Rate</span>
+                <span style={{ color: isEligible ? '#047857' : '#dc2626', fontWeight: 800 }}>
+                  {sub.total > 0 ? `${sub.rate}% (${sub.attended}/${sub.total})` : 'No sessions yet'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Eligibility Status</span>
+                <span style={{ color: isEligible ? '#047857' : '#dc2626', fontWeight: 700 }}>
+                  {sub.total === 0 ? 'New Term' : isEligible ? 'Exam Eligible (≥ 75%)' : 'Shortage (< 75%)'}
+                </span>
+              </div>
+              {sub.total > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.85rem', gap: '10px' }}>
+                  <span style={{ color: '#6b5b3e', fontWeight: 600 }}>{isEligible ? 'Safe Margin' : 'Classes Needed'}</span>
+                  <span style={{ color: '#25231f', fontWeight: 700 }}>
+                    {isEligible ? `Can miss ${buffer} session(s)` : `Attend ${needed} consecutive`}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Session Log Controls */}
+            <div className="golden-os-form-section" style={{ gap: '10px' }}>
+              <div className="golden-os-form-section-title">Recorded Sessions ({sub.sessions.length})</div>
+              {sub.sessions.length === 0 ? (
+                <div style={{ fontSize: '0.82rem', color: '#6b5b3e' }}>
+                  No attendance logs recorded for {sub.name} yet.
+                </div>
+              ) : (
+                <div className="golden-os-list-shell">
+                  {sub.sessions.slice(0, 12).map((sess, idx) => {
+                    const st = String(sess.attendance || 'Present');
+                    const isAbs = st.toLowerCase() === 'absent';
+                    return (
+                      <div key={sess.id || idx} className="golden-os-list-row" style={{ cursor: 'default' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f' }}>
+                            {sess.date} · {st}
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: '#6b5b3e', marginTop: '2px' }}>
+                            {sess.period_label || sess.time || 'Scheduled Class'}
+                          </div>
+                        </div>
+                        {isAbs && onOpenDispute && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenDispute({ ...sess, subject_id: sub.id })}
+                            className="golden-os-feedback-filter-btn"
+                            style={{ padding: '6px 10px', borderRadius: '8px', fontSize: '0.74rem' }}
+                          >
+                            Dispute
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => handleSharePass(`${sub.name} (${sub.code})`, `${sub.rate}% (${sub.attended}/${sub.total})`)}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 16px', borderRadius: '11px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Share2 size={14} />
+                <span>Share Pass</span>
+              </button>
+              <button
+                type="button"
+                onClick={goBack}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #785927, #684c20)',
+                  color: '#ffffff',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== WALLET ROOT DIRECTORY (CLEAN SINGLE-LINE ROWS, STRICTLY BRANCH-SCOPED) ===== */
+  return (
+    <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {shareNotice && (
+            <div role="status" className="feedback-banner is-success">
+              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{shareNotice}</span>
+            </div>
+          )}
+
+          {/* Top Compact Control */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6b5b3e' }}>
+              Branch: {studentBranch || 'Registered'} · {coursePasses.length} {coursePasses.length === 1 ? 'course' : 'courses'}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSharePass('Attendance Wallet Summary', `${branchSummary.rate}% (${branchSummary.attended}/${branchSummary.total})`)}
+              className="golden-os-feedback-filter-btn"
+              style={{ padding: '7px 12px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Share2 size={14} />
+              <span>Share Summary</span>
+            </button>
+          </div>
+
+          {/* Primary Credential & Clearance Rows */}
+          <div className="golden-os-list-shell">
+            <button
+              type="button"
+              onClick={() => navigateTo({ section: 'wallet', mode: 'credential' })}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar">
+                  <CreditCard size={17} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    University Credential Pass
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                    {studentName} · {studentBranch || 'General'} · {branchSummary.rate}% ({branchSummary.attended}/{branchSummary.total})
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigateTo({ section: 'wallet', mode: 'streaks' })}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar">
+                  <Award size={17} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Semester Exam Clearance &amp; Streaks
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                    {branchSummary.isExamClear ? 'Eligible for Exams' : 'Shortage Warning'} · {streak.current} day streak
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+            </button>
+          </div>
+
+          {/* Enrolled Branch Courses */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#785927' }}>
+                Enrolled Branch Courses
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8c7a5b' }}>
+                {coursePasses.length} {coursePasses.length === 1 ? 'subject' : 'subjects'}
+              </span>
+            </div>
+
+            {coursePasses.length === 0 ? (
+              <div style={{ padding: '20px 14px', textAlign: 'center', background: '#ffffff', border: '1px dashed #d6c5a3', borderRadius: '14px', color: '#6b5b3e', fontSize: '0.82rem' }}>
+                No subjects registered for {studentBranch || 'your branch'} yet.
+              </div>
+            ) : (
+              <div className="golden-os-list-shell">
+                {coursePasses.map(sub => (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    onClick={() => navigateTo({ section: 'wallet', mode: 'subject', id: sub.id, item: sub })}
+                    className="golden-os-list-row"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                      <div className="golden-os-avatar">
+                        <BookOpen size={17} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {sub.name} ({sub.code})
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                          {sub.department} · {sub.mentor} · {sub.attended}/{sub.total} classes
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

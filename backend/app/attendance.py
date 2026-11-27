@@ -871,14 +871,19 @@ def get_student_attendance_calendar(
             subject_calendar[sub_id][formatted_date] = status_val
             subject_calendar[sub_id][raw_date] = status_val
 
-        # Build response
+        # Build response strictly scoped to student's branch when registered branch subjects exist
+        branch_subjects = [
+            s for s in subjects
+            if current_student.dep and s.department and crud.departments_match(db, current_student.institution_id, s.department, current_student.dep)
+        ] if current_student.dep else []
+        strict_branch = len(branch_subjects) > 0
+        scoped_subjects = branch_subjects if strict_branch else subjects
+
         result = []
         found_sub_ids = set()
-        for subject in subjects:
-            # Only include subjects for student's department or subjects that have logs
-            if subject.department and current_student.dep and subject.department.strip().lower() != current_student.dep.strip().lower():
-                if subject.id not in subject_calendar:
-                    continue
+        for subject in scoped_subjects:
+            if subject.department and current_student.dep and not crud.departments_match(db, current_student.institution_id, subject.department, current_student.dep):
+                continue
             cal = subject_calendar.get(subject.id, {})
             result.append({
                 "subject_id": subject.id,
@@ -889,26 +894,26 @@ def get_student_attendance_calendar(
             })
             found_sub_ids.add(subject.id)
 
-        # Include any logged subjects that weren't in institution subjects list
-        for sub_id, cal in subject_calendar.items():
-            if sub_id != 0 and sub_id not in found_sub_ids and cal:
-                result.append({
-                    "subject_id": sub_id,
-                    "subject_name": f"Subject #{sub_id}",
-                    "subject_code": f"SUB{sub_id}",
-                    "department": current_student.dep or "",
-                    "calendar": cal
-                })
+        if not strict_branch:
+            # Legacy fallback only when student's branch has zero registered subjects
+            for sub_id, cal in subject_calendar.items():
+                if sub_id != 0 and sub_id not in found_sub_ids and cal:
+                    result.append({
+                        "subject_id": sub_id,
+                        "subject_name": f"Subject #{sub_id}",
+                        "subject_code": f"SUB{sub_id}",
+                        "department": current_student.dep or "",
+                        "calendar": cal
+                    })
 
-        # If general logs exist (subject_id == 0) and not already covered
-        if 0 in subject_calendar and subject_calendar[0]:
-            result.insert(0, {
-                "subject_id": 0,
-                "subject_name": "General Attendance",
-                "subject_code": "GEN",
-                "department": current_student.dep or "",
-                "calendar": subject_calendar[0]
-            })
+            if 0 in subject_calendar and subject_calendar[0]:
+                result.insert(0, {
+                    "subject_id": 0,
+                    "subject_name": "General Attendance",
+                    "subject_code": "GEN",
+                    "department": current_student.dep or "",
+                    "calendar": subject_calendar[0]
+                })
 
         return result
     except Exception as e:

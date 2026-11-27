@@ -1,662 +1,765 @@
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  Target, ShieldCheck, AlertTriangle, AlertCircle,
-  Sparkles, Sliders, CheckCircle2, RefreshCw
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  Target,
+  Sliders,
+  RefreshCw,
+  ChevronRight,
+  CheckCircle2,
+  AlertTriangle,
+  BookOpen,
+  Clock,
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
+import { getActiveTenantSlug } from '../utils/tenantConfig';
 
-const API_BASE_URL = getApiBaseUrl();
+const getPlannerCacheKey = (token, targetPct) => {
+  if (!token) return null;
+  const slug = getActiveTenantSlug() || 'default';
+  return `sg_planner_v1_${slug}_${String(token).slice(-16)}_${targetPct}`;
+};
 
+const readPlannerCache = (token, targetPct) => {
+  try {
+    const key = getPlannerCacheKey(token, targetPct);
+    if (!key) return null;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writePlannerCache = (token, targetPct, data) => {
+  try {
+    const key = getPlannerCacheKey(token, targetPct);
+    if (!key || !data) return;
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch { /* ignore */ }
+};
+
+const computeLocalPlanMetric = (attended, conducted, targetPct) => {
+  if (conducted <= 0) {
+    return {
+      percentage: 100.0,
+      status: 'SAFE',
+      classes_needed: 0,
+      bunk_allowance: 0,
+      projection_attend_next_3: 100.0,
+      projection_miss_next_3: 100.0,
+    };
+  }
+  const pct = Math.round((attended / conducted) * 10000) / 100;
+  const t = targetPct / 100;
+  const status = pct >= targetPct ? 'SAFE' : pct >= 70 ? 'WARNING' : 'CRITICAL';
+  let classesNeeded = 0;
+  let bunkAllowance = 0;
+  if (pct < targetPct && 1 - t > 0) {
+    classesNeeded = Math.ceil(Math.max(0, (t * conducted - attended) / (1 - t)));
+  } else if (t > 0) {
+    bunkAllowance = Math.floor(Math.max(0, (attended - t * conducted) / t));
+  }
+  return {
+    percentage: pct,
+    status,
+    classes_needed: classesNeeded,
+    bunk_allowance: bunkAllowance,
+    projection_attend_next_3: Math.round(((attended + 3) / (conducted + 3)) * 10000) / 100,
+    projection_miss_next_3: Math.round((attended / (conducted + 3)) * 10000) / 100,
+  };
+};
+
+/**
+ * Golden Gate Master-Detail Smart 75% Attendance Planner & Simulator.
+ * Instant 0ms cached load, strictly branch-scoped, clean single-line list rows,
+ * dedicated sub-pages for Overall Standing, What-If Simulator, and Subject Controls.
+ */
 export default function AttendancePlannerWidget({
   token,
-  playCyberSound = () => {}
+  subjects = [],
+  studentLogs = [],
+  routeView = null,
+  onNavigateRoute = null,
+  onNavigateBack = null,
+  playCyberSound = () => {},
 }) {
-  const [plannerData, setPlannerData] = useState(null);
-  const [targetPct, setTargetPct] = useState(75.0);
+  const activeApiUrl = useMemo(() => {
+    let url = getApiBaseUrl();
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http:')) {
+      url = url.replace('http:', 'https:');
+    }
+    return url.replace(/\/+$/, '');
+  }, []);
+
+  const [targetPct, setTargetPct] = useState(75);
+  const [plannerData, setPlannerData] = useState(() => readPlannerCache(token, 75));
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // What-If Simulation State
-  const [showWhatIf, setShowWhatIf] = useState(false);
+  const [localRoute, setLocalRoute] = useState(null);
+  const activeRoute = routeView !== undefined && onNavigateRoute ? routeView : localRoute;
+  const mode = activeRoute?.mode || 'list';
+
+  // Interactive Simulator Controls
   const [simSubjectId, setSimSubjectId] = useState('');
   const [simUpcoming, setSimUpcoming] = useState(10);
   const [simPlanned, setSimPlanned] = useState(8);
-  const [simResult, setSimResult] = useState(null);
+  const [simServerResult, setSimServerResult] = useState(null);
 
-  // ── Fetch Planner Summary ──────────────────────────────────────────────────
+  const navigateTo = (next) => {
+    if (playCyberSound) playCyberSound('click');
+    if (onNavigateRoute) {
+      onNavigateRoute(next);
+    } else {
+      setLocalRoute(next);
+    }
+  };
+
+  const goBack = () => {
+    if (playCyberSound) playCyberSound('click');
+    if (onNavigateBack) {
+      onNavigateBack();
+    } else if (activeRoute?.mode) {
+      setLocalRoute({ section: 'planner' });
+    }
+  };
+
+  // Instant 0ms fallback model derived from branch-scoped subjects & logs if server hasn't responded yet
+  const safeSubjects = useMemo(() => (Array.isArray(subjects) ? subjects : []), [subjects]);
+  const fallbackPlannerData = useMemo(() => {
+    const safeLogs = (Array.isArray(studentLogs) ? studentLogs : [])
+      .filter(l => String(l?.attendance || '').toUpperCase() !== 'CLASS_CANCELLED');
+
+    const branchMap = {};
+    if (safeSubjects.length > 0) {
+      safeSubjects.forEach(s => {
+        branchMap[s.id] = {
+          subject_id: s.id,
+          subject_name: s.name || 'Subject',
+          subject_code: s.code || `SUB-${s.id}`,
+          attended: 0,
+          conducted: 0,
+        };
+      });
+    }
+
+    let overallAtt = 0;
+    let overallCond = 0;
+    safeLogs.forEach(log => {
+      const subId = log.subject_id;
+      if (safeSubjects.length > 0 && (subId == null || !branchMap[subId])) return;
+      const key = subId || 0;
+      if (!branchMap[key]) {
+        branchMap[key] = {
+          subject_id: key,
+          subject_name: log.subject_name || 'General Sessions',
+          subject_code: log.subject_code || 'GEN',
+          attended: 0,
+          conducted: 0,
+        };
+      }
+      branchMap[key].conducted += 1;
+      overallCond += 1;
+      if (['present', 'late', 'excused'].includes(String(log.attendance || '').toLowerCase())) {
+        branchMap[key].attended += 1;
+        overallAtt += 1;
+      }
+    });
+
+    const overallMetric = computeLocalPlanMetric(overallAtt, overallCond, targetPct);
+    const subjectPlans = Object.values(branchMap).map(item => {
+      const m = computeLocalPlanMetric(item.attended, item.conducted, targetPct);
+      return {
+        subject_id: item.subject_id,
+        subject_name: item.subject_name,
+        subject_code: item.subject_code,
+        total_conducted: item.conducted,
+        total_attended: item.attended,
+        current_percentage: m.percentage,
+        status: m.status,
+        target_percentage: targetPct,
+        classes_needed: m.classes_needed,
+        bunk_allowance: m.bunk_allowance,
+        projection_attend_next_3: m.projection_attend_next_3,
+        projection_miss_next_3: m.projection_miss_next_3,
+      };
+    });
+
+    return {
+      overall_conducted: overallCond,
+      overall_attended: overallAtt,
+      overall_percentage: overallMetric.percentage,
+      overall_status: overallMetric.status,
+      target_percentage: targetPct,
+      overall_classes_needed: overallMetric.classes_needed,
+      overall_bunk_allowance: overallMetric.bunk_allowance,
+      subjects: subjectPlans,
+      advice_message:
+        overallMetric.status === 'SAFE'
+          ? `Attendance is ${overallMetric.percentage}%. You can miss up to ${overallMetric.bunk_allowance} class(es) while staying >= ${targetPct}%.`
+          : `Attend the next ${overallMetric.classes_needed} consecutive class(es) to reach ${targetPct}%.`,
+    };
+  }, [safeSubjects, studentLogs, targetPct]);
+
   const fetchPlanner = useCallback(async (target = targetPct, isCancelled = () => false) => {
     if (!token) return;
-    setIsLoading(true);
+    const cached = readPlannerCache(token, target);
+    if (cached && !isCancelled()) {
+      setPlannerData(cached);
+    } else {
+      setIsLoading(true);
+    }
     setErrorMsg('');
     try {
-      const res = await fetch(`${API_BASE_URL}/planner/summary?target_percentage=${target}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${activeApiUrl}/planner/summary?target_percentage=${target}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Planner unavailable (${res.status})`);
       const data = await res.json();
-      if (!isCancelled()) {
+      if (!isCancelled() && data) {
         setPlannerData(data);
+        writePlannerCache(token, target, data);
       }
     } catch (err) {
-      if (!isCancelled()) {
-        setErrorMsg(err.message || 'Failed to load attendance planner.');
+      if (!isCancelled() && !cached) {
+        setErrorMsg(err.message || 'Could not sync attendance planner.');
       }
     } finally {
-      if (!isCancelled()) {
-        setIsLoading(false);
-      }
+      if (!isCancelled()) setIsLoading(false);
     }
-  }, [token, targetPct]);
+  }, [activeApiUrl, token, targetPct]);
 
   useEffect(() => {
     let ignore = false;
     Promise.resolve().then(() => {
-      if (!ignore) {
-        fetchPlanner(targetPct, () => ignore);
-      }
+      if (!ignore) fetchPlanner(targetPct, () => ignore);
     });
     return () => {
       ignore = true;
     };
   }, [fetchPlanner, targetPct]);
 
-  // ── Run What-If Simulation ─────────────────────────────────────────────────
-  const runSimulation = useCallback(async (isCancelled = () => false) => {
-    if (!token) return;
-    try {
-      const payload = {
-        subject_id: simSubjectId ? parseInt(simSubjectId) : null,
-        target_percentage: targetPct,
-        upcoming_classes: parseInt(simUpcoming) || 0,
-        planned_attend: parseInt(simPlanned) || 0
-      };
-      const res = await fetch(`${API_BASE_URL}/planner/what-if`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (!isCancelled()) {
-          setSimResult(data);
-        }
-      }
-    } catch (err) {
-      console.warn('Simulation failed:', err);
-    }
-  }, [token, simSubjectId, targetPct, simUpcoming, simPlanned]);
+  // Effective branch-scoped planner model
+  const effectivePlanner = useMemo(() => {
+    const raw = plannerData || fallbackPlannerData;
+    if (!raw) return fallbackPlannerData;
+    if (safeSubjects.length === 0) return raw;
+    const allowedIds = new Set(safeSubjects.map(s => String(s.id)));
+    const filteredSubjects = (Array.isArray(raw.subjects) ? raw.subjects : []).filter(
+      s => allowedIds.has(String(s.subject_id))
+    );
+    return {
+      ...raw,
+      subjects: filteredSubjects.length > 0 ? filteredSubjects : fallbackPlannerData.subjects,
+    };
+  }, [plannerData, fallbackPlannerData, safeSubjects]);
+
+  // Preselect subject when opening simulator with a specific subject route
+  const simDefaultSubId = activeRoute?.mode === 'simulator' && activeRoute?.subjectId
+    ? String(activeRoute.subjectId)
+    : simSubjectId;
+
+  // Instant 0ms local What-If calculation + background server confirmation
+  const localSimResult = useMemo(() => {
+    const targetSub = simDefaultSubId
+      ? effectivePlanner.subjects.find(s => String(s.subject_id) === String(simDefaultSubId))
+      : null;
+    const attBefore = targetSub ? targetSub.total_attended : effectivePlanner.overall_attended;
+    const condBefore = targetSub ? targetSub.total_conducted : effectivePlanner.overall_conducted;
+    const currPct = condBefore > 0 ? Math.round((attBefore / condBefore) * 10000) / 100 : 100;
+    const up = Math.max(0, Number(simUpcoming) || 0);
+    const pl = Math.min(up, Math.max(0, Number(simPlanned) || 0));
+    const condAfter = condBefore + up;
+    const attAfter = attBefore + pl;
+    const simPct = condAfter > 0 ? Math.round((attAfter / condAfter) * 10000) / 100 : 100;
+    return {
+      current_percentage: currPct,
+      simulated_percentage: simPct,
+      target_achieved: simPct >= targetPct,
+      conducted_before: condBefore,
+      conducted_after: condAfter,
+      attended_before: attBefore,
+      attended_after: attAfter,
+      difference_percentage: Math.round((simPct - currPct) * 100) / 100,
+    };
+  }, [simDefaultSubId, effectivePlanner, simUpcoming, simPlanned, targetPct]);
 
   useEffect(() => {
+    if (mode !== 'simulator' || !token) return undefined;
     let ignore = false;
-    if (showWhatIf) {
-      Promise.resolve().then(() => {
-        if (!ignore) {
-          runSimulation(() => ignore);
-        }
-      });
-    }
+    fetch(`${activeApiUrl}/planner/what-if`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subject_id: simDefaultSubId ? parseInt(simDefaultSubId, 10) : null,
+        target_percentage: targetPct,
+        upcoming_classes: parseInt(simUpcoming, 10) || 0,
+        planned_attend: parseInt(simPlanned, 10) || 0,
+      }),
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!ignore && data) setSimServerResult(data);
+      })
+      .catch(() => {});
     return () => {
       ignore = true;
     };
-  }, [showWhatIf, runSimulation]);
+  }, [mode, token, activeApiUrl, simDefaultSubId, targetPct, simUpcoming, simPlanned]);
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'SAFE':
-        return {
-          bg: 'rgba(16, 185, 129, 0.15)',
-          border: 'rgba(16, 185, 129, 0.4)',
-          text: '#34d399',
-          label: 'Safe (≥ 75%)',
-          icon: <ShieldCheck size={14} />
-        };
-      case 'WARNING':
-        return {
-          bg: 'rgba(245, 158, 11, 0.15)',
-          border: 'rgba(245, 158, 11, 0.4)',
-          text: '#fbbf24',
-          label: 'Warning (70-75%)',
-          icon: <AlertTriangle size={14} />
-        };
-      default:
-        return {
-          bg: 'rgba(239, 68, 68, 0.15)',
-          border: 'rgba(239, 68, 68, 0.4)',
-          text: '#f87171',
-          label: 'Critical (< 70%)',
-          icon: <AlertCircle size={14} />
-        };
-    }
-  };
+  const activeSim = simServerResult &&
+    Number(simServerResult.upcoming_classes ?? simUpcoming) === Number(simUpcoming) &&
+    Number(simServerResult.attended_after) === localSimResult.attended_after &&
+    Number(simServerResult.conducted_after) === localSimResult.conducted_after
+    ? simServerResult
+    : localSimResult;
 
-  return (
-    <div className="attendance-planner-wrapper" style={{
-      color: '#faf9f6',
-      fontFamily: 'inherit',
-      margin: '0 0 24px 0'
-    }}>
-      {/* Planner Card Container */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e4dfd5',
-        borderRadius: '16px',
-        padding: '24px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-        position: 'relative'
-      }}>
-        {/* Card Header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '20px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              background: '#faf5ea',
-              border: '1px solid #dfcfaf',
-              borderRadius: '10px',
-              padding: '8px',
-              color: '#785927',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Target size={22} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#25231f', fontWeight: 700 }}>
-                  Smart 75% Attendance Planner
-                </h3>
-                <span style={{
-                  background: '#faf5ea',
-                  border: '1px solid #dfcfaf',
-                  color: '#684c20',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  letterSpacing: '0.05em'
-                }}>
-                  Phase 4 AI Forecast
+  /* ===== DEDICATED PAGE 1: OVERALL TARGET PLAN DETAIL ===== */
+  if (mode === 'overall') {
+    const isSafe = effectivePlanner.overall_percentage >= targetPct;
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Target size={13} />
+                <span>Overall Attendance Target ({targetPct}%)</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Current Standing</span>
+                <span style={{ color: isSafe ? '#047857' : '#dc2626', fontWeight: 800 }}>
+                  {effectivePlanner.overall_percentage}% ({effectivePlanner.overall_attended}/{effectivePlanner.overall_conducted})
                 </span>
               </div>
-              <p style={{ margin: 0, color: '#58534a', fontSize: '0.85rem' }}>
-                Mathematical attendance recovery solver, surplus bunk allowance calculator, and what-if projection engine.
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Status</span>
+                <span style={{ color: isSafe ? '#047857' : '#dc2626', fontWeight: 700 }}>
+                  {isSafe ? `On Track (>= ${targetPct}%)` : `Action Needed (< ${targetPct}%)`}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>
+                  {isSafe ? 'Safe Bunk Allowance' : 'Consecutive Classes Needed'}
+                </span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>
+                  {isSafe
+                    ? `${effectivePlanner.overall_bunk_allowance} session(s)`
+                    : `${effectivePlanner.overall_classes_needed} session(s)`}
+                </span>
+              </div>
+
+              {effectivePlanner.advice_message && (
+                <div style={{ marginTop: '4px', fontSize: '0.84rem', color: '#3b3324', background: '#faf8f2', padding: '10px 12px', borderRadius: '10px', border: '1px solid #ede4d2', lineHeight: 1.5 }}>
+                  {effectivePlanner.advice_message}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => navigateTo({ section: 'planner', mode: 'simulator' })}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 16px', borderRadius: '11px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Sliders size={14} />
+                <span>Open What-If Simulator</span>
+              </button>
+              <button
+                type="button"
+                onClick={goBack}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #785927, #684c20)',
+                  color: '#ffffff',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Done
+              </button>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            {/* Target Threshold Selector */}
-            <div className="planner-target-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
-              <span style={{ fontSize: '0.82rem', color: '#696358', fontWeight: 600, flexShrink: 0 }}>Target:</span>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                {[75, 80, 85].map(t => (
-                  <button
-                    key={t}
-                    type="button"
-                    className="target-pct-btn"
-                    onClick={() => {
-                      playCyberSound('click');
-                      setTargetPct(t);
-                      fetchPlanner(t);
-                    }}
-                    style={{
-                      background: targetPct === t ? '#faf5ea' : '#faf9f6',
-                      border: targetPct === t ? '1.5px solid #916d30' : '1px solid #cfc8ba',
-                      color: targetPct === t ? '#684c20' : '#696358',
-                      padding: '5px 12px',
-                      borderRadius: '8px',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      width: 'auto',
-                      minWidth: '50px',
-                      textAlign: 'center',
-                      transition: 'all 0.15s ease'
+  /* ===== DEDICATED PAGE 2: INTERACTIVE WHAT-IF SIMULATOR ===== */
+  if (mode === 'simulator') {
+    const achieved = activeSim.target_achieved;
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sliders size={13} />
+                <span>Interactive What-If Simulator</span>
+              </div>
+
+              <div className="golden-os-fields-2">
+                <div>
+                  <label className="golden-os-field-label">Simulation Scope</label>
+                  <select
+                    className="golden-os-input"
+                    value={simDefaultSubId}
+                    onChange={e => {
+                      setSimSubjectId(e.target.value);
+                      if (activeRoute?.subjectId) {
+                        navigateTo({ section: 'planner', mode: 'simulator', subjectId: e.target.value || null });
+                      }
                     }}
                   >
-                    {t}%
-                  </button>
-                ))}
+                    <option value="">All Branch Subjects Combined</option>
+                    {effectivePlanner.subjects.map(s => (
+                      <option key={s.subject_id} value={s.subject_id}>
+                        {s.subject_name} ({s.current_percentage}%)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="golden-os-field-label">Target Threshold</label>
+                  <div className="golden-os-segmented">
+                    {[75, 80, 85].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          if (playCyberSound) playCyberSound('click');
+                          setTargetPct(t);
+                        }}
+                        className={`golden-os-segmented-btn ${targetPct === t ? 'active' : ''}`}
+                      >
+                        {t}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="golden-os-fields-2">
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label className="golden-os-field-label" style={{ marginBottom: 0 }}>Upcoming Classes</label>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#6e4e1c' }}>{simUpcoming}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="30"
+                    value={simUpcoming}
+                    onChange={e => {
+                      const val = parseInt(e.target.value, 10);
+                      setSimUpcoming(val);
+                      if (simPlanned > val) setSimPlanned(val);
+                    }}
+                    style={{ width: '100%', accentColor: '#785927', cursor: 'pointer' }}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label className="golden-os-field-label" style={{ marginBottom: 0 }}>Planned to Attend</label>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#047857' }}>{simPlanned} / {simUpcoming}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={simUpcoming}
+                    value={simPlanned}
+                    onChange={e => setSimPlanned(parseInt(e.target.value, 10))}
+                    style={{ width: '100%', accentColor: '#059669', cursor: 'pointer' }}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* What-If Simulator Toggle */}
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title">Projection Result</div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Current Standing</span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>
+                  {activeSim.current_percentage}% ({activeSim.attended_before}/{activeSim.conducted_before})
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Projected Standing</span>
+                <span style={{ color: achieved ? '#047857' : '#dc2626', fontWeight: 800 }}>
+                  {activeSim.simulated_percentage}% ({activeSim.attended_after}/{activeSim.conducted_after})
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Outcome</span>
+                <span style={{ color: achieved ? '#047857' : '#dc2626', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  {achieved ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                  {achieved ? `Target ${targetPct}% Achieved` : `Target ${targetPct}% Missed`}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={goBack}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #785927, #684c20)',
+                  color: '#ffffff',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== DEDICATED PAGE 3: SUBJECT PLANNER DETAIL ===== */
+  if (mode === 'subject') {
+    const sub =
+      effectivePlanner.subjects.find(s => String(s.subject_id) === String(activeRoute?.id)) ||
+      activeRoute?.item ||
+      null;
+
+    if (!sub) {
+      return (
+        <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+          <div className="golden-os-window">
+            <div className="golden-os-body" style={{ textAlign: 'center', padding: '24px', gap: '12px', alignItems: 'center' }}>
+              <Clock size={24} style={{ color: '#8c7a5b' }} />
+              <div style={{ fontWeight: 700, color: '#2b2112' }}>Subject planner entry unavailable.</div>
+              <button type="button" onClick={goBack} className="golden-os-feedback-filter-btn" style={{ padding: '8px 16px', borderRadius: '10px' }}>
+                Back to Planner
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const isUnder = sub.current_percentage < targetPct;
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <BookOpen size={13} />
+                <span>{sub.subject_name}{sub.subject_code ? ` (${sub.subject_code})` : ''}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Current Standing</span>
+                <span style={{ color: isUnder ? '#dc2626' : '#047857', fontWeight: 800 }}>
+                  {sub.current_percentage}% ({sub.total_attended}/{sub.total_conducted})
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>{isUnder ? `Classes Needed (${targetPct}%)` : 'Safe Bunk Allowance'}</span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>
+                  {isUnder ? `${sub.classes_needed} consecutive` : `${sub.bunk_allowance} session(s)`}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>If Attend Next 3</span>
+                <span style={{ color: '#047857', fontWeight: 700 }}>{sub.projection_attend_next_3}%</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.85rem', gap: '10px' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>If Miss Next 3</span>
+                <span style={{ color: '#dc2626', fontWeight: 700 }}>{sub.projection_miss_next_3}%</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => navigateTo({ section: 'planner', mode: 'simulator', subjectId: sub.subject_id })}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 16px', borderRadius: '11px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Sliders size={14} />
+                <span>Simulate This Subject</span>
+              </button>
+              <button
+                type="button"
+                onClick={goBack}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #785927, #684c20)',
+                  color: '#ffffff',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== PLANNER ROOT DIRECTORY (CLEAN SINGLE-LINE ROWS, NO GIANT STACKED BOXES) ===== */
+  const overallSafe = effectivePlanner.overall_percentage >= targetPct;
+  return (
+    <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Compact Target Selector & Refresh Row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+            <div className="golden-os-segmented" style={{ flex: 1, minWidth: 0, flexWrap: 'nowrap' }}>
+              {[75, 80, 85].map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    if (playCyberSound) playCyberSound('click');
+                    setTargetPct(t);
+                  }}
+                  className={`golden-os-segmented-btn ${targetPct === t ? 'active' : ''}`}
+                  style={{ flex: 1, padding: '8px 6px', whiteSpace: 'nowrap', textAlign: 'center' }}
+                >
+                  {t}%
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => {
-                playCyberSound('click');
-                setShowWhatIf(!showWhatIf);
+                if (playCyberSound) playCyberSound('click');
+                fetchPlanner(targetPct);
               }}
-              style={{
-                background: showWhatIf ? '#f3e8ff' : '#faf9f6',
-                border: showWhatIf ? '1px solid #a855f7' : '1px solid #cfc8ba',
-                color: showWhatIf ? '#7e22ce' : '#58534a',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                width: 'auto'
-              }}
+              disabled={isLoading}
+              className="golden-os-feedback-filter-btn"
+              style={{ padding: '9px 12px', borderRadius: '11px', display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0, whiteSpace: 'nowrap' }}
             >
-              <Sliders size={14} />
-              {showWhatIf ? 'Hide Simulator' : 'What-If Simulator'}
+              <RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} />
+              <span>{isLoading ? 'Syncing' : 'Refresh'}</span>
             </button>
+          </div>
 
-            {/* Refresh */}
+          {errorMsg && (
+            <div role="alert" className="feedback-banner is-error">
+              <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Overview & Simulator Entry Rows */}
+          <div className="golden-os-list-shell">
             <button
               type="button"
-              onClick={() => { playCyberSound('click'); fetchPlanner(targetPct); }}
-              disabled={isLoading}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#696358',
-                cursor: 'pointer',
-                padding: '4px',
-                width: 'auto'
-              }}
-              title="Refresh Planner"
+              onClick={() => navigateTo({ section: 'planner', mode: 'overall' })}
+              className="golden-os-list-row"
             >
-              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar">
+                  <Target size={17} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Overall Target Standing ({targetPct}%)
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                    {effectivePlanner.overall_percentage}% ({effectivePlanner.overall_attended}/{effectivePlanner.overall_conducted}) · {overallSafe ? `Can miss ${effectivePlanner.overall_bunk_allowance}` : `Need ${effectivePlanner.overall_classes_needed} consecutive`}
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigateTo({ section: 'planner', mode: 'simulator' })}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar">
+                  <Sliders size={17} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    What-If Lecture Simulator
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                    Simulate upcoming lectures &amp; recovery scenarios
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
             </button>
           </div>
-        </div>
 
-        {errorMsg && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
-            color: '#f87171',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            marginBottom: '18px',
-            fontSize: '0.88rem'
-          }}>
-            {errorMsg}
-          </div>
-        )}
-
-        {isLoading && !plannerData ? (
-          <div style={{ textAlign: 'center', padding: '36px', color: '#94a3b8' }}>
-            <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 10px' }} />
-            <p style={{ margin: 0, fontSize: '0.9rem' }}>Calculating attendance recovery curves...</p>
-          </div>
-        ) : plannerData ? (
-          <div>
-            {/* Overall Summary Row */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '16px',
-              marginBottom: '20px'
-            }}>
-              {/* Overall Percentage Card */}
-              <div style={{
-                background: '#faf9f6',
-                border: '1px solid #e4dfd5',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px'
-              }}>
-                <div style={{
-                  width: '54px',
-                  height: '54px',
-                  borderRadius: '50%',
-                  background: getStatusBadge(plannerData.overall_status).bg,
-                  border: `2px solid ${getStatusBadge(plannerData.overall_status).border}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: getStatusBadge(plannerData.overall_status).text,
-                  fontWeight: 800,
-                  fontSize: '1.05rem'
-                }}>
-                  {plannerData.overall_percentage}%
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Overall Standing
-                  </span>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {getStatusBadge(plannerData.overall_status).icon}
-                    {getStatusBadge(plannerData.overall_status).label}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: '#696358' }}>
-                    {plannerData.overall_attended} / {plannerData.overall_conducted} classes
-                  </span>
-                </div>
-              </div>
-
-              {/* Recovery / Bunk Stat Card */}
-              <div style={{
-                background: plannerData.overall_percentage < targetPct 
-                  ? '#fee2e2' 
-                  : '#d1fae5',
-                border: plannerData.overall_percentage < targetPct 
-                  ? '1px solid #fecaca' 
-                  : '1px solid #a7f3d0',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px'
-              }}>
-                <div style={{
-                  width: '54px',
-                  height: '54px',
-                  borderRadius: '12px',
-                  background: plannerData.overall_percentage < targetPct ? '#fca5a5' : '#6ee7b7',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.5rem',
-                  fontWeight: 800,
-                  color: plannerData.overall_percentage < targetPct ? '#991b1b' : '#065f46'
-                }}>
-                  {plannerData.overall_percentage < targetPct ? plannerData.overall_classes_needed : plannerData.overall_bunk_allowance}
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: '#696358', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {plannerData.overall_percentage < targetPct ? 'Consecutive Classes Needed' : 'Safe Bunk Allowance'}
-                  </span>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#25231f' }}>
-                    {plannerData.overall_percentage < targetPct 
-                      ? `Attend ${plannerData.overall_classes_needed} to reach ${targetPct}%` 
-                      : `Can miss up to ${plannerData.overall_bunk_allowance} session(s)`}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: '#696358' }}>
-                    {plannerData.overall_percentage < targetPct ? 'Zero absences allowed' : `Stays ≥ ${targetPct}%`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Advice Box */}
-              <div style={{
-                background: '#faf5ea',
-                border: '1px solid #dfcfaf',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                gridColumn: 'span 1'
-              }}>
-                <Sparkles size={22} color="#785927" style={{ flexShrink: 0 }} />
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#1e3a8a', lineHeight: 1.45 }}>
-                  {plannerData.advice_message}
-                </p>
-              </div>
+          {/* Branch Subjects List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#785927' }}>
+                Branch Subjects Plan
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8c7a5b' }}>
+                {effectivePlanner.subjects.length} {effectivePlanner.subjects.length === 1 ? 'subject' : 'subjects'}
+              </span>
             </div>
 
-            {/* WHAT-IF SIMULATOR DRAWER */}
-            {showWhatIf && (
-              <div style={{
-                background: '#faf9f6',
-                border: '1px solid #e4dfd5',
-                borderRadius: '14px',
-                padding: '20px',
-                marginBottom: '24px',
-                boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)',
-                animation: 'fadeIn 0.2s ease-out'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                  <Sliders size={18} color="#7c3aed" />
-                  <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#25231f', fontWeight: 700 }}>
-                    Multi-Session What-If Projection Simulator
-                  </h4>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                  gap: '16px',
-                  alignItems: 'flex-end',
-                  marginBottom: '16px'
-                }}>
-                  {/* Subject Scope */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#58534a', fontWeight: 600, marginBottom: '6px' }}>
-                      Simulation Scope:
-                    </label>
-                    <select
-                      value={simSubjectId}
-                      onChange={e => setSimSubjectId(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#25231f',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.85rem'
-                      }}
+            {effectivePlanner.subjects.length === 0 ? (
+              <div style={{ padding: '20px 14px', textAlign: 'center', background: '#ffffff', border: '1px dashed #d6c5a3', borderRadius: '14px', color: '#6b5b3e', fontSize: '0.82rem' }}>
+                No branch subjects recorded yet.
+              </div>
+            ) : (
+              <div className="golden-os-list-shell">
+                {effectivePlanner.subjects.map(sub => {
+                  const isUnder = sub.current_percentage < targetPct;
+                  return (
+                    <button
+                      key={sub.subject_id}
+                      type="button"
+                      onClick={() => navigateTo({ section: 'planner', mode: 'subject', id: sub.subject_id, item: sub })}
+                      className="golden-os-list-row"
                     >
-                      <option value="">All Subjects Combined (Overall)</option>
-                      {plannerData.subjects.map(s => (
-                        <option key={s.subject_id} value={s.subject_id}>
-                          {s.subject_name} ({s.current_percentage}%)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Upcoming Classes Slider */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '0.8rem', color: '#58534a', fontWeight: 600 }}>Upcoming Classes:</label>
-                      <span style={{ fontSize: '0.8rem', color: '#7c3aed', fontWeight: 700 }}>{simUpcoming}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="30"
-                      value={simUpcoming}
-                      onChange={e => {
-                        const val = parseInt(e.target.value);
-                        setSimUpcoming(val);
-                        if (simPlanned > val) setSimPlanned(val);
-                      }}
-                      style={{ width: '100%', accentColor: '#7c3aed' }}
-                    />
-                  </div>
-
-                  {/* Planned Attendance Slider */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '0.8rem', color: '#58534a', fontWeight: 600 }}>Planned to Attend:</label>
-                      <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 700 }}>{simPlanned} / {simUpcoming}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max={simUpcoming}
-                      value={simPlanned}
-                      onChange={e => setSimPlanned(parseInt(e.target.value))}
-                      style={{ width: '100%', accentColor: '#059669' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Simulation Output Card */}
-                {simResult && (
-                  <div style={{
-                    background: simResult.target_achieved 
-                      ? '#ecfdf5' 
-                      : '#fef2f2',
-                    border: simResult.target_achieved 
-                      ? '1px solid #a7f3d0' 
-                      : '1px solid #fecaca',
-                    borderRadius: '10px',
-                    padding: '14px 18px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '14px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {simResult.target_achieved ? (
-                        <CheckCircle2 size={24} color="#059669" />
-                      ) : (
-                        <AlertTriangle size={24} color="#dc2626" />
-                      )}
-                      <div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#25231f' }}>
-                          Projected Standing: {simResult.simulated_percentage}% 
-                          <span style={{
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            marginLeft: '8px',
-                            color: simResult.difference_percentage >= 0 ? '#059669' : '#dc2626'
-                          }}>
-                            ({simResult.difference_percentage >= 0 ? `+${simResult.difference_percentage}%` : `${simResult.difference_percentage}%`})
-                          </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                        <div className="golden-os-avatar">
+                          <BookOpen size={17} />
                         </div>
-                        <span style={{ fontSize: '0.8rem', color: '#696358' }}>
-                          Current: {simResult.current_percentage}% → After {simPlanned} / {simUpcoming} sessions: {simResult.simulated_percentage}%
-                        </span>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {sub.subject_name}{sub.subject_code ? ` (${sub.subject_code})` : ''}
+                          </div>
+                          <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                            {sub.total_attended}/{sub.total_conducted} classes · {isUnder ? `Attend ${sub.classes_needed} consecutive` : `Safe buffer: ${sub.bunk_allowance} session(s)`}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    <div style={{
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      padding: '4px 12px',
-                      borderRadius: '6px',
-                      background: simResult.target_achieved ? '#d1fae5' : '#fee2e2',
-                      color: simResult.target_achieved ? '#065f46' : '#991b1b'
-                    }}>
-                      {simResult.target_achieved ? `Target ${targetPct}% Achieved` : `Target ${targetPct}% Missed`}
-                    </div>
-                  </div>
-                )}
+                      <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                    </button>
+                  );
+                })}
               </div>
             )}
-
-            {/* Subject-by-Subject Recovery Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '16px'
-            }}>
-              {plannerData.subjects.map(sub => {
-                const badge = getStatusBadge(sub.status);
-                const isUnder = sub.current_percentage < targetPct;
-
-                return (
-                  <div
-                    key={sub.subject_id}
-                    style={{
-                      background: '#ffffff',
-                      border: `1px solid ${isUnder ? '#fca5a5' : '#e4dfd5'}`,
-                      borderRadius: '12px',
-                      padding: '16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-                    }}
-                  >
-                    <div>
-                      {/* Top row */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 600, color: '#25231f' }}>
-                            {sub.subject_name}
-                          </h4>
-                          {sub.subject_code && (
-                            <span style={{ fontSize: '0.75rem', color: '#696358' }}>{sub.subject_code}</span>
-                          )}
-                        </div>
-
-                        <span style={{
-                          background: badge.bg,
-                          border: `1px solid ${badge.border}`,
-                          color: badge.text,
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          {badge.icon} {sub.current_percentage}%
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div style={{
-                        height: '6px',
-                        background: '#e4dfd5',
-                        borderRadius: '3px',
-                        overflow: 'hidden',
-                        marginBottom: '12px'
-                      }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${Math.min(100, sub.current_percentage)}%`,
-                          background: isUnder ? 'linear-gradient(90deg, #ef4444, #f97316)' : 'linear-gradient(90deg, #10b981, #06b6d4)',
-                          borderRadius: '3px'
-                        }} />
-                      </div>
-
-                      {/* Classes Needed or Bunk Allowance */}
-                      <div style={{
-                        background: isUnder ? '#fee2e2' : '#d1fae5',
-                        border: isUnder ? '1px solid #fecaca' : '1px solid #a7f3d0',
-                        borderRadius: '8px',
-                        padding: '10px 12px',
-                        marginBottom: '12px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <span style={{ fontSize: '0.8rem', color: isUnder ? '#991b1b' : '#065f46' }}>
-                          {isUnder ? 'Classes Needed to reach 75%:' : 'Safe Bunk Allowance:'}
-                        </span>
-                        <strong style={{
-                          fontSize: '1rem',
-                          color: isUnder ? '#dc2626' : '#059669'
-                        }}>
-                          {isUnder ? `${sub.classes_needed} consecutive` : `${sub.bunk_allowance} class(es)`}
-                        </strong>
-                      </div>
-                    </div>
-
-                    {/* Footer Forecasts */}
-                    <div style={{
-                      borderTop: '1px solid #e4dfd5',
-                      paddingTop: '10px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: '0.75rem',
-                      color: '#696358'
-                    }}>
-                      <span>If attend next 3: <strong style={{ color: '#80602c' }}>{sub.projection_attend_next_3}%</strong></span>
-                      <span>If miss next 3: <strong style={{ color: '#dc2626' }}>{sub.projection_miss_next_3}%</strong></span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
-        ) : null}
+        </div>
       </div>
     </div>
   );

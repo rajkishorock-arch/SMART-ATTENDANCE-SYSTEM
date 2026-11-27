@@ -8717,7 +8717,7 @@ button:active:not(:disabled),
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: none;
 }
 .golden-os-segmented-btn.active {
   background: #ffffff;
@@ -8847,4 +8847,31 @@ button:active:not(:disabled),
   font-size: 0.72rem;
   font-weight: 700;
   color: #fff6e5;
+}
+
+.golden-os-field-label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #5c4b30;
+  margin-bottom: 5px;
+}
+
+.golden-os-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: #ffffff;
+  border: 1.5px solid #e2d6b9;
+  color: #25231f;
+  font-size: 0.85rem;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.golden-os-input:focus {
+  border-color: #9e7834;
+  box-shadow: 0 0 0 3px rgba(158, 120, 52, 0.12);
 }
