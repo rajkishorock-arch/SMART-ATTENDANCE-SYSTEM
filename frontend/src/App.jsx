@@ -80,6 +80,23 @@ const parseStudentHashParts = (parts) => {
   const section = decodeURIComponent(parts[1]);
   const sub2 = parts[2] ? decodeURIComponent(parts[2]) : null;
   const sub3 = parts[3] ? decodeURIComponent(parts[3]) : null;
+  if (section === 'subjects') {
+    if (sub2 === 'detail' && sub3) return { section: 'subjects', mode: 'detail', id: sub3 };
+    return { section: 'subjects' };
+  }
+  if (section === 'blueprint') {
+    if (sub2 === 'date' && sub3) return { section: 'blueprint', mode: 'date', date: sub3 };
+    return { section: 'blueprint' };
+  }
+  if (section === 'calendar') {
+    if (sub2 === 'detail' && sub3) return { section: 'calendar', mode: 'detail', id: sub3 };
+    return { section: 'calendar' };
+  }
+  if (section === 'compliance') {
+    if (sub2 === 'standing' || sub2 === 'mentor' || sub2 === 'file') return { section: 'compliance', mode: sub2 };
+    if (sub2 === 'detail' && sub3) return { section: 'compliance', mode: 'detail', id: sub3 };
+    return { section: 'compliance' };
+  }
   if (section === 'disputes') {
     if (sub2 === 'apply-leave') return { section: 'disputes', mode: 'apply-leave' };
     if (sub2 === 'apply-dispute') return { section: 'disputes', mode: 'apply-dispute', prefill: null };
@@ -119,6 +136,15 @@ const STUDENT_SECTION_TITLES = {
 
 const getStudentRouteTitle = (route) => {
   if (!route) return 'My Attendance';
+  if (route.section === 'subjects' && route.mode === 'detail') return 'Course Attendance';
+  if (route.section === 'blueprint' && route.mode === 'date') return 'Date Breakdown';
+  if (route.section === 'calendar' && route.mode === 'detail') return 'Schedule Details';
+  if (route.section === 'compliance') {
+    if (route.mode === 'standing') return 'Compliance Standing';
+    if (route.mode === 'mentor') return 'Mentor Guidance Desk';
+    if (route.mode === 'file') return 'Lodge Grievance';
+    if (route.mode === 'detail') return 'Grievance Record';
+  }
   if (route.section === 'wallet') {
     if (route.mode === 'credential') return 'Credential Pass';
     if (route.mode === 'streaks') return 'Clearance & Streaks';
@@ -140,6 +166,23 @@ const getStudentRouteTitle = (route) => {
 const buildStudentRouteHash = (route) => {
   if (!route?.section) return '#/student-attendance';
   const sec = encodeURIComponent(route.section);
+  if (route.section === 'subjects' && route.mode === 'detail' && route.id != null) {
+    return `#/student-attendance/subjects/detail/${encodeURIComponent(route.id)}`;
+  }
+  if (route.section === 'blueprint' && route.mode === 'date' && route.date) {
+    return `#/student-attendance/blueprint/date/${encodeURIComponent(route.date)}`;
+  }
+  if (route.section === 'calendar' && route.mode === 'detail' && route.id != null) {
+    return `#/student-attendance/calendar/detail/${encodeURIComponent(route.id)}`;
+  }
+  if (route.section === 'compliance') {
+    if (route.mode === 'standing' || route.mode === 'mentor' || route.mode === 'file') {
+      return `#/student-attendance/compliance/${route.mode}`;
+    }
+    if (route.mode === 'detail' && route.id != null) {
+      return `#/student-attendance/compliance/detail/${encodeURIComponent(route.id)}`;
+    }
+  }
   if (route.section === 'disputes') {
     if (route.mode === 'apply-leave') return '#/student-attendance/disputes/apply-leave';
     if (route.mode === 'apply-dispute') return '#/student-attendance/disputes/apply-dispute';

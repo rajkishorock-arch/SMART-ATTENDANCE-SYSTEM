@@ -1,76 +1,54 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Calendar, Clock, AlertTriangle, CheckCircle2, ChevronRight, 
-  RefreshCw, BookOpen, UserX, ShieldCheck, PartyPopper, Megaphone,
-  Download, FileText, Bell, Sparkles
+import {
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  RefreshCw,
+  BookOpen,
+  UserX,
+  ShieldCheck,
+  PartyPopper,
+  Megaphone,
+  Download,
+  Bell,
+  Sparkles,
 } from 'lucide-react';
 import { calendarApi } from '../../api/calendarApi';
 import notificationApi from '../../api/notificationApi';
 import { generateNoticePdf } from '../../utils/noticePdfGenerator';
+import { getActiveTenantSlug } from '../../utils/tenantConfig';
 
-const EVENT_TYPE_CONFIG = {
-  HOLIDAY: { 
-    bg: '#f0fdf4', 
-    border: '#bbf7d0', 
-    text: '#16a34a', 
-    label: '🌴 Holiday', 
-    icon: PartyPopper
-  },
-  EXAM: { 
-    bg: '#fffbeb', 
-    border: '#fde68a', 
-    text: '#d97706', 
-    label: '📝 Examination', 
-    icon: BookOpen
-  },
-  CIRCULAR: {
-    bg: '#f5f3ff',
-    border: '#ddd6fe',
-    text: '#7c3aed',
-    label: '📜 Official Circular',
-    icon: Megaphone
-  },
-  NOTICE: {
-    bg: '#faf5ea',
-    border: '#dfcfaf',
-    text: '#785927',
-    label: '📌 Campus Notice',
-    icon: Bell
-  },
-  CLASS_CANCELLED: { 
-    bg: '#fff1f2', 
-    border: '#fecdd3', 
-    text: '#e11d48', 
-    label: '⛔ Cancelled', 
-    icon: UserX
-  },
-  TEACHER_SUBSTITUTION: {
-    bg: '#f5f3ff',
-    border: '#ddd6fe',
-    text: '#7c3aed',
-    label: '👩‍🏫 Substitute',
-    icon: Sparkles
-  },
-  SUBSTITUTE_CLASS: {
-    bg: '#f5f3ff',
-    border: '#ddd6fe',
-    text: '#7c3aed',
-    label: '👩‍🏫 Substitute',
-    icon: Sparkles
-  },
-  INSTITUTION_CLOSED: { 
-    bg: '#faf9f6', 
-    border: '#cfc8ba', 
-    text: '#58534a', 
-    label: '🏛️ Campus Closed', 
-    icon: ShieldCheck
-  },
-  EVENT: { 
-    bg: '#fdf4ff', 
-    border: '#f5d0fe', 
-    text: '#c026d3', 
-    label: '🎯 Campus Event', 
-    icon: Sparkles
+const CATEGORY_META = {
+  HOLIDAY: { label: 'Holiday', short: 'HOL', icon: PartyPopper },
+  EXAM: { label: 'Examination', short: 'EXM', icon: BookOpen },
+  CIRCULAR: { label: 'Official Circular', short: 'CIR', icon: Megaphone },
+  NOTICE: { label: 'Campus Notice', short: 'NTC', icon: Bell },
+  CLASS_CANCELLED: { label: 'Cancelled', short: 'CXL', icon: UserX },
+  TEACHER_SUBSTITUTION: { label: 'Substitute', short: 'SUB', icon: Sparkles },
+  SUBSTITUTE_CLASS: { label: 'Substitute', short: 'SUB', icon: Sparkles },
+  INSTITUTION_CLOSED: { label: 'Campus Closed', short: 'CLS', icon: ShieldCheck },
+  EVENT: { label: 'Campus Event', short: 'EVT', icon: Sparkles },
+};
+
+const readCalCache = (token, kind) => {
+  try {
+    if (!token || typeof localStorage === 'undefined') return [];
+    const slug = getActiveTenantSlug() || 'default';
+    const raw = localStorage.getItem(`sg_st_${kind}_v1_${slug}_${String(token).slice(-16)}`);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeCalCache = (token, kind, list) => {
+  try {
+    if (!token || typeof localStorage === 'undefined' || !Array.isArray(list)) return;
+    const slug = getActiveTenantSlug() || 'default';
+    localStorage.setItem(`sg_st_${kind}_v1_${slug}_${String(token).slice(-16)}`, JSON.stringify(list));
+  } catch {
+    // ignore quota error
   }
 };
 
@@ -86,42 +64,59 @@ function parseSafeDate(dStr) {
     return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
   }
   const parsed = new Date(s);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
+
+const getRelativeTiming = (dt) => {
+  if (!dt) return '';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dt);
+  target.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
+  if (diffDays === -1) return 'Yesterday';
+  if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
+  return dt.toLocaleDateString('en-IN');
+};
 
 export default function StudentAcademicCalendarWidget({
   token,
   currentUser,
+  subjects = [],
+  routeView = null,
+  onNavigateRoute = null,
   onNavigateToCalendar = () => {},
-  playCyberSound = () => {}
+  playCyberSound = () => {},
 }) {
-  const [calendarEvents, setCalendarEvents] = useState([]);
-  const [broadcastNotices, setBroadcastNotices] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState(() => readCalCache(token, 'cal_events'));
+  const [broadcastNotices, setBroadcastNotices] = useState(() => readCalCache(token, 'notices'));
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Synchronize both Academic Calendar events AND Campus Broadcast notices
-  const loadContent = useCallback(async () => {
+  const loadContent = useCallback(async (forceRefresh = false) => {
     if (!token) return;
     setIsLoading(true);
     try {
       const [calRes, notifRes] = await Promise.allSettled([
-        calendarApi.fetchEvents(token),
-        notificationApi.fetchBroadcastHistory(token, 50)
+        calendarApi.fetchEvents(token, null, forceRefresh),
+        notificationApi.fetchBroadcastHistory(token, 50),
       ]);
 
       if (calRes.status === 'fulfilled' && calRes.value) {
         const raw = calRes.value;
         const list = Array.isArray(raw) ? raw : (raw?.events || []);
         setCalendarEvents(list);
+        writeCalCache(token, 'cal_events', list);
       }
 
       if (notifRes.status === 'fulfilled' && notifRes.value) {
         const raw = notifRes.value;
-        let list = [];
-        if (Array.isArray(raw)) list = raw;
-        else if (raw?.broadcasts) list = raw.broadcasts;
+        const list = Array.isArray(raw) ? raw : (raw?.broadcasts || []);
         setBroadcastNotices(list);
+        writeCalCache(token, 'notices', list);
       }
     } catch (err) {
       console.warn('Error loading academic calendar content:', err);
@@ -131,32 +126,66 @@ export default function StudentAcademicCalendarWidget({
   }, [token]);
 
   useEffect(() => {
-    loadContent();
-  }, [loadContent]);
+    let ignore = false;
+    if (!token) return undefined;
+    Promise.allSettled([
+      calendarApi.fetchEvents(token, null, false),
+      notificationApi.fetchBroadcastHistory(token, 50),
+    ])
+      .then(([calRes, notifRes]) => {
+        if (ignore) return;
+        if (calRes.status === 'fulfilled' && calRes.value) {
+          const raw = calRes.value;
+          const list = Array.isArray(raw) ? raw : (raw?.events || []);
+          setCalendarEvents(list);
+          writeCalCache(token, 'cal_events', list);
+        }
+        if (notifRes.status === 'fulfilled' && notifRes.value) {
+          const raw = notifRes.value;
+          const list = Array.isArray(raw) ? raw : (raw?.broadcasts || []);
+          setBroadcastNotices(list);
+          writeCalCache(token, 'notices', list);
+        }
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, [token]);
 
-  // Combine and normalize items into unified academic timeline entries
+  const safeSubjects = useMemo(() => (Array.isArray(subjects) ? subjects : []), [subjects]);
+  const allowedSubjectIds = useMemo(() => new Set(safeSubjects.map(s => String(s.id))), [safeSubjects]);
+  const userDept = String(currentUser?.details?.dep || currentUser?.dep || currentUser?.department || '').trim().toUpperCase();
+
+  // Scoped unified timeline entries
   const unifiedEntries = useMemo(() => {
     const list = [];
 
-    // 1. Calendar Events
     calendarEvents.forEach(evt => {
+      if (!evt) return;
+      if (evt.subject_id != null && safeSubjects.length > 0 && !allowedSubjectIds.has(String(evt.subject_id))) {
+        return;
+      }
+      const evtDept = String(evt.department || '').trim().toUpperCase();
+      if (evtDept && userDept && evtDept !== userDept && evtDept !== 'ALL') {
+        return;
+      }
+
       const rawD = evt.start_date || evt.event_date || evt.date || '';
       const dt = parseSafeDate(rawD);
-      const category = String(evt.event_type || 'EVENT').toUpperCase();
+      const rawCat = String(evt.event_type || 'EVENT').toUpperCase();
       list.push({
-        id: `cal_${evt.id || Math.random()}`,
+        id: `cal_${evt.id ?? rawD}`,
         title: evt.title || evt.name || 'Academic Event',
         description: evt.description || (evt.substitute_teacher_name ? `Substitute: ${evt.substitute_teacher_name}` : ''),
         date: dt,
         rawDate: rawD,
-        category: category in EVENT_TYPE_CONFIG ? category : 'EVENT',
+        category: rawCat in CATEGORY_META ? rawCat : 'EVENT',
         type: 'calendar',
-        source: evt.subject_name ? `${evt.subject_name} · Academic Office` : 'Academic Office'
+        source: evt.subject_name ? `${evt.subject_name} · Academic Office` : 'Academic Office',
       });
     });
 
-    // 2. Broadcast Notices
-    broadcastNotices.forEach(notif => {
+    broadcastNotices.forEach((notif, idx) => {
+      if (!notif) return;
       const dt = parseSafeDate(notif.created_at || notif.date);
       const cat = String(notif.category || 'NOTICE').toUpperCase();
       let normalizedCat = 'NOTICE';
@@ -166,7 +195,7 @@ export default function StudentAcademicCalendarWidget({
       else if (cat.includes('EVENT')) normalizedCat = 'EVENT';
 
       list.push({
-        id: `notice_${notif.id || Math.random()}`,
+        id: `notice_${notif.id ?? idx}`,
         title: notif.title || 'Official Announcement',
         description: notif.message || notif.body || '',
         date: dt,
@@ -174,326 +203,273 @@ export default function StudentAcademicCalendarWidget({
         category: normalizedCat,
         type: 'notice',
         source: notif.sender_name || 'Principal / Admin',
-        rawNotice: notif
+        rawNotice: notif,
       });
     });
 
-    // Sort by date descending
-    return list.sort((a, b) => {
-      const tA = a.date ? a.date.getTime() : 0;
-      const tB = b.date ? b.date.getTime() : 0;
-      return tB - tA;
-    });
-  }, [calendarEvents, broadcastNotices]);
+    return list.sort((a, b) => (b.date ? b.date.getTime() : 0) - (a.date ? a.date.getTime() : 0));
+  }, [calendarEvents, broadcastNotices, safeSubjects.length, allowedSubjectIds, userDept]);
 
-  // Summary counts
-  const totalCount = unifiedEntries.length;
+  const navigateTo = (next) => {
+    if (playCyberSound) playCyberSound('click');
+    if (onNavigateRoute) onNavigateRoute(next);
+  };
+
+  /* ===== DEDICATED DETAIL PAGE FOR SELECTED EVENT / NOTICE ===== */
+  if (routeView?.mode === 'detail' && routeView?.id != null) {
+    const selectedEntry = unifiedEntries.find(e => String(e.id) === String(routeView.id)) || routeView.item || null;
+
+    if (!selectedEntry) {
+      return (
+        <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+          <div className="golden-os-window">
+            <div className="golden-os-body" style={{ textAlign: 'center', padding: '24px 16px' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>Notice or schedule entry not found</div>
+              <div style={{ fontSize: '0.78rem', color: '#6b5b3e', marginTop: '4px' }}>
+                Tap Refresh or return to the academic schedule list.
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const meta = CATEGORY_META[selectedEntry.category] || CATEGORY_META.EVENT;
+    const Icon = meta.icon || Calendar;
+    const formattedDate = selectedEntry.date
+      ? selectedEntry.date.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+      : (selectedEntry.rawDate || 'Scheduled');
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                <div className="golden-os-avatar" style={{ width: '44px', height: '44px' }}>
+                  <Icon size={18} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f' }}>
+                    {selectedEntry.title}
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', fontWeight: 600 }}>
+                    {meta.label} · {selectedEntry.source}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.84rem' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Date</span>
+                <span style={{ color: '#25231f', fontWeight: 700 }}>{formattedDate}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f2ead9', fontSize: '0.84rem' }}>
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>Timing</span>
+                <span style={{ color: '#785927', fontWeight: 700 }}>{getRelativeTiming(selectedEntry.date) || 'Published'}</span>
+              </div>
+
+              {selectedEntry.description && (
+                <div style={{ paddingTop: '6px' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6b5b3e', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Official Details
+                  </div>
+                  <div style={{ fontSize: '0.86rem', color: '#25231f', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                    {selectedEntry.description}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Statutory Safe Guard Note */}
+            <div className="golden-os-inset-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px' }}>
+              <CheckCircle2 size={16} color="#047857" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ fontSize: '0.77rem', color: '#5c4b30', lineHeight: 1.45 }}>
+                Official holidays, exam sessions, and campus notices are synchronized with institutional attendance rules.
+              </div>
+            </div>
+
+            {/* Related Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (playCyberSound) playCyberSound('click');
+                  onNavigateToCalendar();
+                }}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 16px', borderRadius: '11px', display: 'inline-flex', alignItems: 'center', gap: '7px' }}
+              >
+                <Calendar size={14} />
+                <span>Open Full Calendar</span>
+              </button>
+
+              {selectedEntry.type === 'notice' && selectedEntry.rawNotice && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (playCyberSound) playCyberSound('click');
+                    generateNoticePdf(selectedEntry.rawNotice, currentUser?.institution_name || 'Smart Attendance System');
+                  }}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    background: 'linear-gradient(135deg, #785927, #684c20)',
+                    color: '#ffffff',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Official PDF</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== CLEAN DIRECTORY VIEW (ZERO KPI BOXES / BLOATED CARDS) ===== */
   const holidayCount = unifiedEntries.filter(e => e.category === 'HOLIDAY' || e.category === 'INSTITUTION_CLOSED').length;
   const examCount = unifiedEntries.filter(e => e.category === 'EXAM').length;
   const noticeCount = unifiedEntries.filter(e => e.category === 'NOTICE' || e.category === 'CIRCULAR').length;
 
-  // Filtered entries
   const filteredEntries = unifiedEntries.filter(e => {
     if (activeFilter === 'ALL') return true;
     if (activeFilter === 'HOLIDAYS') return e.category === 'HOLIDAY' || e.category === 'INSTITUTION_CLOSED';
     if (activeFilter === 'EXAMS') return e.category === 'EXAM';
     if (activeFilter === 'NOTICES') return e.category === 'NOTICE' || e.category === 'CIRCULAR';
-    if (activeFilter === 'EVENTS') return e.category === 'EVENT';
+    if (activeFilter === 'EVENTS') return e.category === 'EVENT' || e.category === 'CLASS_CANCELLED' || e.category === 'TEACHER_SUBSTITUTION' || e.category === 'SUBSTITUTE_CLASS';
     return true;
   });
 
   return (
-    <div style={{
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '14px',
-      animation: 'fadeInUp 0.3s ease'
-    }}>
-      {/* ── Top Bar: Title & Action Button ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-        <div>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
-            Academic Calendar, Events & Official Notices
-          </h3>
-        </div>
+    <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Compact Top Action & Filter Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="golden-os-feedback-filters" style={{ flex: 1 }}>
+              {[
+                { id: 'ALL', label: `All (${unifiedEntries.length})` },
+                { id: 'HOLIDAYS', label: `Holidays (${holidayCount})` },
+                { id: 'EXAMS', label: `Exams (${examCount})` },
+                { id: 'NOTICES', label: `Notices (${noticeCount})` },
+                { id: 'EVENTS', label: 'Events' },
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    if (playCyberSound) playCyberSound('click');
+                    setActiveFilter(cat.id);
+                  }}
+                  className={`golden-os-feedback-filter-btn ${activeFilter === cat.id ? 'active' : ''}`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => { playCyberSound('click'); loadContent(); }}
-            disabled={isLoading}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '7px 12px',
-              background: '#ffffff',
-              border: '1px solid #cfc8ba',
-              borderRadius: '8px',
-              color: '#58534a',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            <RefreshCw size={13} className={isLoading ? 'spin-anim' : ''} />
-            <span>Refresh</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (playCyberSound) playCyberSound('click');
+                loadContent(true);
+              }}
+              disabled={isLoading}
+              className="golden-os-feedback-filter-btn"
+              style={{ padding: '7px 12px', borderRadius: '11px', display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}
+            >
+              <RefreshCw size={13} className={isLoading ? 'spin-icon' : ''} />
+              <span>{isLoading ? 'Syncing' : 'Refresh'}</span>
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => { playCyberSound('click'); onNavigateToCalendar(); }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '7px 14px',
-              background: '#785927',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.2)'
-            }}
-          >
-            <Calendar size={14} />
-            <span>Open Interactive Full Calendar</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </div>
-
-      {/* ── Horizontal Executive Summary Strip (4 Cards) ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-        gap: '10px'
-      }}>
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
-          <span style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 700, textTransform: 'uppercase' }}>Total Schedule Entries</span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>{totalCount} Active</div>
-        </div>
-
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
-          <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700, textTransform: 'uppercase' }}>Gazetted Holidays</span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>{holidayCount} Days</div>
-        </div>
-
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
-          <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700, textTransform: 'uppercase' }}>Exams & Audits</span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>{examCount} Sessions</div>
-        </div>
-
-        <div className="surface-card" style={{ padding: '12px 14px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
-          <span style={{ fontSize: '0.72rem', color: '#785927', fontWeight: 700, textTransform: 'uppercase' }}>Campus Circulars</span>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#785927', marginTop: '2px' }}>{noticeCount} Notices</div>
-        </div>
-      </div>
-
-      {/* ── Category Filter Pills ── */}
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderBottom: '1px solid #f4f1eb', paddingBottom: '8px' }}>
-        {[
-          { id: 'ALL', label: `All (${totalCount})` },
-          { id: 'HOLIDAYS', label: `Holidays (${holidayCount})` },
-          { id: 'EXAMS', label: `Examinations (${examCount})` },
-          { id: 'NOTICES', label: `Circulars & Notices (${noticeCount})` },
-          { id: 'EVENTS', label: `Events` }
-        ].map(cat => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => { playCyberSound('click'); setActiveFilter(cat.id); }}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '20px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: activeFilter === cat.id ? '1px solid #785927' : '1px solid #e4dfd5',
-              background: activeFilter === cat.id ? '#785927' : '#ffffff',
-              color: activeFilter === cat.id ? '#ffffff' : '#696358',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Unified Horizontal Entry Timeline Cards ── */}
-      {filteredEntries.length === 0 ? (
-        <div style={{
-          padding: '36px 16px',
-          textAlign: 'center',
-          background: '#faf9f6',
-          borderRadius: '12px',
-          border: '1px dashed #cfc8ba',
-          color: '#696358'
-        }}>
-          <Calendar size={30} style={{ opacity: 0.5, marginBottom: '6px' }} />
-          <h4 style={{ margin: '0 0 4px', fontSize: '0.94rem', color: '#46423b' }}>No Entries Under This Category</h4>
-          <p style={{ margin: 0, fontSize: '0.82rem' }}>All institution activities and circulars will be displayed here as they are published.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredEntries.map(entry => {
-            const config = EVENT_TYPE_CONFIG[entry.category] || EVENT_TYPE_CONFIG.EVENT;
-            const Icon = config.icon || Calendar;
-
-            // Formatted date values
-            const dayNum = entry.date ? entry.date.getDate() : '--';
-            const monthStr = entry.date ? entry.date.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase() : 'CAL';
-            const dayStr = entry.date ? entry.date.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase() : '';
-
-            // Compute relative timing badge
-            let timingText = '';
-            let timingColor = '#696358';
-            if (entry.date) {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const target = new Date(entry.date);
-              target.setHours(0, 0, 0, 0);
-              const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
-              if (diffDays === 0) { timingText = 'TODAY'; timingColor = '#059669'; }
-              else if (diffDays === 1) { timingText = 'TOMORROW'; timingColor = '#785927'; }
-              else if (diffDays > 1 && diffDays <= 7) { timingText = `IN ${diffDays} DAYS`; timingColor = '#785927'; }
-              else if (diffDays < 0) { timingText = `${Math.abs(diffDays)} DAYS AGO`; timingColor = '#94a3b8'; }
-            }
-
-            return (
-              <div
-                key={entry.id}
-                className="surface-card"
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: '14px',
-                  border: '1px solid #e4dfd5',
-                  background: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '14px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
-                }}
-              >
-                {/* Left Date Block + Content Details */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '240px', flex: 1 }}>
-                  {/* Big Date Badge */}
-                  <div style={{
-                    width: '52px',
-                    height: '56px',
-                    borderRadius: '10px',
-                    background: config.bg,
-                    border: `1px solid ${config.border}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <span style={{ fontSize: '0.66rem', fontWeight: 800, color: config.text, lineHeight: 1 }}>
-                      {monthStr}
-                    </span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 900, color: config.text, lineHeight: 1.1, marginTop: '2px' }}>
-                      {dayNum}
-                    </span>
-                    <span style={{ fontSize: '0.62rem', fontWeight: 700, color: config.text, lineHeight: 1 }}>
-                      {dayStr}
-                    </span>
-                  </div>
-
-                  {/* Title & Info */}
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.7rem',
-                        fontWeight: 800,
-                        background: config.bg,
-                        color: config.text,
-                        border: `1px solid ${config.border}`
-                      }}>
-                        {config.label}
-                      </span>
-                      {timingText && (
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: timingColor }}>
-                          • {timingText}
-                        </span>
-                      )}
-                    </div>
-
-                    <h4 style={{ margin: '4px 0 2px', fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
-                      {entry.title}
-                    </h4>
-
-                    {entry.description && (
-                      <div style={{ fontSize: '0.8rem', color: '#58534a', lineHeight: 1.4, marginTop: '2px' }}>
-                        {entry.description}
-                      </div>
-                    )}
-
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
-                      Issued by {entry.source}
-                    </div>
-                  </div>
+          {/* Primary Shortcut Row: Full Interactive Campus Calendar */}
+          <div className="golden-os-list-shell">
+            <button
+              type="button"
+              onClick={() => {
+                if (playCyberSound) playCyberSound('click');
+                onNavigateToCalendar();
+              }}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar">
+                  <Calendar size={16} />
                 </div>
-
-                {/* Right Action: Download PDF for Official Circulars */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  {entry.type === 'notice' && entry.rawNotice && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (playCyberSound) playCyberSound('click');
-                        generateNoticePdf(entry.rawNotice, currentUser?.institution_name || 'Smart Attendance System');
-                      }}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        background: '#faf5ea',
-                        border: '1px solid #dfcfaf',
-                        color: '#684c20',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                      title="Download Certified PDF Circular"
-                    >
-                      <Download size={13} />
-                      <span>Official PDF</span>
-                    </button>
-                  )}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
+                    Interactive Full Calendar
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#6b5b3e', marginTop: '2px' }}>
+                    Open month-by-month holidays & exam schedule
+                  </div>
                 </div>
               </div>
-            );
-          })}
+              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+            </button>
+          </div>
+
+          {/* Notices & Schedule Single-Line List */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px 8px' }}>
+              <span className="golden-os-field-label" style={{ marginBottom: 0 }}>Official Notices & Events</span>
+              <span style={{ fontSize: '0.73rem', color: '#6b5b3e', fontWeight: 700 }}>
+                {filteredEntries.length} {filteredEntries.length === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+
+            {filteredEntries.length === 0 ? (
+              <div className="golden-os-inset-card" style={{ textAlign: 'center', padding: '24px 14px', fontSize: '0.82rem', color: '#6b5b3e' }}>
+                No notices or schedule entries under this filter yet.
+              </div>
+            ) : (
+              <div className="golden-os-list-shell">
+                {filteredEntries.map(entry => {
+                  const meta = CATEGORY_META[entry.category] || CATEGORY_META.EVENT;
+                  const dateLabel = entry.date
+                    ? entry.date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+                    : 'Notice';
+                  const relLabel = getRelativeTiming(entry.date);
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => navigateTo({ section: 'calendar', mode: 'detail', id: entry.id, item: entry })}
+                      className="golden-os-list-row"
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                        <div className="golden-os-avatar" style={{ fontSize: '0.68rem' }}>
+                          {meta.short}
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {entry.title}
+                          </div>
+                          <div style={{ fontSize: '0.76rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                            {dateLabel} · {meta.label}{relLabel ? ` · ${relLabel}` : ''} · {entry.source}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-
-      {/* Institutional Attendance Protection Clause */}
-      <div style={{
-        padding: '12px 14px',
-        borderRadius: '10px',
-        background: '#faf9f6',
-        border: '1px solid #e4dfd5',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px'
-      }}>
-        <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: '0.78rem', color: '#58534a', lineHeight: 1.4 }}>
-          <strong>Statutory Attendance Safe Guard:</strong> Officially scheduled institution holidays, semester recesses, and authorized examination windows are automatically protected and are never counted as student absences.
-        </span>
       </div>
-
     </div>
   );
 }

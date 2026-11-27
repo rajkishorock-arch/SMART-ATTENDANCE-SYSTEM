@@ -14,171 +14,10 @@ import StudentFeedbackHub from './StudentFeedbackHub';
 import StudentAcademicCalendarWidget from './StudentAcademicCalendarWidget';
 import StudentAttendanceRecoveryWidget from './StudentAttendanceRecoveryWidget';
 import StudentSubjectAttendanceHub from './StudentSubjectAttendanceHub';
+import StudentBlueprintHub from './StudentBlueprintHub';
 import StudentCampusGeofenceHub from './StudentCampusGeofenceHub';
-import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import { getInitials } from '../../utils/attendanceDateUtils';
 import { disputeApi } from '../../api/disputeApi';
-
-function BlueprintDayBreakdownModal({ 
-  isOpen, 
-  onClose, 
-  dateStr, 
-  studentLogs = [], 
-  activeSubject = null,
-  playCyberSound = () => {},
-  onRequestDispute 
-}) {
-  useBodyScrollLock(isOpen);
-  if (!isOpen || !dateStr) return null;
-
-  const safeLogs = Array.isArray(studentLogs) ? studentLogs : [];
-  // Normalize date string for matching (both DD/MM/YYYY and YYYY-MM-DD)
-  const matchingLogs = safeLogs.filter(log => {
-    if (!log || !log.date) return false;
-    const lDate = String(log.date).trim();
-    if (lDate === dateStr) return true;
-
-    // Convert DD/MM/YYYY to YYYY-MM-DD or vice-versa
-    if (dateStr.includes('/') && lDate.includes('-')) {
-      const [d, m, y] = dateStr.split('/');
-      const iso = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-      return lDate === iso;
-    }
-    if (dateStr.includes('-') && lDate.includes('/')) {
-      const [y, m, d] = dateStr.split('-');
-      const slash = `${parseInt(d)}/${parseInt(m)}/${y}`;
-      const slashPad = `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
-      return lDate === slash || lDate === slashPad;
-    }
-    return false;
-  });
-
-  // Filter by active subject if a specific subject tab is selected
-  const isGeneralOrAll = !activeSubject || activeSubject.subject_id === 0 || activeSubject.subject_id === '0' || activeSubject.subject_id === 'GEN' || activeSubject.subject_id === 'ALL' || activeSubject.subject_code === 'GEN';
-
-  const filteredLogs = isGeneralOrAll
-    ? matchingLogs
-    : matchingLogs.filter(log => String(log.subject_id) === String(activeSubject.subject_id) || log.subject_code === activeSubject.subject_code);
-
-  // If filteredLogs is empty but blueprint calendar recorded attendance for this date, surface it
-  const displayLogs = filteredLogs.length > 0 ? filteredLogs : (() => {
-    const isoDate = dateStr.includes('/') ? dateStr.split('/').reverse().join('-') : dateStr;
-    const slashDate = dateStr.includes('-') ? dateStr.split('-').reverse().join('/') : dateStr;
-    const recordedStatus = activeSubject?.calendar ? (activeSubject.calendar[slashDate] || activeSubject.calendar[isoDate] || activeSubject.calendar[dateStr]) : null;
-    if (recordedStatus) {
-      return [{
-        id: `cal_${dateStr}`,
-        date: dateStr,
-        time: 'Recorded Session Slot',
-        attendance: recordedStatus,
-        subject_name: activeSubject?.subject_name || 'General Academic Attendance',
-        subject_code: activeSubject?.subject_code || 'GEN',
-        period: 'Institutional Session',
-        period_label: 'Standard Period',
-        marked_by: 'BIOMETRIC_VERIFIED'
-      }];
-    }
-    return [];
-  })();
-
-  const presentCount = displayLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-  const absentCount = displayLogs.filter(l => l.attendance === 'Absent').length;
-
-  return (
-    <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <div style={{ width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid #cfc8ba', padding: '28px', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
-        
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e4dfd5', paddingBottom: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Calendar color="#7c3aed" size={24} />
-            <div>
-              <h3 style={{ margin: 0, color: '#25231f', fontSize: '1.15rem', fontWeight: 800 }}>Attendance Details — {dateStr}</h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#696358' }}>
-                {activeSubject ? `Filter: ${activeSubject.subject_code || activeSubject.subject_name || 'General'}` : 'All Subjects'}
-              </p>
-            </div>
-          </div>
-          <button onClick={() => { playCyberSound('click'); onClose(); }} style={{ background: 'none', border: 'none', color: '#696358', cursor: 'pointer' }}><X size={20} /></button>
-        </div>
-
-        {/* Stats Pill Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-          <div style={{ background: '#d1fae5', border: '1px solid #a7f3d0', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.72rem', color: '#065f46', fontWeight: 600 }}>Presents / Late</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669' }}>{presentCount}</div>
-          </div>
-          <div style={{ background: '#fee2e2', border: '1px solid #fecaca', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.72rem', color: '#991b1b', fontWeight: 600 }}>Absents</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#dc2626' }}>{absentCount}</div>
-          </div>
-          <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600 }}>Total Classes</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#80602c' }}>{displayLogs.length}</div>
-          </div>
-        </div>
-
-        {/* Detailed Class Cards */}
-        {displayLogs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '36px 16px', background: '#faf9f6', borderRadius: '12px', border: '1px dashed #cfc8ba' }}>
-            <p style={{ color: '#696358', fontSize: '0.85rem', margin: '0 0 12px' }}>
-              No attendance records found in real database for {dateStr}.
-            </p>
-            {onRequestDispute && (
-              <button
-                onClick={() => {
-                  onClose();
-                  onRequestDispute({ date: dateStr, attendance: 'Absent' });
-                }}
-                style={{ padding: '8px 16px', borderRadius: '8px', background: '#faf5ea', border: '1px solid #dfcfaf', color: '#684c20', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
-              >
-                ➕ Submit Correction Request for {dateStr}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {displayLogs.map((log, idx) => {
-              const isPresent = log.attendance === 'Present' || log.attendance === 'Late';
-              return (
-                <div key={log.id || idx} style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontWeight: 700, color: '#25231f', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span>📚 {log.subject_name ? `${log.subject_name} (${log.subject_code || ''})` : (log.department || 'General Class')}</span>
-                    </div>
-                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700, background: isPresent ? '#d1fae5' : '#fee2e2', color: isPresent ? '#065f46' : '#991b1b', border: isPresent ? '1px solid #a7f3d0' : '1px solid #fecaca' }}>
-                      {log.attendance || 'Present'}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#696358' }}>
-                    <span>⏰ Period: <strong style={{ color: '#25231f' }}>{log.period_label || log.session_time || 'Regular Session'}</strong></span>
-                    <span>🕒 Time: <strong style={{ color: '#25231f' }}>{log.time || 'N/A'}</strong></span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #e4dfd5', fontSize: '0.75rem', color: '#696358' }}>
-                    <span>Method: {log.verification_method || 'AI Face Scan'}</span>
-                    {!isPresent && onRequestDispute && (
-                      <button
-                        onClick={() => {
-                          onClose();
-                          onRequestDispute(log);
-                        }}
-                        style={{ padding: '4px 10px', borderRadius: '6px', background: '#fee2e2', border: '1px solid #fca5a5', color: '#dc2626', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer' }}
-                      >
-                        🚨 Submit Correction Request
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 
 function StudentStatsRowWithModals({ studentLogs = [], playCyberSound = () => {}, onRequestDispute }) {
   const [showRateModal, setShowRateModal] = React.useState(false);
@@ -778,6 +617,18 @@ export default function StudentAttendanceDashboardView({
     [playCyberSound, navigateStudentRoute]
   );
 
+  const openLeaveForm = React.useCallback(
+    (prefillLeave = null) => {
+      if (playCyberSound) playCyberSound('click');
+      navigateStudentRoute({
+        section: 'disputes',
+        mode: 'apply-leave',
+        prefill: prefillLeave || null,
+      });
+    },
+    [playCyberSound, navigateStudentRoute]
+  );
+
   const handleSubRouteBack = React.useCallback(() => {
     if (playCyberSound) playCyberSound('click');
     if (activeRoute?.mode === 'apply-dispute' && activeRoute?.fromRoot) {
@@ -796,6 +647,31 @@ export default function StudentAttendanceDashboardView({
     () => new Set(safeSubjects.map(s => String(s.id))),
     [safeSubjects]
   );
+  const allowedSubjectCodes = React.useMemo(
+    () => new Set(safeSubjects.map(s => String(s.code || '').trim().toUpperCase()).filter(Boolean)),
+    [safeSubjects]
+  );
+
+  const scopedStudentLogs = React.useMemo(() => {
+    if (safeSubjects.length === 0) return safeStudentLogs;
+    return safeStudentLogs.filter(log => {
+      if (!log) return false;
+      const sid = log.subject_id != null ? String(log.subject_id) : '';
+      const scode = String(log.subject_code || '').trim().toUpperCase();
+      return (sid && allowedSubjectIds.has(sid)) || (scode && allowedSubjectCodes.has(scode));
+    });
+  }, [safeStudentLogs, safeSubjects.length, allowedSubjectIds, allowedSubjectCodes]);
+
+  const scopedBlueprintData = React.useMemo(() => {
+    const raw = Array.isArray(blueprintData) ? blueprintData : [];
+    if (safeSubjects.length === 0) return raw;
+    return raw.filter(b => {
+      if (!b) return false;
+      const sid = b.subject_id != null ? String(b.subject_id) : '';
+      const scode = String(b.subject_code || '').trim().toUpperCase();
+      return (sid && allowedSubjectIds.has(sid)) || (scode && allowedSubjectCodes.has(scode));
+    });
+  }, [blueprintData, safeSubjects.length, allowedSubjectIds, allowedSubjectCodes]);
 
   const hasDirectStats = studentSubjectStats && (Array.isArray(studentSubjectStats) ? studentSubjectStats.length > 0 : Object.keys(studentSubjectStats).length > 0);
   let displayStats = null;
@@ -807,7 +683,7 @@ export default function StudentAttendanceDashboardView({
     if (filtered.length > 0) displayStats = filtered;
   }
 
-  if (!displayStats && (safeSubjects.length > 0 || safeStudentLogs.length > 0)) {
+  if (!displayStats && (safeSubjects.length > 0 || scopedStudentLogs.length > 0)) {
     const derived = {};
     if (safeSubjects.length > 0) {
       safeSubjects.forEach(s => {
@@ -821,9 +697,8 @@ export default function StudentAttendanceDashboardView({
         };
       });
     }
-    safeStudentLogs.forEach(log => {
+    scopedStudentLogs.forEach(log => {
       if (String(log.attendance || '').toUpperCase() === 'CLASS_CANCELLED') return;
-      if (safeSubjects.length > 0 && (log.subject_id == null || !allowedSubjectIds.has(String(log.subject_id)))) return;
       const subKey = log.subject_id ? String(log.subject_id) : (log.subject_name || 'General');
       if (!derived[subKey]) {
         derived[subKey] = {
@@ -847,10 +722,10 @@ export default function StudentAttendanceDashboardView({
   }
   const statsList = displayStats ? (Array.isArray(displayStats) ? displayStats : Object.values(displayStats)) : [];
 
-  const conductedStudentLogs = safeStudentLogs.filter(l => String(l.attendance || '').toUpperCase() !== 'CLASS_CANCELLED');
+  const conductedStudentLogs = scopedStudentLogs.filter(l => String(l.attendance || '').toUpperCase() !== 'CLASS_CANCELLED');
   const totalClasses = conductedStudentLogs.length;
   const presentClasses = conductedStudentLogs.filter(l => ['Present', 'Late', 'Excused'].includes(l.attendance)).length;
-  const overallRate = totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : (safeStudentLogs.length > 0 ? '100.0' : '0.0');
+  const overallRate = totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : (scopedStudentLogs.length > 0 ? '100.0' : '0.0');
   const hasShortage = Number(overallRate) < 75.0 && totalClasses > 0;
 
   // Navigation Hub items
@@ -978,128 +853,160 @@ export default function StudentAttendanceDashboardView({
         <>
           {/* Student Daily Driver Today Status & 75% Rule Card */}
           <StudentTodayView
-            studentLogs={studentLogs}
+            studentLogs={scopedStudentLogs}
             onRequestDispute={(log) => openDisputeForm(log, { fromRoot: true })}
             onExportSummary={exportToCSV}
             lang={appLang}
           />
 
-          {/* Student Virtual ID Card & QR Check-in Pass */}
-          <div 
+          {/* Interactive Golden Gate Smart Campus ID Card */}
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Open Student Virtual ID and QR Check-in Pass"
             onClick={() => {
               if (playCyberSound) playCyberSound('click');
               if (typeof setShowVirtualId === 'function') setShowVirtualId(true);
             }}
-            className="surface-card hover-elevate active-haptic"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (playCyberSound) playCyberSound('click');
+                if (typeof setShowVirtualId === 'function') setShowVirtualId(true);
+              }
+            }}
+            className="hover-elevate active-haptic"
             style={{
-              padding: '16px 18px',
-              background: 'linear-gradient(115deg, #f2e2bd, #fffdf7 75%)', borderLeft: '5px solid #886627',
-              borderRadius: '16px',
-              border: '1.5px solid #dfcfaf',
-              color: '#25231f',
+              borderRadius: '18px',
+              border: '1.5px solid #d9c496',
+              background: 'linear-gradient(155deg, #fffdf8 0%, #f5ebcf 100%)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.95), 0 10px 26px rgba(89, 64, 25, 0.12)',
+              overflow: 'hidden',
+              cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.08)',
-              position: 'relative',
-              overflow: 'hidden'
             }}
           >
-            {/* Top row: Institutional Header & Live Badge */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '10px',
-                  background: '#faf5ea',
-                  border: '1px solid #dfcfaf',
+            {/* Card Lanyard Header Ribbon */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #785927 0%, #5e441b 100%)',
+                padding: '10px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                color: '#fffdf8',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <CreditCard size={15} />
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.9px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentUser?.institution_name || 'Smart Campus'} · Student ID Pass
+                </span>
+              </div>
+              <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#fde68a', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>
+                ACTIVE PASS
+              </span>
+            </div>
+
+            {/* Authentic ID Card Body: Photo/Monogram + Identity Fields + Live QR Preview */}
+            <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              {/* Photo / Initials Frame */}
+              <div
+                style={{
+                  width: '54px',
+                  height: '62px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(145deg, #fbf3df, #ead7aa)',
+                  border: '1.5px solid #cbb179',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#785927'
-                }}>
-                  <CreditCard size={18} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#785927' }}>
-                    Student identification
-                  </div>
-                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#25231f' }}>
-                    Student Virtual ID Card
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ color: '#785927', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
-                <QrCode size={18} />
-                <span>Show QR</span>
-              </div>
-            </div>
-
-            {/* Middle row: Student Details Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
-              gap: '8px',
-              padding: '10px 12px',
-              background: '#faf9f6',
-              borderRadius: '10px',
-              border: '1px solid #e4dfd5'
-            }}>
-              <div>
-                <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Student Name</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {currentUser?.name || 'Enrolled Student'}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Roll Number</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#785927' }}>
-                  {currentUser?.details?.roll || currentUser?.roll || 'N/A'}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.64rem', color: '#696358', textTransform: 'uppercase', fontWeight: 600 }}>Department</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#46423b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {currentUser?.details?.dep || currentUser?.dep || currentUser?.department || 'General Academic'}
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom row: Touchless QR Scanner trigger CTA */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#58534a' }}>
-                <QrCode size={15} color="#785927" />
-                <span>Show live dynamic QR to kiosk or teacher for instant attendance</span>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (playCyberSound) playCyberSound('click');
-                  if (typeof setShowVirtualId === 'function') setShowVirtualId(true);
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  background: 'linear-gradient(135deg, #785927 0%, #684c20 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
+                  color: '#5c4218',
+                  fontWeight: 900,
+                  fontSize: '1.1rem',
                   flexShrink: 0,
-                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
                 }}
               >
-                <span>Open ID & QR</span>
-                <ChevronRight size={14} />
-              </button>
+                {currentUser?.photo || currentUser?.profile_pic ? (
+                  <img
+                    src={currentUser.photo || currentUser.profile_pic}
+                    alt={currentUser?.name || 'Student'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }}
+                  />
+                ) : (
+                  getInitials(currentUser?.name, 'ST')
+                )}
+              </div>
+
+              {/* Identity Metadata */}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentUser?.name || 'Enrolled Student'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '5px', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: '#7b6844', fontWeight: 700, textTransform: 'uppercase' }}>Roll No</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#684c20' }}>
+                      {currentUser?.details?.roll || currentUser?.roll || 'N/A'}
+                    </div>
+                  </div>
+                  <div style={{ width: '1px', height: '24px', background: '#dfd0ae' }} />
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: '#7b6844', fontWeight: 700, textTransform: 'uppercase' }}>Branch</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#25231f' }}>
+                      {currentUser?.details?.dep || currentUser?.dep || currentUser?.department || 'General'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scannable QR Preview Trigger */}
+              <div
+                style={{
+                  padding: '8px',
+                  borderRadius: '12px',
+                  background: '#ffffff',
+                  border: '1px solid #d9c496',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '3px',
+                  flexShrink: 0,
+                  color: '#5c4218',
+                  boxShadow: '0 2px 8px rgba(89, 64, 25, 0.08)',
+                }}
+              >
+                <QrCode size={28} strokeWidth={2.1} />
+                <span style={{ fontSize: '0.58rem', fontWeight: 800, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+                  Scan QR
+                </span>
+              </div>
+            </div>
+
+            {/* Footer Tap Guidance Bar */}
+            <div
+              style={{
+                padding: '9px 16px',
+                background: 'rgba(255, 253, 248, 0.72)',
+                borderTop: '1px solid #e7dac0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+              }}
+            >
+              <span style={{ fontSize: '0.73rem', fontWeight: 600, color: '#5c4b30' }}>
+                Present live QR at kiosk or classroom scanner
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.76rem', fontWeight: 800, color: '#785927', flexShrink: 0 }}>
+                <span>Open Pass</span>
+                <ChevronRight size={15} />
+              </span>
             </div>
           </div>
 
@@ -1172,9 +1079,11 @@ export default function StudentAttendanceDashboardView({
       {activeSection === 'subjects' && (
         <StudentSubjectAttendanceHub
           statsList={statsList}
-          subjects={subjects}
-          studentLogs={studentLogs}
-          blueprintData={blueprintData}
+          subjects={safeSubjects}
+          studentLogs={scopedStudentLogs}
+          blueprintData={scopedBlueprintData}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
           onOpenDispute={(log) => openDisputeForm(log)}
           playCyberSound={playCyberSound}
         />
@@ -1182,313 +1091,24 @@ export default function StudentAttendanceDashboardView({
 
       {/* ===== 3. DEDICATED SECTION: ATTENDANCE BLUEPRINT CALENDAR ===== */}
       {activeSection === 'blueprint' && (
-        <div>
-          {(() => {
-            const safeBlueprintRaw = Array.isArray(blueprintData) ? blueprintData : [];
-            let effectiveBlueprintData = safeBlueprintRaw;
-
-            if (effectiveBlueprintData.length === 0 && safeStudentLogs.length > 0) {
-              const subMap = {};
-              safeStudentLogs.forEach(log => {
-                const subId = log.subject_id !== undefined && log.subject_id !== null ? log.subject_id : 0;
-                if (!subMap[subId]) {
-                  subMap[subId] = {
-                    subject_id: subId,
-                    subject_name: log.subject_name || (subId ? `Subject #${subId}` : 'General Attendance'),
-                    subject_code: log.subject_code || (subId ? `SUB-${subId}` : 'GEN'),
-                    department: log.department || '',
-                    calendar: {}
-                  };
-                }
-                if (log.date) {
-                  const d = String(log.date).trim();
-                  const statusVal = log.attendance || 'Present';
-                  subMap[subId].calendar[d] = statusVal;
-                  if (d.includes('-') && d.length === 10) {
-                    const [y, m, day] = d.split('-');
-                    subMap[subId].calendar[`${day}/${m}/${y}`] = statusVal;
-                  } else if (d.includes('/')) {
-                    const parts = d.split('/');
-                    if (parts.length === 3) {
-                      const [day, m, y] = parts;
-                      subMap[subId].calendar[`${y}-${m.padStart(2,'0')}-${day.padStart(2,'0')}`] = statusVal;
-                      subMap[subId].calendar[`${day.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`] = statusVal;
-                    }
-                  }
-                }
-              });
-              effectiveBlueprintData = Object.values(subMap);
-            }
-
-            const activeSubject = effectiveBlueprintData.find(s => s.subject_id === selectedBlueprintSubject) || effectiveBlueprintData[0] || null;
-            const calYear = blueprintCalendarDate ? blueprintCalendarDate.getFullYear() : new Date().getFullYear();
-            const calMonth = blueprintCalendarDate ? blueprintCalendarDate.getMonth() : new Date().getMonth();
-            const startDay = new Date(calYear, calMonth, 1).getDay();
-            const numDays = new Date(calYear, calMonth + 1, 0).getDate();
-            const monthName = (blueprintCalendarDate || new Date()).toLocaleString('default', { month: 'long', year: 'numeric' });
-
-            const getStats = (subject) => {
-              if (!subject) return { present: 0, absent: 0, late: 0, total: 0 };
-              const vals = Object.values(subject.calendar || {});
-              return {
-                present: vals.filter(v => v === 'Present').length,
-                late: vals.filter(v => v === 'Late').length,
-                absent: vals.filter(v => v === 'Absent').length,
-                total: vals.length
-              };
-            };
-            const stats = getStats(activeSubject);
-            const pct = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
-
-            return (
-              <div style={{ padding: 'clamp(14px, 3vw, 24px)', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#faf5ea', border: '1px solid #dfcfaf', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>📋</div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#25231f' }}>My Attendance Blueprint</h3>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => fetchBlueprint(token)}
-                    disabled={blueprintLoading}
-                    style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: blueprintLoading ? 'not-allowed' : 'pointer', border: '1px solid #cfc8ba', background: '#faf9f6', color: '#0369a1', fontWeight: 600 }}
-                  >
-                    <span style={{ display: 'inline-block', animation: blueprintLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
-                    {blueprintLoading ? 'Updating...' : 'Refresh'}
-                  </button>
-                </div>
-
-                {blueprintLoading && effectiveBlueprintData.length === 0 ? (
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#696358', gap: '12px', alignItems: 'center' }}>
-                    <div style={{ width: '28px', height: '28px', border: '3px solid #cfc8ba', borderTopColor: '#785927', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                    Loading blueprint...
-                  </div>
-                ) : effectiveBlueprintData.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '36px 20px', color: '#696358' }}>
-                    <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#696358' }}>
-                      No attendance records found yet. Your blueprint will appear once attendance is marked.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => fetchBlueprint(token)}
-                      style={{ padding: '7px 18px', fontSize: '0.82rem', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #dfcfaf', background: '#faf5ea', color: '#684c20', cursor: 'pointer', fontWeight: 600 }}
-                    >
-                      🔄 Check Again
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    {/* Subject Tabs */}
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                      {effectiveBlueprintData.map(sub => (
-                        <button
-                          key={sub.subject_id}
-                          onClick={() => setSelectedBlueprintSubject(sub.subject_id)}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '0.76rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            border: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
-                              ? '1px solid #916d30'
-                              : '1px solid #cfc8ba',
-                            background: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id))
-                              ? '#faf5ea'
-                              : '#faf9f6',
-                            color: (selectedBlueprintSubject === sub.subject_id || (!selectedBlueprintSubject && effectiveBlueprintData[0]?.subject_id === sub.subject_id)) ? '#684c20' : '#696358'
-                          }}
-                        >
-                          {sub.subject_code} — {sub.subject_name}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Stats Bar */}
-                    {activeSubject && (
-                      <div>
-                        <div
-                          className="blueprint-stats-row"
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(5, 1fr)',
-                            gap: '6px',
-                            alignItems: 'center',
-                            marginBottom: (pct < 75 && stats.total > 0) ? '10px' : '16px',
-                            padding: '10px 6px',
-                            background: '#faf9f6',
-                            borderRadius: '12px',
-                            border: '1px solid #e4dfd5',
-                            textAlign: 'center',
-                            boxSizing: 'border-box'
-                          }}
-                        >
-                          <div style={{ minWidth: 0, padding: '2px 4px' }}>
-                            <div style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)', fontWeight: 800, color: pct >= 75 ? '#059669' : '#dc2626', lineHeight: 1.1 }}>{pct}%</div>
-                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Attendance</div>
-                          </div>
-                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e4dfd5' }}>
-                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#059669', lineHeight: 1.1 }}>{stats.present}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Present</div>
-                          </div>
-                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e4dfd5' }}>
-                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#d97706', lineHeight: 1.1 }}>{stats.late}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Late</div>
-                          </div>
-                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e4dfd5' }}>
-                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#dc2626', lineHeight: 1.1 }}>{stats.absent}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Absent</div>
-                          </div>
-                          <div style={{ minWidth: 0, padding: '2px 4px', borderLeft: '1px solid #e4dfd5' }}>
-                            <div style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', fontWeight: 700, color: '#25231f', lineHeight: 1.1 }}>{stats.total}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#696358', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total Days</div>
-                          </div>
-                        </div>
-                        {pct < 75 && stats.total > 0 && (
-                          <div style={{ marginBottom: '14px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ color: '#dc2626', fontSize: '0.74rem', fontWeight: 700 }}>⚠ Below 75% — Shortage</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Calendar Navigation */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <button
-                        onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() - 1); return d; })}
-                        style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: '8px', background: '#faf9f6', border: '1px solid #cfc8ba', color: '#46423b', cursor: 'pointer', fontWeight: 600 }}
-                      >◀ Prev</button>
-                      <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#25231f' }}>{monthName}</span>
-                      <button
-                        onClick={() => setBlueprintCalendarDate(prev => { const d = new Date(prev || new Date()); d.setMonth(d.getMonth() + 1); return d; })}
-                        style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: '8px', background: '#faf9f6', border: '1px solid #cfc8ba', color: '#46423b', cursor: 'pointer', fontWeight: 600 }}
-                      >Next ▶</button>
-                    </div>
-
-                    {/* Calendar Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '6px' }}>
-                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-                        <div key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: '#696358', padding: '4px 0' }}>{d}</div>
-                      ))}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-                      {Array.from({ length: startDay }, (_, i) => (
-                        <div key={`e${i}`} />
-                      ))}
-                      {Array.from({ length: numDays }, (_, i) => {
-                        const day = i + 1;
-                        const padDay = String(day).padStart(2, '0');
-                        const padMonth = String(calMonth + 1).padStart(2, '0');
-                        const dateStr = `${padDay}/${padMonth}/${calYear}`;
-                        const isoDateStr = `${calYear}-${padMonth}-${padDay}`;
-                        const shortSlash = `${day}/${calMonth + 1}/${calYear}`;
-
-                        let status = activeSubject?.calendar?.[dateStr] || 
-                                     activeSubject?.calendar?.[isoDateStr] || 
-                                     activeSubject?.calendar?.[shortSlash];
-
-                        if (!status && safeStudentLogs.length > 0) {
-                          const match = safeStudentLogs.find(l => {
-                            if (activeSubject && activeSubject.subject_id !== 0 && l.subject_id && String(l.subject_id) !== String(activeSubject.subject_id)) {
-                              return false;
-                            }
-                            const lDate = (l.date || '').trim();
-                            return lDate === dateStr || lDate === isoDateStr || lDate === shortSlash;
-                          });
-                          if (match) {
-                            status = match.attendance || 'Present';
-                          }
-                        }
-                        const today = new Date();
-                        const isToday = today.getDate() === day && today.getMonth() === calMonth && today.getFullYear() === calYear;
-
-                        let bg = '#faf9f6';
-                        let border = '1px solid #e4dfd5';
-                        let color = '#696358';
-                        let dot = null;
-                        let label = null;
-
-                        if (status === 'Present') {
-                          bg = '#d1fae5';
-                          border = '1px solid #a7f3d0';
-                          color = '#065f46';
-                          dot = '✓';
-                          label = 'P';
-                        } else if (status === 'Late') {
-                          bg = '#fef3c7';
-                          border = '1px solid #fde68a';
-                          color = '#b45309';
-                          dot = '~';
-                          label = 'L';
-                        } else if (status === 'Absent') {
-                          bg = '#fee2e2';
-                          border = '1px solid #fecaca';
-                          color = '#991b1b';
-                          dot = '✗';
-                          label = 'A';
-                        }
-
-                        if (isToday) {
-                          border = '2px solid #785927';
-                        }
-
-                        return (
-                          <div
-                            key={day}
-                            title={status ? `${dateStr}: ${status} (Click for Details)` : `${dateStr} (Click for Details)`}
-                            onClick={() => {
-                              setBlueprintDayModalDate(dateStr);
-                              setShowBlueprintDayModal(true);
-                              if (typeof playCyberSound === 'function') playCyberSound('click');
-                            }}
-                            style={{
-                              background: bg,
-                              border,
-                              borderRadius: '8px',
-                              padding: '5px 2px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minHeight: '48px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#785927' : color }}>{day}</span>
-                            {dot && (
-                              <span style={{ fontSize: '0.64rem', fontWeight: 700, color, marginTop: '1px' }}>{label}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Legend */}
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '14px', fontSize: '0.72rem', color: '#696358', alignItems: 'center' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#d1fae5', border: '1px solid #a7f3d0', display: 'inline-block' }}/>P = Present</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#fee2e2', border: '1px solid #fecaca', display: 'inline-block' }}/>A = Absent</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#fef3c7', border: '1px solid #fde68a', display: 'inline-block' }}/>L = Late</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', borderRadius: '3px', border: '2px solid #785927', display: 'inline-block' }}/>Today</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto', color: '#785927', fontWeight: 600 }}>💡 Click date cell for details</span>
-                    </div>
-
-                    <BlueprintDayBreakdownModal
-                      isOpen={showBlueprintDayModal}
-                      onClose={() => setShowBlueprintDayModal(false)}
-                      dateStr={blueprintDayModalDate}
-                      studentLogs={studentLogs}
-                      activeSubject={activeSubject}
-                      playCyberSound={playCyberSound}
-                      onRequestDispute={(log) => openDisputeForm(log)}
-                    />
-                  </>
-                )}
-              </div>
-            );
-          })()}
-        </div>
+        <StudentBlueprintHub
+          token={token}
+          currentUser={currentUser}
+          subjects={safeSubjects}
+          studentLogs={scopedStudentLogs}
+          blueprintData={scopedBlueprintData}
+          blueprintLoading={blueprintLoading}
+          fetchBlueprint={fetchBlueprint}
+          selectedBlueprintSubject={selectedBlueprintSubject}
+          setSelectedBlueprintSubject={setSelectedBlueprintSubject}
+          blueprintCalendarDate={blueprintCalendarDate}
+          setBlueprintCalendarDate={setBlueprintCalendarDate}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
+          onOpenDispute={(log) => openDisputeForm(log)}
+          onOpenLeave={(leaveData) => openLeaveForm(leaveData)}
+          playCyberSound={playCyberSound}
+        />
       )}
 
       {/* ===== 4. DEDICATED SECTION: ACADEMIC CALENDAR & NOTICES ===== */}
@@ -1496,6 +1116,9 @@ export default function StudentAttendanceDashboardView({
         <StudentAcademicCalendarWidget
           token={token}
           currentUser={currentUser}
+          subjects={safeSubjects}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
           onNavigateToCalendar={onNavigateToCalendar}
           playCyberSound={playCyberSound}
         />
@@ -1505,10 +1128,15 @@ export default function StudentAttendanceDashboardView({
       {activeSection === 'compliance' && (
         <StudentAttendanceRecoveryWidget
           token={token}
+          API_BASE_URL={API_BASE_URL}
           currentUser={currentUser}
           playCyberSound={playCyberSound}
-          studentLogs={studentLogs}
-          subjects={subjects}
+          studentLogs={scopedStudentLogs}
+          subjects={safeSubjects}
+          myDisputes={myDisputes}
+          onUpdateDisputes={updateDisputesState}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
         />
       )}
 
@@ -1517,7 +1145,7 @@ export default function StudentAttendanceDashboardView({
         <AttendancePlannerWidget
           token={token}
           subjects={safeSubjects}
-          studentLogs={safeStudentLogs}
+          studentLogs={scopedStudentLogs}
           routeView={activeRoute}
           onNavigateRoute={navigateStudentRoute}
           onNavigateBack={handleSubRouteBack}
@@ -1528,7 +1156,7 @@ export default function StudentAttendanceDashboardView({
       {/* ===== 7. DEDICATED SECTION: WALLET ===== */}
       {activeSection === 'wallet' && (
         <StudentAttendanceWallet
-          logs={safeStudentLogs}
+          logs={scopedStudentLogs}
           studentName={currentUser?.name}
           currentUser={currentUser}
           subjects={safeSubjects}

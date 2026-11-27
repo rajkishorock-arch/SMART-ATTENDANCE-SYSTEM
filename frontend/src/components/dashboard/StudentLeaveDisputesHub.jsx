@@ -151,18 +151,32 @@ export default function StudentLeaveDisputesHub({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [banner, setBanner] = useState(null); // { type: 'success' | 'error', text: string }
 
-  // Apply Leave Form State
+  // Apply Leave Form State (supports prefill when opened from Calendar Date Breakdown)
+  const prefill = routeView?.prefill || null;
+  const leaveResetSig = `${mode}|${prefill?.fromDate || prefill?.start_date || ''}|${prefill?.toDate || prefill?.end_date || ''}|${prefill?.subjectId || prefill?.subject_id || ''}`;
+  const [appliedLeaveSig, setAppliedLeaveSig] = useState(leaveResetSig);
   const [leaveForm, setLeaveForm] = useState({
-    start_date: '',
-    end_date: '',
+    start_date: toIsoDateInput(prefill?.fromDate || prefill?.start_date),
+    end_date: toIsoDateInput(prefill?.toDate || prefill?.end_date),
     leave_type: 'Medical',
-    subject_id: '',
+    subject_id: prefill?.subjectId ? String(prefill.subjectId) : (prefill?.subject_id ? String(prefill.subject_id) : ''),
     reason: '',
   });
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
 
+  if (mode === 'apply-leave' && appliedLeaveSig !== leaveResetSig) {
+    setAppliedLeaveSig(leaveResetSig);
+    setLeaveForm({
+      start_date: toIsoDateInput(prefill?.fromDate || prefill?.start_date),
+      end_date: toIsoDateInput(prefill?.toDate || prefill?.end_date),
+      leave_type: 'Medical',
+      subject_id: prefill?.subjectId ? String(prefill.subjectId) : (prefill?.subject_id ? String(prefill.subject_id) : ''),
+      reason: '',
+    });
+    setBanner(null);
+  }
+
   // Request Dispute Form State (prefillKey ensures fresh form state cleanly when prefill or mode changes)
-  const prefill = routeView?.prefill || null;
   const formResetSignature = `${mode}|${prefill?.date || ''}|${prefill?.subject_id || ''}|${prefill?.time || prefill?.period_label || prefill?.session_time || ''}|${prefill?.attendance || ''}`;
   const [appliedDisputeSig, setAppliedDisputeSig] = useState(formResetSignature);
   const [disputeDate, setDisputeDate] = useState(() => toIsoDateInput(prefill?.date));
