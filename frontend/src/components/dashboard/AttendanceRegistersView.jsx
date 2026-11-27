@@ -494,13 +494,13 @@ export default function AttendanceRegistersView({
               <div key={group.iso} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <div className="golden-os-section-label" style={{ marginBottom: 0, padding: '0 4px' }}>
                   <span>{group.heading}</span>
-                  <span className="golden-os-badge-muted">
-                    {group.items.length} {group.items.length === 1 ? 'record' : 'records'}
-                  </span>
                 </div>
                 <div className="golden-os-list-shell">
                   {group.items.map(({ log, idx }) => {
-                    const badge = getStatusBadgeColors(log.attendance);
+                    const statusText = String(log.attendance || 'Present');
+                    const isPresent = statusText.toLowerCase() === 'present';
+                    const isLate = statusText.toLowerCase() === 'late';
+                    const statusColor = isPresent ? '#047857' : isLate ? '#b45309' : '#dc2626';
                     const periodInfo = log.period || log.time || '';
                     const subMetaParts = [
                       log.roll ? `Roll ${log.roll}` : '',
@@ -525,7 +525,10 @@ export default function AttendanceRegistersView({
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                             }}>
-                              {log.name || 'Student'}
+                              {log.name || 'Student'}{' '}
+                              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: statusColor }}>
+                                · {statusText}
+                              </span>
                             </span>
                             {subMetaParts.length > 0 && (
                               <span style={{
@@ -541,20 +544,7 @@ export default function AttendanceRegistersView({
                             )}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                          <span style={{
-                            padding: '3px 8px',
-                            borderRadius: '999px',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            background: badge.bg,
-                            color: badge.color,
-                            border: `1px solid ${badge.border}`,
-                          }}>
-                            {badge.label}
-                          </span>
-                          <ChevronRight size={16} color="#8c734b" />
-                        </div>
+                        <ChevronRight size={16} color="#8c734b" style={{ flexShrink: 0 }} />
                       </button>
                     );
                   })}

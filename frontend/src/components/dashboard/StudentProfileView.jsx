@@ -3,6 +3,7 @@ import {
   AlertCircle,
   Camera,
   CheckCircle2,
+  ChevronRight,
   Edit,
   LogOut,
   Sliders,
@@ -10,30 +11,19 @@ import {
   Volume2,
   VolumeX,
   User,
-  Mail,
-  Phone,
-  Building,
-  ShieldCheck,
-  Upload,
   Lock,
-  Sparkles,
   Save,
-  X
+  RefreshCw,
 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
-import ScannerBootOverlay from '../../ScannerBootOverlay';
-import CameraAttractHud from '../animations/CameraAttractHud';
+import { getInitials } from '../../utils/attendanceDateUtils';
+
+const VALID_PROFILE_SECTIONS = ['details', 'edit', 'security', 'biometrics', 'preferences'];
 
 export default function StudentProfileView({
-  setEditingStudentSelf,
-  setEditStudentSelfError,
-  setEditStudentSelfSuccess,
-  setShowEditStudentSelfModal,
-  setEditingTeacherSelf,
-  setEditTeacherSelfError,
-  setEditTeacherSelfSuccess,
-  setShowEditTeacherSelfModal,
+  activeSection = null,
+  onSelectSection = null,
   studentVideoRef,
   studentCanvasRef,
   studentWebcamActive,
@@ -41,12 +31,10 @@ export default function StudentProfileView({
   startStudentWebcam,
   stopStudentWebcam,
   handleStudentWebcamCapture,
-  handleStudentFileSelect,
   handleStudentWebcamBootComplete,
   isUploadingSelfie,
   selfieError,
   selfieSuccess,
-  hudMetrics,
   oldPassword,
   setOldPassword,
   newPassword,
@@ -62,10 +50,6 @@ export default function StudentProfileView({
 }) {
   const { currentUser, userRole, setCurrentUser, handleLogout, fetchSessionInfo } = useAuth();
   const {
-    activeTheme,
-    setActiveTheme,
-    crtOverlayEnabled,
-    setCrtOverlayEnabled,
     soundEnabled,
     setSoundEnabled,
     audioVolume,
@@ -73,15 +57,9 @@ export default function StudentProfileView({
     playCyberSound,
   } = useUI();
 
-  // Re-verify and sync fresh session info on profile mount
-  useEffect(() => {
-    if (token && typeof fetchSessionInfo === 'function') {
-      fetchSessionInfo(token);
-    }
-  }, [token, fetchSessionInfo]);
+  const [localSection, setLocalSection] = useState(null);
+  const currentSection = onSelectSection ? activeSection : localSection;
 
-  // Profile Edit State
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(currentUser?.name || '');
   const [editPhone, setEditPhone] = useState(currentUser?.details?.phone || currentUser?.phone || '');
   const [editBio, setEditBio] = useState(currentUser?.details?.bio || currentUser?.bio || '');
@@ -90,8 +68,10 @@ export default function StudentProfileView({
   const [editDob, setEditDob] = useState(currentUser?.details?.dob || '');
   const [editGender, setEditGender] = useState(currentUser?.details?.gender || 'Male');
 
-  useEffect(() => {
-    if (!isEditingProfile && currentUser) {
+  const goSection = (next) => {
+    if (typeof playCyberSound === 'function') playCyberSound('click');
+    const normalized = VALID_PROFILE_SECTIONS.includes(next) ? next : null;
+    if (normalized === 'edit' && currentUser) {
       setEditName(currentUser?.name || '');
       setEditPhone(currentUser?.details?.phone || currentUser?.phone || '');
       setEditBio(currentUser?.details?.bio || currentUser?.bio || '');
@@ -100,21 +80,42 @@ export default function StudentProfileView({
       setEditDob(currentUser?.details?.dob || '');
       setEditGender(currentUser?.details?.gender || 'Male');
     }
-  }, [currentUser, isEditingProfile]);
+    if (onSelectSection) onSelectSection(normalized);
+    else setLocalSection(normalized);
+  };
+
+  useEffect(() => {
+    if (token && typeof fetchSessionInfo === 'function') {
+      fetchSessionInfo(token);
+    }
+  }, [token, fetchSessionInfo]);
 
   const [profileSaveSuccess, setProfileSaveSuccess] = useState('');
   const [profileSaveError, setProfileSaveError] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [cacheNotice, setCacheNotice] = useState('');
 
-  // Profile Picture Upload State
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoUploadMsg, setPhotoUploadMsg] = useState('');
   const [photoUploadError, setPhotoUploadError] = useState('');
   const fileInputRef = useRef(null);
 
   const profilePicUrl = currentUser?.details?.profile_pic || currentUser?.profile_pic;
+  const instName =
+    currentUser?.institution_name ||
+    currentUser?.details?.institution_name ||
+    (Number(currentUser?.institution_id) === 5 ? 'RIT Mumbai' : 'Default Institution');
+  const instSlug =
+    currentUser?.institution_slug ||
+    currentUser?.details?.institution_slug ||
+    (Number(currentUser?.institution_id) === 5 ? 'rit' : 'default');
+  const roleLabel =
+    userRole === 'admin'
+      ? 'Primary Administrator'
+      : userRole === 'teacher'
+        ? 'Faculty Member'
+        : 'Student';
 
-  // Handle Profile Picture File Change
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -127,10 +128,9 @@ export default function StudentProfileView({
     }
 
     setIsUploadingPhoto(true);
-    setPhotoUploadMsg('Optimizing and uploading photo...');
+    setPhotoUploadMsg('Uploading photo...');
 
     try {
-      // Resize with canvas to 256x256 for fast upload and storage
       const dataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onerror = () => reject(new Error('Failed to read image file'));
@@ -144,15 +144,11 @@ export default function StudentProfileView({
               canvas.width = size;
               canvas.height = size;
               const ctx = canvas.getContext('2d');
-
-              // Center crop to square
               const minDim = Math.min(img.width, img.height);
               const sx = (img.width - minDim) / 2;
               const sy = (img.height - minDim) / 2;
               ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-
-              const resized = canvas.toDataURL('image/jpeg', 0.85);
-              resolve(resized);
+              resolve(canvas.toDataURL('image/jpeg', 0.85));
             } catch (canvasErr) {
               reject(canvasErr);
             }
@@ -167,9 +163,9 @@ export default function StudentProfileView({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ profile_pic: dataUrl })
+        body: JSON.stringify({ profile_pic: dataUrl }),
       });
 
       if (!res.ok) {
@@ -178,17 +174,14 @@ export default function StudentProfileView({
       }
 
       const resData = await res.json().catch(() => ({}));
-
-      // Update local state immediately
       setCurrentUser(prev => ({
         ...prev,
         profile_pic: dataUrl,
         institution_name: resData.institution_name || prev?.institution_name,
         institution_slug: resData.institution_slug || prev?.institution_slug,
-        details: { ...prev?.details, profile_pic: dataUrl }
+        details: { ...prev?.details, profile_pic: dataUrl },
       }));
 
-      // Update cached user in localStorage
       try {
         const cached = JSON.parse(localStorage.getItem('cached_user') || '{}');
         cached.profile_pic = dataUrl;
@@ -200,10 +193,9 @@ export default function StudentProfileView({
       } catch { /* optional */ }
 
       if (typeof playCyberSound === 'function') playCyberSound('success');
-      setPhotoUploadMsg('Profile picture updated successfully!');
+      setPhotoUploadMsg('Profile photo updated.');
       setTimeout(() => setPhotoUploadMsg(''), 3500);
     } catch (err) {
-      console.error('Error uploading photo:', err);
       if (typeof playCyberSound === 'function') playCyberSound('error');
       setPhotoUploadError(err.message || 'Error uploading photo');
       setPhotoUploadMsg('');
@@ -213,7 +205,6 @@ export default function StudentProfileView({
     }
   };
 
-  // Handle Save Profile Changes
   const handleSaveProfile = async (e) => {
     if (e) e.preventDefault();
     setProfileSaveSuccess('');
@@ -228,16 +219,16 @@ export default function StudentProfileView({
         department: editDepartment.trim(),
         address: editAddress.trim(),
         dob: editDob.trim(),
-        gender: editGender
+        gender: editGender,
       };
 
       const res = await fetch(`${API_BASE_URL}/users/profile/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -245,7 +236,6 @@ export default function StudentProfileView({
         throw new Error(data.detail || 'Failed to update profile.');
       }
 
-      // Update in-memory currentUser
       setCurrentUser(prev => ({
         ...prev,
         name: payload.name,
@@ -261,11 +251,10 @@ export default function StudentProfileView({
           department: payload.department,
           address: payload.address,
           dob: payload.dob,
-          gender: payload.gender
-        }
+          gender: payload.gender,
+        },
       }));
 
-      // Update cached user in localStorage
       try {
         const cached = JSON.parse(localStorage.getItem('cached_user') || '{}');
         cached.name = payload.name;
@@ -278,11 +267,11 @@ export default function StudentProfileView({
       } catch { /* optional */ }
 
       if (typeof playCyberSound === 'function') playCyberSound('success');
-      setProfileSaveSuccess('Profile details saved successfully!');
+      setProfileSaveSuccess('Profile updated successfully.');
       setTimeout(() => {
         setProfileSaveSuccess('');
-        setIsEditingProfile(false);
-      }, 1500);
+        goSection('details');
+      }, 900);
     } catch (err) {
       if (typeof playCyberSound === 'function') playCyberSound('error');
       setProfileSaveError(err.message || 'Failed to save changes');
@@ -291,391 +280,183 @@ export default function StudentProfileView({
     }
   };
 
-  return (
-    <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: "'Inter', sans-serif" }}>
-      
-      {/* Top Hero Profile Banner */}
-      <div className="golden-os-window" style={{
-        padding: '22px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '18px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          {/* Avatar with Camera Overlay */}
-          <div style={{ position: 'relative' }}>
-            <div style={{
-              width: '96px',
-              height: '96px',
-              borderRadius: '50%',
-              background: profilePicUrl ? 'transparent' : 'linear-gradient(135deg, #80602c, #785927)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '2.2rem',
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(2, 132, 199, 0.25)',
-              border: '3px solid #ffffff'
-            }}>
-              {profilePicUrl ? (
-                <img
-                  src={profilePicUrl}
-                  alt={currentUser?.name || 'User Avatar'}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                (currentUser?.name?.split(' ') || []).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'
+  /* ===== DEDICATED PAGE 1: PERSONAL & INSTITUTIONAL DETAILS ===== */
+  if (currentSection === 'details') {
+    const infoRows = [
+      { label: 'Full Legal Name', value: currentUser?.name || 'Not set' },
+      { label: 'Email Address', value: currentUser?.email || 'Not set' },
+      { label: 'Phone Number', value: currentUser?.details?.phone || currentUser?.phone || 'Not set' },
+      { label: 'Account Role', value: roleLabel },
+      { label: 'Institution', value: instName },
+      { label: 'Workspace Code', value: instSlug },
+      ...(userRole === 'student'
+        ? [
+            { label: 'Roll Number', value: currentUser?.details?.roll || 'N/A' },
+            { label: 'Department / Branch', value: currentUser?.details?.dep || 'Unassigned' },
+            {
+              label: 'Program & Year',
+              value: currentUser?.details?.course
+                ? `${currentUser.details.course}${currentUser?.details?.year ? ` (${currentUser.details.year})` : ''}`
+                : 'Not set',
+            },
+          ]
+        : [
+            {
+              label: 'Department / Division',
+              value: currentUser?.department || currentUser?.details?.department || 'Administration',
+            },
+          ]),
+    ];
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <User size={13} />
+                <span>Personal &amp; Institutional Details</span>
+              </div>
+
+              {infoRows.map((row, idx) => (
+                <div
+                  key={row.label}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '7px 0',
+                    borderBottom: idx < infoRows.length - 1 ? '1px solid #f2ead9' : 'none',
+                    fontSize: '0.84rem',
+                  }}
+                >
+                  <span style={{ color: '#6b5b3e', fontWeight: 600 }}>{row.label}</span>
+                  <span style={{ color: '#25231f', fontWeight: 700, textAlign: 'right', overflowWrap: 'anywhere' }}>
+                    {row.value}
+                  </span>
+                </div>
+              ))}
+
+              {(currentUser?.bio || currentUser?.details?.bio) && (
+                <div style={{ marginTop: '4px', padding: '10px 12px', background: '#faf8f2', borderRadius: '10px', border: '1px solid #ede4d2', fontSize: '0.82rem', color: '#3b3324', lineHeight: 1.45 }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#785927', textTransform: 'uppercase', marginBottom: '3px' }}>
+                    Bio / Role Note
+                  </div>
+                  {currentUser?.bio || currentUser?.details?.bio}
+                </div>
               )}
             </div>
 
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handlePhotoUpload}
-              accept="image/*"
-              style={{ display: 'none' }}
-            />
-
-            {/* Camera Change Button */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              title="Change Profile Picture"
-              disabled={isUploadingPhoto}
-              style={{
-                position: 'absolute',
-                bottom: '0',
-                right: '0',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: '#25231f',
-                border: '2px solid #ffffff',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                transition: 'transform 0.15s ease'
-              }}
-            >
-              <Camera size={15} />
-            </button>
-          </div>
-
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#25231f', margin: 0 }}>
-                {currentUser?.name || 'User Profile'}
-              </h2>
-              <span style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                background: userRole === 'admin' ? '#f5f3ff' : userRole === 'teacher' ? '#faf5ea' : '#ecfdf5',
-                color: userRole === 'admin' ? '#7c3aed' : userRole === 'teacher' ? '#684c20' : '#059669',
-                border: userRole === 'admin' ? '1px solid #ddd6fe' : userRole === 'teacher' ? '1px solid #dfcfaf' : '1px solid #a7f3d0'
-              }}>
-                {userRole === 'admin' ? 'Primary Administrator' : userRole === 'teacher' ? 'Faculty Member' : 'Student'}
-              </span>
-            </div>
-
-            <p style={{ margin: '6px 0 0', fontSize: '0.86rem', color: '#696358' }}>
-              {currentUser?.email}
-            </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '0.76rem',
-                color: '#80602c',
-                background: '#f0f9ff',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                border: '1px solid #bae6fd',
-                fontWeight: 600
-              }}>
-                <Building size={13} />
-                {currentUser?.institution_name || currentUser?.details?.institution_name || (Number(currentUser?.institution_id) === 5 ? 'RIT Mumbai' : 'Smart Attendance System')}
-              </span>
-
-              {(currentUser?.institution_slug || currentUser?.details?.institution_slug || Number(currentUser?.institution_id) === 5) && (
-                <span style={{
-                  fontSize: '0.76rem',
-                  color: '#7c3aed',
-                  background: '#f5f3ff',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid #ddd6fe',
-                  fontFamily: 'monospace',
-                  fontWeight: 700
-                }}>
-                  Code: {currentUser?.institution_slug || currentUser?.details?.institution_slug || (Number(currentUser?.institution_id) === 5 ? 'rit' : 'default')}
-                </span>
-              )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => goSection(null)}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 16px', borderRadius: '11px' }}
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                onClick={() => goSection('edit')}
+                className="golden-os-primary-action"
+                style={{ width: 'auto', padding: '10px 18px', borderRadius: '11px', fontSize: '0.84rem', gap: '6px' }}
+              >
+                <Edit size={14} />
+                <span>Edit Profile</span>
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Action Button: Edit Profile Toggle */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            type="button"
-            onClick={() => {
-              if (isEditingProfile) {
-                setIsEditingProfile(false);
-              } else {
-                setEditName(currentUser?.name || '');
-                setEditPhone(currentUser?.details?.phone || currentUser?.phone || '');
-                setEditBio(currentUser?.details?.bio || currentUser?.bio || '');
-                setEditDepartment(currentUser?.details?.dep || currentUser?.details?.department || currentUser?.department || '');
-                setEditAddress(currentUser?.details?.address || '');
-                setEditDob(currentUser?.details?.dob || '');
-                setEditGender(currentUser?.details?.gender || 'Male');
-                setIsEditingProfile(true);
-              }
-            }}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              background: isEditingProfile ? '#f4f1eb' : '#80602c',
-              border: isEditingProfile ? '1px solid #cfc8ba' : 'none',
-              color: isEditingProfile ? '#46423b' : '#ffffff',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: isEditingProfile ? 'none' : '0 2px 8px rgba(2, 132, 199, 0.25)'
-            }}
-          >
-            {isEditingProfile ? <X size={15} /> : <Edit size={15} />}
-            <span>{isEditingProfile ? 'Cancel Edit' : 'Edit Profile Credentials'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof playCyberSound === 'function') playCyberSound('click');
-              handleLogout();
-            }}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '10px',
-              background: '#fff1f2',
-              border: '1px solid #fecdd3',
-              color: '#be123c',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <LogOut size={15} />
-            <span>Sign Out</span>
-          </button>
         </div>
       </div>
+    );
+  }
 
-      {photoUploadMsg && (
-        <div style={{ padding: '12px 18px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', color: '#065f46', fontSize: '0.85rem', fontWeight: 600 }}>
-          ✅ {photoUploadMsg}
-        </div>
-      )}
+  /* ===== DEDICATED PAGE 2: EDIT PROFILE & CONTACT INFO ===== */
+  if (currentSection === 'edit') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {profileSaveSuccess && (
+              <div role="status" className="feedback-banner is-success">
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{profileSaveSuccess}</span>
+              </div>
+            )}
+            {profileSaveError && (
+              <div role="alert" className="feedback-banner is-error">
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{profileSaveError}</span>
+              </div>
+            )}
 
-      {photoUploadError && (
-        <div style={{ padding: '12px 18px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', color: '#dc2626', fontSize: '0.85rem', fontWeight: 600 }}>
-          ⚠️ {photoUploadError}
-        </div>
-      )}
+            <form onSubmit={handleSaveProfile} className="golden-os-form-section" style={{ gap: '12px' }}>
+              <div className="golden-os-form-section-title">Edit Account Credentials</div>
 
-      {/* Main Two-Column Layout */}
-      <div className="golden-os-profile-grid">
-        
-        {/* Left Column: Profile Information or Edit Form */}
-        <div className="golden-os-window" style={{
-          padding: '22px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e4dfd5', paddingBottom: '14px' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <User size={20} color="#80602c" />
-              <span>{isEditingProfile ? 'Edit Account Credentials' : 'Personal & Institutional Details'}</span>
-            </h3>
-            <span style={{ fontSize: '0.78rem', color: '#696358' }}>
-              {isEditingProfile ? 'Save to update records' : 'Verified Profile'}
-            </span>
-          </div>
-
-          {profileSaveSuccess && (
-            <div style={{ padding: '12px 16px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', color: '#065f46', fontSize: '0.85rem', fontWeight: 600 }}>
-              ✅ {profileSaveSuccess}
-            </div>
-          )}
-
-          {profileSaveError && (
-            <div style={{ padding: '12px 16px', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '10px', color: '#9f1239', fontSize: '0.85rem', fontWeight: 600 }}>
-              ❌ {profileSaveError}
-            </div>
-          )}
-
-          {isEditingProfile ? (
-            /* ================= EDIT PROFILE FORM ================= */
-            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
-                  Full Name
-                </label>
+                <label className="golden-os-field-label">Full Name *</label>
                 <input
                   type="text"
+                  className="golden-os-input"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cfc8ba',
-                    color: '#25231f',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
-                  Email Address (Identity Anchor)
-                </label>
+                <label className="golden-os-field-label">Email Address</label>
                 <input
                   type="email"
+                  className="golden-os-input"
                   value={currentUser?.email || ''}
                   disabled
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    background: '#faf9f6',
-                    border: '1px solid #e4dfd5',
-                    color: '#696358',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    cursor: 'not-allowed'
-                  }}
+                  style={{ background: '#f5f1e6', color: '#6b5b3e', cursor: 'not-allowed' }}
                 />
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
-                  Contact system owner to request official email address migration.
-                </span>
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
-                  Contact Phone Number
-                </label>
+                <label className="golden-os-field-label">Contact Phone</label>
                 <input
                   type="tel"
+                  className="golden-os-input"
                   placeholder="e.g. +91 9876543210"
                   value={editPhone}
                   onChange={e => setEditPhone(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cfc8ba',
-                    color: '#25231f',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
                 />
               </div>
 
-              {userRole !== 'student' && (
+              {userRole !== 'student' ? (
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
-                    Department / Division
-                  </label>
+                  <label className="golden-os-field-label">Department / Division</label>
                   <input
                     type="text"
-                    placeholder="e.g. Computer Science & Engineering"
+                    className="golden-os-input"
+                    placeholder="e.g. Administration"
                     value={editDepartment}
                     onChange={e => setEditDepartment(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '8px',
-                      background: '#ffffff',
-                      border: '1px solid #cfc8ba',
-                      color: '#25231f',
-                      fontSize: '0.88rem',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
                   />
                 </div>
-              )}
-
-              {userRole === 'student' && (
+              ) : (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="golden-os-fields-2">
                     <div>
-                      <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
-                        Date of Birth
-                      </label>
+                      <label className="golden-os-field-label">Date of Birth</label>
                       <input
                         type="date"
+                        className="golden-os-input"
                         value={editDob}
                         onChange={e => setEditDob(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '11px 14px',
-                          borderRadius: '8px',
-                          background: '#ffffff',
-                          border: '1px solid #cfc8ba',
-                          color: '#25231f',
-                          fontSize: '0.88rem',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
-                        Gender
-                      </label>
+                      <label className="golden-os-field-label">Gender</label>
                       <select
+                        className="golden-os-input"
                         value={editGender}
                         onChange={e => setEditGender(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '11px 14px',
-                          borderRadius: '8px',
-                          background: '#ffffff',
-                          border: '1px solid #cfc8ba',
-                          color: '#25231f',
-                          fontSize: '0.88rem',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
                       >
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -683,288 +464,169 @@ export default function StudentProfileView({
                       </select>
                     </div>
                   </div>
-
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
-                      Residential Address
-                    </label>
+                    <label className="golden-os-field-label">Residential Address</label>
                     <textarea
                       rows={2}
+                      className="golden-os-input"
                       placeholder="Enter street and city address"
                       value={editAddress}
                       onChange={e => setEditAddress(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#25231f',
-                        fontSize: '0.88rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        resize: 'none'
-                      }}
+                      style={{ resize: 'vertical' }}
                     />
                   </div>
                 </>
               )}
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#58534a', display: 'block', marginBottom: '6px' }}>
-                  Professional Bio / Title
-                </label>
+                <label className="golden-os-field-label">Bio / Role Note</label>
                 <input
                   type="text"
-                  placeholder="e.g. Academic Administrator & Department Head"
+                  className="golden-os-input"
+                  placeholder="e.g. Campus Administrator"
                   value={editBio}
                   onChange={e => setEditBio(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cfc8ba',
-                    color: '#25231f',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                <button
-                  type="submit"
-                  disabled={isSavingProfile}
-                  style={{
-                    flex: 2,
-                    padding: '12px 20px',
-                    borderRadius: '10px',
-                    background: '#059669',
-                    border: 'none',
-                    color: '#ffffff',
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    cursor: isSavingProfile ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    opacity: isSavingProfile ? 0.7 : 1
-                  }}
-                >
-                  <Save size={16} />
-                  <span>{isSavingProfile ? 'Saving Changes...' : 'Save Profile Changes'}</span>
-                </button>
-
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
                 <button
                   type="button"
-                  onClick={() => setIsEditingProfile(false)}
-                  style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    background: '#ffffff',
-                    border: '1px solid #cfc8ba',
-                    color: '#58534a',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => goSection(null)}
+                  className="golden-os-feedback-filter-btn"
+                  style={{ padding: '10px 16px', borderRadius: '11px' }}
                 >
                   Cancel
                 </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="golden-os-primary-action"
+                  style={{ width: 'auto', padding: '10px 20px', borderRadius: '11px', fontSize: '0.84rem', gap: '7px' }}
+                >
+                  <Save size={15} />
+                  <span>{isSavingProfile ? 'Saving...' : 'Save Changes'}</span>
+                </button>
               </div>
             </form>
-          ) : (
-            /* ================= READ-ONLY PROFILE OVERVIEW ================= */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Full Legal Name</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#25231f' }}>{currentUser?.name}</span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Email Address</span>
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>{currentUser?.email}</span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Phone Number</span>
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>
-                  {currentUser?.details?.phone || currentUser?.phone || 'Not set'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Institution</span>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#80602c' }}>
-                  {currentUser?.institution_name || currentUser?.details?.institution_name || (Number(currentUser?.institution_id) === 5 ? 'RIT Mumbai' : 'Smart Attendance System')}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                <span style={{ color: '#696358', fontSize: '0.84rem' }}>Workspace Slug</span>
-                <span style={{ fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace', color: '#7c3aed' }}>
-                  {currentUser?.institution_slug || currentUser?.details?.institution_slug || (Number(currentUser?.institution_id) === 5 ? 'rit' : 'default')}
-                </span>
-              </div>
-
-              {userRole === 'student' ? (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                    <span style={{ color: '#696358', fontSize: '0.84rem' }}>Roll Number</span>
-                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#25231f' }}>{currentUser?.details?.roll}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                    <span style={{ color: '#696358', fontSize: '0.84rem' }}>Academic Department</span>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>{currentUser?.details?.dep}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                    <span style={{ color: '#696358', fontSize: '0.84rem' }}>Course & Year</span>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>
-                      {currentUser?.details?.course} ({currentUser?.details?.year || '1st Year'})
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '10px' }}>
-                  <span style={{ color: '#696358', fontSize: '0.84rem' }}>Department</span>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#25231f' }}>
-                    {currentUser?.department || currentUser?.details?.department || 'Administration'}
-                  </span>
-                </div>
-              )}
-
-              {(currentUser?.bio || currentUser?.details?.bio) && (
-                <div style={{ marginTop: '6px', padding: '12px', background: '#faf9f6', borderRadius: '10px', border: '1px solid #e4dfd5' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                    Bio / Role Note
-                  </span>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#46423b', lineHeight: 1.45 }}>
-                    {currentUser?.bio || currentUser?.details?.bio}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Right Column: Security, Password & Camera/Preferences */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          
-          {/* Change Password Card */}
-          <div className="golden-os-window" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#2b2112', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Lock size={17} color="#b91c1c" />
-              <span>Change Account Password</span>
-            </h3>
-
+  /* ===== DEDICATED PAGE 3: SECURITY & CHANGE PASSWORD ===== */
+  if (currentSection === 'security') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {passwordChangeError && (
-              <div className="feedback-banner is-error" style={{ marginBottom: '12px' }}>
+              <div role="alert" className="feedback-banner is-error">
                 <AlertCircle size={16} style={{ flexShrink: 0 }} />
                 <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{passwordChangeError}</span>
               </div>
             )}
-
             {passwordChangeSuccess && (
-              <div className="feedback-banner is-success" style={{ marginBottom: '12px' }}>
+              <div role="status" className="feedback-banner is-success">
                 <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
                 <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{passwordChangeSuccess}</span>
               </div>
             )}
 
-            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleChangePassword} className="golden-os-form-section" style={{ gap: '12px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Lock size={13} />
+                <span>Change Account Password</span>
+              </div>
+
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#5c4b30', display: 'block', marginBottom: '5px' }}>
-                  {userRole === 'student' ? 'Current Password / Default Roll No' : 'Current Password'}
+                <label className="golden-os-field-label">
+                  {userRole === 'student' ? 'Current Password / Default Roll No *' : 'Current Password *'}
                 </label>
                 <input
                   type="password"
+                  className="golden-os-input"
                   placeholder="Enter current password"
                   value={oldPassword}
                   onChange={e => setOldPassword(e.target.value)}
                   required
-                  className="form-input"
-                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#5c4b30', display: 'block', marginBottom: '5px' }}>
-                  New Password (min 6 characters)
-                </label>
+                <label className="golden-os-field-label">New Password (min 6 characters) *</label>
                 <input
                   type="password"
+                  className="golden-os-input"
                   placeholder="Enter new password"
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   required
-                  className="form-input"
-                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#5c4b30', display: 'block', marginBottom: '5px' }}>
-                  Confirm New Password
-                </label>
+                <label className="golden-os-field-label">Confirm New Password *</label>
                 <input
                   type="password"
+                  className="golden-os-input"
                   placeholder="Repeat new password"
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   required
-                  className="form-input"
-                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={isChangingPassword}
-                className="golden-os-primary-action"
-                style={{
-                  marginTop: '4px',
-                  width: '100%',
-                  padding: '11px',
-                  borderRadius: '11px',
-                  fontSize: '0.86rem',
-                  fontWeight: 700,
-                  cursor: isChangingPassword ? 'not-allowed' : 'pointer',
-                  opacity: isChangingPassword ? 0.7 : 1
-                }}
-              >
-                <span>{isChangingPassword ? 'Updating Password...' : 'Update Password'}</span>
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => goSection(null)}
+                  className="golden-os-feedback-filter-btn"
+                  style={{ padding: '10px 16px', borderRadius: '11px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="golden-os-primary-action"
+                  style={{ width: 'auto', padding: '10px 20px', borderRadius: '11px', fontSize: '0.84rem' }}
+                >
+                  <span>{isChangingPassword ? 'Updating...' : 'Update Password'}</span>
+                </button>
+              </div>
             </form>
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* Student Biometric Registration Card (Mirrored Live Camera + Clean Spacing) */}
-          {userRole === 'student' && (
-            <div className="golden-os-window" style={{ padding: '20px' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#2b2112', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Camera size={18} color="#8b6525" />
+  /* ===== DEDICATED PAGE 4: STUDENT BIOMETRIC FACE PROFILE ===== */
+  if (currentSection === 'biometrics' && userRole === 'student') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {selfieError && (
+              <div role="alert" className="feedback-banner is-error">
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{selfieError}</span>
+              </div>
+            )}
+            {selfieSuccess && (
+              <div role="status" className="feedback-banner is-success">
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{selfieSuccess}</span>
+              </div>
+            )}
+
+            <div className="golden-os-form-section" style={{ gap: '12px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Camera size={13} />
                 <span>Biometric Face Profile</span>
-              </h3>
-              <p style={{ color: '#6b5b3e', fontSize: '0.78rem', margin: '0 0 14px 0', lineHeight: 1.45 }}>
-                Center your face inside the mirrored camera view to register or update Face ID.
-              </p>
-
-              {selfieError && (
-                <div className="feedback-banner is-error" style={{ marginBottom: '12px' }}>
-                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{selfieError}</span>
-                </div>
-              )}
-
-              {selfieSuccess && (
-                <div className="feedback-banner is-success" style={{ marginBottom: '12px' }}>
-                  <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{selfieSuccess}</span>
-                </div>
-              )}
+              </div>
 
               {(studentWebcamActive || studentWebcamBootActive) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
@@ -995,7 +657,7 @@ export default function StudentProfileView({
                         fontSize: '0.86rem',
                         fontWeight: 700,
                         cursor: isUploadingSelfie ? 'not-allowed' : 'pointer',
-                        opacity: isUploadingSelfie ? 0.7 : 1
+                        opacity: isUploadingSelfie ? 0.7 : 1,
                       }}
                     >
                       {isUploadingSelfie ? 'Validating Face...' : 'Capture & Save Face'}
@@ -1004,83 +666,286 @@ export default function StudentProfileView({
                       type="button"
                       onClick={stopStudentWebcam}
                       className="golden-os-feedback-filter-btn"
-                      style={{
-                        flex: '1 1 90px',
-                        padding: '11px 14px',
-                        borderRadius: '11px',
-                        fontSize: '0.84rem'
-                      }}
+                      style={{ flex: '1 1 90px', padding: '11px 14px', borderRadius: '11px', fontSize: '0.84rem' }}
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={startStudentWebcam}
-                    className="golden-os-primary-action"
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      borderRadius: '11px',
-                      fontSize: '0.86rem',
-                      fontWeight: 700,
-                      gap: '7px'
-                    }}
-                  >
-                    <Video size={16} />
-                    <span>Open Live Camera</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={startStudentWebcam}
+                  className="golden-os-primary-action"
+                  style={{ width: '100%', padding: '12px', borderRadius: '11px', fontSize: '0.86rem', fontWeight: 700, gap: '7px' }}
+                >
+                  <Video size={16} />
+                  <span>Open Live Camera</span>
+                </button>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== DEDICATED PAGE 5: INTERFACE & AUDIO CONTROLS ===== */
+  if (currentSection === 'preferences') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {cacheNotice && (
+              <div role="status" className="feedback-banner is-success">
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{cacheNotice}</span>
+              </div>
+            )}
+
+            <div className="golden-os-form-section" style={{ gap: '14px' }}>
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sliders size={13} />
+                <span>Interface &amp; Audio Controls</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #f2ead9' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>Sound Feedback</span>
+                <input
+                  type="checkbox"
+                  checked={soundEnabled}
+                  onChange={e => {
+                    setSoundEnabled(e.target.checked);
+                    try { localStorage.setItem('soundEnabled', e.target.checked); } catch { /* ignore */ }
+                  }}
+                  style={{ width: '18px', height: '18px', accentColor: '#785927', cursor: 'pointer' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.84rem', color: '#6b5b3e', fontWeight: 600 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />} Audio Volume
+                  </span>
+                  <span style={{ color: '#25231f', fontWeight: 800 }}>{Math.round(audioVolume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="1.0"
+                  step="0.05"
+                  value={audioVolume}
+                  disabled={!soundEnabled}
+                  onChange={e => {
+                    const vol = parseFloat(e.target.value);
+                    setAudioVolume(vol);
+                    try { localStorage.setItem('audioVolume', vol); } catch { /* ignore */ }
+                  }}
+                  style={{ width: '100%', accentColor: '#785927' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', paddingTop: '8px', borderTop: '1px solid #f2ead9' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof playCyberSound === 'function') playCyberSound('click');
+                    try {
+                      Object.keys(localStorage).forEach(k => {
+                        if (k.startsWith('cached_disputes') || k.startsWith('cached_borderline')) {
+                          localStorage.removeItem(k);
+                        }
+                      });
+                    } catch { /* ignore */ }
+                    setCacheNotice('Temporary UI cache cleared.');
+                    setTimeout(() => setCacheNotice(''), 3000);
+                  }}
+                  className="golden-os-feedback-filter-btn"
+                  style={{ padding: '9px 14px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <RefreshCw size={14} />
+                  <span>Clear Temp Cache</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => goSection(null)}
+                  className="golden-os-primary-action"
+                  style={{ width: 'auto', padding: '10px 18px', borderRadius: '11px', fontSize: '0.84rem' }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== MAIN MY PROFILE HUB (GOLDEN GATE CLEAN OVERVIEW + CONTROLS) ===== */
+  const menuItems = [
+    { key: 'details', label: 'Personal & Institutional Details', icon: User, onClick: () => goSection('details') },
+    { key: 'edit', label: 'Edit Profile & Contact Info', icon: Edit, onClick: () => goSection('edit') },
+    { key: 'security', label: 'Security & Change Password', icon: Lock, onClick: () => goSection('security') },
+    ...(userRole === 'student'
+      ? [{ key: 'biometrics', label: 'Biometric Face Profile', icon: Camera, onClick: () => goSection('biometrics') }]
+      : []),
+    { key: 'preferences', label: 'Interface & Audio Controls', icon: Sliders, onClick: () => goSection('preferences') },
+  ];
+
+  return (
+    <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+      {/* Clean Golden Gate Identity Card (No purple boxes, no floating offset camera button) */}
+      <div
+        className="golden-os-window"
+        style={{
+          background: 'linear-gradient(155deg, #fffdf8 0%, #f6ecd5 100%)',
+          border: '1.5px solid #dcc89b',
+        }}
+      >
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Fixed-size avatar box anchors camera badge tightly to corner */}
+            <div className="golden-os-avatar-wrap">
+              <div
+                style={{
+                  width: '74px',
+                  height: '74px',
+                  borderRadius: '20px',
+                  background: profilePicUrl ? '#ffffff' : 'linear-gradient(135deg, #785927, #5c4218)',
+                  border: '2px solid #cbb179',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fffdf8',
+                  fontWeight: 800,
+                  fontSize: '1.55rem',
+                  overflow: 'hidden',
+                }}
+              >
+                {profilePicUrl ? (
+                  <img
+                    src={profilePicUrl}
+                    alt={currentUser?.name || 'User Avatar'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  getInitials(currentUser?.name, 'U')
+                )}
+              </div>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoUpload}
+                accept="image/*"
+                style={{ display: 'none' }}
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Change Profile Picture"
+                aria-label="Change Profile Picture"
+                disabled={isUploadingPhoto}
+                style={{
+                  position: 'absolute',
+                  bottom: '-4px',
+                  right: '-4px',
+                  width: '28px',
+                  height: '28px',
+                  padding: 0,
+                  borderRadius: '50%',
+                  background: '#785927',
+                  border: '2px solid #fffdf8',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(89, 64, 25, 0.25)',
+                }}
+              >
+                <Camera size={13} color="#ffffff" />
+              </button>
+            </div>
+
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#785927' }}>
+                {roleLabel} · {instName}
+              </div>
+              <h2 style={{ fontSize: '1.22rem', fontWeight: 800, color: '#25231f', margin: '2px 0 0', overflowWrap: 'anywhere' }}>
+                {currentUser?.name || 'User Profile'}
+              </h2>
+              <div style={{ fontSize: '0.82rem', color: '#6b5b3e', fontWeight: 500, marginTop: '2px', overflowWrap: 'anywhere' }}>
+                {currentUser?.email}
+              </div>
+            </div>
+          </div>
+
+          {photoUploadMsg && (
+            <div role="status" className="feedback-banner is-success">
+              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{photoUploadMsg}</span>
             </div>
           )}
 
-          {/* Preferences Card */}
-          <div className="golden-os-window" style={{ padding: '20px' }}>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#25231f', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sliders size={16} color="#696358" />
-              <span>Interface & Audio Preferences</span>
-            </h4>
+          {photoUploadError && (
+            <div role="alert" className="feedback-banner is-error">
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{photoUploadError}</span>
+            </div>
+          )}
+        </div>
+      </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #f4f1eb' }}>
-              <div>
-                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#25231f', display: 'block' }}>Sound Feedback</span>
-                <span style={{ fontSize: '0.74rem', color: '#696358' }}>Interactive click and scan sound cues</span>
+      {/* Organized Single-Line Profile Controls */}
+      <div>
+        <div style={{ padding: '0 4px 8px' }}>
+          <span className="golden-os-field-label" style={{ marginBottom: 0 }}>Account &amp; Profile Controls</span>
+        </div>
+        <div className="golden-os-list-shell">
+          {menuItems.map((item) => {
+            const RowIcon = item.icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={item.onClick}
+                className="golden-os-list-row"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  <div className="golden-os-avatar">
+                    <RowIcon size={16} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1, fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.label}
+                  </div>
+                </div>
+                <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof playCyberSound === 'function') playCyberSound('click');
+              handleLogout();
+            }}
+            className="golden-os-list-row"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+              <div className="golden-os-avatar" style={{ background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' }}>
+                <LogOut size={16} />
               </div>
-              <input
-                type="checkbox"
-                checked={soundEnabled}
-                onChange={e => {
-                  setSoundEnabled(e.target.checked);
-                  localStorage.setItem('soundEnabled', e.target.checked);
-                }}
-                style={{ width: '18px', height: '18px', accentColor: '#80602c', cursor: 'pointer' }}
-              />
+              <div style={{ minWidth: 0, flex: 1, fontSize: '0.9rem', fontWeight: 700, color: '#b91c1c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Sign Out
+              </div>
             </div>
-
-            <div style={{ marginTop: '12px' }}>
-              <span style={{ fontSize: '0.78rem', color: '#696358', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-                {soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />} Volume: {Math.round(audioVolume * 100)}%
-              </span>
-              <input
-                type="range"
-                min="0.0"
-                max="1.0"
-                step="0.05"
-                value={audioVolume}
-                disabled={!soundEnabled}
-                onChange={e => {
-                  const vol = parseFloat(e.target.value);
-                  setAudioVolume(vol);
-                  localStorage.setItem('audioVolume', vol);
-                }}
-                style={{ width: '100%', accentColor: '#80602c' }}
-              />
-            </div>
-          </div>
+            <ChevronRight size={17} style={{ color: '#b91c1c', flexShrink: 0 }} />
+          </button>
         </div>
       </div>
     </div>

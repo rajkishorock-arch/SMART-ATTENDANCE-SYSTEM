@@ -776,6 +776,17 @@ export default function App() {
     } catch { /* ignore */ }
     return false;
   });
+  const [profileSection, setProfileSection] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'student-profile' && ['details', 'edit', 'security', 'biometrics', 'preferences'].includes(parts[1])) {
+        return parts[1];
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+  const profileSectionRef = useRef(profileSection);
+  useEffect(() => { profileSectionRef.current = profileSection; }, [profileSection]);
   const [settingsDetailRoute, setSettingsDetailRoute] = useState(() => {
     try {
       const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
@@ -1223,6 +1234,10 @@ export default function App() {
       } else {
         setCalendarRoute(null);
       }
+      return;
+    }
+    if (activeTabRef.current === 'student-profile' && profileSectionRef.current !== null) {
+      setProfileSection(null);
       return;
     }
     if (activeTabRef.current === 'reports' && reportRouteRef.current !== null) {
@@ -2950,7 +2965,9 @@ export default function App() {
                     ? reportScrollKey
                     : activeTab === 'dashboard' && ['feedback', 'share-feedback'].includes(activeDashboardSubTab)
                       ? (dashboardFeedbackDetail?.id != null ? `feedback:${dashboardFeedbackDetail.id}` : '')
-                      : (activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student') ? studentScrollKey : '');
+                      : activeTab === 'student-profile'
+                        ? (profileSection || '')
+                        : (activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student') ? studentScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
 
   useLayoutEffect(() => {
@@ -6485,6 +6502,9 @@ export default function App() {
         if (activeBase !== 'broadcast' && broadcastRouteRef.current !== null) {
           setBroadcastRoute(null);
         }
+        if (activeBase !== 'student-profile' && profileSectionRef.current !== null) {
+          setProfileSection(null);
+        }
         if (activeBase !== 'session-history' && sessionHistoryRouteRef.current !== null) {
           setSessionHistoryRoute(null);
         }
@@ -6593,6 +6613,13 @@ export default function App() {
             setReportRoute({ mode: 'controls' });
           } else {
             setReportRoute({ mode: 'detail', id: decodeURIComponent(subHash) });
+          }
+        } else if (baseHash === 'student-profile') {
+          const validProfileSecs = ['details', 'edit', 'security', 'biometrics', 'preferences'];
+          if (subHash && validProfileSecs.includes(subHash)) {
+            setProfileSection(subHash);
+          } else if (profileSectionRef.current !== null) {
+            setProfileSection(null);
           }
         } else if (baseHash === 'students') {
           if (!subHash) {
@@ -6750,7 +6777,9 @@ export default function App() {
                                                 ? `#/reports/${encodeURIComponent(reportRoute.id)}`
                                                 : activeTab === 'student-attendance' && studentRoute?.section
                                                   ? buildStudentRouteHash(studentRoute)
-                                                  : `#/${activeTab}`;
+                                                  : activeTab === 'student-profile' && profileSection
+                                                    ? `#/student-profile/${profileSection}`
+                                                    : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6835,6 +6864,7 @@ export default function App() {
     studentRoute?.mode,
     studentRoute?.id,
     studentRoute?.subjectId,
+    profileSection,
     token,
     userRole,
   ]);
@@ -6895,6 +6925,7 @@ export default function App() {
     setBroadcastRoute(null);
     setSessionHistoryRoute(null);
     setStudentRoute(null);
+    setProfileSection(null);
     setSelectedAuditLog(null);
     setRouteLogId(null);
     setMobileSidebarOpen(false);
@@ -9581,7 +9612,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'student-profile' && profileSection !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -9691,7 +9722,16 @@ export default function App() {
                     return 'Campus Notices';
                   })()}
                   {activeTab === 'student-attendance' && getStudentRouteTitle(studentRoute)}
-                  {activeTab === 'student-profile' && 'My Profile'}
+                  {activeTab === 'student-profile' && (() => {
+                    const pTitles = {
+                      details: 'Personal Details',
+                      edit: 'Edit Profile',
+                      security: 'Change Password',
+                      biometrics: 'Biometric Face Profile',
+                      preferences: 'Interface & Audio',
+                    };
+                    return (profileSection && pTitles[profileSection]) || 'My Profile';
+                  })()}
                   {activeTab === 'settings' && (() => {
                     if (!activeSubSetting) return 'Settings Directory';
                     if (settingsDetailRoute && settingsDetailRoute.sub === activeSubSetting) {
@@ -9742,7 +9782,7 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast', 'logs', 'session-history', 'calendar', 'reports'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -10754,6 +10794,11 @@ export default function App() {
 
         {activeTab === 'student-profile' && (
           <StudentProfileView
+            activeSection={profileSection}
+            onSelectSection={(nextSec) => {
+              scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+              setProfileSection(nextSec);
+            }}
             setEditingStudentSelf={setEditingStudentSelf}
             setEditStudentSelfError={setEditStudentSelfError}
             setEditStudentSelfSuccess={setEditStudentSelfSuccess}
