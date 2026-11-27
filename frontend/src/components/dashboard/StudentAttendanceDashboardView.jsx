@@ -1176,8 +1176,13 @@ export default function StudentAttendanceDashboardView({
       {/* ===== 8. DEDICATED SECTION: CAMPUS GEOFENCE LOCATION ===== */}
       {activeSection === 'geofence' && (
         <StudentCampusGeofenceHub
+          token={token}
+          API_BASE_URL={API_BASE_URL}
           geofenceStatus={geofenceStatus}
           setGeofenceStatus={setGeofenceStatus}
+          routeView={activeRoute}
+          onNavigateRoute={navigateStudentRoute}
+          onNavigateBack={handleSubRouteBack}
           playCyberSound={playCyberSound}
         />
       )}

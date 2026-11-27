@@ -119,6 +119,12 @@ const parseStudentHashParts = (parts) => {
     if (sub2 === 'detail' && sub3) return { section: 'feedback', mode: 'detail', id: sub3 };
     return { section: 'feedback' };
   }
+  if (section === 'geofence') {
+    if (sub2 === 'perimeter' || sub2 === 'history' || sub2 === 'guide') {
+      return { section: 'geofence', mode: sub2 };
+    }
+    return { section: 'geofence' };
+  }
   return { section };
 };
 
@@ -157,6 +163,11 @@ const getStudentRouteTitle = (route) => {
     if (route.mode === 'subject') return 'Subject Plan';
   }
   if (route.section === 'feedback' && route.mode === 'detail') return 'Feedback Details';
+  if (route.section === 'geofence') {
+    if (route.mode === 'perimeter') return 'Perimeter & Rules';
+    if (route.mode === 'history') return 'Location History';
+    if (route.mode === 'guide') return 'Location Guide';
+  }
   if (route.mode === 'apply-leave') return 'Apply for Leave';
   if (route.mode === 'leave-detail') return 'Leave Application';
   if (route.mode === 'apply-dispute') return 'Request Correction';
@@ -203,6 +214,9 @@ const buildStudentRouteHash = (route) => {
   }
   if (route.section === 'feedback' && route.mode === 'detail' && route.id != null) {
     return `#/student-attendance/feedback/detail/${encodeURIComponent(route.id)}`;
+  }
+  if (route.section === 'geofence' && route.mode) {
+    return `#/student-attendance/geofence/${encodeURIComponent(route.mode)}`;
   }
   return `#/student-attendance/${sec}`;
 };

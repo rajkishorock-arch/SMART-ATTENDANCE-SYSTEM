@@ -1,26 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  MapPin, 
-  ShieldCheck, 
-  Compass, 
-  Navigation, 
-  Wifi, 
-  CheckCircle2, 
-  AlertTriangle, 
-  RefreshCw, 
-  Building2, 
-  Layers, 
-  Info,
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Navigation,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw,
   Clock,
-  Radio
+  ChevronRight,
+  Compass,
+  Info,
+  Trash2,
 } from 'lucide-react';
+import { getApiBaseUrl } from '../../utils/platform';
 
 export default function StudentCampusGeofenceHub({
+  token,
+  API_BASE_URL = getApiBaseUrl(),
   geofenceStatus = { checked: false, inside: false, distance: null },
   setGeofenceStatus = () => {},
-  playCyberSound = () => {}
+  routeView = null,
+  onNavigateRoute = null,
+  onNavigateBack = null,
+  playCyberSound = () => {},
 }) {
+  const [policy, setPolicy] = useState(null);
+  const [policyLoaded, setPolicyLoaded] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [gpsError, setGpsError] = useState('');
   const [gpsCoords, setGpsCoords] = useState(null);
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [lastVerifiedAt, setLastVerifiedAt] = useState(null);
@@ -33,363 +38,488 @@ export default function StudentCampusGeofenceHub({
     }
   });
 
-  // Campus Default Coordinates (configurable or fallback to university location)
-  const campusCenter = {
-    lat: parseFloat(localStorage.getItem('geo_lat') || '28.6139'),
-    lng: parseFloat(localStorage.getItem('geo_lng') || '77.2090'),
-    name: 'Main University Campus',
-    allowedRadiusMeters: parseFloat(localStorage.getItem('geo_radius') || '250')
-  };
+  const subMode = routeView?.section === 'geofence' ? routeView?.mode : null;
 
-  // Designated Campus Academic Zones
-  const campusZones = [
-    { id: 'acad-a', name: 'Academic Block A & Lecture Halls', radius: 250, icon: '🏛️', status: 'Primary Zone' },
-    { id: 'tech-lab', name: 'Engineering & Computing Labs', radius: 200, icon: '🔬', status: 'High-Sec Zone' },
-    { id: 'library', name: 'Central University Library & Reading Hub', radius: 300, icon: '📚', status: 'Study Zone' },
-    { id: 'sports', name: 'Auditorium & Student Activity Center', radius: 450, icon: '🏟️', status: 'Perimeter Zone' }
-  ];
+  const fetchServerPolicy = useCallback(async (lat = null, lng = null) => {
+    if (!token) return null;
+    try {
+      const qs = lat != null && lng != null ? `?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}` : '';
+      const res = await fetch(`${API_BASE_URL}/settings/geofence-status${qs}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      setPolicy(data);
+      setPolicyLoaded(true);
+      return data;
+    } catch {
+      setPolicyLoaded(true);
+      return null;
+    }
+  }, [token, API_BASE_URL]);
 
-  // Perform Live High-Precision GPS Scan
+  useEffect(() => {
+    if (!token) return undefined;
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/settings/geofence-status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled) return;
+        if (data) setPolicy(data);
+        setPolicyLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setPolicyLoaded(true);
+      });
+    return () => { cancelled = true; };
+  }, [token, API_BASE_URL]);
+
   const handleVerifyLocation = useCallback(() => {
-    if (playCyberSound) playCyberSound('click');
+    playCyberSound('click');
     setIsScanning(true);
+    setGpsError('');
 
-    if (!navigator.geolocation) {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setIsScanning(false);
-      setGeofenceStatus({ checked: true, inside: false, distance: null });
+      setGpsError('Location services are not supported by this browser.');
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
+        const acc = Math.round(accuracy || 10);
         setGpsCoords({ lat: latitude, lng: longitude });
-        setGpsAccuracy(Math.round(accuracy || 5));
+        setGpsAccuracy(acc);
 
-        // Haversine formula calculation
-        const R = 6371000; // meters
-        const dLat = (latitude - campusCenter.lat) * (Math.PI / 180);
-        const dLng = (longitude - campusCenter.lng) * (Math.PI / 180);
-        const a = 
-          Math.sin(dLat / 2) ** 2 +
-          Math.cos(campusCenter.lat * (Math.PI / 180)) * 
-          Math.cos(latitude * (Math.PI / 180)) * 
-          Math.sin(dLng / 2) ** 2;
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distanceM = Math.round(R * c);
-
-        // If campus center is not explicitly calibrated, assume student is in range if accuracy is good
-        const isInside = (!campusCenter.lat || campusCenter.lat === 0) 
-          ? true 
-          : distanceM <= campusCenter.allowedRadiusMeters;
-
-        const result = {
-          checked: true,
-          inside: isInside,
-          distance: isInside ? Math.min(distanceM, campusCenter.allowedRadiusMeters - 15) : distanceM
-        };
-
-        setGeofenceStatus(result);
+        const serverRes = await fetchServerPolicy(latitude, longitude);
         const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setLastVerifiedAt(nowStr);
 
-        // Append to local audit logs
+        let distanceM = serverRes?.distance_meters ?? null;
+        let isInside = serverRes ? Boolean(serverRes.inside) : !policy?.geofencing_enabled;
+
+        // If server policy was unreachable but local campus center exists, compute locally
+        if (!serverRes && policy?.campus_calibrated && policy.center_latitude != null && policy.center_longitude != null) {
+          const R = 6371000;
+          const dLat = (latitude - policy.center_latitude) * (Math.PI / 180);
+          const dLng = (longitude - policy.center_longitude) * (Math.PI / 180);
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(policy.center_latitude * (Math.PI / 180)) *
+              Math.cos(latitude * (Math.PI / 180)) *
+              Math.sin(dLng / 2) ** 2;
+          distanceM = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+          isInside = !policy.geofencing_enabled || distanceM <= (policy.allowed_radius_meters || 250);
+        }
+
+        const nextStatus = {
+          checked: true,
+          inside: isInside,
+          distance: distanceM,
+        };
+        setGeofenceStatus(nextStatus);
+
         const newLog = {
           id: Date.now(),
           timestamp: nowStr,
-          distance: result.distance,
-          inside: result.inside,
-          accuracy: Math.round(accuracy || 5)
+          distance: distanceM,
+          inside: isInside,
+          accuracy: acc,
+          enforced: Boolean(serverRes?.geofencing_enabled ?? policy?.geofencing_enabled),
         };
         setAuditLogs(prev => {
-          const updated = [newLog, ...prev.slice(0, 4)];
-          try { localStorage.setItem('cached_geo_audit_logs', JSON.stringify(updated)); } catch {}
+          const updated = [newLog, ...prev.slice(0, 9)];
+          try { localStorage.setItem('cached_geo_audit_logs', JSON.stringify(updated)); } catch { /* ignore */ }
           return updated;
         });
 
+        playCyberSound(isInside ? 'success' : 'error');
         setIsScanning(false);
       },
       (err) => {
-        console.warn('Geolocation lookup issue:', err);
-        // Fallback simulation for indoor campus environments
-        const simulatedDist = 24; // 24m inside
-        const result = { checked: true, inside: true, distance: simulatedDist };
-        setGeofenceStatus(result);
-        setGpsCoords({ lat: campusCenter.lat, lng: campusCenter.lng });
-        setGpsAccuracy(8);
-        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        setLastVerifiedAt(nowStr);
         setIsScanning(false);
+        if (err?.code === 1) {
+          setGpsError('Location permission denied. Allow location access in browser settings to verify.');
+        } else if (err?.code === 3) {
+          setGpsError('GPS signal timed out. Move near a window or retry verification.');
+        } else {
+          setGpsError('Unable to read device GPS coordinates right now.');
+        }
       },
-      { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
     );
-  }, [campusCenter, setGeofenceStatus, playCyberSound]);
+  }, [fetchServerPolicy, policy, setGeofenceStatus, playCyberSound]);
 
-  // Initial trigger if not checked
-  useEffect(() => {
-    if (!geofenceStatus.checked) {
-      handleVerifyLocation();
-    }
-  }, [geofenceStatus.checked, handleVerifyLocation]);
+  const closeSubPage = () => {
+    playCyberSound('click');
+    if (onNavigateBack) onNavigateBack();
+    else if (onNavigateRoute) onNavigateRoute({ section: 'geofence' });
+  };
 
-  const isInside = geofenceStatus.inside;
+  const isEnforced = Boolean(policy?.geofencing_enabled);
+  const allowedRadius = policy?.allowed_radius_meters || 250;
+  const isCalibrated = Boolean(policy?.campus_calibrated);
+  const isInside = isEnforced ? Boolean(geofenceStatus.inside) : true;
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeInUp 0.3s ease both' }}>
-      
-      {/* ── Main Radar Status Card ── */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '20px',
-        border: `1.5px solid ${geofenceStatus.checked ? (isInside ? '#bbf7d0' : '#fecaca') : '#cfc8ba'}`,
-        padding: '20px 22px',
-        boxShadow: '0 4px 14px rgba(15, 23, 42, 0.05)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px'
-      }}>
-        {/* Top Header Row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: geofenceStatus.checked ? (isInside ? '#dcfce7' : '#fee2e2') : '#faf5ea',
-              color: geofenceStatus.checked ? (isInside ? '#15803d' : '#dc2626') : '#785927',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <Navigation size={22} className={isScanning ? 'spin-anim' : ''} />
+  /* ===== DEDICATED PAGE 1: PERIMETER & CAMPUS RULES ===== */
+  if (subMode === 'perimeter') {
+    const rows = [
+      {
+        label: 'Geofence Enforcement',
+        value: policyLoaded ? (isEnforced ? 'Active (Required)' : 'Optional (Not Enforced)') : 'Checking...',
+        color: isEnforced ? '#785927' : '#047857',
+      },
+      {
+        label: 'Allowed Campus Radius',
+        value: `${Math.round(allowedRadius)} meters`,
+      },
+      {
+        label: 'Campus Center GPS',
+        value: isCalibrated
+          ? `${Number(policy.center_latitude).toFixed(4)}°, ${Number(policy.center_longitude).toFixed(4)}°`
+          : 'Not calibrated by Admin',
+      },
+      {
+        label: 'Your Device GPS',
+        value: gpsCoords
+          ? `${gpsCoords.lat.toFixed(4)}°, ${gpsCoords.lng.toFixed(4)}° (±${gpsAccuracy || 10}m)`
+          : 'Tap Verify Location on main screen',
+      },
+      {
+        label: 'Distance from Campus',
+        value:
+          geofenceStatus.distance != null
+            ? `${Math.round(geofenceStatus.distance)} meters`
+            : isCalibrated
+              ? 'Not measured yet'
+              : 'N/A',
+      },
+      {
+        label: 'Campus Wi-Fi Rule',
+        value: policy?.wifi_restriction_enabled ? 'Restricted to Campus Wi-Fi' : 'Any network allowed',
+      },
+      {
+        label: 'Check-In Eligibility',
+        value: isEnforced
+          ? geofenceStatus.checked
+            ? geofenceStatus.inside
+              ? 'Authorized for Attendance'
+              : 'Outside Allowed Radius'
+            : 'Verification Pending'
+          : 'Authorized Anywhere',
+        color: isInside ? '#047857' : '#b91c1c',
+      },
+    ];
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title">Campus Boundary Settings</div>
+              {rows.map((r, idx) => (
+                <div
+                  key={r.label}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '6px 0',
+                    borderBottom: idx < rows.length - 1 ? '1px solid #f2ead9' : 'none',
+                    fontSize: '0.84rem',
+                  }}
+                >
+                  <span style={{ color: '#6b5b3e', fontWeight: 600 }}>{r.label}</span>
+                  <span style={{ color: r.color || '#25231f', fontWeight: 700, textAlign: 'right' }}>{r.value}</span>
+                </div>
+              ))}
             </div>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: isInside ? '#15803d' : '#785927' }}>
-                GPS Telemetry & Spatial Perimeter
-              </div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#25231f' }}>
-                {geofenceStatus.checked 
-                  ? (isInside ? 'Inside Authorized Campus Zone' : 'Outside Campus Perimeter')
-                  : 'Verifying GPS Perimeter...'}
-              </h3>
-            </div>
-          </div>
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: isInside ? '#15803d' : '#be123c',
-            fontSize: '0.84rem',
-            fontWeight: 700
-          }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isInside ? '#16a34a' : '#e11d48', display: 'inline-block' }} />
-            <span>{isInside ? 'Perimeter Verified' : 'Out of Bounds'}</span>
-          </div>
-        </div>
+            <button
+              type="button"
+              onClick={handleVerifyLocation}
+              disabled={isScanning}
+              className="golden-os-primary-action"
+              style={{ justifyContent: 'center', padding: '11px 16px', borderRadius: '11px' }}
+            >
+              <RefreshCw size={15} className={isScanning ? 'spin-icon' : ''} />
+              <span>{isScanning ? 'Checking GPS...' : 'Run Location Check'}</span>
+            </button>
 
-        {/* Radar Metrics Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: '10px',
-          background: '#faf9f6',
-          padding: '14px 16px',
-          borderRadius: '14px',
-          border: '1px solid #e4dfd5'
-        }}>
-          <div>
-            <div style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Distance to Center</div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>
-              {geofenceStatus.distance !== null ? `~${Math.round(geofenceStatus.distance)}m` : '18m'}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={closeSubPage}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '9px 18px', borderRadius: '10px' }}
+              >
+                Done
+              </button>
             </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Allowed Radius</div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#785927', marginTop: '2px' }}>
-              {campusCenter.allowedRadiusMeters} Meters
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>GPS Precision</div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
-              ±{gpsAccuracy || 4}m (High)
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.66rem', color: '#696358', textTransform: 'uppercase', fontWeight: 700 }}>Last Audit</div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#58534a', marginTop: '2px' }}>
-              {lastVerifiedAt || 'Just Now'}
-            </div>
-          </div>
-        </div>
-
-        {/* Interactive Live Scan CTA */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#58534a' }}>
-            <ShieldCheck size={16} color="#16a34a" />
-            <span>Anti-Spoofing: PASS · Mock Location Detection active</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleVerifyLocation}
-            disabled={isScanning}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 18px',
-              background: 'linear-gradient(135deg, #785927 0%, #684c20 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '0.84rem',
-              fontWeight: 700,
-              cursor: isScanning ? 'not-allowed' : 'pointer',
-              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <RefreshCw size={14} className={isScanning ? 'spin-anim' : ''} />
-            <span>{isScanning ? 'Scanning GPS...' : 'Re-verify Location Now'}</span>
-          </button>
         </div>
       </div>
+    );
+  }
 
-      {/* ── Designated Campus Attendance Zones ── */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '18px',
-        border: '1px solid #e4dfd5',
-        padding: '18px 20px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-          <Building2 size={18} color="#785927" />
-          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#25231f' }}>
-            Designated Campus Attendance Zones
-          </h4>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
-          {campusZones.map((zone, idx) => {
-            const inRange = isInside;
-            return (
-              <div
-                key={zone.id}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: '#faf9f6',
-                  border: `1px solid ${inRange ? '#bbf7d0' : '#e4dfd5'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '10px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                  <span style={{ fontSize: '1.4rem' }}>{zone.icon}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {zone.name}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#696358', marginTop: '1px' }}>
-                      Max Radius: {zone.radius}m · {zone.status}
+  /* ===== DEDICATED PAGE 2: LOCATION CHECK HISTORY ===== */
+  if (subMode === 'history') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {auditLogs.length === 0 ? (
+              <div className="golden-os-inset-card" style={{ padding: '32px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
+                <Clock size={26} style={{ color: '#8f7b58' }} />
+                <div style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>No location checks yet</div>
+                <div style={{ fontSize: '0.78rem', color: '#8f7b58' }}>
+                  Run a location check from Campus Geofence Location to see history here.
+                </div>
+              </div>
+            ) : (
+              <div className="golden-os-list-shell">
+                {auditLogs.map(log => (
+                  <div
+                    key={log.id}
+                    className="golden-os-list-row"
+                    style={{ cursor: 'default' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                      <div className="golden-os-avatar" style={{ width: '32px', height: '32px' }}>
+                        {log.inside ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f' }}>
+                          {log.inside ? 'Inside Allowed Area' : 'Outside Campus Boundary'}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#6b5b3e', marginTop: '1px' }}>
+                          {log.timestamp} · {log.distance != null ? `${log.distance}m away` : `Accuracy ±${log.accuracy || 10}m`}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <span style={{
-                  fontSize: '0.76rem',
-                  fontWeight: 600,
-                  color: inRange ? '#16a34a' : '#696358',
-                  flexShrink: 0
-                }}>
-                  {inRange ? 'In Range' : 'Outside'}
-                </span>
+                ))}
               </div>
-            );
-          })}
-        </div>
-      </div>
+            )}
 
-      {/* ── Attendance Gatekeeper Eligibility ── */}
-      <div style={{
-        background: isInside ? '#f0fdf4' : '#fffbeb',
-        border: `1.5px solid ${isInside ? '#bbf7d0' : '#fde68a'}`,
-        borderRadius: '16px',
-        padding: '14px 18px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-      }}>
-        <div style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '10px',
-          background: isInside ? '#dcfce7' : '#fef3c7',
-          color: isInside ? '#15803d' : '#b45309',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0
-        }}>
-          {isInside ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
-        </div>
-        <div>
-          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: isInside ? '#166534' : '#92400e' }}>
-            {isInside 
-              ? 'Authorized for Instant Attendance Check-in' 
-              : 'Attendance Gatekeeper Warning'}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: isInside ? '#15803d' : '#b45309', marginTop: '2px', lineHeight: 1.4 }}>
-            {isInside
-              ? 'Your device location matches the verified university geofence. Biometric kiosks and dynamic QR check-in will be accepted without dispute.'
-              : 'You are currently outside the designated boundary. Make sure you are inside campus grounds before scanning your dynamic QR pass.'}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Recent Location Audit Logs ── */}
-      {auditLogs.length > 0 && (
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          border: '1px solid #e4dfd5',
-          padding: '14px 18px',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', fontSize: '0.82rem', fontWeight: 700, color: '#58534a' }}>
-            <Clock size={15} />
-            <span>Recent Geofence Check Logs</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {auditLogs.map(log => (
-              <div
-                key={log.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  background: '#faf9f6',
-                  fontSize: '0.74rem'
-                }}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+              {auditLogs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playCyberSound('click');
+                    setAuditLogs([]);
+                    try { localStorage.removeItem('cached_geo_audit_logs'); } catch { /* ignore */ }
+                  }}
+                  className="golden-os-feedback-filter-btn"
+                  style={{ padding: '9px 14px', borderRadius: '10px', color: '#b91c1c', borderColor: '#fecaca', background: '#fff5f5', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Trash2 size={14} />
+                  <span>Clear History</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={closeSubPage}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '9px 18px', borderRadius: '10px', marginLeft: 'auto' }}
               >
-                <span style={{ color: '#25231f', fontWeight: 600 }}>🕒 {log.timestamp}</span>
-                <span style={{ color: '#58534a' }}>Distance: ~{log.distance}m</span>
-                <span style={{ fontWeight: 700, color: log.inside ? '#15803d' : '#dc2626' }}>
-                  {log.inside ? '✓ Inside Perimeter' : '✗ Outside'}
-                </span>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== DEDICATED PAGE 3: HOW LOCATION CHECK WORKS ===== */
+  if (subMode === 'guide') {
+    const steps = [
+      {
+        title: '1. Campus Policy Check',
+        desc: 'Your institution decides whether attendance requires being inside a GPS boundary or is open anywhere.',
+      },
+      {
+        title: '2. Live GPS Distance',
+        desc: 'When geofencing is active, your phone compares your current GPS coordinates against the campus center radius.',
+      },
+      {
+        title: '3. Fix Permission Issues',
+        desc: 'If check-in fails, turn on Device Location (GPS) and allow Location permission for your browser or app.',
+      },
+    ];
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {steps.map(st => (
+              <div key={st.title} className="golden-os-form-section" style={{ gap: '4px' }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#2b2112' }}>{st.title}</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b5b3e', lineHeight: 1.45 }}>{st.desc}</div>
               </div>
             ))}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={closeSubPage}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '9px 18px', borderRadius: '10px' }}
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  /* ===== MAIN PAGE (#/student-attendance/geofence): CLEAN GOLDEN GATE HUB ===== */
+  const statusHeadline = !policyLoaded
+    ? 'Checking campus policy...'
+    : !isEnforced
+      ? 'Open Check-In Active'
+      : geofenceStatus.checked
+        ? geofenceStatus.inside
+          ? 'Inside Campus Boundary'
+          : 'Outside Campus Boundary'
+        : 'Ready to Verify Location';
+
+  const statusDetail = !policyLoaded
+    ? 'Syncing boundary rules with institution server.'
+    : !isEnforced
+      ? 'Geofence restriction is off for your institution. Attendance check-in works without location lock.'
+      : geofenceStatus.checked
+        ? geofenceStatus.distance != null
+          ? `${Math.round(geofenceStatus.distance)}m from campus center (limit ${Math.round(allowedRadius)}m).`
+          : `Campus boundary limit is ${Math.round(allowedRadius)}m.`
+        : `Verify GPS to confirm you are within ${Math.round(allowedRadius)}m of campus.`;
+
+  return (
+    <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Clean Live Status Summary */}
+          <div className="golden-os-form-section" style={{ gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: isEnforced && geofenceStatus.checked && !geofenceStatus.inside ? '#fef2f2' : '#ecfdf5',
+                  color: isEnforced && geofenceStatus.checked && !geofenceStatus.inside ? '#b91c1c' : '#047857',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Navigation size={20} className={isScanning ? 'spin-anim' : ''} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#25231f' }}>
+                  {statusHeadline}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#6b5b3e', marginTop: '2px', lineHeight: 1.4 }}>
+                  {statusDetail}
+                </div>
+              </div>
+            </div>
+
+            {lastVerifiedAt && (
+              <div style={{ fontSize: '0.74rem', color: '#786240', fontWeight: 600 }}>
+                Last checked at {lastVerifiedAt}
+                {gpsAccuracy ? ` · GPS precision ±${gpsAccuracy}m` : ''}
+              </div>
+            )}
+
+            {gpsError && (
+              <div role="alert" className="feedback-banner is-error">
+                <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{gpsError}</span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleVerifyLocation}
+              disabled={isScanning}
+              className="golden-os-primary-action"
+              style={{ justifyContent: 'center', padding: '11px 16px', borderRadius: '11px' }}
+            >
+              <RefreshCw size={15} className={isScanning ? 'spin-icon' : ''} />
+              <span>{isScanning ? 'Verifying GPS...' : 'Verify My Location'}</span>
+            </button>
+          </div>
+
+          {/* Clean Organized Sub-Pages List */}
+          <div className="golden-os-list-shell">
+            <button
+              type="button"
+              onClick={() => {
+                playCyberSound('click');
+                if (onNavigateRoute) onNavigateRoute({ section: 'geofence', mode: 'perimeter' });
+              }}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar" style={{ width: '34px', height: '34px' }}>
+                  <Compass size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
+                  Perimeter & Campus Rules
+                </span>
+              </div>
+              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playCyberSound('click');
+                if (onNavigateRoute) onNavigateRoute({ section: 'geofence', mode: 'history' });
+              }}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar" style={{ width: '34px', height: '34px' }}>
+                  <Clock size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
+                  Location Check History
+                </span>
+              </div>
+              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playCyberSound('click');
+                if (onNavigateRoute) onNavigateRoute({ section: 'geofence', mode: 'guide' });
+              }}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar" style={{ width: '34px', height: '34px' }}>
+                  <Info size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
+                  How Location Check Works
+                </span>
+              </div>
+              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

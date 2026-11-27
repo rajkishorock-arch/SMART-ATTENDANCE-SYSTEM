@@ -26,6 +26,40 @@ def get_system_settings(
         )
     return crud.get_system_settings(db, institution_id=current_user.institution_id)
 
+
+@router.get("/geofence-status")
+def get_geofence_status(
+    lat: float | None = None,
+    lng: float | None = None,
+    db: Session = Depends(get_db),
+    identity=Depends(security.get_current_identity),
+):
+    """Return real institution geofence configuration and optional server-verified distance."""
+    settings = crud.get_system_settings(db, institution_id=identity.institution_id)
+    center_lat = settings.center_latitude
+    center_lng = settings.center_longitude
+    radius_m = float(settings.allowed_radius_meters or 250)
+    enabled = bool(settings.geofencing_enabled)
+    has_coords = center_lat is not None and center_lng is not None and (center_lat != 0 or center_lng != 0)
+    distance_m = None
+    inside = True if not enabled else False
+    if lat is not None and lng is not None and has_coords:
+        from .security_utils import calculate_haversine_distance
+        distance_m = round(calculate_haversine_distance(lat, lng, float(center_lat), float(center_lng)))
+        inside = (not enabled) or (distance_m <= radius_m)
+    elif lat is not None and lng is not None and not has_coords:
+        inside = True
+    return {
+        "geofencing_enabled": enabled,
+        "center_latitude": center_lat if has_coords else None,
+        "center_longitude": center_lng if has_coords else None,
+        "allowed_radius_meters": radius_m,
+        "wifi_restriction_enabled": bool(getattr(settings, "wifi_restriction_enabled", False)),
+        "distance_meters": distance_m,
+        "inside": inside,
+        "campus_calibrated": has_coords,
+    }
+
 @router.put("/", response_model=schemas.SystemSettingsResponse)
 def update_system_settings(
     settings_update: schemas.SystemSettingsUpdate,
