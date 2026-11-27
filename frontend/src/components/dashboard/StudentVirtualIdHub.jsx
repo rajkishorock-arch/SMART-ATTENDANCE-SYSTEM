@@ -30,6 +30,7 @@ export default function StudentVirtualIdHub({
   const passRef = useRef(pass);
   const mountedRef = useRef(true);
   const renewingRef = useRef(false);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
     passRef.current = pass;
@@ -40,6 +41,7 @@ export default function StudentVirtualIdHub({
     if (cursorRef.current === null) {
       cursorRef.current = nextPass.resultCursor ?? 0;
     }
+    retryCountRef.current = 0;
     passRef.current = nextPass;
     setError('');
     setPass(nextPass);
@@ -57,7 +59,11 @@ export default function StudentVirtualIdHub({
       return nextPass;
     } catch {
       if (mountedRef.current && (!passRef.current || passRef.current.expiresAt <= Date.now())) {
-        setError('Unable to load check-in QR. Tap Refresh Code to retry.');
+        if (retryCountRef.current < 3) {
+          retryCountRef.current += 1;
+        } else {
+          setError('Unable to load check-in QR. Tap Refresh Code to retry.');
+        }
       }
       return null;
     } finally {
@@ -70,6 +76,7 @@ export default function StudentVirtualIdHub({
   const handleManualRefresh = useCallback(async () => {
     if (!token || !API_BASE_URL) return;
     if (playCyberSound) playCyberSound('click');
+    retryCountRef.current = 0;
     setError('');
 
     try {
@@ -146,7 +153,7 @@ export default function StudentVirtualIdHub({
           // fallback to network
         }
 
-        if (active && !renewingRef.current) {
+        if (active && !renewingRef.current && ((cur && cur.expiresAt > tNow) || retryCountRef.current < 3)) {
           syncFromServer({ force: true, silent: Boolean(cur && cur.expiresAt > tNow) });
         }
       }

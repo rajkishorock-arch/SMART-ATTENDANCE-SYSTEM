@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 
 const DEFAULT_TTL_MS = 45000;
 const MIN_VALID_MS = 3000;
-const FETCH_TIMEOUT_MS = 6500;
+const FETCH_TIMEOUT_MS = 28000;
 const PRE_RENDER_COUNT = 3;
 
 const stateByKey = new Map();

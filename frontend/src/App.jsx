@@ -7008,7 +7008,7 @@ export default function App() {
       
       // Parallel background fetch - UI is already hydrated from cache in 0 milliseconds!
       if (userRole === 'student') {
-        prefetchStudentQrPass(API_BASE_URL, token);
+        prefetchStudentQrPass(API_BASE_URL, token).catch(() => null);
         Promise.allSettled([
           fetchStudentLogs(token),
           fetchStudentLeaves(),
@@ -7539,7 +7539,7 @@ export default function App() {
     if (meData.role === 'student') {
       const studentDept = meData.details?.dep || meData.department || meData.dep;
       const studentId = meData.details?.id || meData.id;
-      prefetchStudentQrPass(API_BASE_URL, newToken);
+      prefetchStudentQrPass(API_BASE_URL, newToken).catch(() => null);
       Promise.allSettled([
         fetchStudentLogs(newToken),
         fetchStudentLeaves(newToken),

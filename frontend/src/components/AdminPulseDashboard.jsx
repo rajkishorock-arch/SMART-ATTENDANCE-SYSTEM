@@ -1,39 +1,28 @@
 import { useState, useEffect } from 'react';
-import { 
-  Camera, 
-  ShieldAlert, 
-  FileText, 
-  Smartphone, 
-  Calendar, 
+import {
+  Camera,
+  FileText,
+  Smartphone,
+  Calendar,
   ChevronRight,
-  TrendingUp,
   Edit,
-  UserCheck,
-  UserX,
-  PieChart,
-  CheckCircle2,
-  AlertTriangle,
-  Radio,
-  Clock
 } from 'lucide-react';
 import { disputeApi } from '../api/disputeApi.js';
 import { buildApiUrl } from '../api/client.js';
 
 export default function AdminPulseDashboard({
   stats,
-  systemHealth,
   onOpenScanner,
   onOpenManualAttendance,
   onNavigateTab,
   token,
-  lang = 'en'
+  lang = 'en',
 }) {
   const presentToday = stats?.total_present_today ?? 0;
   const absentToday = stats?.total_absent_today ?? 0;
   const totalStudents = stats?.total_students ?? (presentToday + absentToday);
   const attendanceRate = stats?.average_attendance_rate ?? (totalStudents > 0 ? Math.round((presentToday / totalStudents) * 100) : 0);
 
-  // Live Real Action Center State (Hydrated from cache or defaults)
   const [pendingDisputesCount, setPendingDisputesCount] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_disputes_pending_count');
@@ -52,41 +41,34 @@ export default function AdminPulseDashboard({
     }
   });
 
-  const [fleetOnlineCount, setFleetOnlineCount] = useState(() => {
-    return systemHealth?.camera_active ? 1 : 1;
-  });
-
-  // Background fetch for 100% live counts
   useEffect(() => {
     if (!token) return;
     let isMounted = true;
 
     const fetchLiveActionCounts = async () => {
-      // 1. Fetch pending disputes
       try {
         const res = await disputeApi.fetchDisputeQueue(token, 'PENDING');
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && isMounted) {
             setPendingDisputesCount(data.length);
-            try { localStorage.setItem('cached_disputes_pending_count', String(data.length)); } catch {}
+            try { localStorage.setItem('cached_disputes_pending_count', String(data.length)); } catch { /* ignore */ }
           }
         }
       } catch {
         /* silent fallback */
       }
 
-      // 2. Fetch pending borderline face reviews
       try {
         const reviewUrl = buildApiUrl('/review-queue?status=PENDING');
         const res = await fetch(reviewUrl, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && isMounted) {
             setBorderlineMatchesCount(data.length);
-            try { localStorage.setItem('cached_borderline_pending_count', String(data.length)); } catch {}
+            try { localStorage.setItem('cached_borderline_pending_count', String(data.length)); } catch { /* ignore */ }
           }
         }
       } catch {
@@ -98,363 +80,163 @@ export default function AdminPulseDashboard({
     return () => { isMounted = false; };
   }, [token]);
 
+  const priorityActions = [
+    {
+      key: 'disputes',
+      label: lang === 'hi'
+        ? `उपस्थिति आपत्तियां${pendingDisputesCount > 0 ? ` (${pendingDisputesCount})` : ''}`
+        : `Attendance Disputes${pendingDisputesCount > 0 ? ` (${pendingDisputesCount})` : ''}`,
+      icon: FileText,
+      highlight: pendingDisputesCount > 0,
+      onClick: () => onNavigateTab && onNavigateTab('disputes'),
+    },
+    {
+      key: 'face-review',
+      label: lang === 'hi'
+        ? `बॉर्डरलाइन चेहरे समीक्षा${borderlineMatchesCount > 0 ? ` (${borderlineMatchesCount})` : ''}`
+        : `Borderline Face Matches${borderlineMatchesCount > 0 ? ` (${borderlineMatchesCount})` : ''}`,
+      icon: Camera,
+      highlight: borderlineMatchesCount > 0,
+      onClick: () => onNavigateTab && onNavigateTab('face-review'),
+    },
+    {
+      key: 'devices',
+      label: lang === 'hi' ? 'कियोस्क एवं कैमरा फ्लीट' : 'Scanner Kiosk Fleet',
+      icon: Smartphone,
+      highlight: false,
+      onClick: () => onNavigateTab && onNavigateTab('devices'),
+    },
+    {
+      key: 'broadcast',
+      label: lang === 'hi' ? 'कैंपस सूचनाएं एवं नोटिस' : 'Campus Broadcasts & Notices',
+      icon: Calendar,
+      highlight: false,
+      onClick: () => onNavigateTab && onNavigateTab('broadcast'),
+    },
+  ];
+
   return (
-    <div className="admin-pulse-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeInUp 0.25s ease both' }}>
-      {/* ── Today's Attendance Real-Time Snapshot (Promoted to Top) ── */}
-      <div
-        className="surface-card"
-        style={{
-          padding: '20px',
-          background: '#ffffff',
-          borderRadius: '16px',
-          border: '1px solid #e4dfd5',
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#25231f' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+      {/* 1. Golden Gate Hero Summary & Session Launcher */}
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.7px', color: '#785927' }}>
+                {lang === 'hi' ? 'कैंपस डैशबोर्ड' : 'Campus Overview'} · {totalStudents} {lang === 'hi' ? 'छात्र' : 'Enrolled'}
+              </div>
+              <h2 style={{ margin: '2px 0 0', fontSize: '1.12rem', fontWeight: 800, color: '#25231f' }}>
                 {lang === 'hi' ? 'आज की उपस्थिति' : "Today's Attendance"}
               </h2>
             </div>
-            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#696358', fontWeight: 500 }}>
-              {totalStudents} {lang === 'hi' ? 'नामांकित परिसर छात्र' : 'Enrolled Campus Students'}
-            </p>
-          </div>
-          <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
-            {new Date().toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-          </div>
-        </div>
-
-        {/* ── 3 Micro Key Indicators in a Horizontal Row ── */}
-        <div 
-          className="keep-horizontal"
-          style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(3, 1fr)', 
-            gap: '8px', 
-            background: '#faf9f6', 
-            padding: '12px 10px', 
-            borderRadius: '12px',
-            border: '1px solid #f4f1eb'
-          }}
-        >
-          {/* Present */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#059669', fontSize: '0.72rem', fontWeight: 700 }}>
-              <UserCheck size={13} />
-              <span>{lang === 'hi' ? 'उपस्थित' : 'PRESENT'}</span>
-            </div>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', lineHeight: 1.2, marginTop: '2px' }}>
-              {presentToday}
-            </span>
-            <span style={{ fontSize: '0.65rem', color: '#696358', fontWeight: 500 }}>
-              {lang === 'hi' ? 'छात्र' : 'students'}
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#785927' }}>
+              {new Date().toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
             </span>
           </div>
 
-          {/* Absent */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', borderLeft: '1px solid #e4dfd5', borderRight: '1px solid #e4dfd5' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontSize: '0.72rem', fontWeight: 700 }}>
-              <UserX size={13} />
-              <span>{lang === 'hi' ? 'अनुपस्थित' : 'ABSENT'}</span>
-            </div>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', lineHeight: 1.2, marginTop: '2px' }}>
-              {absentToday}
-            </span>
-            <span style={{ fontSize: '0.65rem', color: '#696358', fontWeight: 500 }}>
-              {lang === 'hi' ? 'लंबित' : 'pending'}
-            </span>
-          </div>
-
-          {/* Rate */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#785927', fontSize: '0.72rem', fontWeight: 700 }}>
-              <TrendingUp size={13} />
-              <span>{lang === 'hi' ? 'दर' : 'RATE'}</span>
-            </div>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#25231f', lineHeight: 1.2, marginTop: '2px' }}>
-              {attendanceRate}%
-            </span>
-            <span style={{ fontSize: '0.65rem', color: '#696358', fontWeight: 500 }}>
-              {lang === 'hi' ? 'औसत' : 'average'}
-            </span>
-          </div>
-        </div>
-
-        {/* Action Controls */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={onOpenScanner}
+          <div
+            className="golden-os-inset-card"
             style={{
-              flex: '1 1 180px',
-              padding: '10px 16px',
-              borderRadius: '10px',
-              background: '#785927',
-              color: '#ffffff',
-              border: 'none',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
-              transition: 'background 0.2s ease'
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '6px',
+              textAlign: 'center',
+              padding: '10px 8px',
             }}
           >
-            <Camera size={16} />
-            <span>{lang === 'hi' ? 'उपस्थिति सत्र शुरू करें' : 'Start Attendance Session'}</span>
-          </button>
+            <div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#047857' }}>{presentToday}</div>
+              <div style={{ fontSize: '0.68rem', color: '#6b5b3e', fontWeight: 700 }}>{lang === 'hi' ? 'उपस्थित' : 'Present'}</div>
+            </div>
+            <div style={{ borderLeft: '1px solid #eadfcb', borderRight: '1px solid #eadfcb' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#b91c1c' }}>{absentToday}</div>
+              <div style={{ fontSize: '0.68rem', color: '#6b5b3e', fontWeight: 700 }}>{lang === 'hi' ? 'अनुपस्थित' : 'Absent'}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#684c20' }}>{attendanceRate}%</div>
+              <div style={{ fontSize: '0.68rem', color: '#6b5b3e', fontWeight: 700 }}>{lang === 'hi' ? 'उपस्थिति दर' : 'Rate'}</div>
+            </div>
+          </div>
 
-          {onOpenManualAttendance && (
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={onOpenManualAttendance}
+              onClick={onOpenScanner}
               style={{
-                padding: '10px 14px',
-                borderRadius: '10px',
-                background: '#faf9f6',
-                border: '1px solid #cfc8ba',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                color: '#46423b',
+                flex: '1 1 180px',
+                padding: '12px 16px',
+                borderRadius: '11px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #785927 0%, #5e441b 100%)',
+                color: '#ffffff',
+                fontSize: '0.88rem',
+                fontWeight: 800,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer'
+                justifyContent: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(94, 68, 27, 0.2)',
               }}
-              title="Manual Attendance Register"
             >
-              <Edit size={16} />
-              <span className="hide-on-compact">Manual</span>
+              <Camera size={16} />
+              <span>{lang === 'hi' ? 'उपस्थिति सत्र शुरू करें' : 'Start Attendance Session'}</span>
             </button>
-          )}
+
+            {onOpenManualAttendance && (
+              <button
+                type="button"
+                onClick={onOpenManualAttendance}
+                className="golden-os-feedback-filter-btn"
+                style={{
+                  padding: '12px 15px',
+                  borderRadius: '11px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.82rem',
+                }}
+              >
+                <Edit size={15} />
+                <span>Manual</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── Action Required Center (Clean, Focused & Badge-Free) ── */}
-      <div 
-        className="surface-card" 
-        style={{ 
-          padding: '16px 18px',
-          background: '#ffffff',
-          borderRadius: '16px',
-          border: '1px solid #e4dfd5',
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldAlert size={18} color="#d97706" />
-            <span>{lang === 'hi' ? 'त्वरित ध्यान केंद्र (Action Required)' : 'Action Required Center'}</span>
-          </h3>
+      {/* 2. Priority Action Required Queue (Crisp Single-Line Golden Gate List) */}
+      <div>
+        <div style={{ padding: '0 4px 8px' }}>
+          <span className="golden-os-field-label" style={{ marginBottom: 0 }}>
+            {lang === 'hi' ? 'त्वरित कार्रवाई केंद्र' : 'Action Required'}
+          </span>
         </div>
-
-        {/* 4 Interactive Operational Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
-          
-          {/* 1. Attendance Disputes */}
-          <div
-            onClick={() => onNavigateTab && onNavigateTab('disputes')}
-            role="button"
-            tabIndex={0}
-            className="surface-card-hover"
-            style={{
-              padding: '12px 14px',
-              borderRadius: '12px',
-              border: pendingDisputesCount > 0 ? '1.5px solid #fed7aa' : '1px solid #e4dfd5',
-              background: pendingDisputesCount > 0 ? '#fffaf5' : '#ffffff',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-              <div 
-                style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  borderRadius: '10px', 
-                  background: pendingDisputesCount > 0 ? '#fff7ed' : '#f0f9ff', 
-                  color: pendingDisputesCount > 0 ? '#ea580c' : '#80602c',
-                  border: pendingDisputesCount > 0 ? '1px solid #ffedd5' : '1px solid #bae6fd',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
+        <div className="golden-os-list-shell">
+          {priorityActions.map((item) => {
+            const RowIcon = item.icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={item.onClick}
+                className="golden-os-list-row"
               >
-                <FileText size={18} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
-                  {lang === 'hi' ? 'छात्र उपस्थिति आपत्तियां' : 'Attendance Disputes'}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              <ChevronRight size={17} color="#94a3b8" />
-            </div>
-          </div>
-
-          {/* 2. Borderline Matches Queue */}
-          <div
-            onClick={() => onNavigateTab && onNavigateTab('face-review')}
-            role="button"
-            tabIndex={0}
-            className="surface-card-hover"
-            style={{
-              padding: '12px 14px',
-              borderRadius: '12px',
-              border: borderlineMatchesCount > 0 ? '1.5px solid #fde68a' : '1px solid #e4dfd5',
-              background: borderlineMatchesCount > 0 ? '#fffdf5' : '#ffffff',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-              <div 
-                style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  borderRadius: '10px', 
-                  background: borderlineMatchesCount > 0 ? '#fffbeb' : '#f5f3ff', 
-                  color: borderlineMatchesCount > 0 ? '#d97706' : '#7c3aed',
-                  border: borderlineMatchesCount > 0 ? '1px solid #fef3c7' : '1px solid #ddd6fe',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
-              >
-                <Camera size={18} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
-                  {lang === 'hi' ? 'कम सटीकता वाले चेहरे' : 'Borderline Matches'}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              <ChevronRight size={17} color="#94a3b8" />
-            </div>
-          </div>
-
-          {/* 3. Scanner Kiosk Fleet Status */}
-          <div
-            onClick={() => onNavigateTab && onNavigateTab('devices')}
-            role="button"
-            tabIndex={0}
-            className="surface-card-hover"
-            style={{
-              padding: '12px 14px',
-              borderRadius: '12px',
-              border: '1px solid #e4dfd5',
-              background: '#ffffff',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-              <div 
-                style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  borderRadius: '10px', 
-                  background: '#ecfdf5', 
-                  color: '#059669',
-                  border: '1px solid #a7f3d0',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
-              >
-                <Smartphone size={18} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
-                  {lang === 'hi' ? 'कियोस्क एवं कैमरा फ्लीट' : 'Scanner Kiosk Fleet'}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              <ChevronRight size={17} color="#94a3b8" />
-            </div>
-          </div>
-
-          {/* 4. Academic Calendar & Today's Schedule */}
-          <div
-            onClick={() => onNavigateTab && onNavigateTab('broadcast')}
-            role="button"
-            tabIndex={0}
-            className="surface-card-hover"
-            style={{
-              padding: '12px 14px',
-              borderRadius: '12px',
-              border: '1px solid #e4dfd5',
-              background: '#ffffff',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-              <div 
-                style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  borderRadius: '10px', 
-                  background: '#faf5ea', 
-                  color: '#785927',
-                  border: '1px solid #dfcfaf',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
-              >
-                <Calendar size={18} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#25231f' }}>
-                  {lang === 'hi' ? 'कैंपस सूचनाएँ' : 'Campus Broadcast'}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              <ChevronRight size={17} color="#94a3b8" />
-            </div>
-          </div>
-
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  <div
+                    className="golden-os-avatar"
+                    style={item.highlight ? { background: '#fffbeb', borderColor: '#f59e0b', color: '#b45309' } : undefined}
+                  >
+                    <RowIcon size={16} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1, fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.label}
+                  </div>
+                </div>
+                <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

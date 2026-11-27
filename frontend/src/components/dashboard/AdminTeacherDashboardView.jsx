@@ -2,23 +2,19 @@ import { useState } from 'react';
 import {
   Edit, Calendar, Activity, Layers, Settings, MessageSquare, Users,
   CheckCircle2, AlertCircle, TrendingUp, ShieldCheck, ChevronRight,
-  Clock, FileSpreadsheet, Megaphone, ShieldAlert, ClipboardList,
+  Clock, FileSpreadsheet, Megaphone, ShieldAlert, ClipboardList, BookOpen,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
 import PullToRefresh from '../PullToRefresh';
 import TodaySessionHub from '../TodaySessionHub';
 import AdminPulseDashboard from '../AdminPulseDashboard';
-import SkeletonLoader from '../SkeletonLoader';
-import RoleCommandCenter from '../RoleCommandCenter';
-import SmartEmptyState from '../SmartEmptyState';
-import AttendanceChartsWidget from '../AttendanceChartsWidget';
 import LiveActivityTicker from '../LiveActivityTicker';
 import SmtpSettings from '../settings/SmtpSettings';
 import StudentFeedbackHub from './StudentFeedbackHub';
-import { getOfflineQueue } from '../../utils/offlineQueue';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
 import { getApiBaseUrl } from '../../utils/platform';
+import { getInitials } from '../../utils/attendanceDateUtils';
 
 export default function AdminTeacherDashboardView({
   fetchStats,
@@ -30,7 +26,6 @@ export default function AdminTeacherDashboardView({
   dashboardRecentLogs,
   filteredStudents,
   attendanceActive,
-  scannerBootActive,
   wsConnected,
   selectedSubjectId = '',
   sessionPeriod = 'Period 1',
@@ -268,15 +263,18 @@ export default function AdminTeacherDashboardView({
               </>
             ) : (
               <>
-                {userRole === 'admin' && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobileView ? '1fr' : 'minmax(0, 1.1fr) minmax(0, 1fr)',
+                    gap: '16px',
+                    alignItems: 'start',
+                  }}
+                >
+                  {/* Column 1: Today's Attendance Hero & Priority Action Required */}
                   <AdminPulseDashboard
                     stats={stats}
                     token={token}
-                    systemHealth={{
-                      face_match_latency: stats?.face_match_latency || 85,
-                      camera_active: attendanceActive || scannerBootActive,
-                      ws_connected: wsConnected
-                    }}
                     onOpenScanner={() => {
                       launchDirectSession('scanner');
                     }}
@@ -289,285 +287,144 @@ export default function AdminTeacherDashboardView({
                     }}
                     lang={appLang}
                   />
-                )}
 
-                {/* KPI Cards: Today's Attendance, Scanner State, Attention, Rate */}
-                {!stats ? (
-                  <SkeletonLoader type="stat" count={4} />
-                ) : (
-                  <RoleCommandCenter
-                    stats={scopedDashboardStats}
-                    scannerLive={attendanceActive || scannerBootActive}
-                    userRole={userRole}
-                    teacherSubjects={subjects}
-                  />
-                )}
-
-                {/* Primary 2-Column Command Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobileView ? '1fr' : 'minmax(0, 1.6fr) minmax(0, 1fr)',
-                  gap: '20px',
-                  alignItems: 'start'
-                }}>
-                  {/* Left Column: Recent Live Activity + Charts */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {/* Live Activity Stream */}
-                    <div className="surface-card" style={{ padding: '20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
+                  {/* Column 2: Recent Live Activity (Compact Golden Gate List) + Campus Portals */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
+                    {/* Compact Recent Live Activity Preview */}
+                    <div className="golden-os-window">
+                      <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                          <span className="golden-os-field-label" style={{ marginBottom: 0 }}>
                             Recent Live Activity
-                          </h3>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('logs'); }}
+                            style={{ background: 'none', border: 'none', color: '#785927', fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', padding: 0 }}
+                          >
+                            View Full Logs →
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          className="btn-ghost"
-                          onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('logs'); }}
-                          style={{ fontSize: '0.8rem', padding: '4px 8px', minHeight: '32px', color: 'var(--color-primary)' }}
-                        >
-                          View Full Logs →
-                        </button>
+
+                        {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
+                          <div className="golden-os-list-shell">
+                            {dashboardRecentLogs.slice(0, 4).map((log, idx) => {
+                              const st = String(log.attendance || 'Present');
+                              const isPresent = ['present', 'late', 'excused'].includes(st.toLowerCase());
+                              return (
+                                <button
+                                  key={log.id || idx}
+                                  type="button"
+                                  onClick={() => {
+                                    if (playCyberSound) playCyberSound('click');
+                                    setSelectedAuditLog(log);
+                                  }}
+                                  className="golden-os-list-row"
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0, flex: 1 }}>
+                                    <div
+                                      className="golden-os-avatar"
+                                      style={!isPresent ? { background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' } : undefined}
+                                    >
+                                      {getInitials(log.name, 'ST')}
+                                    </div>
+                                    <div style={{ minWidth: 0, flex: 1, fontSize: '0.88rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {log.name} {log.roll ? `(${log.roll})` : ''} ·{' '}
+                                      <span style={{ color: isPresent ? '#047857' : '#b91c1c' }}>{st}</span>
+                                    </div>
+                                  </div>
+                                  <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="golden-os-inset-card" style={{ textAlign: 'center', padding: '16px 12px', fontSize: '0.8rem', color: '#6b5b3e' }}>
+                            No scans recorded yet today. Start a session to capture live attendance.
+                          </div>
+                        )}
                       </div>
+                    </div>
 
-                      {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          {dashboardRecentLogs.slice(0, 5).map((log, idx) => {
-                            const isPresent = log.attendance?.toLowerCase() === 'present';
-                            return (
-                              <div
-                                key={log.id || idx}
-                                className="surface-card surface-card-hover"
-                                onClick={() => {
-                                  if (playCyberSound) playCyberSound('click');
-                                  setSelectedAuditLog(log);
-                                }}
-                                style={{
-                                  padding: '12px 14px',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '8px',
-                                  cursor: 'pointer',
-                                  background: '#faf9f6',
-                                  borderRadius: '12px',
-                                  border: '1px solid #e4dfd5'
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                                    <div style={{
-                                      width: '36px', height: '36px', borderRadius: '50%',
-                                      background: isPresent ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                      color: isPresent ? '#059669' : '#dc2626',
-                                      border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                      fontWeight: 700, fontSize: '0.85rem', flexShrink: 0
-                                    }}>
-                                      {log.name ? log.name.charAt(0).toUpperCase() : 'S'}
-                                    </div>
-                                    <div style={{ minWidth: 0 }}>
-                                      <div style={{ color: '#25231f', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {log.name}
-                                      </div>
-                                      <div style={{ color: '#696358', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <span>Roll: {log.roll || 'N/A'}</span>
-                                        {(log.dep || log.department) && <span>· {log.dep || log.department}</span>}
-                                        <span style={{ color: isPresent ? '#047857' : '#b91c1c', fontWeight: 700 }}>· {log.attendance || 'Present'}</span>
-                                      </div>
-                                    </div>
-                                  </div>
+                    {/* Operations, Analytics & Administration (Organized by Usage) */}
+                    <div>
+                      <div style={{ padding: '0 4px 8px' }}>
+                        <span className="golden-os-field-label" style={{ marginBottom: 0 }}>
+                          Campus Operations &amp; Insights
+                        </span>
+                      </div>
+                      <div className="golden-os-list-shell">
+                        {[
+                          {
+                            label: 'Students Directory',
+                            icon: Users,
+                            onClick: () => setActiveTab('students'),
+                          },
+                          {
+                            label: 'Teachers & Timetables',
+                            icon: BookOpen,
+                            onClick: () => setActiveTab('teachers'),
+                          },
+                          {
+                            label: 'Reports & CSV Export',
+                            icon: FileSpreadsheet,
+                            onClick: () => setActiveTab('reports'),
+                          },
+                          {
+                            label: 'Live Attendance Telemetry',
+                            icon: Activity,
+                            onClick: () => setActiveDashboardSubTab('metrics'),
+                          },
+                          {
+                            label: 'Attendance Trends & Charts',
+                            icon: Layers,
+                            onClick: () => setActiveDashboardSubTab('trends'),
+                          },
+                          {
+                            label: 'System Diagnostics & Engine',
+                            icon: Settings,
+                            onClick: () => setActiveDashboardSubTab('diagnostics'),
+                          },
+                          {
+                            label: 'User Feedback Inbox',
+                            icon: MessageSquare,
+                            onClick: () => setActiveDashboardSubTab('feedback'),
+                          },
+                          {
+                            label: 'Share System Feedback',
+                            icon: ClipboardList,
+                            onClick: () => {
+                              if (setDashboardFeedbackDetail) setDashboardFeedbackDetail(null);
+                              setActiveDashboardSubTab('share-feedback');
+                            },
+                          },
+                        ].map((item) => {
+                          const RowIcon = item.icon;
+                          return (
+                            <button
+                              key={item.label}
+                              type="button"
+                              onClick={() => {
+                                if (playCyberSound) playCyberSound('click');
+                                item.onClick();
+                              }}
+                              className="golden-os-list-row"
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                                <div className="golden-os-avatar">
+                                  <RowIcon size={16} />
                                 </div>
-
-                                <div style={{
-                                  display: 'flex',
-                                  flexWrap: 'wrap',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '8px',
-                                  paddingTop: '6px',
-                                  borderTop: '1px solid #e4dfd5',
-                                  fontSize: '0.76rem',
-                                  color: '#696358'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#faf5ea', color: '#785927', border: '1px solid #dfcfaf', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
-                                      📚 {log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance')}
-                                    </span>
-                                    {(log.period_label || log.period) && (
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(168, 85, 247, 0.12)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
-                                        ⏰ {log.period_label || log.period}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', color: '#cfc8ba', fontSize: '0.76rem' }}>
-                                    {log.date && <span>📅 {log.date}</span>}
-                                    <span>🕒 {log.time || 'N/A'}</span>
-                                  </div>
+                                <div style={{ minWidth: 0, flex: 1, fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {item.label}
                                 </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <SmartEmptyState
-                          title="No Scans Logged Today"
-                          message="Open the live face scanner to begin recording attendance sessions."
-                          actionLabel="Open Face Scanner"
-                          onAction={() => {
-                            if (playCyberSound) playCyberSound('click');
-                            setActiveTab('attendance');
-                            setShowScannerModal(true);
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    {/* Attendance Charts */}
-                    <AttendanceChartsWidget stats={scopedDashboardStats} />
-                  </div>
-
-                  {/* Right Column: Quick Actions & Pending Attention Center */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                        Biometric Actions
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (playCyberSound) playCyberSound('click');
-                          setActiveTab('attendance');
-                          setShowScannerModal(true);
-                        }}
-                        className="btn-primary"
-                        style={{ width: '100%', padding: '14px', fontSize: '0.95rem' }}
-                      >
-                        <Activity size={18} /> Open Live Scanner
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (playCyberSound) playCyberSound('click');
-                          setActiveTab('attendance');
-                          setIsManualAttendanceOpen(true);
-                        }}
-                        className="btn-secondary"
-                        style={{ width: '100%', padding: '12px' }}
-                      >
-                        <Edit size={16} /> Mark Manual Attendance
-                      </button>
-
-                      <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>Biometric Engine:</span>
-                          <span style={{ color: '#38bdf8', fontWeight: 600 }}>YuNet + SFace 128-D</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>Vector Matching:</span>
-                          <span style={{ color: '#10b981', fontWeight: 600 }}>BLAS Accelerated (&lt; 2ms)</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>Offline Pending Queue:</span>
-                          <span style={{ color: getOfflineQueue().length > 0 ? '#f59e0b' : 'var(--color-text-dim)', fontWeight: 600 }}>
-                            {getOfflineQueue().length} records
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                        Reports and system health
-                      </span>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <button
-                          type="button"
-                          onClick={() => { setActiveDashboardSubTab('metrics'); if (playCyberSound) playCyberSound('click'); }}
-                          className="btn-secondary"
-                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
-                        >
-                          <Activity size={18} style={{ color: '#987235' }} />
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Live Telemetry</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setActiveDashboardSubTab('trends'); if (playCyberSound) playCyberSound('click'); }}
-                          className="btn-secondary"
-                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
-                        >
-                          <Layers size={18} style={{ color: '#8b5cf6' }} />
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Trends & Radar</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setActiveDashboardSubTab('diagnostics'); if (playCyberSound) playCyberSound('click'); }}
-                          className="btn-secondary"
-                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
-                        >
-                          <Settings size={18} style={{ color: '#10b981' }} />
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Diagnostics</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setActiveDashboardSubTab('feedback'); if (playCyberSound) playCyberSound('click'); }}
-                          className="btn-secondary"
-                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
-                        >
-                          <MessageSquare size={18} style={{ color: '#f59e0b' }} />
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>User Feedback</span>
-                        </button>
+                              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Streamlined Bottom Feedback Strip */}
-                <div 
-                  className="surface-card" 
-                  style={{ 
-                    marginTop: '8px',
-                    padding: '20px 24px', 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    flexWrap: 'wrap', 
-                    gap: '16px',
-                    borderLeft: '3px solid var(--color-primary)'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ 
-                      background: 'var(--color-primary-light)', 
-                      color: 'var(--color-primary)', 
-                      borderRadius: '10px', 
-                      padding: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <MessageSquare size={20} />
-                    </div>
-                    <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-text-main)', margin: 0 }}>System Feedback & Support</h4>
-                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
-                        Report issues, request audits, or share feedback.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (playCyberSound) playCyberSound('click');
-                      if (setDashboardFeedbackDetail) setDashboardFeedbackDetail(null);
-                      setActiveDashboardSubTab('share-feedback');
-                    }}
-                    className="btn-secondary"
-                    style={{ padding: '8px 18px', minHeight: '38px', fontSize: '0.84rem' }}
-                  >
-                    <MessageSquare size={15} /> Share Feedback
-                  </button>
                 </div>
               </>
             )}
