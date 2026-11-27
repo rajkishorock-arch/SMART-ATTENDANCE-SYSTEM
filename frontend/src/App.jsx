@@ -591,8 +591,42 @@ export default function App() {
     return null;
   });
 
+  // Lifted Teacher, Subject & Timetable sub-route state (synced with header back, hardware back & URL hash)
+  const [teachersSubTab, setTeachersSubTab] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'teachers') {
+        if (parts[1] === 'subjects') return 'subjects';
+        if (parts[1] === 'timetable') return 'planner';
+      }
+    } catch { /* ignore */ }
+    return 'directory';
+  });
+  const [teacherFormView, setTeacherFormView] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'teachers' && parts[1] === 'register') return 'register';
+    } catch { /* ignore */ }
+    return 'list';
+  });
+  const [subjectFormView, setSubjectFormView] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'teachers' && parts[1] === 'subjects' && parts[2] === 'register') return 'register';
+    } catch { /* ignore */ }
+    return 'list';
+  });
+  const [selectedSubjectDetail, setSelectedSubjectDetail] = useState(null);
+  const [showScheduleForm, setShowScheduleForm] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'teachers' && parts[1] === 'timetable' && parts[2] === 'new') return true;
+    } catch { /* ignore */ }
+    return false;
+  });
+
   // Route Scroll Position Preservation (restores exact scroll position on Back navigation)
-  const getRouteScrollKey = (tab, subTab, subSet) => `${tab || ''}|${subTab || ''}|${subSet || ''}`;
+  const getRouteScrollKey = (tab, subTab, subSet, subDetail = '') => `${tab || ''}|${subTab || ''}|${subSet || ''}|${subDetail || ''}`;
   const getScrollTop = () => {
     try {
       const mainEl = document.querySelector('.main-content');
@@ -617,10 +651,32 @@ export default function App() {
   };
 
   const scrollPositionsRef = useRef({});
-  const currentRouteKeyRef = useRef(getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting));
+  const currentRouteKeyRef = useRef('');
   const pendingBackActionRef = useRef(false);
   const scrollLockUntilRef = useRef(0);
-  const routeNavStackRef = useRef([getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting)]);
+  const routeNavStackRef = useRef([]);
+
+  const teachersSubTabRef = useRef(teachersSubTab);
+  const teacherFormViewRef = useRef(teacherFormView);
+  const subjectFormViewRef = useRef(subjectFormView);
+  const selectedSubjectDetailRef = useRef(selectedSubjectDetail);
+  const showScheduleFormRef = useRef(showScheduleForm);
+  const scheduleReturnTargetRef = useRef(null);
+  const showWebcamModalRef = useRef(false);
+  const enrollWebcamBackRef = useRef(null);
+  const studentsRef = useRef([]);
+  const teachersRef = useRef([]);
+  const subjectsRef = useRef([]);
+  const pushedHashStackRef = useRef([]);
+  const expectedHashRef = useRef('');
+  const uiBackPendingRef = useRef(false);
+  const suppressTabHistoryPushRef = useRef(false);
+
+  useEffect(() => { teachersSubTabRef.current = teachersSubTab; }, [teachersSubTab]);
+  useEffect(() => { teacherFormViewRef.current = teacherFormView; }, [teacherFormView]);
+  useEffect(() => { subjectFormViewRef.current = subjectFormView; }, [subjectFormView]);
+  useEffect(() => { selectedSubjectDetailRef.current = selectedSubjectDetail; }, [selectedSubjectDetail]);
+  useEffect(() => { showScheduleFormRef.current = showScheduleForm; }, [showScheduleForm]);
 
   // Record user scroll position continuously while settled on the current view
   useEffect(() => {
@@ -633,51 +689,6 @@ export default function App() {
     window.addEventListener('scroll', handleScrollCapture, { passive: true, capture: true });
     return () => window.removeEventListener('scroll', handleScrollCapture, { capture: true });
   }, []);
-
-  // Restore saved scroll position when navigating back; reset cleanly to top on forward navigation
-  useLayoutEffect(() => {
-    const nextKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting);
-    const prevKey = currentRouteKeyRef.current;
-    if (nextKey === prevKey) return;
-
-    scrollLockUntilRef.current = Date.now() + 180;
-    currentRouteKeyRef.current = nextKey;
-
-    const stack = routeNavStackRef.current;
-    const isBackToSubRoot =
-      (prevKey.startsWith('dashboard|') && !prevKey.startsWith('dashboard||') && nextKey === 'dashboard||') ||
-      (prevKey.startsWith('settings|') && !prevKey.startsWith('settings||') && nextKey === 'settings||');
-    const isBackInStack = stack.length >= 2 && stack[stack.length - 2] === nextKey;
-    const shouldRestore = pendingBackActionRef.current || isBackToSubRoot || isBackInStack;
-    pendingBackActionRef.current = false;
-
-    if (isBackInStack) {
-      stack.pop();
-    } else if (stack[stack.length - 1] !== nextKey) {
-      stack.push(nextKey);
-      if (stack.length > 30) stack.shift();
-    }
-
-    if (shouldRestore) {
-      const targetY = scrollPositionsRef.current[nextKey] || 0;
-      const restore = () => setScrollTop(targetY);
-      requestAnimationFrame(() => {
-        restore();
-        requestAnimationFrame(restore);
-      });
-      const timerId = setTimeout(() => {
-        scrollLockUntilRef.current = 0;
-        restore();
-      }, 100);
-      return () => clearTimeout(timerId);
-    }
-
-    setScrollTop(0);
-    const timerId = setTimeout(() => {
-      scrollLockUntilRef.current = 0;
-    }, 100);
-    return () => clearTimeout(timerId);
-  }, [activeTab, activeDashboardSubTab, activeSubSetting]);
 
   // Synchronize sub-settings to localStorage
   useEffect(() => {
@@ -699,7 +710,9 @@ export default function App() {
       } catch { /* ignore */ }
     }
     if (prevActiveTabRef.current !== activeTab) {
-      if (prevActiveTabRef.current && !['login', 'signup'].includes(prevActiveTabRef.current)) {
+      if (suppressTabHistoryPushRef.current) {
+        suppressTabHistoryPushRef.current = false;
+      } else if (prevActiveTabRef.current && !['login', 'signup'].includes(prevActiveTabRef.current)) {
         const historyArr = tabHistoryRef.current;
         if (historyArr[historyArr.length - 1] !== prevActiveTabRef.current) {
           historyArr.push(prevActiveTabRef.current);
@@ -717,6 +730,15 @@ export default function App() {
       if (activeTab !== 'students') {
         setShowAddModal(false);
         setShowEditStudentModal(false);
+        setEditingStudent(null);
+      }
+      if (activeTab !== 'teachers') {
+        setTeacherFormView('list');
+        setSubjectFormView('list');
+        setSelectedSubjectDetail(null);
+        setShowScheduleForm(false);
+        setEditingTeacher(null);
+        scheduleReturnTargetRef.current = null;
       }
       prevActiveTabRef.current = activeTab;
     }
@@ -726,33 +748,78 @@ export default function App() {
     if (playCyberSound) playCyberSound('click');
     scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
     pendingBackActionRef.current = true;
-    if (activeTab === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) {
+    uiBackPendingRef.current = true;
+
+    if (scannerBackRef.current) {
+      scannerBackRef.current(false);
+      return;
+    }
+    if (enrollWebcamBackRef.current) {
+      enrollWebcamBackRef.current(false);
+      return;
+    }
+    if (activeTabRef.current === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) {
       setShowAddModal(false);
       setShowEditStudentModal(false);
       setEditingStudent(null);
+      setFormError('');
+      setStudentError('');
+      setEditStudentError('');
+      setEditStudentSuccess('');
       return;
     }
-    if (activeSubSetting !== null) {
-      setActiveSubSetting(null);
+    if (activeTabRef.current === 'teachers') {
+      const subTab = teachersSubTabRef.current;
+      if (subTab === 'directory' && teacherFormViewRef.current !== 'list') {
+        setTeacherFormView('list');
+        setEditingTeacher(null);
+        setTeacherError('');
+        return;
+      }
+      if (subTab === 'subjects' && subjectFormViewRef.current !== 'list') {
+        setSubjectFormView('list');
+        setSelectedSubjectDetail(null);
+        return;
+      }
+      if (subTab === 'planner' && showScheduleFormRef.current) {
+        setShowScheduleForm(false);
+        if (scheduleReturnTargetRef.current === 'subject-detail' && selectedSubjectDetailRef.current) {
+          scheduleReturnTargetRef.current = null;
+          setTeachersSubTab('subjects');
+          setSubjectFormView('detail');
+        }
+        return;
+      }
+    }
+    if (activeSubSettingRef.current !== null) {
+      const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
+      if (folderItems.includes(activeSubSettingRef.current)) {
+        setActiveSubSetting('features_folder');
+      } else {
+        setActiveSubSetting(null);
+      }
       return;
     }
-    if (activeDashboardSubTab !== null) {
+    if (activeDashboardSubTabRef.current !== null) {
       setActiveDashboardSubTab(null);
       return;
     }
     if (tabHistoryRef.current.length > 0) {
+      suppressTabHistoryPushRef.current = true;
       const prev = tabHistoryRef.current.pop();
       setActiveTab(prev);
     } else {
-      if (['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(activeTab)) {
+      suppressTabHistoryPushRef.current = true;
+      const curTab = activeTabRef.current;
+      if (['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(curTab)) {
         setActiveTab('control');
-      } else if (activeTab === 'broadcast') {
-        setActiveTab(userRole === 'student' ? 'student-attendance' : 'control');
+      } else if (curTab === 'broadcast') {
+        setActiveTab(userRoleRef.current === 'student' ? 'student-attendance' : 'control');
       } else {
-        setActiveTab(userRole === 'student' ? 'student-attendance' : 'dashboard');
+        setActiveTab(userRoleRef.current === 'student' ? 'student-attendance' : 'dashboard');
       }
     }
-  }, [activeSubSetting, activeDashboardSubTab, activeTab, userRole, playCyberSound]);
+  }, [playCyberSound]);
 
 
   // Real-Time Role Notification System
@@ -863,68 +930,22 @@ export default function App() {
 
   // Handle Mobile Browser Back Button (popstate) & Android Native Hardware Back Button
   useEffect(() => {
-    const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
-
-    // 1. Mobile Web Browser Back Button / Gesture (popstate) for Modals
+    // 1. Mobile Web Browser Back Button / Gesture (popstate) for overlays & modals
     const handlePopState = () => {
       if (scannerBackRef.current) { scannerBackRef.current(true); return; }
-      // If QR scanner modal is open, close it
-      if (showQrScannerModalRef.current) {
-        setShowQrScannerModal(false);
-        return;
-      }
-
-      // If dispute modal is open, close it
-      if (showDisputeModalRef.current) {
-        setShowDisputeModal(false);
-        return;
-      }
-
-      // If face enroll modal is open, close it
-      if (showFaceEnrollModalRef.current) {
-        setShowFaceEnrollModal(false);
-        return;
-      }
-
-      // If fallback modal is open, close it
-      if (showFallbackModalRef.current) {
-        setShowFallbackModal(false);
-        return;
-      }
-
-      // If feedback modal is open, close it
-      if (showFeedbackModalRef.current) {
-        setShowFeedbackModal(false);
-        return;
-      }
-
-      // If privacy policy is open, close it
-      if (showPrivacyPolicyRef.current) {
-        setShowPrivacyPolicy(false);
-        return;
-      }
-
-      // If student sub-view (Register or Detail) is open, return to Student Directory cleanly
-      if (activeTabRef.current === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) {
-        pendingBackActionRef.current = true;
-        setShowAddModal(false);
-        setShowEditStudentModal(false);
-        setEditingStudent(null);
-        return;
-      }
-
-      // If dashboard sub-tab is open, close it cleanly while preserving scroll position
-      if (activeDashboardSubTabRef.current) {
-        pendingBackActionRef.current = true;
-        setActiveDashboardSubTab(null);
-        return;
-      }
-      // Note: tab & sub-setting navigation via browser back/forward is handled by handleHashChange
+      if (enrollWebcamBackRef.current) { enrollWebcamBackRef.current(true); return; }
+      if (showQrScannerModalRef.current) { setShowQrScannerModal(false); return; }
+      if (showDisputeModalRef.current) { setShowDisputeModal(false); return; }
+      if (showFaceEnrollModalRef.current) { setShowFaceEnrollModal(false); return; }
+      if (showFallbackModalRef.current) { setShowFallbackModal(false); return; }
+      if (showFeedbackModalRef.current) { setShowFeedbackModal(false); return; }
+      if (showPrivacyPolicyRef.current) { setShowPrivacyPolicy(false); return; }
+      // Route & sub-page transitions (students, teachers, dashboard, settings) are synced by handleHashChange
     };
 
     window.addEventListener('popstate', handlePopState);
 
-    // 2. Android Native Back Button (Capacitor App)
+    // 2. Android Native Hardware Back Button (Capacitor App)
     let active = true;
     let handle = null;
 
@@ -934,59 +955,30 @@ export default function App() {
         if (!active) return;
         handle = await CapApp.addListener('backButton', () => {
           if (scannerBackRef.current) { scannerBackRef.current(false); return; }
-          const currentSub = activeSubSettingRef.current;
-          const currentTab = activeTabRef.current;
+          if (enrollWebcamBackRef.current) { enrollWebcamBackRef.current(false); return; }
+          if (showQrScannerModalRef.current) { setShowQrScannerModal(false); return; }
+          if (showDisputeModalRef.current) { setShowDisputeModal(false); return; }
+          if (showFaceEnrollModalRef.current) { setShowFaceEnrollModal(false); return; }
+          if (showFallbackModalRef.current) { setShowFallbackModal(false); return; }
+          if (showFeedbackModalRef.current) { setShowFeedbackModal(false); return; }
+          if (showPrivacyPolicyRef.current) { setShowPrivacyPolicy(false); return; }
 
-          if (currentTab === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) {
-            pendingBackActionRef.current = true;
-            setShowAddModal(false);
-            setShowEditStudentModal(false);
-            setEditingStudent(null);
-            playCyberSound('click');
-          } else if (currentSub !== null) {
-            pendingBackActionRef.current = true;
-            if (folderItems.includes(currentSub)) {
-              setActiveSubSetting('features_folder');
-            } else {
-              setActiveSubSetting(null);
-            }
-            playCyberSound('click');
-          } else if (showQrScannerModalRef.current) {
-            setShowQrScannerModal(false);
-          } else if (showDisputeModalRef.current) {
-            setShowDisputeModal(false);
-          } else if (showFaceEnrollModalRef.current) {
-            setShowFaceEnrollModal(false);
-          } else if (showFallbackModalRef.current) {
-            setShowFallbackModal(false);
-          } else if (activeDashboardSubTabRef.current) {
-            pendingBackActionRef.current = true;
-            setActiveDashboardSubTab(null);
+          const curTab = activeTabRef.current;
+          const hasSubPageOpen =
+            (curTab === 'students' && (showAddModalRef.current || showEditStudentModalRef.current)) ||
+            (curTab === 'teachers' && (teacherFormViewRef.current !== 'list' || subjectFormViewRef.current !== 'list' || showScheduleFormRef.current)) ||
+            activeSubSettingRef.current !== null ||
+            activeDashboardSubTabRef.current !== null ||
+            tabHistoryRef.current.length > 0 ||
+            (curTab !== 'dashboard' && curTab !== 'student-attendance');
 
-          } else if (showFeedbackModalRef.current) {
-            setShowFeedbackModal(false);
-          } else if (showPrivacyPolicyRef.current) {
-            setShowPrivacyPolicy(false);
-          } else if (tabHistoryRef.current.length > 0) {
-            pendingBackActionRef.current = true;
-            const prev = tabHistoryRef.current.pop();
-            setActiveTab(prev);
-            playCyberSound('click');
-          } else if (currentTab !== 'dashboard' && currentTab !== 'student-attendance') {
-            pendingBackActionRef.current = true;
-            if (['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history'].includes(currentTab)) {
-              setActiveTab('control');
-            } else if (userRoleRef.current === 'student') {
-              setActiveTab('student-attendance');
-            } else {
-              setActiveTab('dashboard');
-            }
-            playCyberSound('click');
+          if (hasSubPageOpen) {
+            handleNavigateBack();
           } else {
             CapApp.exitApp();
           }
         });
-      } catch (err) {
+      } catch {
         // Not running in Capacitor or native plugin unavailable
       }
     };
@@ -2370,6 +2362,141 @@ export default function App() {
 
   useEffect(() => { showAddModalRef.current = showAddModal; }, [showAddModal]);
   useEffect(() => { showEditStudentModalRef.current = showEditStudentModal; }, [showEditStudentModal]);
+  useEffect(() => { showWebcamModalRef.current = showWebcamModal; }, [showWebcamModal]);
+  useEffect(() => { studentsRef.current = students; }, [students]);
+  useEffect(() => { teachersRef.current = teachers; }, [teachers]);
+  useEffect(() => { subjectsRef.current = subjects; }, [subjects]);
+
+  const initialStudentDeepLinkRef = useRef(false);
+  const initialTeacherDeepLinkRef = useRef(false);
+  const initialSubjectDeepLinkRef = useRef(false);
+
+  // Hydrate deep-linked Student / Teacher / Subject detail view from URL hash ONCE on initial data load
+  useEffect(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (!initialStudentDeepLinkRef.current && students.length > 0) {
+        initialStudentDeepLinkRef.current = true;
+        if (parts[0] === 'students' && parts[1] && parts[1] !== 'register' && !showEditStudentModalRef.current) {
+          const match = students.find(s => String(s.id) === parts[1]);
+          if (match) {
+            setEditingStudent({
+              ...match,
+              course: match.course || 'B.Tech',
+              year: match.year || '2026',
+              semester: match.semester || '1st',
+              gender: match.gender || 'Male',
+              dob: match.dob || '',
+              phone: match.phone || '',
+              address: match.address || '',
+              teacher: match.teacher || '',
+              password: '',
+            });
+            setShowEditStudentModal(true);
+          }
+        }
+      }
+      if (!initialSubjectDeepLinkRef.current && subjects.length > 0) {
+        initialSubjectDeepLinkRef.current = true;
+        if (parts[0] === 'teachers' && parts[1] === 'subjects' && parts[2] && parts[2] !== 'register' && !selectedSubjectDetailRef.current) {
+          const subMatch = subjects.find(s => String(s.id) === parts[2]);
+          if (subMatch) {
+            setSelectedSubjectDetail(subMatch);
+            setSubjectFormView('detail');
+          }
+        }
+      }
+      if (!initialTeacherDeepLinkRef.current && teachers.length > 0) {
+        initialTeacherDeepLinkRef.current = true;
+        if (parts[0] === 'teachers' && parts[1] && !['register', 'subjects', 'timetable'].includes(parts[1]) && teacherFormViewRef.current === 'list') {
+          const tMatch = teachers.find(t => String(t.id) === parts[1]);
+          if (tMatch) {
+            setEditingTeacher({ ...tMatch, password: '' });
+            setTeacherFormView('detail');
+          }
+        }
+      }
+    } catch { /* ignore */ }
+  }, [students, teachers, subjects]);
+
+  // Unified route scroll position preservation across all tabs, settings, students, and teachers sub-views
+  const studentSubScrollKey = showAddModal
+    ? 'register'
+    : (showEditStudentModal && editingStudent?.id ? `edit:${editingStudent.id}` : '');
+  const teacherSubScrollKey = teachersSubTab === 'directory'
+    ? (teacherFormView === 'detail' && editingTeacher?.id ? `directory:detail:${editingTeacher.id}` : (teacherFormView !== 'list' ? `directory:${teacherFormView}` : 'directory:'))
+    : teachersSubTab === 'subjects'
+      ? (subjectFormView === 'detail' && selectedSubjectDetail?.id ? `subjects:detail:${selectedSubjectDetail.id}` : (subjectFormView !== 'list' ? `subjects:${subjectFormView}` : 'subjects:'))
+      : (showScheduleForm ? 'planner:new-schedule' : 'planner:');
+  const activeSubDetailKey = activeTab === 'students'
+    ? studentSubScrollKey
+    : (activeTab === 'teachers' ? teacherSubScrollKey : '');
+  const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
+
+  useLayoutEffect(() => {
+    if (!currentRouteKeyRef.current) {
+      currentRouteKeyRef.current = computedRouteKey;
+      routeNavStackRef.current = [computedRouteKey];
+      return;
+    }
+    const nextKey = computedRouteKey;
+    const prevKey = currentRouteKeyRef.current;
+    if (nextKey === prevKey) return;
+
+    const stack = routeNavStackRef.current;
+    const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
+    const isBackToSubRoot =
+      (prevKey.startsWith('dashboard|') && !prevKey.startsWith('dashboard||') && nextKey === 'dashboard|||') ||
+      (prevKey.startsWith('settings|') && !prevKey.startsWith('settings||') && nextKey === 'settings|||') ||
+      (prevKey.startsWith('settings||') && folderItems.some(f => prevKey.includes(`|${f}|`)) && nextKey.includes('|features_folder|')) ||
+      ((prevKey === 'students|||register' || prevKey.startsWith('students|||edit:')) && nextKey === 'students|||') ||
+      (prevKey.startsWith('teachers|||directory:') && !prevKey.endsWith(':') && nextKey === 'teachers|||directory:') ||
+      (prevKey.startsWith('teachers|||subjects:') && !prevKey.endsWith(':') && nextKey === 'teachers|||subjects:') ||
+      (prevKey === 'teachers|||planner:new-schedule' && (nextKey === 'teachers|||planner:' || nextKey.startsWith('teachers|||subjects:detail:')));
+    const isBackInStack = stack.length >= 2 && stack[stack.length - 2] === nextKey;
+    const shouldRestore = pendingBackActionRef.current || isBackToSubRoot || isBackInStack;
+    pendingBackActionRef.current = false;
+
+    if (!shouldRestore) {
+      scrollPositionsRef.current[prevKey] = Math.max(scrollPositionsRef.current[prevKey] || 0, getScrollTop());
+    }
+
+    scrollLockUntilRef.current = Date.now() + 180;
+    currentRouteKeyRef.current = nextKey;
+
+    const isTeacherSiblingTab =
+      prevKey.startsWith('teachers|||') && prevKey.endsWith(':') &&
+      nextKey.startsWith('teachers|||') && nextKey.endsWith(':');
+
+    if (isBackInStack) {
+      stack.pop();
+    } else if (isTeacherSiblingTab && stack.length > 0) {
+      stack[stack.length - 1] = nextKey;
+    } else if (stack[stack.length - 1] !== nextKey) {
+      stack.push(nextKey);
+      if (stack.length > 30) stack.shift();
+    }
+
+    if (shouldRestore) {
+      const targetY = scrollPositionsRef.current[nextKey] || 0;
+      const restore = () => setScrollTop(targetY);
+      requestAnimationFrame(() => {
+        restore();
+        requestAnimationFrame(restore);
+      });
+      const timerId = setTimeout(() => {
+        scrollLockUntilRef.current = 0;
+        restore();
+      }, 100);
+      return () => clearTimeout(timerId);
+    }
+
+    setScrollTop(0);
+    const timerId = setTimeout(() => {
+      scrollLockUntilRef.current = 0;
+    }, 100);
+    return () => clearTimeout(timerId);
+  }, [computedRouteKey]);
 
   // Student Self Edit States
   const [showEditStudentSelfModal, setShowEditStudentSelfModal] = useState(false);
@@ -5618,42 +5745,77 @@ export default function App() {
 
     const handleHashChange = (evt) => {
       if (!token || !userRole) return;
-      if (evt && evt.type === 'popstate') {
+      const currentFullHash = window.location.hash || '';
+      if (currentFullHash === expectedHashRef.current) {
+        return;
+      }
+      const pStack = pushedHashStackRef.current;
+      if (pStack.length >= 2 && pStack[pStack.length - 2] === currentFullHash) {
         scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
         pendingBackActionRef.current = true;
+        pStack.pop();
+      } else {
+        if (evt && evt.type === 'popstate') {
+          scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+          pendingBackActionRef.current = true;
+        }
+        if (pStack[pStack.length - 1] !== currentFullHash) {
+          pStack.push(currentFullHash);
+          if (pStack.length > 35) pStack.shift();
+        }
       }
-      const currentHash = window.location.hash.replace(/^#\/?/, '').trim();
-      const baseHash = currentHash.split('/')[0].split('?')[0].trim();
-      const subHash = currentHash.includes('/') ? currentHash.split('/')[1].split('?')[0].trim() : null;
+      const currentHash = currentFullHash.replace(/^#\/?/, '').split('?')[0].trim();
+      const parts = currentHash.split('/').filter(Boolean);
+      const baseHash = parts[0] || '';
+      const subHash = parts[1] || null;
+      const subHash2 = parts[2] || null;
       const validDashSubs = ['metrics', 'telemetry', 'trends', 'radar', 'diagnostics', 'feedback'];
+
+      const clearNonMatchingSections = (activeBase) => {
+        if (activeBase !== 'settings' && activeSubSettingRef.current !== null) {
+          setActiveSubSetting(null);
+        }
+        if (activeBase !== 'dashboard' && activeDashboardSubTabRef.current !== null) {
+          setActiveDashboardSubTab(null);
+        }
+        if (activeBase !== 'students') {
+          if (showAddModalRef.current) setShowAddModal(false);
+          if (showEditStudentModalRef.current) {
+            setShowEditStudentModal(false);
+            setEditingStudent(null);
+          }
+        }
+        if (activeBase !== 'teachers') {
+          if (teacherFormViewRef.current !== 'list') setTeacherFormView('list');
+          if (subjectFormViewRef.current !== 'list') setSubjectFormView('list');
+          if (selectedSubjectDetailRef.current) setSelectedSubjectDetail(null);
+          if (showScheduleFormRef.current) setShowScheduleForm(false);
+        }
+      };
 
       if (baseHash && isTabValidForRole(baseHash, userRole)) {
         if (baseHash !== activeTabRef.current) {
+          pendingBackActionRef.current = true;
+          uiBackPendingRef.current = false;
+          suppressTabHistoryPushRef.current = true;
+          if (tabHistoryRef.current.length > 0 && tabHistoryRef.current[tabHistoryRef.current.length - 1] === baseHash) {
+            tabHistoryRef.current.pop();
+          }
           setActiveTab(baseHash);
         }
+        clearNonMatchingSections(baseHash);
+
         if (baseHash === 'settings') {
           const targetSub = subHash || null;
           if (targetSub !== activeSubSettingRef.current) {
             setActiveSubSetting(targetSub);
-          }
-          if (activeDashboardSubTabRef.current !== null) {
-            setActiveDashboardSubTab(null);
           }
         } else if (baseHash === 'dashboard') {
           const targetDashSub = subHash && validDashSubs.includes(subHash) ? subHash : null;
           if (targetDashSub !== activeDashboardSubTabRef.current) {
             setActiveDashboardSubTab(targetDashSub);
           }
-          if (activeSubSettingRef.current !== null) {
-            setActiveSubSetting(null);
-          }
         } else if (baseHash === 'students') {
-          if (activeSubSettingRef.current !== null) {
-            setActiveSubSetting(null);
-          }
-          if (activeDashboardSubTabRef.current !== null) {
-            setActiveDashboardSubTab(null);
-          }
           if (!subHash) {
             if (showAddModalRef.current) setShowAddModal(false);
             if (showEditStudentModalRef.current) {
@@ -5662,27 +5824,86 @@ export default function App() {
             }
           } else if (subHash === 'register') {
             setShowEditStudentModal(false);
+            setEditingStudent(null);
             setShowAddModal(true);
+          } else {
+            const match = studentsRef.current.find(s => String(s.id) === subHash);
+            if (match) {
+              setShowAddModal(false);
+              setEditingStudent({
+                ...match,
+                course: match.course || 'B.Tech',
+                year: match.year || '2026',
+                semester: match.semester || '1st',
+                gender: match.gender || 'Male',
+                dob: match.dob || '',
+                phone: match.phone || '',
+                address: match.address || '',
+                teacher: match.teacher || '',
+                password: '',
+              });
+              setShowEditStudentModal(true);
+            }
           }
-        } else {
-          if (activeSubSettingRef.current !== null) {
-            setActiveSubSetting(null);
-          }
-          if (activeDashboardSubTabRef.current !== null) {
-            setActiveDashboardSubTab(null);
+        } else if (baseHash === 'teachers') {
+          if (!subHash) {
+            setTeachersSubTab('directory');
+            setTeacherFormView('list');
+            setSubjectFormView('list');
+            setSelectedSubjectDetail(null);
+            setShowScheduleForm(false);
+            setEditingTeacher(null);
+          } else if (subHash === 'register') {
+            setTeachersSubTab('directory');
+            setEditingTeacher(null);
+            setTeacherFormView('register');
+            setSubjectFormView('list');
+            setShowScheduleForm(false);
+          } else if (subHash === 'subjects') {
+            setTeachersSubTab('subjects');
+            setTeacherFormView('list');
+            setShowScheduleForm(false);
+            if (!subHash2) {
+              setSubjectFormView('list');
+              setSelectedSubjectDetail(null);
+            } else if (subHash2 === 'register') {
+              setSelectedSubjectDetail(null);
+              setSubjectFormView('register');
+            } else {
+              const subMatch = subjectsRef.current.find(s => String(s.id) === subHash2);
+              if (subMatch) {
+                setSelectedSubjectDetail(subMatch);
+                setSubjectFormView('detail');
+              } else {
+                setSubjectFormView('list');
+              }
+            }
+          } else if (subHash === 'timetable') {
+            setTeachersSubTab('planner');
+            setTeacherFormView('list');
+            setSubjectFormView('list');
+            setShowScheduleForm(subHash2 === 'new');
+          } else {
+            const tMatch = teachersRef.current.find(t => String(t.id) === subHash);
+            setTeachersSubTab('directory');
+            setSubjectFormView('list');
+            setShowScheduleForm(false);
+            if (tMatch) {
+              setEditingTeacher({ ...tMatch, password: '' });
+              setTeacherFormView('detail');
+            } else {
+              setTeacherFormView('list');
+            }
           }
         }
+        expectedHashRef.current = currentFullHash;
       } else {
         const fallback = userRole === 'student' ? 'student-attendance' : 'dashboard';
         if (fallback !== activeTabRef.current) {
+          suppressTabHistoryPushRef.current = true;
           setActiveTab(fallback);
         }
-        if (activeSubSettingRef.current !== null) {
-          setActiveSubSetting(null);
-        }
-        if (activeDashboardSubTabRef.current !== null) {
-          setActiveDashboardSubTab(null);
-        }
+        clearNonMatchingSections(fallback);
       }
     };
 
@@ -5694,7 +5915,7 @@ export default function App() {
     };
   }, [token, userRole]);
 
-  // Synchronize React activeTab, activeDashboardSubTab, activeSubSetting, and student sub-view to window hash
+  // Synchronize React activeTab, sub-tabs, students, and teachers sub-views cleanly to window.history
   useEffect(() => {
     if (token && userRole && activeTab) {
       const expectedHash = activeTab === 'settings' && activeSubSetting
@@ -5705,17 +5926,99 @@ export default function App() {
             ? '#/students/register'
             : activeTab === 'students' && showEditStudentModal && editingStudent?.id
               ? `#/students/${editingStudent.id}`
-              : `#/${activeTab}`;
+              : activeTab === 'teachers' && teachersSubTab === 'directory' && teacherFormView === 'register'
+                ? '#/teachers/register'
+                : activeTab === 'teachers' && teachersSubTab === 'directory' && teacherFormView === 'detail' && editingTeacher?.id
+                  ? `#/teachers/${editingTeacher.id}`
+                  : activeTab === 'teachers' && teachersSubTab === 'subjects' && subjectFormView === 'register'
+                    ? '#/teachers/subjects/register'
+                    : activeTab === 'teachers' && teachersSubTab === 'subjects' && subjectFormView === 'detail' && selectedSubjectDetail?.id
+                      ? `#/teachers/subjects/${selectedSubjectDetail.id}`
+                      : activeTab === 'teachers' && teachersSubTab === 'subjects'
+                        ? '#/teachers/subjects'
+                        : activeTab === 'teachers' && teachersSubTab === 'planner' && showScheduleForm
+                          ? '#/teachers/timetable/new'
+                          : activeTab === 'teachers' && teachersSubTab === 'planner'
+                            ? '#/teachers/timetable'
+                            : `#/${activeTab}`;
+
+      if (pushedHashStackRef.current.length === 0) {
+        const seedHash = window.location.hash || expectedHash;
+        pushedHashStackRef.current = [seedHash];
+        expectedHashRef.current = seedHash;
+      }
+
+      const wasUiBack = uiBackPendingRef.current;
+      uiBackPendingRef.current = false;
+
       if (window.location.hash !== expectedHash) {
-        window.history.pushState(null, '', expectedHash);
+        const stack = pushedHashStackRef.current;
+        const isTeacherRootHash = (h) => ['#/teachers', '#/teachers/subjects', '#/teachers/timetable'].includes(h);
+        const topHash = stack[stack.length - 1];
+
+        if (wasUiBack && stack.length >= 2 && stack[stack.length - 2] === expectedHash) {
+          stack.pop();
+          expectedHashRef.current = expectedHash;
+          window.history.back();
+        } else if (isTeacherRootHash(topHash) && isTeacherRootHash(expectedHash)) {
+          stack[stack.length - 1] = expectedHash;
+          expectedHashRef.current = expectedHash;
+          window.history.replaceState(window.history.state, '', expectedHash);
+        } else if (wasUiBack) {
+          if (stack.length > 0) stack[stack.length - 1] = expectedHash;
+          else stack.push(expectedHash);
+          expectedHashRef.current = expectedHash;
+          window.history.replaceState(window.history.state, '', expectedHash);
+        } else {
+          if (topHash !== expectedHash) {
+            stack.push(expectedHash);
+            if (stack.length > 35) stack.shift();
+          }
+          expectedHashRef.current = expectedHash;
+          window.history.pushState(null, '', expectedHash);
+        }
+      } else {
+        expectedHashRef.current = expectedHash;
       }
     } else if (!token && !localStorage.getItem('token')) {
       // Only clear hash if the user is truly logged out
+      pushedHashStackRef.current = [];
+      expectedHashRef.current = '';
       if (window.location.hash) {
         window.history.replaceState(null, '', window.location.pathname);
       }
     }
-  }, [activeTab, activeDashboardSubTab, activeSubSetting, showAddModal, showEditStudentModal, editingStudent?.id, token, userRole]);
+  }, [
+    activeTab,
+    activeDashboardSubTab,
+    activeSubSetting,
+    showAddModal,
+    showEditStudentModal,
+    editingStudent?.id,
+    teachersSubTab,
+    teacherFormView,
+    editingTeacher?.id,
+    subjectFormView,
+    selectedSubjectDetail?.id,
+    showScheduleForm,
+    token,
+    userRole,
+  ]);
+
+  useEffect(() => {
+    if (!showWebcamModal || !captureStudent) return;
+    if (!window.history.state?.enrollWebcam) {
+      window.history.pushState({ enrollWebcam: true }, '', window.location.hash || '#/students');
+    }
+    enrollWebcamBackRef.current = (fromHistory) => {
+      enrollWebcamBackRef.current = null;
+      stopWebcam();
+      setShowWebcamModal(false);
+      setCaptureStudent(null);
+      if (!fromHistory && window.history.state?.enrollWebcam) window.history.back();
+    };
+    return () => { enrollWebcamBackRef.current = null; };
+  }, [showWebcamModal, captureStudent]);
 
   useEffect(() => {
     if (!showScannerModal || activeTab !== 'attendance') return;
@@ -6788,6 +7091,9 @@ export default function App() {
 
     if (isDemoMode) {
       setTeachers(prev => prev.map(t => t.id === editingTeacher.id ? editingTeacher : t));
+      pendingBackActionRef.current = true;
+      uiBackPendingRef.current = true;
+      setTeacherFormView('list');
       setEditingTeacher(null);
       setTeacherSuccess('SIMULATOR ACTION: Teacher profile updated locally.');
       return;
@@ -6806,6 +7112,9 @@ export default function App() {
       await teacherApi.updateTeacher(token, editingTeacher.id, payload);
       setTeacherSuccess('Teacher details updated successfully!');
       fetchTeachers();
+      pendingBackActionRef.current = true;
+      uiBackPendingRef.current = true;
+      setTeacherFormView('list');
       setEditingTeacher(null);
     } catch (err) {
       setTeacherError(err.message || 'Connection failed.');
@@ -8266,7 +8575,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -8304,7 +8613,18 @@ export default function App() {
                   {activeTab === 'students' && (
                     showAddModal ? 'Register Student' : (showEditStudentModal && editingStudent ? editingStudent.name : 'Student Directory')
                   )}
-                  {activeTab === 'teachers' && 'Teacher Directory'}
+                  {activeTab === 'teachers' && (() => {
+                    if (teachersSubTab === 'directory') {
+                      if (teacherFormView === 'register') return 'Register Teacher';
+                      if (teacherFormView === 'detail' && editingTeacher) return editingTeacher.name;
+                    } else if (teachersSubTab === 'subjects') {
+                      if (subjectFormView === 'register') return 'Register Subject';
+                      if (subjectFormView === 'detail' && selectedSubjectDetail) return selectedSubjectDetail.name;
+                    } else if (teachersSubTab === 'planner' && showScheduleForm) {
+                      return 'New Class Schedule';
+                    }
+                    return 'Teacher Directory';
+                  })()}
                   {activeTab === 'logs' && 'Attendance Logs'}
                   {activeTab === 'attendance' && 'Take Attendance'}
                   {activeTab === 'reports' && 'Reports & Analytics'}
@@ -8685,6 +9005,7 @@ export default function App() {
             setStudentError={setStudentError}
             isSubmittingStudent={isSubmittingStudent}
             isMobileView={isMobileView}
+            onCloseSubView={handleNavigateBack}
           />
         )}
 
@@ -8720,6 +9041,22 @@ export default function App() {
             setNewSchedule={setNewSchedule}
             handleDeleteTeacher={handleDeleteTeacher}
             isMobileView={isMobileView}
+            timetableSubTab={teachersSubTab}
+            setTimetableSubTab={setTeachersSubTab}
+            teacherView={teacherFormView}
+            setTeacherView={setTeacherFormView}
+            subjectView={subjectFormView}
+            setSubjectView={setSubjectFormView}
+            selectedSubjectDetail={selectedSubjectDetail}
+            setSelectedSubjectDetail={setSelectedSubjectDetail}
+            showScheduleForm={showScheduleForm}
+            setShowScheduleForm={setShowScheduleForm}
+            onOpenScheduleFromSubject={() => {
+              scheduleReturnTargetRef.current = 'subject-detail';
+              setTeachersSubTab('planner');
+              setShowScheduleForm(true);
+            }}
+            onCloseSubView={handleNavigateBack}
           />
         )}
 

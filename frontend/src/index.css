@@ -108,6 +108,7 @@ body,
   color: var(--color-text-main);
   font-family: var(--font-family);
   min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -568,6 +569,7 @@ button[style*="background:#61471e"], button[style*="background:#61471e"] * {
   margin-left: 240px;
   padding: 24px 28px;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--bg-primary);
   transition: var(--transition);
 }
@@ -1312,7 +1314,7 @@ html, body {
 
   .main-content {
     margin-left: 0 !important;
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px calc(76px + env(safe-area-inset-bottom, 0px)) 16px !important;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px calc(66px + env(safe-area-inset-bottom, 0px)) 16px !important;
     width: 100% !important;
     max-width: 100% !important;
   }
@@ -8023,7 +8025,7 @@ button:active:not(:disabled),
     padding-left: 10px !important;
     padding-right: 10px !important;
     padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important;
-    padding-bottom: calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
     width: 100% !important;
@@ -8655,7 +8657,7 @@ button:active:not(:disabled),
 
 /* Golden OS Directory, Detail & Registration Pages (Students, Teachers, Subjects, Profile) */
 .golden-os-page-bottom-safe {
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: 0 !important;
 }
 
 .golden-os-profile-grid {
@@ -8694,27 +8696,6 @@ button:active:not(:disabled),
   object-fit: cover !important;
   object-position: center !important;
   transform: scaleX(-1) !important;
-}
-
-.golden-os-back-bar {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1px solid #dfd0ae;
-  background: #ffffff;
-  color: #5c4b30;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.16s ease, border-color 0.16s ease;
-  align-self: flex-start;
-}
-.golden-os-back-bar:hover {
-  background: #faf3e3;
-  border-color: #c49a45;
-  color: #2b2112;
 }
 
 .golden-os-segmented {

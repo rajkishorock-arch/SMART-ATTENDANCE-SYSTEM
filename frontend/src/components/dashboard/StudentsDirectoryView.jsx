@@ -1,5 +1,5 @@
-import { useState, useRef, useLayoutEffect } from 'react';
-import { Search, BookOpen, Trash2, Camera, Plus, ArrowLeft, ChevronRight, AlertCircle, CheckCircle2, ShieldCheck, UserPlus } from 'lucide-react';
+import { useState } from 'react';
+import { Search, BookOpen, Trash2, Camera, Plus, ChevronRight, AlertCircle, CheckCircle2, ShieldCheck, UserPlus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 export function StudentsDirectoryHeaderAction({
@@ -86,33 +86,13 @@ export default function StudentsDirectoryView({
   studentError,
   setStudentError,
   isSubmittingStudent,
+  onCloseSubView,
 }) {
   const { userRole, currentUser } = useAuth();
   const [deletingStudentId, setDeletingStudentId] = useState(null);
-  const savedDirScrollRef = useRef(0);
-  const prevSubOpenRef = useRef(false);
-  const isSubViewOpen = Boolean(showAddModal || (showEditStudentModal && editingStudent));
-
-  useLayoutEffect(() => {
-    const wasSubOpen = prevSubOpenRef.current;
-    prevSubOpenRef.current = isSubViewOpen;
-    if (!wasSubOpen && isSubViewOpen) {
-      try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch { /* ignore */ }
-    } else if (wasSubOpen && !isSubViewOpen) {
-      const targetY = savedDirScrollRef.current || 0;
-      const restore = () => {
-        try { window.scrollTo({ top: targetY, behavior: 'auto' }); } catch { /* ignore */ }
-      };
-      requestAnimationFrame(() => {
-        restore();
-        requestAnimationFrame(restore);
-      });
-    }
-  }, [isSubViewOpen]);
 
   const handleOpenRegisterPage = () => {
     if (serverWarmingUp) return;
-    try { savedDirScrollRef.current = Math.max(window.scrollY || 0, document.documentElement?.scrollTop || 0); } catch { /* ignore */ }
     if (setFormError) setFormError('');
     if (setStudentError) setStudentError('');
     if (userRole === 'teacher' && currentUser?.details) {
@@ -129,7 +109,6 @@ export default function StudentsDirectoryView({
   };
 
   const handleOpenStudentDetail = (student) => {
-    try { savedDirScrollRef.current = Math.max(window.scrollY || 0, document.documentElement?.scrollTop || 0); } catch { /* ignore */ }
     if (setEditStudentError) setEditStudentError('');
     if (setEditStudentSuccess) setEditStudentSuccess('');
     setShowAddModal?.(false);
@@ -149,13 +128,17 @@ export default function StudentsDirectoryView({
   };
 
   const handleCloseSubView = () => {
-    setShowAddModal?.(false);
-    setShowEditStudentModal?.(false);
-    setEditingStudent?.(null);
     setEditStudentError?.('');
     setEditStudentSuccess?.('');
     setFormError?.('');
     setStudentError?.('');
+    if (onCloseSubView) {
+      onCloseSubView();
+      return;
+    }
+    setShowAddModal?.(false);
+    setShowEditStudentModal?.(false);
+    setEditingStudent?.(null);
   };
 
   const handleDeleteStudentClick = async (id) => {
@@ -172,11 +155,6 @@ export default function StudentsDirectoryView({
   if (showAddModal && newStudent) {
     return (
       <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-        <button type="button" className="golden-os-back-bar" onClick={handleCloseSubView}>
-          <ArrowLeft size={15} />
-          <span>Back to Students</span>
-        </button>
-
         <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #e7dac0', paddingBottom: '14px' }}>
             <div className="golden-os-avatar">
@@ -401,11 +379,6 @@ export default function StudentsDirectoryView({
 
     return (
       <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-        <button type="button" className="golden-os-back-bar" onClick={handleCloseSubView}>
-          <ArrowLeft size={15} />
-          <span>Back to Students</span>
-        </button>
-
         <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Hero Student Card */}
           <div className="golden-os-inset-card" style={{ padding: '16px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>

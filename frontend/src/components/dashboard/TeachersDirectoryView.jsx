@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Trash2, Plus, Search, ArrowLeft, ChevronRight, AlertCircle, CheckCircle2, BookOpen, Calendar, UserPlus } from 'lucide-react';
+import { useState } from 'react';
+import { Trash2, Plus, Search, ChevronRight, AlertCircle, CheckCircle2, BookOpen, Calendar, UserPlus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
 
@@ -37,20 +37,41 @@ export default function TeachersDirectoryView({
   newSchedule,
   setNewSchedule,
   handleDeleteTeacher,
+  timetableSubTab: controlledSubTab,
+  setTimetableSubTab: setControlledSubTab,
+  teacherView: controlledTeacherView,
+  setTeacherView: setControlledTeacherView,
+  subjectView: controlledSubjectView,
+  setSubjectView: setControlledSubjectView,
+  selectedSubjectDetail: controlledSelectedSubject,
+  setSelectedSubjectDetail: setControlledSelectedSubject,
+  showScheduleForm: controlledShowScheduleForm,
+  setShowScheduleForm: setControlledShowScheduleForm,
+  onOpenScheduleFromSubject,
+  onCloseSubView,
 }) {
   const { userRole } = useAuth();
   const { playCyberSound } = useUI();
 
-  const [timetableSubTab, setTimetableSubTab] = useState('directory');
+  const [localSubTab, setLocalSubTab] = useState('directory');
   const [search, setSearch] = useState('');
 
   // Sub-views stay strictly collapsed until user taps "+ Register ..." or opens a specific row
-  const [teacherView, setTeacherView] = useState('list'); // 'list' | 'register' | 'detail'
-  const [subjectView, setSubjectView] = useState('list'); // 'list' | 'register' | 'detail'
-  const [selectedSubjectDetail, setSelectedSubjectDetail] = useState(null);
-  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [localTeacherView, setLocalTeacherView] = useState('list'); // 'list' | 'register' | 'detail'
+  const [localSubjectView, setLocalSubjectView] = useState('list'); // 'list' | 'register' | 'detail'
+  const [localSelectedSubject, setLocalSelectedSubject] = useState(null);
+  const [localShowScheduleForm, setLocalShowScheduleForm] = useState(false);
 
-  const savedScrollYRef = useRef(0);
+  const timetableSubTab = controlledSubTab !== undefined ? controlledSubTab : localSubTab;
+  const setTimetableSubTab = setControlledSubTab || setLocalSubTab;
+  const teacherView = controlledTeacherView !== undefined ? controlledTeacherView : localTeacherView;
+  const setTeacherView = setControlledTeacherView || setLocalTeacherView;
+  const subjectView = controlledSubjectView !== undefined ? controlledSubjectView : localSubjectView;
+  const setSubjectView = setControlledSubjectView || setLocalSubjectView;
+  const selectedSubjectDetail = controlledSelectedSubject !== undefined ? controlledSelectedSubject : localSelectedSubject;
+  const setSelectedSubjectDetail = setControlledSelectedSubject || setLocalSelectedSubject;
+  const showScheduleForm = controlledShowScheduleForm !== undefined ? controlledShowScheduleForm : localShowScheduleForm;
+  const setShowScheduleForm = setControlledShowScheduleForm || setLocalShowScheduleForm;
 
   const [deletingTeacherId, setDeletingTeacherId] = useState(null);
   const [isSubmittingTeacher, setIsSubmittingTeacher] = useState(false);
@@ -62,25 +83,8 @@ export default function TeachersDirectoryView({
   const visibleTeachers = teachers.filter(t => t.role === 'teacher' && matches(t.name, t.email));
   const visibleSubjects = subjects.filter(s => matches(s.name, s.code, s.department, s.teacher_name));
 
-  const snapshotScroll = () => {
-    try {
-      savedScrollYRef.current = Math.max(window.scrollY || 0, document.documentElement?.scrollTop || 0);
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    } catch { /* ignore */ }
-  };
-
-  const restoreScroll = () => {
-    const y = savedScrollYRef.current || 0;
-    requestAnimationFrame(() => {
-      try {
-        window.scrollTo({ top: y, behavior: 'auto' });
-      } catch { /* ignore */ }
-    });
-  };
-
   const openTeacherRegister = () => {
     if (playCyberSound) playCyberSound('click');
-    snapshotScroll();
     setEditingTeacher(null);
     setTeacherError('');
     setTeacherSuccess('');
@@ -89,7 +93,6 @@ export default function TeachersDirectoryView({
 
   const openTeacherDetail = (teacherObj) => {
     if (playCyberSound) playCyberSound('click');
-    snapshotScroll();
     setEditingTeacher({ ...teacherObj, password: '' });
     setTeacherError('');
     setTeacherSuccess('');
@@ -97,32 +100,45 @@ export default function TeachersDirectoryView({
   };
 
   const backToTeacherDirectory = () => {
+    if (onCloseSubView) {
+      onCloseSubView();
+      return;
+    }
     if (playCyberSound) playCyberSound('click');
     setTeacherView('list');
     setEditingTeacher(null);
     setTeacherError('');
-    restoreScroll();
   };
 
   const openSubjectRegister = () => {
     if (playCyberSound) playCyberSound('click');
-    snapshotScroll();
     setSelectedSubjectDetail(null);
     setSubjectView('register');
   };
 
   const openSubjectDetail = (subjectObj) => {
     if (playCyberSound) playCyberSound('click');
-    snapshotScroll();
     setSelectedSubjectDetail(subjectObj);
     setSubjectView('detail');
   };
 
   const backToSubjectDirectory = () => {
+    if (onCloseSubView) {
+      onCloseSubView();
+      return;
+    }
     if (playCyberSound) playCyberSound('click');
     setSubjectView('list');
     setSelectedSubjectDetail(null);
-    restoreScroll();
+  };
+
+  const backToTimetable = () => {
+    if (onCloseSubView) {
+      onCloseSubView();
+      return;
+    }
+    if (playCyberSound) playCyberSound('click');
+    setShowScheduleForm(false);
   };
 
   const handleDeleteTeacherClick = async (id) => {
@@ -176,34 +192,40 @@ export default function TeachersDirectoryView({
 
   const isDetailMode = teacherView === 'detail' && Boolean(editingTeacher);
   const showTeacherFormPage = teacherView === 'register' || isDetailMode;
+  const isInDedicatedSubPage =
+    (timetableSubTab === 'directory' && showTeacherFormPage) ||
+    (timetableSubTab === 'subjects' && subjectView !== 'list') ||
+    (timetableSubTab === 'planner' && showScheduleForm);
 
   return (
     <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-      {/* Clean Golden Gate Tab Switcher */}
-      <nav aria-label="Teacher and subject management" className="golden-os-segmented">
-        {[
-          ['directory', `Teachers (${visibleTeachers.length})`],
-          ['subjects', `Subjects (${visibleSubjects.length})`],
-          ['planner', 'Timetable'],
-        ].map(([id, label]) => (
-          <button
-            type="button"
-            key={id}
-            aria-pressed={timetableSubTab === id}
-            className={`golden-os-segmented-btn ${timetableSubTab === id ? 'active' : ''}`}
-            onClick={() => {
-              if (playCyberSound) playCyberSound('click');
-              setTimetableSubTab(id);
-              setSearch('');
-              setTeacherView('list');
-              setSubjectView('list');
-              setShowScheduleForm(false);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      {/* Clean Golden Gate Tab Switcher (hidden inside dedicated detail/register sub-pages) */}
+      {!isInDedicatedSubPage && (
+        <nav aria-label="Teacher and subject management" className="golden-os-segmented">
+          {[
+            ['directory', `Teachers (${visibleTeachers.length})`],
+            ['subjects', `Subjects (${visibleSubjects.length})`],
+            ['planner', 'Timetable'],
+          ].map(([id, label]) => (
+            <button
+              type="button"
+              key={id}
+              aria-pressed={timetableSubTab === id}
+              className={`golden-os-segmented-btn ${timetableSubTab === id ? 'active' : ''}`}
+              onClick={() => {
+                if (playCyberSound) playCyberSound('click');
+                setTimetableSubTab(id);
+                setSearch('');
+                setTeacherView('list');
+                setSubjectView('list');
+                setShowScheduleForm(false);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
 
       {/* ==================== 1. TEACHERS DIRECTORY / REGISTER / DETAIL ==================== */}
       {timetableSubTab === 'directory' && (
@@ -294,11 +316,6 @@ export default function TeachersDirectoryView({
         ) : (
           /* Dedicated Register or Edit Teacher Page */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-            <button type="button" className="golden-os-back-bar" onClick={backToTeacherDirectory}>
-              <ArrowLeft size={15} />
-              <span>Back to Teachers</span>
-            </button>
-
             <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #e7dac0', paddingBottom: '14px' }}>
                 <div className="golden-os-avatar" style={{ width: '44px', height: '44px' }}>
@@ -622,11 +639,6 @@ export default function TeachersDirectoryView({
         ) : subjectView === 'register' ? (
           /* Dedicated Register Subject Page */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-            <button type="button" className="golden-os-back-bar" onClick={backToSubjectDirectory}>
-              <ArrowLeft size={15} />
-              <span>Back to Subjects</span>
-            </button>
-
             <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #e7dac0', paddingBottom: '14px' }}>
                 <div className="golden-os-avatar">
@@ -741,11 +753,6 @@ export default function TeachersDirectoryView({
             const subSchedules = schedules.filter(sch => sch.subject_id === selectedSubjectDetail.id);
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-                <button type="button" className="golden-os-back-bar" onClick={backToSubjectDirectory}>
-                  <ArrowLeft size={15} />
-                  <span>Back to Subjects</span>
-                </button>
-
                 <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className="golden-os-inset-card" style={{ padding: '16px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
@@ -766,8 +773,12 @@ export default function TeachersDirectoryView({
                       type="button"
                       onClick={() => {
                         setNewSchedule(prev => ({ ...prev, subject_id: selectedSubjectDetail.id.toString() }));
-                        setTimetableSubTab('planner');
-                        setShowScheduleForm(true);
+                        if (onOpenScheduleFromSubject) {
+                          onOpenScheduleFromSubject();
+                        } else {
+                          setTimetableSubTab('planner');
+                          setShowScheduleForm(true);
+                        }
                       }}
                       className="golden-os-primary-action"
                       style={{ width: 'auto', padding: '9px 14px', borderRadius: '10px', fontSize: '0.8rem', gap: '6px' }}
@@ -820,11 +831,6 @@ export default function TeachersDirectoryView({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
           {showScheduleForm ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <button type="button" className="golden-os-back-bar" onClick={() => setShowScheduleForm(false)}>
-                <ArrowLeft size={15} />
-                <span>Back to Weekly Timetable</span>
-              </button>
-
               <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #e7dac0', paddingBottom: '12px' }}>
                   <Calendar size={18} color="#8b6525" />
@@ -899,7 +905,7 @@ export default function TeachersDirectoryView({
                   <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                     <button
                       type="button"
-                      onClick={() => setShowScheduleForm(false)}
+                      onClick={backToTimetable}
                       className="golden-os-feedback-filter-btn"
                       style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem' }}
                     >
