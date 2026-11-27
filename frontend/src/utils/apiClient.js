@@ -32,6 +32,9 @@ function getEndpointTtl(url, options = {}) {
   if (url.includes('/departments') || url.includes('/institutions') || url.includes('/settings') || url.includes('/premium/status') || url.includes('/schedules')) {
     return 45000; // 45 seconds
   }
+  if (url.includes('/disputes') || url.includes('/notifications/broadcasts')) {
+    return 45000; // 45 seconds (0ms instant tab loads, auto-cleared on writes)
+  }
   if (url.includes('/feedbacks')) {
     return 25000; // 25 seconds
   }
@@ -102,12 +105,8 @@ export async function fetchWithDedupe(url, options = {}) {
     if (isDev) {
       console.log(`[DEDUPE] Reusing in-flight request for: ${url}`);
     }
-    try {
-      const inFlightResponse = await activeRequestsMap.get(requestKey);
-      return inFlightResponse.clone();
-    } catch (err) {
-      throw err;
-    }
+    const inFlightResponse = await activeRequestsMap.get(requestKey);
+    return inFlightResponse.clone();
   }
 
   // Create AbortController for controller cancellation if needed

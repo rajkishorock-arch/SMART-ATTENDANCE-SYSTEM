@@ -521,6 +521,7 @@ def get_disputes_queue(
     status: Optional[str] = None,
     subject_id: Optional[int] = None,
     date: Optional[str] = None,
+    limit: int = 150,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
@@ -552,7 +553,8 @@ def get_disputes_queue(
     if date:
         query = query.filter(models.AttendanceDispute.date == date.strip())
 
-    disputes = query.order_by(models.AttendanceDispute.created_at.desc()).all()
+    safe_limit = min(max(limit, 1), 500)
+    disputes = query.order_by(models.AttendanceDispute.created_at.desc()).limit(safe_limit).all()
     return _format_disputes_batch(disputes, db)
 
 

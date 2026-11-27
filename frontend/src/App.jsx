@@ -5,7 +5,7 @@ import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } f
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { initKeepAliveEngine } from './utils/keepAlive';
 import { fetchWithDedupe, clearApiClientCache } from './utils/apiClient';
-import { studentApi, teacherApi, attendanceApi, systemApi, apiGet } from './api/index.js';
+import { studentApi, teacherApi, attendanceApi, systemApi, disputeApi, notificationApi, apiGet } from './api/index.js';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -637,6 +637,56 @@ export default function App() {
     return null;
   });
 
+  const [disputeRoute, setDisputeRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'disputes' && parts[1]) {
+        return { mode: 'detail', id: parts[1] };
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  const [broadcastRoute, setBroadcastRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'broadcast' && parts[1]) {
+        if (parts[1] === 'create') return { mode: 'create' };
+        if (parts[2] === 'edit') return { mode: 'edit', id: parts[1] };
+        return { mode: 'detail', id: parts[1] };
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  const [disputesQueue, setDisputesQueue] = useState([]);
+  const [disputesLoaded, setDisputesLoaded] = useState(false);
+  const [broadcastsList, setBroadcastsList] = useState([]);
+  const [broadcastsLoaded, setBroadcastsLoaded] = useState(false);
+
+  const fetchDisputesPrefetch = useCallback(async (authToken, roleVal) => {
+    const t = authToken;
+    const r = String(roleVal || '').toLowerCase();
+    if (!t || !['admin', 'teacher', 'hod'].includes(r)) return;
+    try {
+      const res = await disputeApi.fetchDisputeQueue(t, 'ALL');
+      if (res.ok) {
+        const data = await res.json();
+        setDisputesQueue(Array.isArray(data) ? data : []);
+        setDisputesLoaded(true);
+      }
+    } catch { /* silent background prefetch */ }
+  }, []);
+
+  const fetchBroadcastsPrefetch = useCallback(async (authToken) => {
+    if (!authToken) return;
+    try {
+      const res = await notificationApi.fetchBroadcastHistory(authToken, 100);
+      setBroadcastsList(Array.isArray(res) ? res : []);
+      setBroadcastsLoaded(true);
+    } catch { /* silent background prefetch */ }
+  }, []);
+
   // Route Scroll Position Preservation (restores exact scroll position on Back navigation)
   const getRouteScrollKey = (tab, subTab, subSet, subDetail = '') => `${tab || ''}|${subTab || ''}|${subSet || ''}|${subDetail || ''}`;
   const getScrollTop = () => {
@@ -674,6 +724,8 @@ export default function App() {
   const selectedSubjectDetailRef = useRef(selectedSubjectDetail);
   const showScheduleFormRef = useRef(showScheduleForm);
   const settingsDetailRouteRef = useRef(settingsDetailRoute);
+  const disputeRouteRef = useRef(disputeRoute);
+  const broadcastRouteRef = useRef(broadcastRoute);
   const scheduleReturnTargetRef = useRef(null);
   const showWebcamModalRef = useRef(false);
   const enrollWebcamBackRef = useRef(null);
@@ -691,6 +743,8 @@ export default function App() {
   useEffect(() => { selectedSubjectDetailRef.current = selectedSubjectDetail; }, [selectedSubjectDetail]);
   useEffect(() => { showScheduleFormRef.current = showScheduleForm; }, [showScheduleForm]);
   useEffect(() => { settingsDetailRouteRef.current = settingsDetailRoute; }, [settingsDetailRoute]);
+  useEffect(() => { disputeRouteRef.current = disputeRoute; }, [disputeRoute]);
+  useEffect(() => { broadcastRouteRef.current = broadcastRoute; }, [broadcastRoute]);
 
   // Record user scroll position continuously while settled on the current view
   useEffect(() => {
@@ -759,6 +813,12 @@ export default function App() {
         setEditingTeacher(null);
         scheduleReturnTargetRef.current = null;
       }
+      if (activeTab !== 'disputes') {
+        setDisputeRoute(null);
+      }
+      if (activeTab !== 'broadcast') {
+        setBroadcastRoute(null);
+      }
       prevActiveTabRef.current = activeTab;
     }
   }, [activeTab]);
@@ -809,6 +869,18 @@ export default function App() {
         }
         return;
       }
+    }
+    if (activeTabRef.current === 'disputes' && disputeRouteRef.current !== null) {
+      setDisputeRoute(null);
+      return;
+    }
+    if (activeTabRef.current === 'broadcast' && broadcastRouteRef.current !== null) {
+      if (broadcastRouteRef.current.mode === 'edit' && broadcastRouteRef.current.id != null) {
+        setBroadcastRoute({ mode: 'detail', id: broadcastRouteRef.current.id, item: broadcastRouteRef.current.item });
+      } else {
+        setBroadcastRoute(null);
+      }
+      return;
     }
     if (activeTabRef.current === 'settings' && settingsDetailRouteRef.current !== null) {
       setSettingsDetailRoute(null);
@@ -2454,11 +2526,21 @@ export default function App() {
   const settingsDetailScrollKey = activeTab === 'settings' && settingsDetailRoute && settingsDetailRoute.sub === activeSubSetting
     ? `${settingsDetailRoute.sub}:${settingsDetailRoute.mode}:${settingsDetailRoute.id ?? ''}`
     : '';
+  const disputeScrollKey = activeTab === 'disputes' && disputeRoute
+    ? `${disputeRoute.mode}:${disputeRoute.id ?? ''}`
+    : '';
+  const broadcastScrollKey = activeTab === 'broadcast' && broadcastRoute
+    ? `${broadcastRoute.mode}:${broadcastRoute.id ?? ''}`
+    : '';
   const activeSubDetailKey = activeTab === 'students'
     ? studentSubScrollKey
     : activeTab === 'teachers'
       ? teacherSubScrollKey
-      : (activeTab === 'settings' ? settingsDetailScrollKey : '');
+      : activeTab === 'settings'
+        ? settingsDetailScrollKey
+        : activeTab === 'disputes'
+          ? disputeScrollKey
+          : (activeTab === 'broadcast' ? broadcastScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
 
   useLayoutEffect(() => {
@@ -5233,9 +5315,12 @@ export default function App() {
         if (data.role !== 'student') {
           fetchStats(tokenVal);
           fetchLogs(tokenVal);
+          fetchDisputesPrefetch(tokenVal, data.role);
+          fetchBroadcastsPrefetch(tokenVal);
         } else {
           fetchStudentLogs(tokenVal);
           fetchBlueprint(tokenVal);
+          fetchBroadcastsPrefetch(tokenVal);
         }
 
         if (!sessionInitializedRef.current) {
@@ -5825,6 +5910,12 @@ export default function App() {
           if (selectedSubjectDetailRef.current) setSelectedSubjectDetail(null);
           if (showScheduleFormRef.current) setShowScheduleForm(false);
         }
+        if (activeBase !== 'disputes' && disputeRouteRef.current !== null) {
+          setDisputeRoute(null);
+        }
+        if (activeBase !== 'broadcast' && broadcastRouteRef.current !== null) {
+          setBroadcastRoute(null);
+        }
       };
 
       if (baseHash && isTabValidForRole(baseHash, userRole)) {
@@ -5857,6 +5948,22 @@ export default function App() {
           const targetDashSub = subHash && validDashSubs.includes(subHash) ? subHash : null;
           if (targetDashSub !== activeDashboardSubTabRef.current) {
             setActiveDashboardSubTab(targetDashSub);
+          }
+        } else if (baseHash === 'disputes') {
+          if (subHash) {
+            setDisputeRoute({ mode: 'detail', id: subHash });
+          } else if (disputeRouteRef.current !== null) {
+            setDisputeRoute(null);
+          }
+        } else if (baseHash === 'broadcast') {
+          if (!subHash) {
+            if (broadcastRouteRef.current !== null) setBroadcastRoute(null);
+          } else if (subHash === 'create') {
+            setBroadcastRoute({ mode: 'create' });
+          } else if (subHash2 === 'edit') {
+            setBroadcastRoute({ mode: 'edit', id: subHash });
+          } else {
+            setBroadcastRoute({ mode: 'detail', id: subHash });
           }
         } else if (baseHash === 'students') {
           if (!subHash) {
@@ -5988,7 +6095,15 @@ export default function App() {
                           ? '#/teachers/timetable/new'
                           : activeTab === 'teachers' && teachersSubTab === 'planner'
                             ? '#/teachers/timetable'
-                            : `#/${activeTab}`;
+                            : activeTab === 'disputes' && disputeRoute?.id != null
+                              ? `#/disputes/${disputeRoute.id}`
+                              : activeTab === 'broadcast' && broadcastRoute?.mode === 'create'
+                                ? '#/broadcast/create'
+                                : activeTab === 'broadcast' && broadcastRoute?.mode === 'edit' && broadcastRoute?.id != null
+                                  ? `#/broadcast/${broadcastRoute.id}/edit`
+                                  : activeTab === 'broadcast' && broadcastRoute?.mode === 'detail' && broadcastRoute?.id != null
+                                    ? `#/broadcast/${broadcastRoute.id}`
+                                    : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6052,6 +6167,10 @@ export default function App() {
     settingsDetailRoute?.sub,
     settingsDetailRoute?.mode,
     settingsDetailRoute?.id,
+    disputeRoute?.mode,
+    disputeRoute?.id,
+    broadcastRoute?.mode,
+    broadcastRoute?.id,
     token,
     userRole,
   ]);
@@ -6107,6 +6226,8 @@ export default function App() {
     }
     setActiveTab(tabId);
     setActiveSubSetting(null);
+    setDisputeRoute(null);
+    setBroadcastRoute(null);
     setMobileSidebarOpen(false);
     setMobileControlOpen(false);
     playCyberSound('click');
@@ -6290,6 +6411,19 @@ export default function App() {
         fetchStats();
         fetchLogs(token, { limit: 10 });
         if (userRole === 'admin' || userRole === 'teacher') fetchStudents();
+        fetchDisputesPrefetch(token, userRole);
+        fetchBroadcastsPrefetch(token);
+        break;
+      case 'control':
+      case 'all-features':
+        fetchDisputesPrefetch(token, userRole);
+        fetchBroadcastsPrefetch(token);
+        break;
+      case 'disputes':
+        fetchDisputesPrefetch(token, userRole);
+        break;
+      case 'broadcast':
+        fetchBroadcastsPrefetch(token);
         break;
       case 'students':
         fetchSubjects().then(() => fetchStudents());
@@ -6677,6 +6811,7 @@ export default function App() {
           fetchStudentLeaves(newToken),
           fetchBlueprint(newToken),
           fetchSubjects(newToken),
+          fetchBroadcastsPrefetch(newToken),
           ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
         ]);
       } else {
@@ -6688,6 +6823,8 @@ export default function App() {
           fetchAdminLeaves(newToken),
           fetchSubjects(newToken),
           fetchStudents(newToken),
+          fetchDisputesPrefetch(newToken, meData.role),
+          fetchBroadcastsPrefetch(newToken),
           ...(meData.role === 'admin' ? [fetchTeachers(newToken), fetchFeedbacks(newToken, meData.role)] : [])
         ]);
       }
@@ -6717,6 +6854,7 @@ export default function App() {
           fetchStudentLeaves(newToken),
           fetchBlueprint(newToken),
           fetchSubjects(newToken),
+          fetchBroadcastsPrefetch(newToken),
           ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
         ]);
       } else {
@@ -6728,6 +6866,8 @@ export default function App() {
           fetchAdminLeaves(newToken),
           fetchSubjects(newToken),
           fetchStudents(newToken),
+          fetchDisputesPrefetch(newToken, meData.role),
+          fetchBroadcastsPrefetch(newToken),
           ...(meData.role === 'admin' ? [fetchTeachers(newToken), fetchFeedbacks(newToken, meData.role)] : [])
         ]);
       }
@@ -6749,6 +6889,12 @@ export default function App() {
       setStudentLogs([]);
       setStudentSubjectStats({});
       setBlueprintData([]);
+      setDisputesQueue([]);
+      setDisputesLoaded(false);
+      setBroadcastsList([]);
+      setBroadcastsLoaded(false);
+      setDisputeRoute(null);
+      setBroadcastRoute(null);
       setSelectedSubjectId('');
       setManualSubjectId('');
       setSelectedTeacherSubjectId('');
@@ -8517,7 +8663,7 @@ export default function App() {
                   <button 
                     className={`nav-item ${activeTab === 'disputes' ? 'active' : ''}`}
                     style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                    onClick={() => { setActiveTab('disputes'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                    onClick={() => { navigateToTab('disputes'); }}
                   >
                     <ShieldAlert size={18} />
                     <span>Disputes & Requests</span>
@@ -8686,14 +8832,30 @@ export default function App() {
                   {activeTab === 'attendance' && 'Take Attendance'}
                   {activeTab === 'reports' && 'Reports & Analytics'}
                   {activeTab === 'session-history' && 'Session History'}
-                  {activeTab === 'disputes' && 'Attendance Disputes'}
+                  {activeTab === 'disputes' && (() => {
+                    if (disputeRoute?.mode === 'detail') {
+                      return disputeRoute.item?.student_name ||
+                        disputesQueue.find(d => String(d.id) === String(disputeRoute.id))?.student_name ||
+                        `Dispute #${disputeRoute.id}`;
+                    }
+                    return 'Attendance Disputes';
+                  })()}
                   {activeTab === 'face-review' && 'Face Match Review'}
                   {activeTab === 'calendar' && 'Academic Calendar'}
                   {activeTab === 'devices' && 'Kiosks & Sensors'}
                   {activeTab === 'interventions' && 'Student Interventions'}
                   {activeTab === 'lms' && 'LMS Integration'}
                   {activeTab === 'payroll' && 'Staff & Payroll'}
-                  {activeTab === 'broadcast' && 'Campus Broadcast & Notices'}
+                  {activeTab === 'broadcast' && (() => {
+                    if (broadcastRoute?.mode === 'create') return 'Publish Notice';
+                    if (broadcastRoute?.mode === 'edit') return 'Edit Notice';
+                    if (broadcastRoute?.mode === 'detail') {
+                      return broadcastRoute.item?.title ||
+                        broadcastsList.find(n => String(n.id) === String(broadcastRoute.id))?.title ||
+                        `Notice #${broadcastRoute.id}`;
+                    }
+                    return 'Campus Notices';
+                  })()}
                   {activeTab === 'student-attendance' && 'My Attendance'}
                   {activeTab === 'student-profile' && 'My Profile'}
                   {activeTab === 'settings' && (() => {
@@ -8746,7 +8908,7 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -9245,10 +9407,19 @@ export default function App() {
         )}
 
         {activeTab === 'disputes' && (
-          <AttendanceDisputesQueue 
-            token={token} 
-            currentUser={currentUser} 
-            playCyberSound={playCyberSound} 
+          <AttendanceDisputesQueue
+            token={token}
+            currentUser={currentUser}
+            playCyberSound={playCyberSound}
+            disputesData={disputesQueue}
+            hasLoadedData={disputesLoaded}
+            onDisputesChange={(nextList) => {
+              setDisputesQueue(nextList);
+              setDisputesLoaded(true);
+            }}
+            routeView={disputeRoute}
+            setRouteView={setDisputeRoute}
+            onCloseSubView={handleNavigateBack}
             onDisputeUpdated={async () => {
               await fetchLogs();
               await fetchStats();
@@ -9312,7 +9483,15 @@ export default function App() {
             playCyberSound={playCyberSound}
             triggerHaptic={triggerHaptic}
             institutionName={currentUser?.institution_name || 'Smart Attendance System'}
-            onNavigateBack={handleNavigateBack}
+            broadcastsData={broadcastsList}
+            hasLoadedData={broadcastsLoaded}
+            onBroadcastsChange={(nextList) => {
+              setBroadcastsList(nextList);
+              setBroadcastsLoaded(true);
+            }}
+            routeView={broadcastRoute}
+            setRouteView={setBroadcastRoute}
+            onCloseSubView={handleNavigateBack}
           />
         )}
 
@@ -10870,6 +11049,7 @@ export default function App() {
         onBroadcastSuccess={() => {
           triggerHaptic();
           if (playCyberSound) playCyberSound('success');
+          fetchBroadcastsPrefetch(token);
         }}
       />
 

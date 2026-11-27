@@ -1,25 +1,73 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
-  Megaphone, 
-  Send, 
-  Download, 
-  RefreshCw, 
-  Search, 
-  CheckCircle2, 
-  AlertTriangle, 
-  FileText, 
-  Users, 
-  Copy, 
-  Check, 
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Send,
+  Download,
+  RefreshCw,
+  Search,
+  CheckCircle2,
+  AlertTriangle,
+  FileText,
+  Copy,
+  Check,
   Clock,
-  Building2,
-  Calendar,
-  ShieldAlert,
-  ChevronDown,
-  Sparkles
+  Plus,
+  ChevronRight,
+  Edit3,
+  Trash2,
+  Megaphone,
+  AlertCircle,
 } from 'lucide-react';
 import notificationApi from '../api/notificationApi';
 import { generateNoticePdf } from '../utils/noticePdfGenerator';
+
+const CATEGORY_OPTIONS = [
+  { id: 'NOTICE', label: 'General Notice' },
+  { id: 'HOLIDAY', label: 'Holiday' },
+  { id: 'URGENT', label: 'Urgent Alert' },
+  { id: 'EXAM', label: 'Examination' },
+  { id: 'CIRCULAR', label: 'Circular' },
+  { id: 'EVENT', label: 'Event' },
+];
+
+const AUDIENCE_OPTIONS = [
+  { id: 'students', label: 'Students' },
+  { id: 'staff', label: 'Teachers & Staff' },
+  { id: 'parents', label: 'Parents & Guardians' },
+];
+
+const CATEGORY_FILTER_PILLS = ['ALL', 'NOTICE', 'HOLIDAY', 'URGENT', 'EXAM', 'CIRCULAR', 'EVENT'];
+
+const getCategoryBadge = (cat) => {
+  const c = String(cat || 'NOTICE').toUpperCase();
+  switch (c) {
+    case 'URGENT':
+    case 'ALERT':
+      return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Urgent' };
+    case 'HOLIDAY':
+      return { bg: '#f0fdf4', border: '#bbf7d0', text: '#047857', label: 'Holiday' };
+    case 'CIRCULAR':
+      return { bg: '#f5f3ff', border: '#ddd6fe', text: '#6d28d9', label: 'Circular' };
+    case 'EXAM':
+    case 'EXAMINATION':
+      return { bg: '#fffbeb', border: '#fde68a', text: '#b45309', label: 'Exam' };
+    case 'EVENT':
+      return { bg: '#fdf4ff', border: '#f5d0fe', text: '#a21caf', label: 'Event' };
+    default:
+      return { bg: '#faf5ea', border: '#dfcfaf', text: '#6e4e1c', label: 'Notice' };
+  }
+};
+
+const todayIsoDate = () => new Date().toISOString().slice(0, 10);
+
+const getNoticeInitials = (cat) => {
+  const c = String(cat || 'NT').toUpperCase();
+  if (c === 'URGENT' || c === 'ALERT') return 'UR';
+  if (c === 'HOLIDAY') return 'HL';
+  if (c === 'CIRCULAR') return 'CR';
+  if (c === 'EXAM' || c === 'EXAMINATION') return 'EX';
+  if (c === 'EVENT') return 'EV';
+  return 'NT';
+};
 
 export default function CampusBroadcastCenterView({
   token,
@@ -28,130 +76,220 @@ export default function CampusBroadcastCenterView({
   playCyberSound = () => {},
   triggerHaptic = () => {},
   institutionName = 'SMART ATTENDANCE INSTITUTION',
-  onNavigateBack = () => {}
+  broadcastsData = null,
+  hasLoadedData = false,
+  onBroadcastsChange,
+  routeView = null,
+  setRouteView,
+  onCloseSubView,
 }) {
-  const [broadcasts, setBroadcasts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [localBroadcasts, setLocalBroadcasts] = useState([]);
+  const [localHasLoaded, setLocalHasLoaded] = useState(false);
+  const [localRouteView, setLocalRouteView] = useState(null);
+
+  const broadcasts = broadcastsData ?? localBroadcasts;
+  const hasLoaded = broadcastsData !== null ? hasLoadedData : localHasLoaded;
+  const activeRoute = setRouteView ? routeView : localRouteView;
+  const setActiveRoute = setRouteView || setLocalRouteView;
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [listMessage, setListMessage] = useState('');
   const [copiedId, setCopiedId] = useState(null);
 
-  // Filter & Search State
+  // Filter & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
 
-  // Dispatch Form State (for Admins / Staff)
-  const [editing, setEditing] = useState(null);
-  const [effectiveDate, setEffectiveDate] = useState('');
+  // Create / Edit Form State
+  const [editingId, setEditingId] = useState(null);
+  const [effectiveDate, setEffectiveDate] = useState(todayIsoDate);
   const [formCategory, setFormCategory] = useState('NOTICE');
   const [formTargetRoles, setFormTargetRoles] = useState(['students', 'staff', 'parents']);
   const [formTitle, setFormTitle] = useState('');
   const [formMessage, setFormMessage] = useState('');
   const [formIsUrgent, setFormIsUrgent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dispatchFeedback, setDispatchFeedback] = useState(null);
-  const [showComposeForm, setShowComposeForm] = useState(true);
+  const [formError, setFormError] = useState('');
+
+  // Detail withdraw confirmation & error
+  const [confirmWithdrawId, setConfirmWithdrawId] = useState(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
   const canDispatch = ['admin', 'principal'].includes(String(userRole).toLowerCase());
 
-  // Fetch Broadcasts
-  const fetchBroadcastHistory = useCallback(async () => {
+  const fetchBroadcastHistory = useCallback(async ({ silent = false } = {}) => {
     if (!token) return;
-    setLoading(true);
-    setError(null);
+    if (!silent) setRefreshing(true);
+    setError('');
     try {
       const res = await notificationApi.fetchBroadcastHistory(token, 100);
-      setBroadcasts(res);
+      const list = Array.isArray(res) ? res : [];
+      setLocalBroadcasts(list);
+      setLocalHasLoaded(true);
+      if (onBroadcastsChange) onBroadcastsChange(list);
     } catch {
-      setError('Campus notices could not be loaded. Please refresh.');
+      setError('Campus notices could not be loaded. Please try refreshing.');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  }, [token]);
+  }, [token, onBroadcastsChange]);
 
   useEffect(() => {
-    fetchBroadcastHistory();
-  }, [fetchBroadcastHistory]);
+    let ignore = false;
+    if (token && !hasLoaded) {
+      Promise.resolve().then(() => {
+        if (!ignore) fetchBroadcastHistory({ silent: false });
+      });
+    }
+    return () => {
+      ignore = true;
+    };
+  }, [token, hasLoaded, fetchBroadcastHistory]);
 
-  // Handle Form Submission
+  const closeSubView = () => {
+    setFormError('');
+    setDetailError('');
+    setConfirmWithdrawId(null);
+    if (onCloseSubView) {
+      onCloseSubView();
+    } else {
+      setActiveRoute(null);
+    }
+  };
+
+  const openCreatePage = () => {
+    playCyberSound('click');
+    setEditingId(null);
+    setEffectiveDate(todayIsoDate());
+    setFormCategory('NOTICE');
+    setFormTargetRoles(['students', 'staff', 'parents']);
+    setFormTitle('');
+    setFormMessage('');
+    setFormIsUrgent(false);
+    setFormError('');
+    setListMessage('');
+    setActiveRoute({ mode: 'create' });
+  };
+
+  const openDetailPage = (notice) => {
+    playCyberSound('click');
+    setDetailError('');
+    setConfirmWithdrawId(null);
+    setActiveRoute({ mode: 'detail', id: notice.id, item: notice });
+  };
+
+  const openEditPage = (notice) => {
+    playCyberSound('click');
+    setEditingId(notice.id);
+    setFormIsUrgent(String(notice.category || '').toUpperCase() === 'URGENT');
+    setFormCategory(String(notice.category || 'NOTICE').toUpperCase());
+    setFormTargetRoles(
+      Array.isArray(notice.target_roles) && notice.target_roles.length > 0
+        ? notice.target_roles
+        : ['students', 'staff', 'parents']
+    );
+    setFormTitle(notice.title || '');
+    setFormMessage(notice.message || '');
+    const fallbackDate = notice.effective_date || (notice.created_at ? String(notice.created_at).slice(0, 10) : todayIsoDate());
+    setEffectiveDate(fallbackDate);
+    setFormError('');
+    setActiveRoute({ mode: 'edit', id: notice.id, item: notice });
+  };
+
   const handleDispatch = async (e) => {
     if (e) e.preventDefault();
+    setFormError('');
     if (!formTitle.trim() || !formMessage.trim()) {
-      setDispatchFeedback({ type: 'error', message: 'Please provide both announcement title and message body.' });
+      setFormError('Please provide both notice title and circular message.');
       return;
     }
-    if (formTargetRoles.length === 0) {
-      setDispatchFeedback({ type: 'error', message: 'Please select at least one recipient audience role.' });
+    if (!editingId && formTargetRoles.length === 0) {
+      setFormError('Please select at least one recipient audience.');
       return;
     }
 
     setIsSubmitting(true);
-    setDispatchFeedback(null);
     try {
       const payload = {
-        effective_date: effectiveDate || null,
+        effective_date: effectiveDate || todayIsoDate(),
         title: formTitle.trim(),
         message: formMessage.trim(),
         category: formIsUrgent ? 'URGENT' : formCategory,
         target_roles: formTargetRoles,
         is_urgent: formIsUrgent,
         sender_role: userRole,
-        sender_name: currentUser?.name || 'Campus Administrator'
+        sender_name: currentUser?.name || 'Campus Administrator',
       };
 
-      if (editing) {
-        const response = await notificationApi.reviseNotice(token, editing, payload);
-        if (!response.ok) throw new Error('Could not publish the changes.');
+      if (editingId) {
+        const response = await notificationApi.reviseNotice(token, editingId, payload);
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Could not save notice changes.');
+        }
       } else {
         await notificationApi.broadcastAnnouncement(token, payload);
       }
-      setEditing(null);
-      setEffectiveDate('');
-      setDispatchFeedback({ type: 'success', message: 'Campus notice published.' });
-      setFormTitle('');
-      setFormMessage('');
-      setFormIsUrgent(false);
+
       triggerHaptic();
-      await fetchBroadcastHistory();
+      playCyberSound('success');
+      setListMessage(editingId ? 'Notice changes published.' : 'Campus notice published.');
+      await fetchBroadcastHistory({ silent: true });
+      setEditingId(null);
+      setActiveRoute(null);
     } catch (err) {
-      setDispatchFeedback({ type: 'error', message: err.message || 'Unable to publish. Your draft is still here.' });
+      setFormError(err.message || 'Unable to publish notice. Please try again.');
     } finally {
       setIsSubmitting(false);
-      setTimeout(() => {
-        setDispatchFeedback(null);
-      }, 6000);
     }
   };
 
-  // Toggle role in target roles
+  const handleWithdraw = async (notice) => {
+    setDetailError('');
+    setIsWithdrawing(true);
+    try {
+      const res = await notificationApi.withdrawNotice(token, notice.id);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Unable to withdraw this notice.');
+      }
+      playCyberSound('success');
+      triggerHaptic();
+      const updated = broadcasts.filter(b => String(b.id) !== String(notice.id));
+      setLocalBroadcasts(updated);
+      if (onBroadcastsChange) onBroadcastsChange(updated);
+      setListMessage(`Notice "${notice.title}" withdrawn.`);
+      setConfirmWithdrawId(null);
+      setActiveRoute(null);
+    } catch (err) {
+      setDetailError(err.message || 'Unable to withdraw this notice.');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
   const toggleRole = (roleKey) => {
-    if (editing) return;
-    setFormTargetRoles(prev => 
-      prev.includes(roleKey) 
+    if (editingId) return;
+    setFormTargetRoles(prev =>
+      prev.includes(roleKey)
         ? prev.filter(r => r !== roleKey)
         : [...prev, roleKey]
     );
   };
 
-  // Filtered broadcast items
-  const filteredBroadcasts = useMemo(() => {
-    return broadcasts.filter(item => {
-      const cat = String(item.category || '').toUpperCase();
-      if (selectedCategoryFilter !== 'ALL' && cat !== selectedCategoryFilter) {
-        return false;
-      }
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesTitle = String(item.title || '').toLowerCase().includes(q);
-        const matchesMsg = String(item.message || '').toLowerCase().includes(q);
-        const matchesCat = cat.toLowerCase().includes(q);
-        const matchesRoles = Array.isArray(item.target_roles) && item.target_roles.some(r => String(r).toLowerCase().includes(q));
-        return matchesTitle || matchesMsg || matchesCat || matchesRoles;
-      }
-      return true;
-    });
-  }, [broadcasts, selectedCategoryFilter, searchQuery]);
+  const copyNotice = (notice) => {
+    const dateTxt = notice.created_at ? new Date(notice.created_at).toLocaleDateString() : '';
+    const text = `*${notice.title}*\nCategory: ${notice.category || 'NOTICE'}\nDate: ${dateTxt}\n\n${notice.message}`;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    setCopiedId(notice.id);
+    triggerHaptic();
+    setTimeout(() => setCopiedId(null), 2400);
+  };
 
-  // Export all as CSV
   const exportAllAsCSV = () => {
     if (broadcasts.length === 0) return;
     const headers = ['ID', 'Date', 'Category', 'Audience', 'Title', 'Message'];
@@ -161,254 +299,116 @@ export default function CampusBroadcastCenterView({
       b.category || 'NOTICE',
       Array.isArray(b.target_roles) ? b.target_roles.join(';') : 'All',
       `"${(b.title || '').replace(/"/g, '""')}"`,
-      `"${(b.message || '').replace(/"/g, '""')}"`
+      `"${(b.message || '').replace(/"/g, '""')}"`,
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Campus_Notices_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('href', encodeURI(csvContent));
+    link.setAttribute('download', `Campus_Notices_${todayIsoDate()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Copy notice text to clipboard
-  const copyNotice = (notice) => {
-    const text = `📢 *${notice.title}*\nCategory: ${notice.category || 'NOTICE'}\nDate: ${notice.created_at ? new Date(notice.created_at).toLocaleDateString() : ''}\n\n${notice.message}`;
-    navigator.clipboard.writeText(text);
-    setCopiedId(notice.id);
-    triggerHaptic();
-    setTimeout(() => setCopiedId(null), 2500);
-  };
+  const filteredBroadcasts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return broadcasts.filter(item => {
+      const cat = String(item.category || '').toUpperCase();
+      if (selectedCategoryFilter !== 'ALL' && cat !== selectedCategoryFilter) return false;
+      if (!q) return true;
+      return (
+        String(item.title || '').toLowerCase().includes(q) ||
+        String(item.message || '').toLowerCase().includes(q) ||
+        cat.toLowerCase().includes(q) ||
+        (Array.isArray(item.target_roles) && item.target_roles.some(r => String(r).toLowerCase().includes(q)))
+      );
+    });
+  }, [broadcasts, selectedCategoryFilter, searchQuery]);
 
-  // Category Color Badges
-  const getCategoryBadge = (cat) => {
-    const c = String(cat || 'NOTICE').toUpperCase();
-    switch (c) {
-      case 'URGENT':
-      case 'ALERT':
-        return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: '🚨 URGENT ALERT' };
-      case 'HOLIDAY':
-        return { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', label: '🌴 HOLIDAY' };
-      case 'CIRCULAR':
-        return { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', label: '📜 OFFICIAL CIRCULAR' };
-      case 'EXAM':
-      case 'EXAMINATION':
-        return { bg: '#fffbeb', border: '#fef3c7', text: '#d97706', label: '📝 EXAMINATION' };
-      case 'EVENT':
-        return { bg: '#fdf4ff', border: '#f5d0fe', text: '#c026d3', label: '🎯 EVENT' };
-      default:
-        return { bg: '#faf5ea', border: '#dfcfaf', text: '#785927', label: '📌 GENERAL NOTICE' };
-    }
-  };
-
-  // Role-aware metrics computation
-  const statsMetrics = useMemo(() => {
-    const total = broadcasts.length;
-    const isStudent = String(userRole).toLowerCase() === 'student';
-    const isTeacher = String(userRole).toLowerCase() === 'teacher';
-
-    if (isStudent) {
-      const exams = broadcasts.filter(b => ['EXAM', 'EXAMINATION', 'CIRCULAR', 'ACADEMIC'].includes(String(b.category).toUpperCase())).length;
-      const holidays = broadcasts.filter(b => String(b.category).toUpperCase() === 'HOLIDAY').length;
-      const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
-      return [
-        { label: 'Total Circulars', val: total, color: '#25231f' },
-        { label: 'Academic & Exams', val: exams, color: '#785927' },
-        { label: 'Gazetted Holidays', val: holidays, color: '#059669' },
-        { label: 'Urgent Alerts', val: urgent, color: '#dc2626' }
-      ];
-    }
-
-    if (isTeacher) {
-      const staffCount = broadcasts.filter(b => !b.target_roles || b.target_roles.includes('staff') || b.target_roles.includes('teacher') || b.target_roles.includes('all')).length;
-      const exams = broadcasts.filter(b => ['EXAM', 'EXAMINATION', 'CIRCULAR'].includes(String(b.category).toUpperCase())).length;
-      const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
-      return [
-        { label: 'Total Notices', val: total, color: '#25231f' },
-        { label: 'Staff notices', val: staffCount, color: '#059669' },
-        { label: 'Academic & Exams', val: exams, color: '#785927' },
-        { label: 'Urgent Notices', val: urgent, color: '#dc2626' }
-      ];
-    }
-
-    // Admin default
-    const students = broadcasts.filter(b => !b.target_roles || b.target_roles.includes('students') || b.target_roles.includes('student') || b.target_roles.includes('all')).length;
-    const staff = broadcasts.filter(b => !b.target_roles || b.target_roles.includes('staff') || b.target_roles.includes('teacher') || b.target_roles.includes('all')).length;
-    const urgent = broadcasts.filter(b => String(b.category).toUpperCase() === 'URGENT' || b.is_urgent).length;
-    return [
-      { label: 'Total Notices', val: total, color: '#25231f' },
-      { label: 'Student notices', val: students, color: '#785927' },
-      { label: 'Staff notices', val: staff, color: '#059669' },
-      { label: 'Urgent Alerts', val: urgent, color: '#dc2626' }
-    ];
-  }, [broadcasts, userRole]);
-
-  return (
-    <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      
-      {/* ── Top Bar: Quick Action Controls ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-          <button
-            type="button"
-            onClick={() => {
-              playCyberSound('click');
-              fetchBroadcastHistory();
-            }}
-            disabled={loading}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              background: '#ffffff',
-              border: '1px solid #cfc8ba',
-              borderRadius: '10px',
-              color: '#58534a',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-            title="Refresh Notice Board"
-          >
-            <RefreshCw size={14} className={loading ? 'spin-anim' : ''} />
-            <span>Refresh</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              playCyberSound('click');
-              exportAllAsCSV();
-            }}
-            disabled={broadcasts.length === 0}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              background: '#faf9f6',
-              border: '1px solid #cfc8ba',
-              borderRadius: '10px',
-              color: '#46423b',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              cursor: broadcasts.length > 0 ? 'pointer' : 'not-allowed',
-              opacity: broadcasts.length > 0 ? 1 : 0.6
-            }}
-            title="Export Circular History CSV"
-          >
-            <Download size={14} />
-            <span className="hide-on-compact">Export CSV</span>
-          </button>
-        </div>
-      </div>
-
-      {error && <p role="alert">{error}</p>}
-      {/* ── Horizontal Operational Metrics Strip ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-        gap: '10px'
-      }}>
-        {statsMetrics.map((stat, idx) => (
-          <div key={idx} style={{ padding: '8px', minWidth: 0, overflowWrap: 'anywhere', background: '#ffffff', borderRadius: '12px', border: '1px solid #e4dfd5' }}>
-            <span style={{ fontSize: '0.72rem', color: stat.color, fontWeight: 600, textTransform: 'uppercase' }}>{stat.label}</span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: stat.color, marginTop: '2px' }}>{stat.val}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Dispatch Form for Admin / Authorized Staff ── */}
-      {canDispatch && (
-        <div 
-          className="surface-card"
-          style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            border: '1px solid #cfc8ba',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
-            overflow: 'hidden'
-          }}
-        >
-          {/* Header Strip with Toggle */}
-          <div 
-            onClick={() => setShowComposeForm(prev => !prev)}
-            style={{
-              padding: '14px 18px',
-              background: '#faf9f6',
-              borderBottom: showComposeForm ? '1px solid #e4dfd5' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Send size={18} color="#785927" />
-              <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#25231f' }}>
-                Dispatch New Broadcast Announcement
-              </h3>
+  /* ===== DEDICATED CREATE / EDIT NOTICE PAGE ===== */
+  if (activeRoute && (activeRoute.mode === 'create' || activeRoute.mode === 'edit')) {
+    const isEdit = activeRoute.mode === 'edit';
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', boxSizing: 'border-box' }}>
+          {formError && (
+            <div role="alert" className="feedback-banner is-error">
+              <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{formError}</span>
             </div>
-            <button
-              type="button"
-              style={{
-                border: 'none',
-                background: 'transparent',
-                color: '#696358',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              <span>{showComposeForm ? 'Collapse Form' : 'Open Form'}</span>
-              <ChevronDown 
-                size={16} 
-                style={{ transform: showComposeForm ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} 
-              />
-            </button>
-          </div>
+          )}
 
-          {showComposeForm && (
-            <form onSubmit={handleDispatch} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              
-              <label>Notice date<input className="form-input" type="date" required value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)} /></label>
+          <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Megaphone size={13} />
+                <span>{isEdit ? 'Revise Notice Details' : 'Notice Content'}</span>
+              </div>
 
-              {/* Category Pills */}
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Announcement Title *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formTitle}
+                  onChange={e => setFormTitle(e.target.value)}
+                  placeholder="e.g. Semester Exam Timetable & Guidelines"
+                  style={{ background: '#ffffff' }}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Notice Message *</label>
+                <textarea
+                  className="form-input"
+                  rows={4}
+                  value={formMessage}
+                  onChange={e => setFormMessage(e.target.value)}
+                  placeholder="Write clear instructions, dates, or campus circular details..."
+                  style={{ background: '#ffffff', minHeight: '104px', padding: '10px 12px', resize: 'vertical', lineHeight: 1.5 }}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Notice Date *</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={effectiveDate}
+                  onChange={e => setEffectiveDate(e.target.value)}
+                  style={{ background: '#ffffff' }}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title">Category &amp; Audience</div>
+
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '8px' }}>
-                  Notice Category *
-                </label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {[
-                    { id: 'NOTICE', label: '📌 General Notice' },
-                    { id: 'HOLIDAY', label: '🌴 Holiday' },
-                    { id: 'URGENT', label: '🚨 Urgent Alert' },
-                    { id: 'EXAM', label: '📝 Examination' },
-                    { id: 'CIRCULAR', label: '📜 Circular' },
-                    { id: 'EVENT', label: '🎯 Event' }
-                  ].map(cat => {
-                    const isSelected = formCategory === cat.id;
+                <div className="form-label" style={{ marginBottom: '8px' }}>Notice Category *</div>
+                <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap' }}>
+                  {CATEGORY_OPTIONS.map(cat => {
+                    const selected = !formIsUrgent ? formCategory === cat.id : cat.id === 'URGENT';
                     return (
                       <button
                         key={cat.id}
                         type="button"
-                        onClick={() => !editing && setFormCategory(cat.id)}
+                        onClick={() => {
+                          setFormCategory(cat.id);
+                          setFormIsUrgent(cat.id === 'URGENT');
+                        }}
                         style={{
                           padding: '7px 12px',
-                          borderRadius: '8px',
-                          fontSize: '0.82rem',
+                          borderRadius: '999px',
+                          fontSize: '0.78rem',
                           fontWeight: 700,
                           cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          border: isSelected ? '1.5px solid #785927' : '1px solid #cfc8ba',
-                          background: isSelected ? '#faf5ea' : '#ffffff',
-                          color: isSelected ? '#684c20' : '#58534a'
+                          border: selected ? '1.5px solid #785927' : '1px solid #dfd3ba',
+                          background: selected ? '#785927' : '#ffffff',
+                          color: selected ? '#ffffff' : '#4a3d28',
                         }}
                       >
                         {cat.label}
@@ -418,435 +418,456 @@ export default function CampusBroadcastCenterView({
                 </div>
               </div>
 
-              {/* Audience Selector Pills */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '8px' }}>
-                  Recipient Audience (Select All That Apply) *
-                </label>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {[
-                    { id: 'students', label: '🎓 Students' },
-                    { id: 'staff', label: '👨‍🏫 Teachers & Staff' },
-                    { id: 'parents', label: '👪 Parents & Guardians' }
-                  ].map(role => {
-                    const isSelected = formTargetRoles.includes(role.id);
+                <div className="form-label" style={{ marginBottom: '8px' }}>
+                  Recipient Audience {isEdit ? '(Fixed for published notice)' : '*'}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {AUDIENCE_OPTIONS.map(role => {
+                    const selected = formTargetRoles.includes(role.id) || formTargetRoles.includes(role.id.replace(/s$/, ''));
                     return (
                       <button
                         key={role.id}
                         type="button"
+                        disabled={isEdit}
                         onClick={() => toggleRole(role.id)}
                         style={{
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          fontSize: '0.82rem',
+                          padding: '7px 12px',
+                          borderRadius: '999px',
+                          fontSize: '0.78rem',
                           fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
+                          cursor: isEdit ? 'not-allowed' : 'pointer',
+                          opacity: isEdit && !selected ? 0.55 : 1,
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          border: isSelected ? '1.5px solid #059669' : '1px solid #cfc8ba',
-                          background: isSelected ? '#f0fdf4' : '#ffffff',
-                          color: isSelected ? '#047857' : '#696358'
+                          gap: '5px',
+                          border: selected ? '1.5px solid #047857' : '1px solid #dfd3ba',
+                          background: selected ? 'rgba(5, 150, 105, 0.1)' : '#ffffff',
+                          color: selected ? '#047857' : '#584b36',
                         }}
                       >
                         <span>{role.label}</span>
-                        {isSelected && <Check size={14} strokeWidth={2.5} />}
+                        {selected && <Check size={13} strokeWidth={2.5} />}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Title Input */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '6px' }}>
-                  Announcement Title *
-                </label>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600, color: '#4a3d28' }}>
                 <input
-                  type="text"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="e.g., Mandatory Attendance Audit & Hall Ticket Clearance"
-                  className="form-input"
-                  style={{
-                    width: '100%',
-                    height: '42px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cfc8ba',
-                    background: '#ffffff',
-                    padding: '0 12px',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    color: '#25231f',
-                    boxSizing: 'border-box'
-                  }}
-                  required
+                  type="checkbox"
+                  checked={formIsUrgent}
+                  onChange={e => setFormIsUrgent(e.target.checked)}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#b91c1c' }}
                 />
+                <span>Mark as Priority / Urgent Alert</span>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={closeSubView}
+                className="golden-os-feedback-filter-btn"
+                style={{ flex: '1 1 110px', padding: '11px 16px', borderRadius: '10px', fontSize: '0.86rem', textAlign: 'center' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="golden-os-primary-action"
+                style={{ flex: '2 1 180px', width: 'auto', justifyContent: 'center', padding: '11px 20px', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 700, gap: '7px' }}
+              >
+                <Send size={15} />
+                <span style={{ color: '#ffffff' }}>{isSubmitting ? 'Publishing...' : (isEdit ? 'Republish Notice' : 'Publish Notice')}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== DEDICATED NOTICE DETAIL PAGE ===== */
+  if (activeRoute && activeRoute.mode === 'detail') {
+    const selectedNotice =
+      broadcasts.find(n => String(n.id) === String(activeRoute.id)) ||
+      activeRoute.item ||
+      null;
+
+    if (!selectedNotice) {
+      return (
+        <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+          <div className="golden-os-window" style={{ padding: '24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+            <FileText size={32} style={{ color: '#9c8b6e' }} />
+            <span style={{ fontWeight: 700, color: '#2b2112' }}>Notice not found or withdrawn.</span>
+            <button type="button" onClick={closeSubView} className="golden-os-feedback-filter-btn" style={{ padding: '8px 16px', borderRadius: '10px' }}>
+              Back to Notices
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const badge = getCategoryBadge(selectedNotice.category);
+    const roles = Array.isArray(selectedNotice.target_roles) && selectedNotice.target_roles.length > 0
+      ? selectedNotice.target_roles
+      : ['All'];
+    const createdStr = selectedNotice.created_at
+      ? new Date(selectedNotice.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : 'Recent';
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box' }}>
+          {detailError && (
+            <div role="alert" className="feedback-banner is-error">
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{detailError}</span>
+            </div>
+          )}
+
+          {/* Header Summary Card */}
+          <div className="golden-os-form-section" style={{ gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <span style={{
+                padding: '4px 10px',
+                borderRadius: '999px',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                background: badge.bg,
+                border: badge.border,
+                color: badge.text,
+              }}>
+                {badge.label}
+              </span>
+              <span style={{ fontSize: '0.74rem', color: '#6b5b3e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <Clock size={12} />
+                {createdStr}
+              </span>
+            </div>
+
+            <h3 style={{ margin: 0, fontSize: '1.08rem', fontWeight: 800, color: '#25231f', lineHeight: 1.35 }}>
+              {selectedNotice.title}
+            </h3>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {roles.map(r => (
+                  <span key={r} style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, background: '#faf5ea', border: '1px solid #e7dac0', color: '#6e4e1c', textTransform: 'uppercase' }}>
+                    {r}
+                  </span>
+                ))}
               </div>
+              <span style={{ fontSize: '0.72rem', color: '#8c7a5b', fontFamily: 'monospace', fontWeight: 700 }}>
+                REF: INST-BRD-{String(selectedNotice.id).padStart(4, '0')}
+              </span>
+            </div>
+          </div>
 
-              {/* Message Textarea */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#46423b', marginBottom: '6px' }}>
-                  Detailed Circular Body / Instructions *
-                </label>
-                <textarea
-                  value={formMessage}
-                  onChange={(e) => setFormMessage(e.target.value)}
-                  placeholder="Provide full details, deadlines, schedule changes, or relevant administrative guidelines..."
-                  rows={4}
-                  className="form-input"
-                  style={{
-                    width: '100%',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cfc8ba',
-                    background: '#ffffff',
-                    padding: '10px 12px',
-                    fontSize: '0.88rem',
-                    fontWeight: 500,
-                    color: '#25231f',
-                    lineHeight: 1.5,
-                    resize: 'vertical',
-                    boxSizing: 'border-box'
-                  }}
-                  required
-                />
+          {/* Full Circular Message */}
+          <div className="golden-os-form-section">
+            <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={13} /> Circular Message
+              </span>
+              {selectedNotice.effective_date && (
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b5b3e', textTransform: 'none', letterSpacing: 0 }}>
+                  Date: {selectedNotice.effective_date}
+                </span>
+              )}
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              color: '#25231f',
+              lineHeight: 1.65,
+              whiteSpace: 'pre-wrap',
+              background: '#faf8f2',
+              padding: '14px',
+              borderRadius: '12px',
+              border: '1px solid #ede4d2',
+            }}>
+              {selectedNotice.message}
+            </div>
+          </div>
+
+          {/* Inline Withdraw Confirmation */}
+          {canDispatch && confirmWithdrawId === selectedNotice.id && (
+            <div className="golden-os-form-section" style={{ background: '#fef2f2', border: '1px solid #fecaca', gap: '10px' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#b91c1c' }}>
+                Withdraw &ldquo;{selectedNotice.title}&rdquo; from the notice board?
               </div>
-
-              {/* Urgent Toggle & Action Row */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', paddingTop: '4px' }}>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600, color: '#58534a' }}>
-                  <input
-                    type="checkbox"
-                    checked={formIsUrgent}
-                    onChange={(e) => setFormIsUrgent(e.target.checked)}
-                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                  />
-                  <span>Mark as Priority / Emergency Dispatch</span>
-                </label>
-
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
+                  type="button"
+                  onClick={() => setConfirmWithdrawId(null)}
+                  className="golden-os-feedback-filter-btn"
+                  style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '0.8rem' }}
+                >
+                  Keep Notice
+                </button>
+                <button
+                  type="button"
+                  disabled={isWithdrawing}
+                  onClick={() => handleWithdraw(selectedNotice)}
                   style={{
-                    padding: '11px 24px',
-                    borderRadius: '10px',
-                    background: isSubmitting ? '#94a3b8' : '#785927',
-                    color: '#ffffff',
+                    padding: '7px 16px',
+                    borderRadius: '8px',
+                    background: '#dc2626',
                     border: 'none',
-                    fontSize: '0.9rem',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
                     fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
-                    transition: 'background 0.2s ease'
+                    cursor: isWithdrawing ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  <Send size={16} />
-                  <span>{isSubmitting ? 'Dispatching...' : editing ? 'Republish notice' : 'Publish notice'}</span>
+                  {isWithdrawing ? 'Withdrawing...' : 'Confirm Withdraw'}
                 </button>
               </div>
-
-              {/* Feedback Alert */}
-              {dispatchFeedback && (
-                <div style={{
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: dispatchFeedback.type === 'error' ? '#fef2f2' : '#f0fdf4',
-                  color: dispatchFeedback.type === 'error' ? '#b91c1c' : '#15803d',
-                  border: `1px solid ${dispatchFeedback.type === 'error' ? '#fecaca' : '#bbf7d0'}`
-                }}>
-                  {dispatchFeedback.type === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
-                  <span>{dispatchFeedback.message}</span>
-                </div>
-              )}
-            </form>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* ── Broadcast Archive & Notice History ── */}
-      <div 
-        className="surface-card"
-        style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          border: '1px solid #cfc8ba',
-          padding: '18px 20px',
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '14px'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
-              Notice History Archive ({filteredBroadcasts.length})
-            </h3>
-            {userRole !== 'student' && userRole !== 'teacher' && (
-              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#696358' }}>
-                Chronological log of all campus broadcasts with downloadable verified PDF notices
-              </p>
+          {/* Action Controls */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => copyNotice(selectedNotice)}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '9px 14px', borderRadius: '10px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                {copiedId === selectedNotice.id ? <Check size={14} color="#047857" /> : <Copy size={14} />}
+                <span>{copiedId === selectedNotice.id ? 'Copied' : 'Copy Text'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playCyberSound('click');
+                  triggerHaptic();
+                  generateNoticePdf(selectedNotice, institutionName);
+                }}
+                style={{
+                  padding: '9px 14px',
+                  borderRadius: '10px',
+                  background: '#faf5ea',
+                  border: '1px solid #dfcfaf',
+                  color: '#6e4e1c',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Download size={14} />
+                <span>Download PDF</span>
+              </button>
+            </div>
+
+            {canDispatch && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => openEditPage(selectedNotice)}
+                  className="golden-os-primary-action"
+                  style={{ width: 'auto', justifyContent: 'center', padding: '9px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700, gap: '6px' }}
+                >
+                  <Edit3 size={14} />
+                  <span>Edit Notice</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmWithdrawId(selectedNotice.id)}
+                  style={{
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <Trash2 size={14} />
+                  <span>Withdraw</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Search Bar & Category Filter Strip */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ position: 'relative', width: '100%' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+  /* ===== MAIN GOLDEN GATE NOTICE DIRECTORY (Compact 1-Line Rows, Form Hidden) ===== */
+  return (
+    <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+      <div className="golden-os-window" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box' }}>
+        {error && (
+          <div role="alert" className="feedback-banner is-error">
+            <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{error}</span>
+          </div>
+        )}
+        {listMessage && (
+          <div role="status" className="feedback-banner is-success">
+            <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{listMessage}</span>
+          </div>
+        )}
+
+        {/* Top Bar: Search + New Notice + Refresh/CSV */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: '1 1 170px', minWidth: '140px' }}>
             <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search circulars by title, content, or audience role..."
+              type="search"
               className="form-input"
-              style={{
-                width: '100%',
-                height: '38px',
-                borderRadius: '10px',
-                border: '1px solid #cfc8ba',
-                paddingLeft: '36px',
-                paddingRight: '12px',
-                fontSize: '0.85rem',
-                color: '#25231f',
-                boxSizing: 'border-box'
-              }}
+              aria-label="Search campus notices"
+              placeholder="Search notices..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '36px', background: '#ffffff', width: '100%', boxSizing: 'border-box' }}
             />
+            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
           </div>
 
-          {/* Filter Pills */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', overflowX: 'auto', paddingBottom: '2px' }}>
-            {['ALL', 'NOTICE', 'HOLIDAY', 'URGENT', 'EXAM', 'CIRCULAR', 'EVENT'].map(cat => {
-              const isActive = selectedCategoryFilter === cat;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategoryFilter(cat)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: isActive ? '1px solid #785927' : '1px solid #e4dfd5',
-                    background: isActive ? '#785927' : '#faf9f6',
-                    color: isActive ? '#ffffff' : '#696358',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            title="Refresh Notices"
+            onClick={() => {
+              playCyberSound('click');
+              fetchBroadcastHistory();
+            }}
+            disabled={refreshing}
+            className="golden-os-feedback-filter-btn"
+            style={{ padding: '10px 12px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem' }}
+          >
+            <RefreshCw size={14} className={refreshing ? 'spin-anim' : ''} />
+            <span className="hide-on-compact">Refresh</span>
+          </button>
+
+          {broadcasts.length > 0 && (
+            <button
+              type="button"
+              title="Export CSV"
+              onClick={() => {
+                playCyberSound('click');
+                exportAllAsCSV();
+              }}
+              className="golden-os-feedback-filter-btn"
+              style={{ padding: '10px 12px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem' }}
+            >
+              <Download size={14} />
+              <span className="hide-on-compact">CSV</span>
+            </button>
+          )}
+
+          {canDispatch && (
+            <button
+              type="button"
+              onClick={openCreatePage}
+              className="golden-os-primary-action"
+              style={{ width: 'auto', justifyContent: 'center', padding: '10px 16px', borderRadius: '11px', fontSize: '0.84rem', gap: '6px', flexShrink: 0 }}
+            >
+              <Plus size={16} />
+              <span>New Notice</span>
+            </button>
+          )}
         </div>
 
-        {/* Notices Cards List */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '36px 0', color: '#696358', fontSize: '0.9rem' }}>
-            <RefreshCw size={24} className="spin-anim" style={{ margin: '0 auto 8px auto', display: 'block' }} />
-            <span>Loading institution notices archive...</span>
+        {/* Clean Filter Pills */}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {CATEGORY_FILTER_PILLS.map(cat => {
+            const isActive = selectedCategoryFilter === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategoryFilter(cat)}
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: '999px',
+                  fontSize: '0.73rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: isActive ? '1px solid #785927' : '1px solid #e4d8bd',
+                  background: isActive ? '#785927' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#6b5b3e',
+                }}
+              >
+                {cat === 'ALL' ? `All (${broadcasts.length})` : cat}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 1-Line Scannable Notice List */}
+        {!hasLoaded && broadcasts.length === 0 ? (
+          <div className="golden-os-inset-card" style={{ padding: '28px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
+            <RefreshCw size={22} className="spin-anim" style={{ color: '#8c7a5b' }} />
+            <span style={{ fontSize: '0.86rem', color: '#6b5b3e', fontWeight: 600 }}>Loading notices...</span>
           </div>
         ) : filteredBroadcasts.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '36px 16px',
-            background: '#faf9f6',
-            borderRadius: '12px',
-            border: '1px dashed #cfc8ba',
-            color: '#696358'
-          }}>
-            <FileText size={32} style={{ opacity: 0.5, marginBottom: '6px' }} />
-            <h4 style={{ margin: '0 0 4px 0', color: '#46423b', fontSize: '0.95rem' }}>No Circulars Found</h4>
-            <p style={{ margin: 0, fontSize: '0.82rem' }}>
-              {searchQuery ? 'No notices matched your search query.' : 'No announcements have been dispatched under this category yet.'}
-            </p>
+          <div className="golden-os-inset-card" style={{ padding: '32px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
+            <FileText size={28} style={{ color: '#9c8b6e' }} />
+            <span style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>
+              {searchQuery || selectedCategoryFilter !== 'ALL' ? 'No matching notices found' : 'No notices published yet'}
+            </span>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="golden-os-list-shell">
             {filteredBroadcasts.map(notice => {
               const badge = getCategoryBadge(notice.category);
-              const dateStr = notice.created_at ? new Date(notice.created_at).toLocaleDateString('en-IN', {
-                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-              }) : 'Recent';
-              const roles = Array.isArray(notice.target_roles) && notice.target_roles.length > 0 
-                ? notice.target_roles 
-                : ['All Members'];
-
               return (
-                <div
+                <button
                   key={notice.id}
-                  className="surface-card"
-                  style={{
-                    padding: '16px 18px',
-                    borderRadius: '14px',
-                    border: '1px solid #e4dfd5',
-                    background: '#ffffff',
-                    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px'
-                  }}
+                  type="button"
+                  className="golden-os-list-row"
+                  onClick={() => openDetailPage(notice)}
                 >
-                  {/* Top Meta Strip */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        background: badge.bg,
-                        border: `1px solid ${badge.border}`,
-                        color: badge.text
-                      }}>
-                        {badge.label}
-                      </span>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {roles.map(r => (
-                          <span
-                            key={r}
-                            style={{
-                              padding: '2px 7px',
-                              borderRadius: '6px',
-                              fontSize: '0.68rem',
-                              fontWeight: 600,
-                              background: '#f4f1eb',
-                              color: '#58534a'
-                            }}
-                          >
-                            {r.toUpperCase()}
-                          </span>
-                        ))}
-                      </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                    <div className="golden-os-avatar" style={{ background: badge.bg, borderColor: badge.border, color: badge.text }}>
+                      {getNoticeInitials(notice.category)}
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#696358' }}>
-                      <Clock size={12} />
-                      <span>{dateStr}</span>
-                    </div>
-                  </div>
-
-                  {/* Title */}
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#25231f', lineHeight: 1.35 }}>
-                    {notice.title}
-                  </h4>
-
-                  <details><summary>Read notice</summary>
-                  <div style={{
-                    fontSize: '0.86rem',
-                    color: '#46423b',
-                    lineHeight: 1.55,
-                    whiteSpace: 'pre-wrap',
-                    background: '#faf9f6',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: '1px solid #f4f1eb'
-                  }}>
-                    {notice.message}
-                  </div></details>
-
-                  {notice.effective_date && <span>Notice date · {notice.effective_date}</span>}
-                  {canDispatch && <div>
-                    <button type="button" onClick={() => {
-                      setFormIsUrgent(notice.category === 'URGENT'); setEditing(notice.id); setFormTitle(notice.title); setFormMessage(notice.message);
-                      setEffectiveDate(notice.effective_date || notice.created_at.slice(0, 10));
-                      setFormTargetRoles(notice.target_roles); setFormCategory(notice.category);
-                      setShowComposeForm(true);
-                      requestAnimationFrame(() => document.querySelector('form input[type=date]')?.focus());
-                    }}>Edit notice</button>
-                    <button type="button" onClick={async () => {
-                      if (!window.confirm(`Withdraw “${notice.title}” from the notice board?`)) return;
-                      try {
-                        const res = await notificationApi.withdrawNotice(token, notice.id);
-                        if (!res.ok) throw new Error();
-                        await fetchBroadcastHistory();
-                      } catch { setError('Unable to withdraw the notice.'); }
-                    }}>Withdraw</button>
-                  </div>}
-                  {/* Action Footer */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', paddingTop: '4px' }}>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
-                      REF: INST-BRD-{String(notice.id).padStart(4, '0')} • Verified Circular
+                    <span style={{
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      color: '#25231f',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {notice.title}
                     </span>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => copyNotice(notice)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '6px 10px',
-                          borderRadius: '8px',
-                          background: '#ffffff',
-                          border: '1px solid #cfc8ba',
-                          color: '#58534a',
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          cursor: 'pointer'
-                        }}
-                        title="Copy Announcement Text"
-                      >
-                        {copiedId === notice.id ? (
-                          <>
-                            <Check size={13} color="#16a34a" />
-                            <span style={{ color: '#16a34a' }}>Copied</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={13} />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          playCyberSound('click');
-                          triggerHaptic();
-                          generateNoticePdf(notice, institutionName);
-                        }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          background: '#faf5ea',
-                          border: '1px solid #dfcfaf',
-                          color: '#684c20',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                        title="Download Verified PDF Circular"
-                      >
-                        <Download size={13} />
-                        <span>Download Official PDF</span>
-                      </button>
-                    </div>
                   </div>
-                </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '999px',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      background: badge.bg,
+                      color: badge.text,
+                      border: `1px solid ${badge.border}`,
+                    }}>
+                      {badge.label}
+                    </span>
+                    <ChevronRight size={16} color="#8c734b" />
+                  </div>
+                </button>
               );
             })}
           </div>
         )}
       </div>
-
     </div>
   );
 }
