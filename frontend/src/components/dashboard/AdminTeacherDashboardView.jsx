@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Camera, Edit, ScanFace, ShieldAlert, Calendar, Monitor, Activity, Layers, Settings, MessageSquare, Users, CheckCircle2, AlertCircle, TrendingUp, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Edit, Calendar, Activity, Layers, Settings, MessageSquare, Users,
+  CheckCircle2, AlertCircle, TrendingUp, ShieldCheck, ChevronRight,
+  Clock, FileSpreadsheet, Megaphone, ShieldAlert,
+} from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
 import PullToRefresh from '../PullToRefresh';
 import TodaySessionHub from '../TodaySessionHub';
 import AdminPulseDashboard from '../AdminPulseDashboard';
 import SkeletonLoader from '../SkeletonLoader';
 import RoleCommandCenter from '../RoleCommandCenter';
-import TeacherMiniDashboard from '../TeacherMiniDashboard';
 import SmartEmptyState from '../SmartEmptyState';
 import AttendanceChartsWidget from '../AttendanceChartsWidget';
 import LiveActivityTicker from '../LiveActivityTicker';
@@ -15,6 +18,7 @@ import { getOfflineQueue } from '../../utils/offlineQueue';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
 import { getApiBaseUrl } from '../../utils/platform';
+import { getInitials } from '../../utils/attendanceDateUtils';
 
 export default function AdminTeacherDashboardView({
   fetchStats,
@@ -32,11 +36,8 @@ export default function AdminTeacherDashboardView({
   sessionPeriod = 'Period 1',
   sessionDate = '',
   setSessionDate = () => {},
-  manualSubjectId = '',
   setManualSubjectId = () => {},
-  manualPeriod = 'Period 1',
   setManualPeriod = () => {},
-  manualDate = '',
   setManualDate = () => {},
   setSelectedSubjectId,
   setSessionPeriod,
@@ -116,384 +117,524 @@ export default function AdminTeacherDashboardView({
 
         {activeDashboardSubTab === null ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '100%', overflowX: 'hidden' }}>
-            {/* Daily Driver Hub: TodaySessionHub for Teachers / AdminPulseDashboard for Admin */}
             {userRole === 'teacher' ? (
-              <TodaySessionHub
-                teacherName={currentUser?.name || 'Teacher'}
-                subjects={subjects}
-                schedules={schedules}
-                logs={dashboardRecentLogs}
-                students={filteredStudents}
-                sessionActive={attendanceActive}
-                onStartSession={(subId, period) => {
-                  if (subId) setSelectedSubjectId(String(subId));
-                  if (period) setSessionPeriod(period);
-                  setSessionActive(true);
-                  setActiveTab('attendance');
-                  setShowScannerModal(true);
-                  try {
-                    startAttendanceCam();
-                  } catch (err) {
-                    console.error('Failed to start camera:', err);
-                  }
-                }}
-                onEndSession={() => {
-                  try {
-                    stopAttendanceCam();
-                  } catch (err) {
-                    console.error('Failed to stop camera:', err);
-                  }
-                }}
-                onOpenScanner={() => {
-                  launchDirectSession('scanner');
-                }}
-                onOpenManualAttendance={() => {
-                  launchDirectSession('manual');
-                }}
-                onSendAbsenteeAlerts={async (absentList) => {
-                  const count = Array.isArray(absentList) ? absentList.length : (absentList?.count || 0);
-                  const rolls = Array.isArray(absentList) ? absentList.map(s => s.roll || s.id).filter(Boolean) : [];
-                  const baseUrl = getApiBaseUrl();
-                  try {
-                    const res = await fetch(`${baseUrl}/interactive/notify-absent-batch`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                      },
-                      body: JSON.stringify({ student_rolls: rolls, notify_sms: true, notify_whatsapp: true })
-                    });
-                    if (res.ok) {
-                      const data = await res.json().catch(() => ({}));
-                      const notifiedCount = data?.notified_count ?? count;
-                      setAbsentAlertFeedback(`✅ Dispatched attendance alerts to ${notifiedCount} absent students and registered guardians via WhatsApp/SMS.`);
-                    } else {
-                      setAbsentAlertFeedback(`✅ Dispatched attendance alerts for ${count} absent students to registered guardian contacts.`);
+              <>
+                <TodaySessionHub
+                  teacherName={currentUser?.name || 'Teacher'}
+                  subjects={subjects}
+                  schedules={schedules}
+                  logs={dashboardRecentLogs}
+                  students={filteredStudents}
+                  sessionActive={attendanceActive}
+                  onStartSession={(subId, period) => {
+                    if (subId) setSelectedSubjectId(String(subId));
+                    if (period) setSessionPeriod(period);
+                    setSessionActive(true);
+                    setActiveTab('attendance');
+                    setShowScannerModal(true);
+                    try {
+                      startAttendanceCam();
+                    } catch (err) {
+                      console.error('Failed to start camera:', err);
                     }
-                  } catch {
-                    setAbsentAlertFeedback(`✅ Dispatched attendance alerts for ${count} absent students to registered guardian contacts.`);
-                  }
-                  if (playCyberSound) playCyberSound('success');
-                  setTimeout(() => setAbsentAlertFeedback(null), 5000);
-                }}
-                onExportCsv={exportToCSV}
-                lang={appLang}
-                onNavigateTab={setActiveTab}
-              />
-            ) : userRole === 'admin' ? (
-              <AdminPulseDashboard
-                stats={stats}
-                token={token}
-                systemHealth={{
-                  face_match_latency: stats?.face_match_latency || 85,
-                  camera_active: attendanceActive || scannerBootActive,
-                  ws_connected: wsConnected
-                }}
-                onOpenScanner={() => {
-                  launchDirectSession('scanner');
-                }}
-                onOpenManualAttendance={() => {
-                  launchDirectSession('manual');
-                }}
-                onNavigateTab={(tab, subTab) => {
-                  setActiveTab(tab);
-                  if (subTab) setActiveDashboardSubTab(subTab);
-                }}
-                lang={appLang}
-              />
-            ) : null}
+                  }}
+                  onEndSession={() => {
+                    try {
+                      stopAttendanceCam();
+                    } catch (err) {
+                      console.error('Failed to stop camera:', err);
+                    }
+                  }}
+                  onOpenScanner={() => {
+                    launchDirectSession('scanner');
+                  }}
+                  onOpenManualAttendance={() => {
+                    launchDirectSession('manual');
+                  }}
+                  onSendAbsenteeAlerts={async (absentList) => {
+                    const count = Array.isArray(absentList) ? absentList.length : (absentList?.count || 0);
+                    const rolls = Array.isArray(absentList) ? absentList.map(s => s.roll || s.id).filter(Boolean) : [];
+                    const baseUrl = getApiBaseUrl();
+                    try {
+                      const res = await fetch(`${baseUrl}/interactive/notify-absent-batch`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ student_rolls: rolls, notify_sms: true, notify_whatsapp: true })
+                      });
+                      if (res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        const notifiedCount = data?.notified_count ?? count;
+                        setAbsentAlertFeedback(`Dispatched attendance alerts to ${notifiedCount} absent students and guardians.`);
+                      } else {
+                        setAbsentAlertFeedback(`Dispatched attendance alerts for ${count} absent students.`);
+                      }
+                    } catch {
+                      setAbsentAlertFeedback(`Dispatched attendance alerts for ${count} absent students.`);
+                    }
+                    if (playCyberSound) playCyberSound('success');
+                    setTimeout(() => setAbsentAlertFeedback(null), 5000);
+                  }}
+                  onExportCsv={exportToCSV}
+                  lang={appLang}
+                  onNavigateTab={setActiveTab}
+                />
 
-            {/* KPI Cards: Today's Attendance, Scanner State, Attention, Rate */}
-            {!stats ? (
-              <SkeletonLoader type="stat" count={4} />
-            ) : (
-              <RoleCommandCenter
-                stats={scopedDashboardStats}
-                scannerLive={attendanceActive || scannerBootActive}
-                userRole={userRole}
-                teacherSubjects={subjects}
-              />
-            )}
-
-            {userRole === 'teacher' && (
-              <TeacherMiniDashboard stats={scopedDashboardStats} subjects={subjects} teacherName={currentUser?.name} />
-            )}
-
-            {/* Primary 2-Column Command Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobileView ? '1fr' : 'minmax(0, 1.6fr) minmax(0, 1fr)',
-              gap: '20px',
-              alignItems: 'start'
-            }}>
-              {/* Left Column: Recent Live Activity + Charts */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Live Activity Stream */}
-                <div className="surface-card" style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
-                        Recent Live Activity
-                      </h3>
+                {/* Today's Recent Activity (Clean Golden Gate Single-Line List) */}
+                <div className="golden-os-window">
+                  <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <span className="golden-os-field-label" style={{ marginBottom: 0 }}>
+                        Recent Live Activity Today
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('logs'); }}
+                        style={{ background: 'none', border: 'none', color: '#785927', fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', padding: 0 }}
+                      >
+                        View Full Logs →
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('logs'); }}
-                      style={{ fontSize: '0.8rem', padding: '4px 8px', minHeight: '32px', color: 'var(--color-primary)' }}
-                    >
-                      View Full Logs →
-                    </button>
+
+                    {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
+                      <div className="golden-os-list-shell">
+                        {dashboardRecentLogs.slice(0, 5).map((log, idx) => {
+                          const isPresent = ['present', 'late', 'excused'].includes(String(log.attendance || 'present').toLowerCase());
+                          return (
+                            <button
+                              key={log.id || idx}
+                              type="button"
+                              onClick={() => {
+                                if (playCyberSound) playCyberSound('click');
+                                setSelectedAuditLog(log);
+                              }}
+                              className="golden-os-list-row"
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0, flex: 1 }}>
+                                <div
+                                  className="golden-os-avatar"
+                                  style={!isPresent ? { background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' } : undefined}
+                                >
+                                  {getInitials(log.name, 'ST')}
+                                </div>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {log.name} {log.roll ? `(${log.roll})` : ''}
+                                  </div>
+                                  <div style={{ fontSize: '0.75rem', color: isPresent ? '#6b5b3e' : '#b91c1c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                                    {log.attendance || 'Present'} · {log.subject_name || 'Class'} · {log.period_label ? String(log.period_label).replace(/\s*\([^)]*\)/, '').trim() : log.time || 'Recorded'}
+                                  </div>
+                                </div>
+                              </div>
+                              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="golden-os-inset-card" style={{ textAlign: 'center', padding: '18px 12px', fontSize: '0.8rem', color: '#6b5b3e' }}>
+                        No scans logged yet today. Start a session above to record attendance.
+                      </div>
+                    )}
                   </div>
+                </div>
 
-                  {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {dashboardRecentLogs.slice(0, 5).map((log, idx) => {
-                        const isPresent = log.attendance?.toLowerCase() === 'present';
-                        return (
-                          <div
-                            key={log.id || idx}
-                            className="surface-card surface-card-hover"
-                            onClick={() => {
-                              if (playCyberSound) playCyberSound('click');
-                              setSelectedAuditLog(log);
-                            }}
-                            style={{
-                              padding: '12px 14px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '8px',
-                              cursor: 'pointer',
-                              background: '#faf9f6',
-                              borderRadius: '12px',
-                              border: '1px solid #e4dfd5'
-                            }}
-                          >
-                            {/* Top Row: Avatar, Student Name, Roll/Dep, Status Pill */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                                <div style={{
-                                  width: '36px', height: '36px', borderRadius: '50%',
-                                  background: isPresent ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                  color: isPresent ? '#059669' : '#dc2626',
-                                  border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontWeight: 700, fontSize: '0.85rem', flexShrink: 0
-                                }}>
-                                  {log.name ? log.name.charAt(0).toUpperCase() : 'S'}
-                                </div>
-                                <div style={{ minWidth: 0 }}>
-                                  <div style={{ color: '#25231f', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {log.name}
-                                  </div>
-                                  <div style={{ color: '#696358', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <span>Roll: {log.roll || 'N/A'}</span>
-                                    {(log.dep || log.department) && <span>· {log.dep || log.department}</span>}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <span className={`status-pill ${isPresent ? 'status-pill-success' : 'status-pill-danger'}`} style={{ fontSize: '0.72rem', padding: '3px 10px', flexShrink: 0 }}>
-                                {log.attendance || 'Present'}
-                              </span>
+                {/* Faculty Portals & Quick Navigation Directory */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px 8px' }}>
+                    <span className="golden-os-field-label" style={{ marginBottom: 0 }}>Faculty Tools & Portals</span>
+                  </div>
+                  <div className="golden-os-list-shell">
+                    {[
+                      {
+                        label: 'Session History & Subjects',
+                        desc: `${Array.isArray(subjects) ? subjects.length : 0} assigned subjects · Period attendance logs`,
+                        icon: Clock,
+                        onClick: () => setActiveTab('session-history'),
+                      },
+                      {
+                        label: 'Students Directory',
+                        desc: `${Array.isArray(filteredStudents) ? filteredStudents.length : 0} enrolled students · Faces & profiles`,
+                        icon: Users,
+                        onClick: () => setActiveTab('students'),
+                      },
+                      {
+                        label: 'Live Attendance Telemetry',
+                        desc: `${displayStats?.total_present_today ?? 0} present today · Real-time activity monitor`,
+                        icon: Activity,
+                        onClick: () => setActiveDashboardSubTab('metrics'),
+                      },
+                      {
+                        label: 'Attendance Trends & Analytics',
+                        desc: 'Weekly attendance charts & subject insights',
+                        icon: Layers,
+                        onClick: () => setActiveDashboardSubTab('trends'),
+                      },
+                      {
+                        label: 'Reports & CSV Export',
+                        desc: 'Generate shortage lists & export attendance',
+                        icon: FileSpreadsheet,
+                        onClick: () => setActiveTab('reports'),
+                      },
+                      {
+                        label: 'Disputes & Leave Requests',
+                        desc: 'Review student correction claims & leaves',
+                        icon: ShieldAlert,
+                        onClick: () => setActiveTab('disputes'),
+                      },
+                      {
+                        label: 'Campus Notice Board',
+                        desc: 'Official circulars, exam notices & broadcasts',
+                        icon: Megaphone,
+                        onClick: () => setActiveTab('broadcast'),
+                      },
+                      {
+                        label: 'Share System Feedback',
+                        desc: 'Report issues or suggest improvements',
+                        icon: MessageSquare,
+                        onClick: () => setShowFeedbackModal(true),
+                      },
+                    ].map(item => {
+                      const RowIcon = item.icon;
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => {
+                            if (playCyberSound) playCyberSound('click');
+                            item.onClick();
+                          }}
+                          className="golden-os-list-row"
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                            <div className="golden-os-avatar">
+                              <RowIcon size={16} />
                             </div>
-
-                            {/* Bottom Details Row: Subject, Period, Date & Time */}
-                            <div style={{
-                              display: 'flex',
-                              flexWrap: 'wrap',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '8px',
-                              paddingTop: '6px',
-                              borderTop: '1px solid #e4dfd5',
-                              fontSize: '0.76rem',
-                              color: '#696358'
-                            }}>
-                              {/* Subject & Period badges */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#faf5ea', color: '#785927', border: '1px solid #dfcfaf', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
-                                  📚 {log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance')}
-                                </span>
-                                {(log.period_label || log.period) && (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(168, 85, 247, 0.12)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
-                                    ⏰ {log.period_label || log.period}
-                                  </span>
-                                )}
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
+                                {item.label}
                               </div>
-
-                              {/* Date & Time info */}
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', color: '#cfc8ba', fontSize: '0.76rem' }}>
-                                {log.date && <span>📅 {log.date}</span>}
-                                <span>🕒 {log.time || 'N/A'}</span>
+                              <div style={{ fontSize: '0.75rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                                {item.desc}
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
+                          <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {userRole === 'admin' && (
+                  <AdminPulseDashboard
+                    stats={stats}
+                    token={token}
+                    systemHealth={{
+                      face_match_latency: stats?.face_match_latency || 85,
+                      camera_active: attendanceActive || scannerBootActive,
+                      ws_connected: wsConnected
+                    }}
+                    onOpenScanner={() => {
+                      launchDirectSession('scanner');
+                    }}
+                    onOpenManualAttendance={() => {
+                      launchDirectSession('manual');
+                    }}
+                    onNavigateTab={(tab, subTab) => {
+                      setActiveTab(tab);
+                      if (subTab) setActiveDashboardSubTab(subTab);
+                    }}
+                    lang={appLang}
+                  />
+                )}
+
+                {/* KPI Cards: Today's Attendance, Scanner State, Attention, Rate */}
+                {!stats ? (
+                  <SkeletonLoader type="stat" count={4} />
+                ) : (
+                  <RoleCommandCenter
+                    stats={scopedDashboardStats}
+                    scannerLive={attendanceActive || scannerBootActive}
+                    userRole={userRole}
+                    teacherSubjects={subjects}
+                  />
+                )}
+
+                {/* Primary 2-Column Command Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobileView ? '1fr' : 'minmax(0, 1.6fr) minmax(0, 1fr)',
+                  gap: '20px',
+                  alignItems: 'start'
+                }}>
+                  {/* Left Column: Recent Live Activity + Charts */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Live Activity Stream */}
+                    <div className="surface-card" style={{ padding: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
+                            Recent Live Activity
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('logs'); }}
+                          style={{ fontSize: '0.8rem', padding: '4px 8px', minHeight: '32px', color: 'var(--color-primary)' }}
+                        >
+                          View Full Logs →
+                        </button>
+                      </div>
+
+                      {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {dashboardRecentLogs.slice(0, 5).map((log, idx) => {
+                            const isPresent = log.attendance?.toLowerCase() === 'present';
+                            return (
+                              <div
+                                key={log.id || idx}
+                                className="surface-card surface-card-hover"
+                                onClick={() => {
+                                  if (playCyberSound) playCyberSound('click');
+                                  setSelectedAuditLog(log);
+                                }}
+                                style={{
+                                  padding: '12px 14px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '8px',
+                                  cursor: 'pointer',
+                                  background: '#faf9f6',
+                                  borderRadius: '12px',
+                                  border: '1px solid #e4dfd5'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                                    <div style={{
+                                      width: '36px', height: '36px', borderRadius: '50%',
+                                      background: isPresent ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                      color: isPresent ? '#059669' : '#dc2626',
+                                      border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      fontWeight: 700, fontSize: '0.85rem', flexShrink: 0
+                                    }}>
+                                      {log.name ? log.name.charAt(0).toUpperCase() : 'S'}
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ color: '#25231f', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {log.name}
+                                      </div>
+                                      <div style={{ color: '#696358', fontSize: '0.76rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <span>Roll: {log.roll || 'N/A'}</span>
+                                        {(log.dep || log.department) && <span>· {log.dep || log.department}</span>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <span className={`status-pill ${isPresent ? 'status-pill-success' : 'status-pill-danger'}`} style={{ fontSize: '0.72rem', padding: '3px 10px', flexShrink: 0 }}>
+                                    {log.attendance || 'Present'}
+                                  </span>
+                                </div>
+
+                                <div style={{
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                  paddingTop: '6px',
+                                  borderTop: '1px solid #e4dfd5',
+                                  fontSize: '0.76rem',
+                                  color: '#696358'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#faf5ea', color: '#785927', border: '1px solid #dfcfaf', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
+                                      📚 {log.subject_name || (log.subject_id ? `Subject #${log.subject_id}` : 'General Attendance')}
+                                    </span>
+                                    {(log.period_label || log.period) && (
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(168, 85, 247, 0.12)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 500 }}>
+                                        ⏰ {log.period_label || log.period}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', color: '#cfc8ba', fontSize: '0.76rem' }}>
+                                    {log.date && <span>📅 {log.date}</span>}
+                                    <span>🕒 {log.time || 'N/A'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <SmartEmptyState
+                          title="No Scans Logged Today"
+                          message="Open the live face scanner to begin recording attendance sessions."
+                          actionLabel="Open Face Scanner"
+                          onAction={() => {
+                            if (playCyberSound) playCyberSound('click');
+                            setActiveTab('attendance');
+                            setShowScannerModal(true);
+                          }}
+                        />
+                      )}
                     </div>
-                  ) : (
-                    <SmartEmptyState
-                      title="No Scans Logged Today"
-                      message="Open the live face scanner to begin recording attendance sessions."
-                      actionLabel="Open Face Scanner"
-                      onAction={() => {
-                        if (playCyberSound) playCyberSound('click');
-                        setActiveTab('attendance');
-                        setShowScannerModal(true);
-                      }}
-                    />
-                  )}
+
+                    {/* Attendance Charts */}
+                    <AttendanceChartsWidget stats={scopedDashboardStats} />
+                  </div>
+
+                  {/* Right Column: Quick Actions & Pending Attention Center */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        Biometric Actions
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (playCyberSound) playCyberSound('click');
+                          setActiveTab('attendance');
+                          setShowScannerModal(true);
+                        }}
+                        className="btn-primary"
+                        style={{ width: '100%', padding: '14px', fontSize: '0.95rem' }}
+                      >
+                        <Activity size={18} /> Open Live Scanner
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (playCyberSound) playCyberSound('click');
+                          setActiveTab('attendance');
+                          setIsManualAttendanceOpen(true);
+                        }}
+                        className="btn-secondary"
+                        style={{ width: '100%', padding: '12px' }}
+                      >
+                        <Edit size={16} /> Mark Manual Attendance
+                      </button>
+
+                      <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>Biometric Engine:</span>
+                          <span style={{ color: '#38bdf8', fontWeight: 600 }}>YuNet + SFace 128-D</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>Vector Matching:</span>
+                          <span style={{ color: '#10b981', fontWeight: 600 }}>BLAS Accelerated (&lt; 2ms)</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: 'var(--color-text-muted)' }}>Offline Pending Queue:</span>
+                          <span style={{ color: getOfflineQueue().length > 0 ? '#f59e0b' : 'var(--color-text-dim)', fontWeight: 600 }}>
+                            {getOfflineQueue().length} records
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        Reports and system health
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveDashboardSubTab('metrics'); if (playCyberSound) playCyberSound('click'); }}
+                          className="btn-secondary"
+                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
+                        >
+                          <Activity size={18} style={{ color: '#987235' }} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Live Telemetry</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveDashboardSubTab('trends'); if (playCyberSound) playCyberSound('click'); }}
+                          className="btn-secondary"
+                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
+                        >
+                          <Layers size={18} style={{ color: '#8b5cf6' }} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Trends & Radar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveDashboardSubTab('diagnostics'); if (playCyberSound) playCyberSound('click'); }}
+                          className="btn-secondary"
+                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
+                        >
+                          <Settings size={18} style={{ color: '#10b981' }} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Diagnostics</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveDashboardSubTab('feedback'); if (playCyberSound) playCyberSound('click'); }}
+                          className="btn-secondary"
+                          style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
+                        >
+                          <MessageSquare size={18} style={{ color: '#f59e0b' }} />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>User Feedback</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Attendance Charts */}
-                <AttendanceChartsWidget stats={scopedDashboardStats} />
-              </div>
-
-              {/* Right Column: Quick Actions & Pending Attention Center */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Quick Scanner Action Card */}
-                <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Biometric Actions
-                  </span>
+                {/* Streamlined Bottom Feedback Strip */}
+                <div 
+                  className="surface-card" 
+                  style={{ 
+                    marginTop: '8px',
+                    padding: '20px 24px', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    flexWrap: 'wrap', 
+                    gap: '16px',
+                    borderLeft: '3px solid var(--color-primary)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ 
+                      background: 'var(--color-primary-light)', 
+                      color: 'var(--color-primary)', 
+                      borderRadius: '10px', 
+                      padding: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <MessageSquare size={20} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-text-main)', margin: 0 }}>System Feedback & Support</h4>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
+                        Report issues, request audits, or share feedback.
+                      </p>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
                       if (playCyberSound) playCyberSound('click');
-                      setActiveTab('attendance');
-                      setShowScannerModal(true);
-                    }}
-                    className="btn-primary"
-                    style={{ width: '100%', padding: '14px', fontSize: '0.95rem' }}
-                  >
-                    <Camera size={18} /> Open Live Scanner
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (playCyberSound) playCyberSound('click');
-                      setActiveTab('attendance');
-                      setIsManualAttendanceOpen(true);
+                      setShowFeedbackModal(true);
                     }}
                     className="btn-secondary"
-                    style={{ width: '100%', padding: '12px' }}
+                    style={{ padding: '8px 18px', minHeight: '38px', fontSize: '0.84rem' }}
                   >
-                    <Edit size={16} /> Mark Manual Attendance
+                    <MessageSquare size={15} /> Share Feedback
                   </button>
-
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Biometric Engine:</span>
-                      <span style={{ color: '#38bdf8', fontWeight: 600 }}>YuNet + SFace 128-D</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Vector Matching:</span>
-                      <span style={{ color: '#10b981', fontWeight: 600 }}>BLAS Accelerated (&lt; 2ms)</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Offline Pending Queue:</span>
-                      <span style={{ color: getOfflineQueue().length > 0 ? '#f59e0b' : 'var(--color-text-dim)', fontWeight: 600 }}>
-                        {getOfflineQueue().length} records
-                      </span>
-                    </div>
-                  </div>
                 </div>
-
-                {/* Secondary Analytics Directory Hub */}
-                <div className="surface-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Reports and system health
-                  </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <button
-                      type="button"
-                      onClick={() => { setActiveDashboardSubTab('metrics'); if (playCyberSound) playCyberSound('click'); }}
-                      className="btn-secondary"
-                      style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
-                    >
-                      <Activity size={18} style={{ color: '#987235' }} />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Live Telemetry</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setActiveDashboardSubTab('trends'); if (playCyberSound) playCyberSound('click'); }}
-                      className="btn-secondary"
-                      style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
-                    >
-                      <Layers size={18} style={{ color: '#8b5cf6' }} />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Trends & Radar</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setActiveDashboardSubTab('diagnostics'); if (playCyberSound) playCyberSound('click'); }}
-                      className="btn-secondary"
-                      style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
-                    >
-                      <Settings size={18} style={{ color: '#10b981' }} />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Diagnostics</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setActiveDashboardSubTab('feedback'); if (playCyberSound) playCyberSound('click'); }}
-                      className="btn-secondary"
-                      style={{ padding: '12px 10px', flexDirection: 'column', gap: '6px', height: 'auto' }}
-                    >
-                      <MessageSquare size={18} style={{ color: '#f59e0b' }} />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>User Feedback</span>
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Streamlined Bottom Feedback Strip */}
-            <div 
-              className="surface-card" 
-              style={{ 
-                marginTop: '8px',
-                padding: '20px 24px', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                flexWrap: 'wrap', 
-                gap: '16px',
-                borderLeft: '3px solid var(--color-primary)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ 
-                  background: 'var(--color-primary-light)', 
-                  color: 'var(--color-primary)', 
-                  borderRadius: '10px', 
-                  padding: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <MessageSquare size={20} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-text-main)', margin: 0 }}>System Feedback & Support</h4>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
-                    Report issues, request audits, or share feedback.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (playCyberSound) playCyberSound('click');
-                  setShowFeedbackModal(true);
-                }}
-                className="btn-secondary"
-                style={{ padding: '8px 18px', minHeight: '38px', fontSize: '0.84rem' }}
-              >
-                <MessageSquare size={15} /> Share Feedback
-              </button>
-            </div>
+              </>
+            )}
           </div>
         ) : (
           <div>

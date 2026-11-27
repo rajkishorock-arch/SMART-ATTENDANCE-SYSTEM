@@ -2317,6 +2317,7 @@ export default function App() {
   const sessionInitializedRef = useRef(false);
   const loginJustCompletedRef = useRef(false);
   const loginBootstrapDoneRef = useRef(false);
+  const lastDashboardSyncRef = useRef(0);
 
   // Phase 5 States
   const [diagnosticWarnings, setDiagnosticWarnings] = useState({ lighting: '', distance: '' });
@@ -6985,19 +6986,44 @@ export default function App() {
           fetchCalendarPrefetch(token),
           currentUser?.details ? fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id) : Promise.resolve()
         ]);
-      } else {
-        // Fetch stats, 1000 history logs, students, subjects, departments, calendar, and initial subject history in parallel
+      } else if (userRole === 'teacher') {
+        // Wave 1 (0ms critical Home data only — keeps initial teacher login fast)
         Promise.allSettled([
           fetchStats(token),
-          fetchLogs(token, { limit: 1000 }),
+          fetchSubjects(token),
+          fetchStudents(token),
+          fetchLogs(token, { limit: 25 }),
+          fetchSchedules(token),
+        ]);
+        // Wave 2 (Deferred secondary directory prefetches after Home paints)
+        setTimeout(() => {
+          if (!isMounted) return;
+          Promise.allSettled([
+            fetchDepartments(token),
+            fetchDisputesPrefetch(token, userRole),
+            fetchBroadcastsPrefetch(token),
+            fetchCalendarPrefetch(token),
+            fetchLogs(token, { limit: 400 }),
+          ]);
+        }, 1200);
+      } else {
+        // Admin: prioritize core Home data first, defer heavy aggregations
+        Promise.allSettled([
+          fetchStats(token),
+          fetchLogs(token, { limit: 50 }),
           fetchStudents(token),
           fetchSubjects(token),
           fetchDepartments(token),
-          fetchSessionHistory(),
-          fetchCalendarPrefetch(token),
-          fetchReport(false, token),
-          ...(userRole === 'teacher' ? [fetchTeachers(token, false, userRole)] : [])
         ]);
+        setTimeout(() => {
+          if (!isMounted) return;
+          Promise.allSettled([
+            fetchSessionHistory(),
+            fetchCalendarPrefetch(token),
+            fetchReport(false, token),
+            fetchLogs(token, { limit: 1000 }),
+          ]);
+        }, 900);
       }
 
       // Silent non-blocking server warmup
@@ -7050,15 +7076,16 @@ export default function App() {
     if (userRole === 'student' && !['student-attendance', 'student-profile', 'ai-assistant', 'calendar'].includes(activeTab)) return;
 
     switch (activeTab) {
-      case 'dashboard':
+      case 'dashboard': {
+        // Skip duplicate burst right after login/bootstrap (within 4s)
+        const now = Date.now();
+        if (now - lastDashboardSyncRef.current < 4000) break;
+        lastDashboardSyncRef.current = now;
         fetchStats();
-        fetchLogs(token, { limit: 10 });
+        fetchLogs(token, { limit: 20 });
         if (userRole === 'admin' || userRole === 'teacher') fetchStudents();
-        fetchDisputesPrefetch(token, userRole);
-        fetchBroadcastsPrefetch(token);
-        fetchCalendarPrefetch(token);
-        fetchReport(false, token);
         break;
+      }
       case 'control':
       case 'all-features':
         fetchDisputesPrefetch(token, userRole);
@@ -7475,40 +7502,76 @@ export default function App() {
     setSettingsIpRanges('192.168.1.0/24');
   };
 
+  // Shared post-login data hydrator: loads Home essentials immediately & defers heavy secondary queries
+  const hydratePortalOnLogin = (newToken, meData) => {
+    lastDashboardSyncRef.current = Date.now();
+    if (meData.role === 'student') {
+      const studentDept = meData.details?.dep || meData.department || meData.dep;
+      const studentId = meData.details?.id || meData.id;
+      Promise.allSettled([
+        fetchStudentLogs(newToken),
+        fetchStudentLeaves(newToken),
+        fetchStudentDisputes(newToken),
+        fetchBlueprint(newToken),
+        fetchSubjects(newToken),
+        fetchBroadcastsPrefetch(newToken),
+        fetchCalendarPrefetch(newToken),
+        ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
+      ]);
+      return;
+    }
+
+    if (meData.role === 'teacher') {
+      // Wave 1: lightweight essentials for instant Teacher Home load
+      Promise.allSettled([
+        fetchStats(newToken),
+        fetchSubjects(newToken),
+        fetchStudents(newToken),
+        fetchLogs(newToken, { limit: 25 }),
+        fetchSchedules(newToken),
+      ]);
+      // Wave 2: defer secondary directories so DB connections stay unblocked
+      setTimeout(() => {
+        Promise.allSettled([
+          fetchDepartments(newToken),
+          fetchDisputesPrefetch(newToken, meData.role),
+          fetchBroadcastsPrefetch(newToken),
+          fetchCalendarPrefetch(newToken),
+          fetchLogs(newToken, { limit: 400 }),
+        ]);
+      }, 1200);
+      return;
+    }
+
+    // Admin Wave 1 + deferred Wave 2
+    Promise.allSettled([
+      fetchDepartments(newToken),
+      fetchStats(newToken),
+      fetchLogs(newToken, { limit: 50 }),
+      fetchSubjects(newToken),
+      fetchStudents(newToken),
+    ]);
+    setTimeout(() => {
+      Promise.allSettled([
+        fetchSchedules(newToken),
+        fetchAdminLeaves(newToken),
+        fetchDisputesPrefetch(newToken, meData.role),
+        fetchBroadcastsPrefetch(newToken),
+        fetchCalendarPrefetch(newToken),
+        fetchReport(false, newToken),
+        fetchTeachers(newToken, false, meData.role),
+        fetchFeedbacks(newToken, meData.role),
+        fetchLogs(newToken, { limit: 1000 }),
+      ]);
+    }, 900);
+  };
+
   // Handle SSO Login (delegated to AuthContext)
   const handleSsoLogin = async (provider, emailHint) => {
     await authHandleSsoLogin(provider, emailHint, ({ token: newToken, currentUser: meData }) => {
       loginJustCompletedRef.current = true;
       loginBootstrapDoneRef.current = true;
-      if (meData.role === 'student') {
-        const studentDept = meData.details?.dep || meData.department || meData.dep;
-        const studentId = meData.details?.id || meData.id;
-        Promise.allSettled([
-          fetchStudentLogs(newToken),
-          fetchStudentLeaves(newToken),
-          fetchStudentDisputes(newToken),
-          fetchBlueprint(newToken),
-          fetchSubjects(newToken),
-          fetchBroadcastsPrefetch(newToken),
-          fetchCalendarPrefetch(newToken),
-          ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
-        ]);
-      } else {
-        Promise.allSettled([
-          fetchDepartments(newToken),
-          fetchStats(newToken),
-          fetchLogs(newToken),
-          fetchSchedules(newToken),
-          fetchAdminLeaves(newToken),
-          fetchSubjects(newToken),
-          fetchStudents(newToken),
-          fetchDisputesPrefetch(newToken, meData.role),
-          fetchBroadcastsPrefetch(newToken),
-          fetchCalendarPrefetch(newToken),
-          fetchReport(false, newToken),
-          ...(meData.role === 'admin' ? [fetchTeachers(newToken, false, meData.role), fetchFeedbacks(newToken, meData.role)] : meData.role === 'teacher' ? [fetchTeachers(newToken, false, meData.role)] : [])
-        ]);
-      }
+      hydratePortalOnLogin(newToken, meData);
     });
   };
 
@@ -7526,36 +7589,7 @@ export default function App() {
         setActiveTab('dashboard');
         try { window.location.hash = '#/dashboard'; } catch { /* ignore */ }
       }
-
-      if (meData.role === 'student') {
-        const studentDept = meData.details?.dep || meData.department || meData.dep;
-        const studentId = meData.details?.id || meData.id;
-        Promise.allSettled([
-          fetchStudentLogs(newToken),
-          fetchStudentLeaves(newToken),
-          fetchStudentDisputes(newToken),
-          fetchBlueprint(newToken),
-          fetchSubjects(newToken),
-          fetchBroadcastsPrefetch(newToken),
-          fetchCalendarPrefetch(newToken),
-          ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
-        ]);
-      } else {
-        Promise.allSettled([
-          fetchDepartments(newToken),
-          fetchStats(newToken),
-          fetchLogs(newToken),
-          fetchSchedules(newToken),
-          fetchAdminLeaves(newToken),
-          fetchSubjects(newToken),
-          fetchStudents(newToken),
-          fetchDisputesPrefetch(newToken, meData.role),
-          fetchBroadcastsPrefetch(newToken),
-          fetchCalendarPrefetch(newToken),
-          fetchReport(false, newToken),
-          ...(meData.role === 'admin' ? [fetchTeachers(newToken, false, meData.role), fetchFeedbacks(newToken, meData.role)] : meData.role === 'teacher' ? [fetchTeachers(newToken, false, meData.role)] : [])
-        ]);
-      }
+      hydratePortalOnLogin(newToken, meData);
     });
   };
 
@@ -8388,36 +8422,42 @@ export default function App() {
 
   // Role-scoped dashboard stats: Teachers see only their branch/subject students, Admin sees whole campus
   const scopedDashboardStats = useMemo(() => {
-    if (userRole !== 'teacher' || !stats) return stats;
-    
-    // For teacher: use filteredStudents (which already scopes to teacher's branch/subjects)
+    if (userRole !== 'teacher') return stats;
+    const baseStats = stats || {
+      total_students: 0,
+      total_present_today: 0,
+      total_absent_today: 0,
+      total_late_today: 0,
+      average_attendance_rate: 0,
+      weekly_trends: [],
+      department_stats: {},
+    };
+
     const teacherStudents = filteredStudents && filteredStudents.length > 0 ? filteredStudents : students;
     if (teacherStudents && teacherStudents.length > 0) {
       const studentIds = new Set(teacherStudents.map(s => String(s.id)));
       const todayDash = getLocalDateString();
       const todaySlash = todayDash.split('-').reverse().join('/');
-      
-      // If server stats already match teacher's student count exactly
-      if (stats?.total_students > 0 && stats.total_students <= teacherStudents.length) {
-        return stats;
+
+      if (baseStats.total_students > 0 && baseStats.total_students <= teacherStudents.length) {
+        return baseStats;
       }
-      
-      // Compute accurate stats for teacher's registered branch students
+
       const teacherTodayLogs = (logs || []).filter(l => (l.date === todaySlash || l.date === todayDash) && studentIds.has(String(l.id)));
       const presentSet = new Set(teacherTodayLogs.filter(l => (l.attendance || '').toLowerCase() === 'present').map(l => String(l.id)));
       const presentToday = presentSet.size;
       const absentToday = Math.max(0, teacherStudents.length - presentToday);
       const avgRate = teacherStudents.length > 0 ? Math.round((presentToday / teacherStudents.length) * 100) : 0;
-      
+
       return {
-        ...stats,
+        ...baseStats,
         total_students: teacherStudents.length,
         total_present_today: presentToday,
         total_absent_today: absentToday,
-        average_attendance_rate: avgRate
+        average_attendance_rate: avgRate,
       };
     }
-    return stats;
+    return baseStats;
   }, [userRole, stats, filteredStudents, students, logs]);
 
   // Role-scoped live activity: Teachers only see logs for their branch/subjects (Today's scans only)

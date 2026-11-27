@@ -1,18 +1,16 @@
 import { useState, useMemo } from 'react';
-import { 
-  Play, 
-  Square, 
-  Camera, 
-  UserX, 
-  Clock, 
-  Bell, 
-  Edit3, 
-  FileSpreadsheet, 
-  Sparkles,
-  Megaphone,
-  X
+import {
+  Play,
+  Square,
+  Camera,
+  UserX,
+  Bell,
+  Edit3,
+  BookOpen,
+  Calendar,
 } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { getInitials } from '../utils/attendanceDateUtils';
 
 export default function TodaySessionHub({
   teacherName,
@@ -26,58 +24,58 @@ export default function TodaySessionHub({
   onOpenScanner,
   onOpenManualAttendance,
   onSendAbsenteeAlerts,
-  onExportCsv,
   lang = 'en',
-  onNavigateTab
+  onNavigateTab,
 }) {
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('Period 1');
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [lastEndedSummary, setLastEndedSummary] = useState(null);
 
-  // Derive today's day of week
+  const safeSubjects = useMemo(() => (Array.isArray(subjects) ? subjects : []), [subjects]);
+  const safeSchedules = useMemo(() => (Array.isArray(schedules) ? schedules : []), [schedules]);
+  const safeLogs = useMemo(() => (Array.isArray(logs) ? logs : []), [logs]);
+  const safeStudents = useMemo(() => (Array.isArray(students) ? students : []), [students]);
+
   const todayDayName = useMemo(() => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[new Date().getDay()];
   }, []);
 
   const todayFormattedDate = useMemo(() => {
-    return new Date().toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', {
-      weekday: 'long',
-      month: 'short',
+    return new Date().toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-IN', {
+      weekday: 'short',
       day: 'numeric',
-      year: 'numeric'
+      month: 'short',
+      year: 'numeric',
     });
   }, [lang]);
 
-  // Today's classes for this teacher
   const todaySchedule = useMemo(() => {
-    return schedules.filter(s => {
+    return safeSchedules.filter(s => {
       const matchDay = (s.day_of_week || '').toLowerCase() === todayDayName.toLowerCase();
-      const isMySubject = subjects.some(sub => sub.id === s.subject_id);
+      const isMySubject = safeSubjects.some(sub => sub.id === s.subject_id);
       return matchDay && isMySubject;
     });
-  }, [schedules, todayDayName, subjects]);
+  }, [safeSchedules, todayDayName, safeSubjects]);
 
-  // Derived active subject and effective subject ID
   const effectiveSubjectId = useMemo(() => {
-    if (selectedSubjectId && subjects.some(s => String(s.id) === String(selectedSubjectId))) {
+    if (selectedSubjectId && safeSubjects.some(s => String(s.id) === String(selectedSubjectId))) {
       return selectedSubjectId;
     }
-    return subjects.length > 0 ? String(subjects[0].id) : '';
-  }, [selectedSubjectId, subjects]);
+    return safeSubjects.length > 0 ? String(safeSubjects[0].id) : '';
+  }, [selectedSubjectId, safeSubjects]);
 
   const activeSubject = useMemo(() => {
-    return subjects.find(s => String(s.id) === String(effectiveSubjectId)) || subjects[0] || null;
-  }, [subjects, effectiveSubjectId]);
+    return safeSubjects.find(s => String(s.id) === String(effectiveSubjectId)) || safeSubjects[0] || null;
+  }, [safeSubjects, effectiveSubjectId]);
 
-  // Handle Period switch with auto-schedule sync
   const handlePeriodClick = (p) => {
     setSelectedPeriod(p);
     const pNum = parseInt(p.replace(/\D/g, ''), 10);
     const periodStartTimes = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00'];
     const targetHour = periodStartTimes[pNum - 1] ? parseInt(periodStartTimes[pNum - 1].split(':')[0], 10) : null;
-    
+
     if (targetHour !== null && todaySchedule.length > 0) {
       const match = todaySchedule.find(sch => {
         const hour = parseInt((sch.start_time || '').split(':')[0], 10);
@@ -89,36 +87,32 @@ export default function TodaySessionHub({
     }
   };
 
-  // Students in this department/subject with robust fallback
   const enrolledStudents = useMemo(() => {
-    if (!students || students.length === 0) return [];
-    if (!activeSubject || !activeSubject.department) return students;
+    if (safeStudents.length === 0) return [];
+    if (!activeSubject || !activeSubject.department) return safeStudents;
 
     const subDept = String(activeSubject.department).trim().toLowerCase();
-    const matches = students.filter(s => {
+    const matches = safeStudents.filter(s => {
       const sDept = String(s.dep || s.department || '').trim().toLowerCase();
       return sDept && (sDept === subDept || subDept.includes(sDept) || sDept.includes(subDept));
     });
 
-    return matches.length > 0 ? matches : students;
-  }, [students, activeSubject]);
+    return matches.length > 0 ? matches : safeStudents;
+  }, [safeStudents, activeSubject]);
 
-  // Today's logs filtered for this class/subject/period
   const todayLogs = useMemo(() => {
-    const todayStr = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY
+    const todayStr = new Date().toLocaleDateString('en-GB');
     const todayStrIso = new Date().toISOString().split('T')[0];
-    return logs.filter(l => {
+    return safeLogs.filter(l => {
       const logDate = l.date || '';
       const dateMatch = logDate === todayStr || logDate === todayStrIso;
       if (!dateMatch) return false;
-
-      // Period match if log has period metadata
       if (l.period && selectedPeriod) {
         return String(l.period).toLowerCase() === String(selectedPeriod).toLowerCase();
       }
       return true;
     });
-  }, [logs, selectedPeriod]);
+  }, [safeLogs, selectedPeriod]);
 
   const presentRolls = useMemo(() => {
     const set = new Set();
@@ -129,7 +123,6 @@ export default function TodaySessionHub({
     return set;
   }, [todayLogs]);
 
-  // Keep present count bounded by enrolled count for consistent UI
   const displayPresentCount = Math.min(presentRolls.size, enrolledStudents.length || presentRolls.size);
   const displayAbsentCount = Math.max(0, (enrolledStudents.length || presentRolls.size) - displayPresentCount);
 
@@ -137,421 +130,429 @@ export default function TodaySessionHub({
     return enrolledStudents.filter(s => !presentRolls.has(String(s.roll || '').toLowerCase()));
   }, [enrolledStudents, presentRolls]);
 
-  // Handle End Session with summary popup
   const handleEndSessionClick = () => {
-    const summary = {
+    setLastEndedSummary({
       subjectName: activeSubject?.name || 'Class Session',
       period: selectedPeriod,
       totalEnrolled: enrolledStudents.length,
       presentCount: displayPresentCount,
       absentList: absentStudents.slice(0, 15),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setLastEndedSummary(summary);
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    });
     setShowSummaryModal(true);
     if (onEndSession) onEndSession();
   };
 
   return (
-    <div className="today-session-hub" style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeInUp 0.3s ease both' }}>
-      {/* ── Header Welcome Greeting ── */}
-      <div className="surface-card" style={{ padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem' }}>👋</span>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-main)' }}>
-              {teacherName ? `${teacherName}` : t('teacher_hub', lang)}
-            </h2>
+    <div className="today-session-hub" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+      {/* ===== 1. FACULTY HOME WELCOME CARD (GOLDEN GATE IDENTITY) ===== */}
+      <div
+        className="golden-os-window"
+        style={{
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          background: 'linear-gradient(155deg, #fffdf8 0%, #f6ecd5 100%)',
+          border: '1.5px solid #dcc89b',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+          <div
+            className="golden-os-avatar"
+            style={{
+              width: '44px',
+              height: '44px',
+              fontSize: '0.95rem',
+              background: 'linear-gradient(135deg, #785927, #5e441b)',
+              color: '#fffdf8',
+              borderColor: '#785927',
+            }}
+          >
+            {getInitials(teacherName, 'TR')}
           </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {onNavigateTab && (
-            <button
-              onClick={() => onNavigateTab('broadcast')}
-              className="btn-secondary active-haptic"
-              style={{ minHeight: '40px', padding: '8px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#faf5ea', border: '1px solid #dfcfaf', color: '#684c20' }}
-              title="View Official Notice Board & Circulars"
-            >
-              <Megaphone size={14} color="#785927" />
-              <span>Notice Board</span>
-            </button>
-          )}
-          <button
-            onClick={onOpenManualAttendance}
-            className="btn-secondary"
-            style={{ minHeight: '40px', padding: '8px 14px', fontSize: '0.8rem' }}
-          >
-            <Edit3 size={14} />
-            <span>{t('manual_entry', lang)}</span>
-          </button>
-          <button
-            onClick={onExportCsv}
-            className="btn-ghost"
-            style={{ minHeight: '40px', padding: '8px 12px', fontSize: '0.8rem' }}
-            title="Download CSV report"
-          >
-            <FileSpreadsheet size={16} />
-          </button>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.7px', color: '#785927' }}>
+              Faculty Home · {todayFormattedDate}
+            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {teacherName || t('teacher_hub', lang)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#5c4b30', fontWeight: 600, marginTop: '1px' }}>
+              {safeSubjects.length > 0
+                ? `${safeSubjects.length} assigned subject${safeSubjects.length === 1 ? '' : 's'} · ${enrolledStudents.length} students`
+                : 'Faculty workspace ready'}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Active Session Callout (When Live) ── */}
-      {sessionActive && (
+      {/* ===== 2. ACTIVE SESSION CALLOUT OR QUICK SESSION LAUNCHER ===== */}
+      {sessionActive ? (
         <div
-          className="surface-card"
+          className="golden-os-window"
           style={{
-            padding: '18px 20px',
+            padding: '16px',
             border: '1.5px solid #10b981',
-            background: '#f0fdf4',
-            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)',
+            background: 'linear-gradient(155deg, #f0fdf4 0%, #fffdf8 100%)',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '14px'
+            flexDirection: 'column',
+            gap: '12px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '50%',
-                background: '#dcfce7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#10b981'
-              }}
+              className="golden-os-avatar"
+              style={{ width: '42px', height: '42px', background: '#dcfce7', borderColor: '#86efac', color: '#047857' }}
             >
-              <Camera size={22} className="pulse-slow" />
+              <Camera size={20} />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: 800, fontSize: '1rem', color: '#065f46' }}>
-                  {t('session_live', lang)}
-                </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#065f46' }}>
+                {t('session_live', lang)} · {selectedPeriod}
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#047857', marginTop: '2px' }}>
-                {activeSubject?.name} · {presentRolls.size} {t('marked_present', lang)}
+              <div style={{ fontSize: '0.78rem', color: '#047857', marginTop: '2px' }}>
+                {activeSubject?.name || 'Active Class'} · {presentRolls.size} {t('marked_present', lang)}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <button
+              type="button"
               onClick={onOpenScanner}
-              className="btn-primary"
-              style={{ minHeight: '44px', padding: '8px 18px', fontSize: '0.85rem' }}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '11px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #785927, #5e441b)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
             >
-              <Camera size={16} />
+              <Camera size={15} />
               <span>{t('open_scanner', lang)}</span>
             </button>
+
             <button
+              type="button"
               onClick={handleEndSessionClick}
-              className="btn-danger"
-              style={{ minHeight: '44px', padding: '8px 16px', fontSize: '0.85rem' }}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '11px',
+                border: 'none',
+                background: '#dc2626',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
             >
               <Square size={14} />
               <span>{t('end_session', lang)}</span>
             </button>
           </div>
         </div>
-      )}
-
-      {/* ── Primary "Today's Class" Card (When Session Inactive) ── */}
-      {!sessionActive && (
-        <div className="surface-card" style={{ padding: '22px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={18} color="var(--color-primary)" />
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-text-main)' }}>
-                {t('current_class', lang)}
-              </h3>
-            </div>
-          </div>
-
-          {/* Symmetrical Responsive Grid for Periods (3x2 on phone, 6x1 on desktop) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '8px',
-            marginBottom: '16px',
-            width: '100%'
-          }} className="periods-selector-grid">
-            {['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6'].map((p) => {
-              const isSelected = selectedPeriod === p;
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => handlePeriodClick(p)}
-                  style={{
-                    padding: '8px 4px',
-                    borderRadius: '10px',
-                    border: `1.5px solid ${isSelected ? '#987235' : 'rgba(255, 255, 255, 0.12)'}`,
-                    background: isSelected ? 'rgba(14, 165, 233, 0.22)' : 'rgba(255, 255, 255, 0.04)',
-                    color: isSelected ? '#38bdf8' : 'var(--color-text-secondary)',
-                    fontSize: '0.78rem',
-                    fontWeight: isSelected ? 800 : 600,
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    transition: 'all 0.15s ease',
-                    boxShadow: isSelected ? '0 0 12px rgba(14, 165, 233, 0.35)' : 'none',
-                    width: '100%'
-                  }}
-                >
-                  {p}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Subject Selector & Meta */}
-          <div style={{ marginBottom: '18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-                {lang === 'hi' ? 'विषय चुनें' : 'Select Subject / Course'}
-              </label>
-              <span style={{ fontSize: '0.72rem', color: '#987235', fontWeight: 700 }}>
-                • {selectedPeriod}
-              </span>
-            </div>
-            <select
-              value={effectiveSubjectId}
-              onChange={(e) => setSelectedSubjectId(e.target.value)}
-              className="form-input"
-              style={{ fontSize: '0.92rem', fontWeight: 600 }}
-            >
-              {subjects.map((sub) => (
-                <option key={sub.id} value={sub.id}>
-                  {sub.name || sub.subject_name} ({sub.department || 'All'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Quick Enrolled & Present Snapshot */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-            <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#696358' }}>{t('total_enrolled', lang)}</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#25231f', marginTop: '2px' }}>{enrolledStudents.length}</div>
-            </div>
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#059669' }}>{t('marked_present', lang)}</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>{displayPresentCount}</div>
-            </div>
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#dc2626' }}>{t('absent_today', lang)}</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>{displayAbsentCount}</div>
-            </div>
-          </div>
-
-          {/* Large Prominent Start Session Action */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onStartSession) onStartSession(effectiveSubjectId, selectedPeriod);
-              if (onOpenScanner) onOpenScanner();
-            }}
-            className="btn-primary"
-            style={{
-              width: '100%',
-              minHeight: '52px',
-              fontSize: '1rem',
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              borderRadius: 'var(--radius-md)',
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #987235 0%, #80602c 100%)',
-              boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)'
-            }}
-          >
-            <Play size={18} fill="currentColor" />
-            <span>{t('start_session', lang)} • {selectedPeriod}</span>
-          </button>
-        </div>
-      )}
-
-      {/* ── Absent Students Quick Follow-up Section ── */}
-      {absentStudents.length > 0 && (
-        <div className="surface-card" style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <UserX size={18} color="#ef4444" />
-              <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--color-text-main)' }}>
-                {t('absent_students', lang)} ({absentStudents.length})
-              </h3>
+      ) : (
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+              <span className="golden-os-field-label" style={{ marginBottom: 0 }}>Take Class Attendance</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#785927' }}>{selectedPeriod}</span>
             </div>
 
-            <button
-              onClick={() => onSendAbsenteeAlerts && onSendAbsenteeAlerts(absentStudents)}
-              className="btn-secondary"
+            {/* Clean Golden Gate Period Selector Grid */}
+            <div
               style={{
-                minHeight: '34px',
-                padding: '4px 12px',
-                fontSize: '0.75rem',
-                color: '#f59e0b',
-                borderColor: 'rgba(245, 158, 11, 0.3)'
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                width: '100%',
               }}
             >
-              <Bell size={12} />
-              <span>{t('notify_absentees', lang)}</span>
-            </button>
-          </div>
+              {['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6'].map(p => {
+                const isSelected = selectedPeriod === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => handlePeriodClick(p)}
+                    style={{
+                      padding: '8px 6px',
+                      borderRadius: '10px',
+                      border: isSelected ? '1.5px solid #785927' : '1px solid #dfd0ae',
+                      background: isSelected ? 'linear-gradient(135deg, #785927, #684c20)' : '#ffffff',
+                      color: isSelected ? '#ffffff' : '#5c4b30',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      width: '100%',
+                    }}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
-            {absentStudents.slice(0, 8).map((stu) => (
-              <div
-                key={stu.id || stu.roll}
+            {/* Subject / Course Dropdown or Friendly Guidance */}
+            <div>
+              <label className="golden-os-field-label">
+                {lang === 'hi' ? 'विषय चुनें' : 'Subject / Course'}
+              </label>
+              {safeSubjects.length > 0 ? (
+                <select
+                  value={effectiveSubjectId}
+                  onChange={e => setSelectedSubjectId(e.target.value)}
+                  className="golden-os-input"
+                  style={{ fontWeight: 700 }}
+                >
+                  {safeSubjects.map(sub => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name || sub.subject_name}{sub.code ? ` (${sub.code})` : ''} · {sub.department || 'All'}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div
+                  className="golden-os-inset-card"
+                  style={{
+                    padding: '10px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    fontSize: '0.78rem',
+                    color: '#5c4b30',
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                    <BookOpen size={15} color="#785927" style={{ flexShrink: 0 }} />
+                    <span>No subject assigned to your account yet</span>
+                  </span>
+                  {onNavigateTab && (
+                    <button
+                      type="button"
+                      onClick={() => onNavigateTab('calendar')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#785927',
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Calendar size={13} />
+                      <span>Schedule</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Compact Unified Single-Bar Class Snapshot (Zero Chunky Boxes) */}
+            <div
+              className="golden-os-inset-card"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '6px',
+                textAlign: 'center',
+                padding: '10px 8px',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>{enrolledStudents.length}</div>
+                <div style={{ fontSize: '0.66rem', color: '#6b5b3e', fontWeight: 700 }}>{t('total_enrolled', lang)}</div>
+              </div>
+              <div style={{ borderLeft: '1px solid #eadfcb' }}>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#047857' }}>{displayPresentCount}</div>
+                <div style={{ fontSize: '0.66rem', color: '#6b5b3e', fontWeight: 700 }}>{t('marked_present', lang)}</div>
+              </div>
+              <div style={{ borderLeft: '1px solid #eadfcb' }}>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: displayAbsentCount > 0 ? '#b91c1c' : '#25231f' }}>{displayAbsentCount}</div>
+                <div style={{ fontSize: '0.66rem', color: '#6b5b3e', fontWeight: 700 }}>{t('absent_today', lang)}</div>
+              </div>
+            </div>
+
+            {/* Clean Primary & Secondary Controls */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onStartSession) onStartSession(effectiveSubjectId, selectedPeriod);
+                  if (onOpenScanner) onOpenScanner();
+                }}
                 style={{
+                  width: '100%',
+                  padding: '13px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #785927 0%, #5e441b 100%)',
+                  color: '#ffffff',
+                  fontSize: '0.92rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '8px 12px',
-                  background: '#faf9f6',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid #e4dfd5'
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 12px rgba(94, 68, 27, 0.22)',
                 }}
               >
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#25231f' }}>{stu.name}</div>
-                  <div style={{ fontSize: '0.72rem', color: '#696358' }}>{stu.roll} · {stu.dep}</div>
-                </div>
+                <Play size={16} fill="currentColor" />
+                <span>{t('start_session', lang)} · {selectedPeriod}</span>
+              </button>
 
-                <button
-                  onClick={onOpenManualAttendance}
-                  className="btn-ghost"
-                  style={{ minHeight: '30px', padding: '3px 8px', fontSize: '0.72rem', color: '#987235' }}
-                >
-                  {t('mark_manual', lang)}
-                </button>
-              </div>
-            ))}
+              <button
+                type="button"
+                onClick={onOpenManualAttendance}
+                className="golden-os-feedback-filter-btn"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '7px',
+                  fontSize: '0.82rem',
+                }}
+              >
+                <Edit3 size={14} />
+                <span>{t('manual_entry', lang)}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── End of Session Wrap-up Summary Modal ── */}
+      {/* ===== 3. ABSENT FOLLOW-UP (ONLY WHEN STUDENTS ARE MISSING IN PERIOD) ===== */}
+      {enrolledStudents.length > 0 && absentStudents.length > 0 && (
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <UserX size={16} color="#b91c1c" />
+                <span className="golden-os-field-label" style={{ marginBottom: 0 }}>
+                  {t('absent_students', lang)} ({absentStudents.length})
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onSendAbsenteeAlerts && onSendAbsenteeAlerts(absentStudents)}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '6px 11px', borderRadius: '9px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem' }}
+              >
+                <Bell size={13} />
+                <span>{t('notify_absentees', lang)}</span>
+              </button>
+            </div>
+
+            <div className="golden-os-list-shell" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              {absentStudents.slice(0, 6).map(stu => (
+                <div key={stu.id || stu.roll} className="golden-os-list-row" style={{ cursor: 'default' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0, flex: 1 }}>
+                    <div className="golden-os-avatar" style={{ background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' }}>
+                      {getInitials(stu.name, 'ST')}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {stu.name}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#6b5b3e', marginTop: '1px' }}>
+                        Roll {stu.roll || 'N/A'}{stu.dep ? ` · ${stu.dep}` : ''} · Absent
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post-Session Summary Sheet */}
       {showSummaryModal && lastEndedSummary && (
         <div
-          className="modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(5, 8, 17, 0.85)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            zIndex: 10002,
+            background: 'rgba(37, 35, 31, 0.45)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '16px'
+            zIndex: 9999,
+            padding: '16px',
           }}
-          onClick={() => setShowSummaryModal(false)}
         >
-          <div
-            className="surface-card"
-            style={{
-              width: '100%',
-              maxWidth: '480px',
-              padding: '24px',
-              background: '#ffffff',
-              border: '1px solid #e4dfd5',
-              boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
-              borderRadius: 'var(--radius-xl)',
-              animation: 'scaleIn 0.25s ease'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={22} color="#10b981" />
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#25231f' }}>
-                  {t('session_summary', lang)}
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowSummaryModal(false)}
-                className="clean-back-btn"
-                style={{ width: '36px', height: '36px', color: '#696358' }}
-              >
-                <X size={18} />
-              </button>
+          <div className="golden-os-window" style={{ width: '100%', maxWidth: '420px', padding: '18px' }}>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', marginBottom: '4px' }}>
+              Session Complete · {lastEndedSummary.period}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#6b5b3e', marginBottom: '12px' }}>
+              {lastEndedSummary.subjectName} · Ended at {lastEndedSummary.timestamp}
             </div>
 
-            <div style={{ color: '#696358', fontSize: '0.82rem', marginBottom: '16px' }}>
-              {lastEndedSummary.subjectName} · {lastEndedSummary.period} · {lastEndedSummary.timestamp}
-            </div>
-
-            {/* Scoreboard */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-              <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.72rem', color: '#696358' }}>{t('total_enrolled', lang)}</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#25231f' }}>{lastEndedSummary.totalEnrolled}</div>
+            <div className="golden-os-inset-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', textAlign: 'center', marginBottom: '14px' }}>
+              <div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#047857' }}>{lastEndedSummary.presentCount}</div>
+                <div style={{ fontSize: '0.68rem', color: '#6b5b3e', fontWeight: 700 }}>Marked Present</div>
               </div>
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.72rem', color: '#059669' }}>{t('marked_present', lang)}</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981' }}>{lastEndedSummary.presentCount}</div>
-              </div>
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-md)', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.72rem', color: '#dc2626' }}>{t('absent_today', lang)}</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4444' }}>{lastEndedSummary.absentList.length}</div>
+              <div style={{ borderLeft: '1px solid #eadfcb' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#b91c1c' }}>{lastEndedSummary.absentList.length}</div>
+                <div style={{ fontSize: '0.68rem', color: '#6b5b3e', fontWeight: 700 }}>Not Scanned</div>
               </div>
             </div>
 
-            {/* Absent List with Action */}
-            {lastEndedSummary.absentList.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#58534a', marginBottom: '8px' }}>
-                  {t('absent_students', lang)}:
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
-                  {lastEndedSummary.absentList.map(stu => (
-                    <div key={stu.id || stu.roll} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#25231f' }}>{stu.name} ({stu.roll})</span>
-                      <button
-                        onClick={onOpenManualAttendance}
-                        style={{ background: 'none', border: 'none', color: '#987235', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
-                      >
-                        {t('mark_manual', lang)}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => onSendAbsenteeAlerts && onSendAbsenteeAlerts(lastEndedSummary?.absentList || absentStudents)}
-                className="btn-secondary"
-                style={{ flex: 1, minHeight: '42px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-              >
-                <Bell size={14} />
-                <span>{t('notify_absentees', lang)}</span>
-              </button>
-              {onExportCsv && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              {lastEndedSummary.absentList.length > 0 && (
                 <button
-                  onClick={onExportCsv}
-                  className="btn-secondary"
-                  style={{ flex: 1, minHeight: '42px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  type="button"
+                  onClick={() => {
+                    if (onSendAbsenteeAlerts) onSendAbsenteeAlerts(lastEndedSummary.absentList);
+                    setShowSummaryModal(false);
+                  }}
+                  className="golden-os-feedback-filter-btn"
+                  style={{ padding: '9px 14px', borderRadius: '10px' }}
                 >
-                  <FileSpreadsheet size={14} />
-                  <span>{lang === 'hi' ? 'रजिस्टर' : 'Export Register'}</span>
+                  Notify Absentees
                 </button>
               )}
               <button
+                type="button"
                 onClick={() => setShowSummaryModal(false)}
-                className="btn-primary"
-                style={{ flex: 1, minHeight: '42px', fontSize: '0.85rem' }}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#785927',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                }}
               >
-                <span>{t('close', lang)}</span>
+                Done
               </button>
             </div>
           </div>
