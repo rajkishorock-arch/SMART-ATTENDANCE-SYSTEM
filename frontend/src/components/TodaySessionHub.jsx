@@ -3,8 +3,6 @@ import {
   Play,
   Square,
   Camera,
-  UserX,
-  Bell,
   Edit3,
   BookOpen,
   Calendar,
@@ -439,52 +437,6 @@ export default function TodaySessionHub({
                 <Edit3 size={14} />
                 <span>{t('manual_entry', lang)}</span>
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== 3. ABSENT FOLLOW-UP (ONLY WHEN STUDENTS ARE MISSING IN PERIOD) ===== */}
-      {enrolledStudents.length > 0 && absentStudents.length > 0 && (
-        <div className="golden-os-window">
-          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                <UserX size={16} color="#b91c1c" />
-                <span className="golden-os-field-label" style={{ marginBottom: 0 }}>
-                  {t('absent_students', lang)} ({absentStudents.length})
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onSendAbsenteeAlerts && onSendAbsenteeAlerts(absentStudents)}
-                className="golden-os-feedback-filter-btn"
-                style={{ padding: '6px 11px', borderRadius: '9px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem' }}
-              >
-                <Bell size={13} />
-                <span>{t('notify_absentees', lang)}</span>
-              </button>
-            </div>
-
-            <div className="golden-os-list-shell" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-              {absentStudents.slice(0, 6).map(stu => (
-                <div key={stu.id || stu.roll} className="golden-os-list-row" style={{ cursor: 'default' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0, flex: 1 }}>
-                    <div className="golden-os-avatar" style={{ background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' }}>
-                      {getInitials(stu.name, 'ST')}
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {stu.name}
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: '#6b5b3e', marginTop: '1px' }}>
-                        Roll {stu.roll || 'N/A'}{stu.dep ? ` · ${stu.dep}` : ''} · Absent
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>

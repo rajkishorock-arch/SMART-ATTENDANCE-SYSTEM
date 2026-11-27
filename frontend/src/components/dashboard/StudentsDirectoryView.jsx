@@ -745,7 +745,6 @@ export default function StudentsDirectoryView({
       ) : (
         <div className="golden-os-list-shell">
           {filteredStudents.map(student => {
-            const hasFace = Boolean(student.photo && student.photo !== 'no');
             return (
               <button
                 key={student.id}
@@ -765,20 +764,7 @@ export default function StudentsDirectoryView({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  <span style={{
-                    padding: '3px 8px',
-                    borderRadius: '999px',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    background: hasFace ? 'rgba(5, 150, 105, 0.1)' : '#f5ecda',
-                    color: hasFace ? '#047857' : '#785927',
-                    border: `1px solid ${hasFace ? 'rgba(5, 150, 105, 0.25)' : '#dec99c'}`,
-                  }}>
-                    {hasFace ? 'Face Ready' : 'No Face'}
-                  </span>
-                  <ChevronRight size={16} color="#8c734b" />
-                </div>
+                <ChevronRight size={16} color="#8c734b" style={{ flexShrink: 0 }} />
               </button>
             );
           })}

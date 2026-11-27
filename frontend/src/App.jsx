@@ -724,10 +724,20 @@ export default function App() {
     try {
       const hash = window.location.hash.replace(/^#\/?/, '').trim();
       if (hash.startsWith('dashboard/')) {
-        const sub = hash.replace('dashboard/', '').split('?')[0].trim();
-        if (['metrics', 'telemetry', 'trends', 'radar', 'diagnostics', 'feedback'].includes(sub)) {
+        const sub = hash.replace('dashboard/', '').split('/')[0].split('?')[0].trim();
+        if (['metrics', 'telemetry', 'trends', 'radar', 'diagnostics', 'feedback', 'share-feedback'].includes(sub)) {
           return sub;
         }
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  const [dashboardFeedbackDetail, setDashboardFeedbackDetail] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'dashboard' && ['feedback', 'share-feedback'].includes(parts[1]) && parts[2] === 'detail' && parts[3]) {
+        return { id: decodeURIComponent(parts[3]), item: null };
       }
     } catch { /* ignore */ }
     return null;
@@ -1244,6 +1254,10 @@ export default function App() {
       return;
     }
     if (activeDashboardSubTabRef.current !== null) {
+      if (dashboardFeedbackDetailRef.current !== null) {
+        setDashboardFeedbackDetail(null);
+        return;
+      }
       setActiveDashboardSubTab(null);
       return;
     }
@@ -1348,6 +1362,7 @@ export default function App() {
   const activeTabRef = useRef(activeTab);
   const activeSubSettingRef = useRef(activeSubSetting);
   const activeDashboardSubTabRef = useRef(activeDashboardSubTab);
+  const dashboardFeedbackDetailRef = useRef(dashboardFeedbackDetail);
   const showAddModalRef = useRef(false);
   const showEditStudentModalRef = useRef(false);
   const showFeedbackModalRef = useRef(showFeedbackModal);
@@ -1363,6 +1378,7 @@ export default function App() {
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { activeSubSettingRef.current = activeSubSetting; }, [activeSubSetting]);
   useEffect(() => { activeDashboardSubTabRef.current = activeDashboardSubTab; }, [activeDashboardSubTab]);
+  useEffect(() => { dashboardFeedbackDetailRef.current = dashboardFeedbackDetail; }, [dashboardFeedbackDetail]);
   useEffect(() => { showFeedbackModalRef.current = showFeedbackModal; }, [showFeedbackModal]);
   useEffect(() => { showPrivacyPolicyRef.current = showPrivacyPolicy; }, [showPrivacyPolicy]);
   useEffect(() => { showDisputeModalRef.current = showDisputeModal; }, [showDisputeModal]);
@@ -2932,7 +2948,9 @@ export default function App() {
                   ? calendarScrollKey
                   : activeTab === 'reports'
                     ? reportScrollKey
-                    : (activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student') ? studentScrollKey : '');
+                    : activeTab === 'dashboard' && ['feedback', 'share-feedback'].includes(activeDashboardSubTab)
+                      ? (dashboardFeedbackDetail?.id != null ? `feedback:${dashboardFeedbackDetail.id}` : '')
+                      : (activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student') ? studentScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
 
   useLayoutEffect(() => {
@@ -6437,15 +6455,16 @@ export default function App() {
       const baseHash = parts[0] || '';
       const subHash = parts[1] || null;
       const subHash2 = parts[2] || null;
-      const validDashSubs = ['metrics', 'telemetry', 'trends', 'radar', 'diagnostics', 'feedback'];
+      const validDashSubs = ['metrics', 'telemetry', 'trends', 'radar', 'diagnostics', 'feedback', 'share-feedback'];
 
       const clearNonMatchingSections = (activeBase) => {
         if (activeBase !== 'settings') {
           if (activeSubSettingRef.current !== null) setActiveSubSetting(null);
           if (settingsDetailRouteRef.current !== null) setSettingsDetailRoute(null);
         }
-        if (activeBase !== 'dashboard' && activeDashboardSubTabRef.current !== null) {
-          setActiveDashboardSubTab(null);
+        if (activeBase !== 'dashboard') {
+          if (activeDashboardSubTabRef.current !== null) setActiveDashboardSubTab(null);
+          if (dashboardFeedbackDetailRef.current !== null) setDashboardFeedbackDetail(null);
         }
         if (activeBase !== 'students') {
           if (showAddModalRef.current) setShowAddModal(false);
@@ -6514,6 +6533,11 @@ export default function App() {
           const targetDashSub = subHash && validDashSubs.includes(subHash) ? subHash : null;
           if (targetDashSub !== activeDashboardSubTabRef.current) {
             setActiveDashboardSubTab(targetDashSub);
+          }
+          if (['feedback', 'share-feedback'].includes(targetDashSub) && subHash2 === 'detail' && parts[3]) {
+            setDashboardFeedbackDetail({ id: decodeURIComponent(parts[3]), item: null });
+          } else if (dashboardFeedbackDetailRef.current !== null) {
+            setDashboardFeedbackDetail(null);
           }
         } else if (baseHash === 'disputes') {
           if (subHash) {
@@ -6683,7 +6707,9 @@ export default function App() {
       const expectedHash = activeTab === 'settings' && activeSubSetting
         ? `#/${activeTab}/${activeSubSetting}${settingsDetailSeg}`
         : activeTab === 'dashboard' && activeDashboardSubTab
-          ? `#/${activeTab}/${activeDashboardSubTab}`
+          ? (['feedback', 'share-feedback'].includes(activeDashboardSubTab) && dashboardFeedbackDetail?.id != null
+              ? `#/${activeTab}/${activeDashboardSubTab}/detail/${encodeURIComponent(dashboardFeedbackDetail.id)}`
+              : `#/${activeTab}/${activeDashboardSubTab}`)
           : activeTab === 'students' && showAddModal
             ? '#/students/register'
             : activeTab === 'students' && showEditStudentModal && editingStudent?.id
@@ -6779,6 +6805,7 @@ export default function App() {
   }, [
     activeTab,
     activeDashboardSubTab,
+    dashboardFeedbackDetail?.id,
     activeSubSetting,
     showAddModal,
     showEditStudentModal,
@@ -6844,6 +6871,7 @@ export default function App() {
 
   const setDashboardSubTabPreservingScroll = useCallback((nextSub) => {
     scrollPositionsRef.current[currentRouteKeyRef.current] = getScrollTop();
+    setDashboardFeedbackDetail(null);
     setActiveDashboardSubTab(nextSub);
   }, []);
 
@@ -9586,7 +9614,10 @@ export default function App() {
                     if (activeDashboardSubTab === 'metrics' || activeDashboardSubTab === 'telemetry') return 'Attendance Metrics';
                     if (activeDashboardSubTab === 'trends' || activeDashboardSubTab === 'radar') return 'Attendance Trends';
                     if (activeDashboardSubTab === 'diagnostics') return 'System Diagnostics';
-                    if (activeDashboardSubTab === 'feedback') return 'User Feedback';
+                    if (activeDashboardSubTab === 'feedback' && userRole === 'admin') return 'User Feedback';
+                    if (activeDashboardSubTab === 'feedback' || activeDashboardSubTab === 'share-feedback') {
+                      return dashboardFeedbackDetail ? 'Feedback Details' : 'Feedback & Reviews';
+                    }
                     return userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard';
                   })()}
                   {activeTab === 'students' && (
@@ -10007,7 +10038,6 @@ export default function App() {
                   setRouteLogId(null);
                 }
               }}
-              setShowFeedbackModal={setShowFeedbackModal}
               liveActivities={liveActivities}
               activeTelemetry={activeTelemetry}
               chartRef1={chartRef1}
@@ -10026,6 +10056,9 @@ export default function App() {
               feedbacks={feedbacks}
               reviewFeedback={reviewFeedback}
               fetchFeedbacks={fetchFeedbacks}
+              feedbackState={feedbackState}
+              dashboardFeedbackDetail={dashboardFeedbackDetail}
+              setDashboardFeedbackDetail={setDashboardFeedbackDetail}
             />
           )
         )}

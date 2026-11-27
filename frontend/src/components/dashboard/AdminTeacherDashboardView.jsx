@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Edit, Calendar, Activity, Layers, Settings, MessageSquare, Users,
   CheckCircle2, AlertCircle, TrendingUp, ShieldCheck, ChevronRight,
-  Clock, FileSpreadsheet, Megaphone, ShieldAlert,
+  Clock, FileSpreadsheet, Megaphone, ShieldAlert, ClipboardList,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
 import PullToRefresh from '../PullToRefresh';
@@ -14,11 +14,11 @@ import SmartEmptyState from '../SmartEmptyState';
 import AttendanceChartsWidget from '../AttendanceChartsWidget';
 import LiveActivityTicker from '../LiveActivityTicker';
 import SmtpSettings from '../settings/SmtpSettings';
+import StudentFeedbackHub from './StudentFeedbackHub';
 import { getOfflineQueue } from '../../utils/offlineQueue';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
 import { getApiBaseUrl } from '../../utils/platform';
-import { getInitials } from '../../utils/attendanceDateUtils';
 
 export default function AdminTeacherDashboardView({
   fetchStats,
@@ -53,7 +53,6 @@ export default function AdminTeacherDashboardView({
   scopedDashboardStats,
   isMobileView,
   setSelectedAuditLog,
-  setShowFeedbackModal,
   liveActivities,
   activeTelemetry,
   chartRef1,
@@ -71,7 +70,10 @@ export default function AdminTeacherDashboardView({
   isLoadingFeedbacks,
   feedbacks,
   reviewFeedback = null,
-  fetchFeedbacks = null
+  fetchFeedbacks = null,
+  feedbackState = null,
+  dashboardFeedbackDetail = null,
+  setDashboardFeedbackDetail = null,
 }) {
   const { currentUser, userRole, token } = useAuth();
   const { playCyberSound } = useUI();
@@ -182,119 +184,60 @@ export default function AdminTeacherDashboardView({
                   onNavigateTab={setActiveTab}
                 />
 
-                {/* Today's Recent Activity (Clean Golden Gate Single-Line List) */}
-                <div className="golden-os-window">
-                  <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                      <span className="golden-os-field-label" style={{ marginBottom: 0 }}>
-                        Recent Live Activity Today
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => { if (playCyberSound) playCyberSound('click'); setActiveTab('logs'); }}
-                        style={{ background: 'none', border: 'none', color: '#785927', fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', padding: 0 }}
-                      >
-                        View Full Logs →
-                      </button>
-                    </div>
-
-                    {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
-                      <div className="golden-os-list-shell">
-                        {dashboardRecentLogs.slice(0, 5).map((log, idx) => {
-                          const isPresent = ['present', 'late', 'excused'].includes(String(log.attendance || 'present').toLowerCase());
-                          return (
-                            <button
-                              key={log.id || idx}
-                              type="button"
-                              onClick={() => {
-                                if (playCyberSound) playCyberSound('click');
-                                setSelectedAuditLog(log);
-                              }}
-                              className="golden-os-list-row"
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0, flex: 1 }}>
-                                <div
-                                  className="golden-os-avatar"
-                                  style={!isPresent ? { background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' } : undefined}
-                                >
-                                  {getInitials(log.name, 'ST')}
-                                </div>
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {log.name} {log.roll ? `(${log.roll})` : ''}
-                                  </div>
-                                  <div style={{ fontSize: '0.75rem', color: isPresent ? '#6b5b3e' : '#b91c1c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                                    {log.attendance || 'Present'} · {log.subject_name || 'Class'} · {log.period_label ? String(log.period_label).replace(/\s*\([^)]*\)/, '').trim() : log.time || 'Recorded'}
-                                  </div>
-                                </div>
-                              </div>
-                              <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="golden-os-inset-card" style={{ textAlign: 'center', padding: '18px 12px', fontSize: '0.8rem', color: '#6b5b3e' }}>
-                        No scans logged yet today. Start a session above to record attendance.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Faculty Portals & Quick Navigation Directory */}
+                {/* Faculty Portals & Quick Navigation Directory (Clean Single-Line Headings) */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px 8px' }}>
-                    <span className="golden-os-field-label" style={{ marginBottom: 0 }}>Faculty Tools & Portals</span>
+                    <span className="golden-os-field-label" style={{ marginBottom: 0 }}>Faculty Tools &amp; Portals</span>
                   </div>
                   <div className="golden-os-list-shell">
                     {[
                       {
                         label: 'Session History & Subjects',
-                        desc: `${Array.isArray(subjects) ? subjects.length : 0} assigned subjects · Period attendance logs`,
                         icon: Clock,
                         onClick: () => setActiveTab('session-history'),
                       },
                       {
+                        label: 'Attendance Logs',
+                        icon: ClipboardList,
+                        onClick: () => setActiveTab('logs'),
+                      },
+                      {
                         label: 'Students Directory',
-                        desc: `${Array.isArray(filteredStudents) ? filteredStudents.length : 0} enrolled students · Faces & profiles`,
                         icon: Users,
                         onClick: () => setActiveTab('students'),
                       },
                       {
                         label: 'Live Attendance Telemetry',
-                        desc: `${displayStats?.total_present_today ?? 0} present today · Real-time activity monitor`,
                         icon: Activity,
                         onClick: () => setActiveDashboardSubTab('metrics'),
                       },
                       {
                         label: 'Attendance Trends & Analytics',
-                        desc: 'Weekly attendance charts & subject insights',
                         icon: Layers,
                         onClick: () => setActiveDashboardSubTab('trends'),
                       },
                       {
                         label: 'Reports & CSV Export',
-                        desc: 'Generate shortage lists & export attendance',
                         icon: FileSpreadsheet,
                         onClick: () => setActiveTab('reports'),
                       },
                       {
                         label: 'Disputes & Leave Requests',
-                        desc: 'Review student correction claims & leaves',
                         icon: ShieldAlert,
                         onClick: () => setActiveTab('disputes'),
                       },
                       {
                         label: 'Campus Notice Board',
-                        desc: 'Official circulars, exam notices & broadcasts',
                         icon: Megaphone,
                         onClick: () => setActiveTab('broadcast'),
                       },
                       {
                         label: 'Share System Feedback',
-                        desc: 'Report issues or suggest improvements',
                         icon: MessageSquare,
-                        onClick: () => setShowFeedbackModal(true),
+                        onClick: () => {
+                          if (setDashboardFeedbackDetail) setDashboardFeedbackDetail(null);
+                          setActiveDashboardSubTab('feedback');
+                        },
                       },
                     ].map(item => {
                       const RowIcon = item.icon;
@@ -312,13 +255,8 @@ export default function AdminTeacherDashboardView({
                             <div className="golden-os-avatar">
                               <RowIcon size={16} />
                             </div>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
-                                {item.label}
-                              </div>
-                              <div style={{ fontSize: '0.75rem', color: '#6b5b3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                                {item.desc}
-                              </div>
+                            <div style={{ minWidth: 0, flex: 1, fontSize: '0.9rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.label}
                             </div>
                           </div>
                           <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
@@ -622,7 +560,8 @@ export default function AdminTeacherDashboardView({
                     type="button"
                     onClick={() => {
                       if (playCyberSound) playCyberSound('click');
-                      setShowFeedbackModal(true);
+                      if (setDashboardFeedbackDetail) setDashboardFeedbackDetail(null);
+                      setActiveDashboardSubTab('share-feedback');
                     }}
                     className="btn-secondary"
                     style={{ padding: '8px 18px', minHeight: '38px', fontSize: '0.84rem' }}
@@ -1249,6 +1188,34 @@ export default function AdminTeacherDashboardView({
                   </div>
                 );
               })()}
+
+              {/* Dedicated Golden Gate Feedback & Reviews Page (Teacher & Staff) */}
+              {(activeDashboardSubTab === 'share-feedback' || (activeDashboardSubTab === 'feedback' && userRole !== 'admin')) && (
+                <StudentFeedbackHub
+                  feedbackState={feedbackState}
+                  routeView={
+                    dashboardFeedbackDetail?.id != null
+                      ? { section: 'feedback', mode: 'detail', id: dashboardFeedbackDetail.id, item: dashboardFeedbackDetail.item }
+                      : { section: 'feedback' }
+                  }
+                  onNavigateRoute={(next) => {
+                    if (!setDashboardFeedbackDetail) return;
+                    if (next?.mode === 'detail') {
+                      setDashboardFeedbackDetail({ id: next.id, item: next.item || null });
+                    } else {
+                      setDashboardFeedbackDetail(null);
+                    }
+                  }}
+                  onNavigateBack={() => {
+                    if (dashboardFeedbackDetail && setDashboardFeedbackDetail) {
+                      setDashboardFeedbackDetail(null);
+                    } else {
+                      setActiveDashboardSubTab(null);
+                    }
+                  }}
+                  playCyberSound={playCyberSound}
+                />
+              )}
 
             </div>
           )}
