@@ -28,25 +28,19 @@ export default function SmtpSettings({ token }) {
   };
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '16px',
-      borderLeft: '1px solid var(--border-subtle)',
-      paddingLeft: '28px'
-    }}>
+    <div className="golden-os-smtp-pane">
       <div>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#2b2112', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           ✉️ SMTP Mailer Diagnostics
         </h4>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.78rem', margin: '4px 0 0 0', lineHeight: '1.4' }}>
+        <p style={{ color: '#6b5b3e', fontSize: '0.78rem', margin: '4px 0 0 0', lineHeight: '1.4' }}>
           Verify the live mail server connection by triggering a test transmission.
         </p>
       </div>
 
       <form onSubmit={handleSmtpTest} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Recipient Test Email</label>
+          <label className="form-label" style={{ fontSize: '0.75rem', color: '#47371a', fontWeight: 700 }}>Recipient Test Email</label>
           <input
             type="email"
             className="form-input"
@@ -56,9 +50,10 @@ export default function SmtpSettings({ token }) {
             required
             style={{
               padding: '10px 14px',
-              background: '#ffffff',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--color-text-main)',
+              background: '#fffdf8',
+              border: '1px solid #dfd1b1',
+              borderRadius: '10px',
+              color: '#2b2112',
               fontSize: '0.85rem'
             }}
           />
@@ -67,17 +62,13 @@ export default function SmtpSettings({ token }) {
         <button
           type="submit"
           disabled={smtpTestStatus.loading}
-          className="btn-primary"
+          className="golden-os-primary-action"
           style={{
-            padding: '10px',
-            display: 'flex',
-            alignItems: 'center',
+            padding: '11px 16px',
             justifyContent: 'center',
-            gap: '8px',
-            fontSize: '0.85rem',
+            fontSize: '0.84rem',
             fontWeight: 700,
-            borderRadius: '8px',
-            cursor: 'pointer'
+            borderRadius: '12px',
           }}
         >
           {smtpTestStatus.loading ? 'TRANSMITTING VERIFICATION...' : '⚡ TEST SMTP CONNECTION'}

@@ -3712,9 +3712,9 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     
     let animationFrameId;
-    const primaryColor = activeTheme === 'matrix' ? '#00ff46' :
-                          activeTheme === 'obsidian' ? '#ff3e3e' :
-                          activeTheme === 'violet' ? '#a855f7' : '#00f2fe';
+    const primaryColor = activeTheme === 'matrix' ? '#047857' :
+                          activeTheme === 'obsidian' ? '#b91c1c' :
+                          activeTheme === 'violet' ? '#6d28d9' : '#785927';
     
     // Convert hex color to rgb for custom opacity
     const hexToRgb = (hex) => {
@@ -3723,7 +3723,7 @@ export default function App() {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
-      } : { r: 0, g: 242, b: 254 };
+      } : { r: 120, g: 89, b: 39 };
     };
     const rgb = hexToRgb(primaryColor);
     
@@ -4066,7 +4066,7 @@ export default function App() {
       }
       
       // 7. Render HUD Digital Logs overlay on the canvas edges
-      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`;
+      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.78)`;
       ctx.font = '7.5px monospace';
       ctx.fillText(`[NEURAL_ENGINE: OK]`, 10, 15);
       ctx.fillText(`[LIVENESS: SECURE]`, 10, 27);
@@ -4074,7 +4074,7 @@ export default function App() {
       
       const themeLabel = activeTheme === 'matrix' ? 'MATRIX_CORE' :
                          activeTheme === 'obsidian' ? 'OBSIDIAN_CORE' :
-                         activeTheme === 'violet' ? 'VIOLET_CORE' : 'CYAN_CORE';
+                         activeTheme === 'violet' ? 'VIOLET_CORE' : 'GOLDEN_CORE';
       ctx.fillText(`[LINK: ${themeLabel}]`, w - 100, 15);
       ctx.fillText(`[BEACONS: ${particleCount} ACTIVE]`, w - 100, 27);
       ctx.fillText(`[FPS: ${fpsRef.current || '60'} HZ]`, w - 100, 39);

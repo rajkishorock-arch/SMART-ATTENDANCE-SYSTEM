@@ -488,199 +488,95 @@ export default function AdminTeacherDashboardView({
           </div>
         ) : (
           <div>
-            {/* ===== MERGED ATTENDANCE METRICS & LIVE TELEMETRY STUDIO ===== */}
-            {(activeDashboardSubTab === 'metrics' || activeDashboardSubTab === 'telemetry') && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {/* Header */}
-                <div style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#25231f' }}>
-                        Attendance overview
-                      </h3>
-                      <span style={{ background: '#faf5ea', border: '1px solid #dfcfaf', color: '#61471e', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
-                        REALTIME
+            {/* ===== MERGED ATTENDANCE METRICS & LIVE TELEMETRY (GOLDEN OS) ===== */}
+            {(activeDashboardSubTab === 'metrics' || activeDashboardSubTab === 'telemetry') && (() => {
+              const metricCards = [
+                { label: 'Enrolled', fullLabel: 'Total Enrolled Students', value: stats?.total_students || 0, color: '#6e4e1c', iconBg: 'rgba(139, 101, 37, 0.12)', Icon: Users },
+                { label: 'Present', fullLabel: 'Present Today', value: displayStats?.total_present_today || 0, color: '#047857', iconBg: 'rgba(5, 150, 105, 0.12)', Icon: CheckCircle2 },
+                { label: 'Absent', fullLabel: 'Absent Today', value: displayStats?.total_absent_today || 0, color: '#b91c1c', iconBg: 'rgba(220, 38, 38, 0.1)', Icon: AlertCircle },
+                { label: 'Rate', fullLabel: 'Presence Rate', value: `${stats?.average_attendance_rate || 0}%`, color: '#92400e', iconBg: 'rgba(217, 119, 6, 0.12)', Icon: TrendingUp },
+              ];
+              const onlineRoles = [
+                { label: 'Total', value: activeTelemetry?.total_active ?? 0, color: '#6e4e1c' },
+                { label: 'Students', value: activeTelemetry?.students ?? 0, color: '#047857' },
+                { label: 'Teachers', value: activeTelemetry?.teachers ?? 0, color: '#b45309' },
+                { label: 'Admins', value: activeTelemetry?.admins ?? 0, color: '#785927' },
+              ];
+              return (
+                <div className="golden-os-dashboard-stack">
+                  {/* Live Stream Ticker right at top */}
+                  <LiveActivityTicker activities={liveActivities} />
+
+                  {/* Single-Line Compact 4-Stat Strip */}
+                  <div className="golden-os-panel">
+                    <div className="golden-os-panel-head">
+                      <span>Daily Attendance Summary</span>
+                      <span className="golden-os-badge-muted">Live</span>
+                    </div>
+                    <div className="golden-os-kpi-strip">
+                      {metricCards.map(({ label, fullLabel, value, color, iconBg, Icon: KpiIcon }) => (
+                        <div key={label} className="golden-os-kpi-tile" title={fullLabel}>
+                          <span className="golden-os-kpi-icon" style={{ background: iconBg, color }}>
+                            <KpiIcon size={14} />
+                          </span>
+                          <span className="golden-os-kpi-value" style={{ color }}>{value}</span>
+                          <span className="golden-os-kpi-label">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Compact Live Active Telemetry Session Monitor (fits 100% inside mobile screen) */}
+                  <div className="golden-os-panel">
+                    <div className="golden-os-panel-head">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
+                        <span>Users online</span>
+                      </span>
+                      <span className="golden-os-badge-muted" style={{ fontFamily: 'monospace' }}>
+                        {wsConnected ? 'CONNECTED' : 'STANDBY'}
                       </span>
                     </div>
-                    <p style={{ color: '#696358', fontSize: '0.85rem', margin: '4px 0 0' }}>
-                      Real-time student attendance and live telemetry.
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #a7f3d0' }}>
-                      Attendance Rate: {stats?.average_attendance_rate || 0}%
-                    </span>
-                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#faf5ea', color: '#61471e', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #dfcfaf' }}>
-                      Active Users: {activeTelemetry?.total_active ?? '—'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Section 1: Live Ticker */}
-                <LiveActivityTicker activities={liveActivities} />
-
-                {/* Section 2: Metric Summary Cards */}
-                <div className="dashboard-grid">
-                  <div className="surface-card metric-card" style={{ 
-                    animationDelay: '100ms',
-                    borderLeft: '4px solid #61471e',
-                    borderRadius: '16px',
-                    background: '#ffffff'
-                  }}>
-                    <div className="metric-info">
-                      <h3 style={{ color: '#696358', fontSize: '0.85rem', fontWeight: 600 }}>Total Enrolled Students</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#25231f', margin: '4px 0 0' }}>{stats?.total_students || 0}</p>
-                    </div>
-                    <div className="metric-icon" style={{ background: 'rgba(30, 64, 175, 0.08)', color: '#61471e', borderRadius: '12px', padding: '12px' }}>
-                      <Users size={24} />
-                    </div>
-                  </div>
-
-                  <div className="surface-card metric-card" style={{ 
-                    animationDelay: '200ms',
-                    borderLeft: '4px solid #059669',
-                    borderRadius: '16px',
-                    background: '#ffffff'
-                  }}>
-                    <div className="metric-info">
-                      <h3 style={{ color: '#696358', fontSize: '0.85rem', fontWeight: 600 }}>Present Today</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#059669', margin: '4px 0 0' }}>{displayStats?.total_present_today || 0}</p>
-                    </div>
-                    <div className="metric-icon" style={{ background: 'rgba(5, 150, 105, 0.08)', color: '#059669', borderRadius: '12px', padding: '12px' }}>
-                      <CheckCircle2 size={24} />
-                    </div>
-                  </div>
-
-                  <div className="surface-card metric-card" style={{ 
-                    animationDelay: '300ms',
-                    borderLeft: '4px solid #dc2626',
-                    borderRadius: '16px',
-                    background: '#ffffff'
-                  }}>
-                    <div className="metric-info">
-                      <h3 style={{ color: '#696358', fontSize: '0.85rem', fontWeight: 600 }}>Absent Today</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#dc2626', margin: '4px 0 0' }}>{displayStats?.total_absent_today || 0}</p>
-                    </div>
-                    <div className="metric-icon" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626', borderRadius: '12px', padding: '12px' }}>
-                      <AlertCircle size={24} />
-                    </div>
-                  </div>
-
-                  <div className="surface-card metric-card" style={{ 
-                    animationDelay: '400ms',
-                    borderLeft: '4px solid #7c3aed',
-                    borderRadius: '16px',
-                    background: '#ffffff'
-                  }}>
-                    <div className="metric-info">
-                      <h3 style={{ color: '#696358', fontSize: '0.85rem', fontWeight: 600 }}>Presence Rate</h3>
-                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#7c3aed', margin: '4px 0 0' }}>{stats?.average_attendance_rate || 0}%</p>
-                    </div>
-                    <div className="metric-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: '#7c3aed', borderRadius: '12px', padding: '12px' }}>
-                      <TrendingUp size={24} />
+                    <div className="golden-os-kpi-strip">
+                      {onlineRoles.map((item) => (
+                        <div key={item.label} className="golden-os-kpi-tile is-compact">
+                          <span className="golden-os-kpi-value" style={{ color: item.color }}>{item.value}</span>
+                          <span className="golden-os-kpi-label">{item.label}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
+              );
+            })()}
 
-                {/* Section 3: Live Active Telemetry Session Monitor */}
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  boxShadow: 'var(--shadow-card)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#059669', boxShadow: '0 0 10px rgba(5, 150, 105, 0.4)' }} />
-                      <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#25231f' }}>
-                        Users online
-                      </h4>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#696358', fontFamily: 'monospace' }}>
-                      SOCKET STATUS: CONNECTED (24ms)
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
-                    <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 600 }}>TOTAL ACTIVE USERS</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#61471e' }}>{activeTelemetry?.total_active ?? '—'}</span>
-                    </div>
-                    <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 600 }}>STUDENTS ONLINE</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669' }}>{activeTelemetry?.students ?? '—'}</span>
-                    </div>
-                    <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 600 }}>TEACHERS ONLINE</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#d97706' }}>{activeTelemetry?.teachers ?? '—'}</span>
-                    </div>
-                    <div style={{ background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#696358', fontWeight: 600 }}>ADMINISTRATORS</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7c3aed' }}>{activeTelemetry?.admins ?? '—'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ===== MERGED TRENDS, ANALYTICS & BIOMETRIC RADAR STUDIO ===== */}
+            {/* ===== TRENDS & ANALYTICS (TOP SHIFTED, GOLDEN OS) ===== */}
             {(activeDashboardSubTab === 'trends' || activeDashboardSubTab === 'radar') && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {/* Header */}
-                <div style={{ background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#25231f' }}>
-                        Attendance Trends & Department Distribution
-                      </h3>
-                      <span style={{ background: '#faf5ea', border: '1px solid #dfcfaf', color: '#61471e', fontSize: '0.72rem', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
-                        ANALYTICS
-                      </span>
-                    </div>
-                    <p style={{ color: '#696358', fontSize: '0.85rem', margin: '4px 0 0' }}>
-                      Weekly attendance trends and department distribution.
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#faf5ea', color: '#61471e', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #dfcfaf' }}>
-                      Analytics: Active
-                    </span>
-                    <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #a7f3d0' }}>
-                      Status: Live
-                    </span>
-                  </div>
-                </div>
-
-                {/* Row 1: Charts Grid */}
+              <div className="golden-os-dashboard-stack">
+                {/* Row 1: Charts Grid shifted straight to top */}
                 <div className="dashboard-charts-grid">
                   {/* Weekly Trend Line Area Chart */}
-                  <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Calendar size={18} style={{ color: '#61471e' }} /> Weekly Attendance Trends (7 Days)
+                  <div className="golden-os-panel" style={{ padding: '18px' }}>
+                    <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#2b2112', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Calendar size={17} style={{ color: '#8b6525', flexShrink: 0 }} /> Weekly Attendance Trends (7 Days)
                     </h4>
-                    <div ref={chartRef1} style={{ width: '100%', height: '230px', minWidth: 0, position: 'relative' }}>
-                      <AreaChart width={chartWidth1} height={230} data={stats?.weekly_trends || []}>
+                    <div ref={chartRef1} style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
+                      <AreaChart width={chartWidth1} height={220} data={stats?.weekly_trends || []}>
                         <defs>
                           <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#916d30" stopOpacity={0.25}/>
+                            <stop offset="5%" stopColor="#916d30" stopOpacity={0.28}/>
                             <stop offset="95%" stopColor="#916d30" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f4f1eb" />
-                        <XAxis dataKey="day" stroke="#696358" fontSize={11} tickLine={false} />
-                        <YAxis stroke="#696358" fontSize={11} tickLine={false} allowDecimals={false} />
-                        <Tooltip contentStyle={{ 
-                          background: '#ffffff', 
-                          border: '1px solid var(--border-subtle)', 
-                          borderRadius: '8px', 
-                          color: '#25231f',
-                          boxShadow: 'var(--shadow-card)'
+                        <CartesianGrid strokeDasharray="3 3" stroke="#efe8d8" />
+                        <XAxis dataKey="day" stroke="#6b5b3e" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#6b5b3e" fontSize={11} tickLine={false} allowDecimals={false} />
+                        <Tooltip contentStyle={{
+                          background: '#fffdf8',
+                          border: '1px solid #dfd0ae',
+                          borderRadius: '10px',
+                          color: '#2b2112',
+                          boxShadow: '0 6px 18px rgba(89, 64, 25, 0.12)'
                         }} />
                         <Area type="monotone" dataKey="present" stroke="#785927" strokeWidth={2.5} fillOpacity={1} fill="url(#colorTrend)" />
                       </AreaChart>
@@ -688,37 +584,37 @@ export default function AdminTeacherDashboardView({
                   </div>
 
                   {/* Department distribution Bar Chart */}
-                  <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Layers size={18} style={{ color: '#7c3aed' }} /> Present Today by Department
+                  <div className="golden-os-panel" style={{ padding: '18px' }}>
+                    <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#2b2112', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Layers size={17} style={{ color: '#8b6525', flexShrink: 0 }} /> Present Today by Department
                     </h4>
-                    <div ref={chartRef2} style={{ width: '100%', height: '230px', minWidth: 0, position: 'relative' }}>
+                    <div ref={chartRef2} style={{ width: '100%', height: '220px', minWidth: 0, position: 'relative' }}>
                       {!stats?.department_stats || Object.keys(stats.department_stats).length === 0 ? (
-                        <div className="flex-center" style={{ height: '100%', color: '#696358', flexDirection: 'column', gap: '12px' }}>
-                          <AlertCircle size={32} style={{ color: '#dc2626' }} />
-                          <span>No department attendance marked yet today.</span>
+                        <div className="flex-center" style={{ height: '100%', color: '#6b5b3e', flexDirection: 'column', gap: '10px', padding: '12px', textAlign: 'center' }}>
+                          <AlertCircle size={28} style={{ color: '#b45309' }} />
+                          <span style={{ fontSize: '0.86rem', fontWeight: 600 }}>No department attendance marked yet today.</span>
                         </div>
                       ) : (
-                        <BarChart width={chartWidth2} height={230} data={Object.keys(stats.department_stats).map(dept => {
+                        <BarChart width={chartWidth2} height={220} data={Object.keys(stats.department_stats).map(dept => {
                           const val = stats.department_stats[dept];
                           const countVal = (val && typeof val === 'object') ? (val.present !== undefined ? val.present : (val.count !== undefined ? val.count : 0)) : val;
                           return { name: dept, count: countVal };
                         })}>
                           <defs>
                             <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.9}/>
-                              <stop offset="95%" stopColor="#89662e" stopOpacity={0.7}/>
+                              <stop offset="5%" stopColor="#a87e34" stopOpacity={0.95}/>
+                              <stop offset="95%" stopColor="#6e4e1c" stopOpacity={0.8}/>
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f4f1eb" />
-                          <XAxis dataKey="name" stroke="#696358" fontSize={11} tickLine={false} />
-                          <YAxis stroke="#696358" fontSize={11} tickLine={false} allowDecimals={false} />
-                          <Tooltip contentStyle={{ 
-                            background: '#ffffff', 
-                            border: '1px solid var(--border-subtle)', 
-                            borderRadius: '8px', 
-                            color: '#25231f',
-                            boxShadow: 'var(--shadow-card)'
+                          <CartesianGrid strokeDasharray="3 3" stroke="#efe8d8" />
+                          <XAxis dataKey="name" stroke="#6b5b3e" fontSize={11} tickLine={false} />
+                          <YAxis stroke="#6b5b3e" fontSize={11} tickLine={false} allowDecimals={false} />
+                          <Tooltip contentStyle={{
+                            background: '#fffdf8',
+                            border: '1px solid #dfd0ae',
+                            borderRadius: '10px',
+                            color: '#2b2112',
+                            boxShadow: '0 6px 18px rgba(89, 64, 25, 0.12)'
                           }} />
                           <Bar dataKey="count" fill="url(#colorBar)" radius={[6, 6, 0, 0]} barSize={35} />
                         </BarChart>
@@ -730,26 +626,24 @@ export default function AdminTeacherDashboardView({
                 {/* Row 2: Biometric Telemetry Grid */}
                 <div className="dashboard-charts-grid">
                   {/* Biometric Status Summary */}
-                  <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <TrendingUp size={18} style={{ color: '#61471e' }} /> Biometric Scanner Health
+                  <div className="golden-os-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
+                    <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#2b2112', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <TrendingUp size={17} style={{ color: '#8b6525', flexShrink: 0 }} /> Biometric Scanner Health
                     </h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '20px' }}>
-                      <div style={{ width: '100%', background: '#faf9f6', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.84rem' }}>
-                        <div><span style={{ color: '#696358' }}>STATUS:</span> <span style={{ color: '#059669', fontWeight: 700 }}>ACTIVE</span></div>
-                        <div><span style={{ color: '#696358' }}>BEACONS:</span> <span style={{ color: '#25231f', fontWeight: 700 }}>4 CONNECTED</span></div>
-                        <div><span style={{ color: '#696358' }}>LIVENESS:</span> <span style={{ color: '#61471e', fontWeight: 700 }}>VERIFIED</span></div>
-                        <div><span style={{ color: '#696358' }}>FRAME RATE:</span> <span style={{ color: '#25231f', fontWeight: 700 }}>{hudMetrics?.fps || 30} FPS</span></div>
-                      </div>
+                    <div style={{ width: '100%', background: '#ffffff', border: '1px solid #e4d9be', borderRadius: '12px', padding: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.82rem' }}>
+                      <div><span style={{ color: '#6b5b3e', fontWeight: 600 }}>STATUS:</span> <strong style={{ color: '#047857' }}>ACTIVE</strong></div>
+                      <div><span style={{ color: '#6b5b3e', fontWeight: 600 }}>BEACONS:</span> <strong style={{ color: '#2b2112' }}>4 CONNECTED</strong></div>
+                      <div><span style={{ color: '#6b5b3e', fontWeight: 600 }}>LIVENESS:</span> <strong style={{ color: '#6e4e1c' }}>VERIFIED</strong></div>
+                      <div><span style={{ color: '#6b5b3e', fontWeight: 600 }}>FRAME RATE:</span> <strong style={{ color: '#2b2112' }}>{hudMetrics?.fps || 30} FPS</strong></div>
                     </div>
                   </div>
-                  
+
                   {/* Neural Mesh Verification Node Map */}
-                  <div className="surface-card" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', minHeight: '300px', background: '#ffffff', border: '1px solid var(--border-subtle)' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <ShieldCheck size={18} style={{ color: '#7c3aed' }} /> Face Landmark Mesh Engine
+                  <div className="golden-os-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', minHeight: '260px' }}>
+                    <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#2b2112', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ShieldCheck size={17} style={{ color: '#8b6525', flexShrink: 0 }} /> Face Landmark Mesh Engine
                     </h4>
-                    <div style={{ position: 'relative', flex: 1, minHeight: '200px', width: '100%', overflow: 'hidden', borderRadius: '12px', background: '#faf9f6', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ position: 'relative', flex: 1, minHeight: '190px', width: '100%', overflow: 'hidden', borderRadius: '12px', background: '#fffdf8', border: '1px solid #e4d9be' }}>
                       <canvas ref={neuralMeshCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                     </div>
                   </div>
@@ -757,154 +651,153 @@ export default function AdminTeacherDashboardView({
               </div>
             )}
 
-            {/* Module 4: System Health & Core Diagnostics */}
-            {activeDashboardSubTab === 'diagnostics' && (
-              <div className="glass-panel" style={{ 
-                  padding: '28px', 
-                  animationDelay: '900ms', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  minHeight: '350px' 
-                }}>
-                  <h3 style={{ 
-                    fontSize: '1.1rem', 
-                    fontWeight: 600, 
-                    marginBottom: '20px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    gap: '10px' 
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <ShieldCheck size={18} style={{ color: activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe' }} />
-                      <span>System Health & Diagnostics</span>
-                    </div>
+            {/* Module 4: System Health & Core Diagnostics (Golden OS) */}
+            {activeDashboardSubTab === 'diagnostics' && (() => {
+              const cpuPct = Number(systemHealth?.metrics?.cpu_percent ?? 0);
+              const ramPct = Number(systemHealth?.metrics?.memory_percent ?? 0);
+              const diagChecks = [
+                {
+                  label: 'DATABASE',
+                  value: systemHealth ? systemHealth.database : 'CHECKING...',
+                  color: systemHealth?.database === 'CONNECTED' ? '#047857' : '#b91c1c',
+                },
+                {
+                  label: 'DB ENGINE',
+                  value: systemHealth?.database_type
+                    ? (systemHealth.database_type === 'sqlite' ? 'SQLITE (FALLBACK)' : String(systemHealth.database_type).toUpperCase())
+                    : 'CHECKING...',
+                  color: systemHealth?.database_type === 'sqlite' ? '#b45309' : '#6e4e1c',
+                },
+                {
+                  label: 'API LATENCY',
+                  value: apiLatency === -1 ? 'OFFLINE' : `${apiLatency} ms`,
+                  color: apiLatency === -1 ? '#b91c1c' : apiLatency < 250 ? '#047857' : apiLatency < 1000 ? '#b45309' : '#b91c1c',
+                },
+                {
+                  label: 'YUNET DETECTOR',
+                  value: systemHealth?.models?.yunet || 'CHECKING...',
+                  color: systemHealth?.models?.yunet === 'READY' ? '#047857' : '#b91c1c',
+                },
+                {
+                  label: 'SFACE MATCHER',
+                  value: systemHealth?.models?.sface || 'CHECKING...',
+                  color: systemHealth?.models?.sface === 'READY' ? '#047857' : '#b91c1c',
+                },
+              ];
+              const uptimeText = (() => {
+                const sec = Number(systemHealth?.metrics?.uptime_seconds ?? 0);
+                const d = Math.floor(sec / (3600 * 24));
+                const h = Math.floor((sec % (3600 * 24)) / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s = sec % 60;
+                return `${d}d ${h}h ${m}m ${s}s`;
+              })();
+
+              return (
+                <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', borderBottom: '1px solid #e7dac0', paddingBottom: '12px' }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#2b2112' }}>
+                      <ShieldCheck size={19} style={{ color: '#8b6525', flexShrink: 0 }} />
+                      <span>System Health &amp; Diagnostics</span>
+                    </h3>
                     {systemHealth && (
-                      <span style={{ 
-                        fontSize: '0.75rem', 
-                        padding: '4px 8px', 
-                        borderRadius: '6px', 
-                        background: systemHealth.status === 'HEALTHY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                        color: systemHealth.status === 'HEALTHY' ? '#10b981' : '#ef4444',
-                        fontWeight: 'bold',
-                        letterSpacing: '1px'
+                      <span style={{
+                        fontSize: '0.72rem',
+                        padding: '4px 11px',
+                        borderRadius: '999px',
+                        background: systemHealth.status === 'HEALTHY' ? 'rgba(5, 150, 105, 0.12)' : 'rgba(220, 38, 38, 0.12)',
+                        color: systemHealth.status === 'HEALTHY' ? '#047857' : '#b91c1c',
+                        border: `1px solid ${systemHealth.status === 'HEALTHY' ? 'rgba(5, 150, 105, 0.28)' : 'rgba(220, 38, 38, 0.28)'}`,
+                        fontWeight: 800,
+                        letterSpacing: '0.04em'
                       }}>
                         {systemHealth.status}
                       </span>
                     )}
-                  </h3>
+                  </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', flex: 1 }}>
+                  <div className="golden-os-diag-grid">
                     {/* Column 1: System Health & Core Specs */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
                       {/* Gauge bars for CPU & RAM */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px', fontFamily: 'monospace' }}>
-                            <span style={{ color: 'var(--color-text-muted)' }}>CPU ENGINE:</span>
-                            <span style={{ color: '#f4f1eb', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.cpu_percent}%` : '0.0%'}</span>
+                      <div className="golden-os-grid-2">
+                        <div className="golden-os-inset-card" style={{ padding: '12px 14px', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700 }}>
+                            <span style={{ color: '#6b5b3e' }}>CPU ENGINE</span>
+                            <span style={{ color: '#2b2112' }}>{cpuPct}%</span>
                           </div>
-                          <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                            <div style={{ 
-                              height: '100%', 
-                              width: systemHealth ? `${systemHealth.metrics.cpu_percent}%` : '0%', 
-                              background: `linear-gradient(90deg, ${activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'}, ${activeTheme === 'matrix' ? '#00cc38' : activeTheme === 'obsidian' ? '#cc3232' : activeTheme === 'violet' ? '#8b5cf6' : '#4facfe'})`,
-                              borderRadius: '4px',
-                              transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                          <div style={{ height: '8px', background: '#efe7d6', borderRadius: '999px', overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${Math.min(100, Math.max(0, cpuPct))}%`,
+                              background: 'linear-gradient(90deg, #8c6525, #c49a45)',
+                              borderRadius: '999px',
+                              transition: 'width 0.6s ease'
                             }} />
                           </div>
                         </div>
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px', fontFamily: 'monospace' }}>
-                            <span style={{ color: 'var(--color-text-muted)' }}>RAM BUFFER:</span>
-                            <span style={{ color: '#f4f1eb', fontWeight: 'bold' }}>{systemHealth ? `${systemHealth.metrics.memory_percent}%` : '0.0%'}</span>
+
+                        <div className="golden-os-inset-card" style={{ padding: '12px 14px', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700 }}>
+                            <span style={{ color: '#6b5b3e' }}>RAM BUFFER</span>
+                            <span style={{ color: '#2b2112' }}>{ramPct}%</span>
                           </div>
-                          <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                            <div style={{ 
-                              height: '100%', 
-                              width: systemHealth ? `${systemHealth.metrics.memory_percent}%` : '0%', 
-                              background: `linear-gradient(90deg, ${activeTheme === 'matrix' ? '#00ff46' : activeTheme === 'obsidian' ? '#ff3e3e' : activeTheme === 'violet' ? '#a855f7' : '#00f2fe'}, ${activeTheme === 'matrix' ? '#00cc38' : activeTheme === 'obsidian' ? '#cc3232' : activeTheme === 'violet' ? '#8b5cf6' : '#4facfe'})`,
-                              borderRadius: '4px',
-                              transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                          <div style={{ height: '8px', background: '#efe7d6', borderRadius: '999px', overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${Math.min(100, Math.max(0, ramPct))}%`,
+                              background: 'linear-gradient(90deg, #6e4e1c, #a87e34)',
+                              borderRadius: '999px',
+                              transition: 'width 0.6s ease'
                             }} />
                           </div>
                         </div>
                       </div>
 
                       {/* Core checklist */}
-                      <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: '1fr 1fr', 
-                        gap: '12px 20px', 
-                        background: 'rgba(8, 12, 20, 0.25)', 
-                        border: '1px solid var(--border-color)', 
-                        borderRadius: '10px', 
-                        padding: '16px', 
-                        fontSize: '0.8rem',
-                        fontFamily: 'monospace'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>DATABASE:</span>
-                          <span style={{ 
-                            color: systemHealth?.database === 'CONNECTED' ? '#10b981' : '#ef4444', 
-                            fontWeight: 'bold' 
-                          }}>
-                            {systemHealth ? systemHealth.database : 'CHECKING...'}
+                      <div className="golden-os-inset-card" style={{ padding: '12px 14px', gap: '8px' }}>
+                        {diagChecks.map((item, idx) => (
+                          <div
+                            key={item.label}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '10px',
+                              fontSize: '0.8rem',
+                              paddingBottom: idx < diagChecks.length - 1 ? '7px' : 0,
+                              borderBottom: idx < diagChecks.length - 1 ? '1px solid #f2ead9' : 'none',
+                            }}
+                          >
+                            <span style={{ color: '#6b5b3e', fontWeight: 700 }}>{item.label}</span>
+                            <span style={{ color: item.color, fontWeight: 800, fontFamily: 'monospace', textAlign: 'right' }}>{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* System details */}
+                      <div className="golden-os-inset-card" style={{ padding: '12px 14px', gap: '5px', fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ color: '#6b5b3e', fontWeight: 700 }}>UPTIME</span>
+                          <span style={{ color: '#2b2112', fontWeight: 700, fontFamily: 'monospace' }}>{uptimeText}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ color: '#6b5b3e', fontWeight: 700 }}>PLATFORM</span>
+                          <span style={{ color: '#2b2112', fontWeight: 700, fontFamily: 'monospace' }}>
+                            {systemHealth?.platform?.system ? `${systemHealth.platform.system} (${systemHealth.platform.release || ''})` : 'DETECTING...'}
                           </span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>DB ENGINE / TYPE:</span>
-                          <span style={{ 
-                            color: systemHealth?.database_type === 'sqlite' ? '#f59e0b' : '#00f2fe',
-                            fontWeight: 'bold' 
-                          }}>
-                            {systemHealth ? (systemHealth.database_type === 'sqlite' ? 'LOCAL SQLITE (FALLBACK)' : systemHealth.database_type.toUpperCase()) : 'CHECKING...'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>API LATENCY:</span>
-                          <span style={{ 
-                            color: apiLatency === -1 ? '#ef4444' : apiLatency < 40 ? '#10b981' : apiLatency < 100 ? '#f59e0b' : '#ef4444',
-                            fontWeight: 'bold' 
-                          }}>
-                            {apiLatency === -1 ? 'OFFLINE' : `${apiLatency} ms`}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>DETECTION YUNET:</span>
-                          <span style={{ 
-                            color: systemHealth?.models?.yunet === 'READY' ? '#10b981' : '#ef4444', 
-                            fontWeight: 'bold' 
-                          }}>
-                            {systemHealth?.models?.yunet || 'CHECKING...'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>RECOGNITION SFACE:</span>
-                          <span style={{ 
-                            color: systemHealth?.models?.sface === 'READY' ? '#10b981' : '#ef4444', 
-                            fontWeight: 'bold' 
-                          }}>
-                            {systemHealth?.models?.sface || 'CHECKING...'}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ color: '#6b5b3e', fontWeight: 700 }}>ENVIRONMENT</span>
+                          <span style={{ color: '#2b2112', fontWeight: 700, fontFamily: 'monospace' }}>
+                            Python {systemHealth?.platform?.python_version || '...'}
                           </span>
                         </div>
                       </div>
 
-                      {/* System details */}
-                      <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div>UPTIME: <span style={{ color: '#f4f1eb' }}>{systemHealth ? (() => {
-                          const sec = systemHealth.metrics.uptime_seconds;
-                          const d = Math.floor(sec / (3600*24));
-                          const h = Math.floor((sec % (3600*24)) / 3600);
-                          const m = Math.floor((sec % 3600) / 60);
-                          const s = sec % 60;
-                          return `${d}d ${h}h ${m}m ${s}s`;
-                        })() : '0d 0h 0m 0s'}</span></div>
-                        <div>PLATFORM: <span style={{ color: '#f4f1eb' }}>{systemHealth ? `${systemHealth.platform.system} (${systemHealth.platform.release})` : 'DETECTING...'}</span></div>
-                        <div>ENVIRONMENT: <span style={{ color: '#f4f1eb' }}>Python {systemHealth ? systemHealth.platform.python_version : '...'}</span></div>
-                      </div>
                       {/* Manual trigger button */}
-                      <button 
+                      <button
+                        type="button"
                         onClick={() => {
                           if (playCyberSound) playCyberSound('click');
                           setHealthLoading(true);
@@ -913,31 +806,9 @@ export default function AdminTeacherDashboardView({
                           });
                         }}
                         disabled={healthLoading}
-                        className="action-btn"
-                        style={{ 
-                          marginTop: 'auto',
-                          padding: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          fontFamily: 'monospace',
-                          letterSpacing: '1px',
-                          position: 'relative',
-                          overflow: 'hidden'
-                        }}
+                        className="golden-os-primary-action"
+                        style={{ padding: '12px 16px', justifyContent: 'center', fontWeight: 700, fontSize: '0.84rem', letterSpacing: '0.03em' }}
                       >
-                        {healthLoading && (
-                          <div style={{ 
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            height: '100%',
-                            width: '100%',
-                            background: 'rgba(0, 242, 254, 0.15)',
-                            animation: 'scannerPulse 1.2s infinite'
-                          }} />
-                        )}
                         <span>{healthLoading ? 'RUNNING INTEGRITY CHECK...' : 'RUN CORE DIAGNOSTICS'}</span>
                       </button>
                     </div>
@@ -946,7 +817,8 @@ export default function AdminTeacherDashboardView({
                     <SmtpSettings token={token} />
                   </div>
                 </div>
-              )}
+              );
+            })()}
 
               {/* Module 5: User Feedback Submissions */}
               {activeDashboardSubTab === 'feedback' && userRole === 'admin' && (
