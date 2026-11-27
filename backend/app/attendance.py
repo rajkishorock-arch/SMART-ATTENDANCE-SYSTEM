@@ -499,6 +499,14 @@ def get_attendance_report(
                 )
             subject_id = first_subject.id
 
+    cache_key = (
+        f"report:inst_{current_user.institution_id}:r_{role}:u_{current_user.id}:"
+        f"s_{start_date}:e_{end_date}:d_{department}:sub_{subject_id}"
+    )
+    cached_report = cache_service.cache_get(cache_key)
+    if cached_report is not None:
+        return cached_report
+
     report = crud.get_attendance_report(
         db,
         start_date_str=start_date,
@@ -507,6 +515,10 @@ def get_attendance_report(
         subject_id=subject_id,
         institution_id=current_user.institution_id
     )
+    try:
+        cache_service.cache_set(cache_key, report, ttl=30)
+    except Exception:
+        pass
     return report
 
 
@@ -629,6 +641,7 @@ def send_absentee_alerts(
         cache_service.cache_delete_pattern(f"stats:inst_{current_user.institution_id}")
         cache_service.cache_delete_pattern(f"sessions:inst_{current_user.institution_id}")
         cache_service.cache_delete_pattern(f"logs:inst_{current_user.institution_id}")
+        cache_service.cache_delete_pattern(f"report:inst_{current_user.institution_id}")
     except Exception:
         pass
 
@@ -1082,6 +1095,7 @@ def mark_manual_attendance_bulk(
         cache_service.cache_delete_pattern(f"stats:inst_{current_user.institution_id}")
         cache_service.cache_delete_pattern(f"sessions:inst_{current_user.institution_id}")
         cache_service.cache_delete_pattern(f"logs:inst_{current_user.institution_id}")
+        cache_service.cache_delete_pattern(f"report:inst_{current_user.institution_id}")
     except Exception:
         pass
 
@@ -1367,6 +1381,7 @@ def update_attendance_status(
             cache_service.cache_delete_pattern(f"stats:inst_{current_user.institution_id}")
             cache_service.cache_delete_pattern(f"sessions:inst_{current_user.institution_id}")
             cache_service.cache_delete_pattern(f"logs:inst_{current_user.institution_id}")
+            cache_service.cache_delete_pattern(f"report:inst_{current_user.institution_id}")
         except Exception:
             pass
         return {"status": "success", "message": "Attendance status updated successfully."}
@@ -1615,6 +1630,7 @@ async def broadcast_attendance_event(event_data: dict):
             cache_service.cache_delete_pattern(f"stats:inst_{inst_id}")
             cache_service.cache_delete_pattern(f"sessions:inst_{inst_id}")
             cache_service.cache_delete_pattern(f"logs:inst_{inst_id}")
+            cache_service.cache_delete_pattern(f"report:inst_{inst_id}")
         except Exception:
             pass
 

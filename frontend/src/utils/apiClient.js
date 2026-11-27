@@ -21,7 +21,7 @@ function getEndpointTtl(url, options = {}) {
   if (url.includes('/attendance/logs') || url.includes('/attendance/sessions-history')) {
     return 60000; // 60 seconds
   }
-  if (url.includes('/attendance/stats') || url.includes('/attendance/my-report') || url.includes('/attendance/my-calendar')) {
+  if (url.includes('/attendance/stats') || url.includes('/attendance/my-report') || url.includes('/attendance/my-calendar') || url.includes('/attendance/report')) {
     return 30000; // 30 seconds
   }
   if (url.includes('/students') || url.includes('/subjects') || url.includes('/teachers')) {

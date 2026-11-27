@@ -701,6 +701,17 @@ export default function App() {
     return null;
   });
 
+  const [reportRoute, setReportRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'reports' && parts[1]) {
+        if (parts[1] === 'controls') return { mode: 'controls' };
+        return { mode: 'detail', id: decodeURIComponent(parts[1]) };
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
   const getScopedListKey = useCallback((domain, authToken) => {
     try {
       const t = authToken || localStorage.getItem('token') || '';
@@ -856,6 +867,7 @@ export default function App() {
   const sessionHistoryRouteRef = useRef(sessionHistoryRoute);
   const routeLogIdRef = useRef(routeLogId);
   const calendarRouteRef = useRef(calendarRoute);
+  const reportRouteRef = useRef(reportRoute);
   const selectedAuditLogRef = useRef(null);
   const scheduleReturnTargetRef = useRef(null);
   const showWebcamModalRef = useRef(false);
@@ -879,6 +891,7 @@ export default function App() {
   useEffect(() => { sessionHistoryRouteRef.current = sessionHistoryRoute; }, [sessionHistoryRoute]);
   useEffect(() => { routeLogIdRef.current = routeLogId; }, [routeLogId]);
   useEffect(() => { calendarRouteRef.current = calendarRoute; }, [calendarRoute]);
+  useEffect(() => { reportRouteRef.current = reportRoute; }, [reportRoute]);
 
   // Record user scroll position continuously while settled on the current view
   useEffect(() => {
@@ -963,6 +976,9 @@ export default function App() {
       if (activeTab !== 'calendar') {
         setCalendarRoute(null);
       }
+      if (activeTab !== 'reports') {
+        setReportRoute(null);
+      }
       prevActiveTabRef.current = activeTab;
     }
   }, [activeTab]);
@@ -1041,6 +1057,10 @@ export default function App() {
       } else {
         setCalendarRoute(null);
       }
+      return;
+    }
+    if (activeTabRef.current === 'reports' && reportRouteRef.current !== null) {
+      setReportRoute(null);
       return;
     }
     if (activeTabRef.current === 'settings' && settingsDetailRouteRef.current !== null) {
@@ -2308,7 +2328,17 @@ export default function App() {
     getLocalDateString()
   );
   const [reportDeptFilter, setReportDeptFilter] = useState('');
-  const [reportData, setReportData] = useState({ total_working_days: 0, students: [] });
+  const [reportData, setReportData] = useState(() => {
+    try {
+      const slug = getActiveTenantSlug() || 'default';
+      const tok = localStorage.getItem('token') || '';
+      if (!tok) return { total_working_days: 0, students: [] };
+      const raw = localStorage.getItem(`sg_reports_v1_${slug}_${String(tok).slice(-16)}`);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && Array.isArray(parsed.students)) return parsed;
+    } catch { /* ignore */ }
+    return { total_working_days: 0, students: [] };
+  });
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isSendingAlerts, setIsSendingAlerts] = useState(false);
   const [reportAlertMsg, setReportAlertMsg] = useState(null);
@@ -2709,6 +2739,9 @@ export default function App() {
   const calendarScrollKey = activeTab === 'calendar' && calendarRoute
     ? `${calendarRoute.mode}:${calendarRoute.id ?? ''}`
     : '';
+  const reportScrollKey = activeTab === 'reports' && reportRoute
+    ? `${reportRoute.mode}:${reportRoute.id ?? ''}`
+    : '';
   const activeSubDetailKey = activeTab === 'students'
     ? studentSubScrollKey
     : activeTab === 'teachers'
@@ -2723,7 +2756,9 @@ export default function App() {
               ? logsScrollKey
               : activeTab === 'session-history'
                 ? sessionHistoryScrollKey
-                : (activeTab === 'calendar' ? calendarScrollKey : '');
+                : activeTab === 'calendar'
+                  ? calendarScrollKey
+                  : (activeTab === 'reports' ? reportScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
 
   useLayoutEffect(() => {
@@ -5378,35 +5413,32 @@ export default function App() {
     }
   };
 
-  const fetchReport = async () => {
+  const fetchReport = async (forceRefresh = false, tokenOverride = null) => {
+    const usedToken = tokenOverride || token;
+    if (!usedToken) return;
+    const isForce = forceRefresh === true;
+    const cacheKey = getScopedListKey('reports', usedToken);
+    if (cacheKey && reportData.students.length === 0) {
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        const cached = raw ? JSON.parse(raw) : null;
+        if (cached && Array.isArray(cached.students) && cached.students.length > 0) {
+          setReportData(cached);
+        }
+      } catch { /* ignore */ }
+    }
     setIsLoadingReport(true);
     try {
-      const queryParams = new URLSearchParams({
-        start_date: reportStartDate,
-        end_date: reportEndDate,
-      });
-      if (userRole === 'admin') {
-        if (reportDeptFilter) {
-          queryParams.append('department', reportDeptFilter);
-        }
-        if (selectedReportSubjectId) {
-          queryParams.append('subject_id', selectedReportSubjectId);
-        }
-      } else if (userRole === 'teacher') {
-        if (selectedReportSubjectId) {
-          queryParams.append('subject_id', selectedReportSubjectId);
-        } else {
-          const teacherSubjects = subjects.filter(s => s.teacher_id === currentUser?.details?.id);
-          if (teacherSubjects.length > 0) {
-            queryParams.append('subject_id', teacherSubjects[0].id.toString());
-          }
-        }
+      let effectiveSubjectId = selectedReportSubjectId;
+      if (userRole === 'teacher' && !effectiveSubjectId && subjects.length > 0) {
+        effectiveSubjectId = String(subjects[0].id);
       }
-      const res = await attendanceApi.fetchReport(token, {
+      const res = await attendanceApi.fetchReport(usedToken, {
         start_date: reportStartDate,
         end_date: reportEndDate,
         department: userRole === 'admin' ? reportDeptFilter : null,
-        subject_id: queryParams.get('subject_id')
+        subject_id: effectiveSubjectId || null,
+        forceRefresh: isForce,
       });
       if (res.status === 401) {
         handleLogout();
@@ -5416,14 +5448,17 @@ export default function App() {
         throw new Error(`Failed to fetch report (HTTP ${res.status})`);
       }
       const data = await res.json();
-      if (data && Array.isArray(data.students)) {
-        setReportData(data);
-      } else {
-        setReportData({ total_working_days: (data && data.total_working_days) || 0, students: [] });
+      const normalized = (data && Array.isArray(data.students))
+        ? data
+        : { total_working_days: (data && data.total_working_days) || 0, students: [] };
+      setReportData(normalized);
+      if (cacheKey && !reportDeptFilter && !effectiveSubjectId) {
+        try { localStorage.setItem(cacheKey, JSON.stringify(normalized)); } catch { /* ignore */ }
+      } else if (cacheKey && userRole === 'teacher') {
+        try { localStorage.setItem(cacheKey, JSON.stringify(normalized)); } catch { /* ignore */ }
       }
     } catch (err) {
       console.error('Error fetching report:', err);
-      setReportData({ total_working_days: 0, students: [] });
     } finally {
       setIsLoadingReport(false);
     }
@@ -5441,11 +5476,8 @@ export default function App() {
       } else if (userRole === 'teacher') {
         if (selectedReportSubjectId) {
           queryParams.append('subject_id', selectedReportSubjectId);
-        } else {
-          const teacherSubjects = subjects.filter(s => s.teacher_id === currentUser?.details?.id);
-          if (teacherSubjects.length > 0) {
-            queryParams.append('subject_id', teacherSubjects[0].id.toString());
-          }
+        } else if (subjects.length > 0) {
+          queryParams.append('subject_id', subjects[0].id.toString());
         }
       }
       const res = await attendanceApi.sendAbsenteeAlerts(token, queryParams.get('subject_id'));
@@ -5518,11 +5550,8 @@ export default function App() {
       } else if (userRole === 'teacher') {
         if (selectedReportSubjectId) {
           queryParams.append('subject_id', selectedReportSubjectId);
-        } else {
-          const teacherSubjects = subjects.filter(s => s.teacher_id === currentUser?.details?.id);
-          if (teacherSubjects.length > 0) {
-            queryParams.append('subject_id', teacherSubjects[0].id.toString());
-          }
+        } else if (subjects.length > 0) {
+          queryParams.append('subject_id', subjects[0].id.toString());
         }
       }
       
@@ -5547,7 +5576,7 @@ export default function App() {
           downloadName = `Attendance_Report_${deptStr}_${reportStartDate}_to_${reportEndDate}.pdf`;
         }
       } else if (userRole === 'teacher') {
-        const subjectIdToUse = selectedReportSubjectId || subjects.filter(s => s.teacher_id === currentUser?.details?.id)[0]?.id;
+        const subjectIdToUse = selectedReportSubjectId || subjects[0]?.id;
         const subCode = subjects.find(s => s.id === parseInt(subjectIdToUse))?.code || 'Subject';
         downloadName = `Attendance_Report_${subCode}_${reportStartDate}_to_${reportEndDate}.pdf`;
       }
@@ -6191,6 +6220,9 @@ export default function App() {
         if (activeBase !== 'calendar' && calendarRouteRef.current !== null) {
           setCalendarRoute(null);
         }
+        if (activeBase !== 'reports' && reportRouteRef.current !== null) {
+          setReportRoute(null);
+        }
       };
 
       if (baseHash && isTabValidForRole(baseHash, userRole)) {
@@ -6270,6 +6302,14 @@ export default function App() {
             setCalendarRoute({ mode: subHash });
           } else if (calendarRouteRef.current !== null) {
             setCalendarRoute(null);
+          }
+        } else if (baseHash === 'reports') {
+          if (!subHash) {
+            if (reportRouteRef.current !== null) setReportRoute(null);
+          } else if (subHash === 'controls') {
+            setReportRoute({ mode: 'controls' });
+          } else {
+            setReportRoute({ mode: 'detail', id: decodeURIComponent(subHash) });
           }
         } else if (baseHash === 'students') {
           if (!subHash) {
@@ -6417,7 +6457,11 @@ export default function App() {
                                           ? `#/calendar/event/${encodeURIComponent(calendarRoute.id)}`
                                           : activeTab === 'calendar' && calendarRoute?.mode
                                             ? `#/calendar/${calendarRoute.mode}`
-                                            : `#/${activeTab}`;
+                                            : activeTab === 'reports' && reportRoute?.mode === 'controls'
+                                              ? '#/reports/controls'
+                                              : activeTab === 'reports' && reportRoute?.mode === 'detail' && reportRoute?.id != null
+                                                ? `#/reports/${encodeURIComponent(reportRoute.id)}`
+                                                : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6494,6 +6538,8 @@ export default function App() {
     sessionHistoryRoute,
     calendarRoute?.mode,
     calendarRoute?.id,
+    reportRoute?.mode,
+    reportRoute?.id,
     token,
     userRole,
   ]);
@@ -6682,6 +6728,7 @@ export default function App() {
           fetchDepartments(token),
           fetchSessionHistory(),
           fetchCalendarPrefetch(token),
+          fetchReport(false, token),
           ...(userRole === 'teacher' ? [fetchTeachers(token, false, userRole)] : [])
         ]);
       }
@@ -6743,12 +6790,14 @@ export default function App() {
         fetchDisputesPrefetch(token, userRole);
         fetchBroadcastsPrefetch(token);
         fetchCalendarPrefetch(token);
+        fetchReport(false, token);
         break;
       case 'control':
       case 'all-features':
         fetchDisputesPrefetch(token, userRole);
         fetchBroadcastsPrefetch(token);
         fetchCalendarPrefetch(token);
+        fetchReport(false, token);
         break;
       case 'disputes':
         fetchDisputesPrefetch(token, userRole);
@@ -6781,7 +6830,9 @@ export default function App() {
         fetchStudents();
         break;
       case 'reports':
-        // Reports are generated on-demand when user clicks "Generate Report"
+        fetchSubjects();
+        fetchDepartments();
+        fetchReport(false);
         break;
       case 'session-history':
         fetchSubjects();
@@ -7185,6 +7236,7 @@ export default function App() {
           fetchDisputesPrefetch(newToken, meData.role),
           fetchBroadcastsPrefetch(newToken),
           fetchCalendarPrefetch(newToken),
+          fetchReport(false, newToken),
           ...(meData.role === 'admin' ? [fetchTeachers(newToken, false, meData.role), fetchFeedbacks(newToken, meData.role)] : meData.role === 'teacher' ? [fetchTeachers(newToken, false, meData.role)] : [])
         ]);
       }
@@ -7230,6 +7282,7 @@ export default function App() {
           fetchDisputesPrefetch(newToken, meData.role),
           fetchBroadcastsPrefetch(newToken),
           fetchCalendarPrefetch(newToken),
+          fetchReport(false, newToken),
           ...(meData.role === 'admin' ? [fetchTeachers(newToken, false, meData.role), fetchFeedbacks(newToken, meData.role)] : meData.role === 'teacher' ? [fetchTeachers(newToken, false, meData.role)] : [])
         ]);
       }
@@ -7262,6 +7315,8 @@ export default function App() {
       setCalendarEventsLoaded(false);
       setCalendarMetrics(null);
       setCalendarRoute(null);
+      setReportData({ total_working_days: 0, students: [] });
+      setReportRoute(null);
       setSessionHistory([]);
       setSelectedAuditLog(null);
       setRouteLogId(null);
@@ -9054,7 +9109,7 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('reports'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  onClick={() => { navigateToTab('reports'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <BookOpen size={18} />
                   <span>Reports & Alerts</span>
@@ -9181,7 +9236,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -9236,7 +9291,15 @@ export default function App() {
                     return activeLog?.name || (routeLogId != null ? `Record #${routeLogId}` : 'Attendance Logs');
                   })()}
                   {activeTab === 'attendance' && 'Take Attendance'}
-                  {activeTab === 'reports' && 'Reports & Analytics'}
+                  {activeTab === 'reports' && (() => {
+                    if (reportRoute?.mode === 'controls') return 'Report Controls & Exports';
+                    if (reportRoute?.mode === 'detail') {
+                      return reportRoute.item?.name ||
+                        reportData.students?.find(s => String(s.id) === String(reportRoute.id))?.name ||
+                        `Student Report #${reportRoute.id}`;
+                    }
+                    return 'Reports & Analytics';
+                  })()}
                   {activeTab === 'session-history' && (() => {
                     if (!sessionHistoryRoute) return 'Session History';
                     const slotPart = sessionHistoryRoute.split('|')[1] || '';
@@ -9330,7 +9393,7 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast', 'logs', 'session-history', 'calendar'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast', 'logs', 'session-history', 'calendar', 'reports'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -9490,6 +9553,7 @@ export default function App() {
                 handleSendAbsenteeAlerts={handleSendAbsenteeAlerts}
                 reportData={reportData}
                 isSendingAlerts={isSendingAlerts}
+                onOpenControls={() => setReportRoute({ mode: 'controls' })}
               />
             )}
           </div>
@@ -9836,9 +9900,16 @@ export default function App() {
             stats={stats}
             fetchReport={fetchReport}
             printReport={printReport}
+            exportReportToCSV={exportReportToCSV}
+            downloadReportPDF={downloadReportPDF}
+            handleSendAbsenteeAlerts={handleSendAbsenteeAlerts}
+            isSendingAlerts={isSendingAlerts}
             shiftDate={shiftDate}
             reportAlertMsg={reportAlertMsg}
             setReportAlertMsg={setReportAlertMsg}
+            routeView={reportRoute}
+            setRouteView={setReportRoute}
+            onCloseSubView={handleNavigateBack}
           />
         )}
 
@@ -11517,7 +11588,7 @@ export default function App() {
         <QuickActionsDock
           onScan={() => { setActiveTab('attendance'); playCyberSound('click'); }}
           onManual={() => { setIsManualAttendanceOpen(true); playCyberSound('click'); }}
-          onReport={() => { setActiveTab('reports'); playCyberSound('click'); }}
+          onReport={() => { navigateToTab('reports'); playCyberSound('click'); }}
           onNotify={() => {
             if (userRole === 'admin') {
               navigateToTab('broadcast');

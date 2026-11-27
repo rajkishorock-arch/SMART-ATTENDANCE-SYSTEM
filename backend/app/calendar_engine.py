@@ -23,6 +23,7 @@ def _invalidate_calendar_caches(inst_id: Optional[int]):
         cache_service.cache_delete_pattern(f"stats:inst_{inst_id}")
         cache_service.cache_delete_pattern(f"sessions:inst_{inst_id}")
         cache_service.cache_delete_pattern(f"logs:inst_{inst_id}")
+        cache_service.cache_delete_pattern(f"report:inst_{inst_id}")
     except Exception:
         pass
 

@@ -112,15 +112,17 @@ export const attendanceApi = {
   /**
    * Fetch attendance report data (/attendance/report)
    */
-  async fetchReport(token, startDate = null, endDate = null, subjectId = null, department = null) {
+  async fetchReport(token, startDate = null, endDate = null, subjectId = null, department = null, forceRefresh = false) {
     let url = '/attendance/report';
     const params = [];
+    let noCache = Boolean(forceRefresh);
     if (typeof startDate === 'object' && startDate !== null) {
       const obj = startDate;
       if (obj.subject_id) params.push(`subject_id=${encodeURIComponent(obj.subject_id)}`);
       if (obj.start_date) params.push(`start_date=${encodeURIComponent(obj.start_date)}`);
       if (obj.end_date) params.push(`end_date=${encodeURIComponent(obj.end_date)}`);
       if (obj.department) params.push(`department=${encodeURIComponent(obj.department)}`);
+      if (obj.forceRefresh) noCache = true;
     } else {
       if (subjectId) params.push(`subject_id=${encodeURIComponent(subjectId)}`);
       if (startDate) params.push(`start_date=${encodeURIComponent(startDate)}`);
@@ -128,7 +130,7 @@ export const attendanceApi = {
       if (department) params.push(`department=${encodeURIComponent(department)}`);
     }
     if (params.length > 0) url += `?${params.join('&')}`;
-    return apiGet(url, { token });
+    return apiGet(url, { token, noCache });
   }
 };
 

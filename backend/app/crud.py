@@ -125,13 +125,14 @@ def delete_student(db: Session, student_id: int, institution_id: Optional[int] =
         # Invalidate recognition and cached attendance telemetry for this institution
         try:
             from app.recognition_service import recognition_service
-            from app.cache import cache_service
+            from app import cache_service
             if target_inst_id is not None:
                 recognition_service.invalidate_cache(target_inst_id)
                 recognition_service.load_student_records(db, institution_id=target_inst_id)
                 cache_service.cache_delete_pattern(f"stats:inst_{target_inst_id}")
                 cache_service.cache_delete_pattern(f"sessions:inst_{target_inst_id}")
                 cache_service.cache_delete_pattern(f"logs:inst_{target_inst_id}")
+                cache_service.cache_delete_pattern(f"report:inst_{target_inst_id}")
         except Exception:
             pass
 
@@ -373,6 +374,8 @@ def get_attendance_report(
     subject_id: Optional[int] = None,
     institution_id: Optional[int] = None
 ):
+    from collections import defaultdict
+
     if subject_id is not None and not department:
         subj_q = db.query(models.Subject).filter(models.Subject.id == subject_id)
         if institution_id is not None:
@@ -381,100 +384,89 @@ def get_attendance_report(
         if subject:
             department = subject.department
 
-    # Parse dates from format YYYY-MM-DD
-    start_date = None
-    end_date = None
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-        except ValueError:
-            pass
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-        except ValueError:
-            pass
-
-    def parse_date_str(d_str: str) -> Optional[date]:
+    def parse_date_str(d_str: Optional[str]) -> Optional[date]:
         if not d_str:
             return None
         s = str(d_str).strip()
-        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
             try:
                 return datetime.strptime(s, fmt).date()
             except ValueError:
                 pass
         return None
 
-    # Fetch attendance logs for this subject
-    attendance_query = db.query(models.AttendanceModel).filter(models.AttendanceModel.attendance == "Present")
+    start_date = parse_date_str(start_date_str)
+    end_date = parse_date_str(end_date_str)
+
+    dept_aliases = get_department_aliases(db, institution_id, department) if department else set()
+
+    # Fetch non-cancelled attendance logs cleanly in a single query
+    attendance_query = db.query(models.AttendanceModel).filter(
+        models.AttendanceModel.attendance.in_(["Present", "Late", "Excused", "Absent"])
+    )
     if institution_id is not None:
         attendance_query = attendance_query.filter(models.AttendanceModel.institution_id == institution_id)
-        
     if subject_id is not None:
         attendance_query = attendance_query.filter(models.AttendanceModel.subject_id == subject_id)
-    elif department:
-        attendance_query = attendance_query.filter(models.AttendanceModel.department == department)
-        
+
     all_logs = attendance_query.all()
-    
+
     system_dates = set()
+    presents_dates_by_key = defaultdict(set)
+    attended_statuses = {"Present", "Late", "Excused"}
+
     for log in all_logs:
+        if subject_id is None and dept_aliases:
+            if (log.department or "").strip().casefold() not in dept_aliases:
+                continue
         log_date = parse_date_str(log.date)
-        if log_date:
-            if start_date and log_date < start_date:
-                continue
-            if end_date and log_date > end_date:
-                continue
-            system_dates.add(log.date)
+        if not log_date:
+            continue
+        if start_date and log_date < start_date:
+            continue
+        if end_date and log_date > end_date:
+            continue
+        iso_key = log_date.isoformat()
+        system_dates.add(iso_key)
+        if log.attendance in attended_statuses:
+            if log.roll:
+                presents_dates_by_key[f"roll:{str(log.roll).strip().casefold()}"].add(iso_key)
+            if log.id:
+                raw_id = str(log.id).strip()
+                presents_dates_by_key[f"id:{raw_id}"].add(iso_key)
+                if "_" in raw_id:
+                    presents_dates_by_key[f"id:{raw_id.split('_', 1)[0]}"].add(iso_key)
 
     total_working_days = len(system_dates)
 
-    # Fetch students: first try by department, then fall back to students from attendance logs
+    # Fetch active students matching department aliases accurately
     student_query = db.query(models.StudentModel)
     if institution_id is not None:
         student_query = student_query.filter(models.StudentModel.institution_id == institution_id)
-        
-    if department:
-        students = student_query.filter(models.StudentModel.dep == department).all()
-        # Fallback: if no dept match, get students from attendance logs
-        if not students and subject_id is not None:
-            logged_ids_raw = [log.id for log in all_logs if log.id and log.id.isdigit()]
-            logged_ids = list(set(int(i) for i in logged_ids_raw))
-            if logged_ids:
-                students = student_query.filter(
-                    models.StudentModel.id.in_(logged_ids)
-                ).all()
-        # Last resort: all students
-        if not students:
-            students = student_query.all()
-    else:
-        students = student_query.all()
+    all_students = student_query.all()
 
-    from collections import Counter
-    presents_count = Counter()
-    for log in all_logs:
-        log_date = parse_date_str(log.date)
-        if log_date:
-            if start_date and log_date < start_date:
-                continue
-            if end_date and log_date > end_date:
-                continue
-            if log.roll:
-                presents_count[str(log.roll).strip()] += 1
-            if log.id:
-                raw_id = str(log.id).strip()
-                presents_count[raw_id] += 1
-                if '_' in raw_id:
-                    presents_count[raw_id.split('_')[0]] += 1
+    if dept_aliases:
+        students = [s for s in all_students if (s.dep or "").strip().casefold() in dept_aliases]
+        if not students and subject_id is not None:
+            logged_ids = {
+                str(log.id).strip().split("_", 1)[0]
+                for log in all_logs
+                if log.id and str(log.id).strip().split("_", 1)[0].isdigit()
+            }
+            if logged_ids:
+                students = [s for s in all_students if str(s.id) in logged_ids]
+    else:
+        students = all_students
 
     student_reports = []
     for s in students:
-        p_roll = str(s.roll).strip() if s.roll else None
-        p_id = str(s.id)
-        present_days = presents_count.get(p_id, 0)
-        if p_roll and presents_count.get(p_roll, 0) > present_days:
-            present_days = presents_count.get(p_roll, 0)
+        id_dates = presents_dates_by_key.get(f"id:{s.id}", set())
+        roll_dates = (
+            presents_dates_by_key.get(f"roll:{str(s.roll).strip().casefold()}", set())
+            if s.roll
+            else set()
+        )
+        present_days = len(id_dates | roll_dates)
         effective_total = max(total_working_days, present_days)
         raw_percentage = (present_days / effective_total * 100.0) if effective_total > 0 else 0.0
         percentage = min(100.0, max(0.0, round(raw_percentage, 2)))
@@ -485,18 +477,23 @@ def get_attendance_report(
             "roll": s.roll,
             "name": s.name,
             "dep": s.dep,
+            "email": s.email,
+            "phone": s.phone,
             "present_days": present_days,
             "total_days": effective_total,
             "percentage": percentage,
-            "low_attendance": low_attendance
+            "low_attendance": low_attendance,
         })
 
-    # Sort: low attendance warning first, then percentage ascending
-    sorted_reports = sorted(student_reports, key=lambda x: (not x["low_attendance"], x["percentage"]))
+    # Sort: low attendance shortage first, then percentage ascending, then name
+    sorted_reports = sorted(
+        student_reports,
+        key=lambda x: (not x["low_attendance"], x["percentage"], (x["name"] or "").lower()),
+    )
 
     return {
         "total_working_days": total_working_days,
-        "students": sorted_reports
+        "students": sorted_reports,
     }
 
 

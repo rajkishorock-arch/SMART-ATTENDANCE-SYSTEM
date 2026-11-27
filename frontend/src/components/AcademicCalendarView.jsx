@@ -750,7 +750,6 @@ export default function AcademicCalendarView({
         id: 'schedule',
         title: 'Institutional Schedule',
         subtitle: 'Holidays, exams, notices & lectures',
-        badge: `${events.length} ${events.length === 1 ? 'event' : 'events'}`,
         Icon: Calendar,
         bg: '#fcf6e8',
         color: '#785927',
@@ -760,7 +759,6 @@ export default function AcademicCalendarView({
         id: 'analytics',
         title: 'Attendance Protection Analytics',
         subtitle: 'Exempt sessions & safe attendance rate',
-        badge: metrics ? `${metrics.attendance_percentage}%` : 'Live',
         Icon: ShieldCheck,
         bg: '#ecfdf5',
         color: '#047857',
@@ -772,7 +770,6 @@ export default function AcademicCalendarView({
               id: 'cancel',
               title: 'Cancel Class Session',
               subtitle: 'Mark cancelled & protect student attendance',
-              badge: cancelledEvents.length > 0 ? `${cancelledEvents.length} active` : 'Manage',
               Icon: CalendarX,
               bg: '#fff1f2',
               color: '#be123c',
@@ -782,7 +779,6 @@ export default function AcademicCalendarView({
               id: 'substitute',
               title: 'Substitute Faculty Delegation',
               subtitle: 'Reassign class teacher & notify students',
-              badge: substituteEvents.length > 0 ? `${substituteEvents.length} active` : 'Assign',
               Icon: UserCheck,
               bg: '#f0f9ff',
               color: '#0369a1',
@@ -867,10 +863,7 @@ export default function AcademicCalendarView({
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  <span className="golden-os-badge-muted">{item.badge}</span>
-                  <ChevronRight size={16} color="#8c734b" />
-                </div>
+                <ChevronRight size={16} color="#8c734b" style={{ flexShrink: 0 }} />
               </button>
             );
           })}
@@ -880,37 +873,12 @@ export default function AcademicCalendarView({
   }
 
   // ── 2. DEDICATED WINDOW SHELL FOR ALL SUB-PAGES ──────────────────────────────
-  const windowTitles = {
-    schedule: 'Institutional Schedule',
-    analytics: 'Attendance Protection Analytics',
-    cancel: 'Cancel Class Session',
-    substitute: 'Substitute Faculty Delegation',
-    new: 'Schedule Campus Event',
-    detail: resolvedDetailEvent?.title || 'Event Details',
-  };
-
   return (
-    <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {renderToastBanner()}
 
       <div className="golden-os-window">
-        <div className="golden-os-titlebar">
-          <div className="golden-os-titlebar-left">
-            <div className="golden-os-traffic" aria-hidden="true">
-              <span className="golden-os-dot golden-os-dot-close" />
-              <span className="golden-os-dot golden-os-dot-min" />
-              <span className="golden-os-dot golden-os-dot-zoom" />
-            </div>
-            <span className="golden-os-title-label">{windowTitles[activeRoute.mode] || 'Academic Calendar'}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="golden-os-status-pill is-ready">
-              {userRole === 'student' ? 'Student View' : isStaff ? 'Live Sync' : 'Synced'}
-            </span>
-          </div>
-        </div>
-
-        <div className="golden-os-body">
+        <div className="golden-os-body" style={{ padding: '16px 18px 18px' }}>
           {activeRoute.mode === 'schedule' && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
