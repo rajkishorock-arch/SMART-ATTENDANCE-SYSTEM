@@ -12,7 +12,7 @@ export default function QuickActionsDock({ onScan, onManual, onReport, onNotify 
   ];
 
   return (
-    <div className="quick-actions-dock" style={{ position: 'fixed', bottom: '85px', right: '22px', zIndex: 9999 }}>
+    <div className="quick-actions-dock" style={{ position: 'fixed', bottom: '85px', right: '22px', zIndex: 910 }}>
       {open && (
         <div className="quick-actions-menu" style={{
           display: 'flex',

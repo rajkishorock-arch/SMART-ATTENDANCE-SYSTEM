@@ -3,23 +3,98 @@ import useAuth from './useAuth';
 import useUI from './useUI';
 import { getApiBaseUrl } from '../utils/platform';
 
+function getThreadsStorageKey(user, role) {
+  const uid = user?.id || user?.email || role || 'guest';
+  return `gg_ai_threads_${String(uid).toLowerCase()}`;
+}
+
+function readSavedThreads(key) {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function useCyberBot() {
   const { currentUser, userRole, token } = useAuth();
   const { playCyberSound, soundEnabled, audioVolume } = useUI();
 
   const API_BASE_URL = getApiBaseUrl();
+  const storageKey = getThreadsStorageKey(currentUser, userRole);
 
-  // Primary CyberBot States
+  // Primary AI Chat States
   const [showChatBot, setShowChatBot] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState([]);
+  const [threadState, setThreadState] = useState(() => ({
+    key: storageKey,
+    items: readSavedThreads(storageKey),
+    activeId: null,
+    messages: [],
+  }));
   const [isChatLoading, setIsChatLoading] = useState(false);
 
-  // Advanced CyberBot & Speech States
-  const [botPersonality, setBotPersonality] = useState('futuristic');
+  const isSameAccount = threadState.key === storageKey;
+  const threads = isSameAccount ? threadState.items : readSavedThreads(storageKey);
+  const activeThreadId = isSameAccount ? threadState.activeId : null;
+  const chatMessages = isSameAccount ? threadState.messages : [];
+
+  const updateActiveSession = useCallback(
+    (updaterFn) => {
+      setThreadState(prev => {
+        const base = prev.key === storageKey
+          ? prev
+          : { key: storageKey, items: readSavedThreads(storageKey), activeId: null, messages: [] };
+        const next = updaterFn(base);
+        return { ...next, key: storageKey };
+      });
+    },
+    [storageKey]
+  );
+
+  const setChatMessages = useCallback(
+    (msgsOrUpdater) => {
+      updateActiveSession(base => {
+        const nextMsgs = typeof msgsOrUpdater === 'function' ? msgsOrUpdater(base.messages) : msgsOrUpdater;
+        if (!Array.isArray(nextMsgs) || nextMsgs.length === 0) {
+          return { ...base, messages: [] };
+        }
+        const tid = base.activeId || `thread_${Date.now()}`;
+        const firstUser = nextMsgs.find(m => m.role === 'user');
+        const titleRaw = (firstUser?.content || 'New Conversation')
+          .replace(/\[Attached File Content:.*?\]/gs, '')
+          .trim();
+        const title = titleRaw.length > 44 ? `${titleRaw.slice(0, 44)}...` : titleRaw || 'New Conversation';
+        const compactMsgs = nextMsgs.slice(-40).map(m => ({
+          ...m,
+          attachedImage: m.attachedImage && m.attachedImage.length < 40000 ? m.attachedImage : null,
+        }));
+        const existingIdx = base.items.findIndex(t => t.id === tid);
+        const updated = { id: tid, title, updatedAt: Date.now(), messages: compactMsgs };
+        const nextItems = (
+          existingIdx >= 0
+            ? base.items.map((t, i) => (i === existingIdx ? updated : t))
+            : [updated, ...base.items]
+        ).slice(0, 20);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(nextItems));
+        } catch {
+          // ignore quota errors
+        }
+        return { ...base, activeId: tid, messages: nextMsgs, items: nextItems };
+      });
+    },
+    [storageKey, updateActiveSession]
+  );
+
+  // Assistant Mode & Speech States
+  const [botPersonality, setBotPersonality] = useState('casual');
   const [botVoiceEnabled, setBotVoiceEnabled] = useState(false);
   const [botWakeWordEnabled, setBotWakeWordEnabled] = useState(
-    () => localStorage.getItem('botWakeWordEnabled') === 'true'
+    () => typeof localStorage !== 'undefined' && localStorage.getItem('botWakeWordEnabled') === 'true'
   );
   const [botVoiceSpeed, setBotVoiceSpeed] = useState(1.0);
   const [botVoicePitch, setBotVoicePitch] = useState(1.0);
@@ -35,12 +110,13 @@ export default function useCyberBot() {
   const [isVoiceAssistantMode, setIsVoiceAssistantMode] = useState(false);
   const [showVoicePulseFlash, setShowVoicePulseFlash] = useState(false);
 
-  // Refs for audio / speech engines
+  // Refs for audio / abort / scrolling
   const chatBottomRef = useRef(null);
   const chatListRef = useRef(null);
   const recognitionRef = useRef(null);
   const isSpeakingRef = useRef(false);
   const voiceAssistantActiveRef = useRef(false);
+  const abortControllerRef = useRef(null);
 
   // Load available speech voices
   useEffect(() => {
@@ -65,7 +141,7 @@ export default function useCyberBot() {
 
     if (soundEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
-      const cleanText = text.replace(/[*#_`~]/g, '');
+      const cleanText = text.replace(/```[\s\S]*?```/g, 'code snippet').replace(/[*#_`~]/g, '');
       const utterance = new SpeechSynthesisUtterance(cleanText);
 
       if (botVoiceSelected) {
@@ -124,13 +200,12 @@ export default function useCyberBot() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const fileText = e.target.result;
-      setChatInput((prev) => `${prev}\n\n[Attached File Content: ${file.name}]\n${fileText}\n[End of File Content]\n`);
+      setChatInput((prev) => `${prev ? `${prev}\n\n` : ''}[Attached File: ${file.name}]\n${fileText}\n[End File]`);
       if (playCyberSound) playCyberSound('success');
     };
     reader.readAsText(file);
   }, [playCyberSound]);
 
-  // Bot file select handler
   const handleBotFileSelect = useCallback((e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -142,7 +217,6 @@ export default function useCyberBot() {
     e.target.value = '';
   }, [handleImageUpload, handleTextFileAttach]);
 
-  // Paste handler
   const handleChatPaste = useCallback((e) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -156,12 +230,10 @@ export default function useCyberBot() {
     }
   }, [handleImageUpload]);
 
-  // Drag over handler
   const handleChatDragOver = useCallback((e) => {
     e.preventDefault();
   }, []);
 
-  // Drop handler
   const handleChatDrop = useCallback((e) => {
     e.preventDefault();
     const files = e.dataTransfer?.files;
@@ -175,190 +247,290 @@ export default function useCyberBot() {
     }
   }, [handleImageUpload, handleTextFileAttach]);
 
-  // Clear chat helper
+  const startNewChat = useCallback(() => {
+    if (abortControllerRef.current) {
+      try { abortControllerRef.current.abort(); } catch { /* ignore */ }
+    }
+    updateActiveSession(base => ({ ...base, activeId: `thread_${Date.now()}`, messages: [] }));
+    setChatInput('');
+    setBotAttachedImage(null);
+    setBotAttachedImageMime(null);
+    setBotAttachedImageName('');
+    setIsChatLoading(false);
+    if (playCyberSound) playCyberSound('click');
+  }, [playCyberSound, updateActiveSession]);
+
+  const loadThread = useCallback((threadId) => {
+    updateActiveSession(base => {
+      const match = base.items.find(t => t.id === threadId);
+      if (!match) return base;
+      return {
+        ...base,
+        activeId: match.id,
+        messages: Array.isArray(match.messages) ? match.messages : [],
+      };
+    });
+    if (abortControllerRef.current) {
+      try { abortControllerRef.current.abort(); } catch { /* ignore */ }
+    }
+    setIsChatLoading(false);
+    if (playCyberSound) playCyberSound('click');
+  }, [updateActiveSession, playCyberSound]);
+
+  const deleteThread = useCallback((threadId) => {
+    updateActiveSession(base => {
+      const nextItems = base.items.filter(t => t.id !== threadId);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(nextItems));
+      } catch { /* ignore */ }
+      const deletedActive = base.activeId === threadId;
+      return {
+        ...base,
+        items: nextItems,
+        activeId: deletedActive ? null : base.activeId,
+        messages: deletedActive ? [] : base.messages,
+      };
+    });
+    if (playCyberSound) playCyberSound('click');
+  }, [storageKey, updateActiveSession, playCyberSound]);
+
   const clearChatHistory = useCallback(() => {
-    setChatMessages([]);
+    if (activeThreadId) {
+      deleteThread(activeThreadId);
+    } else {
+      setChatMessages([]);
+    }
     setChatInput('');
     setBotAttachedImage(null);
     setBotAttachedImageMime(null);
     setBotAttachedImageName('');
     if (playCyberSound) playCyberSound('click');
-  }, [playCyberSound]);
+  }, [activeThreadId, deleteThread, playCyberSound]);
 
-  // Export chat transcript helper
   const exportChatHistory = useCallback(() => {
     if (playCyberSound) playCyberSound('success');
-    let transcript = `AI Chat Transcript - Smart Attendance System\n`;
+    let transcript = `AI Assistant Transcript - Smart Attendance System\n`;
     transcript += `Generated: ${new Date().toLocaleString()}\n`;
-    transcript += `User: ${currentUser?.name || 'Unknown'} (${userRole})\n`;
+    transcript += `User: ${currentUser?.name || 'Unknown'} (${userRole || 'member'})\n`;
     transcript += `=========================================\n\n`;
 
     chatMessages.forEach(m => {
-      const sender = m.role === 'user' ? 'USER' : 'AI BOT';
+      const sender = m.role === 'user' ? 'USER' : 'ASSISTANT';
       transcript += `[${sender}]: ${m.content}\n`;
       if (m.attachedImageName) {
-        transcript += `(Attached Image: ${m.attachedImageName})\n`;
+        transcript += `(Attachment: ${m.attachedImageName})\n`;
       }
       transcript += `\n`;
     });
 
-    const element = document.createElement("a");
+    const element = document.createElement('a');
     const file = new Blob([transcript], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `smart_attendance_chat_transcript.txt`;
+    element.download = `assistant_chat_${Date.now()}.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
   }, [chatMessages, currentUser, userRole, playCyberSound]);
 
-  // Dynamic help suggestions
-  const getSuggestions = useCallback(() => {
-    if (botSuggestionCategory === 'attendance') {
-      return [
-        "Why did face scan show already marked?",
-        "How to view session-wise history?",
-        "What is geofencing location filter?"
-      ];
-    } else if (botSuggestionCategory === 'profile') {
-      return [
-        "How to register my face photo?",
-        "Can I change my registered email?",
-        "Where do I find my teacher/mentor info?"
-      ];
-    } else if (botSuggestionCategory === 'security') {
-      return [
-        "How to update account password?",
-        "Is my webcam biometric data safe?",
-        "How to check local geofence parameters?"
-      ];
+  const buildUserContext = useCallback(() => {
+    let userContextStr = '';
+    if (!currentUser) return userContextStr;
+    userContextStr += `[Current User Profile Context]:\n`;
+    userContextStr += `- Name: ${currentUser.name}\n`;
+    userContextStr += `- Role: ${userRole}\n`;
+    if (currentUser.details) {
+      if (currentUser.details.roll) userContextStr += `- Roll Number: ${currentUser.details.roll}\n`;
+      if (currentUser.details.dep) userContextStr += `- Department/Branch: ${currentUser.details.dep}\n`;
+      if (currentUser.details.course) userContextStr += `- Course: ${currentUser.details.course}\n`;
+      if (currentUser.details.year) userContextStr += `- Year: ${currentUser.details.year}\n`;
+      if (currentUser.details.semester) userContextStr += `- Semester: ${currentUser.details.semester}\n`;
+      if (currentUser.details.phone) userContextStr += `- Contact Phone: ${currentUser.details.phone}\n`;
+      if (currentUser.details.teacher) userContextStr += `- Mentor / Assigned Teacher: ${currentUser.details.teacher}\n`;
     }
-    return [
-      "How does this system work?",
-      "What features does this app have?",
-      "How to submit feature feedback?"
-    ];
-  }, [botSuggestionCategory]);
+    try {
+      const cachedLogsStr = localStorage.getItem('cached_student_logs');
+      if (userRole === 'student' && cachedLogsStr) {
+        const studentLogs = JSON.parse(cachedLogsStr);
+        if (Array.isArray(studentLogs) && studentLogs.length > 0) {
+          const total = studentLogs.length;
+          const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
+          const absent = studentLogs.filter(l => l.attendance === 'Absent').length;
+          const rate = ((present / total) * 100).toFixed(1);
+          userContextStr += `- Student Attendance Rate: ${rate}%\n`;
+          userContextStr += `- Attendance Count: ${present} Present, ${absent} Absent out of ${total} total classes\n`;
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+    return userContextStr;
+  }, [currentUser, userRole]);
 
-  // Send AI Chat message handler
+  const dispatchChatRequest = useCallback(async ({ promptText, history, imageBase64 = null, imageMime = null, replaceModelMsgId = null }) => {
+    if (abortControllerRef.current) {
+      try { abortControllerRef.current.abort(); } catch { /* ignore */ }
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setIsChatLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/chat/`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          message: promptText,
+          history: history.map(m => ({ role: m.role, content: m.content })),
+          image_base64: imageBase64,
+          image_mime_type: imageMime,
+          personality: botPersonality,
+          user_context: buildUserContext(),
+        }),
+      });
+
+      const replyContent = res.ok
+        ? (await res.json()).response
+        : 'Sorry, I encountered an issue reaching the assistant server. Please try again.';
+
+      if (playCyberSound) playCyberSound(res.ok ? 'success' : 'error');
+
+      setChatMessages(prev => {
+        if (replaceModelMsgId) {
+          return prev.map(m =>
+            m.id === replaceModelMsgId
+              ? { ...m, content: replyContent, timestamp: Date.now() }
+              : m
+          );
+        }
+        return [
+          ...prev,
+          { id: Date.now() + 1, role: 'model', content: replyContent, timestamp: Date.now() },
+        ];
+      });
+
+      if (res.ok && botAutoSpeak) {
+        handleSpeakText(replyContent);
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        setChatMessages(prev => [
+          ...prev,
+          { id: Date.now() + 1, role: 'model', content: '_Response generation stopped._', timestamp: Date.now() },
+        ]);
+      } else {
+        if (playCyberSound) playCyberSound('error');
+        setChatMessages(prev => [
+          ...prev,
+          { id: Date.now() + 1, role: 'model', content: 'Unable to connect right now. Please check your connection and try again.', timestamp: Date.now() },
+        ]);
+      }
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+      setIsChatLoading(false);
+    }
+  }, [API_BASE_URL, token, botPersonality, buildUserContext, botAutoSpeak, handleSpeakText, playCyberSound]);
+
+  const stopGenerating = useCallback(() => {
+    if (abortControllerRef.current) {
+      try { abortControllerRef.current.abort(); } catch { /* ignore */ }
+      abortControllerRef.current = null;
+      setIsChatLoading(false);
+    }
+  }, []);
+
   const handleSendChatMessage = useCallback(async (customMessage = null) => {
-    const textToSend = customMessage || chatInput;
-    if (!textToSend || !textToSend.trim()) return;
+    const textToSend = (typeof customMessage === 'string' ? customMessage : chatInput) || '';
+    if (!textToSend.trim() && !botAttachedImage) return;
 
     if (playCyberSound) playCyberSound('click');
-    const userMsgId = Date.now();
     const newUserMessage = {
-      id: userMsgId,
+      id: Date.now(),
       role: 'user',
-      content: textToSend,
+      content: textToSend.trim() || 'Analyze this attached image.',
       attachedImage: botAttachedImage ? `data:${botAttachedImageMime};base64,${botAttachedImage}` : null,
-      attachedImageName: botAttachedImageName
+      attachedImageName: botAttachedImageName,
+      timestamp: Date.now(),
     };
 
-    setChatMessages((prev) => [...prev, newUserMessage]);
-    if (!customMessage) setChatInput('');
+    const nextHistory = [...chatMessages];
+    setChatMessages(prev => [...prev, newUserMessage]);
+    if (typeof customMessage !== 'string') setChatInput('');
 
     const tempImage = botAttachedImage;
     const tempImageMime = botAttachedImageMime;
-
     setBotAttachedImage(null);
     setBotAttachedImageMime(null);
     setBotAttachedImageName('');
-    setIsChatLoading(true);
 
-    let userContextStr = "";
-    if (currentUser) {
-      userContextStr += `[Current User Profile Context]:\n`;
-      userContextStr += `- Name: ${currentUser.name}\n`;
-      userContextStr += `- Role: ${userRole}\n`;
-      if (currentUser.details) {
-        if (currentUser.details.roll) userContextStr += `- Roll Number: ${currentUser.details.roll}\n`;
-        if (currentUser.details.dep) userContextStr += `- Department/Branch: ${currentUser.details.dep}\n`;
-        if (currentUser.details.course) userContextStr += `- Course: ${currentUser.details.course}\n`;
-        if (currentUser.details.year) userContextStr += `- Year: ${currentUser.details.year}\n`;
-        if (currentUser.details.semester) userContextStr += `- Semester: ${currentUser.details.semester}\n`;
-        if (currentUser.details.phone) userContextStr += `- Contact Phone: ${currentUser.details.phone}\n`;
-        if (currentUser.details.teacher) userContextStr += `- Mentor / Assigned Teacher: ${currentUser.details.teacher}\n`;
-      }
-      try {
-        const cachedLogsStr = localStorage.getItem('cached_student_logs');
-        if (userRole === 'student' && cachedLogsStr) {
-          const studentLogs = JSON.parse(cachedLogsStr);
-          if (Array.isArray(studentLogs) && studentLogs.length > 0) {
-            const total = studentLogs.length;
-            const present = studentLogs.filter(l => l.attendance === 'Present' || l.attendance === 'Late').length;
-            const absent = studentLogs.filter(l => l.attendance === 'Absent').length;
-            const rate = ((present / total) * 100).toFixed(1);
-            userContextStr += `- Student Attendance Rate: ${rate}%\n`;
-            userContextStr += `- Attendance Count: ${present} Present, ${absent} Absent out of ${total} total classes\n`;
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to parse cached student logs for user context:', err);
+    await dispatchChatRequest({
+      promptText: newUserMessage.content,
+      history: nextHistory,
+      imageBase64: tempImage,
+      imageMime: tempImageMime,
+    });
+  }, [chatInput, botAttachedImage, botAttachedImageMime, botAttachedImageName, chatMessages, dispatchChatRequest, playCyberSound]);
+
+  const regenerateResponse = useCallback(async (modelMsgId) => {
+    const idx = chatMessages.findIndex(m => m.id === modelMsgId);
+    if (idx <= 0) return;
+    let userMsg = null;
+    let userIdx = -1;
+    for (let i = idx - 1; i >= 0; i--) {
+      if (chatMessages[i].role === 'user') {
+        userMsg = chatMessages[i];
+        userIdx = i;
+        break;
       }
     }
+    if (!userMsg) return;
+    await dispatchChatRequest({
+      promptText: userMsg.content,
+      history: chatMessages.slice(0, userIdx),
+      replaceModelMsgId: modelMsgId,
+    });
+  }, [chatMessages, dispatchChatRequest]);
 
-    try {
-      const historyPayload = chatMessages.map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-
-      const res = await fetch(`${API_BASE_URL}/chat/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
-        },
-        body: JSON.stringify({
-          message: textToSend,
-          history: historyPayload,
-          image_base64: tempImage,
-          image_mime_type: tempImageMime,
-          personality: botPersonality,
-          user_context: userContextStr
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (playCyberSound) playCyberSound('success');
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            role: 'model',
-            content: data.response
-          }
-        ]);
-        if (botAutoSpeak) {
-          handleSpeakText(data.response);
-        }
-      } else {
-        if (playCyberSound) playCyberSound('error');
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            role: 'model',
-            content: 'Sorry, I encountered an error communicating with the chat server. Please try again.'
-          }
-        ]);
-      }
-    } catch (err) {
-      console.error('Chat error:', err);
-      if (playCyberSound) playCyberSound('error');
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: 'model',
-          content: 'Network error. Please check your internet connection.'
-        }
-      ]);
-    } finally {
-      setIsChatLoading(false);
+  const getSuggestions = useCallback(() => {
+    if (botSuggestionCategory === 'attendance') {
+      return [
+        'How many classes can I skip cleanly?',
+        'How does face check-in & geofence work?',
+        'How to review pending disputes?',
+      ];
     }
-  }, [chatInput, botAttachedImage, botAttachedImageMime, botAttachedImageName, currentUser, userRole, chatMessages, API_BASE_URL, token, botPersonality, botAutoSpeak, handleSpeakText, playCyberSound]);
+    if (botSuggestionCategory === 'profile') {
+      return [
+        'How do I update my face biometric photo?',
+        'Where can I check my mentor details?',
+        'How do I update my profile info?',
+      ];
+    }
+    if (botSuggestionCategory === 'security') {
+      return [
+        'How to update my account password?',
+        'How are biometric records secured?',
+        'What are geofence campus rules?',
+      ];
+    }
+    if (userRole === 'student') {
+      return [
+        'Calculate classes needed for 75% attendance',
+        'Draft a formal medical leave application',
+        'How do I submit an attendance dispute?',
+      ];
+    }
+    return [
+      'Draft an official student attendance circular',
+      'How to resolve borderline face reviews?',
+      'Steps to export period attendance logs',
+    ];
+  }, [botSuggestionCategory, userRole]);
 
   // Speech to text toggle helper
   const handleSpeechToText = useCallback(() => {
@@ -371,9 +543,7 @@ export default function useCyberBot() {
 
     if (isListeningSpeech) {
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (err) {
-          console.warn('Speech recognition stop error:', err);
-        }
+        try { recognitionRef.current.stop(); } catch { /* ignore */ }
       }
       setIsListeningSpeech(false);
       return;
@@ -389,26 +559,18 @@ export default function useCyberBot() {
         setIsListeningSpeech(true);
         if (playCyberSound) playCyberSound('click');
       };
-
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         if (transcript) {
-          setChatInput(transcript);
+          setChatInput(prev => (prev ? `${prev} ${transcript}` : transcript));
         }
       };
-
-      recognition.onerror = () => {
-        setIsListeningSpeech(false);
-      };
-
-      recognition.onend = () => {
-        setIsListeningSpeech(false);
-      };
+      recognition.onerror = () => setIsListeningSpeech(false);
+      recognition.onend = () => setIsListeningSpeech(false);
 
       recognitionRef.current = recognition;
       recognition.start();
-    } catch (err) {
-      console.error('Speech recognition error:', err);
+    } catch {
       setIsListeningSpeech(false);
     }
   }, [isListeningSpeech, playCyberSound]);
@@ -428,7 +590,6 @@ export default function useCyberBot() {
     }
   }, [playCyberSound]);
 
-  // Auto scroll chat to bottom when messages change
   useEffect(() => {
     if (chatBottomRef.current) {
       chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -440,6 +601,8 @@ export default function useCyberBot() {
     setShowChatBot,
     chatInput,
     setChatInput,
+    threads,
+    activeThreadId,
     chatMessages,
     setChatMessages,
     isChatLoading,
@@ -473,6 +636,11 @@ export default function useCyberBot() {
     setShowVoicePulseFlash,
     chatBottomRef,
     chatListRef,
+    startNewChat,
+    loadThread,
+    deleteThread,
+    stopGenerating,
+    regenerateResponse,
     handleSendChatMessage,
     handleSpeechToText,
     handleSpeakText,

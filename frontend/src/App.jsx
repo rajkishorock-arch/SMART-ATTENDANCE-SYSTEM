@@ -259,6 +259,7 @@ import { ScannerSuccessReceipt, ScannerFallbackOptions } from './components/Scan
 import AccessibilitySettingsModal from './components/AccessibilitySettingsModal';
 import PrivacyTrustCenter from './components/PrivacyTrustCenter';
 import NotificationDrawerModal from './components/NotificationDrawerModal';
+import AboutSystemPage from './components/AboutSystemPage';
 import GeofenceSettings from './components/settings/GeofenceSettings';
 import ReleaseSettings from './components/settings/ReleaseSettings';
 import InstitutionManagement from './components/settings/InstitutionManagement';
@@ -448,7 +449,6 @@ export default function App() {
     });
   };
 
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [botWakeWordEnabled, setBotWakeWordEnabled] = useState(false);
   const [isListeningSpeech, setIsListeningSpeech] = useState(false);
   const [isVoiceAssistantMode, setIsVoiceAssistantMode] = useState(false);
@@ -1310,18 +1310,34 @@ export default function App() {
 
 
   // Real-Time Role Notification System
-  const handleNotificationNavigate = useCallback(({ targetTab, targetSubSetting, openScanner }) => {
-    if (targetTab) setActiveTab(targetTab);
-    if (targetSubSetting !== undefined && targetSubSetting !== null) {
-      setActiveSubSetting(targetSubSetting);
+  const handleNotificationNavigate = useCallback(({ targetTab, targetSubSetting, openScanner, studentSubRoute }) => {
+    setDisputeRoute(null);
+    setFaceReviewRoute(null);
+    setBroadcastRoute(null);
+    setCalendarRoute(null);
+    setReportRoute(null);
+    setProfileSection(null);
+    setSettingsDetailRoute(null);
+    setSelectedAuditLog(null);
+    setRouteLogId(null);
+    if (targetTab) {
+      setActiveTab(targetTab);
     }
+    setActiveSubSetting(targetSubSetting !== undefined && targetSubSetting !== null ? targetSubSetting : null);
+    setStudentRoute(studentSubRoute || null);
     if (openScanner) setShowScannerModal(true);
   }, []);
 
   const {
     showNotificationDrawer,
     setShowNotificationDrawer,
+    notifications: cachedNotifications,
     unreadCount: realtimeUnreadCount,
+    isLoading: notificationsLoading,
+    loadError: notificationsError,
+    refreshNotifications,
+    markAllRead: markAllNotificationsRead,
+    deleteNotification: deleteNotificationItem,
     handleNotificationClick,
   } = useNotifications(token, currentUser, userRole, handleNotificationNavigate);
 
@@ -5925,15 +5941,15 @@ export default function App() {
           const currentHash = window.location.hash.replace(/^#\/?/, '').trim();
           const isTabValid = (tabId, role) => {
             if (role === 'student') {
-              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast'].includes(tabId);
+              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
             } else if (role === 'parent') {
-              return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast'].includes(tabId);
+              return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
             } else if (role === 'teacher') {
-              return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+              return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
             } else if (role === 'hod') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
             } else if (role === 'admin') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
             }
             return false;
           };
@@ -6445,15 +6461,15 @@ export default function App() {
   useEffect(() => {
     const isTabValidForRole = (tabId, role) => {
       if (role === 'student') {
-        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast'].includes(tabId);
+        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
       } else if (role === 'parent') {
-        return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast'].includes(tabId);
+        return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
       } else if (role === 'hod') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
       }
       return false;
     };
@@ -9569,13 +9585,13 @@ export default function App() {
         {/* Footer Actions */}
         <div className="golden-sidebar-footer">
           <button
-            onClick={() => { playCyberSound('click'); setIsAboutModalOpen(true); setMobileSidebarOpen(false); }}
-            className="nav-item"
+            onClick={() => navigateToTab('about')}
+            className={`nav-item ${activeTab === 'about' ? 'active' : ''}`}
             style={{
               width: '100%',
-              border: '1px solid #e2d4b4',
-              background: 'rgba(255, 255, 255, 0.92)',
-              color: '#5c4218',
+              border: activeTab === 'about' ? '1px solid #785927' : '1px solid #e2d4b4',
+              background: activeTab === 'about' ? 'linear-gradient(135deg, #785927 0%, #5e441b 100%)' : 'rgba(255, 255, 255, 0.92)',
+              color: activeTab === 'about' ? '#ffffff' : '#5c4218',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
@@ -9618,7 +9634,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'student-profile' && profileSection !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'student-profile' && profileSection !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports', 'about'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -9790,9 +9806,10 @@ export default function App() {
                     return subTitles[activeSubSetting] || 'System Settings';
                   })()}
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
+                  {activeTab === 'about' && 'About System'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -10849,7 +10866,31 @@ export default function App() {
         )}
 
         {activeTab === 'ai-assistant' && (
-          <CyberBotWidget activeTab={activeTab} />
+          <CyberBotWidget
+            activeTab={activeTab}
+            onGoBack={handleNavigateBack}
+            onOpenMenu={() => {
+              playCyberSound('click');
+              setMobileSidebarOpen(true);
+            }}
+          />
+        )}
+
+        {activeTab === 'about' && (
+          <AboutSystemPage
+            displayInstitutionName={displayInstitutionName}
+            currentUser={currentUser}
+            userRole={userRole}
+            serverLatestVersion={serverLatestVersion}
+            updateActiveFlag={updateActiveFlag}
+            onCheckUpdate={handleManualCheck}
+            onOpenPrivacy={() => setShowPrivacyPolicy(true)}
+            onOpenReleaseNotes={() => {
+              navigateToTab('settings');
+              setActiveSubSetting('app_version');
+            }}
+            playCyberSound={playCyberSound}
+          />
         )}
 
         {(activeTab === 'control' || activeTab === 'all-features') && (
@@ -11270,237 +11311,7 @@ export default function App() {
         />
       )}
 
-      {/* Enterprise 'About System' Modal — Clean White UI */}
-      {isAboutModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.45)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          animation: 'fadeIn 0.25s ease'
-        }}>
-          <div style={{
-            maxWidth: '560px',
-            width: '92%',
-            background: '#ffffff',
-            border: '1px solid #e4dfd5',
-            borderRadius: '20px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04)',
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            position: 'relative',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              padding: '20px 24px',
-              background: 'linear-gradient(135deg, #faf9f6 0%, #f4f1eb 100%)',
-              borderBottom: '1px solid #e4dfd5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #785927, #89662e)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
-                }}>
-                  <ShieldCheck size={22} />
-                </div>
-                <div>
-                  <h2 style={{
-                    fontSize: '1.15rem',
-                    fontWeight: 800,
-                    color: '#25231f',
-                    margin: 0,
-                    letterSpacing: '-0.02em',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    {displayInstitutionName}
-                    <span style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      background: '#faf5ea',
-                      color: '#785927',
-                      border: '1px solid #dfcfaf'
-                    }}>
-                      v2.5 Enterprise
-                    </span>
-                  </h2>
-                  <div style={{ fontSize: '0.78rem', color: '#696358', marginTop: '2px' }}>
-                    Next-Gen AI Biometric & Geofencing Platform
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => { playCyberSound('click'); setIsAboutModalOpen(false); }}
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e4dfd5',
-                  color: '#696358',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s'
-                }}
-                title="Close"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Modal Content Body */}
-            <div style={{
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              maxHeight: '62vh',
-              overflowY: 'auto'
-            }}>
-              {/* Feature Cards Grid */}
-              <div style={{
-                background: '#faf9f6',
-                border: '1px solid #e4dfd5',
-                borderRadius: '12px',
-                padding: '14px 16px'
-              }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#785927', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ScanFace size={14} /> Biometric AI Architecture
-                </div>
-                <div style={{ fontSize: '0.85rem', color: '#46423b', lineHeight: 1.55 }}>
-                  Powered by <strong>FaceNet Deep Neural Networks</strong> with 512-dimensional facial embeddings, <strong>MTCNN landmark alignment</strong>, and active <strong>Eye Aspect Ratio (EAR)</strong> anti-spoofing liveness verification.
-                </div>
-              </div>
-
-              <div style={{
-                background: '#faf9f6',
-                border: '1px solid #e4dfd5',
-                borderRadius: '12px',
-                padding: '14px 16px'
-              }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Globe size={14} /> Perimeter & Security Protocols
-                </div>
-                <div style={{ fontSize: '0.85rem', color: '#46423b', lineHeight: 1.55 }}>
-                  Enforced <strong>GPS Geofencing</strong> (100m campus boundary radius), campus Wi-Fi IP subnet whitelisting, hardware device signature binding, and tamper-proof attendance registers.
-                </div>
-              </div>
-
-              <div style={{
-                background: '#faf9f6',
-                border: '1px solid #e4dfd5',
-                borderRadius: '12px',
-                padding: '14px 16px'
-              }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Bot size={14} /> Neural Assistant Intelligence
-                </div>
-                <div style={{ fontSize: '0.85rem', color: '#46423b', lineHeight: 1.55 }}>
-                  Integrated <strong>ChatGPT & Gemini Pro</strong> multi-tier intelligence providing instant assistance for academic inquiries, coding, mathematics, leave management, and automated schedule tracking.
-                </div>
-              </div>
-
-              {/* Technical Specifications Spec-Sheet */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '10px',
-                fontSize: '0.8rem'
-              }}>
-                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '10px' }}>
-                  <div style={{ color: '#696358', fontSize: '0.72rem', fontWeight: 600 }}>FRONTEND ENGINE</div>
-                  <div style={{ color: '#25231f', fontWeight: 700, marginTop: '2px' }}>React 18 • WebGL • PWA / APK</div>
-                </div>
-                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '10px' }}>
-                  <div style={{ color: '#696358', fontSize: '0.72rem', fontWeight: 600 }}>BACKEND RUNTIME</div>
-                  <div style={{ color: '#25231f', fontWeight: 700, marginTop: '2px' }}>FastAPI • SQLAlchemy • Python 3.12</div>
-                </div>
-                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '10px' }}>
-                  <div style={{ color: '#696358', fontSize: '0.72rem', fontWeight: 600 }}>ACTIVE DEPLOYMENT</div>
-                  <div style={{ color: '#25231f', fontWeight: 700, marginTop: '2px' }}>v{APP_VERSION} Stable Build</div>
-                </div>
-                <div style={{ padding: '10px 12px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '10px' }}>
-                  <div style={{ color: '#696358', fontSize: '0.72rem', fontWeight: 600 }}>DATA PERSISTENCE</div>
-                  <div style={{ color: '#25231f', fontWeight: 700, marginTop: '2px' }}>SQLite / PostgreSQL DB</div>
-                </div>
-              </div>
-
-              {/* Developer & Credits Banner */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                background: 'linear-gradient(135deg, #faf5ea 0%, #f5f3ff 100%)',
-                border: '1px solid #f2e7d1',
-                borderRadius: '12px'
-              }}>
-                <div>
-                  <div style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 600, textTransform: 'uppercase' }}>ENGINEERED & DEVELOPED BY</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#61471e', letterSpacing: '0.02em', marginTop: '1px' }}>RAJKISHOR</div>
-                </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#785927', background: '#ffffff', padding: '4px 10px', borderRadius: '20px', border: '1px solid #dfcfaf' }}>
-                  Lead Architect
-                </span>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{
-              padding: '14px 24px',
-              background: '#faf9f6',
-              borderTop: '1px solid #f4f1eb',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                © 2026 Smart Attendance System
-              </span>
-              <button
-                type="button"
-                onClick={() => { playCyberSound('click'); setIsAboutModalOpen(false); }}
-                style={{
-                  padding: '8px 22px',
-                  borderRadius: '10px',
-                  background: '#785927',
-                  color: '#ffffff',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
-                  transition: 'background 0.15s'
-                }}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* About System renders as a dedicated Golden Gate page at #/about */}
 
       {/* Red Hazard Threat Lockdown HUD Overlay */}
       {lockdownActive && (
@@ -11972,6 +11783,12 @@ export default function App() {
         isOpen={showNotificationDrawer}
         onClose={() => setShowNotificationDrawer(false)}
         token={token}
+        notifications={cachedNotifications}
+        isLoading={notificationsLoading}
+        loadError={notificationsError}
+        onRefresh={refreshNotifications}
+        onMarkAllRead={markAllNotificationsRead}
+        onDeleteItem={deleteNotificationItem}
         currentUser={currentUser}
         userRole={userRole}
         playCyberSound={playCyberSound}
@@ -12007,7 +11824,7 @@ export default function App() {
       />
 
       {/* Quick Actions Dock for Staff & Admin */}
-      {token && userRole !== 'student' && activeTab !== 'control' && activeTab !== 'all-features' && (
+      {token && userRole !== 'student' && activeTab !== 'control' && activeTab !== 'all-features' && activeTab !== 'ai-assistant' && (
         <QuickActionsDock
           onScan={() => { setActiveTab('attendance'); playCyberSound('click'); }}
           onManual={() => { setIsManualAttendanceOpen(true); playCyberSound('click'); }}

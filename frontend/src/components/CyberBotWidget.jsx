@@ -1,21 +1,161 @@
-import { 
-  Bot, X, Send, Paperclip, Mic, Volume2, VolumeX, Trash2, 
-  Settings, Video, ShieldCheck, Clock, Phone, FileDown 
+import { useState, Fragment } from 'react';
+import {
+  X,
+  Paperclip,
+  Mic,
+  Volume2,
+  VolumeX,
+  Trash2,
+  Video,
+  ShieldCheck,
+  Clock,
+  Phone,
+  FileDown,
+  ArrowLeft,
+  ArrowUp,
+  Square,
+  Copy,
+  Check,
+  RotateCcw,
+  Plus,
+  History,
+  SlidersHorizontal,
+  Menu,
+  Calendar,
+  FileText,
+  Sparkles,
+  BookOpen,
 } from 'lucide-react';
 import useCyberBot from '../hooks/useCyberBot';
 import useUI from '../hooks/useUI';
+import useAuth from '../hooks/useAuth';
 
-export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot, setShowChatBot: propSetShowChatBot }) {
+const MODE_LABELS = {
+  casual: 'Standard',
+  tutor: 'Tutor',
+  robotic: 'Concise',
+  futuristic: 'Technical',
+};
+
+function renderInlineFormatting(text, keyPrefix = 'in') {
+  if (!text) return null;
+  const segments = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  return segments.map((seg, i) => {
+    if (seg.startsWith('**') && seg.endsWith('**') && seg.length > 4) {
+      return <strong key={`${keyPrefix}-${i}`}>{seg.slice(2, -2)}</strong>;
+    }
+    if (seg.startsWith('`') && seg.endsWith('`') && seg.length > 2) {
+      return (
+        <code key={`${keyPrefix}-${i}`} className="gg-ai-inline-code">
+          {seg.slice(1, -1)}
+        </code>
+      );
+    }
+    return <Fragment key={`${keyPrefix}-${i}`}>{seg}</Fragment>;
+  });
+}
+
+function CodeBlockCard({ lang, code }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCode = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(code).catch(() => {});
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <div className="gg-ai-code-block">
+      <div className="gg-ai-code-header">
+        <span>{lang || 'code'}</span>
+        <button type="button" onClick={handleCopyCode} className="gg-ai-code-copy">
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+          <span>{copied ? 'Copied' : 'Copy'}</span>
+        </button>
+      </div>
+      <pre>
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
+function renderFormattedMarkdown(rawContent) {
+  if (!rawContent) return null;
+  const blocks = rawContent.split(/(```[\s\S]*?```)/g);
+
+  return blocks.map((block, blockIdx) => {
+    if (block.startsWith('```') && block.endsWith('```')) {
+      const inner = block.slice(3, -3);
+      const newlineIdx = inner.indexOf('\n');
+      const lang = newlineIdx >= 0 ? inner.slice(0, newlineIdx).trim() : '';
+      const code = (newlineIdx >= 0 ? inner.slice(newlineIdx + 1) : inner).trimEnd();
+      return <CodeBlockCard key={`cb-${blockIdx}`} lang={lang} code={code} />;
+    }
+
+    const lines = block.split('\n');
+    return (
+      <div key={`tx-${blockIdx}`} className="gg-ai-prose">
+        {lines.map((line, lineIdx) => {
+          const trimmed = line.trim();
+          if (!trimmed) return <div key={lineIdx} style={{ height: '6px' }} />;
+
+          if (trimmed.startsWith('### ')) {
+            return <h4 key={lineIdx}>{renderInlineFormatting(trimmed.slice(4), `${blockIdx}-${lineIdx}`)}</h4>;
+          }
+          if (trimmed.startsWith('## ')) {
+            return <h3 key={lineIdx}>{renderInlineFormatting(trimmed.slice(3), `${blockIdx}-${lineIdx}`)}</h3>;
+          }
+          if (/^[-*•]\s+/.test(trimmed)) {
+            return (
+              <div key={lineIdx} className="gg-ai-list-item">
+                <span className="gg-ai-bullet">•</span>
+                <span>{renderInlineFormatting(trimmed.replace(/^[-*•]\s+/, ''), `${blockIdx}-${lineIdx}`)}</span>
+              </div>
+            );
+          }
+          if (/^\d+\.\s+/.test(trimmed)) {
+            const num = trimmed.match(/^(\d+\.)\s+/)[1];
+            return (
+              <div key={lineIdx} className="gg-ai-list-item">
+                <span className="gg-ai-bullet">{num}</span>
+                <span>{renderInlineFormatting(trimmed.replace(/^\d+\.\s+/, ''), `${blockIdx}-${lineIdx}`)}</span>
+              </div>
+            );
+          }
+
+          return <p key={lineIdx}>{renderInlineFormatting(line, `${blockIdx}-${lineIdx}`)}</p>;
+        })}
+      </div>
+    );
+  });
+}
+
+export default function CyberBotWidget({
+  activeTab,
+  showChatBot: propShowChatBot,
+  setShowChatBot: propSetShowChatBot,
+  onGoBack = null,
+  onOpenMenu = null,
+}) {
   const botState = useCyberBot();
   const { playCyberSound } = useUI();
+  const { currentUser, userRole } = useAuth();
 
-  // Use props if provided, otherwise internal state
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
+  const [copiedMsgId, setCopiedMsgId] = useState(null);
+
   const isVisible = propShowChatBot !== undefined ? propShowChatBot : botState.showChatBot;
   const toggleVisibility = propSetShowChatBot || botState.setShowChatBot;
 
   const {
     chatInput,
     setChatInput,
+    threads = [],
+    activeThreadId,
     chatMessages,
     isChatLoading,
     botPersonality,
@@ -42,10 +182,14 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
     setBotAutoSpeak,
     chatBottomRef,
     chatListRef,
+    startNewChat,
+    loadThread,
+    deleteThread,
+    stopGenerating,
+    regenerateResponse,
     handleSendChatMessage,
     handleSpeechToText,
     handleSpeakText,
-    handleImageUpload,
     handleBotFileSelect,
     handleChatPaste,
     handleChatDragOver,
@@ -56,737 +200,723 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
     startVoiceAssistantMode,
   } = botState;
 
-  // Render interactive SVG diagrams
+  const firstName = (currentUser?.name || currentUser?.email || 'there').split(' ')[0];
+
+  const starterCards =
+    userRole === 'student'
+      ? [
+          {
+            icon: <Calendar size={16} />,
+            title: '75% Attendance Plan',
+            prompt: 'Calculate how many lectures I need to maintain 75% attendance.',
+          },
+          {
+            icon: <FileText size={16} />,
+            title: 'Draft Leave Letter',
+            prompt: 'Draft a short, formal medical leave application for my department mentor.',
+          },
+          {
+            icon: <ShieldCheck size={16} />,
+            title: 'Biometric & Geofence Help',
+            prompt: 'Explain how face recognition attendance and campus geofence check-in work.',
+          },
+          {
+            icon: <BookOpen size={16} />,
+            title: 'Study & Concept Helper',
+            prompt: 'Help me prepare a study summary for my upcoming internal exams.',
+          },
+        ]
+      : [
+          {
+            icon: <FileText size={16} />,
+            title: 'Draft Campus Circular',
+            prompt: 'Draft a clean, formal attendance compliance notice for undergraduate students.',
+          },
+          {
+            icon: <ShieldCheck size={16} />,
+            title: 'Dispute & Match Policy',
+            prompt: 'Summarize recommended steps for verifying borderline face matches and disputes.',
+          },
+          {
+            icon: <Calendar size={16} />,
+            title: 'Session & Schedule Guide',
+            prompt: 'How do cancelled classes and substitute faculty affect attendance analytics?',
+          },
+          {
+            icon: <Sparkles size={16} />,
+            title: 'Attendance Audit Checklist',
+            prompt: 'Give me a concise weekly checklist for reviewing attendance logs and defaulters.',
+          },
+        ];
+
+  const handleCopyMessage = (msgId, text) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    setCopiedMsgId(msgId);
+    setTimeout(() => setCopiedMsgId(null), 1800);
+  };
+
   const renderInteractiveDiagram = (diagramType) => {
     if (diagramType === 'face_recognition') {
       return (
         <div className="ai-diagram-card">
           <div className="ai-diagram-title">
-            <Video size={14} /> Biometric Facial Recognition Scanner
+            <Video size={14} /> Biometric Verification Overview
           </div>
-          <svg width="100%" height="150" viewBox="0 0 400 150" style={{ background: '#020617', borderRadius: '8px' }}>
-            <rect x="135" y="15" width="130" height="120" rx="8" fill="none" stroke="rgba(0, 242, 254, 0.3)" strokeWidth="1" />
-            <circle cx="200" cy="50" r="3" fill="#00f2fe" />
-            <circle cx="170" cy="40" r="3" fill="#00f2fe" />
-            <circle cx="230" cy="40" r="3" fill="#00f2fe" />
-            <circle cx="175" cy="80" r="3" fill="#00f2fe" />
-            <circle cx="225" cy="80" r="3" fill="#00f2fe" />
-            <circle cx="200" cy="110" r="3" fill="#00f2fe" />
-            <circle cx="200" cy="125" r="3" fill="#00f2fe" />
-            
-            <line x1="170" y1="40" x2="200" y2="50" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="230" y1="40" x2="200" y2="50" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="170" y1="40" x2="175" y2="80" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="230" y1="40" x2="225" y2="80" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="200" y1="50" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="175" y1="80" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="225" y1="80" x2="200" y2="110" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="200" y1="110" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="175" y1="80" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <line x1="225" y1="80" x2="200" y2="125" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-
-            <line x1="125" y1="75" x2="275" y2="75" stroke="#00f2fe" strokeWidth="2" style={{ filter: 'drop-shadow(0 0 6px #00f2fe)', animation: 'radarBeam 3s ease-in-out infinite' }} />
-            
-            <text x="280" y="40" fill="#a78bfa" fontSize="8" fontFamily="monospace">MODEL: RESNET-50</text>
-            <text x="280" y="55" fill="#a78bfa" fontSize="8" fontFamily="monospace">LANDMARKS: 68 PTS</text>
-            <text x="280" y="70" fill="#a78bfa" fontSize="8" fontFamily="monospace">CONFIDENCE: 99.4%</text>
-            <text x="280" y="85" fill="#00f2fe" fontSize="8" fontFamily="monospace">BIOMETRIC: MATCH</text>
-
-            <text x="20" y="40" fill="#6b7280" fontSize="8" fontFamily="monospace">FEED: WEBCAM_0</text>
-            <text x="20" y="55" fill="#6b7280" fontSize="8" fontFamily="monospace">STATUS: ACQUIRING</text>
-            <text x="20" y="70" fill="#6b7280" fontSize="8" fontFamily="monospace">FPS: 30.00</text>
-          </svg>
+          <div style={{ fontSize: '0.8rem', color: '#46423b', textAlign: 'center' }}>
+            Camera Capture → Liveness Check → Landmark Alignment → Attendance Verified
+          </div>
         </div>
       );
     }
-
     if (diagramType === 'geofencing') {
       return (
         <div className="ai-diagram-card">
           <div className="ai-diagram-title">
-            <ShieldCheck size={14} /> Geofencing Perimeter Map
+            <ShieldCheck size={14} /> Campus Geofence Verification
           </div>
-          <svg width="100%" height="150" viewBox="0 0 400 150" style={{ background: '#020617', borderRadius: '8px' }}>
-            <circle cx="200" cy="75" r="50" fill="rgba(16, 185, 129, 0.05)" stroke="#10b981" strokeWidth="2" strokeDasharray="4 3" style={{ animation: 'radarPulse 3s linear infinite' }} />
-            <circle cx="200" cy="75" r="4" fill="#10b981" />
-            <text x="210" y="79" fill="#10b981" fontSize="8" fontFamily="monospace">CAMPUS CENTER</text>
-            
-            <circle cx="230" cy="55" r="6" fill="#00f2fe" style={{ animation: 'pulse 1.5s infinite' }} />
-            <line x1="200" y1="75" x2="230" y2="55" stroke="rgba(0, 242, 254, 0.5)" strokeWidth="1" strokeDasharray="2 2" />
-            <text x="242" y="59" fill="#00f2fe" fontSize="8" fontFamily="monospace">YOUR DEVICE (INSIDE)</text>
-            
-            <text x="20" y="30" fill="#9ca3af" fontSize="8" fontFamily="monospace">GEOFENCE LIMIT: 500m</text>
-            <text x="20" y="45" fill="#9ca3af" fontSize="8" fontFamily="monospace">CURRENT DIST: 124m</text>
-            <text x="20" y="60" fill="#10b981" fontSize="8" fontFamily="monospace">VERIFICATION: ALLOWED</text>
-            
-            <text x="290" y="30" fill="#6b7280" fontSize="8" fontFamily="monospace">LAT: 28.7041° N</text>
-            <text x="290" y="45" fill="#6b7280" fontSize="8" fontFamily="monospace">LON: 77.1025° E</text>
-            <text x="290" y="60" fill="#6b7280" fontSize="8" fontFamily="monospace">ACCURACY: 4.2m</text>
-          </svg>
+          <div style={{ fontSize: '0.8rem', color: '#46423b', textAlign: 'center' }}>
+            GPS Radius Check + Campus Wi-Fi Subnet Check → Session Unlocked
+          </div>
         </div>
       );
     }
-
     if (diagramType === 'attendance_flow') {
       return (
         <div className="ai-diagram-card">
           <div className="ai-diagram-title">
-            <Clock size={14} /> Attendance Verification Workflow
+            <Clock size={14} /> Attendance Check-in Flow
           </div>
-          <svg width="100%" height="80" viewBox="0 0 400 80" style={{ background: '#020617', borderRadius: '8px' }}>
-            <rect x="15" y="20" width="90" height="40" rx="6" fill="rgba(167, 139, 250, 0.1)" stroke="rgba(167, 139, 250, 0.4)" strokeWidth="1" />
-            <text x="25" y="44" fill="#a78bfa" fontSize="9" fontFamily="monospace" fontWeight="bold">1. Capture Face</text>
-            
-            <path d="M 115 40 L 135 40 M 130 36 L 135 40 L 130 44" stroke="#00f2fe" strokeWidth="1.5" fill="none" />
-
-            <rect x="145" y="20" width="110" height="40" rx="6" fill="rgba(0, 242, 254, 0.1)" stroke="rgba(0, 242, 254, 0.4)" strokeWidth="1" />
-            <text x="155" y="44" fill="#00f2fe" fontSize="9" fontFamily="monospace" fontWeight="bold">2. Anti-Spoofing</text>
-
-            <path d="M 265 40 L 285 40 M 280 36 L 285 40 L 280 44" stroke="#10b981" strokeWidth="1.5" fill="none" />
-
-            <rect x="295" y="20" width="90" height="40" rx="6" fill="rgba(16, 185, 129, 0.1)" stroke="rgba(16, 185, 129, 0.4)" strokeWidth="1" />
-            <text x="305" y="44" fill="#10b981" fontSize="9" fontFamily="monospace" fontWeight="bold">3. Mark Present</text>
-          </svg>
+          <div style={{ fontSize: '0.8rem', color: '#46423b', textAlign: 'center' }}>
+            1. Open Scanner → 2. Verify Face & Location → 3. Instant Log Sync
+          </div>
         </div>
       );
     }
-
     return null;
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) handleImageUpload(file);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isChatLoading && (chatInput.trim() || botAttachedImage)) {
+        handleSendChatMessage();
+      }
+    }
   };
 
-  // Full-page CyberBot view when activeTab === 'ai-assistant'
-  if (activeTab === 'ai-assistant') {
-    return (
-      <div className="ai-assistant-wrapper" onDragOver={handleChatDragOver} onDrop={handleChatDrop} onPaste={handleChatPaste} style={{ animation: 'fadeInUp 0.5s ease' }}>
-        {/* Left Pane: Chat */}
-        <div className="ai-chat-pane" style={{ position: 'relative' }}>
-          <div className="ai-chat-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                padding: '4px 10px',
-                borderRadius: '20px'
-              }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
-                <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 700, letterSpacing: '0.03em' }}>
-                  ONLINE & READY
-                </span>
-              </div>
-              <span className="ai-header-desktop-title" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#46423b' }}>
-                • Smart Attendance AI
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              {isListeningSpeech && (
-                <div style={{ fontSize: '0.75rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
-                  LISTENING...
-                </div>
-              )}
-
-              {/* Tools hidden on mobile to keep header clean */}
-              <div className="ai-header-desktop-tools" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <button 
-                  type="button" 
-                  className="ai-icon-btn" 
-                  onClick={() => {
-                    const enabled = !botWakeWordEnabled;
-                    if (playCyberSound) playCyberSound('click'); 
-                    setBotWakeWordEnabled(enabled); 
-                    localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
-                  }} 
-                  title={botWakeWordEnabled ? "Wake Word Listening Active" : "Wake Word Off"}
-                  style={{ 
-                    width: 'auto', 
-                    height: '32px', 
-                    borderRadius: '6px', 
-                    fontSize: '0.72rem', 
-                    fontWeight: 700, 
-                    padding: '0 8px',
-                    border: botWakeWordEnabled ? '1px solid #86efac' : '1px solid #e4dfd5',
-                    background: botWakeWordEnabled ? '#f0fdf4' : '#faf9f6',
-                    color: botWakeWordEnabled ? '#15803d' : '#696358'
-                  }}
-                >
-                  WAKE: {botWakeWordEnabled ? 'ON' : 'OFF'}
-                </button>
-                <button 
-                  type="button" 
-                  className="ai-icon-btn" 
-                  onClick={startVoiceAssistantMode} 
-                  title="Voice Call"
-                  style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#785927' }}
-                >
-                  <Phone size={14} />
-                </button>
-                <button 
-                  type="button" 
-                  className="ai-icon-btn" 
-                  onClick={exportChatHistory} 
-                  title="Export Chat History"
-                  style={{ width: '32px', height: '32px', borderRadius: '6px' }}
-                >
-                  <FileDown size={14} />
-                </button>
-              </div>
-
-              {/* Clear chat icon (always accessible) */}
-              <button 
-                type="button" 
-                className="ai-icon-btn" 
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to clear your conversation history?")) {
-                    clearChatHistory();
-                  }
-                }} 
-                title="Clear Conversation History"
-                style={{ width: '32px', height: '32px', borderRadius: '6px', color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2' }}
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
+  const renderMessageList = () => (
+    <>
+      {chatMessages.length === 0 && !isChatLoading && (
+        <div className="gg-ai-empty">
+          <div className="gg-ai-empty-badge">
+            <Sparkles size={14} />
+            <span>{MODE_LABELS[botPersonality] || 'Standard'} Mode</span>
           </div>
+          <h2 className="gg-ai-greeting">Hello, {firstName}</h2>
+          <p className="gg-ai-subgreeting">What would you like to work on today?</p>
 
-          <div className="ai-chat-messages" ref={chatListRef}>
-            {chatMessages.length === 0 && !isChatLoading && (
-              <div className="gpt-empty-state">
-                <div className="gpt-empty-logo">
-                  <Bot size={36} />
-                </div>
-                <div className="gpt-empty-title">How can I help you today?</div>
-                <div className="gpt-empty-subtitle">Ask me anything about attendance, geofencing, or schedule</div>
-              </div>
-            )}
-
-            {chatMessages.map((msg) => {
-              let diagramType = null;
-              if (msg.role === 'model') {
-                if (msg.content.includes('[ShowDiagram: face_recognition]')) {
-                  diagramType = 'face_recognition';
-                } else if (msg.content.includes('[ShowDiagram: geofencing]')) {
-                  diagramType = 'geofencing';
-                } else if (msg.content.includes('[ShowDiagram: attendance_flow]')) {
-                  diagramType = 'attendance_flow';
-                }
-              }
-
-              const displayContent = msg.content
-                .replace(/\[ShowDiagram: face_recognition\]/g, '')
-                .replace(/\[ShowDiagram: geofencing\]/g, '')
-                .replace(/\[ShowDiagram: attendance_flow\]/g, '');
-
-              return (
-                <div key={msg.id} className={`ai-message-bubble ${msg.role}`}>
-                  {msg.role === 'model' && (
-                    <div className="gpt-ai-row">
-                      <div className="gpt-ai-icon" style={{ flexShrink: 0 }}>
-                        <Bot size={14} />
-                      </div>
-                      <div className="ai-message-content">
-                        <div className="ai-message-text">
-                          {displayContent.split('\n').map((para, i) => (
-                            <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 12px 0' : 0, color: '#25231f' }}>
-                              {para.split('**').map((text, idx) =>
-                                idx % 2 === 1 ? <strong key={idx} style={{ color: '#020617', fontWeight: 700 }}>{text}</strong> : text
-                              )}
-                            </p>
-                          ))}
-                          {diagramType && renderInteractiveDiagram(diagramType)}
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                          <button
-                            type="button"
-                            className="ai-voice-action"
-                            onClick={() => { if (playCyberSound) playCyberSound('click'); handleSpeakText(displayContent); }}
-                            title="Listen to Response"
-                          >
-                            <Volume2 size={14} />
-                            <span>Listen</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="ai-voice-action"
-                            onClick={() => { if (playCyberSound) playCyberSound('click'); window.speechSynthesis && window.speechSynthesis.cancel(); }}
-                            title="Stop Audio"
-                            style={{ color: '#8e8ea0' }}
-                          >
-                            <VolumeX size={14} />
-                            <span>Stop</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {msg.role === 'user' && (
-                    <div className="ai-message-content">
-                      <div className="ai-message-text">
-                        {displayContent.split('\n').map((para, i) => (
-                          <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 8px 0' : 0 }}>
-                            {para}
-                          </p>
-                        ))}
-                        {msg.attachedImage && (
-                          <div style={{ marginTop: '8px' }}>
-                            <img src={msg.attachedImage} alt="User attachment" style={{ maxWidth: '220px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                            {msg.attachedImageName && <div style={{ fontSize: '0.72rem', color: '#8e8ea0', marginTop: '4px' }}>{msg.attachedImageName}</div>}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {isChatLoading && (
-              <div className="ai-message-bubble model">
-                <div className="gpt-ai-row">
-                  <div className="gpt-ai-icon" style={{ flexShrink: 0 }}>
-                    <Bot size={14} />
-                  </div>
-                  <div className="ai-message-content">
-                    <div className="ai-message-text">
-                      <div className="chatbot-typing-indicator">
-                        <span />
-                        <span />
-                        <span />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={chatBottomRef} />
-          </div>
-
-          {/* Attachment Preview Bar */}
-          {botAttachedImage && (
-            <div className="ai-attachment-preview-bar">
-              <img src={`data:${botAttachedImageMime};base64,${botAttachedImage}`} alt="Preview" className="ai-attachment-thumbnail" />
-              <div className="ai-attachment-file-pill">
-                <span>{botAttachedImageName || 'image_attachment.png'}</span>
-                <button type="button" className="ai-attachment-remove-btn" onClick={() => { setBotAttachedImage(null); setBotAttachedImageMime(null); setBotAttachedImageName(''); }}>
-                  <X size={14} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Input Form Bar - Strictly Horizontal Single Row */}
-          <div className="ai-chat-input-bar">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendChatMessage();
-              }}
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                flexWrap: 'nowrap',
-                alignItems: 'center',
-                width: '100%',
-                maxWidth: '800px',
-                gap: '8px',
-                background: '#ffffff',
-                border: '1.5px solid #cfc8ba',
-                borderRadius: '24px',
-                padding: '4px 6px 4px 12px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                boxSizing: 'border-box'
-              }}
-            >
-              <input
-                type="file"
-                accept="image/*,.txt,.py,.js,.json,.csv,.c,.cpp"
-                onChange={handleBotFileSelect}
-                style={{ display: 'none' }}
-                id="bot-file-upload-panel"
-              />
-              <label
-                htmlFor="bot-file-upload-panel"
-                className="ai-icon-btn"
-                title="Attach file or image"
-                style={{
-                  width: '34px',
-                  minWidth: '34px',
-                  maxWidth: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  margin: 0,
-                  padding: 0,
-                  background: '#faf9f6',
-                  border: '1px solid #e4dfd5',
-                  color: '#58534a'
-                }}
-              >
-                <Paperclip size={16} />
-              </label>
-
+          <div className="gg-ai-starter-grid">
+            {starterCards.map((card) => (
               <button
+                key={card.title}
                 type="button"
-                onClick={handleSpeechToText}
-                className={`ai-icon-btn ${isListeningSpeech ? 'recording' : ''}`}
-                title={isListeningSpeech ? "Stop voice listening" : "Ask using your voice"}
-                style={{
-                  width: '34px',
-                  minWidth: '34px',
-                  maxWidth: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  margin: 0,
-                  padding: 0,
-                  background: isListeningSpeech ? '#fee2e2' : '#faf9f6',
-                  border: isListeningSpeech ? '1px solid #f87171' : '1px solid #e4dfd5',
-                  color: isListeningSpeech ? '#ef4444' : '#58534a'
-                }}
+                onClick={() => handleSendChatMessage(card.prompt)}
+                className="gg-ai-starter-card"
               >
-                <Mic size={16} />
+                <div className="gg-ai-starter-icon">{card.icon}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="gg-ai-starter-title">{card.title}</div>
+                  <div className="gg-ai-starter-desc">{card.prompt}</div>
+                </div>
               </button>
-
-              <input
-                type="text"
-                className="ai-chat-input-text"
-                placeholder="Ask anything (doubts, code, attendance)..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                disabled={isChatLoading}
-                style={{
-                  flex: '1 1 auto',
-                  minWidth: 0,
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: '#25231f',
-                  fontSize: '0.92rem',
-                  padding: '8px 4px',
-                  margin: 0
-                }}
-              />
-
-              <button
-                type="submit"
-                className="ai-send-btn"
-                disabled={isChatLoading || !chatInput.trim()}
-                style={{
-                  width: '36px',
-                  minWidth: '36px',
-                  maxWidth: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: !chatInput.trim() ? 'not-allowed' : 'pointer',
-                  flexShrink: 0,
-                  margin: 0,
-                  padding: 0,
-                  border: 'none',
-                  background: !chatInput.trim() ? '#e4dfd5' : '#785927',
-                  color: !chatInput.trim() ? '#94a3b8' : '#ffffff',
-                  boxShadow: !chatInput.trim() ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.3)'
-                }}
-              >
-                <Send size={15} />
-              </button>
-            </form>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Right Pane: Settings */}
-        <div className="ai-settings-pane">
-          <h2 className="ai-settings-title">
-            <Settings size={18} />
-            Bot Configurator
-          </h2>
+      {chatMessages.map((msg) => {
+        let diagramType = null;
+        if (msg.role === 'model') {
+          if (msg.content.includes('[ShowDiagram: face_recognition]')) diagramType = 'face_recognition';
+          else if (msg.content.includes('[ShowDiagram: geofencing]')) diagramType = 'geofencing';
+          else if (msg.content.includes('[ShowDiagram: attendance_flow]')) diagramType = 'attendance_flow';
+        }
 
-          <div className="ai-settings-section">
-            <label className="ai-settings-label">Bot Personality</label>
-            <div className="ai-settings-grid">
-              {[
-                { id: 'futuristic', label: 'Futuristic', desc: 'Cyber robotic tone' },
-                { id: 'casual', label: 'Casual', desc: 'Friendly classmate' },
-                { id: 'tutor', label: 'Tutor', desc: 'Patient study advisor' },
-                { id: 'robotic', label: 'Robotic', desc: 'Strict factual data' }
-              ].map((p) => (
-                <div key={p.id} className={`ai-settings-card ${botPersonality === p.id ? 'active' : ''}`} onClick={() => { if (playCyberSound) playCyberSound('click'); setBotPersonality(p.id); }}>
-                  <span>{p.label}</span>
-                  <small>{p.desc}</small>
+        const displayContent = (msg.content || '')
+          .replace(/\[ShowDiagram: face_recognition\]/g, '')
+          .replace(/\[ShowDiagram: geofencing\]/g, '')
+          .replace(/\[ShowDiagram: attendance_flow\]/g, '')
+          .trim();
+
+        return (
+          <div key={msg.id} className={`gg-ai-msg-row ${msg.role}`}>
+            {msg.role === 'user' ? (
+              <div className="gg-ai-user-bubble">
+                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{displayContent}</div>
+                {msg.attachedImage && (
+                  <div style={{ marginTop: '8px' }}>
+                    <img
+                      src={msg.attachedImage}
+                      alt="Attachment"
+                      style={{ maxWidth: '210px', borderRadius: '10px', border: '1px solid #dfd0ae' }}
+                    />
+                    {msg.attachedImageName && (
+                      <div style={{ fontSize: '0.72rem', color: '#786240', marginTop: '4px' }}>
+                        {msg.attachedImageName}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="gg-ai-model-card">
+                <div className="gg-ai-model-label">
+                  <Sparkles size={13} />
+                  <span>Assistant</span>
                 </div>
-              ))}
+                <div className="gg-ai-model-body">
+                  {renderFormattedMarkdown(displayContent)}
+                  {diagramType && renderInteractiveDiagram(diagramType)}
+                </div>
+                <div className="gg-ai-msg-actions">
+                  <button
+                    type="button"
+                    className="gg-ai-action-chip"
+                    onClick={() => handleCopyMessage(msg.id, displayContent)}
+                    title="Copy response"
+                  >
+                    {copiedMsgId === msg.id ? <Check size={13} /> : <Copy size={13} />}
+                    <span>{copiedMsgId === msg.id ? 'Copied' : 'Copy'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="gg-ai-action-chip"
+                    disabled={isChatLoading}
+                    onClick={() => regenerateResponse(msg.id)}
+                    title="Regenerate response"
+                  >
+                    <RotateCcw size={13} />
+                    <span>Retry</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="gg-ai-action-chip"
+                    onClick={() => handleSpeakText(displayContent)}
+                    title="Listen to response"
+                  >
+                    <Volume2 size={13} />
+                    <span>Listen</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="gg-ai-action-chip"
+                    onClick={() => window.speechSynthesis && window.speechSynthesis.cancel()}
+                    title="Stop voice"
+                  >
+                    <VolumeX size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {isChatLoading && (
+        <div className="gg-ai-msg-row model">
+          <div className="gg-ai-model-card">
+            <div className="gg-ai-model-label">
+              <Sparkles size={13} />
+              <span>Thinking...</span>
+            </div>
+            <div className="chatbot-typing-indicator" style={{ padding: '4px 0' }}>
+              <span />
+              <span />
+              <span />
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="ai-settings-section">
-            <label className="ai-settings-label">Help Suggestions Category</label>
-            <select className="ai-select-dropdown" value={botSuggestionCategory} onChange={(e) => { if (playCyberSound) playCyberSound('click'); setBotSuggestionCategory(e.target.value); }}>
-              <option value="general">General System FAQs</option>
-              <option value="attendance">Face Scanning & Geofence</option>
-              <option value="profile">Student Profile & Selfie Registration</option>
-              <option value="security">Portal Security & Passwords</option>
+      <div ref={chatBottomRef} />
+    </>
+  );
+
+  // Full-page Modern Golden Gate AI Workspace (#/ai-assistant)
+  if (activeTab === 'ai-assistant') {
+    return (
+      <div
+        className="ai-assistant-wrapper gg-ai-workspace"
+        onDragOver={handleChatDragOver}
+        onDrop={handleChatDrop}
+        onPaste={handleChatPaste}
+      >
+        {/* Top Control Bar */}
+        <div className="gg-ai-topbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            {onGoBack && (
+              <button
+                type="button"
+                onClick={onGoBack}
+                className="gg-ai-top-btn hide-on-desktop"
+                aria-label="Go Back"
+                title="Go Back"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                playCyberSound('click');
+                setShowHistoryDrawer(true);
+              }}
+              className="gg-ai-top-btn"
+              title="Conversation History"
+              aria-label="Conversation History"
+              style={{ width: 'auto', padding: '0 9px', gap: '5px' }}
+            >
+              <History size={15} />
+              <span className="gg-ai-hide-mobile-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                Chats
+              </span>
+              {threads.length > 0 && (
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#785927' }}>
+                  ({threads.length})
+                </span>
+              )}
+            </button>
+
+            <select
+              aria-label="Assistant Mode"
+              className="gg-ai-mode-select"
+              value={botPersonality}
+              onChange={(e) => {
+                playCyberSound('click');
+                setBotPersonality(e.target.value);
+              }}
+            >
+              <option value="casual">Standard</option>
+              <option value="tutor">Study Tutor</option>
+              <option value="robotic">Concise</option>
+              <option value="futuristic">Technical</option>
             </select>
           </div>
 
-          <div className="ai-settings-section">
-            <label className="ai-settings-label">Speech Synthesis Engine</label>
-            
-            <div className="ai-toggle-group" style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Voice Activation Mode</span>
-                <small style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Listen for "Hey Raj" in background</small>
-              </div>
-              <label className="ai-toggle-switch">
-                <input 
-                  type="checkbox" 
-                  checked={botWakeWordEnabled} 
-                  onChange={(e) => { 
-                    const enabled = e.target.checked;
-                    if (playCyberSound) playCyberSound('click'); 
-                    setBotWakeWordEnabled(enabled); 
-                    localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
-                  }} 
-                />
-                <span className="ai-toggle-slider" />
-              </label>
-            </div>
-
-            <div className="ai-toggle-group">
-              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Auto-Read Bot Replies</span>
-              <label className="ai-toggle-switch">
-                <input type="checkbox" checked={botAutoSpeak} onChange={(e) => { if (playCyberSound) playCyberSound('click'); setBotAutoSpeak(e.target.checked); }} />
-                <span className="ai-toggle-slider" />
-              </label>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Select Voice Accent</span>
-              <select className="ai-select-dropdown" value={botVoiceSelected} onChange={(e) => setBotVoiceSelected(e.target.value)}>
-                {availableVoices.length === 0 ? (
-                  <option>System Default Voice</option>
-                ) : (
-                  availableVoices.map((v, idx) => (
-                    <option key={idx} value={v.name}>{v.name} ({v.lang})</option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            <div className="ai-range-control">
-              <div className="ai-range-val">
-                <span>Voice Speed (Rate)</span>
-                <span>{botVoiceSpeed.toFixed(1)}x</span>
-              </div>
-              <input type="range" className="ai-range-slider" min="0.5" max="2.0" step="0.1" value={botVoiceSpeed} onChange={(e) => setBotVoiceSpeed(parseFloat(e.target.value))} />
-            </div>
-
-            <div className="ai-range-control">
-              <div className="ai-range-val">
-                <span>Voice Pitch</span>
-                <span>{botVoicePitch.toFixed(1)}</span>
-              </div>
-              <input type="range" className="ai-range-slider" min="0.5" max="2.0" step="0.1" value={botVoicePitch} onChange={(e) => setBotVoicePitch(parseFloat(e.target.value))} />
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {isListeningSpeech && (
+              <span className="gg-ai-listening-pill">Listening</span>
+            )}
+            <button
+              type="button"
+              onClick={startNewChat}
+              className="gg-ai-top-btn"
+              title="New Conversation"
+              aria-label="New Conversation"
+              style={{ width: 'auto', padding: '0 9px', gap: '5px', background: '#faf3e3', borderColor: '#dfd0ae', color: '#5c4218' }}
+            >
+              <Plus size={15} />
+              <span className="gg-ai-hide-mobile-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>New</span>
+            </button>
+            <button
+              type="button"
+              onClick={startVoiceAssistantMode}
+              className="gg-ai-top-btn"
+              title="Voice Assistant Mode"
+              aria-label="Voice Assistant Mode"
+            >
+              <Phone size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playCyberSound('click');
+                setShowSettingsDrawer(true);
+              }}
+              className="gg-ai-top-btn"
+              title="Assistant Settings"
+              aria-label="Assistant Settings"
+            >
+              <SlidersHorizontal size={15} />
+            </button>
+            {onOpenMenu && (
+              <button
+                type="button"
+                onClick={onOpenMenu}
+                className="gg-ai-top-btn hide-on-desktop"
+                title="Open Navigation Menu"
+                aria-label="Open Navigation Menu"
+              >
+                <Menu size={16} />
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Scrollable Conversation Area */}
+        <div className="gg-ai-messages" ref={chatListRef}>
+          {renderMessageList()}
+        </div>
+
+        {/* Attachment Preview */}
+        {botAttachedImage && (
+          <div className="ai-attachment-preview-bar" style={{ borderTop: '1px solid #f0e6d2' }}>
+            <img
+              src={`data:${botAttachedImageMime};base64,${botAttachedImage}`}
+              alt="Attachment Preview"
+              className="ai-attachment-thumbnail"
+            />
+            <div className="ai-attachment-file-pill">
+              <span>{botAttachedImageName || 'image_attachment.png'}</span>
+              <button
+                type="button"
+                className="ai-attachment-remove-btn"
+                onClick={() => {
+                  setBotAttachedImage(null);
+                  setBotAttachedImageMime(null);
+                  setBotAttachedImageName('');
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modern Multi-Line Composer */}
+        <div className="gg-ai-composer-wrap">
+          <form
+            className="gg-ai-composer"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendChatMessage();
+            }}
+          >
+            <input
+              type="file"
+              accept="image/*,.txt,.py,.js,.json,.csv,.c,.cpp,.md"
+              onChange={handleBotFileSelect}
+              style={{ display: 'none' }}
+              id="bot-file-upload-panel"
+            />
+            <label
+              htmlFor="bot-file-upload-panel"
+              className="gg-ai-composer-btn"
+              title="Attach image or document"
+            >
+              <Paperclip size={16} />
+            </label>
+
+            <textarea
+              rows={1}
+              className="gg-ai-textarea"
+              placeholder="Message Campus Assistant..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isChatLoading}
+            />
+
+            <button
+              type="button"
+              onClick={handleSpeechToText}
+              className={`gg-ai-composer-btn ${isListeningSpeech ? 'is-recording' : ''}`}
+              title={isListeningSpeech ? 'Stop voice input' : 'Speak prompt'}
+            >
+              <Mic size={16} />
+            </button>
+
+            {isChatLoading ? (
+              <button
+                type="button"
+                onClick={stopGenerating}
+                className="gg-ai-send-btn is-stop"
+                title="Stop generating"
+                aria-label="Stop generating"
+              >
+                <Square size={14} fill="currentColor" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="gg-ai-send-btn"
+                disabled={!chatInput.trim() && !botAttachedImage}
+                title="Send message"
+                aria-label="Send message"
+              >
+                <ArrowUp size={17} strokeWidth={2.5} />
+              </button>
+            )}
+          </form>
+        </div>
+
+        {/* Saved Threads History Drawer */}
+        {showHistoryDrawer && (
+          <div className="gg-notif-backdrop" onClick={() => setShowHistoryDrawer(false)}>
+            <div className="gg-notif-panel" style={{ maxWidth: '340px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="gg-notif-header">
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#2b2112' }}>
+                  Recent Chats
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowHistoryDrawer(false)}
+                  className="gg-notif-action-btn"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div style={{ padding: '12px 16px', display: 'flex', gap: '8px', borderBottom: '1px solid #ede2cc' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    startNewChat();
+                    setShowHistoryDrawer(false);
+                  }}
+                  className="golden-os-primary-action"
+                  style={{ flex: 1, justifyContent: 'center', padding: '9px 12px', fontSize: '0.82rem', borderRadius: '10px' }}
+                >
+                  <Plus size={15} />
+                  <span>New Conversation</span>
+                </button>
+                {chatMessages.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={exportChatHistory}
+                    className="golden-os-feedback-filter-btn"
+                    style={{ padding: '9px 12px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                    title="Export current chat"
+                  >
+                    <FileDown size={14} />
+                    <span>Export</span>
+                  </button>
+                )}
+              </div>
+              <div className="gg-notif-feed">
+                {threads.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 16px', color: '#8f7b58', fontSize: '0.82rem' }}>
+                    Your saved conversations will appear here.
+                  </div>
+                ) : (
+                  <div className="golden-os-list-shell">
+                    {threads.map(th => (
+                      <div
+                        key={th.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          loadThread(th.id);
+                          setShowHistoryDrawer(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            loadThread(th.id);
+                            setShowHistoryDrawer(false);
+                          }
+                        }}
+                        className={`gg-notif-row ${th.id === activeThreadId ? 'is-unread' : ''}`}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="gg-notif-row-title">{th.title}</div>
+                          <div className="gg-notif-row-summary">
+                            {th.messages?.length || 0} messages
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteThread(th.id);
+                          }}
+                          className="gg-notif-delete-btn"
+                          title="Delete conversation"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assistant Settings Drawer */}
+        {showSettingsDrawer && (
+          <div className="gg-notif-backdrop" onClick={() => setShowSettingsDrawer(false)}>
+            <div className="gg-notif-panel" style={{ maxWidth: '360px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="gg-notif-header">
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#2b2112' }}>
+                  Assistant Preferences
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsDrawer(false)}
+                  className="gg-notif-action-btn"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="gg-notif-feed" style={{ gap: '14px' }}>
+                <div className="golden-os-form-section" style={{ gap: '10px' }}>
+                  <div className="golden-os-form-section-title">Response Style</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {[
+                      { id: 'casual', label: 'Standard', desc: 'Natural & clear' },
+                      { id: 'tutor', label: 'Study Tutor', desc: 'Step-by-step help' },
+                      { id: 'robotic', label: 'Concise', desc: 'Short & direct' },
+                      { id: 'futuristic', label: 'Technical', desc: 'Detailed insights' },
+                    ].map(mode => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => {
+                          playCyberSound('click');
+                          setBotPersonality(mode.id);
+                        }}
+                        className={`golden-os-feedback-filter-btn ${botPersonality === mode.id ? 'active' : ''}`}
+                        style={{ borderRadius: '10px', padding: '10px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' }}
+                      >
+                        <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{mode.label}</span>
+                        <span style={{ fontSize: '0.7rem', opacity: 0.78 }}>{mode.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="golden-os-form-section" style={{ gap: '10px' }}>
+                  <div className="golden-os-form-section-title">Topic Focus</div>
+                  <select
+                    className="golden-os-input"
+                    value={botSuggestionCategory}
+                    onChange={(e) => setBotSuggestionCategory(e.target.value)}
+                  >
+                    <option value="general">General Campus Assistant</option>
+                    <option value="attendance">Attendance & Geofencing</option>
+                    <option value="profile">Profile & Biometrics</option>
+                    <option value="security">Account & Security</option>
+                  </select>
+                </div>
+
+                <div className="golden-os-form-section" style={{ gap: '12px' }}>
+                  <div className="golden-os-form-section-title">Voice & Audio</div>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.84rem', fontWeight: 600, color: '#2b2112' }}>
+                    <span>Auto-Read Replies</span>
+                    <input
+                      type="checkbox"
+                      checked={botAutoSpeak}
+                      onChange={(e) => setBotAutoSpeak(e.target.checked)}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.84rem', fontWeight: 600, color: '#2b2112' }}>
+                    <span>Wake Word ("Hey Raj")</span>
+                    <input
+                      type="checkbox"
+                      checked={botWakeWordEnabled}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        setBotWakeWordEnabled(enabled);
+                        localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
+                      }}
+                    />
+                  </label>
+                  <div>
+                    <label className="golden-os-field-label">Voice Accent</label>
+                    <select
+                      className="golden-os-input"
+                      value={botVoiceSelected}
+                      onChange={(e) => setBotVoiceSelected(e.target.value)}
+                    >
+                      {availableVoices.length === 0 ? (
+                        <option>System Default Voice</option>
+                      ) : (
+                        availableVoices.map((v, idx) => (
+                          <option key={idx} value={v.name}>
+                            {v.name} ({v.lang})
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="golden-os-field-label">Speech Speed ({botVoiceSpeed.toFixed(1)}x)</label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      value={botVoiceSpeed}
+                      onChange={(e) => setBotVoiceSpeed(parseFloat(e.target.value))}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="golden-os-field-label">Voice Pitch ({botVoicePitch.toFixed(1)})</label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      value={botVoicePitch}
+                      onChange={(e) => setBotVoicePitch(parseFloat(e.target.value))}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                {chatMessages.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearChatHistory();
+                      setShowSettingsDrawer(false);
+                    }}
+                    className="golden-os-feedback-filter-btn"
+                    style={{ width: '100%', padding: '10px', borderRadius: '10px', color: '#b91c1c', borderColor: '#fecaca', background: '#fff5f5' }}
+                  >
+                    Delete Current Conversation
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  // Floating button & drawer overlay view on other pages
-  if (!isVisible) {
-    return (
-      <button
-        type="button"
-        className="cyber-fab-btn"
-        onClick={() => {
-          if (playCyberSound) playCyberSound('click');
-          toggleVisibility(true);
-        }}
-        title="Open CyberBot AI Assistant"
-      >
-        <Bot size={24} />
-      </button>
-    );
-  }
+  // Floating Mini Drawer (kept clean in Golden Gate theme)
+  if (!isVisible) return null;
 
   return (
     <div className="ai-chatbot-drawer-overlay">
       <div className="ai-chatbot-drawer-container">
-        {/* Header */}
         <div className="ai-chatbot-header">
-          <div className="ai-chatbot-header-title">
-            <div className="gpt-ai-icon">
-              <Bot size={18} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="ai-chatbot-name">CyberBot AI</span>
-                <span className="ai-personality-badge">{botPersonality.toUpperCase()}</span>
-              </div>
-              <div className="ai-chatbot-subtitle">Smart Attendance Neural Assistant</div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="ai-chatbot-name">Campus Assistant</span>
+            <span className="ai-personality-badge">{MODE_LABELS[botPersonality] || 'Standard'}</span>
           </div>
-
           <div className="ai-chatbot-header-actions">
-            <button
-              type="button"
-              className="ai-icon-btn"
-              onClick={clearChatHistory}
-              title="Clear Chat History"
-            >
-              <Trash2 size={16} />
+            <button type="button" className="ai-icon-btn" onClick={clearChatHistory} title="Clear Chat">
+              <Trash2 size={15} />
             </button>
             <button
               type="button"
-              className="ai-icon-btn close-btn"
-              onClick={() => {
-                if (playCyberSound) playCyberSound('click');
-                toggleVisibility(false);
-              }}
-              title="Close Assistant"
+              className="ai-icon-btn"
+              onClick={() => toggleVisibility(false)}
+              title="Close"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         </div>
 
-        {/* Body Split View */}
         <div className="ai-chatbot-body">
-          {/* Main Chat Pane */}
           <div className="ai-chat-pane">
-            <div className="ai-messages-scroll-area">
-              {chatMessages.length === 0 && (
-                <div className="gpt-empty-state">
-                  <div className="gpt-empty-icon">
-                    <Bot size={36} />
-                  </div>
-                  <div className="gpt-empty-title">How can I help you today?</div>
-                  <div className="gpt-empty-subtitle">Ask me anything about attendance, geofencing, or schedule</div>
-                </div>
-              )}
-
-              {chatMessages.map((msg) => {
-                let diagramType = null;
-                if (msg.role === 'model') {
-                  if (msg.content.includes('[ShowDiagram: face_recognition]')) {
-                    diagramType = 'face_recognition';
-                  } else if (msg.content.includes('[ShowDiagram: geofencing]')) {
-                    diagramType = 'geofencing';
-                  } else if (msg.content.includes('[ShowDiagram: attendance_flow]')) {
-                    diagramType = 'attendance_flow';
-                  }
-                }
-
-                const displayContent = msg.content
-                  .replace(/\[ShowDiagram: face_recognition\]/g, '')
-                  .replace(/\[ShowDiagram: geofencing\]/g, '')
-                  .replace(/\[ShowDiagram: attendance_flow\]/g, '');
-
-                return (
-                  <div key={msg.id} className={`ai-message-bubble ${msg.role}`}>
-                    {msg.role === 'model' && (
-                      <div className="gpt-ai-row">
-                        <div className="gpt-ai-icon" style={{ flexShrink: 0 }}>
-                          <Bot size={14} />
-                        </div>
-                        <div className="ai-message-content">
-                          <div className="ai-message-text">
-                            {displayContent.split('\n').map((para, i) => (
-                              <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 12px 0' : 0, color: '#25231f' }}>
-                                {para.split('**').map((text, idx) =>
-                                  idx % 2 === 1 ? <strong key={idx} style={{ color: '#020617', fontWeight: 700 }}>{text}</strong> : text
-                                )}
-                              </p>
-                            ))}
-                            {diagramType && renderInteractiveDiagram(diagramType)}
-                          </div>
-                          <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                            <button
-                              type="button"
-                              className="ai-voice-action"
-                              onClick={() => { if (playCyberSound) playCyberSound('click'); handleSpeakText(displayContent); }}
-                              title="Listen to Response"
-                            >
-                              <Volume2 size={14} />
-                              <span>Listen</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="ai-voice-action"
-                              onClick={() => { if (playCyberSound) playCyberSound('click'); window.speechSynthesis && window.speechSynthesis.cancel(); }}
-                              title="Stop Audio"
-                              style={{ color: '#8e8ea0' }}
-                            >
-                              <VolumeX size={14} />
-                              <span>Stop</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {msg.role === 'user' && (
-                      <div className="ai-message-content">
-                        <div className="ai-message-text">
-                          {displayContent.split('\n').map((para, i) => (
-                            <p key={i} style={{ margin: i < displayContent.split('\n').length - 1 ? '0 0 8px 0' : 0 }}>
-                              {para}
-                            </p>
-                          ))}
-                          {msg.attachedImage && (
-                            <div style={{ marginTop: '8px' }}>
-                              <img src={msg.attachedImage} alt="User attachment" style={{ maxWidth: '220px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                              {msg.attachedImageName && <div style={{ fontSize: '0.72rem', color: '#8e8ea0', marginTop: '4px' }}>{msg.attachedImageName}</div>}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {isChatLoading && (
-                <div className="ai-message-bubble model">
-                  <div className="gpt-ai-row">
-                    <div className="gpt-ai-icon" style={{ flexShrink: 0 }}>
-                      <Bot size={14} />
-                    </div>
-                    <div className="ai-message-content">
-                      <div className="ai-message-text">
-                        <div className="chatbot-typing-indicator">
-                          <span />
-                          <span />
-                          <span />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={chatBottomRef} />
-            </div>
-
-            {/* Suggestions */}
+            <div className="gg-ai-messages">{renderMessageList()}</div>
             <div className="ai-chat-suggestions">
               {getSuggestions().map((s, idx) => (
                 <button key={idx} type="button" className="ai-suggestion-chip" onClick={() => handleSendChatMessage(s)}>
@@ -794,161 +924,45 @@ export default function CyberBotWidget({ activeTab, showChatBot: propShowChatBot
                 </button>
               ))}
             </div>
-
-            {/* Attachment Bar */}
             {botAttachedImage && (
               <div className="ai-attachment-preview-bar">
                 <img src={`data:${botAttachedImageMime};base64,${botAttachedImage}`} alt="Preview" className="ai-attachment-thumbnail" />
                 <div className="ai-attachment-file-pill">
-                  <span>{botAttachedImageName || 'image_attachment.png'}</span>
+                  <span>{botAttachedImageName || 'image.png'}</span>
                   <button type="button" className="ai-attachment-remove-btn" onClick={() => { setBotAttachedImage(null); setBotAttachedImageMime(null); setBotAttachedImageName(''); }}>
                     <X size={14} />
                   </button>
                 </div>
               </div>
             )}
-
-            {/* Input Form Bar */}
-            <div className="ai-chat-input-bar">
+            <div className="gg-ai-composer-wrap">
               <form
+                className="gg-ai-composer"
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSendChatMessage();
                 }}
               >
-                <input
-                  type="file"
-                  accept="image/*,.txt,.py,.js,.json,.csv,.c,.cpp"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                  id="bot-file-upload-panel"
-                />
-                <label htmlFor="bot-file-upload-panel" className="ai-icon-btn" title="Attach file or image">
-                  <Paperclip size={16} />
+                <input type="file" accept="image/*,.txt,.py,.js,.json,.csv" onChange={handleBotFileSelect} style={{ display: 'none' }} id="bot-drawer-file" />
+                <label htmlFor="bot-drawer-file" className="gg-ai-composer-btn" title="Attach">
+                  <Paperclip size={15} />
                 </label>
-
-                <button
-                  type="button"
-                  onClick={handleSpeechToText}
-                  className={`ai-icon-btn ${isListeningSpeech ? 'recording' : ''}`}
-                  title={isListeningSpeech ? "Stop voice listening" : "Ask using your voice"}
-                >
-                  <Mic size={16} />
-                </button>
-
-                <input
-                  type="text"
-                  className="ai-chat-input-text"
-                  placeholder="Message Smart Attendance AI..."
+                <textarea
+                  rows={1}
+                  className="gg-ai-textarea"
+                  placeholder="Ask Campus Assistant..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   disabled={isChatLoading}
                 />
-
-                <button
-                  type="submit"
-                  className="ai-send-btn"
-                  disabled={isChatLoading || !chatInput.trim()}
-                >
-                  <Send size={16} />
+                <button type="button" onClick={handleSpeechToText} className={`gg-ai-composer-btn ${isListeningSpeech ? 'is-recording' : ''}`}>
+                  <Mic size={15} />
+                </button>
+                <button type="submit" className="gg-ai-send-btn" disabled={isChatLoading || (!chatInput.trim() && !botAttachedImage)}>
+                  <ArrowUp size={16} />
                 </button>
               </form>
-            </div>
-          </div>
-
-          {/* Right Pane: Settings */}
-          <div className="ai-settings-pane">
-            <h2 className="ai-settings-title">
-              <Settings size={18} />
-              Bot Configurator
-            </h2>
-
-            <div className="ai-settings-section">
-              <label className="ai-settings-label">Bot Personality</label>
-              <div className="ai-settings-grid">
-                {[
-                  { id: 'futuristic', label: 'Futuristic', desc: 'Cyber robotic tone' },
-                  { id: 'casual', label: 'Casual', desc: 'Friendly classmate' },
-                  { id: 'tutor', label: 'Tutor', desc: 'Patient study advisor' },
-                  { id: 'robotic', label: 'Robotic', desc: 'Strict factual data' }
-                ].map((p) => (
-                  <div key={p.id} className={`ai-settings-card ${botPersonality === p.id ? 'active' : ''}`} onClick={() => { if (playCyberSound) playCyberSound('click'); setBotPersonality(p.id); }}>
-                    <span>{p.label}</span>
-                    <small>{p.desc}</small>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="ai-settings-section">
-              <label className="ai-settings-label">Help Suggestions Category</label>
-              <select className="ai-select-dropdown" value={botSuggestionCategory} onChange={(e) => { if (playCyberSound) playCyberSound('click'); setBotSuggestionCategory(e.target.value); }}>
-                <option value="general">General System FAQs</option>
-                <option value="attendance">Face Scanning & Geofence</option>
-                <option value="profile">Student Profile & Selfie Registration</option>
-                <option value="security">Portal Security & Passwords</option>
-              </select>
-            </div>
-
-            <div className="ai-settings-section">
-              <label className="ai-settings-label">Speech Synthesis Engine</label>
-
-              <div className="ai-toggle-group" style={{ marginBottom: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Voice Activation Mode</span>
-                  <small style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Listen for "Hey Raj" in background</small>
-                </div>
-                <label className="ai-toggle-switch">
-                  <input 
-                    type="checkbox" 
-                    checked={botWakeWordEnabled} 
-                    onChange={(e) => { 
-                      const enabled = e.target.checked;
-                      if (playCyberSound) playCyberSound('click'); 
-                      setBotWakeWordEnabled(enabled); 
-                      localStorage.setItem('botWakeWordEnabled', enabled ? 'true' : 'false');
-                    }} 
-                  />
-                  <span className="ai-toggle-slider" />
-                </label>
-              </div>
-
-              <div className="ai-toggle-group">
-                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Auto-Read Bot Replies</span>
-                <label className="ai-toggle-switch">
-                  <input type="checkbox" checked={botAutoSpeak} onChange={(e) => { if (playCyberSound) playCyberSound('click'); setBotAutoSpeak(e.target.checked); }} />
-                  <span className="ai-toggle-slider" />
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Select Voice Accent</span>
-                <select className="ai-select-dropdown" value={botVoiceSelected} onChange={(e) => setBotVoiceSelected(e.target.value)}>
-                  {availableVoices.length === 0 ? (
-                    <option>System Default Voice</option>
-                  ) : (
-                    availableVoices.map((v, idx) => (
-                      <option key={idx} value={v.name}>{v.name} ({v.lang})</option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div className="ai-range-control">
-                <div className="ai-range-val">
-                  <span>Voice Speed (Rate)</span>
-                  <span>{botVoiceSpeed.toFixed(1)}x</span>
-                </div>
-                <input type="range" className="ai-range-slider" min="0.5" max="2.0" step="0.1" value={botVoiceSpeed} onChange={(e) => setBotVoiceSpeed(parseFloat(e.target.value))} />
-              </div>
-
-              <div className="ai-range-control">
-                <div className="ai-range-val">
-                  <span>Voice Pitch</span>
-                  <span>{botVoicePitch.toFixed(1)}</span>
-                </div>
-                <input type="range" className="ai-range-slider" min="0.5" max="2.0" step="0.1" value={botVoicePitch} onChange={(e) => setBotVoicePitch(parseFloat(e.target.value))} />
-              </div>
             </div>
           </div>
         </div>

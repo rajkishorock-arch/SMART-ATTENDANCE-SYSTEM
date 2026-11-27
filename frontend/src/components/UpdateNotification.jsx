@@ -51,7 +51,7 @@ export default function UpdateNotification({
         <div 
           style={{
             position: 'fixed',
-            zIndex: 999999,
+            zIndex: 9500,
             bottom: isMobileView ? '84px' : '24px',
             right: isMobileView ? '16px' : '24px',
             left: isMobileView ? '16px' : 'auto',
