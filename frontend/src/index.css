@@ -8355,6 +8355,10 @@ button:active:not(:disabled),
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .golden-os-hero {
   display: flex;
@@ -8733,6 +8737,10 @@ button:active:not(:disabled),
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .golden-os-list-row {
@@ -9198,7 +9206,12 @@ button,
   padding: 10px 16px;
   border-bottom: 1px solid #e7dbc1;
   display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
   scrollbar-width: none;
   background: rgba(255, 252, 245, 0.85);
@@ -9219,8 +9232,12 @@ button,
 .gg-notif-row {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   padding: 11px 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   background: #ffffff;
   border-bottom: 1px solid #f0e8d7;
   cursor: pointer;
@@ -9757,4 +9774,80 @@ button,
   .gg-ai-user-bubble {
     max-width: 88%;
   }
+}
+
+/* ===== Golden Gate Notification Preferences Rows & Pill Switch ===== */
+.gg-pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.gg-pref-info {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  flex: 1;
+}
+
+.gg-pref-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.gg-pref-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #2b2112;
+  line-height: 1.25;
+  white-space: normal;
+  word-break: normal;
+}
+
+.gg-pref-desc {
+  font-size: 0.76rem;
+  color: #6b5b3e;
+  margin-top: 2px;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: normal;
+}
+
+.gg-switch {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 24px !important;
+  padding: 2px !important;
+  border-radius: 999px !important;
+  border: 1px solid #d5c6a3 !important;
+  background: #ebe3d0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  cursor: pointer;
+  flex-shrink: 0 !important;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.gg-switch.is-on {
+  background: linear-gradient(135deg, #785927 0%, #5e441b 100%) !important;
+  border-color: #785927 !important;
+}
+
+.gg-switch-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  transform: translateX(0);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gg-switch.is-on .gg-switch-thumb {
+  transform: translateX(20px);
 }

@@ -819,6 +819,16 @@ export default function App() {
     return null;
   });
 
+  const [notificationRoute, setNotificationRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'notifications' && parts[1] === 'preferences') {
+        return 'preferences';
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
   const [broadcastRoute, setBroadcastRoute] = useState(() => {
     try {
       const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
@@ -1035,6 +1045,7 @@ export default function App() {
   const settingsDetailRouteRef = useRef(settingsDetailRoute);
   const disputeRouteRef = useRef(disputeRoute);
   const faceReviewRouteRef = useRef(faceReviewRoute);
+  const notificationRouteRef = useRef(notificationRoute);
   const broadcastRouteRef = useRef(broadcastRoute);
   const sessionHistoryRouteRef = useRef(sessionHistoryRoute);
   const routeLogIdRef = useRef(routeLogId);
@@ -1062,6 +1073,7 @@ export default function App() {
   useEffect(() => { settingsDetailRouteRef.current = settingsDetailRoute; }, [settingsDetailRoute]);
   useEffect(() => { disputeRouteRef.current = disputeRoute; }, [disputeRoute]);
   useEffect(() => { faceReviewRouteRef.current = faceReviewRoute; }, [faceReviewRoute]);
+  useEffect(() => { notificationRouteRef.current = notificationRoute; }, [notificationRoute]);
   useEffect(() => { broadcastRouteRef.current = broadcastRoute; }, [broadcastRoute]);
   useEffect(() => { sessionHistoryRouteRef.current = sessionHistoryRoute; }, [sessionHistoryRoute]);
   useEffect(() => { routeLogIdRef.current = routeLogId; }, [routeLogId]);
@@ -1235,6 +1247,10 @@ export default function App() {
       setFaceReviewRoute(null);
       return;
     }
+    if (activeTabRef.current === 'notifications' && notificationRouteRef.current !== null) {
+      setNotificationRoute(null);
+      return;
+    }
     if (activeTabRef.current === 'broadcast' && broadcastRouteRef.current !== null) {
       if (broadcastRouteRef.current.mode === 'edit' && broadcastRouteRef.current.id != null) {
         setBroadcastRoute({ mode: 'detail', id: broadcastRouteRef.current.id, item: broadcastRouteRef.current.item });
@@ -1313,6 +1329,7 @@ export default function App() {
   const handleNotificationNavigate = useCallback(({ targetTab, targetSubSetting, openScanner, studentSubRoute }) => {
     setDisputeRoute(null);
     setFaceReviewRoute(null);
+    setNotificationRoute(null);
     setBroadcastRoute(null);
     setCalendarRoute(null);
     setReportRoute(null);
@@ -1329,10 +1346,8 @@ export default function App() {
   }, []);
 
   const {
-    showNotificationDrawer,
-    setShowNotificationDrawer,
-    notifications: cachedNotifications,
     unreadCount: realtimeUnreadCount,
+    notifications: cachedNotifications,
     isLoading: notificationsLoading,
     loadError: notificationsError,
     refreshNotifications,
@@ -2961,6 +2976,9 @@ export default function App() {
   const faceReviewScrollKey = activeTab === 'face-review' && faceReviewRoute
     ? `${faceReviewRoute.mode}:${faceReviewRoute.id ?? ''}`
     : '';
+  const notificationScrollKey = activeTab === 'notifications' && notificationRoute
+    ? notificationRoute
+    : '';
   const broadcastScrollKey = activeTab === 'broadcast' && broadcastRoute
     ? `${broadcastRoute.mode}:${broadcastRoute.id ?? ''}`
     : '';
@@ -2989,7 +3007,9 @@ export default function App() {
           ? disputeScrollKey
           : activeTab === 'face-review'
             ? faceReviewScrollKey
-            : activeTab === 'broadcast'
+            : activeTab === 'notifications'
+              ? notificationScrollKey
+              : activeTab === 'broadcast'
             ? broadcastScrollKey
             : activeTab === 'logs'
               ? logsScrollKey
@@ -5941,15 +5961,15 @@ export default function App() {
           const currentHash = window.location.hash.replace(/^#\/?/, '').trim();
           const isTabValid = (tabId, role) => {
             if (role === 'student') {
-              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+              return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
             } else if (role === 'parent') {
-              return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+              return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
             } else if (role === 'teacher') {
-              return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+              return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
             } else if (role === 'hod') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
             } else if (role === 'admin') {
-              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+              return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
             }
             return false;
           };
@@ -6461,15 +6481,15 @@ export default function App() {
   useEffect(() => {
     const isTabValidForRole = (tabId, role) => {
       if (role === 'student') {
-        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+        return ['student-attendance', 'student-profile', 'ai-assistant', 'settings', 'calendar', 'leave', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
       } else if (role === 'parent') {
-        return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+        return ['dashboard', 'student-attendance', 'settings', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
       } else if (role === 'teacher') {
-        return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+        return ['dashboard', 'students', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
       } else if (role === 'hod') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'interventions', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
       } else if (role === 'admin') {
-        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about'].includes(tabId);
+        return ['dashboard', 'students', 'teachers', 'attendance', 'manual-register', 'logs', 'session-history', 'reports', 'disputes', 'face-review', 'calendar', 'devices', 'interventions', 'lms', 'payroll', 'settings', 'student-profile', 'ai-assistant', 'control', 'all-features', 'broadcast', 'about', 'notifications'].includes(tabId);
       }
       return false;
     };
@@ -6537,6 +6557,9 @@ export default function App() {
         }
         if (activeBase !== 'face-review' && faceReviewRouteRef.current !== null) {
           setFaceReviewRoute(null);
+        }
+        if (activeBase !== 'notifications' && notificationRouteRef.current !== null) {
+          setNotificationRoute(null);
         }
         if (activeBase !== 'broadcast' && broadcastRouteRef.current !== null) {
           setBroadcastRoute(null);
@@ -6610,6 +6633,8 @@ export default function App() {
           } else if (faceReviewRouteRef.current !== null) {
             setFaceReviewRoute(null);
           }
+        } else if (baseHash === 'notifications') {
+          setNotificationRoute(subHash === 'preferences' ? 'preferences' : null);
         } else if (baseHash === 'broadcast') {
           if (!subHash) {
             if (broadcastRouteRef.current !== null) setBroadcastRoute(null);
@@ -6826,7 +6851,9 @@ export default function App() {
                                                     ? `#/student-profile/${profileSection}`
                                                     : activeTab === 'face-review' && faceReviewRoute?.id != null
                                                       ? `#/face-review/${encodeURIComponent(faceReviewRoute.id)}`
-                                                      : `#/${activeTab}`;
+                                                      : activeTab === 'notifications' && notificationRoute === 'preferences'
+                                                        ? '#/notifications/preferences'
+                                                        : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6914,6 +6941,7 @@ export default function App() {
     profileSection,
     faceReviewRoute?.mode,
     faceReviewRoute?.id,
+    notificationRoute,
     token,
     userRole,
   ]);
@@ -6972,6 +7000,7 @@ export default function App() {
     setActiveSubSetting(null);
     setDisputeRoute(null);
     setFaceReviewRoute(null);
+    setNotificationRoute(null);
     setBroadcastRoute(null);
     setSessionHistoryRoute(null);
     setStudentRoute(null);
@@ -9634,7 +9663,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'student-profile' && profileSection !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports', 'about'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'student-profile' && profileSection !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports', 'about', 'notifications'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -9807,9 +9836,10 @@ export default function App() {
                   })()}
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {activeTab === 'about' && 'About System'}
+                  {activeTab === 'notifications' && (notificationRoute === 'preferences' ? 'Notification Preferences' : 'Notifications')}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -9857,7 +9887,7 @@ export default function App() {
             {/* Notification Bell Button (Placed directly to the Left of 3-line Hamburger Menu) */}
             <NotificationBell
               unreadCount={realtimeUnreadCount}
-              onClick={() => setShowNotificationDrawer(true)}
+              onClick={() => navigateToTab('notifications')}
               playCyberSound={playCyberSound}
             />
 
@@ -10010,7 +10040,7 @@ export default function App() {
               currentUser={currentUser}
               navigateToTab={navigateToTab}
               playCyberSound={playCyberSound}
-              setShowNotificationDrawer={setShowNotificationDrawer}
+              setShowNotificationDrawer={() => navigateToTab('notifications')}
             />
           ) : userRole === 'hod' ? (
             <HodDashboardView
@@ -10890,6 +10920,23 @@ export default function App() {
               setActiveSubSetting('app_version');
             }}
             playCyberSound={playCyberSound}
+          />
+        )}
+
+        {activeTab === 'notifications' && (
+          <NotificationDrawerModal
+            inlinePage
+            routeView={notificationRoute}
+            setRouteView={setNotificationRoute}
+            token={token}
+            notifications={cachedNotifications}
+            isLoading={notificationsLoading}
+            loadError={notificationsError}
+            onRefresh={refreshNotifications}
+            onMarkAllRead={markAllNotificationsRead}
+            onDeleteItem={deleteNotificationItem}
+            playCyberSound={playCyberSound}
+            onNotificationClick={handleNotificationClick}
           />
         )}
 
@@ -11777,23 +11824,7 @@ export default function App() {
 
 
 
-      {/* Real-time Role Notification Drawer Modal */}
-      <NotificationDrawerModal
-        key={token}
-        isOpen={showNotificationDrawer}
-        onClose={() => setShowNotificationDrawer(false)}
-        token={token}
-        notifications={cachedNotifications}
-        isLoading={notificationsLoading}
-        loadError={notificationsError}
-        onRefresh={refreshNotifications}
-        onMarkAllRead={markAllNotificationsRead}
-        onDeleteItem={deleteNotificationItem}
-        currentUser={currentUser}
-        userRole={userRole}
-        playCyberSound={playCyberSound}
-        onNotificationClick={handleNotificationClick}
-      />
+      {/* Full-screen Notifications & Preferences render inline at #/notifications */}
 
       {/* Accessibility & Display Controls Modal */}
       <AccessibilitySettingsModal
@@ -11824,7 +11855,7 @@ export default function App() {
       />
 
       {/* Quick Actions Dock for Staff & Admin */}
-      {token && userRole !== 'student' && activeTab !== 'control' && activeTab !== 'all-features' && activeTab !== 'ai-assistant' && (
+      {token && userRole !== 'student' && activeTab !== 'control' && activeTab !== 'all-features' && activeTab !== 'ai-assistant' && activeTab !== 'notifications' && activeTab !== 'about' && (
         <QuickActionsDock
           onScan={() => { setActiveTab('attendance'); playCyberSound('click'); }}
           onManual={() => { setIsManualAttendanceOpen(true); playCyberSound('click'); }}
@@ -11833,7 +11864,7 @@ export default function App() {
             if (userRole === 'admin') {
               navigateToTab('broadcast');
             } else {
-              setShowNotificationDrawer(true);
+              navigateToTab('notifications');
             }
             playCyberSound('click');
           }}

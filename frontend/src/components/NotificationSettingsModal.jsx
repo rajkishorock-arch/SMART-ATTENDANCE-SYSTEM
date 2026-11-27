@@ -1,20 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Sliders, 
-  X, 
-  CheckCircle2, 
-  Calendar, 
-  Clock, 
-  Shield, 
-  Sparkles, 
-  VolumeX, 
-  Trash2, 
-  Save 
+import { useState, useEffect } from 'react';
+import {
+  CheckCircle2,
+  Calendar,
+  Clock,
+  Shield,
+  Sparkles,
+  VolumeX,
+  Trash2,
+  Save,
+  X,
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 import useUI from '../hooks/useUI';
 
-export default function NotificationSettingsModal({ isOpen, onClose, token, API_BASE_URL = getApiBaseUrl(), onPreferencesSaved, onHistoryCleared }) {
+const PREFERENCE_CATEGORIES = [
+  {
+    key: 'attendance_enabled',
+    label: 'Attendance Alerts',
+    desc: 'Check-in confirmations and absent status alerts',
+    icon: CheckCircle2,
+    color: '#047857',
+    bg: '#ecfdf5',
+  },
+  {
+    key: 'leave_dispute_enabled',
+    label: 'Leaves & Disputes',
+    desc: 'Leave approvals and correction review updates',
+    icon: Calendar,
+    color: '#b45309',
+    bg: '#fef3c7',
+  },
+  {
+    key: 'class_reminders_enabled',
+    label: 'Class Reminders',
+    desc: 'Upcoming classes and timetable changes',
+    icon: Clock,
+    color: '#785927',
+    bg: '#f5ecda',
+  },
+  {
+    key: 'security_enabled',
+    label: 'Security & Account',
+    desc: 'Sign-in alerts, device checks, and security notices',
+    icon: Shield,
+    color: '#b91c1c',
+    bg: '#fef2f2',
+  },
+  {
+    key: 'promotional_enabled',
+    label: 'Campus Announcements',
+    desc: 'Events, workshops, and general campus notices',
+    icon: Sparkles,
+    color: '#6b4e1e',
+    bg: '#faf2df',
+  },
+];
+
+export default function NotificationSettingsModal({
+  isOpen = false,
+  inlinePage = false,
+  onClose = () => {},
+  token,
+  API_BASE_URL = getApiBaseUrl(),
+  onPreferencesSaved,
+  onHistoryCleared,
+}) {
   const { playCyberSound } = useUI();
   const [preferences, setPreferences] = useState({
     attendance_enabled: true,
@@ -24,47 +74,50 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
     promotional_enabled: false,
     quiet_hours_enabled: false,
     quiet_start_time: '22:00',
-    quiet_end_time: '07:00'
+    quiet_end_time: '07:00',
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const active = inlinePage || isOpen;
 
   useEffect(() => {
-    if (!isOpen) return;
-
+    if (!active || !token) return;
+    let cancelled = false;
     const fetchPreferences = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/notifications/preferences`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data && data.preferences) {
-            setPreferences(data.preferences);
+            setPreferences(prev => ({ ...prev, ...data.preferences }));
           }
         }
-      } catch (err) {
-        console.error('Failed to load notification preferences:', err);
+      } catch {
+        // retain defaults on transient failure
       }
     };
-
     fetchPreferences();
-  }, [isOpen, token, API_BASE_URL]);
+    return () => { cancelled = true; };
+  }, [active, token, API_BASE_URL]);
 
-  if (!isOpen) return null;
+  if (!active) return null;
 
   const handleToggle = (key) => {
     playCyberSound('click');
     setPreferences(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: !prev[key],
     }));
   };
 
   const handleChangeTime = (key, val) => {
     setPreferences(prev => ({
       ...prev,
-      [key]: val
+      [key]: val,
     }));
   };
 
@@ -75,330 +128,249 @@ export default function NotificationSettingsModal({ isOpen, onClose, token, API_
       const res = await fetch(`${API_BASE_URL}/notifications/preferences`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(preferences)
+        body: JSON.stringify(preferences),
       });
-      if (res.ok) {
-        playCyberSound('success');
-        setSaveStatus('Preferences saved successfully!');
-        if (onPreferencesSaved) onPreferencesSaved(preferences);
-        setTimeout(() => {
-          setSaveStatus('');
-          onClose();
-        }, 800);
-      } else {
-        throw new Error('Failed to save preferences');
-      }
-    } catch (err) {
-      console.error(err);
-      setSaveStatus('Failed to save preferences.');
+      if (!res.ok) throw new Error('Failed to save preferences');
+      playCyberSound('success');
+      setSaveStatus('Preferences saved successfully.');
+      if (onPreferencesSaved) onPreferencesSaved(preferences);
+    } catch {
+      setSaveStatus('Could not save preferences right now.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm('Are you sure you want to permanently clear all your notification history?')) return;
+    if (!confirmClear) {
+      playCyberSound('click');
+      setConfirmClear(true);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE_URL}/notifications/clear-all`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         playCyberSound('click');
+        setConfirmClear(false);
+        setSaveStatus('Notification history cleared.');
         if (onHistoryCleared) onHistoryCleared();
-        onClose();
       }
-    } catch (err) {
-      console.error('Failed to clear notifications:', err);
+    } catch {
+      setSaveStatus('Could not clear notification history.');
     }
   };
 
-  return (
-    <div 
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10000,
-        background: 'rgba(15, 23, 42, 0.45)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}
-      onClick={onClose}
-    >
-      <div 
-        style={{
-          width: '100%',
-          maxWidth: '520px',
-          background: '#ffffff',
-          border: '1px solid #e4dfd5',
-          borderRadius: '16px',
-          boxShadow: '0 20px 50px rgba(15, 23, 42, 0.15)',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid #e4dfd5',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: '#e0f2fe',
-              border: '1px solid #bae6fd',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Sliders size={20} color="#80602c" />
+  const content = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {saveStatus && (
+        <div
+          role="status"
+          className={`feedback-banner ${saveStatus.includes('Could not') ? 'is-error' : 'is-success'}`}
+        >
+          <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{saveStatus}</span>
+        </div>
+      )}
+
+      {/* Alert Channels */}
+      <div className="golden-os-form-section" style={{ gap: '2px' }}>
+        <div className="golden-os-form-section-title" style={{ marginBottom: '4px' }}>
+          Alert Channels
+        </div>
+
+        {PREFERENCE_CATEGORIES.map((item, idx) => {
+          const IconComp = item.icon;
+          const isLast = idx === PREFERENCE_CATEGORIES.length - 1;
+          return (
+            <div
+              key={item.key}
+              className="gg-pref-row"
+              style={{ borderBottom: isLast ? 'none' : '1px solid #f2ead9' }}
+            >
+              <div className="gg-pref-info">
+                <div
+                  className="gg-notif-row-icon"
+                  style={{ background: item.bg, color: item.color }}
+                >
+                  <IconComp size={15} />
+                </div>
+                <div className="gg-pref-text">
+                  <div className="gg-pref-title">{item.label}</div>
+                  <div className="gg-pref-desc">{item.desc}</div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!!preferences[item.key]}
+                aria-label={item.label}
+                onClick={() => handleToggle(item.key)}
+                className={`gg-switch ${preferences[item.key] ? 'is-on' : ''}`}
+              >
+                <span className="gg-switch-thumb" />
+              </button>
             </div>
-            <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#25231f', margin: 0 }}>
-                Notification Preferences
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: '#696358', margin: '2px 0 0' }}>
-                Role alert channels & quiet hours settings
-              </p>
+          );
+        })}
+      </div>
+
+      {/* Quiet Hours */}
+      <div className="golden-os-form-section" style={{ gap: '12px' }}>
+        <div className="golden-os-form-section-title">Delivery Schedule</div>
+        <div className="gg-pref-row" style={{ borderBottom: 'none', padding: 0 }}>
+          <div className="gg-pref-info">
+            <div
+              className="gg-notif-row-icon"
+              style={{ background: '#f5ecda', color: '#785927' }}
+            >
+              <VolumeX size={15} />
+            </div>
+            <div className="gg-pref-text">
+              <div className="gg-pref-title">Quiet Hours</div>
+              <div className="gg-pref-desc">Pause push alerts during rest hours</div>
             </div>
           </div>
 
           <button
-            onClick={onClose}
-            style={{
-              background: '#f4f1eb',
-              border: '1px solid #cfc8ba',
-              borderRadius: '8px',
-              color: '#696358',
-              padding: '6px',
-              cursor: 'pointer'
-            }}
+            type="button"
+            role="switch"
+            aria-checked={!!preferences.quiet_hours_enabled}
+            aria-label="Quiet Hours"
+            onClick={() => handleToggle('quiet_hours_enabled')}
+            className={`gg-switch ${preferences.quiet_hours_enabled ? 'is-on' : ''}`}
           >
-            <X size={18} />
+            <span className="gg-switch-thumb" />
           </button>
         </div>
 
-        {/* Content Body */}
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
-          
-          {/* Category Toggles */}
-          <div>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#25231f', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Notification Categories
-            </h4>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                { key: 'attendance_enabled', label: 'Attendance Alerts', desc: 'Check-in, checkout, and absent status updates', icon: CheckCircle2, color: '#059669' },
-                { key: 'leave_dispute_enabled', label: 'Leave & Dispute Updates', desc: 'Status approvals and dispute resolution notifications', icon: Calendar, color: '#d97706' },
-                { key: 'class_reminders_enabled', label: 'Class & Timetable Reminders', desc: 'Upcoming lectures and schedule updates', icon: Clock, color: '#7c3aed' },
-                { key: 'security_enabled', label: 'Security & System Alerts', desc: 'Account login, device status, and proxy warnings', icon: Shield, color: '#dc2626' },
-                { key: 'promotional_enabled', label: 'Campus News & Announcements', desc: 'General non-critical campus notifications (Opt-in)', icon: Sparkles, color: '#db2777' }
-              ].map(item => (
-                <div
-                  key={item.key}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    background: '#faf9f6',
-                    border: '1px solid #e4dfd5',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <item.icon size={18} color={item.color} />
-                    <div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#25231f' }}>
-                        {item.label}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#696358' }}>
-                        {item.desc}
-                      </div>
-                    </div>
-                  </div>
-
-                  <input
-                    type="checkbox"
-                    checked={preferences[item.key]}
-                    onChange={() => handleToggle(item.key)}
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      accentColor: '#80602c',
-                      cursor: 'pointer'
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quiet Hours Section */}
-          <div style={{
-            padding: '16px',
-            borderRadius: '12px',
-            background: '#faf9f6',
-            border: '1px solid #e4dfd5',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <VolumeX size={18} color="#80602c" />
-                <div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>
-                    Quiet Hours
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#696358' }}>
-                    Suppress push notifications during sleep hours
-                  </div>
-                </div>
-              </div>
-
+        {preferences.quiet_hours_enabled && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '6px', borderTop: '1px solid #f2ead9' }}>
+            <div>
+              <label className="golden-os-field-label">Start Time</label>
               <input
-                type="checkbox"
-                checked={preferences.quiet_hours_enabled}
-                onChange={() => handleToggle('quiet_hours_enabled')}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  accentColor: '#80602c',
-                  cursor: 'pointer'
-                }}
+                type="time"
+                className="golden-os-input"
+                value={preferences.quiet_start_time}
+                onChange={(e) => handleChangeTime('quiet_start_time', e.target.value)}
               />
             </div>
-
-            {preferences.quiet_hours_enabled && (
-              <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.75rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Start Time</label>
-                  <input
-                    type="time"
-                    value={preferences.quiet_start_time}
-                    onChange={(e) => handleChangeTime('quiet_start_time', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      background: '#ffffff',
-                      border: '1px solid #cfc8ba',
-                      color: '#25231f',
-                      fontSize: '0.85rem'
-                    }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.75rem', color: '#58534a', fontWeight: 600, display: 'block', marginBottom: '4px' }}>End Time</label>
-                  <input
-                    type="time"
-                    value={preferences.quiet_end_time}
-                    onChange={(e) => handleChangeTime('quiet_end_time', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      background: '#ffffff',
-                      border: '1px solid #cfc8ba',
-                      color: '#25231f',
-                      fontSize: '0.85rem'
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+            <div>
+              <label className="golden-os-field-label">End Time</label>
+              <input
+                type="time"
+                className="golden-os-input"
+                value={preferences.quiet_end_time}
+                onChange={(e) => handleChangeTime('quiet_end_time', e.target.value)}
+              />
+            </div>
           </div>
+        )}
+      </div>
 
-          {/* Additional Actions */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Actions */}
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={isSaving}
+        className="golden-os-primary-action"
+        style={{ justifyContent: 'center', padding: '12px 18px', borderRadius: '12px', fontSize: '0.88rem' }}
+      >
+        <Save size={16} />
+        <span>{isSaving ? 'Saving Preferences...' : 'Save Preferences'}</span>
+      </button>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {!confirmClear ? (
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="golden-os-feedback-filter-btn"
+            style={{
+              padding: '8px 12px',
+              borderRadius: '10px',
+              color: '#b91c1c',
+              borderColor: '#fecaca',
+              background: '#fff5f5',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Trash2 size={14} />
+            <span>Clear History</span>
+          </button>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
+              type="button"
               onClick={handleClearAll}
+              className="golden-os-feedback-filter-btn"
               style={{
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#dc2626',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
+                padding: '8px 12px',
+                borderRadius: '10px',
+                background: '#dc2626',
+                borderColor: '#dc2626',
+                color: '#ffffff',
               }}
             >
-              <Trash2 size={14} /> Clear Notification History
+              Confirm Clear All
             </button>
-
-            {saveStatus && (
-              <span style={{ fontSize: '0.78rem', color: saveStatus.includes('Failed') ? '#dc2626' : '#059669', fontWeight: 600 }}>
-                {saveStatus}
-              </span>
-            )}
+            <button
+              type="button"
+              onClick={() => setConfirmClear(false)}
+              className="golden-os-feedback-filter-btn"
+              style={{ padding: '8px 12px', borderRadius: '10px' }}
+            >
+              Cancel
+            </button>
           </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="golden-os-feedback-filter-btn"
+          style={{ padding: '8px 16px', borderRadius: '10px' }}
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
+
+  if (inlinePage) {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body">{content}</div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Footer Actions */}
-        <div style={{
-          padding: '16px 24px',
-          borderTop: '1px solid #e4dfd5',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '12px'
-        }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '8px',
-              background: '#f4f1eb',
-              border: '1px solid #cfc8ba',
-              color: '#46423b',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            style={{
-              padding: '10px 22px',
-              borderRadius: '8px',
-              background: '#80602c',
-              border: 'none',
-              color: '#ffffff',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isSaving ? 0.7 : 1
-            }}
-          >
-            <Save size={16} /> {isSaving ? 'Saving...' : 'Save Preferences'}
+  return (
+    <div className="gg-notif-backdrop" onClick={onClose}>
+      <div
+        className="gg-notif-panel"
+        style={{ maxWidth: '480px', padding: '16px', overflowY: 'auto' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#2b2112' }}>
+            Notification Preferences
+          </h3>
+          <button type="button" onClick={onClose} className="gg-notif-action-btn" aria-label="Close">
+            <X size={16} />
           </button>
         </div>
+        {content}
       </div>
     </div>
   );

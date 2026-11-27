@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  X,
   ShieldAlert,
   Calendar,
   CheckCheck,
@@ -13,6 +12,7 @@ import {
   Megaphone,
   ChevronRight,
   ScanFace,
+  X,
 } from 'lucide-react';
 import NotificationSettingsModal from './NotificationSettingsModal';
 import { notificationApi } from '../api/notificationApi.js';
@@ -29,8 +29,11 @@ const CATEGORY_TABS = [
 ];
 
 export default function NotificationDrawerModal({
-  isOpen,
-  onClose,
+  isOpen = false,
+  inlinePage = false,
+  routeView = null,
+  setRouteView = null,
+  onClose = () => {},
   token,
   notifications: sharedNotifications = null,
   isLoading: sharedIsLoading = false,
@@ -41,13 +44,13 @@ export default function NotificationDrawerModal({
   onNotificationClick = () => {},
   playCyberSound = () => {},
 }) {
-  useBodyScrollLock(isOpen);
+  useBodyScrollLock(!inlinePage && isOpen);
 
   const [localNotifications, setLocalNotifications] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
   const [localError, setLocalError] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [localPrefsOpen, setLocalPrefsOpen] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -59,15 +62,17 @@ export default function NotificationDrawerModal({
   const notifications = usingShared ? sharedNotifications : localNotifications;
   const isLoading = usingShared ? sharedIsLoading : localLoading;
   const loadError = usingShared ? sharedLoadError : localError;
+  const active = inlinePage || isOpen;
+  const showingPreferences = inlinePage ? routeView === 'preferences' : localPrefsOpen;
 
   useEffect(() => {
-    if (!isOpen || !token) return;
+    if (!active || !token) return;
     if (usingShared && onRefresh) {
       onRefresh({ showSpinnerIfEmpty: true });
       return;
     }
 
-    let active = true;
+    let activeReq = true;
     async function loadFallback() {
       if (localNotifications.length === 0) setLocalLoading(true);
       setLocalError('');
@@ -75,18 +80,18 @@ export default function NotificationDrawerModal({
         const res = await notificationApi.fetchMyNotifications(token, 50);
         if (!res.ok) throw new Error();
         const entries = await res.json();
-        if (active) setLocalNotifications(Array.isArray(entries) ? entries : []);
+        if (activeReq) setLocalNotifications(Array.isArray(entries) ? entries : []);
       } catch {
-        if (active && localNotifications.length === 0) {
+        if (activeReq && localNotifications.length === 0) {
           setLocalError('Unable to load notifications right now.');
         }
       } finally {
-        if (active) setLocalLoading(false);
+        if (activeReq) setLocalLoading(false);
       }
     }
     loadFallback();
-    return () => { active = false; };
-  }, [isOpen, token, usingShared, onRefresh, localNotifications.length]);
+    return () => { activeReq = false; };
+  }, [active, token, usingShared, onRefresh, localNotifications.length]);
 
   const handleMarkAllRead = async () => {
     playCyberSound('click');
@@ -117,11 +122,8 @@ export default function NotificationDrawerModal({
       setLocalNotifications(prev => prev.map(n => (n.id === notif.id ? { ...n, is_read: true } : n)));
       if (token) notificationApi.markNotificationRead(token, notif.id).catch(() => {});
     }
-    // Close panel and navigate immediately (0ms lag — API mark-read runs async)
-    onClose();
-    if (onNotificationClick) {
-      onNotificationClick(notif);
-    }
+    if (!inlinePage) onClose();
+    if (onNotificationClick) onNotificationClick(notif);
   };
 
   const isFutureScheduledNotice = (n) => {
@@ -170,13 +172,13 @@ export default function NotificationDrawerModal({
     const key = String(cat || '').toUpperCase();
     switch (key) {
       case 'DISPUTE':
-        return { icon: <ShieldAlert size={15} />, color: '#785927', bg: '#f7efe0', label: 'Dispute' };
+        return { icon: <ShieldAlert size={15} />, color: '#785927', bg: '#f7efe0' };
       case 'LEAVE':
-        return { icon: <Calendar size={15} />, color: '#b45309', bg: '#fef3c7', label: 'Leave' };
+        return { icon: <Calendar size={15} />, color: '#b45309', bg: '#fef3c7' };
       case 'ATTENDANCE':
-        return { icon: <CheckCircle2 size={15} />, color: '#047857', bg: '#ecfdf5', label: 'Attendance' };
+        return { icon: <CheckCircle2 size={15} />, color: '#047857', bg: '#ecfdf5' };
       case 'FACE_REVIEW':
-        return { icon: <ScanFace size={15} />, color: '#785927', bg: '#f5ecda', label: 'Face Review' };
+        return { icon: <ScanFace size={15} />, color: '#785927', bg: '#f5ecda' };
       case 'BROADCAST':
       case 'ANNOUNCEMENT':
       case 'NOTICE':
@@ -185,15 +187,15 @@ export default function NotificationDrawerModal({
       case 'EVENT':
       case 'HOLIDAY':
       case 'URGENT':
-        return { icon: <Megaphone size={15} />, color: '#6b4e1e', bg: '#faf2df', label: 'Notice' };
+        return { icon: <Megaphone size={15} />, color: '#6b4e1e', bg: '#faf2df' };
       case 'SECURITY':
       case 'SYSTEM':
-        return { icon: <AlertCircle size={15} />, color: '#b91c1c', bg: '#fef2f2', label: 'Alert' };
+        return { icon: <AlertCircle size={15} />, color: '#b91c1c', bg: '#fef2f2' };
       case 'CLASS_REMINDER':
       case 'CLASSES':
-        return { icon: <Clock size={15} />, color: '#5c4218', bg: '#f5ecda', label: 'Class' };
+        return { icon: <Clock size={15} />, color: '#5c4218', bg: '#f5ecda' };
       default:
-        return { icon: <Bell size={15} />, color: '#785927', bg: '#f5ecda', label: 'Update' };
+        return { icon: <Bell size={15} />, color: '#785927', bg: '#f5ecda' };
     }
   };
 
@@ -217,14 +219,209 @@ export default function NotificationDrawerModal({
     }
   };
 
-  if (!isOpen) return null;
+  const openPreferences = () => {
+    playCyberSound('click');
+    if (inlinePage && setRouteView) {
+      setRouteView('preferences');
+    } else {
+      setLocalPrefsOpen(true);
+    }
+  };
+
+  const closePreferences = () => {
+    if (inlinePage && setRouteView) {
+      setRouteView(null);
+    } else {
+      setLocalPrefsOpen(false);
+    }
+  };
+
+  if (!active) return null;
+
+  // Dedicated Notification Preferences Page (#/notifications/preferences)
+  if (inlinePage && showingPreferences) {
+    return (
+      <NotificationSettingsModal
+        inlinePage
+        token={token}
+        onClose={closePreferences}
+        onHistoryCleared={() => {
+          if (onRefresh) onRefresh({ showSpinnerIfEmpty: false });
+        }}
+      />
+    );
+  }
+
+  const filterAndActionsBar = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#785927', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {unreadCount > 0 ? `${unreadCount} Unread` : `${visibleNotifications.length} Updates`}
+        </span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              className="gg-notif-action-btn"
+              title="Mark all as read"
+              aria-label="Mark all as read"
+            >
+              <CheckCheck size={15} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              playCyberSound('click');
+              if (!inlinePage) onClose();
+              if (onNotificationClick) onNotificationClick({ targetTab: 'broadcast' });
+            }}
+            className="gg-notif-action-btn"
+            title="Campus Notice Board"
+            aria-label="Campus Notice Board"
+          >
+            <Megaphone size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={openPreferences}
+            className="gg-notif-action-btn"
+            title="Notification Preferences"
+            aria-label="Notification Preferences"
+          >
+            <Sliders size={15} />
+          </button>
+        </div>
+      </div>
+
+      <div
+        className="gg-notif-filters"
+        style={{ padding: 0, borderBottom: 'none', background: 'transparent', width: '100%' }}
+      >
+        {CATEGORY_TABS.map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => {
+              playCyberSound('click');
+              setActiveCategory(tab.key);
+            }}
+            className={`golden-os-feedback-filter-btn ${activeCategory === tab.key ? 'active' : ''}`}
+            style={{ flexShrink: 0 }}
+          >
+            {tab.label}
+            {tab.key === 'UNREAD' && unreadCount > 0 ? ` (${unreadCount})` : ''}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const listBody = (
+    <>
+      {loadError && visibleNotifications.length === 0 && (
+        <div className="feedback-banner is-error" role="alert">
+          <AlertCircle size={15} />
+          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{loadError}</span>
+        </div>
+      )}
+
+      {isLoading && visibleNotifications.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '48px 16px', color: '#786240', fontSize: '0.84rem', fontWeight: 600 }}>
+          Syncing updates...
+        </div>
+      ) : visibleNotifications.length === 0 ? (
+        <div className="golden-os-inset-card" style={{ padding: '36px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              background: '#f5ecda',
+              color: '#785927',
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
+            <Bell size={20} />
+          </div>
+          <div style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>
+            You're all caught up
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#8f7b58' }}>
+            No {activeCategory === 'ALL' ? '' : `${activeCategory.toLowerCase()} `}notifications right now.
+          </div>
+        </div>
+      ) : (
+        <div className="golden-os-list-shell">
+          {visibleNotifications.map(n => {
+            const meta = getCategoryMeta(n.category);
+            const timeAgo = formatTimeAgo(n.created_at);
+            return (
+              <div
+                key={n.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleItemClick(n)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleItemClick(n);
+                  }
+                }}
+                className={`gg-notif-row ${!n.is_read ? 'is-unread' : ''}`}
+              >
+                <div className="gg-notif-row-icon" style={{ background: meta.bg, color: meta.color }}>
+                  {meta.icon}
+                </div>
+
+                <div style={{ minWidth: 0, flex: '1 1 0%', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                    {!n.is_read && <span className="gg-notif-dot" />}
+                    <span className="gg-notif-row-title">{n.title}</span>
+                    {timeAgo && <span className="gg-notif-row-time">{timeAgo}</span>}
+                  </div>
+                  {n.message && <div className="gg-notif-row-summary">{n.message}</div>}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDelete(e, n.id)}
+                    className="gg-notif-delete-btn"
+                    title="Remove"
+                    aria-label="Remove notification"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                  <ChevronRight size={15} style={{ color: '#8f7b58' }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
+  if (inlinePage) {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {filterAndActionsBar}
+            {listBody}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div
-        className="gg-notif-backdrop"
-        onClick={onClose}
-      >
+      <div className="gg-notif-backdrop" onClick={onClose}>
         <div
           className="gg-notif-panel"
           role="dialog"
@@ -232,7 +429,6 @@ export default function NotificationDrawerModal({
           aria-label="Notifications"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Clean Header */}
           <div className="gg-notif-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
               <div className="gg-notif-header-icon">
@@ -241,177 +437,26 @@ export default function NotificationDrawerModal({
               <h3 style={{ fontSize: '1.04rem', fontWeight: 800, color: '#2b2112', margin: 0 }}>
                 Notifications
               </h3>
-              {unreadCount > 0 && (
-                <span className="gg-notif-count-badge">{unreadCount}</span>
-              )}
+              {unreadCount > 0 && <span className="gg-notif-count-badge">{unreadCount}</span>}
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {unreadCount > 0 && (
-                <button
-                  type="button"
-                  onClick={handleMarkAllRead}
-                  className="gg-notif-action-btn"
-                  title="Mark all as read"
-                  aria-label="Mark all as read"
-                >
-                  <CheckCheck size={15} />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  playCyberSound('click');
-                  onClose();
-                  if (onNotificationClick) onNotificationClick({ targetTab: 'broadcast' });
-                }}
-                className="gg-notif-action-btn"
-                title="Campus Notice Board"
-                aria-label="Campus Notice Board"
-              >
-                <Megaphone size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  playCyberSound('click');
-                  setShowSettingsModal(true);
-                }}
-                className="gg-notif-action-btn"
-                title="Notification Settings"
-                aria-label="Notification Settings"
-              >
-                <Sliders size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="gg-notif-action-btn"
-                title="Close"
-                aria-label="Close Notifications"
-              >
-                <X size={16} />
-              </button>
-            </div>
+            <button type="button" onClick={onClose} className="gg-notif-action-btn" aria-label="Close Notifications">
+              <X size={16} />
+            </button>
           </div>
-
-          {/* Single-Row Scrollable Golden Gate Filters */}
-          <div className="gg-notif-filters">
-            {CATEGORY_TABS.map(tab => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => {
-                  playCyberSound('click');
-                  setActiveCategory(tab.key);
-                }}
-                className={`golden-os-feedback-filter-btn ${activeCategory === tab.key ? 'active' : ''}`}
-                style={{ flexShrink: 0 }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Notification Feed */}
-          <div className="gg-notif-feed">
-            {loadError && visibleNotifications.length === 0 && (
-              <div className="feedback-banner is-error" role="alert">
-                <AlertCircle size={15} />
-                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{loadError}</span>
-              </div>
-            )}
-
-            {isLoading && visibleNotifications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 16px', color: '#786240', fontSize: '0.84rem', fontWeight: 600 }}>
-                Syncing updates...
-              </div>
-            ) : visibleNotifications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '56px 20px', color: '#6b5b3e' }}>
-                <div
-                  style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '14px',
-                    background: '#f5ecda',
-                    color: '#785927',
-                    display: 'grid',
-                    placeItems: 'center',
-                    margin: '0 auto 10px',
-                  }}
-                >
-                  <Bell size={20} />
-                </div>
-                <div style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>
-                  You're all caught up
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#8f7b58', marginTop: '3px' }}>
-                  No {activeCategory === 'ALL' ? '' : `${activeCategory.toLowerCase()} `}alerts right now.
-                </div>
-              </div>
-            ) : (
-              <div className="golden-os-list-shell">
-                {visibleNotifications.map(n => {
-                  const meta = getCategoryMeta(n.category);
-                  const timeAgo = formatTimeAgo(n.created_at);
-                  return (
-                    <div
-                      key={n.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleItemClick(n)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleItemClick(n);
-                        }
-                      }}
-                      className={`gg-notif-row ${!n.is_read ? 'is-unread' : ''}`}
-                    >
-                      <div
-                        className="gg-notif-row-icon"
-                        style={{ background: meta.bg, color: meta.color }}
-                      >
-                        {meta.icon}
-                      </div>
-
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {!n.is_read && <span className="gg-notif-dot" />}
-                          <span className="gg-notif-row-title">{n.title}</span>
-                          {timeAgo && <span className="gg-notif-row-time">{timeAgo}</span>}
-                        </div>
-                        {n.message && (
-                          <div className="gg-notif-row-summary">{n.message}</div>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDelete(e, n.id)}
-                          className="gg-notif-delete-btn"
-                          title="Remove"
-                          aria-label="Remove notification"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                        <ChevronRight size={15} style={{ color: '#8f7b58' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <div className="gg-notif-feed" style={{ gap: '12px' }}>
+            {filterAndActionsBar}
+            {listBody}
           </div>
         </div>
       </div>
 
       <NotificationSettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
+        isOpen={localPrefsOpen}
+        onClose={() => setLocalPrefsOpen(false)}
         token={token}
-        playCyberSound={playCyberSound}
+        onHistoryCleared={() => {
+          if (onRefresh) onRefresh({ showSpinnerIfEmpty: false });
+        }}
       />
     </>
   );
