@@ -40,6 +40,7 @@ import './styles/futuristicFeatures.css';
 import './styles/extremeFeatures.css';
 import './styles/ideas150.css';
 import App from './App.jsx'
+import ApplePointerMotionLayer from './components/animations/ApplePointerMotionLayer'
 import { UIProvider } from './context/UIContext';
 import { AuthProvider } from './context/AuthContext';
 import { TenantProvider } from './context/TenantContext';
@@ -83,6 +84,7 @@ createRoot(document.getElementById('root')).render(
       <UIProvider>
         <AuthProvider>
           <TenantProvider>
+            <ApplePointerMotionLayer />
             <App />
           </TenantProvider>
         </AuthProvider>
