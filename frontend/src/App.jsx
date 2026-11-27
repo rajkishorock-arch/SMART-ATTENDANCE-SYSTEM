@@ -74,7 +74,6 @@ import { createFaceDetector, extractFaceBox, drawFaceBox } from './utils/faceDet
 import { APP_VERSION } from './utils/versionManager';
 import { loadExplorationSettings, triggerConfettiBurst } from './utils/explorationSettings';
 import { prefetchStudentQrPass } from './utils/qrPassPrefetch';
-import VersionBadge from './components/VersionBadge';
 
 const parseStudentHashParts = (parts) => {
   if (!Array.isArray(parts) || parts[0] !== 'student-attendance' || !parts[1]) return null;
@@ -810,6 +809,16 @@ export default function App() {
     return null;
   });
 
+  const [faceReviewRoute, setFaceReviewRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'face-review' && parts[1]) {
+        return { mode: 'detail', id: decodeURIComponent(parts[1]) };
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
   const [broadcastRoute, setBroadcastRoute] = useState(() => {
     try {
       const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
@@ -1025,6 +1034,7 @@ export default function App() {
   const showScheduleFormRef = useRef(showScheduleForm);
   const settingsDetailRouteRef = useRef(settingsDetailRoute);
   const disputeRouteRef = useRef(disputeRoute);
+  const faceReviewRouteRef = useRef(faceReviewRoute);
   const broadcastRouteRef = useRef(broadcastRoute);
   const sessionHistoryRouteRef = useRef(sessionHistoryRoute);
   const routeLogIdRef = useRef(routeLogId);
@@ -1051,6 +1061,7 @@ export default function App() {
   useEffect(() => { showScheduleFormRef.current = showScheduleForm; }, [showScheduleForm]);
   useEffect(() => { settingsDetailRouteRef.current = settingsDetailRoute; }, [settingsDetailRoute]);
   useEffect(() => { disputeRouteRef.current = disputeRoute; }, [disputeRoute]);
+  useEffect(() => { faceReviewRouteRef.current = faceReviewRoute; }, [faceReviewRoute]);
   useEffect(() => { broadcastRouteRef.current = broadcastRoute; }, [broadcastRoute]);
   useEffect(() => { sessionHistoryRouteRef.current = sessionHistoryRoute; }, [sessionHistoryRoute]);
   useEffect(() => { routeLogIdRef.current = routeLogId; }, [routeLogId]);
@@ -1218,6 +1229,10 @@ export default function App() {
     }
     if (activeTabRef.current === 'disputes' && disputeRouteRef.current !== null) {
       setDisputeRoute(null);
+      return;
+    }
+    if (activeTabRef.current === 'face-review' && faceReviewRouteRef.current !== null) {
+      setFaceReviewRoute(null);
       return;
     }
     if (activeTabRef.current === 'broadcast' && broadcastRouteRef.current !== null) {
@@ -2927,6 +2942,9 @@ export default function App() {
   const disputeScrollKey = activeTab === 'disputes' && disputeRoute
     ? `${disputeRoute.mode}:${disputeRoute.id ?? ''}`
     : '';
+  const faceReviewScrollKey = activeTab === 'face-review' && faceReviewRoute
+    ? `${faceReviewRoute.mode}:${faceReviewRoute.id ?? ''}`
+    : '';
   const broadcastScrollKey = activeTab === 'broadcast' && broadcastRoute
     ? `${broadcastRoute.mode}:${broadcastRoute.id ?? ''}`
     : '';
@@ -2953,7 +2971,9 @@ export default function App() {
         ? settingsDetailScrollKey
         : activeTab === 'disputes'
           ? disputeScrollKey
-          : activeTab === 'broadcast'
+          : activeTab === 'face-review'
+            ? faceReviewScrollKey
+            : activeTab === 'broadcast'
             ? broadcastScrollKey
             : activeTab === 'logs'
               ? logsScrollKey
@@ -6499,6 +6519,9 @@ export default function App() {
         if (activeBase !== 'disputes' && disputeRouteRef.current !== null) {
           setDisputeRoute(null);
         }
+        if (activeBase !== 'face-review' && faceReviewRouteRef.current !== null) {
+          setFaceReviewRoute(null);
+        }
         if (activeBase !== 'broadcast' && broadcastRouteRef.current !== null) {
           setBroadcastRoute(null);
         }
@@ -6564,6 +6587,12 @@ export default function App() {
             setDisputeRoute({ mode: 'detail', id: subHash });
           } else if (disputeRouteRef.current !== null) {
             setDisputeRoute(null);
+          }
+        } else if (baseHash === 'face-review') {
+          if (subHash) {
+            setFaceReviewRoute({ mode: 'detail', id: decodeURIComponent(subHash) });
+          } else if (faceReviewRouteRef.current !== null) {
+            setFaceReviewRoute(null);
           }
         } else if (baseHash === 'broadcast') {
           if (!subHash) {
@@ -6779,7 +6808,9 @@ export default function App() {
                                                   ? buildStudentRouteHash(studentRoute)
                                                   : activeTab === 'student-profile' && profileSection
                                                     ? `#/student-profile/${profileSection}`
-                                                    : `#/${activeTab}`;
+                                                    : activeTab === 'face-review' && faceReviewRoute?.id != null
+                                                      ? `#/face-review/${encodeURIComponent(faceReviewRoute.id)}`
+                                                      : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6865,6 +6896,8 @@ export default function App() {
     studentRoute?.id,
     studentRoute?.subjectId,
     profileSection,
+    faceReviewRoute?.mode,
+    faceReviewRoute?.id,
     token,
     userRole,
   ]);
@@ -6922,6 +6955,7 @@ export default function App() {
     setActiveTab(tabId);
     setActiveSubSetting(null);
     setDisputeRoute(null);
+    setFaceReviewRoute(null);
     setBroadcastRoute(null);
     setSessionHistoryRoute(null);
     setStudentRoute(null);
@@ -9276,331 +9310,303 @@ export default function App() {
           }
         }}
       >
-        {/* User Profile Card (Promoted to Top) */}
+        {/* Compact Golden Gate Profile Strip */}
         {currentUser && (
-          <div 
+          <button
+            type="button"
+            className={`golden-sidebar-profile ${activeTab === 'student-profile' ? 'is-active' : ''}`}
             onClick={() => { setActiveTab('student-profile'); playCyberSound('click'); setMobileSidebarOpen(false); }}
-            style={{
-              margin: '16px 14px 4px',
-              padding: '10px 12px',
-              borderRadius: '12px',
-              background: activeTab === 'student-profile' ? '#faf5ea' : '#faf9f6',
-              border: activeTab === 'student-profile' ? '1.5px solid #916d30' : '1px solid #e4dfd5',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              textAlign: 'left'
-            }}
             title="Open My Profile"
           >
             {currentUser.profile_pic ? (
-              <img 
-                src={currentUser.profile_pic} 
-                alt={currentUser.name} 
-                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #916d30', flexShrink: 0 }} 
+              <img
+                src={currentUser.profile_pic}
+                alt={currentUser.name}
+                style={{ width: '30px', height: '30px', borderRadius: '999px', objectFit: 'cover', border: '1.5px solid #916d30', flexShrink: 0 }}
               />
             ) : (
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #785927, #7c3aed)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.88rem', flexShrink: 0 }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '999px', background: 'linear-gradient(135deg, #8c672a, #5c4218)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.78rem', flexShrink: 0 }}>
                 {(currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase()}
               </div>
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: '#25231f', fontSize: '0.86rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ color: '#2b2112', fontSize: '0.84rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
                 {currentUser.name || currentUser.email}
               </div>
-              <div style={{ color: '#16a34a', fontSize: '0.72rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }}></span>
+              <div style={{ color: '#786240', fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a', display: 'inline-block', flexShrink: 0 }} />
                 <span style={{ textTransform: 'capitalize' }}>{currentUser.role || 'Member'}</span>
-                <span style={{ color: '#94a3b8' }}>• Online</span>
+                <span style={{ color: '#b5a27e' }}>•</span>
+                <span style={{ color: '#8c672a' }}>v{APP_VERSION}</span>
               </div>
             </div>
-            <ChevronRight size={15} style={{ color: '#94a3b8', flexShrink: 0 }} />
-          </div>
+            <ChevronRight size={14} style={{ color: '#9e8a64', flexShrink: 0 }} />
+          </button>
         )}
 
-        <div style={{ padding: '6px 16px 8px', display: 'flex', justifyContent: 'center' }}>
-          <VersionBadge
-            compact
-            serverLatest={serverLatestVersion}
-            updateActive={updateActiveFlag}
-            onCheckUpdate={handleManualCheck}
-          />
-        </div>
-
-        <ul className="nav-links" style={{ flex: 1, padding: '4px 8px' }}>
+        <ul className="nav-links" style={{ flex: 1 }}>
           {userRole === 'student' ? (
             <>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'student-attendance' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { navigateToTab('student-attendance'); }}
-                >
-                  <TrendingUp size={18} />
-                  <span>My Attendance</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { navigateToTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Calendar size={18} />
-                  <span>Academic Calendar</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'broadcast' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { navigateToTab('broadcast'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Megaphone size={18} />
-                  <span>Campus Notices</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('student-profile'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Users size={18} />
-                  <span>My Profile</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('ai-assistant'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Bot size={18} />
-                  <span>AI Assistant</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
+              <div className="nav-section-title">Portal</div>
+              <div className="golden-sidebar-group">
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'student-attendance' ? 'active' : ''}`}
+                    onClick={() => { navigateToTab('student-attendance'); }}
+                  >
+                    <span className="golden-sidebar-icon"><TrendingUp size={15} /></span>
+                    <span>My Attendance</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
+                    onClick={() => { navigateToTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  >
+                    <span className="golden-sidebar-icon"><Calendar size={15} /></span>
+                    <span>Academic Calendar</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'broadcast' ? 'active' : ''}`}
+                    onClick={() => { navigateToTab('broadcast'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  >
+                    <span className="golden-sidebar-icon"><Megaphone size={15} /></span>
+                    <span>Campus Notices</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('student-profile'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  >
+                    <span className="golden-sidebar-icon"><Users size={15} /></span>
+                    <span>My Profile</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('ai-assistant'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  >
+                    <span className="golden-sidebar-icon"><Bot size={15} /></span>
+                    <span>AI Assistant</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+              </div>
             </>
           ) : (
             <>
               {/* CORE SECTION */}
-              <div className="nav-section-title" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '10px 14px 4px' }}>Core</div>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('dashboard'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <TrendingUp size={18} />
-                  <span>Dashboard</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => {
-                    setActiveTab('attendance');
-                    setMobileSidebarOpen(false);
-                    playCyberSound('click');
-                    if (sessionActive) {
-                      setShowScannerModal(true);
-                    }
-                  }}
-                >
-                  <Video size={18} />
-                  <span>Face Attendance</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'logs' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { navigateToTab('logs'); }}
-                >
-                  <FileSpreadsheet size={18} />
-                  <span>Attendance Logs</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'students' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('students'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Users size={18} />
-                  <span>Students</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              {userRole === 'admin' && (
+              <div className="nav-section-title">Core</div>
+              <div className="golden-sidebar-group">
                 <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'teachers' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                    onClick={() => { setActiveTab('teachers'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  <button
+                    className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('dashboard'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                   >
-                    <Users size={18} />
-                    <span>Teachers</span>
-                    <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                    <span className="golden-sidebar-icon"><TrendingUp size={15} /></span>
+                    <span>Dashboard</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
                   </button>
                 </li>
-              )}
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTab('attendance');
+                      setMobileSidebarOpen(false);
+                      playCyberSound('click');
+                      if (sessionActive) {
+                        setShowScannerModal(true);
+                      }
+                    }}
+                  >
+                    <span className="golden-sidebar-icon"><Video size={15} /></span>
+                    <span>Face Attendance</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'logs' ? 'active' : ''}`}
+                    onClick={() => { navigateToTab('logs'); }}
+                  >
+                    <span className="golden-sidebar-icon"><FileSpreadsheet size={15} /></span>
+                    <span>Attendance Logs</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'students' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('students'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  >
+                    <span className="golden-sidebar-icon"><Users size={15} /></span>
+                    <span>Students</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                {userRole === 'admin' && (
+                  <li>
+                    <button
+                      className={`nav-item ${activeTab === 'teachers' ? 'active' : ''}`}
+                      onClick={() => { setActiveTab('teachers'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                    >
+                      <span className="golden-sidebar-icon"><Users size={15} /></span>
+                      <span>Teachers</span>
+                      <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                    </button>
+                  </li>
+                )}
+              </div>
 
               {/* MANAGEMENT SECTION */}
-              <div className="nav-section-title" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '14px 14px 4px' }}>Management</div>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { navigateToTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Calendar size={18} />
-                  <span>Academic Calendar</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'broadcast' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { navigateToTab('broadcast'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Megaphone size={18} />
-                  <span>Campus Notices</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { navigateToTab('reports'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <BookOpen size={18} />
-                  <span>Reports & Alerts</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              {(userRole === 'admin' || userRole === 'teacher') && (
+              <div className="nav-section-title">Management</div>
+              <div className="golden-sidebar-group">
                 <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'disputes' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                    onClick={() => { navigateToTab('disputes'); }}
+                  <button
+                    className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
+                    onClick={() => { navigateToTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                   >
-                    <ShieldAlert size={18} />
-                    <span>Disputes & Requests</span>
-                    <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                    <span className="golden-sidebar-icon"><Calendar size={15} /></span>
+                    <span>Academic Calendar</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
                   </button>
                 </li>
-              )}
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'broadcast' ? 'active' : ''}`}
+                    onClick={() => { navigateToTab('broadcast'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  >
+                    <span className="golden-sidebar-icon"><Megaphone size={15} /></span>
+                    <span>Campus Notices</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
+                    onClick={() => { navigateToTab('reports'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  >
+                    <span className="golden-sidebar-icon"><BookOpen size={15} /></span>
+                    <span>Reports & Alerts</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                  </button>
+                </li>
+                {(userRole === 'admin' || userRole === 'teacher') && (
+                  <li>
+                    <button
+                      className={`nav-item ${activeTab === 'disputes' ? 'active' : ''}`}
+                      onClick={() => { navigateToTab('disputes'); }}
+                    >
+                      <span className="golden-sidebar-icon"><ShieldAlert size={15} /></span>
+                      <span>Disputes & Requests</span>
+                      <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                    </button>
+                  </li>
+                )}
+              </div>
 
               {/* SYSTEM SECTION */}
-              <div className="nav-section-title" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '14px 14px 4px' }}>System & Settings</div>
-              {(userRole === 'admin' || userRole === 'teacher') && (
+              <div className="nav-section-title">System & Settings</div>
+              <div className="golden-sidebar-group">
+                {(userRole === 'admin' || userRole === 'teacher') && (
+                  <li>
+                    <button
+                      className={`nav-item ${activeTab === 'control' || activeTab === 'all-features' ? 'active' : ''}`}
+                      onClick={() => { navigateToTab('control'); setMobileSidebarOpen(false); }}
+                    >
+                      <span className="golden-sidebar-icon"><LayoutGrid size={15} /></span>
+                      <span>Control Center</span>
+                      <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                    </button>
+                  </li>
+                )}
+                {(userRole === 'admin' || userRole === 'teacher' || userRole === 'student') && (
+                  <li>
+                    <button
+                      className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+                      onClick={() => { navigateToTab('settings'); setMobileSidebarOpen(false); }}
+                    >
+                      <span className="golden-sidebar-icon"><ShieldCheck size={15} /></span>
+                      <span>{userRole === 'student' ? 'Settings & Status' : 'System Settings'}</span>
+                      <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
+                    </button>
+                  </li>
+                )}
                 <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'control' || activeTab === 'all-features' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                    onClick={() => { navigateToTab('control'); setMobileSidebarOpen(false); }}
+                  <button
+                    className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('student-profile'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                   >
-                    <LayoutGrid size={18} />
-                    <span>Control Center</span>
-                    <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                    <span className="golden-sidebar-icon"><Users size={15} /></span>
+                    <span>My Profile</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
                   </button>
                 </li>
-              )}
-              {(userRole === 'admin' || userRole === 'teacher' || userRole === 'student') && (
                 <li>
-                  <button 
-                    className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-                    style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                    onClick={() => { navigateToTab('settings'); setMobileSidebarOpen(false); }}
+                  <button
+                    className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('ai-assistant'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                   >
-                    <ShieldCheck size={18} />
-                    <span>{userRole === 'student' ? 'Settings & Status' : 'System Settings'}</span>
-                    <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                    <span className="golden-sidebar-icon"><Bot size={15} /></span>
+                    <span>AI Assistant</span>
+                    <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.55 }} />
                   </button>
                 </li>
-              )}
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'student-profile' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('student-profile'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Users size={18} />
-                  <span>My Profile</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
-                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('ai-assistant'); setMobileSidebarOpen(false); playCyberSound('click'); }}
-                >
-                  <Bot size={18} />
-                  <span>AI Assistant</span>
-                  <ChevronRight size={15} style={{ marginLeft: 'auto', opacity: 0.5 }} />
-                </button>
-              </li>
+              </div>
             </>
           )}
         </ul>
 
         {/* Footer Actions */}
-        <div style={{ padding: '12px 14px calc(20px + env(safe-area-inset-bottom, 0px))', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button 
+        <div className="golden-sidebar-footer">
+          <button
             onClick={() => { playCyberSound('click'); setIsAboutModalOpen(true); setMobileSidebarOpen(false); }}
-            className="nav-item" 
-            style={{ 
-              width: '100%', 
-              border: '1px solid #e4dfd5', 
-              background: '#faf9f6', 
-              color: '#58534a', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '10px', 
+            className="nav-item"
+            style={{
+              width: '100%',
+              border: '1px solid #e2d4b4',
+              background: 'rgba(255, 255, 255, 0.92)',
+              color: '#5c4218',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
               borderRadius: '12px',
-              padding: '11px 14px',
+              padding: '9px 12px',
               fontWeight: 600,
-              fontSize: '0.85rem'
+              fontSize: '0.84rem'
             }}
           >
-            <Info size={17} style={{ color: '#785927' }} />
+            <span className="golden-sidebar-icon"><Info size={15} /></span>
             <span>About System</span>
           </button>
 
-          <button 
+          <button
             onClick={() => { setMobileSidebarOpen(false); handleLogout(); }}
-            className="nav-item" 
-            style={{ 
-              width: '100%', 
-              border: '1px solid #fecaca', 
-              background: '#fef2f2', 
-              color: '#dc2626', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '10px', 
+            className="nav-item"
+            style={{
+              width: '100%',
+              border: '1px solid #f2c6c6',
+              background: '#fff5f5',
+              color: '#b91c1c',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
               borderRadius: '12px',
-              padding: '11px 14px',
+              padding: '9px 12px',
               fontWeight: 700,
-              fontSize: '0.85rem'
+              fontSize: '0.84rem'
             }}
           >
-            <LogOut size={17} />
+            <LogOut size={16} />
             <span>Sign Out</span>
           </button>
         </div>
@@ -9693,7 +9699,11 @@ export default function App() {
                     }
                     return 'Attendance Disputes';
                   })()}
-                  {activeTab === 'face-review' && 'Face Match Review'}
+                  {activeTab === 'face-review' && (
+                    faceReviewRoute?.mode === 'detail'
+                      ? (faceReviewRoute.item?.candidate_name || `Review #${faceReviewRoute.id}`)
+                      : 'Face Match Review'
+                  )}
                   {activeTab === 'calendar' && (() => {
                     if (calendarRoute?.mode === 'schedule') return 'Institutional Schedule';
                     if (calendarRoute?.mode === 'analytics') return 'Protection Analytics';
@@ -9782,7 +9792,7 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -10334,10 +10344,13 @@ export default function App() {
         )}
 
         {activeTab === 'face-review' && (
-          <LowConfidenceReviewQueue 
-            token={token} 
-            currentUser={currentUser} 
-            playCyberSound={playCyberSound} 
+          <LowConfidenceReviewQueue
+            token={token}
+            currentUser={currentUser}
+            playCyberSound={playCyberSound}
+            routeView={faceReviewRoute}
+            setRouteView={setFaceReviewRoute}
+            onCloseSubView={handleNavigateBack}
           />
         )}
 

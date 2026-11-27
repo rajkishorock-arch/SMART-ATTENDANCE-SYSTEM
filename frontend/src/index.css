@@ -9014,3 +9014,111 @@ button,
     transform: none !important;
   }
 }
+
+/* ===== Modern Golden Gate Organized Sidebar ===== */
+.app-container .sidebar {
+  background: linear-gradient(180deg, #fffdf8 0%, #f5ecda 100%) !important;
+  border-right: 1px solid #dfd0ae !important;
+  padding: 12px 10px !important;
+}
+
+.golden-sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e2d4b4;
+  box-shadow: 0 2px 8px rgba(89, 64, 25, 0.05);
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+}
+.golden-sidebar-profile.is-active {
+  border-color: #916d30;
+  background: #fffaf0;
+}
+
+.golden-sidebar-group {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #e6d9bd;
+  border-radius: 14px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: inset 0 1px 0 #ffffff, 0 2px 6px rgba(89, 64, 25, 0.03);
+}
+
+.sidebar .nav-section-title {
+  font-size: 0.66rem !important;
+  font-weight: 800 !important;
+  color: #785927 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  padding: 10px 6px 4px !important;
+  margin: 0 !important;
+}
+
+.sidebar .nav-links {
+  gap: 2px !important;
+  padding: 0 !important;
+}
+
+.sidebar .nav-links .nav-item {
+  width: 100% !important;
+  padding: 8px 10px !important;
+  border-radius: 10px !important;
+  font-size: 0.84rem !important;
+  font-weight: 600 !important;
+  color: #2b2112 !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.sidebar .nav-links .nav-item:hover {
+  background: #faf3e3 !important;
+  color: #5c4218 !important;
+}
+
+.sidebar .nav-links .nav-item.active {
+  background: linear-gradient(135deg, #785927 0%, #5e441b 100%) !important;
+  color: #ffffff !important;
+  border-color: #785927 !important;
+  border-left: 1px solid #785927 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 10px rgba(94, 68, 27, 0.22) !important;
+}
+
+.golden-sidebar-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #f5ecda;
+  border: 1px solid #e2d1ab;
+  color: #6e4e1c;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sidebar .nav-links .nav-item.active .golden-sidebar-icon {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.golden-sidebar-footer {
+  padding-top: 10px;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
