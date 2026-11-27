@@ -1,15 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Building2, Plus, Search, ChevronRight, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { getApiBaseUrl } from '../../utils/platform';
 import { getActiveTenantSlug } from '../../utils/tenantConfig';
+
+const getInitials = (name) => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'IN';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
 
 export default function InstitutionManagement({
   token,
   isDemoMode,
   playCyberSound,
-  requestMasterPassword
+  requestMasterPassword,
+  routeView = null,
+  setRouteView,
+  onCloseSubView,
 }) {
-  // Multi-Tenant Institution Management States
+  const [localRouteView, setLocalRouteView] = useState(null);
+  const activeRoute = setRouteView ? routeView : localRouteView;
+  const setActiveRoute = setRouteView || setLocalRouteView;
+
   const [institutionsList, setInstitutionsList] = useState([]);
+  const [search, setSearch] = useState('');
+
   const [newInstName, setNewInstName] = useState('');
   const [newInstSlug, setNewInstSlug] = useState('');
   const [newInstPrimary, setNewInstPrimary] = useState('#765729');
@@ -18,12 +34,13 @@ export default function InstitutionManagement({
   const [newInstAdminName, setNewInstAdminName] = useState('');
   const [newInstAdminPassword, setNewInstAdminPassword] = useState('');
   const [isAddingInstitution, setIsAddingInstitution] = useState(false);
+
   const [instSuccessMessage, setInstSuccessMessage] = useState('');
   const [instErrorMessage, setInstErrorMessage] = useState('');
 
-  // Editing Modal State
   const [editingInst, setEditingInst] = useState(null);
   const [isUpdatingInst, setIsUpdatingInst] = useState(false);
+  const [isDeletingInst, setIsDeletingInst] = useState(false);
 
   const fetchInstitutionsList = useCallback(async () => {
     if (isDemoMode) {
@@ -51,19 +68,51 @@ export default function InstitutionManagement({
   }, [token, isDemoMode]);
 
   useEffect(() => {
-    if (getActiveTenantSlug() === 'default') {
-      let ignore = false;
-      const run = async () => {
-        if (!ignore) {
-          await fetchInstitutionsList();
-        }
-      };
-      run();
-      return () => {
-        ignore = true;
-      };
-    }
+    if (getActiveTenantSlug() !== 'default') return;
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await fetchInstitutionsList();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
   }, [fetchInstitutionsList]);
+
+  const closeSubView = () => {
+    setInstSuccessMessage('');
+    setInstErrorMessage('');
+    setEditingInst(null);
+    if (onCloseSubView) {
+      onCloseSubView();
+    } else {
+      setActiveRoute(null);
+    }
+  };
+
+  const openRegisterPage = () => {
+    if (playCyberSound) playCyberSound('click');
+    setInstSuccessMessage('');
+    setInstErrorMessage('');
+    setNewInstName('');
+    setNewInstSlug('');
+    setNewInstPrimary('#765729');
+    setNewInstSecondary('#06B6D4');
+    setNewInstAdminName('');
+    setNewInstAdminEmail('');
+    setNewInstAdminPassword('');
+    setActiveRoute({ sub: 'multitenant', mode: 'register' });
+  };
+
+  const openDetailPage = (inst) => {
+    if (playCyberSound) playCyberSound('click');
+    setInstSuccessMessage('');
+    setInstErrorMessage('');
+    setEditingInst({ ...inst });
+    setActiveRoute({ sub: 'multitenant', mode: 'detail', id: inst.id, item: inst });
+  };
 
   const handleCreateInstitution = async (e) => {
     e.preventDefault();
@@ -71,7 +120,7 @@ export default function InstitutionManagement({
     setInstErrorMessage('');
 
     const masterPass = await requestMasterPassword(
-      '🔐 Master Key Verification Required',
+      'Master Key Verification Required',
       `Enter Master Password to register new Institution "${newInstName}":`
     );
     if (!masterPass) {
@@ -84,8 +133,8 @@ export default function InstitutionManagement({
     if (isDemoMode) {
       setTimeout(() => {
         const newId = institutionsList.length + 1;
-        setInstitutionsList([
-          ...institutionsList,
+        setInstitutionsList(prev => [
+          ...prev,
           {
             id: newId,
             name: newInstName,
@@ -94,14 +143,14 @@ export default function InstitutionManagement({
             secondary_color: newInstSecondary
           }
         ]);
-        setInstSuccessMessage('SIMULATOR ACTION: Institution registered successfully!');
+        setInstSuccessMessage('Institution registered successfully.');
         setIsAddingInstitution(false);
         setNewInstName('');
         setNewInstSlug('');
         setNewInstAdminEmail('');
         setNewInstAdminName('');
         setNewInstAdminPassword('');
-      }, 500);
+      }, 300);
       return;
     }
 
@@ -127,33 +176,25 @@ export default function InstitutionManagement({
       });
 
       if (res.ok) {
-        setInstSuccessMessage('Institution created successfully!');
+        if (playCyberSound) playCyberSound('success');
+        setInstSuccessMessage('Institution created successfully.');
         fetchInstitutionsList();
         setNewInstName('');
         setNewInstSlug('');
         setNewInstAdminEmail('');
         setNewInstAdminName('');
         setNewInstAdminPassword('');
-        setTimeout(() => setInstSuccessMessage(''), 4000);
       } else {
         let errMsg = 'Failed to create institution.';
         try {
           const errData = await res.json();
           errMsg = errData.detail || errMsg;
-        } catch (jsonErr) {
-          console.error('Error parsing create institution error JSON:', jsonErr);
-          try {
-            const textData = await res.text();
-            errMsg = textData || errMsg;
-          } catch (textErr) {
-            console.error('Error parsing create institution error text:', textErr);
-            errMsg = `Error ${res.status}: ${res.statusText}`;
-          }
+        } catch {
+          errMsg = `Error ${res.status}: ${res.statusText}`;
         }
         setInstErrorMessage(errMsg);
       }
     } catch (err) {
-      console.error('Error creating institution:', err);
       setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
     } finally {
       setIsAddingInstitution(false);
@@ -161,7 +202,7 @@ export default function InstitutionManagement({
   };
 
   const handleDeleteInstitution = async (id, name) => {
-    if (!window.confirm(`Are you absolutely sure you want to delete "${name}"?\nWarning: This will delete ALL users, students, schedules, and attendance data for this institution. This action CANNOT be undone.`)) {
+    if (!window.confirm(`Delete "${name}" and all its users, students, schedules, and attendance data? This cannot be undone.`)) {
       return;
     }
 
@@ -169,20 +210,21 @@ export default function InstitutionManagement({
     setInstErrorMessage('');
 
     if (isDemoMode) {
-      setInstitutionsList(institutionsList.filter(inst => inst.id !== id));
-      setInstSuccessMessage('SIMULATOR ACTION: Institution deleted successfully.');
+      setInstitutionsList(prev => prev.filter(inst => inst.id !== id));
+      closeSubView();
       return;
     }
 
     const masterPass = await requestMasterPassword(
-      '🔐 Master Key Verification Required',
-      `Enter Master Password to completely DELETE Institution "${name}":`
+      'Master Key Verification Required',
+      `Enter Master Password to DELETE Institution "${name}":`
     );
     if (!masterPass) {
       setInstErrorMessage('Deletion cancelled. Master key is required.');
       return;
     }
 
+    setIsDeletingInst(true);
     try {
       const apiBaseUrl = getApiBaseUrl();
       const res = await fetch(`${apiBaseUrl}/institutions/${id}`, {
@@ -194,29 +236,23 @@ export default function InstitutionManagement({
       });
 
       if (res.ok) {
-        setInstSuccessMessage('Institution deleted successfully.');
-        fetchInstitutionsList();
-        setTimeout(() => setInstSuccessMessage(''), 4000);
+        if (playCyberSound) playCyberSound('success');
+        await fetchInstitutionsList();
+        closeSubView();
       } else {
         let errMsg = 'Failed to delete institution.';
         try {
           const errData = await res.json();
           errMsg = errData.detail || errMsg;
-        } catch (jsonErr) {
-          console.error('Error parsing delete institution error JSON:', jsonErr);
-          try {
-            const textData = await res.text();
-            errMsg = textData || errMsg;
-          } catch (textErr) {
-            console.error('Error parsing delete institution error text:', textErr);
-            errMsg = `Error ${res.status}: ${res.statusText}`;
-          }
+        } catch {
+          errMsg = `Error ${res.status}: ${res.statusText}`;
         }
         setInstErrorMessage(errMsg);
       }
     } catch (err) {
-      console.error('Error deleting institution:', err);
       setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
+    } finally {
+      setIsDeletingInst(false);
     }
   };
 
@@ -229,14 +265,14 @@ export default function InstitutionManagement({
 
     if (isDemoMode) {
       setInstitutionsList(prev => prev.map(inst => inst.id === editingInst.id ? editingInst : inst));
-      setInstSuccessMessage('SIMULATOR ACTION: Institution updated successfully.');
-      setEditingInst(null);
+      setInstSuccessMessage('Institution updated successfully.');
+      setActiveRoute(prev => (prev ? { ...prev, item: editingInst } : prev));
       return;
     }
 
     const masterPass = await requestMasterPassword(
-      '🔐 Master Key Verification Required',
-      `Enter Master Password to confirm edits for "${editingInst.name}":`
+      'Master Key Verification Required',
+      `Enter Master Password to save changes for "${editingInst.name}":`
     );
     if (!masterPass) {
       setInstErrorMessage('Update cancelled. Master key is required.');
@@ -263,516 +299,437 @@ export default function InstitutionManagement({
       });
 
       if (res.ok) {
+        const updated = await res.json().catch(() => editingInst);
+        if (playCyberSound) playCyberSound('success');
         setInstSuccessMessage('Institution updated successfully.');
+        setEditingInst({ ...updated });
+        setActiveRoute(prev => (prev ? { ...prev, item: updated } : prev));
         fetchInstitutionsList();
-        setEditingInst(null);
-        setTimeout(() => setInstSuccessMessage(''), 4000);
       } else {
         let errMsg = 'Failed to update institution.';
         try {
           const errData = await res.json();
           errMsg = errData.detail || errMsg;
-        } catch (jsonErr) {
-          console.error('Error parsing update institution error JSON:', jsonErr);
-          try {
-            const textData = await res.text();
-            errMsg = textData || errMsg;
-          } catch (textErr) {
-            console.error('Error parsing update institution error text:', textErr);
-            errMsg = `Error ${res.status}: ${res.statusText}`;
-          }
+        } catch {
+          errMsg = `Error ${res.status}: ${res.statusText}`;
         }
         setInstErrorMessage(errMsg);
       }
     } catch (err) {
-      console.error('Error updating institution:', err);
       setInstErrorMessage(`Connection Error: ${err.message || 'Failed to connect to backend server.'}`);
     } finally {
       setIsUpdatingInst(false);
     }
   };
 
-  return (
-    <>
-      <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px', background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-        <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              <span>🏫</span> Multi-Tenant Institution Registry & Management
-            </h3>
-            <p style={{ color: '#696358', fontSize: '0.875rem', marginTop: '4px', margin: 0 }}>
-              Register, monitor, and manage institution domains, custom color palettes, and default admins.
-            </p>
-          </div>
-          <span className="telemetry-stat-pill" style={{
-            padding: '4px 14px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            background: '#faf5ea',
-            color: '#785927',
-            border: '1px solid #dfcfaf',
-            letterSpacing: '0.5px'
-          }}>
-            TOTAL TENANTS: {institutionsList.length}
-          </span>
-        </div>
-
-        {instSuccessMessage && (
-          <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', color: '#10b981', fontSize: '0.85rem' }}>
-            ✅ {instSuccessMessage}
-          </div>
-        )}
-        {instErrorMessage && (
-          <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', color: '#ef4444', fontSize: '0.85rem' }}>
-            ❌ {instErrorMessage}
-          </div>
-        )}
-
-        {/* Form to Add New Institution */}
-        <form onSubmit={handleCreateInstitution} style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            ➕ Register New Institution
-          </h4>
-
-          <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Institution Name</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. Jawaharlal Nehru University"
-                value={newInstName}
-                onChange={e => setNewInstName(e.target.value)}
-                required
-              />
+  /* ===== DEDICATED REGISTER INSTITUTION PAGE ===== */
+  if (activeRoute?.mode === 'register') {
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+        <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {instSuccessMessage && (
+            <div className="feedback-banner is-success">
+              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{instSuccessMessage}</span>
             </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Unique Subdomain / Slug (lowercase)</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. jnu"
-                value={newInstSlug}
-                onChange={e => setNewInstSlug(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())}
-                required
-              />
+          )}
+          {instErrorMessage && (
+            <div className="feedback-banner is-error">
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{instErrorMessage}</span>
             </div>
-          </div>
+          )}
 
-          <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Primary Color (Hex)</label>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <input
-                  type="color"
-                  value={newInstPrimary}
-                  onChange={e => setNewInstPrimary(e.target.value)}
-                  style={{ width: '40px', height: '36px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
-                />
-                <input
-                  type="text"
-                  className="form-input"
-                  value={newInstPrimary}
-                  onChange={e => setNewInstPrimary(e.target.value)}
-                  style={{ flex: 1 }}
-                />
+          <form onSubmit={handleCreateInstitution} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title">Institution Details</div>
+              <div className="golden-os-fields-2">
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Institution Name *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Jawaharlal Nehru University"
+                    value={newInstName}
+                    onChange={e => setNewInstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Subdomain / Slug *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. jnu"
+                    value={newInstSlug}
+                    onChange={e => setNewInstSlug(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Primary Color</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={newInstPrimary}
+                      onChange={e => setNewInstPrimary(e.target.value)}
+                      style={{ width: '40px', height: '38px', border: '1px solid #d9c8aa', borderRadius: '8px', cursor: 'pointer', background: 'transparent', padding: '2px' }}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newInstPrimary}
+                      onChange={e => setNewInstPrimary(e.target.value)}
+                      style={{ fontFamily: 'monospace' }}
+                    />
+                  </div>
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Secondary Color</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={newInstSecondary}
+                      onChange={e => setNewInstSecondary(e.target.value)}
+                      style={{ width: '40px', height: '38px', border: '1px solid #d9c8aa', borderRadius: '8px', cursor: 'pointer', background: 'transparent', padding: '2px' }}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newInstSecondary}
+                      onChange={e => setNewInstSecondary(e.target.value)}
+                      style={{ fontFamily: 'monospace' }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Secondary Color (Hex)</label>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <input
-                  type="color"
-                  value={newInstSecondary}
-                  onChange={e => setNewInstSecondary(e.target.value)}
-                  style={{ width: '40px', height: '36px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
-                />
-                <input
-                  type="text"
-                  className="form-input"
-                  value={newInstSecondary}
-                  onChange={e => setNewInstSecondary(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-              </div>
-            </div>
-          </div>
 
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
-              🔐 Seed Default Administrator Account
-            </h5>
-            <p style={{ color: '#9ca3af', fontSize: '0.75rem', margin: 0 }}>
-              Every institution needs a default administrator to access the settings panel. Set their initial details here.
-            </p>
-
-            <div className="responsive-form-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginTop: '4px' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Admin Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. JNU Admin"
-                  value={newInstAdminName}
-                  onChange={e => setNewInstAdminName(e.target.value)}
-                  required
-                />
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title">Default Administrator</div>
+              <div className="golden-os-fields-2">
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Admin Name *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. JNU Admin"
+                    value={newInstAdminName}
+                    onChange={e => setNewInstAdminName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Admin Email *</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="e.g. admin@jnu.edu"
+                    value={newInstAdminEmail}
+                    onChange={e => setNewInstAdminEmail(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Admin Email</label>
-                <input
-                  type="email"
-                  className="form-input"
-                  placeholder="e.g. admin@jnu.edu"
-                  value={newInstAdminEmail}
-                  onChange={e => setNewInstAdminEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Admin Password</label>
+                <label className="form-label">Admin Password *</label>
                 <input
                   type="password"
                   className="form-input"
-                  placeholder="••••••••"
+                  placeholder="Enter admin password"
                   value={newInstAdminPassword}
                   onChange={e => setNewInstAdminPassword(e.target.value)}
                   required
                 />
               </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            className="bg-gradient-btn"
-            style={{ padding: '12px 24px', borderRadius: '8px', fontSize: '0.88rem', alignSelf: 'flex-start', background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
-            disabled={isAddingInstitution}
-          >
-            {isAddingInstitution ? 'Registering...' : '🚀 Register Institution & Seed Admin'}
-          </button>
-        </form>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid #e4dfd5', paddingTop: '24px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#25231f', margin: 0 }}>
-            🏫 Registered Institution Directory
-          </h4>
-          <span className="telemetry-stat-pill admin" style={{
-            padding: '4px 14px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            background: 'rgba(37, 99, 235, 0.08)',
-            color: '#785927',
-            border: '1px solid rgba(37, 99, 235, 0.25)',
-            letterSpacing: '0.5px'
-          }}>
-            TOTAL: {institutionsList.length}
-          </span>
-        </div>
-
-        {/* Desktop Table View */}
-        <div className="desktop-table-view" style={{ width: '100%' }}>
-          <div className="table-responsive table-container" style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #e4dfd5', color: '#696358', fontSize: '0.85rem' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>ID</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>NAME</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>SLUG (SUBDOMAIN)</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>PRIMARY COLOR</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>SECONDARY COLOR</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {institutionsList.map((inst) => (
-                  <tr key={inst.id} style={{ borderBottom: '1px solid #f4f1eb', fontSize: '0.85rem' }}>
-                    <td style={{ padding: '14px 16px', color: '#696358', fontFamily: 'monospace' }}>#{inst.id}</td>
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#25231f' }}>{inst.name}</td>
-                    <td style={{ padding: '14px 16px', color: '#696358' }}>
-                      <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#faf9f6', fontSize: '0.78rem', color: '#25231f', border: '1px solid #e4dfd5' }}>
-                        {inst.slug}
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#765729', border: '1px solid #cfc8ba' }} />
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#46423b' }}>{inst.primary_color || '#765729'}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid #cfc8ba' }} />
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#46423b' }}>{inst.secondary_color || '#06B6D4'}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                      {inst.id === 1 ? (
-                        <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic', paddingRight: '12px' }}>System Default</span>
-                      ) : (
-                        <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => { if (typeof playCyberSound === 'function') playCyberSound('click'); setEditingInst(inst); }}
-                            className="action-btn"
-                            style={{
-                              padding: '5px 12px',
-                              fontSize: '0.75rem',
-                              background: '#faf5ea',
-                              border: '1px solid #dfcfaf',
-                              color: '#785927',
-                              borderRadius: '6px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteInstitution(inst.id, inst.name)}
-                            className="action-btn"
-                            style={{
-                              padding: '5px 12px',
-                              fontSize: '0.75rem',
-                              background: '#fef2f2',
-                              border: '1px solid #fecaca',
-                              color: '#dc2626',
-                              borderRadius: '6px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Mobile Cards View */}
-        <div className="mobile-cards-view" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-          {institutionsList.map((inst) => (
-            <div
-              key={inst.id}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e4dfd5',
-                borderRadius: '14px',
-                padding: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                width: '100%',
-                boxSizing: 'border-box'
-              }}
-            >
-              {/* Name & ID */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <span style={{ fontWeight: 700, color: '#25231f', fontSize: '1rem' }}>{inst.name}</span>
-                <span style={{ color: '#58534a', fontFamily: 'monospace', fontSize: '0.78rem', background: '#f4f1eb', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e4dfd5' }}>
-                  #{inst.id}
-                </span>
-              </div>
-
-              {/* Slug */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: '#696358', fontSize: '0.8rem' }}>Subdomain:</span>
-                <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#faf9f6', fontSize: '0.8rem', color: '#80602c', border: '1px solid #bae6fd', fontFamily: 'monospace' }}>
-                  {inst.slug}
-                </span>
-              </div>
-
-              {/* Colors */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: '#696358', fontSize: '0.75rem' }}>Primary:</span>
-                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.primary_color || '#765729', border: '1px solid #cfc8ba' }} />
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#46423b' }}>{inst.primary_color || '#765729'}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: '#696358', fontSize: '0.75rem' }}>Secondary:</span>
-                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: inst.secondary_color || '#06B6D4', border: '1px solid #cfc8ba' }} />
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#46423b' }}>{inst.secondary_color || '#06B6D4'}</span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div style={{ borderTop: '1px solid #f4f1eb', paddingTop: '10px', marginTop: '2px' }}>
-                {inst.id === 1 ? (
-                  <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic', display: 'block', textAlign: 'center' }}>
-                    🔒 System Default Institution
-                  </span>
-                ) : (
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                      onClick={() => { if (typeof playCyberSound === 'function') playCyberSound('click'); setEditingInst(inst); }}
-                      className="action-btn"
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        fontSize: '0.82rem',
-                        background: '#faf5ea',
-                        border: '1px solid #dfcfaf',
-                        color: '#785927',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteInstitution(inst.id, inst.name)}
-                      className="action-btn"
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        fontSize: '0.82rem',
-                        background: '#fef2f2',
-                        border: '1px solid #fecaca',
-                        color: '#dc2626',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={closeSubView}
+                className="golden-os-feedback-filter-btn"
+                style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isAddingInstitution}
+                className="golden-os-primary-action"
+                style={{ width: 'auto', padding: '10px 22px', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 700 }}
+              >
+                <span>{isAddingInstitution ? 'Registering...' : 'Register Institution'}</span>
+              </button>
             </div>
-          ))}
+          </form>
         </div>
       </div>
+    );
+  }
 
-      {/* Sleek Institution Editing Modal */}
-      {editingInst && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px',
-          boxSizing: 'border-box'
-        }}>
-          <div className="surface-card" style={{
-            maxWidth: '500px',
-            width: '100%',
-            padding: '32px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '24px',
-            background: '#ffffff',
-            borderRadius: '16px',
-            border: '1px solid #e4dfd5',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
-            animation: 'fadeInUp 0.3s ease'
-          }}>
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🏫 Edit Institution Branding
-              </h3>
-              <p style={{ color: '#696358', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
-                Modify colors, name, and access domain for this workspace tenant.
-              </p>
+  /* ===== DEDICATED INSTITUTION DETAIL & EDIT PAGE ===== */
+  if (activeRoute?.mode === 'detail') {
+    const selectedInst =
+      (editingInst && String(editingInst.id) === String(activeRoute.id) ? editingInst : null) ||
+      institutionsList.find(inst => String(inst.id) === String(activeRoute.id)) ||
+      activeRoute.item;
+
+    if (!selectedInst) {
+      return (
+        <div className="golden-os-window golden-os-page-bottom-safe" style={{ padding: '24px', textAlign: 'center', color: '#6b5b3e' }}>
+          Institution record not found.
+        </div>
+      );
+    }
+
+    const isDefaultInst = selectedInst.id === 1;
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+        <div className="golden-os-window" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Hero Card */}
+          <div className="golden-os-inset-card" style={{ padding: '16px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+              <div
+                className="golden-os-avatar"
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  background: selectedInst.primary_color || '#765729',
+                  color: '#ffffff',
+                  borderColor: 'rgba(255,255,255,0.4)',
+                }}
+              >
+                {getInitials(selectedInst.name)}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#2b2112', overflowWrap: 'anywhere' }}>
+                  {selectedInst.name}
+                </h3>
+                <div style={{ fontSize: '0.78rem', color: '#6b5b3e', fontWeight: 600, marginTop: '2px' }}>
+                  Slug: {selectedInst.slug} · ID #{selectedInst.id}
+                </div>
+              </div>
             </div>
 
-            <form onSubmit={handleUpdateInstitution} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Institution Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editingInst.name}
-                  onChange={e => setEditingInst({ ...editingInst, name: e.target.value })}
-                  required
-                />
-              </div>
+            {isDefaultInst && (
+              <span className="golden-os-badge-muted">System Default</span>
+            )}
+          </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Subdomain Slug</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editingInst.slug}
-                  onChange={e => setEditingInst({ ...editingInst, slug: e.target.value })}
-                  required
-                  style={{ textTransform: 'lowercase' }}
-                />
-              </div>
+          {instSuccessMessage && (
+            <div className="feedback-banner is-success">
+              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{instSuccessMessage}</span>
+            </div>
+          )}
+          {instErrorMessage && (
+            <div className="feedback-banner is-error">
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{instErrorMessage}</span>
+            </div>
+          )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <form onSubmit={handleUpdateInstitution} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title">Institution Settings & Branding</div>
+              <div className="golden-os-fields-2">
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Institution Name *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={selectedInst.name || ''}
+                    onChange={e => setEditingInst({ ...selectedInst, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Subdomain Slug *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={selectedInst.slug || ''}
+                    disabled={isDefaultInst}
+                    onChange={e => setEditingInst({ ...selectedInst, slug: e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase() })}
+                    style={{ textTransform: 'lowercase', opacity: isDefaultInst ? 0.65 : 1 }}
+                    required
+                  />
+                </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Primary Color</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input
                       type="color"
-                      value={editingInst.primary_color || '#765729'}
-                      onChange={e => setEditingInst({ ...editingInst, primary_color: e.target.value })}
-                      style={{ width: '40px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'none' }}
+                      value={selectedInst.primary_color || '#765729'}
+                      onChange={e => setEditingInst({ ...selectedInst, primary_color: e.target.value })}
+                      style={{ width: '40px', height: '38px', border: '1px solid #d9c8aa', borderRadius: '8px', cursor: 'pointer', background: 'transparent', padding: '2px' }}
                     />
                     <input
                       type="text"
                       className="form-input"
-                      value={editingInst.primary_color || '#765729'}
-                      onChange={e => setEditingInst({ ...editingInst, primary_color: e.target.value })}
-                      required
+                      value={selectedInst.primary_color || '#765729'}
+                      onChange={e => setEditingInst({ ...selectedInst, primary_color: e.target.value })}
                       style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}
+                      required
                     />
                   </div>
                 </div>
-
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Secondary Color</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input
                       type="color"
-                      value={editingInst.secondary_color || '#06B6D4'}
-                      onChange={e => setEditingInst({ ...editingInst, secondary_color: e.target.value })}
-                      style={{ width: '40px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'none' }}
+                      value={selectedInst.secondary_color || '#06B6D4'}
+                      onChange={e => setEditingInst({ ...selectedInst, secondary_color: e.target.value })}
+                      style={{ width: '40px', height: '38px', border: '1px solid #d9c8aa', borderRadius: '8px', cursor: 'pointer', background: 'transparent', padding: '2px' }}
                     />
                     <input
                       type="text"
                       className="form-input"
-                      value={editingInst.secondary_color || '#06B6D4'}
-                      onChange={e => setEditingInst({ ...editingInst, secondary_color: e.target.value })}
-                      required
+                      value={selectedInst.secondary_color || '#06B6D4'}
+                      onChange={e => setEditingInst({ ...selectedInst, secondary_color: e.target.value })}
                       style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}
+                      required
                     />
                   </div>
                 </div>
               </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Logo URL (Optional)</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="https://..."
+                  value={selectedInst.logo_url || ''}
+                  onChange={e => setEditingInst({ ...selectedInst, logo_url: e.target.value })}
+                />
+              </div>
+            </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
+              {!isDefaultInst ? (
                 <button
                   type="button"
-                  onClick={() => { if (typeof playCyberSound === 'function') playCyberSound('click'); setEditingInst(null); }}
-                  className="btn-secondary"
-                  style={{ padding: '10px 20px', borderRadius: '8px' }}
+                  disabled={isDeletingInst}
+                  onClick={() => handleDeleteInstitution(selectedInst.id, selectedInst.name)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '10px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    cursor: isDeletingInst ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Trash2 size={15} />
+                  <span>{isDeletingInst ? 'Deleting...' : 'Delete Institution'}</span>
+                </button>
+              ) : (
+                <span />
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', flex: '1 1 200px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={closeSubView}
+                  className="golden-os-feedback-filter-btn"
+                  style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="action-btn"
-                  style={{ padding: '10px 24px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
                   disabled={isUpdatingInst}
+                  className="golden-os-primary-action"
+                  style={{ width: 'auto', padding: '10px 22px', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 700 }}
                 >
-                  {isUpdatingInst ? 'Updating...' : 'Save Changes'}
+                  <span>{isUpdatingInst ? 'Saving...' : 'Save Changes'}</span>
                 </button>
               </div>
-            </form>
-          </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== MAIN GOLDEN GATE INSTITUTION DIRECTORY (Clean 1-Line Rows, Form Hidden) ===== */
+  const query = search.trim().toLowerCase();
+  const visibleInstitutions = institutionsList.filter(inst =>
+    String(inst.name || '').toLowerCase().includes(query) ||
+    String(inst.slug || '').toLowerCase().includes(query)
+  );
+
+  return (
+    <div className="golden-os-window golden-os-page-bottom-safe" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '160px' }}>
+          <input
+            type="search"
+            className="form-input"
+            aria-label="Search institutions"
+            placeholder="Search college or institution..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ paddingLeft: '38px', background: '#ffffff', width: '100%', boxSizing: 'border-box' }}
+          />
+          <Search size={15} style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
+        </div>
+
+        <button
+          type="button"
+          onClick={openRegisterPage}
+          className="golden-os-primary-action"
+          style={{ width: 'auto', padding: '10px 16px', borderRadius: '11px', fontSize: '0.84rem', gap: '6px', flexShrink: 0 }}
+        >
+          <Plus size={16} />
+          <span>Register Institution</span>
+        </button>
+      </div>
+
+      {visibleInstitutions.length === 0 ? (
+        <div className="golden-os-inset-card" style={{ padding: '32px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
+          <Building2 size={28} style={{ color: '#9c8b6e' }} />
+          <span style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>
+            {query ? 'No matching institutions found' : 'No institutions registered yet'}
+          </span>
+        </div>
+      ) : (
+        <div className="golden-os-list-shell">
+          {visibleInstitutions.map(inst => (
+            <button
+              key={inst.id}
+              type="button"
+              className="golden-os-list-row"
+              onClick={() => openDetailPage(inst)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div
+                  className="golden-os-avatar"
+                  style={{
+                    background: inst.primary_color || '#765729',
+                    color: '#ffffff',
+                    borderColor: 'rgba(255,255,255,0.35)',
+                  }}
+                >
+                  {getInitials(inst.name)}
+                </div>
+                <span style={{ fontSize: '0.94rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {inst.name}
+                </span>
+              </div>
+              <ChevronRight size={16} color="#8c734b" />
+            </button>
+          ))}
         </div>
       )}
-    </>
+    </div>
   );
 }

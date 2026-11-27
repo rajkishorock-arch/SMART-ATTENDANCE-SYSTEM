@@ -624,6 +624,18 @@ export default function App() {
     } catch { /* ignore */ }
     return false;
   });
+  const [settingsDetailRoute, setSettingsDetailRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'settings' && ['departments', 'leave_management', 'multitenant'].includes(parts[1]) && parts[2]) {
+        if (parts[2] === 'register' && parts[1] !== 'leave_management') {
+          return { sub: parts[1], mode: 'register' };
+        }
+        return { sub: parts[1], mode: 'detail', id: parts[2] };
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
 
   // Route Scroll Position Preservation (restores exact scroll position on Back navigation)
   const getRouteScrollKey = (tab, subTab, subSet, subDetail = '') => `${tab || ''}|${subTab || ''}|${subSet || ''}|${subDetail || ''}`;
@@ -661,6 +673,7 @@ export default function App() {
   const subjectFormViewRef = useRef(subjectFormView);
   const selectedSubjectDetailRef = useRef(selectedSubjectDetail);
   const showScheduleFormRef = useRef(showScheduleForm);
+  const settingsDetailRouteRef = useRef(settingsDetailRoute);
   const scheduleReturnTargetRef = useRef(null);
   const showWebcamModalRef = useRef(false);
   const enrollWebcamBackRef = useRef(null);
@@ -677,6 +690,7 @@ export default function App() {
   useEffect(() => { subjectFormViewRef.current = subjectFormView; }, [subjectFormView]);
   useEffect(() => { selectedSubjectDetailRef.current = selectedSubjectDetail; }, [selectedSubjectDetail]);
   useEffect(() => { showScheduleFormRef.current = showScheduleForm; }, [showScheduleForm]);
+  useEffect(() => { settingsDetailRouteRef.current = settingsDetailRoute; }, [settingsDetailRoute]);
 
   // Record user scroll position continuously while settled on the current view
   useEffect(() => {
@@ -690,13 +704,17 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScrollCapture, { capture: true });
   }, []);
 
-  // Synchronize sub-settings to localStorage
+  // Synchronize sub-settings to localStorage and clear mismatched settings detail route
   useEffect(() => {
     try {
-      if (activeTab === 'settings' && activeSubSetting) {
-        localStorage.setItem('last_active_sub_setting', activeSubSetting);
-      } else if (activeTab !== 'settings') {
+      if (activeTab === 'settings') {
+        setSettingsDetailRoute(prev => (prev && prev.sub !== activeSubSetting ? null : prev));
+        if (activeSubSetting) {
+          localStorage.setItem('last_active_sub_setting', activeSubSetting);
+        }
+      } else {
         localStorage.removeItem('last_active_sub_setting');
+        setSettingsDetailRoute(prev => (prev ? null : prev));
       }
     } catch { /* ignore */ }
   }, [activeTab, activeSubSetting]);
@@ -723,6 +741,7 @@ export default function App() {
       }
       if (activeTab !== 'settings') {
         setActiveSubSetting(null);
+        setSettingsDetailRoute(null);
       }
       if (activeTab !== 'dashboard') {
         setActiveDashboardSubTab(null);
@@ -790,6 +809,10 @@ export default function App() {
         }
         return;
       }
+    }
+    if (activeTabRef.current === 'settings' && settingsDetailRouteRef.current !== null) {
+      setSettingsDetailRoute(null);
+      return;
     }
     if (activeSubSettingRef.current !== null) {
       const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
@@ -2428,9 +2451,14 @@ export default function App() {
     : teachersSubTab === 'subjects'
       ? (subjectFormView === 'detail' && selectedSubjectDetail?.id ? `subjects:detail:${selectedSubjectDetail.id}` : (subjectFormView !== 'list' ? `subjects:${subjectFormView}` : 'subjects:'))
       : (showScheduleForm ? 'planner:new-schedule' : 'planner:');
+  const settingsDetailScrollKey = activeTab === 'settings' && settingsDetailRoute && settingsDetailRoute.sub === activeSubSetting
+    ? `${settingsDetailRoute.sub}:${settingsDetailRoute.mode}:${settingsDetailRoute.id ?? ''}`
+    : '';
   const activeSubDetailKey = activeTab === 'students'
     ? studentSubScrollKey
-    : (activeTab === 'teachers' ? teacherSubScrollKey : '');
+    : activeTab === 'teachers'
+      ? teacherSubScrollKey
+      : (activeTab === 'settings' ? settingsDetailScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
 
   useLayoutEffect(() => {
@@ -2445,9 +2473,14 @@ export default function App() {
 
     const stack = routeNavStackRef.current;
     const folderItems = ['enterprise', 'extreme', 'ideas150', 'features7', 'new_features', 'wellness', 'ar_gamification'];
+    const [pTab, , pSet, pDetail] = prevKey.split('|');
+    const [nTab, , nSet, nDetail] = nextKey.split('|');
+    const isBackToSettingsSubList =
+      pTab === 'settings' && nTab === 'settings' && Boolean(pSet) && pSet === nSet && Boolean(pDetail) && !nDetail;
     const isBackToSubRoot =
       (prevKey.startsWith('dashboard|') && !prevKey.startsWith('dashboard||') && nextKey === 'dashboard|||') ||
-      (prevKey.startsWith('settings|') && !prevKey.startsWith('settings||') && nextKey === 'settings|||') ||
+      (pTab === 'settings' && Boolean(pSet) && nTab === 'settings' && !nSet) ||
+      isBackToSettingsSubList ||
       (prevKey.startsWith('settings||') && folderItems.some(f => prevKey.includes(`|${f}|`)) && nextKey.includes('|features_folder|')) ||
       ((prevKey === 'students|||register' || prevKey.startsWith('students|||edit:')) && nextKey === 'students|||') ||
       (prevKey.startsWith('teachers|||directory:') && !prevKey.endsWith(':') && nextKey === 'teachers|||directory:') ||
@@ -5772,8 +5805,9 @@ export default function App() {
       const validDashSubs = ['metrics', 'telemetry', 'trends', 'radar', 'diagnostics', 'feedback'];
 
       const clearNonMatchingSections = (activeBase) => {
-        if (activeBase !== 'settings' && activeSubSettingRef.current !== null) {
-          setActiveSubSetting(null);
+        if (activeBase !== 'settings') {
+          if (activeSubSettingRef.current !== null) setActiveSubSetting(null);
+          if (settingsDetailRouteRef.current !== null) setSettingsDetailRoute(null);
         }
         if (activeBase !== 'dashboard' && activeDashboardSubTabRef.current !== null) {
           setActiveDashboardSubTab(null);
@@ -5809,6 +5843,15 @@ export default function App() {
           const targetSub = subHash || null;
           if (targetSub !== activeSubSettingRef.current) {
             setActiveSubSetting(targetSub);
+          }
+          if (['departments', 'leave_management', 'multitenant'].includes(targetSub) && subHash2) {
+            if (subHash2 === 'register' && targetSub !== 'leave_management') {
+              setSettingsDetailRoute({ sub: targetSub, mode: 'register' });
+            } else {
+              setSettingsDetailRoute({ sub: targetSub, mode: 'detail', id: subHash2 });
+            }
+          } else if (settingsDetailRouteRef.current !== null) {
+            setSettingsDetailRoute(null);
           }
         } else if (baseHash === 'dashboard') {
           const targetDashSub = subHash && validDashSubs.includes(subHash) ? subHash : null;
@@ -5915,11 +5958,16 @@ export default function App() {
     };
   }, [token, userRole]);
 
-  // Synchronize React activeTab, sub-tabs, students, and teachers sub-views cleanly to window.history
+  // Synchronize React activeTab, sub-tabs, students, teachers, and settings sub-views cleanly to window.history
   useEffect(() => {
     if (token && userRole && activeTab) {
+      const settingsDetailSeg = activeTab === 'settings' && activeSubSetting && settingsDetailRoute?.sub === activeSubSetting
+        ? (settingsDetailRoute.mode === 'register'
+            ? '/register'
+            : (settingsDetailRoute.id != null ? `/${settingsDetailRoute.id}` : ''))
+        : '';
       const expectedHash = activeTab === 'settings' && activeSubSetting
-        ? `#/${activeTab}/${activeSubSetting}`
+        ? `#/${activeTab}/${activeSubSetting}${settingsDetailSeg}`
         : activeTab === 'dashboard' && activeDashboardSubTab
           ? `#/${activeTab}/${activeDashboardSubTab}`
           : activeTab === 'students' && showAddModal
@@ -6001,6 +6049,9 @@ export default function App() {
     subjectFormView,
     selectedSubjectDetail?.id,
     showScheduleForm,
+    settingsDetailRoute?.sub,
+    settingsDetailRoute?.mode,
+    settingsDetailRoute?.id,
     token,
     userRole,
   ]);
@@ -6300,6 +6351,12 @@ export default function App() {
         break;
     }
   }, [activeTab, token, userRole]);
+
+  useEffect(() => {
+    if (token && activeTab === 'settings' && activeSubSetting === 'leave_management' && ['admin', 'teacher', 'hod'].includes(userRole)) {
+      fetchAdminLeaves(token);
+    }
+  }, [activeTab, activeSubSetting, token, userRole]);
 
   // Throttled background polling (paused when browser tab is hidden)
   useEffect(() => {
@@ -8641,6 +8698,23 @@ export default function App() {
                   {activeTab === 'student-profile' && 'My Profile'}
                   {activeTab === 'settings' && (() => {
                     if (!activeSubSetting) return 'Settings Directory';
+                    if (settingsDetailRoute && settingsDetailRoute.sub === activeSubSetting) {
+                      if (activeSubSetting === 'departments') {
+                        if (settingsDetailRoute.mode === 'register') return 'Register Department';
+                        return settingsDetailRoute.item?.name ||
+                          departmentsList.find(d => String(d.id) === String(settingsDetailRoute.id))?.name ||
+                          'Department Details';
+                      }
+                      if (activeSubSetting === 'leave_management') {
+                        return settingsDetailRoute.item?.student_name ||
+                          adminLeaveRequests.find(r => String(r.id) === String(settingsDetailRoute.id))?.student_name ||
+                          'Leave Request';
+                      }
+                      if (activeSubSetting === 'multitenant') {
+                        if (settingsDetailRoute.mode === 'register') return 'Register Institution';
+                        return settingsDetailRoute.item?.name || 'Institution Details';
+                      }
+                    }
                     const subTitles = {
                       geofencing: 'Security Perimeter & Geofence',
                       advanced: 'Face Recognition & Biometrics',
@@ -8666,7 +8740,7 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && (
+                {userRole !== 'student' && userRole !== 'teacher' && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -9506,8 +9580,13 @@ export default function App() {
                 playCyberSound={playCyberSound}
                 departments={departments}
                 departmentsList={departmentsList}
+                students={students}
+                subjects={subjects}
                 fetchDepartments={async () => { clearApiClientCache(); await Promise.all([fetchDepartments(), fetchSubjects()]); }}
                 requestMasterPassword={requestMasterPassword}
+                routeView={settingsDetailRoute?.sub === 'departments' ? settingsDetailRoute : null}
+                setRouteView={setSettingsDetailRoute}
+                onCloseSubView={handleNavigateBack}
               />
             )}
 
@@ -9518,6 +9597,9 @@ export default function App() {
                 isDemoMode={isDemoMode}
                 playCyberSound={playCyberSound}
                 requestMasterPassword={requestMasterPassword}
+                routeView={settingsDetailRoute?.sub === 'multitenant' ? settingsDetailRoute : null}
+                setRouteView={setSettingsDetailRoute}
+                onCloseSubView={handleNavigateBack}
               />
             )}
 
@@ -9529,6 +9611,9 @@ export default function App() {
                 adminLeaveRequests={adminLeaveRequests}
                 isFetchingLeaves={isFetchingLeaves}
                 fetchAdminLeaves={fetchAdminLeaves}
+                routeView={settingsDetailRoute?.sub === 'leave_management' ? settingsDetailRoute : null}
+                setRouteView={setSettingsDetailRoute}
+                onCloseSubView={handleNavigateBack}
               />
             )}
 
