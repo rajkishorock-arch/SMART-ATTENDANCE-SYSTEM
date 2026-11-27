@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   Mail,
@@ -92,6 +92,65 @@ export default function LoginPortal({
   const [copiedKey, setCopiedKey] = useState(false);
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [showPostRegFaceEnroll, setShowPostRegFaceEnroll] = useState(false);
+  const [publicDeptState, setPublicDeptState] = useState({
+    status: 'idle', // 'idle' | 'loading' | 'found' | 'not-found' | 'error'
+    slug: '',
+    institutionName: '',
+    departments: []
+  });
+
+  useEffect(() => {
+    if (!isRegister || loginRole === 'admin') return undefined;
+    const rawSlug = regInstitutionCode.trim().toLowerCase();
+    if (!rawSlug) return undefined;
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setPublicDeptState(prev => ({ ...prev, status: 'loading', slug: rawSlug }));
+      try {
+        const API_BASE_URL = getApiBaseUrl();
+        const res = await fetch(`${API_BASE_URL}/departments/public?slug=${encodeURIComponent(rawSlug)}`, {
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error('Could not verify institution code');
+        const data = await res.json();
+        if (controller.signal.aborted) return;
+
+        if (data && data.found) {
+          const depts = Array.isArray(data.departments) ? data.departments : [];
+          setPublicDeptState({
+            status: 'found',
+            slug: data.slug || rawSlug,
+            institutionName: data.institution_name || rawSlug,
+            departments: depts
+          });
+          if (depts.length > 0) {
+            setRegDep(prev => {
+              const trimmed = prev.trim().toLowerCase();
+              const matched = depts.find(
+                d => d.name.toLowerCase() === trimmed || (d.code && d.code.toLowerCase() === trimmed)
+              );
+              return matched ? matched.name : '';
+            });
+          }
+        } else {
+          setPublicDeptState({ status: 'not-found', slug: rawSlug, institutionName: '', departments: [] });
+        }
+      } catch {
+        if (controller.signal.aborted) return;
+        setPublicDeptState({ status: 'error', slug: rawSlug, institutionName: '', departments: [] });
+      }
+    }, 260);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [isRegister, loginRole, regInstitutionCode]);
+
+  const effectivePublicDeptState = !regInstitutionCode.trim()
+    ? { status: 'idle', slug: '', institutionName: '', departments: [] }
+    : publicDeptState;
 
   // Forgot Password Recovery Modal States
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
@@ -135,18 +194,27 @@ export default function LoginPortal({
         setRegError('Please enter your institution code.');
         return false;
       }
+      if (effectivePublicDeptState.status === 'loading') {
+        setRegError('Verifying institution branches… please wait a moment.');
+        return false;
+      }
+      if (effectivePublicDeptState.status === 'not-found') {
+        setRegError(`No active institution found for code "${regInstitutionCode.trim()}". Please check your Institution Code.`);
+        return false;
+      }
+      const hasRegisteredBranches = effectivePublicDeptState.status === 'found' && effectivePublicDeptState.departments.length > 0;
       if (loginRole === 'student') {
         if (!regRoll.trim()) {
           setRegError('Please enter your Student Roll Number.');
           return false;
         }
         if (!regDep.trim()) {
-          setRegError('Please enter your Academic Department.');
+          setRegError(hasRegisteredBranches ? 'Please select a registered Academic Department from your institution.' : 'Please enter your Academic Department.');
           return false;
         }
       } else if (loginRole === 'teacher' || loginRole === 'hod') {
         if (!regDep.trim()) {
-          setRegError('Please enter your Teaching Department.');
+          setRegError(hasRegisteredBranches ? 'Please select a registered Teaching Department from your institution.' : 'Please enter your Teaching Department.');
           return false;
         }
       }
@@ -1072,42 +1140,86 @@ export default function LoginPortal({
                             boxSizing: 'border-box'
                           }}
                         />
+                        {regInstitutionCode.trim() && (
+                          <div style={{
+                            marginTop: '6px',
+                            fontSize: '0.74rem',
+                            fontWeight: 600,
+                            color: effectivePublicDeptState.status === 'found'
+                              ? '#059669'
+                              : effectivePublicDeptState.status === 'not-found'
+                                ? '#dc2626'
+                                : '#696358'
+                          }}>
+                            {effectivePublicDeptState.status === 'loading' && 'Checking institution & registered branches…'}
+                            {effectivePublicDeptState.status === 'found' && `✓ ${effectivePublicDeptState.institutionName} • ${effectivePublicDeptState.departments.length} registered branch${effectivePublicDeptState.departments.length === 1 ? '' : 'es'}`}
+                            {effectivePublicDeptState.status === 'not-found' && `No active institution matches "${regInstitutionCode.trim()}". Check the institution code.`}
+                            {effectivePublicDeptState.status === 'error' && 'Could not look up branches online — you can enter the department name below.'}
+                          </div>
+                        )}
                       </div>
 
-                      {loginRole === 'student' ? (
-                        <>
-                          <div>
-                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                              Student Roll Number / ID
-                            </label>
+                      {(() => {
+                        const fieldLabel = loginRole === 'student' ? 'Academic Department' : 'Teaching Department';
+                        const hasBranches = effectivePublicDeptState.status === 'found' && effectivePublicDeptState.departments.length > 0;
+                        const mustEnterValidCodeFirst = !regInstitutionCode.trim() || effectivePublicDeptState.status === 'not-found';
+                        const deptControl = hasBranches ? (
+                          <select
+                            className="form-input-touch"
+                            aria-label={fieldLabel}
+                            value={regDep}
+                            onChange={(e) => setRegDep(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 14px',
+                              borderRadius: '10px',
+                              background: '#ffffff',
+                              border: '1px solid #cfc8ba',
+                              color: regDep ? '#25231f' : '#696358',
+                              fontSize: '0.88rem',
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="">Select a registered branch ({effectivePublicDeptState.departments.length} available)</option>
+                            {effectivePublicDeptState.departments.map(dept => (
+                              <option key={dept.id || dept.name} value={dept.name}>
+                                {dept.code ? `${dept.name} (${dept.code})` : dept.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : mustEnterValidCodeFirst ? (
+                          <select
+                            className="form-input-touch"
+                            aria-label={fieldLabel}
+                            disabled
+                            value=""
+                            style={{
+                              width: '100%',
+                              padding: '12px 14px',
+                              borderRadius: '10px',
+                              background: '#f5f2eb',
+                              border: '1px solid #dfd8ca',
+                              color: '#696358',
+                              fontSize: '0.86rem',
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                              cursor: 'not-allowed'
+                            }}
+                          >
+                            <option value="">
+                              {!regInstitutionCode.trim()
+                                ? 'Enter Institution Code above to load registered branches'
+                                : 'Enter a valid Institution Code to load branches'}
+                            </option>
+                          </select>
+                        ) : (
+                          <>
                             <input
                               type="text"
                               className="form-input-touch"
-                              placeholder="e.g. 2026CSE01"
-                              value={regRoll}
-                              onChange={(e) => setRegRoll(e.target.value)}
-                              style={{
-                                width: '100%',
-                                padding: '12px 14px',
-                                borderRadius: '10px',
-                                background: '#ffffff',
-                                border: '1px solid #cfc8ba',
-                                color: '#25231f',
-                                fontSize: '0.88rem',
-                                outline: 'none',
-                                boxSizing: 'border-box'
-                              }}
-                            />
-                          </div>
-
-                          <div>
-                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                              Academic Department
-                            </label>
-                            <input
-                              type="text"
-                              className="form-input-touch"
-                              placeholder="e.g. Mechanical Engineering"
+                              placeholder={loginRole === 'student' ? 'e.g. Mechanical Engineering' : 'e.g. Computer Science'}
                               value={regDep}
                               onChange={(e) => setRegDep(e.target.value)}
                               style={{
@@ -1122,33 +1234,60 @@ export default function LoginPortal({
                                 boxSizing: 'border-box'
                               }}
                             />
+                            {effectivePublicDeptState.status === 'found' && effectivePublicDeptState.departments.length === 0 && (
+                              <span style={{ fontSize: '0.72rem', color: '#696358', display: 'block', marginTop: '4px' }}>
+                                No pre-registered branches found for {effectivePublicDeptState.institutionName}; enter your department name manually.
+                              </span>
+                            )}
+                          </>
+                        );
+
+                        if (loginRole === 'student') {
+                          return (
+                            <>
+                              <div>
+                                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                                  Student Roll Number / ID
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-input-touch"
+                                  placeholder="e.g. 2026CSE01"
+                                  value={regRoll}
+                                  onChange={(e) => setRegRoll(e.target.value)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '12px 14px',
+                                    borderRadius: '10px',
+                                    background: '#ffffff',
+                                    border: '1px solid #cfc8ba',
+                                    color: '#25231f',
+                                    fontSize: '0.88rem',
+                                    outline: 'none',
+                                    boxSizing: 'border-box'
+                                  }}
+                                />
+                              </div>
+
+                              <div>
+                                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                                  {fieldLabel}
+                                </label>
+                                {deptControl}
+                              </div>
+                            </>
+                          );
+                        }
+
+                        return (
+                          <div>
+                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                              {fieldLabel}
+                            </label>
+                            {deptControl}
                           </div>
-                        </>
-                      ) : (
-                        <div>
-                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                            Teaching Department
-                          </label>
-                          <input
-                            type="text"
-                            className="form-input-touch"
-                            placeholder="e.g. Computer Science"
-                            value={regDep}
-                            onChange={(e) => setRegDep(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '12px 14px',
-                              borderRadius: '10px',
-                              background: '#ffffff',
-                              border: '1px solid #cfc8ba',
-                              color: '#25231f',
-                              fontSize: '0.88rem',
-                              outline: 'none',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-                      )}
+                        );
+                      })()}
                     </>
                   )}
 

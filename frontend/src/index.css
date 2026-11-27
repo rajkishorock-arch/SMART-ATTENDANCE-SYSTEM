@@ -5052,15 +5052,43 @@ html {
 }
 
 .golden-os-feedback-filter-btn {
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 7px 13px;
   border-radius: 999px;
   border: 1px solid #dfd0ae;
   background: #ffffff;
   color: #5c4b30;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.golden-os-action-pill,
+.golden-os-action-pill :is(span, svg) {
+  color: #ffffff !important;
+}
+
+.golden-os-action-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 8px 15px;
+  border-radius: 999px;
+  border: 1px solid #8a6427;
+  background: linear-gradient(135deg, #6e4e1c 0%, #9b732e 65%, #b2873a 100%) !important;
+  color: #ffffff !important;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(110, 78, 28, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .golden-os-feedback-filter-btn.active {

@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
 
   // Heartbeat ping helper
   const sendHeartbeat = useCallback(async () => {
-    if (!token) return;
+    if (!token || token === 'guest-demo-token' || localStorage.getItem('isDemoMode') === 'true') return;
     try {
       await authApi.sendHeartbeat(token, currentUser?.id || 0);
     } catch (err) {
@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
 
   // Active users telemetry helper
   const fetchActiveUsers = useCallback(async () => {
-    if (!token) return;
+    if (!token || token === 'guest-demo-token' || localStorage.getItem('isDemoMode') === 'true') return;
     try {
       const res = await authApi.fetchActiveUsers(token);
       if (res && res.ok) {
@@ -144,6 +144,9 @@ export function AuthProvider({ children }) {
 
   // Fetch Session Info
   const fetchSessionInfo = useCallback(async (authToken, onSuccess, onError) => {
+    if (!authToken || authToken === 'guest-demo-token' || localStorage.getItem('isDemoMode') === 'true') {
+      return null;
+    }
     const API_BASE_URL = getApiBaseUrl();
     setSessionFetchError(false);
     try {

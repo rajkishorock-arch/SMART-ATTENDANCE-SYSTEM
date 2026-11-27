@@ -8,6 +8,55 @@ from .users import verify_master_password
 
 router = APIRouter()
 
+
+@router.get("/public")
+def list_public_departments(
+    slug: str = "default",
+    db: Session = Depends(get_db),
+):
+    """Publicly list registered branches/departments for an active institution slug during signup."""
+    clean_slug = (slug or "default").strip().lower()
+    if not clean_slug:
+        return {
+            "found": False,
+            "institution_name": None,
+            "slug": "",
+            "departments": [],
+        }
+
+    inst = (
+        db.query(models.Institution)
+        .filter(
+            models.Institution.slug.ilike(clean_slug),
+            models.Institution.is_active == True,
+        )
+        .first()
+    )
+    if not inst:
+        return {
+            "found": False,
+            "institution_name": None,
+            "slug": clean_slug,
+            "departments": [],
+        }
+
+    depts = (
+        db.query(models.Department)
+        .filter(models.Department.institution_id == inst.id)
+        .order_by(models.Department.name.asc())
+        .all()
+    )
+    return {
+        "found": True,
+        "institution_name": inst.app_name or inst.name,
+        "slug": inst.slug,
+        "departments": [
+            {"id": d.id, "name": d.name, "code": d.code or ""}
+            for d in depts
+        ],
+    }
+
+
 @router.get("/", response_model=List[schemas.Department])
 def list_departments(
     db: Session = Depends(get_db),

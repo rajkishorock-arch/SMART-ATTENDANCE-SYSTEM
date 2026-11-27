@@ -235,6 +235,9 @@ export default function useNotifications(token, currentUser, userRole, onNavigat
 
   const fetchUnreadNotificationCount = useCallback(async () => {
     if (!token || inFlightCountRef.current) return;
+    if (token === 'guest-demo-token' || (typeof localStorage !== 'undefined' && localStorage.getItem('isDemoMode') === 'true')) {
+      return;
+    }
     inFlightCountRef.current = true;
     try {
       const res = await notificationApi.fetchUnreadCount(token);
@@ -251,6 +254,22 @@ export default function useNotifications(token, currentUser, userRole, onNavigat
 
   const refreshNotifications = useCallback(async ({ showSpinnerIfEmpty = false } = {}) => {
     if (!token || inFlightListRef.current) return;
+    if (token === 'guest-demo-token' || (typeof localStorage !== 'undefined' && localStorage.getItem('isDemoMode') === 'true')) {
+      setIsLoading(false);
+      setLoadError('');
+      setNotifications(prev => (prev.length > 0 ? prev : [
+        {
+          id: 'demo-notif-1',
+          title: 'Campus Demo Sandbox Active',
+          message: 'Exploring guest mode preview with sample campus records.',
+          category: 'BROADCAST',
+          action_url: '#/broadcast',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        },
+      ]));
+      return;
+    }
     inFlightListRef.current = true;
     if (showSpinnerIfEmpty && notifications.length === 0) {
       setIsLoading(true);

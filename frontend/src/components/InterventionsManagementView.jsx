@@ -1,19 +1,64 @@
 import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
 import {
-  AlertOctagon, AlertTriangle, Bell, Calendar,
-  CheckCircle2, RefreshCw, ShieldAlert,
-  X
+  AlertTriangle, Bell, Calendar,
+  CheckCircle2, RefreshCw, ShieldAlert, ChevronRight, UserCheck
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
 const API_BASE_URL = getApiBaseUrl();
 
+const DEMO_INTERVENTIONS = [
+  {
+    id: 1,
+    student_name: 'Aditya Rao',
+    student_roll: '2023ME04',
+    department: 'Mechanical Engineering',
+    attendance_percentage: 54.5,
+    tier: 'DEBARMENT_RISK',
+    status: 'PENDING',
+    counselor_name: 'Dr. Anil Mehta',
+    meeting_date: '2026-12-02 10:30',
+    notes: 'Missed 6 consecutive morning labs.'
+  },
+  {
+    id: 2,
+    student_name: 'Riya Gupta',
+    student_roll: '2023CSE08',
+    department: 'Computer Science',
+    attendance_percentage: 63.6,
+    tier: 'PARENT_ALERT',
+    status: 'PARENT_NOTIFIED',
+    counselor_name: null,
+    meeting_date: null,
+    notes: ''
+  },
+  {
+    id: 3,
+    student_name: 'Kabir Verma',
+    student_roll: '2023ECE01',
+    department: 'ECE',
+    attendance_percentage: 73.2,
+    tier: 'WARNING',
+    status: 'PENDING',
+    counselor_name: null,
+    meeting_date: null,
+    notes: ''
+  }
+];
+
 export default function InterventionsManagementView({
   token,
   currentUser,
-  playCyberSound = () => {}
+  isDemoMode = false,
+  playCyberSound = () => {},
+  routeView: propRouteView,
+  setRouteView: propSetRouteView
 }) {
+  const [localRouteView, setLocalRouteView] = useState(null);
+  const routeView = propSetRouteView !== undefined ? propRouteView : localRouteView;
+  const setRouteView = propSetRouteView !== undefined ? propSetRouteView : setLocalRouteView;
+
   const [interventions, setInterventions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [tierFilter, setTierFilter] = useState('ALL');
@@ -22,22 +67,35 @@ export default function InterventionsManagementView({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Meeting Schedule Modal
-  const [meetingModalItem, setMeetingModalItem] = useState(null);
+  // Detail control states
+  const [activeControlTab, setActiveControlTab] = useState(null); // null | 'meeting' | 'resolve'
   const [meetingDate, setMeetingDate] = useState('');
   const [meetingNotes, setMeetingNotes] = useState('');
   const [isSubmittingMeeting, setIsSubmittingMeeting] = useState(false);
 
-  // Resolve Modal
-  const [resolveModalItem, setResolveModalItem] = useState(null);
   const [resolveNotes, setResolveNotes] = useState('');
   const [isSubmittingResolve, setIsSubmittingResolve] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
 
-  // Loading map for parent notify actions { [id]: boolean }
-  const [notifyingIds, setNotifyingIds] = useState({});
+  const isSandbox = isDemoMode || token === 'guest-demo-token';
 
   const fetchData = useCallback(async () => {
     if (!token) return;
+    if (isSandbox) {
+      const filtered = tierFilter === 'ALL'
+        ? DEMO_INTERVENTIONS
+        : DEMO_INTERVENTIONS.filter(i => i.tier === tierFilter);
+      setInterventions(filtered);
+      setSummary({
+        tier3_debarment_risk_count: DEMO_INTERVENTIONS.filter(i => i.tier === 'DEBARMENT_RISK').length,
+        tier2_parent_alert_count: DEMO_INTERVENTIONS.filter(i => i.tier === 'PARENT_ALERT').length,
+        tier1_warning_count: DEMO_INTERVENTIONS.filter(i => i.tier === 'WARNING').length,
+        total_interventions: DEMO_INTERVENTIONS.length
+      });
+      setErrorMsg('');
+      return;
+    }
+
     setIsLoading(true);
     setErrorMsg('');
     try {
@@ -50,35 +108,36 @@ export default function InterventionsManagementView({
       if (!summaryResponse.ok || !listResponse.ok) throw new Error('Could not refresh interventions.');
       const [totals, rows] = await Promise.all([summaryResponse.json(), listResponse.json()]);
       setSummary(totals);
-      setInterventions(rows);
+      setInterventions(Array.isArray(rows) ? rows : []);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to fetch interventions data.');
     } finally {
       setIsLoading(false);
     }
-  }, [token, tierFilter]);
+  }, [token, tierFilter, isSandbox]);
 
   useEffect(() => {
     let ignore = false;
     const run = async () => {
-      if (!ignore) {
-        await fetchData();
-      }
+      if (!ignore) await fetchData();
     };
     run();
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, [fetchData]);
 
-  // ── Run Automated Campus Evaluation Scan ──────────────────────────────────
   const handleRunEvaluation = async () => {
+    if (isSandbox) {
+      playCyberSound('success');
+      setSuccessMsg('Sandbox preview: campus shortage scan evaluated across 154 students.');
+      setTimeout(() => setSuccessMsg(''), 4000);
+      return;
+    }
     setIsScanning(true);
     setErrorMsg('');
     try {
       const res = await fetch(`${API_BASE_URL}/interventions/evaluate`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Evaluation scan failed.');
       const data = await res.json();
@@ -94,13 +153,19 @@ export default function InterventionsManagementView({
     }
   };
 
-  // ── Dispatch Parent Notification ──────────────────────────────────────────
   const handleNotifyParent = async (item) => {
-    setNotifyingIds(prev => ({ ...prev, [item.id]: true }));
+    if (isSandbox) {
+      playCyberSound('success');
+      setSuccessMsg(`Sandbox preview: Parent alert queued for ${item.student_name}.`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+      return;
+    }
+    setIsNotifying(true);
+    setErrorMsg('');
     try {
       const res = await fetch(`${API_BASE_URL}/interventions/${item.id}/notify-parent`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Parent notification dispatch failed.');
       playCyberSound('success');
@@ -111,23 +176,32 @@ export default function InterventionsManagementView({
       setErrorMsg(err.message);
       playCyberSound('error');
     } finally {
-      setNotifyingIds(prev => ({ ...prev, [item.id]: false }));
+      setIsNotifying(false);
     }
   };
 
-  // ── Schedule Counselor Meeting ────────────────────────────────────────────
-  const handleScheduleMeeting = async (e) => {
+  const handleScheduleMeeting = async (e, item) => {
     e.preventDefault();
     if (!meetingDate) {
       setErrorMsg('Please specify a meeting date and time.');
       return;
     }
+    if (isSandbox) {
+      playCyberSound('success');
+      setSuccessMsg(`Sandbox preview: Counseling scheduled for ${item.student_name}.`);
+      setActiveControlTab(null);
+      setMeetingDate('');
+      setMeetingNotes('');
+      setTimeout(() => setSuccessMsg(''), 4000);
+      return;
+    }
     setIsSubmittingMeeting(true);
+    setErrorMsg('');
     try {
-      const res = await fetch(`${API_BASE_URL}/interventions/${meetingModalItem.id}/assign-counselor`, {
+      const res = await fetch(`${API_BASE_URL}/interventions/${item.id}/assign-counselor`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -138,8 +212,8 @@ export default function InterventionsManagementView({
       });
       if (!res.ok) throw new Error('Failed to schedule meeting.');
       playCyberSound('success');
-      setSuccessMsg(`Counseling session scheduled for ${meetingModalItem.student_name}.`);
-      setMeetingModalItem(null);
+      setSuccessMsg(`Counseling session scheduled for ${item.student_name}.`);
+      setActiveControlTab(null);
       setMeetingDate('');
       setMeetingNotes('');
       fetchData();
@@ -152,27 +226,35 @@ export default function InterventionsManagementView({
     }
   };
 
-  // ── Resolve Intervention ───────────────────────────────────────────────────
-  const handleResolve = async (e) => {
+  const handleResolve = async (e, item) => {
     e.preventDefault();
     if (!resolveNotes.trim()) {
       setErrorMsg('Resolution note is required.');
       return;
     }
+    if (isSandbox) {
+      playCyberSound('success');
+      setSuccessMsg(`Sandbox preview: Intervention resolved for ${item.student_name}.`);
+      setActiveControlTab(null);
+      setResolveNotes('');
+      setTimeout(() => setSuccessMsg(''), 4000);
+      return;
+    }
     setIsSubmittingResolve(true);
+    setErrorMsg('');
     try {
-      const res = await fetch(`${API_BASE_URL}/interventions/${resolveModalItem.id}/resolve`, {
+      const res = await fetch(`${API_BASE_URL}/interventions/${item.id}/resolve`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ notes: resolveNotes.trim() })
       });
       if (!res.ok) throw new Error('Failed to resolve intervention.');
       playCyberSound('success');
-      setSuccessMsg(`Intervention for ${resolveModalItem.student_name} marked as RESOLVED.`);
-      setResolveModalItem(null);
+      setSuccessMsg(`Intervention for ${item.student_name} marked as RESOLVED.`);
+      setActiveControlTab(null);
       setResolveNotes('');
       fetchData();
       setTimeout(() => setSuccessMsg(''), 4000);
@@ -184,564 +266,352 @@ export default function InterventionsManagementView({
     }
   };
 
-  return (
-    <div className="interventions-container" style={{
-      color: 'var(--color-text-main)',
-      width: '100%',
-      maxWidth: '100%',
-      boxSizing: 'border-box',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '14px',
-      animation: 'fadeIn 0.3s ease-out'
-    }}>
-      <div className="campus-actions">
-          <button
-            type="button"
-            onClick={() => { playCyberSound('click'); fetchData(); }}
-            disabled={isLoading}
-          >
-            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
-          </button>
+  const getTierStyle = (tier) => {
+    if (tier === 'DEBARMENT_RISK') return { color: '#dc2626', bg: '#fef2f2', border: '#fecaca', label: 'Debarment Risk' };
+    if (tier === 'PARENT_ALERT') return { color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', label: 'Parent Alert' };
+    return { color: '#d97706', bg: '#fffbeb', border: '#fde68a', label: 'Warning' };
+  };
 
-          <button
-            type="button"
-            onClick={() => { playCyberSound('click'); handleRunEvaluation(); }}
-            disabled={isScanning}
-          >
-            <ShieldAlert size={15} className={isScanning ? 'animate-spin' : ''} />
-            <span>{isScanning ? 'Scanning...' : 'Scan Campus Attendance'}</span>
-          </button>
-      </div>
+  // ── DEDICATED DETAIL + CONTROL SUBPAGE ─────────────────────────────────────
+  if (routeView?.mode === 'detail') {
+    const activeItem =
+      interventions.find(i => String(i.id) === String(routeView.id)) ||
+      routeView.item ||
+      (isSandbox ? DEMO_INTERVENTIONS.find(i => String(i.id) === String(routeView.id)) : null) ||
+      null;
 
-      {/* Messages */}
-      {successMsg && (
-        <div style={{
-          background: '#ecfdf5',
-          border: '1px solid #a7f3d0',
-          color: '#059669',
-          padding: '10px 14px',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '0.85rem',
-          fontWeight: 600
-        }}>
-          <CheckCircle2 size={16} />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div style={{
-          background: '#fef2f2',
-          border: '1px solid #fecaca',
-          color: '#dc2626',
-          padding: '10px 14px',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '0.85rem',
-          fontWeight: 600
-        }}>
-          <AlertTriangle size={16} />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
-      {/* Tier KPI Counters (Horizontal Responsive 4-card Grid) */}
-      {summary && (
-        <div className="campus-metrics">
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #e4dfd5',
-            borderLeft: '4px solid #dc2626',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-          }}>
-            <span style={{ fontSize: '0.68rem', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Debarment (&lt;60%)
-            </span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
-              {summary.tier3_debarment_risk_count}
+    if (!activeItem) {
+      return (
+        <div className="golden-os-page-bottom-safe">
+          <div className="golden-os-window">
+            <div className="golden-os-body" style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <ShieldAlert size={36} color="#916d30" style={{ opacity: 0.45, marginBottom: '10px' }} />
+              <div style={{ fontWeight: 700, color: '#25231f', marginBottom: '8px' }}>Intervention case not found</div>
+              <button type="button" className="golden-os-action-pill" onClick={() => setRouteView(null)}>
+                Back to Interventions
+              </button>
             </div>
-            <span style={{ fontSize: '0.7rem', color: '#696358' }}>HOD intervention</span>
-          </div>
-
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #e4dfd5',
-            borderLeft: '4px solid #ea580c',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-          }}>
-            <span style={{ fontSize: '0.68rem', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Parent Alert (60-70%)
-            </span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ea580c', marginTop: '2px' }}>
-              {summary.tier2_parent_alert_count}
-            </div>
-            <span style={{ fontSize: '0.7rem', color: '#696358' }}>Notify guardians</span>
-          </div>
-
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #e4dfd5',
-            borderLeft: '4px solid #d97706',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-          }}>
-            <span style={{ fontSize: '0.68rem', color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Warning (70-75%)
-            </span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>
-              {summary.tier1_warning_count}
-            </div>
-            <span style={{ fontSize: '0.7rem', color: '#696358' }}>Near-cutoff boundary</span>
-          </div>
-
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #e4dfd5',
-            borderLeft: '4px solid #785927',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-          }}>
-            <span style={{ fontSize: '0.68rem', color: '#785927', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
-              Total cases
-            </span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#785927', marginTop: '2px' }}>
-              {summary.total_interventions}
-            </div>
-            <span style={{ fontSize: '0.7rem', color: '#696358' }}>Active student logs</span>
           </div>
         </div>
-      )}
+      );
+    }
 
-      {/* Tier Filter Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: '6px',
-        borderBottom: '1px solid #e4dfd5',
-        paddingBottom: '8px',
-        marginBottom: '16px',
-        overflowX: 'auto',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
-        {[
-          { key: 'ALL', label: 'All Cases' },
-          { key: 'DEBARMENT_RISK', label: 'Critical (<60%)' },
-          { key: 'PARENT_ALERT', label: 'Parent Alert (60-70%)' },
-          { key: 'WARNING', label: 'Warning (70-75%)' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => { playCyberSound('click'); setTierFilter(tab.key); }}
-            style={{
-              background: tierFilter === tab.key ? 'var(--color-primary-light)' : '#ffffff',
-              border: tierFilter === tab.key ? '1px solid rgba(30, 64, 175, 0.25)' : '1px solid var(--border-subtle)',
-              color: tierFilter === tab.key ? 'var(--color-primary)' : '#58534a',
-              padding: '6px 14px',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    const tierStyle = getTierStyle(activeItem.tier);
+    const isResolved = activeItem.status === 'RESOLVED';
 
-      {/* Interventions List */}
-      {interventions.length === 0 ? (
-        <div className="surface-card" style={{
-          background: '#ffffff',
-          border: '1px dashed var(--border-strong)',
-          borderRadius: '16px',
-          padding: '48px 24px',
-          textAlign: 'center',
-          color: '#696358'
-        }}>
-          <CheckCircle2 size={40} color="#059669" style={{ opacity: 0.8, marginBottom: '12px' }} />
-          <h4 style={{ margin: '0 0 6px 0', color: '#25231f', fontSize: '1.1rem', fontWeight: 700 }}>
-            No Active Interventions Found
-          </h4>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: '#58534a' }}>
-            All students are currently meeting the 75% attendance threshold. Click "Scan Campus Attendance" to re-evaluate.
-          </p>
-        </div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: '14px',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}>
-          {interventions.map(item => {
-            const isCritical = item.tier === 'DEBARMENT_RISK';
-            const isOrange = item.tier === 'PARENT_ALERT';
-            const badgeColor = isCritical ? '#dc2626' : (isOrange ? '#ea580c' : '#d97706');
-            const badgeBg = isCritical ? '#fef2f2' : (isOrange ? '#fff7ed' : '#fffbeb');
-            const badgeBorder = isCritical ? '#fecaca' : (isOrange ? '#fed7aa' : '#fde68a');
-            const isNotifying = notifyingIds[item.id];
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {successMsg && (
+              <div className="feedback-banner success" role="status">
+                <CheckCircle2 size={16} />
+                <span>{successMsg}</span>
+              </div>
+            )}
+            {errorMsg && (
+              <div className="feedback-banner error" role="alert">
+                <AlertTriangle size={16} />
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
-            return (
-              <div
-                key={item.id}
-                className="surface-card"
-                style={{
-                  background: '#ffffff',
-                  border: `1px solid ${badgeBorder}`,
-                  borderRadius: '14px',
-                  padding: '20px',
-                  boxShadow: 'var(--shadow-card)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div>
-                  {/* Top */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <div>
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.15rem', fontWeight: 700, color: '#25231f' }}>
-                        {item.student_name}
-                      </h3>
-                      <span style={{ fontSize: '0.8rem', color: '#696358' }}>
-                        Roll: {item.student_roll} • {item.department}
-                      </span>
-                    </div>
+            {/* Case Header Card */}
+            <div className="golden-os-inset-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '1.08rem', fontWeight: 800, color: '#25231f' }}>{activeItem.student_name}</div>
+                <div style={{ fontSize: '0.8rem', color: '#696358' }}>
+                  Roll: {activeItem.student_roll} • {activeItem.department}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{
+                  background: tierStyle.bg,
+                  border: `1px solid ${tierStyle.border}`,
+                  color: tierStyle.color,
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  padding: '4px 10px',
+                  borderRadius: '999px'
+                }}>
+                  {activeItem.attendance_percentage}% • {tierStyle.label}
+                </span>
+                <span style={{
+                  background: isResolved ? '#ecfdf5' : '#f4f1eb',
+                  border: `1px solid ${isResolved ? '#a7f3d0' : '#cfc8ba'}`,
+                  color: isResolved ? '#059669' : '#58534a',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: '999px'
+                }}>
+                  {activeItem.status.replace(/_/g, ' ')}
+                </span>
+              </div>
+            </div>
 
-                    <span style={{
-                      background: badgeBg,
-                      border: `1px solid ${badgeBorder}`,
-                      color: badgeColor,
-                      fontSize: '0.82rem',
-                      fontWeight: 800,
-                      padding: '4px 10px',
-                      borderRadius: '8px'
-                    }}>
-                      {item.attendance_percentage}%
-                    </span>
-                  </div>
+            {/* Case Details */}
+            <div className="golden-os-list-shell">
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Assigned Counselor</span>
+                <strong style={{ color: '#25231f', fontSize: '0.85rem' }}>
+                  {activeItem.counselor_name || 'Unassigned'}
+                </strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Scheduled Meeting</span>
+                <strong style={{ color: '#25231f', fontSize: '0.85rem' }}>
+                  {activeItem.meeting_date || 'Not scheduled'}
+                </strong>
+              </div>
+              {activeItem.notes && (
+                <div className="golden-os-list-row" style={{ cursor: 'default', alignItems: 'flex-start', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ color: '#58534a', fontSize: '0.78rem', fontWeight: 700 }}>Case Notes</span>
+                  <span style={{ color: '#25231f', fontSize: '0.84rem' }}>{activeItem.notes}</span>
+                </div>
+              )}
+            </div>
 
-                  {/* Tier & Status Badges */}
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                    <span style={{
-                      background: badgeBg,
-                      border: `1px solid ${badgeBorder}`,
-                      fontSize: '0.75rem',
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      color: badgeColor,
-                      fontWeight: 700
-                    }}>
-                      {item.tier.replace('_', ' ')}
-                    </span>
+            {/* Controls System */}
+            {!isResolved && (
+              <div className="golden-os-form-section">
+                <div className="golden-os-form-section-title">Intervention Controls</div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    disabled={isNotifying}
+                    onClick={() => handleNotifyParent(activeItem)}
+                    className="golden-os-feedback-filter-btn"
+                  >
+                    <Bell size={14} />
+                    <span>{isNotifying ? 'Notifying...' : 'Notify Parent'}</span>
+                  </button>
 
-                    <span style={{
-                      background: item.status === 'RESOLVED' ? '#ecfdf5' : '#f4f1eb',
-                      border: item.status === 'RESOLVED' ? '1px solid #a7f3d0' : '1px solid #cfc8ba',
-                      fontSize: '0.75rem',
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      color: item.status === 'RESOLVED' ? '#059669' : '#58534a',
-                      fontWeight: 600
-                    }}>
-                      Status: {item.status.replace(/_/g, ' ')}
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playCyberSound('click');
+                      setActiveControlTab(prev => (prev === 'meeting' ? null : 'meeting'));
+                    }}
+                    className={`golden-os-feedback-filter-btn ${activeControlTab === 'meeting' ? 'active' : ''}`}
+                  >
+                    <Calendar size={14} />
+                    <span>Schedule Counseling</span>
+                  </button>
 
-                  {/* Counselor & Meeting Details */}
-                  {item.counselor_name && (
-                    <div style={{
-                      background: '#faf9f6',
-                      border: '1px solid var(--border-subtle)',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      marginBottom: '14px',
-                      fontSize: '0.8rem'
-                    }}>
-                      <div style={{ color: 'var(--color-primary)', fontWeight: 600, marginBottom: '2px' }}>
-                        Counselor: {item.counselor_name}
-                      </div>
-                      {item.meeting_date && (
-                        <div style={{ color: '#58534a' }}>
-                          📅 Meeting: {item.meeting_date}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {item.notes && (
-                    <p style={{ margin: '0 0 14px 0', fontSize: '0.8rem', color: '#696358', fontStyle: 'italic' }}>
-                      "{item.notes}"
-                    </p>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playCyberSound('click');
+                      setActiveControlTab(prev => (prev === 'resolve' ? null : 'resolve'));
+                    }}
+                    className={`golden-os-feedback-filter-btn ${activeControlTab === 'resolve' ? 'active' : ''}`}
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>Resolve Case</span>
+                  </button>
                 </div>
 
-                {/* Card Action Buttons */}
-                {item.status !== 'RESOLVED' && (
-                  <div style={{
-                    borderTop: '1px solid var(--border-subtle)',
-                    paddingTop: '14px',
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr',
-                    gap: '8px'
-                  }}>
-                    {/* Notify Parent Button */}
-                    <button
-                      disabled={isNotifying}
-                      onClick={() => handleNotifyParent(item)}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid var(--border-subtle)',
-                        color: '#ea580c',
-                        padding: '8px 4px',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: isNotifying ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Bell size={13} />
-                      Notify Parent
-                    </button>
+                {activeControlTab === 'meeting' && (
+                  <form onSubmit={(e) => handleScheduleMeeting(e, activeItem)} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #ece7dc' }}>
+                    <div>
+                      <label className="golden-os-field-label">Meeting Date & Time *</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        className="golden-os-input"
+                        value={meetingDate}
+                        onChange={e => setMeetingDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="golden-os-field-label">Counselor Notes / Agenda</label>
+                      <textarea
+                        rows={3}
+                        className="golden-os-input"
+                        placeholder="e.g. Discuss medical leave, arrange remedial sessions"
+                        value={meetingNotes}
+                        onChange={e => setMeetingNotes(e.target.value)}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button type="button" className="golden-os-feedback-filter-btn" onClick={() => setActiveControlTab(null)}>
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={isSubmittingMeeting} className="golden-os-action-pill">
+                        {isSubmittingMeeting ? 'Saving...' : 'Confirm Meeting'}
+                      </button>
+                    </div>
+                  </form>
+                )}
 
-                    {/* Schedule Meeting Button */}
-                    <button
-                      onClick={() => {
-                        playCyberSound('click');
-                        setMeetingModalItem(item);
-                        setMeetingDate('');
-                        setMeetingNotes('');
-                      }}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid var(--border-subtle)',
-                        color: 'var(--color-primary)',
-                        padding: '8px 4px',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Calendar size={13} />
-                      Counseling
-                    </button>
-
-                    {/* Resolve Button */}
-                    <button
-                      onClick={() => {
-                        playCyberSound('click');
-                        setResolveModalItem(item);
-                        setResolveNotes('');
-                      }}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid var(--border-subtle)',
-                        color: '#059669',
-                        padding: '8px 4px',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <CheckCircle2 size={13} />
-                      Resolve
-                    </button>
-                  </div>
+                {activeControlTab === 'resolve' && (
+                  <form onSubmit={(e) => handleResolve(e, activeItem)} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #ece7dc' }}>
+                    <div>
+                      <label className="golden-os-field-label">Resolution Summary *</label>
+                      <textarea
+                        rows={3}
+                        required
+                        className="golden-os-input"
+                        placeholder="e.g. Approved medical leave certificates verified; makeup labs scheduled."
+                        value={resolveNotes}
+                        onChange={e => setResolveNotes(e.target.value)}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button type="button" className="golden-os-feedback-filter-btn" onClick={() => setActiveControlTab(null)}>
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={isSubmittingResolve} className="golden-os-action-pill">
+                        {isSubmittingResolve ? 'Resolving...' : 'Confirm Resolution'}
+                      </button>
+                    </div>
+                  </form>
                 )}
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* MODAL: SCHEDULE COUNSELING MEETING */}
-      {meetingModalItem && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, padding: '20px'
-        }}>
-          <div className="surface-card" style={{
-            background: '#ffffff',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '16px',
-            width: '100%', maxWidth: '480px',
-            padding: '28px', position: 'relative',
-            boxShadow: 'var(--shadow-modal)'
-          }}>
-            <button
-              onClick={() => setMeetingModalItem(null)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#696358', cursor: 'pointer' }}
-            >
-              <X size={20} />
-            </button>
-
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#25231f', fontWeight: 700 }}>Schedule Counseling Meeting</h3>
-            <p style={{ margin: '0 0 16px 0', color: '#58534a', fontSize: '0.85rem' }}>
-              Student: <strong>{meetingModalItem.student_name}</strong> ({meetingModalItem.student_roll}) • {meetingModalItem.attendance_percentage}%
-            </p>
-
-            <form onSubmit={handleScheduleMeeting}>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '6px', fontWeight: 600 }}>
-                  Meeting Date & Time *
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={meetingDate}
-                  onChange={e => setMeetingDate(e.target.value)}
-                  style={{
-                    width: '100%', background: '#ffffff',
-                    border: '1px solid var(--border-strong)', color: '#25231f',
-                    padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem'
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '6px', fontWeight: 600 }}>
-                  Counselor Notes / Agenda
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="e.g. Discuss medical leave, arrange remedial sessions for mechanics"
-                  value={meetingNotes}
-                  onChange={e => setMeetingNotes(e.target.value)}
-                  style={{
-                    width: '100%', background: '#ffffff',
-                    border: '1px solid var(--border-strong)', color: '#25231f',
-                    padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem', resize: 'none'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setMeetingModalItem(null)}
-                  className="btn-secondary"
-                  style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingMeeting}
-                  className="btn-primary"
-                  style={{ padding: '8px 18px', borderRadius: '8px', fontWeight: 700, cursor: isSubmittingMeeting ? 'not-allowed' : 'pointer' }}
-                >
-                  Confirm Meeting
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* MODAL: RESOLVE INTERVENTION */}
-      {resolveModalItem && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, padding: '20px'
-        }}>
-          <div className="surface-card" style={{
-            background: '#ffffff',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '16px',
-            width: '100%', maxWidth: '480px',
-            padding: '28px', position: 'relative',
-            boxShadow: 'var(--shadow-modal)'
-          }}>
-            <button
-              onClick={() => setResolveModalItem(null)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#696358', cursor: 'pointer' }}
-            >
-              <X size={20} />
-            </button>
-
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#25231f', fontWeight: 700 }}>Resolve Intervention</h3>
-            <p style={{ margin: '0 0 16px 0', color: '#58534a', fontSize: '0.85rem' }}>
-              Student: <strong>{resolveModalItem.student_name}</strong> ({resolveModalItem.student_roll})
-            </p>
-
-            <form onSubmit={handleResolve}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '6px', fontWeight: 600 }}>
-                  Resolution Summary *
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="e.g. Student submitted approved medical certificates; makeup labs completed."
-                  value={resolveNotes}
-                  onChange={e => setResolveNotes(e.target.value)}
-                  style={{
-                    width: '100%', background: '#ffffff',
-                    border: '1px solid var(--border-strong)', color: '#25231f',
-                    padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem', resize: 'none'
-                  }}
-                />
+  // ── MAIN SCREEN: CLEAN GOLDEN GATE MASTER LIST ─────────────────────────────
+  return (
+    <div className="golden-os-page-bottom-safe">
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Compact Status + Primary Controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {summary ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '0.8rem', fontWeight: 700, color: '#58534a' }}>
+                <span style={{ color: '#dc2626' }}>{summary.tier3_debarment_risk_count} Critical</span>
+                <span style={{ color: '#ea580c' }}>• {summary.tier2_parent_alert_count} Parent Alert</span>
+                <span style={{ color: '#d97706' }}>• {summary.tier1_warning_count} Warning</span>
+                <span>• {summary.total_interventions} Total</span>
               </div>
+            ) : <div />}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setResolveModalItem(null)}
-                  className="btn-secondary"
-                  style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingResolve}
-                  className="btn-primary"
-                  style={{ padding: '8px 18px', borderRadius: '8px', fontWeight: 700, cursor: isSubmittingResolve ? 'not-allowed' : 'pointer' }}
-                >
-                  Confirm Resolution
-                </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => { playCyberSound('click'); fetchData(); }}
+                disabled={isLoading}
+                className="golden-os-feedback-filter-btn"
+              >
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                <span>Refresh</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { playCyberSound('click'); handleRunEvaluation(); }}
+                disabled={isScanning}
+                className="golden-os-action-pill"
+              >
+                <ShieldAlert size={14} className={isScanning ? 'animate-spin' : ''} />
+                <span>{isScanning ? 'Scanning...' : 'Scan Campus'}</span>
+              </button>
+            </div>
+          </div>
+
+          {successMsg && (
+            <div className="feedback-banner success" role="status">
+              <CheckCircle2 size={16} />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="feedback-banner error" role="alert">
+              <AlertTriangle size={16} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Tier Filter Pills */}
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {[
+              { key: 'ALL', label: 'All Cases' },
+              { key: 'DEBARMENT_RISK', label: 'Critical (<60%)' },
+              { key: 'PARENT_ALERT', label: 'Parent Alert (60-70%)' },
+              { key: 'WARNING', label: 'Warning (70-75%)' }
+            ].map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => { playCyberSound('click'); setTierFilter(tab.key); }}
+                className={`golden-os-feedback-filter-btn ${tierFilter === tab.key ? 'active' : ''}`}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Clean Case Rows */}
+          <div className="golden-os-list-shell">
+            {interventions.length === 0 ? (
+              <div style={{ padding: '36px 20px', textAlign: 'center', color: '#696358' }}>
+                <CheckCircle2 size={34} color="#059669" style={{ opacity: 0.7, marginBottom: '10px' }} />
+                <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#25231f' }}>No Active Interventions</div>
               </div>
-            </form>
+            ) : (
+              interventions.map(item => {
+                const tierStyle = getTierStyle(item.tier);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      playCyberSound('click');
+                      setActiveControlTab(null);
+                      setErrorMsg('');
+                      setRouteView({ mode: 'detail', id: String(item.id), item });
+                    }}
+                    className="golden-os-list-row"
+                    style={{ width: '100%', background: 'transparent', borderLeft: 'none', borderRight: 'none', borderTop: 'none', textAlign: 'left', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                      <div className="golden-os-avatar" style={{
+                        background: tierStyle.bg,
+                        color: tierStyle.color,
+                        borderColor: tierStyle.border,
+                        flexShrink: 0
+                      }}>
+                        <UserCheck size={16} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.student_name}
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#696358', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.student_roll} • {item.department}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <span style={{
+                        background: tierStyle.bg,
+                        border: `1px solid ${tierStyle.border}`,
+                        color: tierStyle.color,
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '3px 9px',
+                        borderRadius: '999px'
+                      }}>
+                        {item.attendance_percentage}%
+                      </span>
+                      <ChevronRight size={16} color="#9c9384" />
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

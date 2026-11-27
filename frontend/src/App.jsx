@@ -843,6 +843,49 @@ export default function App() {
     return null;
   });
 
+  const [deviceRoute, setDeviceRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'devices' && parts[1]) {
+        if (parts[1] === 'register') return { mode: 'register' };
+        return { mode: 'detail', id: decodeURIComponent(parts[1]) };
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  const [interventionRoute, setInterventionRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'interventions' && parts[1]) {
+        return { mode: 'detail', id: decodeURIComponent(parts[1]) };
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  const [lmsRoute, setLmsRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'lms' && parts[1] && ['config', 'sync', 'history'].includes(parts[1])) {
+        return parts[1];
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  const [payrollRoute, setPayrollRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'payroll' && parts[1]) {
+        if (parts[1] === 'generate') return { mode: 'generate' };
+        if (parts[1] === 'record' && parts[2]) return { mode: 'record', id: decodeURIComponent(parts[2]) };
+        if (parts[1] === 'punch' && parts[2]) return { mode: 'punch', id: decodeURIComponent(parts[2]) };
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
   const [broadcastRoute, setBroadcastRoute] = useState(() => {
     try {
       const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
@@ -959,7 +1002,7 @@ export default function App() {
   const fetchDisputesPrefetch = useCallback(async (authToken, roleVal) => {
     const t = authToken;
     const r = String(roleVal || '').toLowerCase();
-    if (!t || !['admin', 'teacher', 'hod'].includes(r)) return;
+    if (!t || t === 'guest-demo-token' || !['admin', 'teacher', 'hod'].includes(r)) return;
     const cached = readScopedList('disputes', t);
     if (cached) {
       setDisputesQueue(prev => (prev.length > 0 ? prev : cached));
@@ -978,7 +1021,7 @@ export default function App() {
   }, [readScopedList, writeScopedList]);
 
   const fetchBroadcastsPrefetch = useCallback(async (authToken) => {
-    if (!authToken) return;
+    if (!authToken || authToken === 'guest-demo-token') return;
     const cached = readScopedList('broadcasts', authToken);
     if (cached) {
       setBroadcastsList(prev => (prev.length > 0 ? prev : cached));
@@ -994,7 +1037,7 @@ export default function App() {
   }, [readScopedList, writeScopedList]);
 
   const fetchCalendarPrefetch = useCallback(async (authToken) => {
-    if (!authToken) return;
+    if (!authToken || authToken === 'guest-demo-token') return;
     const cached = readScopedList('cal_events', authToken);
     if (cached) {
       setCalendarEvents(prev => (prev.length > 0 ? prev : cached));
@@ -1060,6 +1103,10 @@ export default function App() {
   const disputeRouteRef = useRef(disputeRoute);
   const faceReviewRouteRef = useRef(faceReviewRoute);
   const notificationRouteRef = useRef(notificationRoute);
+  const deviceRouteRef = useRef(deviceRoute);
+  const interventionRouteRef = useRef(interventionRoute);
+  const lmsRouteRef = useRef(lmsRoute);
+  const payrollRouteRef = useRef(payrollRoute);
   const broadcastRouteRef = useRef(broadcastRoute);
   const sessionHistoryRouteRef = useRef(sessionHistoryRoute);
   const routeLogIdRef = useRef(routeLogId);
@@ -1088,6 +1135,10 @@ export default function App() {
   useEffect(() => { disputeRouteRef.current = disputeRoute; }, [disputeRoute]);
   useEffect(() => { faceReviewRouteRef.current = faceReviewRoute; }, [faceReviewRoute]);
   useEffect(() => { notificationRouteRef.current = notificationRoute; }, [notificationRoute]);
+  useEffect(() => { deviceRouteRef.current = deviceRoute; }, [deviceRoute]);
+  useEffect(() => { interventionRouteRef.current = interventionRoute; }, [interventionRoute]);
+  useEffect(() => { lmsRouteRef.current = lmsRoute; }, [lmsRoute]);
+  useEffect(() => { payrollRouteRef.current = payrollRoute; }, [payrollRoute]);
   useEffect(() => { broadcastRouteRef.current = broadcastRoute; }, [broadcastRoute]);
   useEffect(() => { sessionHistoryRouteRef.current = sessionHistoryRoute; }, [sessionHistoryRoute]);
   useEffect(() => { routeLogIdRef.current = routeLogId; }, [routeLogId]);
@@ -1265,6 +1316,22 @@ export default function App() {
       setNotificationRoute(null);
       return;
     }
+    if (activeTabRef.current === 'devices' && deviceRouteRef.current !== null) {
+      setDeviceRoute(null);
+      return;
+    }
+    if (activeTabRef.current === 'interventions' && interventionRouteRef.current !== null) {
+      setInterventionRoute(null);
+      return;
+    }
+    if (activeTabRef.current === 'lms' && lmsRouteRef.current !== null) {
+      setLmsRoute(null);
+      return;
+    }
+    if (activeTabRef.current === 'payroll' && payrollRouteRef.current !== null) {
+      setPayrollRoute(null);
+      return;
+    }
     if (activeTabRef.current === 'broadcast' && broadcastRouteRef.current !== null) {
       if (broadcastRouteRef.current.mode === 'edit' && broadcastRouteRef.current.id != null) {
         setBroadcastRoute({ mode: 'detail', id: broadcastRouteRef.current.id, item: broadcastRouteRef.current.item });
@@ -1344,6 +1411,10 @@ export default function App() {
     setDisputeRoute(null);
     setFaceReviewRoute(null);
     setNotificationRoute(null);
+    setDeviceRoute(null);
+    setInterventionRoute(null);
+    setLmsRoute(null);
+    setPayrollRoute(null);
     setBroadcastRoute(null);
     setCalendarRoute(null);
     setReportRoute(null);
@@ -2993,6 +3064,18 @@ export default function App() {
   const notificationScrollKey = activeTab === 'notifications' && notificationRoute
     ? notificationRoute
     : '';
+  const deviceScrollKey = activeTab === 'devices' && deviceRoute
+    ? `${deviceRoute.mode ?? ''}:${deviceRoute.id ?? ''}`
+    : '';
+  const interventionScrollKey = activeTab === 'interventions' && interventionRoute
+    ? `${interventionRoute.mode ?? ''}:${interventionRoute.id ?? ''}`
+    : '';
+  const lmsScrollKey = activeTab === 'lms' && lmsRoute
+    ? lmsRoute
+    : '';
+  const payrollScrollKey = activeTab === 'payroll' && payrollRoute
+    ? `${payrollRoute.mode ?? ''}:${payrollRoute.id ?? ''}`
+    : '';
   const broadcastScrollKey = activeTab === 'broadcast' && broadcastRoute
     ? `${broadcastRoute.mode}:${broadcastRoute.id ?? ''}`
     : '';
@@ -3035,7 +3118,15 @@ export default function App() {
                     ? reportScrollKey
                     : activeTab === 'dashboard' && ['feedback', 'share-feedback'].includes(activeDashboardSubTab)
                       ? (dashboardFeedbackDetail?.id != null ? `feedback:${dashboardFeedbackDetail.id}` : '')
-                      : activeTab === 'student-profile'
+                      : activeTab === 'devices'
+                        ? deviceScrollKey
+                        : activeTab === 'interventions'
+                          ? interventionScrollKey
+                          : activeTab === 'lms'
+                            ? lmsScrollKey
+                            : activeTab === 'payroll'
+                              ? payrollScrollKey
+                              : activeTab === 'student-profile'
                         ? (profileSection || '')
                         : (activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student') ? studentScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
@@ -5766,7 +5857,7 @@ export default function App() {
 
   const fetchReport = async (forceRefresh = false, tokenOverride = null) => {
     const usedToken = tokenOverride || token;
-    if (!usedToken) return;
+    if (!usedToken || isDemoMode || usedToken === 'guest-demo-token') return;
     const isForce = forceRefresh === true;
     const cacheKey = getScopedListKey('reports', usedToken);
     if (cacheKey && reportData.students.length === 0) {
@@ -5816,6 +5907,12 @@ export default function App() {
   };
 
   const handleSendAbsenteeAlerts = async () => {
+    if (isDemoMode || token === 'guest-demo-token') {
+      setReportAlertMsg({ type: 'success', text: 'Sandbox preview: absentee alert queue simulated for low-attendance students.' });
+      playCyberSound('success');
+      setTimeout(() => setReportAlertMsg(null), 4000);
+      return;
+    }
     setIsSendingAlerts(true);
     setReportAlertMsg(null);
     try {
@@ -5953,7 +6050,7 @@ export default function App() {
 
   // Fetch session information (role and details) from backend
   const fetchSessionInfo = async (authToken) => {
-    if (isDemoMode) return;
+    if (isDemoMode || authToken === 'guest-demo-token' || localStorage.getItem('isDemoMode') === 'true') return;
     await authFetchSessionInfo(
       authToken,
       (data, tokenVal) => {
@@ -6444,7 +6541,7 @@ export default function App() {
   // Initialize session on mount or token change
   useEffect(() => {
     if (token) {
-      if (isDemoMode) return;
+      if (isDemoMode || token === 'guest-demo-token' || localStorage.getItem('isDemoMode') === 'true') return;
       if (loginJustCompletedRef.current) {
         loginJustCompletedRef.current = false;
         return;
@@ -6575,6 +6672,18 @@ export default function App() {
         if (activeBase !== 'notifications' && notificationRouteRef.current !== null) {
           setNotificationRoute(null);
         }
+        if (activeBase !== 'devices' && deviceRouteRef.current !== null) {
+          setDeviceRoute(null);
+        }
+        if (activeBase !== 'interventions' && interventionRouteRef.current !== null) {
+          setInterventionRoute(null);
+        }
+        if (activeBase !== 'lms' && lmsRouteRef.current !== null) {
+          setLmsRoute(null);
+        }
+        if (activeBase !== 'payroll' && payrollRouteRef.current !== null) {
+          setPayrollRoute(null);
+        }
         if (activeBase !== 'broadcast' && broadcastRouteRef.current !== null) {
           setBroadcastRoute(null);
         }
@@ -6649,6 +6758,34 @@ export default function App() {
           }
         } else if (baseHash === 'notifications') {
           setNotificationRoute(subHash === 'preferences' ? 'preferences' : null);
+        } else if (baseHash === 'devices') {
+          if (!subHash) {
+            if (deviceRouteRef.current !== null) setDeviceRoute(null);
+          } else if (subHash === 'register') {
+            setDeviceRoute({ mode: 'register' });
+          } else {
+            setDeviceRoute({ mode: 'detail', id: decodeURIComponent(subHash) });
+          }
+        } else if (baseHash === 'interventions') {
+          if (subHash) {
+            setInterventionRoute({ mode: 'detail', id: decodeURIComponent(subHash) });
+          } else if (interventionRouteRef.current !== null) {
+            setInterventionRoute(null);
+          }
+        } else if (baseHash === 'lms') {
+          setLmsRoute(subHash && ['config', 'sync', 'history'].includes(subHash) ? subHash : null);
+        } else if (baseHash === 'payroll') {
+          if (!subHash) {
+            if (payrollRouteRef.current !== null) setPayrollRoute(null);
+          } else if (subHash === 'generate') {
+            setPayrollRoute({ mode: 'generate' });
+          } else if (subHash === 'record' && subHash2) {
+            setPayrollRoute({ mode: 'record', id: decodeURIComponent(subHash2) });
+          } else if (subHash === 'punch' && subHash2) {
+            setPayrollRoute({ mode: 'punch', id: decodeURIComponent(subHash2) });
+          } else {
+            setPayrollRoute(null);
+          }
         } else if (baseHash === 'broadcast') {
           if (!subHash) {
             if (broadcastRouteRef.current !== null) setBroadcastRoute(null);
@@ -6867,7 +7004,19 @@ export default function App() {
                                                       ? `#/face-review/${encodeURIComponent(faceReviewRoute.id)}`
                                                       : activeTab === 'notifications' && notificationRoute === 'preferences'
                                                         ? '#/notifications/preferences'
-                                                        : `#/${activeTab}`;
+                                                        : activeTab === 'devices' && deviceRoute?.mode === 'register'
+                                                          ? '#/devices/register'
+                                                          : activeTab === 'devices' && deviceRoute?.mode === 'detail' && deviceRoute?.id != null
+                                                            ? `#/devices/${encodeURIComponent(deviceRoute.id)}`
+                                                            : activeTab === 'interventions' && interventionRoute?.id != null
+                                                              ? `#/interventions/${encodeURIComponent(interventionRoute.id)}`
+                                                              : activeTab === 'lms' && lmsRoute
+                                                                ? `#/lms/${lmsRoute}`
+                                                                : activeTab === 'payroll' && payrollRoute?.mode === 'generate'
+                                                                  ? '#/payroll/generate'
+                                                                  : activeTab === 'payroll' && (payrollRoute?.mode === 'record' || payrollRoute?.mode === 'punch') && payrollRoute?.id != null
+                                                                    ? `#/payroll/${payrollRoute.mode}/${encodeURIComponent(payrollRoute.id)}`
+                                                                    : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6956,6 +7105,13 @@ export default function App() {
     faceReviewRoute?.mode,
     faceReviewRoute?.id,
     notificationRoute,
+    deviceRoute?.mode,
+    deviceRoute?.id,
+    interventionRoute?.mode,
+    interventionRoute?.id,
+    lmsRoute,
+    payrollRoute?.mode,
+    payrollRoute?.id,
     token,
     userRole,
   ]);
@@ -7015,6 +7171,10 @@ export default function App() {
     setDisputeRoute(null);
     setFaceReviewRoute(null);
     setNotificationRoute(null);
+    setDeviceRoute(null);
+    setInterventionRoute(null);
+    setLmsRoute(null);
+    setPayrollRoute(null);
     setBroadcastRoute(null);
     setSessionHistoryRoute(null);
     setStudentRoute(null);
@@ -7119,6 +7279,7 @@ export default function App() {
   // Load core data once after login (Instant 0ms parallel background hydration)
   useEffect(() => {
     if (!token || !userRole) return;
+    if (isDemoMode || token === 'guest-demo-token') return;
 
     if (loginBootstrapDoneRef.current) {
       loginBootstrapDoneRef.current = false;
@@ -7485,13 +7646,15 @@ export default function App() {
 
   const handleExploreGuest = (selectedRole = 'admin') => {
     playCyberSound('success');
-    setIsDemoMode(true);
+    sessionInitializedRef.current = true;
     localStorage.setItem('isDemoMode', 'true');
-    sessionStorage.setItem('just_logged_in_tour', 'true');
-    setToken('guest-demo-token');
     localStorage.setItem('token', 'guest-demo-token');
-    setUserRole(selectedRole);
     localStorage.setItem('userRole', selectedRole);
+    setIsDemoMode(true);
+    setToken('guest-demo-token');
+    setUserRole(selectedRole);
+    setActiveTab(selectedRole === 'student' ? 'student-attendance' : 'dashboard');
+    setActiveSubSetting(null);
 
     let name = 'Guest Admin';
     let email = 'guest.admin@smartattendance.io';
@@ -7655,6 +7818,16 @@ export default function App() {
     setSettingsRadius('150');
     setSettingsIpEnabled(false);
     setSettingsIpRanges('192.168.1.0/24');
+    setReportData({
+      total_working_days: 22,
+      students: [
+        { id: 101, roll: '2023CSE01', name: 'Aarav Sharma', department: 'Computer Science', attended_days: 20, total_days: 22, percentage: 90.9, status: 'Eligible' },
+        { id: 102, roll: '2023CSE02', name: 'Ishita Patel', department: 'Computer Science', attended_days: 19, total_days: 22, percentage: 86.4, status: 'Eligible' },
+        { id: 103, roll: '2023ECE01', name: 'Kabir Verma', department: 'ECE', attended_days: 17, total_days: 22, percentage: 77.3, status: 'Eligible' },
+        { id: 104, roll: '2023CSE08', name: 'Riya Gupta', department: 'Computer Science', attended_days: 14, total_days: 22, percentage: 63.6, status: 'Shortage' },
+        { id: 105, roll: '2023ME04', name: 'Aditya Rao', department: 'Mechanical', attended_days: 12, total_days: 22, percentage: 54.5, status: 'Shortage' },
+      ]
+    });
   };
 
   // Shared post-login data hydrator: loads Home essentials immediately & defers heavy secondary queries
@@ -9776,10 +9949,27 @@ export default function App() {
                     }
                     return 'Academic Calendar';
                   })()}
-                  {activeTab === 'devices' && 'Kiosks & Sensors'}
-                  {activeTab === 'interventions' && 'Student Interventions'}
-                  {activeTab === 'lms' && 'LMS Integration'}
-                  {activeTab === 'payroll' && 'Staff & Payroll'}
+                  {activeTab === 'devices' && (() => {
+                    if (deviceRoute?.mode === 'register') return 'Onboard Attendance Kiosk';
+                    if (deviceRoute?.mode === 'detail') return deviceRoute.item?.name || `Device #${deviceRoute.id}`;
+                    return 'Kiosk & Sensor Fleet';
+                  })()}
+                  {activeTab === 'interventions' && (() => {
+                    if (interventionRoute?.mode === 'detail') return interventionRoute.item?.student_name || `Intervention #${interventionRoute.id}`;
+                    return 'Attendance Interventions';
+                  })()}
+                  {activeTab === 'lms' && (() => {
+                    if (lmsRoute === 'config') return 'LMS Provider Credentials';
+                    if (lmsRoute === 'sync') return 'Sync Operations';
+                    if (lmsRoute === 'history') return 'Sync Telemetry History';
+                    return 'SIS & Enterprise LMS Sync';
+                  })()}
+                  {activeTab === 'payroll' && (() => {
+                    if (payrollRoute?.mode === 'generate') return 'Generate Monthly Payroll';
+                    if (payrollRoute?.mode === 'record') return payrollRoute.item?.staff_name || `Payroll #${payrollRoute.id}`;
+                    if (payrollRoute?.mode === 'punch') return payrollRoute.item?.staff_name || `Punch Log #${payrollRoute.id}`;
+                    return 'Staff Attendance & Payroll';
+                  })()}
                   {activeTab === 'broadcast' && (() => {
                     if (broadcastRoute?.mode === 'create') return 'Publish Notice';
                     if (broadcastRoute?.mode === 'edit') return 'Edit Notice';
@@ -9853,7 +10043,7 @@ export default function App() {
                   {activeTab === 'notifications' && (notificationRoute === 'preferences' ? 'Notification Preferences' : 'Notifications')}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications', 'devices', 'interventions', 'lms', 'payroll'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -10448,7 +10638,10 @@ export default function App() {
           <DeviceHealthDashboard 
             token={token} 
             currentUser={currentUser} 
-            playCyberSound={playCyberSound} 
+            playCyberSound={playCyberSound}
+            isDemoMode={isDemoMode}
+            routeView={deviceRoute}
+            setRouteView={setDeviceRoute}
           />
         )}
 
@@ -10456,7 +10649,10 @@ export default function App() {
           <InterventionsManagementView 
             token={token} 
             currentUser={currentUser} 
-            playCyberSound={playCyberSound} 
+            playCyberSound={playCyberSound}
+            isDemoMode={isDemoMode}
+            routeView={interventionRoute}
+            setRouteView={setInterventionRoute}
           />
         )}
 
@@ -10464,7 +10660,10 @@ export default function App() {
           <LmsSyncIntegrationView 
             token={token} 
             currentUser={currentUser} 
-            playCyberSound={playCyberSound} 
+            playCyberSound={playCyberSound}
+            isDemoMode={isDemoMode}
+            routeView={lmsRoute}
+            setRouteView={setLmsRoute}
           />
         )}
 
@@ -10472,7 +10671,10 @@ export default function App() {
           <StaffPayrollView 
             token={token} 
             currentUser={currentUser} 
-            playCyberSound={playCyberSound} 
+            playCyberSound={playCyberSound}
+            isDemoMode={isDemoMode}
+            routeView={payrollRoute}
+            setRouteView={setPayrollRoute}
           />
         )}
 

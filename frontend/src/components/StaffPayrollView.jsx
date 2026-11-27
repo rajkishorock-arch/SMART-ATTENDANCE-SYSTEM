@@ -1,20 +1,78 @@
 import './campusAdmin.css';
 import { useState, useEffect, useCallback } from 'react';
-import { 
+import {
   DollarSign, Clock, CheckCircle2,
   AlertTriangle, RefreshCw, CreditCard,
-  LogIn, LogOut, X
+  LogIn, LogOut, ChevronRight
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
 const API_BASE_URL = getApiBaseUrl();
 
+const DEMO_PAYROLL = [
+  {
+    id: 1,
+    staff_name: 'Dr. R. K. Singh',
+    staff_email: 'rksingh@univ.edu',
+    days_present: 24,
+    days_half: 1,
+    days_absent: 1,
+    working_days: 26,
+    gross_salary: 65000,
+    deductions: 2500,
+    net_salary: 62500,
+    status: 'APPROVED'
+  },
+  {
+    id: 2,
+    staff_name: 'Dr. Priya Sen',
+    staff_email: 'priyasen@univ.edu',
+    days_present: 23,
+    days_half: 2,
+    days_absent: 1,
+    working_days: 26,
+    gross_salary: 58000,
+    deductions: 3200,
+    net_salary: 54800,
+    status: 'PENDING'
+  }
+];
+
+const DEMO_PUNCHES = [
+  {
+    id: 101,
+    staff_name: 'Dr. R. K. Singh',
+    date: '2026-11-27',
+    check_in: '08:55 AM',
+    check_out: '05:15 PM',
+    hours_worked: 8.3,
+    overtime_hours: 0.3,
+    status: 'OVERTIME'
+  },
+  {
+    id: 102,
+    staff_name: 'Dr. Priya Sen',
+    date: '2026-11-27',
+    check_in: '09:04 AM',
+    check_out: '04:30 PM',
+    hours_worked: 7.4,
+    overtime_hours: 0,
+    status: 'PRESENT'
+  }
+];
+
 export default function StaffPayrollView({
   token,
   currentUser,
-  playCyberSound = () => {}
+  isDemoMode = false,
+  playCyberSound = () => {},
+  routeView: propRouteView,
+  setRouteView: propSetRouteView
 }) {
   const isAdmin = currentUser?.role === 'admin';
+  const [localRouteView, setLocalRouteView] = useState(null);
+  const routeView = propSetRouteView !== undefined ? propRouteView : localRouteView;
+  const setRouteView = propSetRouteView !== undefined ? propSetRouteView : setLocalRouteView;
 
   const [activeSubTab, setActiveSubTab] = useState('payroll'); // 'payroll' or 'attendance'
   const [payrollRecords, setPayrollRecords] = useState([]);
@@ -28,71 +86,73 @@ export default function StaffPayrollView({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Punch states
   const [isPunching, setIsPunching] = useState(false);
-
-  // Payroll modal states
-  const [showCalcModal, setShowCalcModal] = useState(false);
   const [workingDays, setWorkingDays] = useState(26);
   const [baseSalary, setBaseSalary] = useState(50000);
   const [isCalculating, setIsCalculating] = useState(false);
 
+  const isSandbox = isDemoMode || token === 'guest-demo-token';
+
   const fetchData = useCallback(async () => {
     if (!token) return;
+    if (isSandbox) {
+      setPayrollRecords(DEMO_PAYROLL);
+      setAttendanceLogs(DEMO_PUNCHES);
+      setErrorMsg('');
+      return;
+    }
+
     setIsLoading(true);
     setErrorMsg('');
     try {
+      const headers = { Authorization: `Bearer ${token}` };
       if (activeSubTab === 'payroll') {
-        const res = await fetch(`${API_BASE_URL}/staff/payroll?month_year=${selectedMonth}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error((await res.json()).detail || 'Could not load staff records.');
-        {
-          setPayrollRecords(await res.json());
-        }
+        const res = await fetch(`${API_BASE_URL}/staff/payroll?month_year=${selectedMonth}`, { headers });
+        if (!res.ok) throw new Error((await res.json()).detail || 'Could not load staff payroll records.');
+        const rows = await res.json();
+        setPayrollRecords(Array.isArray(rows) ? rows : []);
       } else {
-        const res = await fetch(`${API_BASE_URL}/staff/attendance`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error((await res.json()).detail || 'Could not load staff records.');
-        {
-          setAttendanceLogs(await res.json());
-        }
+        const res = await fetch(`${API_BASE_URL}/staff/attendance`, { headers });
+        if (!res.ok) throw new Error((await res.json()).detail || 'Could not load staff punch logs.');
+        const rows = await res.json();
+        setAttendanceLogs(Array.isArray(rows) ? rows : []);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to fetch staff records.');
     } finally {
       setIsLoading(false);
     }
-  }, [token, activeSubTab, selectedMonth]);
+  }, [token, activeSubTab, selectedMonth, isSandbox]);
 
   useEffect(() => {
     let ignore = false;
     const run = async () => {
-      if (!ignore) {
-        await fetchData();
-      }
+      if (!ignore) await fetchData();
     };
     run();
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, [fetchData]);
 
-  // ── Staff Punch In / Out ──────────────────────────────────────────────────
   const handlePunch = async (action) => {
+    if (isSandbox) {
+      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      playCyberSound('success');
+      setSuccessMsg(`Sandbox preview: Punch ${action.toUpperCase()} recorded at ${timeNow}.`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+      return;
+    }
     setIsPunching(true);
     setErrorMsg('');
     try {
       const endpoint = action === 'in' ? '/staff/check-in' : '/staff/check-out';
       const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error((await res.json()).detail || `Staff punch ${action} failed.`);
       const data = await res.json();
       playCyberSound('success');
-      setSuccessMsg(`Punched ${action.toUpperCase()} recorded at ${action === 'in' ? data.check_in : data.check_out}!`);
+      setSuccessMsg(`Punch ${action.toUpperCase()} recorded at ${action === 'in' ? data.check_in : data.check_out}!`);
       fetchData();
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
@@ -103,21 +163,27 @@ export default function StaffPayrollView({
     }
   };
 
-  // ── Calculate Payroll ─────────────────────────────────────────────────────
   const handleCalculatePayroll = async (e) => {
     e.preventDefault();
+    if (isSandbox) {
+      playCyberSound('success');
+      setSuccessMsg(`Sandbox preview: Payroll computed for ${selectedMonth}.`);
+      setRouteView(null);
+      setTimeout(() => setSuccessMsg(''), 4000);
+      return;
+    }
     setIsCalculating(true);
     setErrorMsg('');
     try {
       const res = await fetch(`${API_BASE_URL}/staff/payroll/calculate`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           month_year: selectedMonth,
-          working_days: parseInt(workingDays),
+          working_days: parseInt(workingDays, 10),
           default_base_salary: parseFloat(baseSalary)
         })
       });
@@ -125,7 +191,7 @@ export default function StaffPayrollView({
       const data = await res.json();
       playCyberSound('success');
       setSuccessMsg(`Calculated payroll for ${data.length} staff members!`);
-      setShowCalcModal(false);
+      setRouteView(null);
       fetchData();
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
@@ -136,12 +202,18 @@ export default function StaffPayrollView({
     }
   };
 
-  // ── Approve Payroll Record ────────────────────────────────────────────────
   const handleApprovePayroll = async (recordId) => {
+    if (isSandbox) {
+      playCyberSound('success');
+      setSuccessMsg('Sandbox preview: Payroll payout approved!');
+      setTimeout(() => setSuccessMsg(''), 4000);
+      return;
+    }
+    setErrorMsg('');
     try {
       const res = await fetch(`${API_BASE_URL}/staff/payroll/${recordId}/approve`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to approve payroll record.');
       playCyberSound('success');
@@ -154,373 +226,430 @@ export default function StaffPayrollView({
     }
   };
 
-  return (
-    <div className="staff-payroll-container" style={{
-      color: 'var(--color-text-main)',
-      padding: '24px',
-      maxWidth: '1280px',
-      margin: '0 auto',
-      animation: 'fadeIn 0.3s ease-out'
-    }}>
-      <div className="campus-actions">
-            <button
-              onClick={() => handlePunch('in')}
-              disabled={isPunching}
-            >
-              <LogIn size={16} />
-              Punch In
-            </button>
-
-            <button
-              onClick={() => handlePunch('out')}
-              disabled={isPunching}
-            >
-              <LogOut size={16} />
-              Punch Out
-            </button>
-
-            {isAdmin && (
-              <button
-                onClick={() => { playCyberSound('click'); setShowCalcModal(true); }}
-              >
-                <CreditCard size={16} />
-                Generate Payroll
-              </button>
+  // ── SUBPAGE 1: GENERATE MONTHLY PAYROLL ────────────────────────────────────
+  if (routeView?.mode === 'generate') {
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {errorMsg && (
+              <div className="feedback-banner error" role="alert">
+                <AlertTriangle size={16} />
+                <span>{errorMsg}</span>
+              </div>
             )}
-        <button type="button" aria-label="Refresh" title="Refresh" onClick={fetchData} disabled={isLoading}>
-          <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-        </button>
-      </div>
 
-      {/* Alerts */}
-      {successMsg && (
-        <div style={{
-          background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)',
-          color: '#34d399', padding: '12px 18px', borderRadius: '12px', marginBottom: '20px',
-          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem'
-        }}>
-          <CheckCircle2 size={18} />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)',
-          color: '#f87171', padding: '12px 18px', borderRadius: '12px', marginBottom: '20px',
-          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem'
-        }}>
-          <AlertTriangle size={18} />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
-      {/* Tabs & Month Filter */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px',
-        marginBottom: '20px', flexWrap: 'wrap', gap: '12px'
-      }}>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => { playCyberSound('click'); setActiveSubTab('payroll'); }}
-            style={{
-              background: activeSubTab === 'payroll' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-              border: activeSubTab === 'payroll' ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid transparent',
-              color: activeSubTab === 'payroll' ? '#34d399' : '#94a3b8',
-              padding: '6px 16px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            Monthly Payroll Register
-          </button>
-
-          <button
-            onClick={() => { playCyberSound('click'); setActiveSubTab('attendance'); }}
-            style={{
-              background: activeSubTab === 'attendance' ? 'rgba(0, 242, 254, 0.2)' : 'transparent',
-              border: activeSubTab === 'attendance' ? '1px solid rgba(0, 242, 254, 0.5)' : '1px solid transparent',
-              color: activeSubTab === 'attendance' ? '#00f2fe' : '#94a3b8',
-              padding: '6px 16px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            Staff Punch Logs
-          </button>
-        </div>
-
-        {activeSubTab === 'payroll' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Month:</span>
-            <input
-              type="month"
-              aria-label="Payroll month"
-              value={selectedMonth.split('/').reverse().join('-')}
-              onChange={e => e.target.value && setSelectedMonth(e.target.value.split('-').reverse().join('/'))}
-              placeholder="MM/YYYY"
-              style={{
-                background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '0.85rem',
-                width: '100px', textAlign: 'center', fontFamily: 'monospace'
-              }}
-            />
-
-          </div>
-        )}
-      </div>
-
-      {/* ── SUBTAB 1: PAYROLL REGISTER ────────────────────────────────────── */}
-      {activeSubTab === 'payroll' && (
-        <div>
-          {payrollRecords.length === 0 ? (
-            <div style={{
-              background: '#ffffff', border: '1px dashed var(--border-subtle)',
-              borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: '#696358'
-            }}>
-              <DollarSign size={40} color="#059669" style={{ opacity: 0.6, marginBottom: '12px' }} />
-              <h4 style={{ margin: '0 0 6px 0', color: '#25231f', fontSize: '1.1rem' }}>
-                No Payroll Computed for {selectedMonth}
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#58534a' }}>
-                Click "Generate Payroll" above to automatically calculate attendance-based payouts.
-              </p>
-            </div>
-          ) : (
-            <div style={{
-              background: '#ffffff',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '16px',
-              overflowX: 'auto',
-              boxShadow: 'var(--shadow-card)'
-            }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem', minWidth: '600px' }}>
-                <thead>
-                  <tr style={{ background: '#faf9f6', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600, position: 'sticky', left: 0, zIndex: 10, background: '#faf9f6' }}>Staff Member</th>
-                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Attendance Breakdown</th>
-                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Gross Base</th>
-                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Deductions</th>
-                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Net Payout</th>
-                    <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600 }}>Status</th>
-                    {isAdmin && <th style={{ padding: '14px 18px', color: '#696358', fontWeight: 600, textAlign: 'right' }}>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {payrollRecords.map(rec => (
-                    <tr key={rec.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                      <td style={{ padding: '14px 18px', position: 'sticky', left: 0, zIndex: 5, background: '#25231f' }}>
-                        <div style={{ fontWeight: 700, color: '#fff' }}>{rec.staff_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{rec.staff_email}</div>
-                      </td>
-                      <td style={{ padding: '14px 18px' }}>
-                        <span style={{ color: '#34d399', fontWeight: 600 }}>{rec.days_present} Present</span> •{' '}
-                        <span style={{ color: '#fbbf24' }}>{rec.days_half} Half</span> •{' '}
-                        <span style={{ color: '#f87171' }}>{rec.days_absent} Absent</span> / {rec.working_days} Days
-                      </td>
-                      <td style={{ padding: '14px 18px', color: '#cfc8ba' }}>
-                        ₹{rec.gross_salary.toLocaleString()}
-                      </td>
-                      <td style={{ padding: '14px 18px', color: '#f87171', fontWeight: 600 }}>
-                        -₹{rec.deductions.toLocaleString()}
-                      </td>
-                      <td style={{ padding: '14px 18px', color: '#34d399', fontWeight: 800, fontSize: '1rem' }}>
-                        ₹{rec.net_salary.toLocaleString()}
-                      </td>
-                      <td style={{ padding: '14px 18px' }}>
-                        <span style={{
-                          background: rec.status === 'APPROVED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                          border: rec.status === 'APPROVED' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)',
-                          color: rec.status === 'APPROVED' ? '#34d399' : '#fbbf24',
-                          fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px'
-                        }}>
-                          {rec.status}
-                        </span>
-                      </td>
-                      {isAdmin && (
-                        <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                          {rec.status !== 'APPROVED' ? (
-                            <button
-                              onClick={() => handleApprovePayroll(rec.id)}
-                              style={{
-                                background: 'rgba(16, 185, 129, 0.15)',
-                                border: '1px solid rgba(16, 185, 129, 0.4)',
-                                color: '#34d399', padding: '6px 12px', borderRadius: '6px',
-                                fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer'
-                              }}
-                            >
-                              Approve Payout
-                            </button>
-                          ) : (
-                            <span style={{ color: '#696358', fontSize: '0.75rem' }}>Approved</span>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── SUBTAB 2: STAFF PUNCH LOGS ────────────────────────────────────── */}
-      {activeSubTab === 'attendance' && (
-        <div>
-          {attendanceLogs.length === 0 ? (
-            <div style={{
-              background: '#ffffff', border: '1px dashed var(--border-subtle)',
-              borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: '#696358'
-            }}>
-              <Clock size={40} color="#61471e" style={{ opacity: 0.6, marginBottom: '12px' }} />
-              <h4 style={{ margin: '0 0 6px 0', color: '#25231f', fontSize: '1.1rem' }}>
-                No Staff Punches Found
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#58534a' }}>
-                Staff members can record daily biometric check-in using the "Punch In" button.
-              </p>
-            </div>
-          ) : (
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px'
-            }}>
-              {attendanceLogs.map(log => (
-                <div
-                  key={log.id}
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '14px', padding: '18px',
-                    boxShadow: 'var(--shadow-card)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                    <div>
-                      <h4 style={{ margin: '0 0 4px 0', color: '#25231f', fontSize: '1.05rem' }}>{log.staff_name}</h4>
-                      <span style={{ fontSize: '0.78rem', color: '#696358' }}>📅 {log.date}</span>
-                    </div>
-
-                    <span style={{
-                      background: log.status === 'OVERTIME' ? 'rgba(139, 92, 246, 0.2)' : log.status === 'HALF_DAY' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                      border: log.status === 'OVERTIME' ? '1px solid rgba(139, 92, 246, 0.4)' : log.status === 'HALF_DAY' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
-                      color: log.status === 'OVERTIME' ? '#a78bfa' : log.status === 'HALF_DAY' ? '#fbbf24' : '#34d399',
-                      fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px'
-                    }}>
-                      {log.status}
-                    </span>
+            <form onSubmit={handleCalculatePayroll} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="golden-os-form-section">
+                <div className="golden-os-form-section-title">Payroll Calculation Parameters • {selectedMonth}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                  <div>
+                    <label className="golden-os-field-label">Institutional Working Days *</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      max={31}
+                      className="golden-os-input"
+                      value={workingDays}
+                      onChange={e => setWorkingDays(e.target.value)}
+                    />
                   </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: 'rgba(30, 41, 59, 0.5)', padding: '10px', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '10px' }}>
-                    <div>
-                      <span style={{ color: '#94a3b8' }}>In: </span>
-                      <strong style={{ color: '#34d399' }}>{log.check_in || '—'}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#94a3b8' }}>Out: </span>
-                      <strong style={{ color: '#f87171' }}>{log.check_out || '—'}</strong>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#cfc8ba' }}>
-                    <span>Hours Worked: <strong>{log.hours_worked} hrs</strong></span>
-                    {log.overtime_hours > 0 && (
-                      <span style={{ color: '#a78bfa', fontWeight: 600 }}>+{log.overtime_hours} hrs Overtime</span>
-                    )}
+                  <div>
+                    <label className="golden-os-field-label">Default Base Monthly Salary (₹) *</label>
+                    <input
+                      type="number"
+                      required
+                      min={1000}
+                      className="golden-os-input"
+                      value={baseSalary}
+                      onChange={e => setBaseSalary(e.target.value)}
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MODAL: GENERATE PAYROLL */}
-      {showCalcModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, padding: '20px'
-        }}>
-          <div style={{
-            background: '#ffffff', border: '1px solid var(--border-subtle)',
-            borderRadius: '16px', width: '100%', maxWidth: '440px', padding: '28px', position: 'relative',
-            boxShadow: 'var(--shadow-modal)'
-          }}>
-            <button
-              onClick={() => setShowCalcModal(false)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#696358', cursor: 'pointer' }}
-            >
-              <X size={20} />
-            </button>
-
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', color: '#25231f' }}>Generate Monthly Payroll</h3>
-            <p style={{ margin: '0 0 18px 0', color: '#696358', fontSize: '0.85rem' }}>
-              Target Cycle: <strong>{selectedMonth}</strong>
-            </p>
-
-            <form onSubmit={handleCalculatePayroll}>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '6px', fontWeight: 600 }}>
-                  Institutional Working Days *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  max={31}
-                  value={workingDays}
-                  onChange={e => setWorkingDays(e.target.value)}
-                  style={{
-                    width: '100%', background: '#ffffff',
-                    border: '1px solid var(--border-subtle)', color: '#25231f',
-                    padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem'
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#46423b', marginBottom: '6px', fontWeight: 600 }}>
-                  Default Base Monthly Salary (₹) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1000}
-                  value={baseSalary}
-                  onChange={e => setBaseSalary(e.target.value)}
-                  style={{
-                    width: '100%', background: '#ffffff',
-                    border: '1px solid var(--border-subtle)', color: '#059669',
-                    padding: '10px 12px', borderRadius: '8px', fontSize: '1rem', fontWeight: 700
-                  }}
-                />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowCalcModal(false)}
-                  style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#cfc8ba', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
-                >
+                <button type="button" className="golden-os-feedback-filter-btn" onClick={() => setRouteView(null)}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isCalculating}
-                  style={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    border: 'none', color: '#fff', padding: '8px 20px', borderRadius: '8px',
-                    fontWeight: 700, cursor: isCalculating ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {isCalculating ? 'Computing...' : 'Calculate Payouts'}
+                <button type="submit" disabled={isCalculating} className="golden-os-action-pill">
+                  <CreditCard size={15} />
+                  <span>{isCalculating ? 'Computing...' : 'Calculate Payouts'}</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // ── SUBPAGE 2: STAFF PAYROLL RECORD DETAIL ─────────────────────────────────
+  if (routeView?.mode === 'record') {
+    const rec =
+      payrollRecords.find(r => String(r.id) === String(routeView.id)) ||
+      routeView.item ||
+      (isSandbox ? DEMO_PAYROLL.find(r => String(r.id) === String(routeView.id)) : null) ||
+      null;
+
+    if (!rec) {
+      return (
+        <div className="golden-os-page-bottom-safe">
+          <div className="golden-os-window">
+            <div className="golden-os-body" style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <DollarSign size={36} color="#916d30" style={{ opacity: 0.45, marginBottom: '10px' }} />
+              <div style={{ fontWeight: 700, color: '#25231f', marginBottom: '8px' }}>Payroll record not found</div>
+              <button type="button" className="golden-os-action-pill" onClick={() => setRouteView(null)}>
+                Back to Payroll
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const isApproved = rec.status === 'APPROVED';
+
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {successMsg && (
+              <div className="feedback-banner success" role="status">
+                <CheckCircle2 size={16} />
+                <span>{successMsg}</span>
+              </div>
+            )}
+            {errorMsg && (
+              <div className="feedback-banner error" role="alert">
+                <AlertTriangle size={16} />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <div className="golden-os-inset-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>{rec.staff_name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#696358' }}>{rec.staff_email} • {selectedMonth}</div>
+              </div>
+              <span style={{
+                background: isApproved ? '#ecfdf5' : '#fffbeb',
+                border: `1px solid ${isApproved ? '#a7f3d0' : '#fde68a'}`,
+                color: isApproved ? '#059669' : '#d97706',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                padding: '4px 12px',
+                borderRadius: '999px'
+              }}>
+                {rec.status}
+              </span>
+            </div>
+
+            <div className="golden-os-list-shell">
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Attendance Breakdown</span>
+                <strong style={{ color: '#25231f', fontSize: '0.85rem' }}>
+                  {rec.days_present} Present • {rec.days_half} Half • {rec.days_absent} Absent / {rec.working_days} Days
+                </strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Gross Base Salary</span>
+                <strong style={{ color: '#25231f', fontSize: '0.88rem' }}>₹{rec.gross_salary.toLocaleString()}</strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Deductions</span>
+                <strong style={{ color: '#dc2626', fontSize: '0.88rem' }}>-₹{rec.deductions.toLocaleString()}</strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem', fontWeight: 700 }}>Net Payout</span>
+                <strong style={{ color: '#059669', fontSize: '1.05rem' }}>₹{rec.net_salary.toLocaleString()}</strong>
+              </div>
+            </div>
+
+            {isAdmin && !isApproved && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => handleApprovePayroll(rec.id)}
+                  className="golden-os-action-pill"
+                >
+                  <CheckCircle2 size={15} />
+                  <span>Approve Payout</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── SUBPAGE 3: STAFF PUNCH DETAIL ──────────────────────────────────────────
+  if (routeView?.mode === 'punch') {
+    const log =
+      attendanceLogs.find(l => String(l.id) === String(routeView.id)) ||
+      routeView.item ||
+      (isSandbox ? DEMO_PUNCHES.find(l => String(l.id) === String(routeView.id)) : null) ||
+      null;
+
+    if (!log) {
+      return (
+        <div className="golden-os-page-bottom-safe">
+          <div className="golden-os-window">
+            <div className="golden-os-body" style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <Clock size={36} color="#916d30" style={{ opacity: 0.45, marginBottom: '10px' }} />
+              <div style={{ fontWeight: 700, color: '#25231f', marginBottom: '8px' }}>Punch log not found</div>
+              <button type="button" className="golden-os-action-pill" onClick={() => setRouteView(null)}>
+                Back to Punch Logs
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-inset-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>{log.staff_name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#696358' }}>Date: {log.date}</div>
+              </div>
+              <span style={{
+                background: log.status === 'OVERTIME' ? '#f5f3ff' : '#ecfdf5',
+                border: `1px solid ${log.status === 'OVERTIME' ? '#ddd6fe' : '#a7f3d0'}`,
+                color: log.status === 'OVERTIME' ? '#7c3aed' : '#059669',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                padding: '4px 12px',
+                borderRadius: '999px'
+              }}>
+                {log.status}
+              </span>
+            </div>
+
+            <div className="golden-os-list-shell">
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Biometric Check-In</span>
+                <strong style={{ color: '#059669', fontSize: '0.88rem' }}>{log.check_in || '—'}</strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Biometric Check-Out</span>
+                <strong style={{ color: '#dc2626', fontSize: '0.88rem' }}>{log.check_out || '—'}</strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Total Hours Worked</span>
+                <strong style={{ color: '#25231f', fontSize: '0.88rem' }}>{log.hours_worked} hrs</strong>
+              </div>
+              {log.overtime_hours > 0 && (
+                <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                  <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Overtime Logged</span>
+                  <strong style={{ color: '#7c3aed', fontSize: '0.88rem' }}>+{log.overtime_hours} hrs</strong>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── MAIN SCREEN: CLEAN GOLDEN GATE MASTER LIST ─────────────────────────────
+  return (
+    <div className="golden-os-page-bottom-safe">
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Compact Top Action Strip */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => handlePunch('in')}
+                disabled={isPunching}
+                className="golden-os-feedback-filter-btn"
+              >
+                <LogIn size={14} />
+                <span>Punch In</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePunch('out')}
+                disabled={isPunching}
+                className="golden-os-feedback-filter-btn"
+              >
+                <LogOut size={14} />
+                <span>Punch Out</span>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button type="button" className="golden-os-feedback-filter-btn" onClick={fetchData} disabled={isLoading}>
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                <span>Refresh</span>
+              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => { playCyberSound('click'); setErrorMsg(''); setRouteView({ mode: 'generate' }); }}
+                  className="golden-os-action-pill"
+                >
+                  <CreditCard size={14} />
+                  <span>Generate Payroll</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {successMsg && (
+            <div className="feedback-banner success" role="status">
+              <CheckCircle2 size={16} />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="feedback-banner error" role="alert">
+              <AlertTriangle size={16} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Switcher & Month */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => { playCyberSound('click'); setActiveSubTab('payroll'); }}
+                className={`golden-os-feedback-filter-btn ${activeSubTab === 'payroll' ? 'active' : ''}`}
+              >
+                Payroll Register
+              </button>
+              <button
+                type="button"
+                onClick={() => { playCyberSound('click'); setActiveSubTab('attendance'); }}
+                className={`golden-os-feedback-filter-btn ${activeSubTab === 'attendance' ? 'active' : ''}`}
+              >
+                Punch Logs
+              </button>
+            </div>
+
+            {activeSubTab === 'payroll' && (
+              <input
+                type="month"
+                aria-label="Payroll month"
+                className="golden-os-input"
+                value={selectedMonth.split('/').reverse().join('-')}
+                onChange={e => e.target.value && setSelectedMonth(e.target.value.split('-').reverse().join('/'))}
+                style={{ width: 'auto', minWidth: '145px', padding: '7px 10px' }}
+              />
+            )}
+          </div>
+
+          {/* Clean List View */}
+          {activeSubTab === 'payroll' ? (
+            <div className="golden-os-list-shell">
+              {payrollRecords.length === 0 ? (
+                <div style={{ padding: '36px 20px', textAlign: 'center', color: '#696358' }}>
+                  <DollarSign size={34} color="#059669" style={{ opacity: 0.55, marginBottom: '10px' }} />
+                  <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#25231f' }}>
+                    No Payroll Computed for {selectedMonth}
+                  </div>
+                </div>
+              ) : (
+                payrollRecords.map(rec => {
+                  const isApproved = rec.status === 'APPROVED';
+                  return (
+                    <button
+                      key={rec.id}
+                      type="button"
+                      onClick={() => {
+                        playCyberSound('click');
+                        setErrorMsg('');
+                        setRouteView({ mode: 'record', id: String(rec.id), item: rec });
+                      }}
+                      className="golden-os-list-row"
+                      style={{ width: '100%', background: 'transparent', borderLeft: 'none', borderRight: 'none', borderTop: 'none', textAlign: 'left', cursor: 'pointer' }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {rec.staff_name}
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#696358', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {rec.days_present}/{rec.working_days} days • ₹{rec.net_salary.toLocaleString()} net
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        <span style={{
+                          background: isApproved ? '#ecfdf5' : '#fffbeb',
+                          border: `1px solid ${isApproved ? '#a7f3d0' : '#fde68a'}`,
+                          color: isApproved ? '#059669' : '#d97706',
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          padding: '3px 9px',
+                          borderRadius: '999px'
+                        }}>
+                          {rec.status}
+                        </span>
+                        <ChevronRight size={16} color="#9c9384" />
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <div className="golden-os-list-shell">
+              {attendanceLogs.length === 0 ? (
+                <div style={{ padding: '36px 20px', textAlign: 'center', color: '#696358' }}>
+                  <Clock size={34} color="#61471e" style={{ opacity: 0.55, marginBottom: '10px' }} />
+                  <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#25231f' }}>No Staff Punches Found</div>
+                </div>
+              ) : (
+                attendanceLogs.map(log => (
+                  <button
+                    key={log.id}
+                    type="button"
+                    onClick={() => {
+                      playCyberSound('click');
+                      setRouteView({ mode: 'punch', id: String(log.id), item: log });
+                    }}
+                    className="golden-os-list-row"
+                    style={{ width: '100%', background: 'transparent', borderLeft: 'none', borderRight: 'none', borderTop: 'none', textAlign: 'left', cursor: 'pointer' }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {log.staff_name}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#696358' }}>
+                        {log.date} • {log.hours_worked} hrs
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <span style={{
+                        background: log.status === 'OVERTIME' ? '#f5f3ff' : '#ecfdf5',
+                        border: `1px solid ${log.status === 'OVERTIME' ? '#ddd6fe' : '#a7f3d0'}`,
+                        color: log.status === 'OVERTIME' ? '#7c3aed' : '#059669',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        padding: '3px 9px',
+                        borderRadius: '999px'
+                      }}>
+                        {log.status}
+                      </span>
+                      <ChevronRight size={16} color="#9c9384" />
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
