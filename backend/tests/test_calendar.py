@@ -271,3 +271,143 @@ def test_substitute_teacher_assignment(client):
     assert sub_data["event_type"] == "TEACHER_SUBSTITUTION"
     assert sub_data["substitute_teacher_id"] == 3
     assert sub_data["substitute_teacher_name"] == "Dr. Ada Lovelace"
+
+
+def test_admin_and_teacher_aggregate_metrics_real_data(client):
+    admin_token = security.create_access_token(
+        data={"sub": "admin@apex.edu", "role": "admin", "institution_id": 1}
+    )
+    teacher_token = security.create_access_token(
+        data={"sub": "alan@apex.edu", "role": "teacher", "institution_id": 1}
+    )
+    headers_admin = {"Authorization": f"Bearer {admin_token}"}
+    headers_teacher = {"Authorization": f"Bearer {teacher_token}"}
+
+    # 1. Both admin and subject teacher get real non-zero institutional/subject metrics (NO student_id required)
+    for hdr in (headers_admin, headers_teacher):
+        res = client.get("/api/v1/calendar/attendance-metrics?subject_id=101", headers=hdr)
+        assert res.status_code == 200, res.text
+        data = res.json()
+        assert data["scheduled_classes"] == 10
+        assert data["cancelled_classes"] == 0
+        assert data["conducted_classes"] == 10
+        assert data["attended_classes"] == 7
+        assert data["attendance_percentage"] == 70.0
+        assert data["is_at_risk"] is True
+
+    # 2. Cancel one class on absent date (accepting ISO YYYY-MM-DD directly from <input type="date">)
+    cancel_res = client.post(
+        "/api/v1/calendar/cancel-class",
+        headers=headers_admin,
+        json={
+            "subject_id": 101,
+            "date": "2026-10-08",
+            "reason": "Departmental research symposium",
+            "session_time": "Period 1 (09:00 - 10:00 AM)"
+        }
+    )
+    assert cancel_res.status_code == 200, cancel_res.text
+    event_id = cancel_res.json()["id"]
+
+    # 3. Admin and teacher metrics immediately reflect protection (7 / 9 = 77.78%)
+    for hdr in (headers_admin, headers_teacher):
+        post_res = client.get("/api/v1/calendar/attendance-metrics?subject_id=101", headers=hdr)
+        assert post_res.status_code == 200
+        pdata = post_res.json()
+        assert pdata["cancelled_classes"] == 1
+        assert pdata["conducted_classes"] == 9
+        assert pdata["attended_classes"] == 7
+        assert pdata["attendance_percentage"] == 77.78
+        assert pdata["is_at_risk"] is False
+
+    # 4. Admin can also inspect a specific student's metrics explicitly
+    stud_res = client.get("/api/v1/calendar/attendance-metrics?subject_id=101&student_id=501", headers=headers_admin)
+    assert stud_res.status_code == 200
+    assert stud_res.json()["attendance_percentage"] == 77.78
+
+    # 5. Cleanup
+    del_res = client.delete(f"/api/v1/calendar/events/{event_id}", headers=headers_admin)
+    assert del_res.status_code == 200
+
+
+def test_substitute_teacher_workflow_permissions_and_listing(client):
+    alan_token = security.create_access_token(
+        data={"sub": "alan@apex.edu", "role": "teacher", "institution_id": 1}
+    )
+    ada_token = security.create_access_token(
+        data={"sub": "ada@apex.edu", "role": "teacher", "institution_id": 1}
+    )
+    headers_alan = {"Authorization": f"Bearer {alan_token}"}
+    headers_ada = {"Authorization": f"Bearer {ada_token}"}
+
+    # 1. Teacher can list fellow teachers via /users?role=teacher for substitute picker
+    users_res = client.get("/api/v1/users?role=teacher", headers=headers_alan)
+    assert users_res.status_code == 200, users_res.text
+    teacher_emails = [u["email"] for u in users_res.json()]
+    assert "ada@apex.edu" in teacher_emails
+
+    # 2. Before substitution, Ada does NOT have access to Deep Learning (subject 101)
+    ada_subs_before = client.get("/api/v1/subjects", headers=headers_ada)
+    assert ada_subs_before.status_code == 200
+    assert not any(s["id"] == 101 for s in ada_subs_before.json())
+
+    # 3. Alan delegates today's class to Dr. Ada Lovelace
+    ist_today_iso = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d")
+    sub_res = client.post(
+        "/api/v1/calendar/substitute",
+        headers=headers_alan,
+        json={
+            "subject_id": 101,
+            "substitute_teacher_id": 3,
+            "date": ist_today_iso,
+            "reason": "Academic jury panel duty"
+        }
+    )
+    assert sub_res.status_code == 200, sub_res.text
+    sub_event_id = sub_res.json()["id"]
+
+    # 4. Ada now sees Deep Learning in /subjects AND can mark manual attendance & view sessions-history
+    ada_subs_after = client.get("/api/v1/subjects", headers=headers_ada)
+    assert ada_subs_after.status_code == 200
+    assert any(s["id"] == 101 for s in ada_subs_after.json())
+
+    hist_res = client.get("/api/v1/attendance/sessions-history?subject_id=101", headers=headers_ada)
+    assert hist_res.status_code == 200, hist_res.text
+
+    manual_res = client.post(
+        "/api/v1/attendance/manual",
+        headers=headers_ada,
+        json={
+            "records": [{
+                "student_id": 501,
+                "attendance_status": "Present",
+                "subject_id": 101,
+                "custom_date": ist_today_iso
+            }]
+        }
+    )
+    assert manual_res.status_code == 200, manual_res.text
+    assert manual_res.json().get("success_count") == 1, manual_res.json()
+
+    # 5. Deleting substitution event revokes active SubstituteAssignment
+    del_res = client.delete(f"/api/v1/calendar/events/{sub_event_id}", headers=headers_alan)
+    assert del_res.status_code == 200
+    ada_subs_revoked = client.get("/api/v1/subjects", headers=headers_ada)
+    assert not any(s["id"] == 101 for s in ada_subs_revoked.json())
+    hist_revoked = client.get("/api/v1/attendance/sessions-history?subject_id=101", headers=headers_ada)
+    assert hist_revoked.status_code == 403
+    denied_res = client.post(
+        "/api/v1/attendance/manual",
+        headers=headers_ada,
+        json={
+            "records": [{
+                "student_id": 501,
+                "attendance_status": "Present",
+                "subject_id": 101,
+                "custom_date": ist_today_iso
+            }]
+        }
+    )
+    assert denied_res.status_code == 200
+    assert denied_res.json().get("success_count") == 0
+    assert denied_res.json().get("fail_count") == 1

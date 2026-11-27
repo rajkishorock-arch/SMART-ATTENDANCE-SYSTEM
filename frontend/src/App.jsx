@@ -1,11 +1,20 @@
 import { startLivenessChallenge, reportLivenessStep } from './utils/livenessClient';
 import { attendanceCoordinates } from './utils/attendanceCoordinates';
+import {
+  normalizeToIsoDate,
+  compareAttendanceLogsNewestFirst,
+  compareSessionsNewestFirst,
+  getLogRouteId,
+  findLogByRouteId,
+  filterActiveStudentLogs,
+  applyOptimisticSessionToggle,
+} from './utils/attendanceDateUtils';
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { isNative, getApiBaseUrl, requestNativePermissions, saveAndShareFile } from './utils/platform';
 import { triggerNativeHaptic } from './utils/nativeMobile';
 import { initKeepAliveEngine } from './utils/keepAlive';
 import { fetchWithDedupe, clearApiClientCache } from './utils/apiClient';
-import { studentApi, teacherApi, attendanceApi, systemApi, disputeApi, notificationApi, apiGet } from './api/index.js';
+import { studentApi, teacherApi, attendanceApi, systemApi, disputeApi, notificationApi, calendarApi, apiGet } from './api/index.js';
 import ScannerBootOverlay from './ScannerBootOverlay';
 import BottomNav from './components/BottomNav';
 import LoginPortal from './components/LoginPortal';
@@ -679,6 +688,19 @@ export default function App() {
     return null;
   });
 
+  const [calendarRoute, setCalendarRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'calendar' && parts[1]) {
+        if (parts[1] === 'event' && parts[2]) return { mode: 'detail', id: decodeURIComponent(parts[2]) };
+        if (['schedule', 'analytics', 'cancel', 'substitute', 'new'].includes(parts[1])) {
+          return { mode: parts[1] };
+        }
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
   const getScopedListKey = useCallback((domain, authToken) => {
     try {
       const t = authToken || localStorage.getItem('token') || '';
@@ -715,6 +737,18 @@ export default function App() {
   const [disputesLoaded, setDisputesLoaded] = useState(() => readScopedList('disputes') !== null);
   const [broadcastsList, setBroadcastsList] = useState(() => readScopedList('broadcasts') || []);
   const [broadcastsLoaded, setBroadcastsLoaded] = useState(() => readScopedList('broadcasts') !== null);
+  const [calendarEvents, setCalendarEvents] = useState(() => readScopedList('cal_events') || []);
+  const [calendarEventsLoaded, setCalendarEventsLoaded] = useState(() => readScopedList('cal_events') !== null);
+  const [calendarMetrics, setCalendarMetrics] = useState(() => {
+    try {
+      const key = getScopedListKey('cal_metrics');
+      if (!key) return null;
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const fetchDisputesPrefetch = useCallback(async (authToken, roleVal) => {
     const t = authToken;
@@ -752,6 +786,33 @@ export default function App() {
       writeScopedList('broadcasts', list, authToken);
     } catch { /* silent background prefetch */ }
   }, [readScopedList, writeScopedList]);
+
+  const fetchCalendarPrefetch = useCallback(async (authToken) => {
+    if (!authToken) return;
+    const cached = readScopedList('cal_events', authToken);
+    if (cached) {
+      setCalendarEvents(prev => (prev.length > 0 ? prev : cached));
+      setCalendarEventsLoaded(true);
+    }
+    try {
+      const [evRes, metRes] = await Promise.allSettled([
+        calendarApi.fetchEvents(authToken),
+        calendarApi.fetchAttendanceMetrics(authToken),
+      ]);
+      if (evRes.status === 'fulfilled' && Array.isArray(evRes.value)) {
+        setCalendarEvents(evRes.value);
+        setCalendarEventsLoaded(true);
+        writeScopedList('cal_events', evRes.value, authToken);
+      }
+      if (metRes.status === 'fulfilled' && metRes.value) {
+        setCalendarMetrics(metRes.value);
+        try {
+          const mKey = getScopedListKey('cal_metrics', authToken);
+          if (mKey) localStorage.setItem(mKey, JSON.stringify(metRes.value));
+        } catch { /* ignore */ }
+      }
+    } catch { /* silent background prefetch */ }
+  }, [getScopedListKey, readScopedList, writeScopedList]);
 
   // Route Scroll Position Preservation (restores exact scroll position on Back navigation)
   const getRouteScrollKey = (tab, subTab, subSet, subDetail = '') => `${tab || ''}|${subTab || ''}|${subSet || ''}|${subDetail || ''}`;
@@ -794,6 +855,7 @@ export default function App() {
   const broadcastRouteRef = useRef(broadcastRoute);
   const sessionHistoryRouteRef = useRef(sessionHistoryRoute);
   const routeLogIdRef = useRef(routeLogId);
+  const calendarRouteRef = useRef(calendarRoute);
   const selectedAuditLogRef = useRef(null);
   const scheduleReturnTargetRef = useRef(null);
   const showWebcamModalRef = useRef(false);
@@ -816,6 +878,7 @@ export default function App() {
   useEffect(() => { broadcastRouteRef.current = broadcastRoute; }, [broadcastRoute]);
   useEffect(() => { sessionHistoryRouteRef.current = sessionHistoryRoute; }, [sessionHistoryRoute]);
   useEffect(() => { routeLogIdRef.current = routeLogId; }, [routeLogId]);
+  useEffect(() => { calendarRouteRef.current = calendarRoute; }, [calendarRoute]);
 
   // Record user scroll position continuously while settled on the current view
   useEffect(() => {
@@ -897,6 +960,9 @@ export default function App() {
         setSelectedAuditLog(null);
         setRouteLogId(null);
       }
+      if (activeTab !== 'calendar') {
+        setCalendarRoute(null);
+      }
       prevActiveTabRef.current = activeTab;
     }
   }, [activeTab]);
@@ -966,6 +1032,14 @@ export default function App() {
         setBroadcastRoute({ mode: 'detail', id: broadcastRouteRef.current.id, item: broadcastRouteRef.current.item });
       } else {
         setBroadcastRoute(null);
+      }
+      return;
+    }
+    if (activeTabRef.current === 'calendar' && calendarRouteRef.current !== null) {
+      if (calendarRouteRef.current.mode === 'detail') {
+        setCalendarRoute({ mode: 'schedule' });
+      } else {
+        setCalendarRoute(null);
       }
       return;
     }
@@ -2382,6 +2456,8 @@ export default function App() {
   });
   const [logs, setLogs] = useState(() => {
     try {
+      const scoped = readScopedList('logs');
+      if (scoped) return scoped;
       const cached = localStorage.getItem('cached_logs');
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
@@ -2624,11 +2700,14 @@ export default function App() {
   const broadcastScrollKey = activeTab === 'broadcast' && broadcastRoute
     ? `${broadcastRoute.mode}:${broadcastRoute.id ?? ''}`
     : '';
-  const logsScrollKey = activeTab === 'logs' && (selectedAuditLog?.id ?? routeLogId) != null
-    ? `detail:${selectedAuditLog?.id ?? routeLogId}`
+  const logsScrollKey = activeTab === 'logs' && (getLogRouteId(selectedAuditLog) ?? routeLogId) != null
+    ? `detail:${getLogRouteId(selectedAuditLog) ?? routeLogId}`
     : '';
   const sessionHistoryScrollKey = activeTab === 'session-history' && sessionHistoryRoute
     ? `detail:${sessionHistoryRoute}`
+    : '';
+  const calendarScrollKey = activeTab === 'calendar' && calendarRoute
+    ? `${calendarRoute.mode}:${calendarRoute.id ?? ''}`
     : '';
   const activeSubDetailKey = activeTab === 'students'
     ? studentSubScrollKey
@@ -2642,7 +2721,9 @@ export default function App() {
             ? broadcastScrollKey
             : activeTab === 'logs'
               ? logsScrollKey
-              : (activeTab === 'session-history' ? sessionHistoryScrollKey : '');
+              : activeTab === 'session-history'
+                ? sessionHistoryScrollKey
+                : (activeTab === 'calendar' ? calendarScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
 
   useLayoutEffect(() => {
@@ -2932,7 +3013,7 @@ export default function App() {
     }
   };
 
-  // Fetch Attendance Logs (Supports options.limit with safe rich history preservation)
+  // Fetch Attendance Logs (Supports options.limit with safe rich history preservation & newest-date sorting)
   const fetchLogs = async (authToken, options = {}) => {
     if (isDemoMode) return;
     const usedToken = typeof authToken === 'string' ? authToken : token;
@@ -2940,7 +3021,7 @@ export default function App() {
       fetchStudentLogs(usedToken);
     }
     try {
-      const limitVal = options && options.limit ? options.limit : 300;
+      const limitVal = options && options.limit ? options.limit : 1000;
       const res = await attendanceApi.fetchLogs(usedToken, 0, limitVal);
       if (res.status === 401) {
         handleLogout();
@@ -2949,17 +3030,19 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
+          const sorted = [...data].sort(compareAttendanceLogsNewestFirst);
           setLogs(prev => {
-            if (options.limit && options.limit < 50 && prev && prev.length > data.length) {
+            if (options.limit && options.limit < 50 && prev && prev.length > sorted.length) {
               return prev;
             }
-            return data;
+            return sorted;
           });
           if (!options.limit || options.limit >= 50) {
+            writeScopedList('logs', sorted, usedToken);
             try {
-              localStorage.setItem('cached_logs', JSON.stringify(data));
+              localStorage.setItem('cached_logs', JSON.stringify(sorted.slice(0, 200)));
               localStorage.setItem('cached_logs_timestamp', Date.now().toString());
-            } catch {}
+            } catch { /* ignore */ }
           }
         }
       }
@@ -3016,36 +3099,87 @@ export default function App() {
     await authSendHeartbeat();
   };
 
-  // Fetch session history (Instant 0ms retrieval with multi-level local cache)
-  const fetchSessionHistory = async (subjId = null, dateVal = null, periodVal = null) => {
+  // Fetch full subject session history (all dates + all periods fetched once & filtered at 0ms on client)
+  const readCachedSubjectSessions = useCallback((subjKey, authToken) => {
+    const usedToken = authToken || token;
+    if (!subjKey) return [];
+    if (subjKey === 'all') {
+      const scopedSubjects = selectedHistoryDept
+        ? subjects.filter(s => departmentsMatch(s.department, selectedHistoryDept))
+        : subjects;
+      const combined = scopedSubjects.flatMap(sub => readScopedList(`sh_${sub.id}`, usedToken) || []);
+      return combined.sort(compareSessionsNewestFirst);
+    }
+    const scoped = readScopedList(`sh_${subjKey}`, usedToken);
+    if (scoped) return scoped;
+    try {
+      const legacy = localStorage.getItem(`cached_session_history_${subjKey}`);
+      const parsed = legacy ? JSON.parse(legacy) : null;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [token, selectedHistoryDept, subjects, departmentsMatch, readScopedList]);
+
+  const fetchSessionHistory = async (subjId = null, _dateVal = null, _periodVal = null) => {
     if (isDemoMode) return;
     const sId = subjId || selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
     if (!sId && subjects.length > 0) return;
     const reqId = ++sessionHistoryRequestRef.current;
-    try {
-      const dVal = dateVal !== null ? dateVal : historyFilterDate;
-      const pVal = periodVal !== null ? periodVal : historyFilterPeriod;
 
-      const res = await attendanceApi.fetchSessionHistory(token, sId, dVal, pVal);
-      if (reqId !== sessionHistoryRequestRef.current) return;
+    const loadSingleSubject = async (targetSubId) => {
+      const res = await attendanceApi.fetchSessionHistory(token, targetSubId);
       if (res.status === 401) {
-        handleLogout();
-        return;
+        const err = new Error('Unauthorized');
+        err.status = 401;
+        throw err;
       }
       if (!res.ok) {
         throw new Error(`Session history unavailable (HTTP ${res.status})`);
       }
       const data = await res.json();
-      if (reqId !== sessionHistoryRequestRef.current) return;
-      if (Array.isArray(data)) {
-        setSessionHistory(data);
-        try {
-          localStorage.setItem('cached_session_history', JSON.stringify(data));
-          if (sId) {
-            localStorage.setItem(`cached_session_history_${sId}`, JSON.stringify(data));
-          }
-        } catch { /* storage fallback */ }
+      const sorted = Array.isArray(data) ? [...data].sort(compareSessionsNewestFirst) : [];
+      if (targetSubId) {
+        writeScopedList(`sh_${targetSubId}`, sorted, token);
       }
+      return sorted;
+    };
+
+    try {
+      let nextData = [];
+      if (sId === 'all') {
+        const scopedSubjects = selectedHistoryDept
+          ? subjects.filter(s => departmentsMatch(s.department, selectedHistoryDept))
+          : subjects;
+        const settled = await Promise.allSettled(scopedSubjects.map(sub => loadSingleSubject(sub.id)));
+        const merged = [];
+        const seen = new Set();
+        settled.forEach((entry) => {
+          if (entry.status === 'fulfilled' && Array.isArray(entry.value)) {
+            entry.value.forEach((sess) => {
+              const dedupeKey = `${sess.subject_id || ''}|${sess.date}|${sess.period}`;
+              if (!seen.has(dedupeKey)) {
+                seen.add(dedupeKey);
+                merged.push(sess);
+              }
+            });
+          } else if (entry.status === 'rejected' && entry.reason?.status === 401) {
+            throw entry.reason;
+          }
+        });
+        nextData = merged.sort(compareSessionsNewestFirst);
+      } else {
+        nextData = await loadSingleSubject(sId);
+      }
+
+      if (reqId !== sessionHistoryRequestRef.current) return;
+      setSessionHistory(nextData);
+      try {
+        localStorage.setItem('cached_session_history', JSON.stringify(nextData.slice(0, 150)));
+        if (sId && sId !== 'all') {
+          localStorage.setItem(`cached_session_history_${sId}`, JSON.stringify(nextData.slice(0, 150)));
+        }
+      } catch { /* storage fallback */ }
     } catch (err) {
       if (reqId !== sessionHistoryRequestRef.current) return;
       if (err.status === 401) {
@@ -3116,8 +3250,8 @@ export default function App() {
       playCyberSound(result.fail_count ? 'error' : 'success');
       setSelectedHistorySubjectId(String(parsedSubjectId));
       setHistoryFilterDate(manualDate);
-      setHistoryFilterPeriod(manualPeriod);
-      fetchSessionHistory(parsedSubjectId, manualDate, manualPeriod);
+      setHistoryFilterPeriod('');
+      fetchSessionHistory(parsedSubjectId);
       fetchStats();
       fetchLogs();
     } catch (err) {
@@ -3129,41 +3263,28 @@ export default function App() {
   };
 
   // Toggle student attendance status manually
-  const toggleStudentSessionAttendance = async (studentId, currentStatus, dateVal, periodVal) => {
+  const toggleStudentSessionAttendance = async (studentId, currentStatus, dateVal, periodVal, overrideSubjectId = null) => {
+    const nextStatus = currentStatus === 'Present' ? 'Absent' : 'Present';
     if (isDemoMode) {
-      setSessionHistory(prevHistory => {
-        return prevHistory.map(sess => {
-          if (sess.date === dateVal && sess.period === periodVal) {
-            const nextStatus = currentStatus === 'Present' ? 'Absent' : 'Present';
-            const updatedStudents = sess.students.map(st => {
-              if (st.id === studentId) {
-                return { ...st, status: nextStatus };
-              }
-              return st;
-            });
-            const present_count = updatedStudents.filter(st => st.status === 'Present').length;
-            const absent_count = updatedStudents.filter(st => st.status === 'Absent').length;
-            return {
-              ...sess,
-              present_count,
-              absent_count,
-              students: updatedStudents
-            };
-          }
-          return sess;
-        });
-      });
+      setSessionHistory(prev => applyOptimisticSessionToggle(prev, studentId, nextStatus, dateVal, periodVal));
       playCyberSound('success');
       return;
     }
 
+    const activeSubjectVal = overrideSubjectId || (selectedHistorySubjectId !== 'all' ? selectedHistorySubjectId : null) || selectedSubjectId || selectedTeacherSubjectId;
+    setSessionHistory(prev => {
+      const updated = applyOptimisticSessionToggle(prev, studentId, nextStatus, dateVal, periodVal);
+      if (activeSubjectVal && activeSubjectVal !== 'all') {
+        writeScopedList(`sh_${activeSubjectVal}`, updated, token);
+      }
+      return updated;
+    });
+
     try {
-      const nextStatus = currentStatus === 'Present' ? 'Absent' : 'Present';
-      const sId = selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
       const res = await attendanceApi.toggleSessionStatus(token, {
         student_id: studentId,
         attendance_status: nextStatus,
-        subject_id: sId ? parseInt(sId, 10) : null,
+        subject_id: activeSubjectVal ? parseInt(activeSubjectVal, 10) : null,
         custom_date: dateVal,
         custom_time: periodVal
       });
@@ -3177,12 +3298,16 @@ export default function App() {
       }
 
       playCyberSound('success');
-      fetchSessionHistory(sId, historyFilterDate, historyFilterPeriod);
+      fetchSessionHistory(selectedHistorySubjectId || activeSubjectVal);
+      fetchStats();
+      fetchLogs();
     } catch (err) {
       if (err.status === 401) {
         handleLogout();
         return;
       }
+      // Revert optimistic toggle if backend save failed
+      fetchSessionHistory(selectedHistorySubjectId || activeSubjectVal);
       console.error('Error toggling student attendance:', err);
       alert(err.message || 'Failed to connect to backend server.');
     }
@@ -3206,7 +3331,7 @@ export default function App() {
 
   // Fetch teachers
   const lastTeachersFetchTimeRef = useRef(0);
-  const fetchTeachers = async (authToken, force = false) => {
+  const fetchTeachers = async (authToken, force = false, roleOverride = null) => {
     if (isDemoMode) return;
     const now = Date.now();
     if (!force && !authToken && teachers.length > 0 && now - lastTeachersFetchTimeRef.current < 60000) {
@@ -3214,8 +3339,9 @@ export default function App() {
     }
     lastTeachersFetchTimeRef.current = now;
     const usedToken = authToken || token;
+    const activeRole = String(roleOverride || userRoleRef.current || userRole || '').toLowerCase();
     try {
-      const res = await teacherApi.listTeachers(usedToken);
+      const res = await teacherApi.listTeachers(usedToken, activeRole === 'teacher' ? 'teacher' : null);
       if (res.ok) {
         const data = await res.json();
         const teacherUsers = data.filter(u => u.role === 'teacher' || u.role === 'admin');
@@ -6062,6 +6188,9 @@ export default function App() {
           setSelectedAuditLog(null);
           setRouteLogId(null);
         }
+        if (activeBase !== 'calendar' && calendarRouteRef.current !== null) {
+          setCalendarRoute(null);
+        }
       };
 
       if (baseHash && isTabValidForRole(baseHash, userRole)) {
@@ -6115,7 +6244,11 @@ export default function App() {
           if (subHash) {
             const decodedId = decodeURIComponent(subHash);
             setRouteLogId(decodedId);
-            if (selectedAuditLogRef.current && String(selectedAuditLogRef.current.id) !== decodedId) {
+            if (
+              selectedAuditLogRef.current &&
+              getLogRouteId(selectedAuditLogRef.current) !== decodedId &&
+              String(selectedAuditLogRef.current.id) !== decodedId
+            ) {
               setSelectedAuditLog(null);
             }
           } else {
@@ -6127,6 +6260,16 @@ export default function App() {
             setSessionHistoryRoute(decodeURIComponent(subHash));
           } else if (sessionHistoryRouteRef.current !== null) {
             setSessionHistoryRoute(null);
+          }
+        } else if (baseHash === 'calendar') {
+          if (!subHash) {
+            if (calendarRouteRef.current !== null) setCalendarRoute(null);
+          } else if (subHash === 'event' && subHash2) {
+            setCalendarRoute({ mode: 'detail', id: decodeURIComponent(subHash2) });
+          } else if (['schedule', 'analytics', 'cancel', 'substitute', 'new'].includes(subHash)) {
+            setCalendarRoute({ mode: subHash });
+          } else if (calendarRouteRef.current !== null) {
+            setCalendarRoute(null);
           }
         } else if (baseHash === 'students') {
           if (!subHash) {
@@ -6266,11 +6409,15 @@ export default function App() {
                                   ? `#/broadcast/${broadcastRoute.id}/edit`
                                   : activeTab === 'broadcast' && broadcastRoute?.mode === 'detail' && broadcastRoute?.id != null
                                     ? `#/broadcast/${broadcastRoute.id}`
-                                    : activeTab === 'logs' && (selectedAuditLog?.id ?? routeLogId) != null
-                                      ? `#/logs/${encodeURIComponent(selectedAuditLog?.id ?? routeLogId)}`
+                                    : activeTab === 'logs' && (getLogRouteId(selectedAuditLog) ?? routeLogId) != null
+                                      ? `#/logs/${encodeURIComponent(getLogRouteId(selectedAuditLog) ?? routeLogId)}`
                                       : activeTab === 'session-history' && sessionHistoryRoute
                                         ? `#/session-history/${encodeURIComponent(sessionHistoryRoute)}`
-                                        : `#/${activeTab}`;
+                                        : activeTab === 'calendar' && calendarRoute?.mode === 'detail' && calendarRoute?.id != null
+                                          ? `#/calendar/event/${encodeURIComponent(calendarRoute.id)}`
+                                          : activeTab === 'calendar' && calendarRoute?.mode
+                                            ? `#/calendar/${calendarRoute.mode}`
+                                            : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6290,7 +6437,10 @@ export default function App() {
           stack.pop();
           expectedHashRef.current = expectedHash;
           window.history.back();
-        } else if (isTeacherRootHash(topHash) && isTeacherRootHash(expectedHash)) {
+        } else if (
+          (isTeacherRootHash(topHash) && isTeacherRootHash(expectedHash)) ||
+          (topHash === '#/calendar/new' && expectedHash === '#/calendar/schedule')
+        ) {
           stack[stack.length - 1] = expectedHash;
           expectedHashRef.current = expectedHash;
           window.history.replaceState(window.history.state, '', expectedHash);
@@ -6338,9 +6488,12 @@ export default function App() {
     disputeRoute?.id,
     broadcastRoute?.mode,
     broadcastRoute?.id,
+    selectedAuditLog?.record_id,
     selectedAuditLog?.id,
     routeLogId,
     sessionHistoryRoute,
+    calendarRoute?.mode,
+    calendarRoute?.id,
     token,
     userRole,
   ]);
@@ -6516,17 +6669,20 @@ export default function App() {
           fetchStudentLogs(token),
           fetchStudentLeaves(),
           fetchBlueprint(token),
+          fetchCalendarPrefetch(token),
           currentUser?.details ? fetchStudentSubjectStats(currentUser.details.dep, currentUser.details.id) : Promise.resolve()
         ]);
       } else {
-        // Fetch stats, 100 recent history logs, students, subjects, departments, and history in parallel
+        // Fetch stats, 1000 history logs, students, subjects, departments, calendar, and initial subject history in parallel
         Promise.allSettled([
           fetchStats(token),
-          fetchLogs(token, { limit: 100 }),
+          fetchLogs(token, { limit: 1000 }),
           fetchStudents(token),
           fetchSubjects(token),
           fetchDepartments(token),
-          fetchSessionHistory()
+          fetchSessionHistory(),
+          fetchCalendarPrefetch(token),
+          ...(userRole === 'teacher' ? [fetchTeachers(token, false, userRole)] : [])
         ]);
       }
 
@@ -6577,7 +6733,7 @@ export default function App() {
   // Refresh data when switching tabs (On-demand fetching per tab)
   useEffect(() => {
     if (!token || !userRole) return;
-    if (userRole === 'student' && !['student-attendance', 'student-profile', 'ai-assistant'].includes(activeTab)) return;
+    if (userRole === 'student' && !['student-attendance', 'student-profile', 'ai-assistant', 'calendar'].includes(activeTab)) return;
 
     switch (activeTab) {
       case 'dashboard':
@@ -6586,11 +6742,13 @@ export default function App() {
         if (userRole === 'admin' || userRole === 'teacher') fetchStudents();
         fetchDisputesPrefetch(token, userRole);
         fetchBroadcastsPrefetch(token);
+        fetchCalendarPrefetch(token);
         break;
       case 'control':
       case 'all-features':
         fetchDisputesPrefetch(token, userRole);
         fetchBroadcastsPrefetch(token);
+        fetchCalendarPrefetch(token);
         break;
       case 'disputes':
         fetchDisputesPrefetch(token, userRole);
@@ -6598,11 +6756,20 @@ export default function App() {
       case 'broadcast':
         fetchBroadcastsPrefetch(token);
         break;
+      case 'calendar':
+        fetchCalendarPrefetch(token);
+        fetchSubjects();
+        if (userRole === 'admin' || userRole === 'teacher') {
+          fetchStudents();
+          fetchTeachers();
+        }
+        break;
       case 'students':
         fetchSubjects().then(() => fetchStudents());
         break;
       case 'logs':
         fetchSubjects();
+        fetchStudents();
         fetchLogs();
         break;
       case 'attendance':
@@ -6618,7 +6785,7 @@ export default function App() {
         break;
       case 'session-history':
         fetchSubjects();
-        fetchSessionHistory();
+        fetchStudents();
         break;
       case 'settings':
         if (userRole === 'admin') {
@@ -6649,6 +6816,7 @@ export default function App() {
         fetchBlueprint(token);
         fetchStudentLeaves(token);
         fetchBroadcastsPrefetch(token);
+        fetchCalendarPrefetch(token);
         {
           const sDept = currentUser?.details?.dep || currentUser?.department || currentUser?.dep;
           const sId = currentUser?.details?.id || currentUser?.id;
@@ -6761,7 +6929,10 @@ export default function App() {
         const deptSubjects = subjects.filter(s => s.department === dept);
         if (deptSubjects.length > 0) {
           const firstSubIdStr = deptSubjects[0].id.toString();
-          if (!selectedHistorySubjectId || !deptSubjects.some(s => s.id.toString() === selectedHistorySubjectId)) {
+          if (
+            !selectedHistorySubjectId ||
+            (selectedHistorySubjectId !== 'all' && !deptSubjects.some(s => s.id.toString() === selectedHistorySubjectId))
+          ) {
             setSelectedHistorySubjectId(firstSubIdStr);
           }
         } else {
@@ -6776,21 +6947,32 @@ export default function App() {
     }
   }, [userRole, currentUser, subjects, selectedHistoryDept, selectedHistorySubjectId]);
 
-  // Fetch session history when filters change reactively (Hydrates cached history at 0ms first)
+  // Hydrate full multi-date/multi-period session history at 0ms and background-prefetch subjects so filters apply instantly
   useEffect(() => {
-    if (activeTab === 'session-history' && selectedHistorySubjectId) {
-      try {
-        const cachedSubj = localStorage.getItem(`cached_session_history_${selectedHistorySubjectId}`);
-        if (cachedSubj) {
-          const parsed = JSON.parse(cachedSubj);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setSessionHistory(parsed);
-          }
-        }
-      } catch { /* storage fallback */ }
-      fetchSessionHistory(selectedHistorySubjectId, historyFilterDate, historyFilterPeriod);
+    if (activeTab !== 'session-history' || !token) return;
+    if (selectedHistorySubjectId) {
+      const cached = readCachedSubjectSessions(selectedHistorySubjectId, token);
+      if (cached.length > 0) {
+        setSessionHistory(cached);
+      }
+      fetchSessionHistory(selectedHistorySubjectId);
     }
-  }, [activeTab, selectedHistorySubjectId, historyFilterDate, historyFilterPeriod]);
+    if (userRole === 'admin' && subjects.length > 1) {
+      subjects.slice(0, 10).forEach((sub) => {
+        const sid = String(sub.id);
+        if (sid === String(selectedHistorySubjectId)) return;
+        attendanceApi.fetchSessionHistory(token, sub.id)
+          .then(res => (res.ok ? res.json() : null))
+          .then(data => {
+            if (Array.isArray(data)) {
+              const sorted = [...data].sort(compareSessionsNewestFirst);
+              writeScopedList(`sh_${sub.id}`, sorted, token);
+            }
+          })
+          .catch(() => {});
+      });
+    }
+  }, [activeTab, selectedHistorySubjectId, token, userRole, subjects.length]);
 
 
   const getRoleMismatchMessage = (expectedRole, actualRole) => {
@@ -6988,6 +7170,7 @@ export default function App() {
           fetchBlueprint(newToken),
           fetchSubjects(newToken),
           fetchBroadcastsPrefetch(newToken),
+          fetchCalendarPrefetch(newToken),
           ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
         ]);
       } else {
@@ -7001,7 +7184,8 @@ export default function App() {
           fetchStudents(newToken),
           fetchDisputesPrefetch(newToken, meData.role),
           fetchBroadcastsPrefetch(newToken),
-          ...(meData.role === 'admin' ? [fetchTeachers(newToken), fetchFeedbacks(newToken, meData.role)] : [])
+          fetchCalendarPrefetch(newToken),
+          ...(meData.role === 'admin' ? [fetchTeachers(newToken, false, meData.role), fetchFeedbacks(newToken, meData.role)] : meData.role === 'teacher' ? [fetchTeachers(newToken, false, meData.role)] : [])
         ]);
       }
     });
@@ -7031,6 +7215,7 @@ export default function App() {
           fetchBlueprint(newToken),
           fetchSubjects(newToken),
           fetchBroadcastsPrefetch(newToken),
+          fetchCalendarPrefetch(newToken),
           ...(studentDept && studentId ? [fetchStudentSubjectStats(studentDept, studentId, newToken)] : [])
         ]);
       } else {
@@ -7044,7 +7229,8 @@ export default function App() {
           fetchStudents(newToken),
           fetchDisputesPrefetch(newToken, meData.role),
           fetchBroadcastsPrefetch(newToken),
-          ...(meData.role === 'admin' ? [fetchTeachers(newToken), fetchFeedbacks(newToken, meData.role)] : [])
+          fetchCalendarPrefetch(newToken),
+          ...(meData.role === 'admin' ? [fetchTeachers(newToken, false, meData.role), fetchFeedbacks(newToken, meData.role)] : meData.role === 'teacher' ? [fetchTeachers(newToken, false, meData.role)] : [])
         ]);
       }
     });
@@ -7072,6 +7258,10 @@ export default function App() {
       setDisputeRoute(null);
       setBroadcastRoute(null);
       setSessionHistoryRoute(null);
+      setCalendarEvents([]);
+      setCalendarEventsLoaded(false);
+      setCalendarMetrics(null);
+      setCalendarRoute(null);
       setSessionHistory([]);
       setSelectedAuditLog(null);
       setRouteLogId(null);
@@ -7118,12 +7308,24 @@ export default function App() {
       return;
     }
 
-    // Immediately remove from local state for instant UI response
+    // Immediately remove from local state + cached logs for instant UI consistency
+    const removedStudent = students.find(s => s.id === id);
+    const removedRoll = String(removedStudent?.roll || '').trim().toLowerCase();
     setStudents(prev => {
       const next = prev.filter(s => s.id !== id);
       try {
         localStorage.setItem('cached_students', JSON.stringify(next));
       } catch { /* ignore */ }
+      return next;
+    });
+    setLogs(prev => {
+      const next = prev.filter(log => {
+        const rawId = String(log?.id || '').trim();
+        const baseId = rawId.split('_')[0];
+        const lRoll = String(log?.roll || '').trim().toLowerCase();
+        return rawId !== String(id) && baseId !== String(id) && (!removedRoll || lRoll !== removedRoll);
+      });
+      writeScopedList('logs', next, token);
       return next;
     });
 
@@ -7171,6 +7373,12 @@ export default function App() {
         }
       }
       setSelectedStudentIds(new Set());
+      setLogs(prev => {
+        const idSet = new Set(idsToDelete.map(String));
+        const next = prev.filter(log => !idSet.has(String(log?.id || '').split('_')[0]));
+        writeScopedList('logs', next, token);
+        return next;
+      });
       fetchStudents();
       fetchStats();
       fetchLogs();
@@ -7777,44 +7985,54 @@ export default function App() {
   }, [students, studentSearch, userRole, studentDeptFilter, subjects, selectedTeacherSubjectId, currentUser, departmentsMatch]);
 
   const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
-      const matchesSearch = 
-        (log.name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
-        (log.roll || '').toLowerCase().includes(logSearch.toLowerCase()) ||
-        (log.id || '').toLowerCase().includes(logSearch.toLowerCase());
+    const activeLogs = filterActiveStudentLogs(logs, students);
+    const q = logSearch.trim().toLowerCase();
+    const targetIsoDate = normalizeToIsoDate(logDateFilter);
 
-      let matchesDept = true;
-      if (userRole === 'admin') {
-        matchesDept = !logDeptFilter || log.department === logDeptFilter;
-      } else if (userRole === 'teacher') {
-        const teacherSubjectIds = subjects
-          .filter(s => s.teacher_id === currentUser?.details?.id)
-          .map(s => s.id);
-        if (selectedTeacherLogSubjectId) {
-          // Match by selected subject, OR include logs with null subject_id from teacher's dept
-          matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId);
-        } else {
-          // Include logs matching any of teacher's subjects (null subject_id treated as dept match)
-          if (teacherSubjectIds.length === 0) {
-            matchesDept = true;
-          } else {
+    return activeLogs
+      .filter(log => {
+        const matchesSearch =
+          !q ||
+          (log.name || '').toLowerCase().includes(q) ||
+          (log.roll || '').toLowerCase().includes(q) ||
+          (log.subject_name || '').toLowerCase().includes(q) ||
+          (log.period_label || log.period || '').toLowerCase().includes(q);
+
+        let matchesDept = true;
+        if (userRole === 'admin') {
+          if (logDeptFilter) {
+            const logSubj = log.subject_id != null ? subjects.find(s => s.id === log.subject_id) : null;
+            const candidateDept = log.department || logSubj?.department || '';
+            matchesDept =
+              candidateDept === logDeptFilter ||
+              departmentsMatch(candidateDept, logDeptFilter);
+          }
+        } else if (userRole === 'teacher') {
+          const teacherSubjectIds = subjects
+            .filter(s => s.teacher_id === currentUser?.details?.id)
+            .map(s => s.id);
+          if (selectedTeacherLogSubjectId) {
+            matchesDept = log.subject_id === parseInt(selectedTeacherLogSubjectId, 10);
+          } else if (teacherSubjectIds.length > 0) {
             const teacherDepts = subjects
               .filter(s => s.teacher_id === currentUser?.details?.id)
               .map(s => s.department);
-            matchesDept = teacherSubjectIds.includes(log.subject_id) ||
-              (log.subject_id == null && teacherDepts.includes(log.department));
+            matchesDept =
+              teacherSubjectIds.includes(log.subject_id) ||
+              (log.subject_id == null && teacherDepts.some(td => departmentsMatch(log.department, td)));
           }
         }
-      }
 
-      const matchesDate = !logDateFilter || log.date === logDateFilter.split('-').reverse().join('/'); // Converts yyyy-mm-dd to dd/mm/yyyy
-      const matchesQuickFilter = 
-        quickFilterStatus === 'all' || 
-        (log.attendance || '').toLowerCase() === quickFilterStatus;
+        const matchesDate = !targetIsoDate || normalizeToIsoDate(log.date) === targetIsoDate;
+        const attStatus = (log.attendance || '').toLowerCase();
+        const matchesQuickFilter =
+          quickFilterStatus === 'all' ||
+          attStatus === quickFilterStatus;
 
-      return matchesSearch && matchesDept && matchesDate && matchesQuickFilter;
-    });
-  }, [logs, logSearch, userRole, logDeptFilter, subjects, currentUser, selectedTeacherLogSubjectId, logDateFilter, quickFilterStatus]);
+        return matchesSearch && matchesDept && matchesDate && matchesQuickFilter;
+      })
+      .sort(compareAttendanceLogsNewestFirst);
+  }, [logs, students, logSearch, userRole, logDeptFilter, subjects, currentUser, selectedTeacherLogSubjectId, logDateFilter, quickFilterStatus, departmentsMatch]);
 
   const presentToday = stats?.total_present_today ?? 0;
   const liveActivities = useMemo(() => {
@@ -8698,7 +8916,7 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  onClick={() => { navigateToTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Calendar size={18} />
                   <span>Academic Calendar</span>
@@ -8814,7 +9032,7 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  onClick={() => { navigateToTab('calendar'); setMobileSidebarOpen(false); playCyberSound('click'); }}
                 >
                   <Calendar size={18} />
                   <span>Academic Calendar</span>
@@ -9014,7 +9232,7 @@ export default function App() {
                     return 'Teacher Directory';
                   })()}
                   {activeTab === 'logs' && (() => {
-                    const activeLog = selectedAuditLog || (routeLogId != null ? filteredLogs.find(l => String(l.id) === String(routeLogId)) : null);
+                    const activeLog = selectedAuditLog || (routeLogId != null ? findLogByRouteId(filteredLogs, routeLogId) : null);
                     return activeLog?.name || (routeLogId != null ? `Record #${routeLogId}` : 'Attendance Logs');
                   })()}
                   {activeTab === 'attendance' && 'Take Attendance'}
@@ -9033,7 +9251,19 @@ export default function App() {
                     return 'Attendance Disputes';
                   })()}
                   {activeTab === 'face-review' && 'Face Match Review'}
-                  {activeTab === 'calendar' && 'Academic Calendar'}
+                  {activeTab === 'calendar' && (() => {
+                    if (calendarRoute?.mode === 'schedule') return 'Institutional Schedule';
+                    if (calendarRoute?.mode === 'analytics') return 'Protection Analytics';
+                    if (calendarRoute?.mode === 'cancel') return 'Cancel Class Session';
+                    if (calendarRoute?.mode === 'substitute') return 'Substitute Delegation';
+                    if (calendarRoute?.mode === 'new') return 'Schedule Event';
+                    if (calendarRoute?.mode === 'detail') {
+                      return calendarRoute.item?.title ||
+                        calendarEvents.find(e => String(e.id) === String(calendarRoute.id))?.title ||
+                        `Event #${calendarRoute.id}`;
+                    }
+                    return 'Academic Calendar';
+                  })()}
                   {activeTab === 'devices' && 'Kiosks & Sensors'}
                   {activeTab === 'interventions' && 'Student Interventions'}
                   {activeTab === 'lms' && 'LMS Integration'}
@@ -9100,7 +9330,7 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast', 'logs', 'session-history'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast', 'logs', 'session-history', 'calendar'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -9340,7 +9570,7 @@ export default function App() {
               appLang={appLang}
               playCyberSound={playCyberSound}
               currentUser={currentUser}
-              onNavigateToCalendar={() => { setActiveTab('calendar'); playCyberSound('click'); }}
+              onNavigateToCalendar={() => { navigateToTab('calendar'); playCyberSound('click'); }}
               onNavigateTab={navigateToTab}
             />
           ) : (
@@ -9515,7 +9745,7 @@ export default function App() {
             selectedAuditLog={selectedAuditLog}
             setSelectedAuditLog={(log) => {
               setSelectedAuditLog(log);
-              setRouteLogId(log ? log.id : null);
+              setRouteLogId(getLogRouteId(log));
             }}
             routeLogId={routeLogId}
             onCloseSubView={handleNavigateBack}
@@ -9525,6 +9755,7 @@ export default function App() {
             exportToCSV={exportToCSV}
             shiftDate={shiftDate}
             getPeriodSlotLabel={getPeriodSlotLabel}
+            onRefresh={() => fetchLogs(token)}
             isMobileView={isMobileView}
           />
         )}
@@ -9583,6 +9814,7 @@ export default function App() {
             routeSessionKey={sessionHistoryRoute}
             setRouteSessionKey={setSessionHistoryRoute}
             onCloseSubView={handleNavigateBack}
+            onRefresh={() => fetchSessionHistory(selectedHistorySubjectId)}
             isMobileView={isMobileView}
           />
         )}
@@ -9644,7 +9876,28 @@ export default function App() {
           <AcademicCalendarView 
             token={token} 
             currentUser={currentUser} 
-            playCyberSound={playCyberSound} 
+            playCyberSound={playCyberSound}
+            eventsData={calendarEvents}
+            hasLoadedData={calendarEventsLoaded}
+            onEventsChange={(nextList) => {
+              setCalendarEvents(nextList);
+              setCalendarEventsLoaded(true);
+              writeScopedList('cal_events', nextList);
+            }}
+            initialMetrics={calendarMetrics}
+            onMetricsChange={(nextMetrics) => {
+              setCalendarMetrics(nextMetrics);
+              try {
+                const mKey = getScopedListKey('cal_metrics');
+                if (mKey && nextMetrics) localStorage.setItem(mKey, JSON.stringify(nextMetrics));
+              } catch { /* ignore */ }
+            }}
+            subjects={subjects}
+            students={students}
+            teachers={teachers}
+            routeView={calendarRoute}
+            setRouteView={setCalendarRoute}
+            onCloseSubView={handleNavigateBack}
           />
         )}
 
@@ -10058,7 +10311,7 @@ export default function App() {
             blueprintDayModalDate={blueprintDayModalDate}
             setBlueprintDayModalDate={setBlueprintDayModalDate}
             appLang={appLang}
-            onNavigateToCalendar={() => { setActiveTab('calendar'); playCyberSound('click'); }}
+            onNavigateToCalendar={() => { navigateToTab('calendar'); playCyberSound('click'); }}
             onNavigateTab={navigateToTab}
           />
         )}

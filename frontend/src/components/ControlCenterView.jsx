@@ -15,24 +15,18 @@ import {
   ShieldCheck,
   UserCircle,
   Bot,
-  Search,
   ChevronRight,
   LogOut,
-  Sparkles,
   TrendingUp,
-  ArrowLeft,
-  Building2,
   Megaphone,
 } from 'lucide-react';
 
 export default function ControlCenterView({
   userRole,
-  currentUser,
   onNavigate,
   onLogout,
   playCyberSound = () => {},
   triggerHaptic = () => {},
-  appVersion = '1.0.18',
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('ALL');
@@ -362,7 +356,7 @@ export default function ControlCenterView({
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
-        padding: '0 0 12px 0',
+        padding: '0',
         boxSizing: 'border-box',
         minWidth: 0,
         overflowX: 'hidden',
@@ -578,10 +572,9 @@ export default function ControlCenterView({
       {/* Footer Sign Out Action */}
       <div
         style={{
-          marginTop: '6px',
+          marginTop: '4px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px',
           alignItems: 'center',
           width: '100%',
           maxWidth: '100%',
@@ -596,34 +589,16 @@ export default function ControlCenterView({
             triggerHaptic();
             onLogout();
           }}
-          className="hover-elevate active-haptic"
-          style={{
-            width: '100%',
-            maxWidth: '100%',
-            boxSizing: 'border-box',
-            padding: '12px 18px',
-            borderRadius: '12px',
-            background: '#ffffff',
-            border: '1.5px solid #fecaca',
-            color: '#dc2626',
-            fontSize: '0.86rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(220, 38, 38, 0.05)',
-            transition: 'all 0.18s ease',
-          }}
+          className="golden-os-signout-btn active-haptic"
         >
-          <LogOut size={16} />
-          <span>Sign Out from Campus Session</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+            <span className="golden-os-signout-icon">
+              <LogOut size={16} />
+            </span>
+            <span>Sign Out</span>
+          </span>
+          <span className="golden-os-signout-pill">End Session</span>
         </button>
-
-        <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
-          SMART ATTENDANCE SYSTEM • v{appVersion} • Cloud Synchronized
-        </div>
       </div>
     </div>
   );

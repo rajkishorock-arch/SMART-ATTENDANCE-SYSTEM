@@ -58,10 +58,7 @@ def get_attendance_logs(
     subject_ids = None
     teacher_depts = None
     if current_user.role == "teacher":
-        teacher_subjects = db.query(models.Subject).filter(
-            models.Subject.teacher_id == current_user.id,
-            models.Subject.institution_id == current_user.institution_id
-        ).all()
+        teacher_subjects = crud.get_teacher_accessible_subjects(db, current_user)
         subject_ids = [s.id for s in teacher_subjects] if teacher_subjects else None
         teacher_depts = [s.department for s in teacher_subjects if s.department]
         if current_user.department and current_user.department not in teacher_depts:
@@ -90,6 +87,7 @@ def get_attendance_logs(
         s_name = sub_map.get(log.subject_id, "General Attendance" if not log.subject_id else f"Subject #{log.subject_id}")
         
         output_logs.append(schemas.Attendance(
+            record_id=log.record_id,
             id=str(log.id),
             roll=log.roll or "",
             name=log.name or "",
@@ -157,10 +155,7 @@ def get_dashboard_stats(
         return cached_stats
         
     if current_user.role == "teacher":
-        teacher_subjects = db.query(models.Subject).filter(
-            models.Subject.teacher_id == current_user.id,
-            models.Subject.institution_id == current_user.institution_id
-        ).all()
+        teacher_subjects = crud.get_teacher_accessible_subjects(db, current_user)
         teacher_depts = [s.department for s in teacher_subjects if s.department]
         if current_user.department and current_user.department not in teacher_depts:
             teacher_depts.append(current_user.department)
@@ -229,11 +224,8 @@ async def recognize_and_mark_attendance(
         
     if current_user.role == "teacher":
         if subject_id is None:
-            # Auto-resolve the teacher's subject if not passed by the frontend
-            subject = db.query(models.Subject).filter(
-                models.Subject.teacher_id == current_user.id,
-                models.Subject.institution_id == current_user.institution_id
-            ).first()
+            choices = crud.get_teacher_accessible_subjects(db, current_user, target_date=custom_date)
+            subject = choices[0] if choices else None
             if not subject:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -245,7 +237,7 @@ async def recognize_and_mark_attendance(
                 models.Subject.id == subject_id,
                 models.Subject.institution_id == current_user.institution_id
             ).first()
-            if not subject or subject.teacher_id != current_user.id:
+            if not crud.teacher_can_access_subject(db, current_user, subject, target_date=custom_date):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Unauthorized: You can only take attendance for your assigned subject."
@@ -492,16 +484,14 @@ def get_attendance_report(
                 models.Subject.id == subject_id,
                 models.Subject.institution_id == current_user.institution_id
             ).first()
-            if not subject or subject.teacher_id != current_user.id:
+            if not crud.teacher_can_access_subject(db, current_user, subject):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Unauthorized: You can only view reports for your assigned subject."
                 )
         else:
-            first_subject = db.query(models.Subject).filter(
-                models.Subject.teacher_id == current_user.id,
-                models.Subject.institution_id == current_user.institution_id
-            ).first()
+            accessible = crud.get_teacher_accessible_subjects(db, current_user)
+            first_subject = accessible[0] if accessible else None
             if not first_subject:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -557,7 +547,7 @@ def send_absentee_alerts(
         ).first()
         if not subject:
             raise HTTPException(status_code=404, detail="Subject not found")
-        if current_user.role == "teacher" and subject.teacher_id != current_user.id:
+        if current_user.role == "teacher" and not crud.teacher_can_access_subject(db, current_user, subject, target_date=today_str):
             raise HTTPException(status_code=403, detail="Unauthorized access to this subject.")
         
         # Get students belonging to that subject's department/branch
@@ -669,10 +659,8 @@ def download_attendance_pdf_report(
 
     if current_user.role == "teacher":
         if subject_id is None:
-            first_subject = db.query(models.Subject).filter(
-                models.Subject.teacher_id == current_user.id,
-                models.Subject.institution_id == current_user.institution_id
-            ).first()
+            accessible = crud.get_teacher_accessible_subjects(db, current_user)
+            first_subject = accessible[0] if accessible else None
             if not first_subject:
                 raise HTTPException(status_code=400, detail="No subjects assigned to this teacher.")
             subject_id = first_subject.id
@@ -681,7 +669,7 @@ def download_attendance_pdf_report(
                 models.Subject.id == subject_id,
                 models.Subject.institution_id == current_user.institution_id
             ).first()
-            if not subject or subject.teacher_id != current_user.id:
+            if not crud.teacher_can_access_subject(db, current_user, subject):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Unauthorized: You can only download reports for your assigned subject."
@@ -1007,7 +995,7 @@ def mark_manual_attendance_bulk(
                 fail_count += 1
                 errors.append("Selected subject was not found in this institution.")
                 continue
-            if current_user.role == "teacher" and subject.teacher_id != current_user.id:
+            if current_user.role == "teacher" and not crud.teacher_can_access_subject(db, current_user, subject, target_date=date_str):
                 fail_count += 1
                 errors.append(f"Subject '{subject.name}' is not assigned to your account.")
                 continue
@@ -1133,11 +1121,9 @@ def get_attendance_sessions_history(
         
     if current_user.role == "teacher":
         if subject_id is None:
-            # Auto-resolve teacher's mapped subject
-            subject = db.query(models.Subject).filter(
-                models.Subject.teacher_id == current_user.id,
-                models.Subject.institution_id == current_user.institution_id
-            ).first()
+            # Auto-resolve teacher's mapped or substituted subject
+            accessible = crud.get_teacher_accessible_subjects(db, current_user)
+            subject = accessible[0] if accessible else None
             if not subject:
                 return []
             subject_id = subject.id
@@ -1146,7 +1132,7 @@ def get_attendance_sessions_history(
                 models.Subject.id == subject_id,
                 models.Subject.institution_id == current_user.institution_id
             ).first()
-            if not subject or subject.teacher_id != current_user.id:
+            if not crud.teacher_can_access_subject(db, current_user, subject, target_date=date_filter):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Unauthorized: You can only view session history for your assigned subject."
@@ -1201,14 +1187,15 @@ def get_attendance_sessions_history(
     # Get all student IDs that appear in logs
     logged_student_ids = set(log.id for log in logs)
     
-    # Fetch students from DB: 
-    # 1. All students from the subject's department (exact match)
-    # 2. PLUS any students who actually have attendance logs (regardless of department)
+    inst_students = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == current_user.institution_id
+    ).all()
+    active_ids = {str(s.id) for s in inst_students}
+    active_rolls = {str(s.roll).strip().casefold() for s in inst_students if s.roll and str(s.roll).strip()}
+
+    # Fetch students from DB matching the subject's department
     dept_students = []
     if subject and subject.department:
-        inst_students = db.query(models.StudentModel).filter(
-            models.StudentModel.institution_id == current_user.institution_id
-        ).all()
         dept_aliases = crud.get_department_aliases(db, current_user.institution_id, subject.department)
         dept_students = [
             s for s in inst_students
@@ -1216,26 +1203,28 @@ def get_attendance_sessions_history(
         ]
     dept_student_ids = set(str(s.id) for s in dept_students)
     
-    # Students in logs but not in dept list (department mismatch case)
+    # Students in active logs but not in dept list (department mismatch case)
+    active_logs = []
+    for log in logs:
+        raw_id = str(log.id or "").strip()
+        base_id = raw_id.split("_", 1)[0]
+        roll_cf = str(log.roll or "").strip().casefold()
+        if raw_id in active_ids or base_id in active_ids or (roll_cf and roll_cf in active_rolls):
+            active_logs.append(log)
+
+    logged_student_ids = set(str(log.id) for log in active_logs)
     extra_ids = logged_student_ids - dept_student_ids
-    extra_students = []
-    if extra_ids:
-        extra_ids_int = [int(sid) for sid in extra_ids if sid.isdigit()]
-        if extra_ids_int:
-            extra_students = db.query(models.StudentModel).filter(
-                models.StudentModel.id.in_(extra_ids_int),
-                models.StudentModel.institution_id == current_user.institution_id
-            ).all()
+    extra_students = [s for s in inst_students if str(s.id) in extra_ids]
     
     students = dept_students + extra_students
     
-    # If no department students found, fall back to ALL students (robust fallback)
+    # If no department students found, fall back to ALL active students
     if not students:
-        students = db.query(models.StudentModel).filter(models.StudentModel.institution_id == current_user.institution_id).all()
+        students = inst_students
     
     # Group logs by (date, resolved_period)
     sessions_map = {}
-    for log in logs:
+    for log in active_logs:
         p_name = resolve_period_name(log.time)
         if target_period and p_name != target_period:
             continue
@@ -1349,7 +1338,7 @@ def update_attendance_status(
             models.Subject.id == payload.subject_id,
             models.Subject.institution_id == current_user.institution_id
         ).first()
-        if not subject or subject.teacher_id != current_user.id:
+        if not crud.teacher_can_access_subject(db, current_user, subject, target_date=date_str):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Unauthorized: You can only manage attendance for your assigned subjects."
@@ -1453,14 +1442,15 @@ def checkin_via_student_qr(
     if not student:
         raise HTTPException(status_code=404, detail="Student record not found.")
 
-    subjects = db.query(models.Subject).filter_by(institution_id=institution_id)
     if current_user.role == "teacher":
-        subjects = subjects.filter_by(teacher_id=current_user.id)
-    if subject_id:
-        subject = subjects.filter_by(id=subject_id).first()
+        accessible = crud.get_teacher_accessible_subjects(db, current_user, target_date=datetime.now(IST).strftime("%d/%m/%Y"))
+        if subject_id:
+            subject = next((s for s in accessible if s.id == subject_id), None)
+        else:
+            subject = accessible[0] if len(accessible) == 1 else None
     else:
-        choices = subjects.limit(2).all() if current_user.role == "teacher" else []
-        subject = choices[0] if len(choices) == 1 else None
+        subjects_q = db.query(models.Subject).filter_by(institution_id=institution_id)
+        subject = subjects_q.filter_by(id=subject_id).first() if subject_id else None
     if not subject:
         raise HTTPException(status_code=400, detail="Select an assigned subject before scanning.")
     active_subject_id = subject.id

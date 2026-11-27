@@ -100,31 +100,71 @@ def create_student(db: Session, student: schemas.StudentCreate, institution_id: 
     return db_student
 
 def delete_student(db: Session, student_id: int, institution_id: Optional[int] = None):
+    from sqlalchemy import or_
     query = db.query(models.StudentModel).filter(models.StudentModel.id == student_id)
     if institution_id is not None:
         query = query.filter(models.StudentModel.institution_id == institution_id)
     db_student = query.first()
     if db_student:
         target_inst_id = db_student.institution_id
-        # Also delete related attendance logs
-        attn_query = db.query(models.AttendanceModel).filter(models.AttendanceModel.id == str(student_id))
-        if institution_id is not None:
-            attn_query = attn_query.filter(models.AttendanceModel.institution_id == institution_id)
-        attn_query.delete()
+        # Delete all attendance logs matching student ID (exact or compound id) or roll within institution
+        id_str = str(student_id)
+        match_clauses = [
+            models.AttendanceModel.id == id_str,
+            models.AttendanceModel.id.like(f"{id_str}_%"),
+        ]
+        if db_student.roll and str(db_student.roll).strip():
+            match_clauses.append(models.AttendanceModel.roll == str(db_student.roll).strip())
+        attn_query = db.query(models.AttendanceModel).filter(or_(*match_clauses))
+        if target_inst_id is not None:
+            attn_query = attn_query.filter(models.AttendanceModel.institution_id == target_inst_id)
+        attn_query.delete(synchronize_session=False)
         db.delete(db_student)
         db.commit()
 
-        # Invalidate and refresh in-memory recognition service cache
+        # Invalidate recognition and cached attendance telemetry for this institution
         try:
             from app.recognition_service import recognition_service
+            from app.cache import cache_service
             if target_inst_id is not None:
                 recognition_service.invalidate_cache(target_inst_id)
                 recognition_service.load_student_records(db, institution_id=target_inst_id)
+                cache_service.cache_delete_pattern(f"stats:inst_{target_inst_id}")
+                cache_service.cache_delete_pattern(f"sessions:inst_{target_inst_id}")
+                cache_service.cache_delete_pattern(f"logs:inst_{target_inst_id}")
         except Exception:
             pass
 
         return True
     return False
+
+def _parse_attendance_sort_key(log):
+    date_ord = 0
+    raw_date = str(getattr(log, "date", "") or "").strip()
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+        try:
+            date_ord = datetime.strptime(raw_date, fmt).date().toordinal()
+            break
+        except ValueError:
+            continue
+
+    time_sec = 0
+    raw_time = str(getattr(log, "time", "") or "").strip()
+    if raw_time.lower().startswith("period"):
+        import re as _re
+        m = _re.search(r"(\d+)", raw_time)
+        if m:
+            time_sec = (8 + int(m.group(1))) * 3600
+    else:
+        for fmt in ("%H:%M:%S", "%H:%M", "%I:%M:%S %p", "%I:%M %p"):
+            try:
+                parsed_t = datetime.strptime(raw_time, fmt)
+                time_sec = parsed_t.hour * 3600 + parsed_t.minute * 60 + parsed_t.second
+                break
+            except ValueError:
+                continue
+
+    return (date_ord, time_sec, int(getattr(log, "record_id", 0) or 0))
 
 # --- Attendance ---
 def get_attendance_logs(
@@ -169,7 +209,26 @@ def get_attendance_logs(
                     models.AttendanceModel.subject_id == None
                 )
             )
-    return query.order_by(models.AttendanceModel.id.desc()).offset(skip).limit(limit).all()
+    rows = query.order_by(models.AttendanceModel.record_id.desc()).all()
+
+    # Exclude orphaned logs belonging to deleted students while retaining active students
+    student_q = db.query(models.StudentModel.id, models.StudentModel.roll)
+    if institution_id is not None:
+        student_q = student_q.filter(models.StudentModel.institution_id == institution_id)
+    active_students = student_q.all()
+    active_ids = {str(s[0]) for s in active_students}
+    active_rolls = {str(s[1]).strip().casefold() for s in active_students if s[1] and str(s[1]).strip()}
+
+    filtered_rows = []
+    for row in rows:
+        raw_id = str(row.id or "").strip()
+        base_id = raw_id.split("_", 1)[0]
+        roll_cf = str(row.roll or "").strip().casefold()
+        if raw_id in active_ids or base_id in active_ids or (roll_cf and roll_cf in active_rolls):
+            filtered_rows.append(row)
+
+    filtered_rows.sort(key=_parse_attendance_sort_key, reverse=True)
+    return filtered_rows[skip:skip + limit]
 
 def get_dashboard_stats(
     db: Session, 
@@ -508,6 +567,77 @@ def validate_department(db, institution_id, value):
     if branches and not any((value or "").strip().casefold() == alias.strip().casefold()
                             for branch in branches for alias in branch if alias):
         raise HTTPException(422, "Choose a registered branch from this institution.")
+
+
+def get_teacher_substitute_subject_ids(
+    db: Session,
+    user: models.User,
+    target_date: Optional[str] = None,
+) -> set:
+    from .period_utils import normalize_date_str
+    norm_target = normalize_date_str(target_date) if target_date else None
+    inst_id = user.institution_id
+    sub_ids = set()
+
+    cal_q = db.query(models.CalendarEvent).filter(
+        models.CalendarEvent.event_type.in_(["TEACHER_SUBSTITUTION", "SUBSTITUTE_CLASS"]),
+        models.CalendarEvent.status == "ACTIVE",
+        models.CalendarEvent.substitute_teacher_id == user.id,
+        models.CalendarEvent.subject_id.isnot(None),
+    )
+    if inst_id is not None:
+        cal_q = cal_q.filter(models.CalendarEvent.institution_id == inst_id)
+    for ev in cal_q.all():
+        if norm_target is None or normalize_date_str(ev.start_date) == norm_target:
+            sub_ids.add(ev.subject_id)
+
+    assign_q = db.query(models.SubstituteAssignment).filter(
+        models.SubstituteAssignment.is_active == True,
+        models.SubstituteAssignment.substitute_email == user.email,
+        models.SubstituteAssignment.subject_id.isnot(None),
+    )
+    if inst_id is not None:
+        assign_q = assign_q.filter(models.SubstituteAssignment.institution_id == inst_id)
+    for sa in assign_q.all():
+        if norm_target is None or normalize_date_str(sa.date_str) == norm_target:
+            sub_ids.add(sa.subject_id)
+
+    return sub_ids
+
+
+def get_teacher_accessible_subjects(
+    db: Session,
+    user: models.User,
+    target_date: Optional[str] = None,
+) -> list:
+    inst_id = user.institution_id
+    owned = get_subjects(db, teacher_id=user.id, institution_id=inst_id)
+    sub_ids = get_teacher_substitute_subject_ids(db, user, target_date=target_date)
+    if not sub_ids:
+        return owned
+    owned_ids = {s.id for s in owned}
+    extra_ids = sub_ids - owned_ids
+    if not extra_ids:
+        return owned
+    all_inst_subjects = get_subjects(db, institution_id=inst_id)
+    return owned + [s for s in all_inst_subjects if s.id in extra_ids]
+
+
+def teacher_can_access_subject(
+    db: Session,
+    user: models.User,
+    subject: Optional[models.Subject],
+    target_date: Optional[str] = None,
+) -> bool:
+    if not subject:
+        return False
+    if user.role in ("admin", "hod"):
+        return user.institution_id is None or subject.institution_id == user.institution_id
+    if user.institution_id is not None and subject.institution_id != user.institution_id:
+        return False
+    if subject.teacher_id == user.id:
+        return True
+    return subject.id in get_teacher_substitute_subject_ids(db, user, target_date=target_date)
 
 
 def get_subjects(db: Session, department: str = None, teacher_id: int = None, institution_id: Optional[int] = None):

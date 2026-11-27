@@ -76,7 +76,9 @@ def read_subjects(
         if not user:
             raise HTTPException(status_code=404, detail="User record not found.")
         if user.role == "teacher":
-            db_subjects = crud.get_subjects(db, teacher_id=user.id, institution_id=institution_id)
+            from datetime import datetime, timezone, timedelta
+            today_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%d/%m/%Y")
+            db_subjects = crud.get_teacher_accessible_subjects(db, user, target_date=today_str)
         else:  # admin
             db_subjects = crud.get_subjects(db, institution_id=institution_id)
             

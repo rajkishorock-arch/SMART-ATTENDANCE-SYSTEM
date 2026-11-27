@@ -44,6 +44,20 @@ const EVENT_TYPE_CONFIG = {
     label: '⛔ Cancelled', 
     icon: UserX
   },
+  TEACHER_SUBSTITUTION: {
+    bg: '#f5f3ff',
+    border: '#ddd6fe',
+    text: '#7c3aed',
+    label: '👩‍🏫 Substitute',
+    icon: Sparkles
+  },
+  SUBSTITUTE_CLASS: {
+    bg: '#f5f3ff',
+    border: '#ddd6fe',
+    text: '#7c3aed',
+    label: '👩‍🏫 Substitute',
+    icon: Sparkles
+  },
   INSTITUTION_CLOSED: { 
     bg: '#faf9f6', 
     border: '#cfc8ba', 
@@ -126,17 +140,18 @@ export default function StudentAcademicCalendarWidget({
 
     // 1. Calendar Events
     calendarEvents.forEach(evt => {
-      const dt = parseSafeDate(evt.event_date || evt.date);
+      const rawD = evt.start_date || evt.event_date || evt.date || '';
+      const dt = parseSafeDate(rawD);
       const category = String(evt.event_type || 'EVENT').toUpperCase();
       list.push({
         id: `cal_${evt.id || Math.random()}`,
         title: evt.title || evt.name || 'Academic Event',
-        description: evt.description || '',
+        description: evt.description || (evt.substitute_teacher_name ? `Substitute: ${evt.substitute_teacher_name}` : ''),
         date: dt,
-        rawDate: evt.event_date || evt.date || '',
+        rawDate: rawD,
         category: category in EVENT_TYPE_CONFIG ? category : 'EVENT',
         type: 'calendar',
-        source: 'Academic Office'
+        source: evt.subject_name ? `${evt.subject_name} · Academic Office` : 'Academic Office'
       });
     });
 

@@ -7,12 +7,12 @@ export const calendarApi = {
   /**
    * Fetch academic calendar events (/calendar/events)
    */
-  async fetchEvents(token, eventType = null) {
+  async fetchEvents(token, eventType = null, forceRefresh = false) {
     let url = '/calendar/events';
     if (eventType && eventType !== 'ALL') {
       url += `?event_type=${encodeURIComponent(eventType)}`;
     }
-    const res = await apiGet(url, { token });
+    const res = await apiGet(url, { token, noCache: Boolean(forceRefresh) });
     if (res && typeof res.json === 'function') {
       if (res.ok) {
         const data = await res.json();
@@ -27,12 +27,12 @@ export const calendarApi = {
   /**
    * Fetch calendar attendance metrics (/calendar/attendance-metrics)
    */
-  async fetchAttendanceMetrics(token, subjectId = null) {
-    let url = '/calendar/attendance-metrics';
-    if (subjectId) {
-      url += `?subject_id=${encodeURIComponent(subjectId)}`;
-    }
-    const res = await apiGet(url, { token });
+  async fetchAttendanceMetrics(token, subjectId = null, studentId = null, forceRefresh = false) {
+    const params = [];
+    if (subjectId) params.push(`subject_id=${encodeURIComponent(subjectId)}`);
+    if (studentId) params.push(`student_id=${encodeURIComponent(studentId)}`);
+    const url = params.length > 0 ? `/calendar/attendance-metrics?${params.join('&')}` : '/calendar/attendance-metrics';
+    const res = await apiGet(url, { token, noCache: Boolean(forceRefresh) });
     if (res && typeof res.json === 'function') {
       if (res.ok) {
         return res.json();

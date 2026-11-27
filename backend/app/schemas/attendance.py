@@ -5,6 +5,7 @@ from datetime import datetime
 from app.schemas.common import _OrmBase
 
 class AttendanceBase(BaseModel):
+    record_id: Optional[int] = None
     id: str
     roll: str
     name: str

@@ -549,13 +549,19 @@ def change_my_password(
 @router.get("", response_model=List[schemas.User], include_in_schema=False)
 @router.get("/", response_model=List[schemas.User])
 def read_all_users(
+    role: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can list users.")
-    
-    users = db.query(models.User).filter(models.User.institution_id == current_user.institution_id).all()
+    if current_user.role not in ("admin", "hod"):
+        # Allow teachers to list fellow teachers for Substitute Faculty Delegation
+        if not (current_user.role == "teacher" and role == "teacher"):
+            raise HTTPException(status_code=403, detail="Only admins can list users.")
+
+    user_q = db.query(models.User).filter(models.User.institution_id == current_user.institution_id)
+    if role:
+        user_q = user_q.filter(models.User.role == role)
+    users = user_q.all()
     user_ids = [u.id for u in users]
     subjects = db.query(models.Subject).filter(
         models.Subject.teacher_id.in_(user_ids),
@@ -1068,22 +1074,12 @@ def delete_student(
             detail="Only teachers or administrators can delete student records."
         )
         
-    db_student = crud.get_student_by_id(db, student_id=id, institution_id=current_user.institution_id)
-    if not db_student:
+    deleted = crud.delete_student(db, student_id=id, institution_id=current_user.institution_id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Student not found.")
-        
-    db.delete(db_student)
-    db.commit()
-    
-    # Invalidate face recognition cache
-    try:
-        from .recognition_service import recognition_service
-        recognition_service.invalidate_cache(current_user.institution_id)
-    except Exception as e:
-        print(f"Failed to invalidate recognition cache on student deletion: {e}")
 
     crud.create_audit_log(
-        db, 
+        db,
         log=schemas.AuditLogCreate(user_email=current_user.email, action=f"Student ID {id} deleted by {current_user.email}."),
         institution_id=current_user.institution_id
     )

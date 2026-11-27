@@ -1,1420 +1,1473 @@
-import './campusAdmin.css';
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  Calendar, Clock, Plus, Trash2, AlertTriangle, UserCheck, 
-  CheckCircle2, Filter, ShieldCheck, BookOpen,
-  RefreshCw, X, UserX
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import {
+  Calendar,
+  ShieldCheck,
+  CalendarX,
+  UserCheck,
+  Plus,
+  RefreshCw,
+  ChevronRight,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  Search,
+  Sparkles,
 } from 'lucide-react';
-import { systemApi } from '../api/systemApi';
-import { calendarApi } from '../api/calendarApi';
-import { teacherApi } from '../api/teacherApi';
+import { calendarApi, teacherApi, apiGet } from '../api/index.js';
+import { normalizeToIsoDate, isoToDmyDate } from '../utils/attendanceDateUtils';
 
-const EVENT_TYPE_COLORS = {
-  HOLIDAY: { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Holiday' },
-  EXAM: { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Exam Session' },
-  CLASS_CANCELLED: { bg: '#fff1f2', border: '#fecdd3', text: '#e11d48', label: 'Class Cancelled' },
-  SUBSTITUTE_CLASS: { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', label: 'Substitute Class' },
-  TEACHER_SUBSTITUTION: { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', label: 'Teacher Substituted' },
-  INSTITUTION_CLOSED: { bg: '#faf9f6', border: '#e4dfd5', text: '#696358', label: 'Campus Closed' },
-  SPECIAL_CLASS: { bg: '#faf5ea', border: '#dfcfaf', text: '#785927', label: 'Special Lecture' },
-  EVENT: { bg: '#f0f9ff', border: '#bae6fd', text: '#80602c', label: 'Academic Event' }
+const CALENDAR_PERIOD_SLOTS = [
+  'Period 1 (09:00 - 10:00 AM)',
+  'Period 2 (10:00 - 11:00 AM)',
+  'Period 3 (11:00 - 12:00 PM)',
+  'Period 4 (12:00 - 01:00 PM)',
+  'Period 5 (01:00 - 02:00 PM)',
+  'Period 6 (02:00 - 03:00 PM)',
+  'Period 7 (03:00 - 04:00 PM)',
+  'Period 8 (04:00 - 05:00 PM)',
+];
+
+const EVENT_TYPE_META = {
+  HOLIDAY: { label: 'Holiday', short: 'HOL', bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' },
+  EXAM: { label: 'Exam Session', short: 'EXM', bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+  CLASS_CANCELLED: { label: 'Class Cancelled', short: 'CXL', bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
+  TEACHER_SUBSTITUTION: { label: 'Substitute', short: 'SUB', bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
+  SUBSTITUTE_CLASS: { label: 'Substitute', short: 'SUB', bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
+  SPECIAL_CLASS: { label: 'Special Lecture', short: 'SPL', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' },
+  INSTITUTION_CLOSED: { label: 'Campus Closed', short: 'CLS', bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
+  WORKING_DAY: { label: 'Working Day', short: 'WRK', bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
+  EVENT: { label: 'Academic Event', short: 'EVT', bg: '#fcf6e8', color: '#785927', border: '#e5d3a7' },
 };
 
+const SCHEDULE_FILTER_OPTIONS = [
+  { id: 'ALL', label: 'All Events' },
+  { id: 'HOLIDAY', label: 'Holiday' },
+  { id: 'EXAM', label: 'Exam Session' },
+  { id: 'CLASS_CANCELLED', label: 'Class Cancelled' },
+  { id: 'TEACHER_SUBSTITUTION', label: 'Substitute' },
+  { id: 'SPECIAL_CLASS', label: 'Special Lecture' },
+  { id: 'EVENT', label: 'Academic Event' },
+];
+
+const CREATE_CATEGORY_OPTIONS = [
+  { value: 'HOLIDAY', label: 'Institutional Holiday' },
+  { value: 'EXAM', label: 'Examination Session' },
+  { value: 'SPECIAL_CLASS', label: 'Special Lecture / Lab' },
+  { value: 'EVENT', label: 'Campus Academic Event' },
+  { value: 'INSTITUTION_CLOSED', label: 'Institution Closed' },
+  { value: 'WORKING_DAY', label: 'Compensatory Working Day' },
+];
+
+const getLocalTodayIso = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getEventMeta = (type) => {
+  const key = String(type || 'EVENT').toUpperCase();
+  return EVENT_TYPE_META[key] || EVENT_TYPE_META.EVENT;
+};
+
+const formatDisplayDate = (raw) => {
+  const formatted = isoToDmyDate(raw);
+  return formatted || String(raw || '').trim() || 'Not specified';
+};
+
+const sortEventsNewestFirst = (list) => {
+  return [...(Array.isArray(list) ? list : [])].sort((a, b) => {
+    const isoA = normalizeToIsoDate(a?.start_date || a?.date || '');
+    const isoB = normalizeToIsoDate(b?.start_date || b?.date || '');
+    if (isoA !== isoB) return isoB.localeCompare(isoA);
+    return Number(b?.id || 0) - Number(a?.id || 0);
+  });
+};
+
+const isSubstitutionType = (eventType) => {
+  const t = String(eventType || '').toUpperCase();
+  return t === 'TEACHER_SUBSTITUTION' || t === 'SUBSTITUTE_CLASS';
+};
+
+/**
+ * Academic Calendar View (Golden Gate OS Design)
+ * Clean 4-item landing list leading to dedicated sub-pages with live data across Admin, Teacher, and Student credentials.
+ */
 export default function AcademicCalendarView({
   token,
   currentUser,
-  playCyberSound = () => {}
+  playCyberSound = () => {},
+  eventsData = null,
+  hasLoadedData = false,
+  onEventsChange = null,
+  initialMetrics = null,
+  onMetricsChange = null,
+  subjects: propSubjects = [],
+  students: propStudents = [],
+  teachers: propTeachers = [],
+  routeView = null,
+  setRouteView = null,
+  onCloseSubView = null,
 }) {
-  const [events, setEvents] = useState([]);
-  const [activeTab, setActiveTab] = useState('events'); // 'events' | 'cancel' | 'substitute' | 'metrics'
-  const [eventTypeFilter, setEventTypeFilter] = useState('ALL');
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  
-  // Available subjects and teachers for forms
-  const [subjectsList, setSubjectsList] = useState([]);
-  const [teachersList, setTeachersList] = useState([]);
+  const userRole = String(currentUser?.role || '').toLowerCase();
+  const currentUserId = currentUser?.id;
+  const currentUserEmail = currentUser?.email;
+  const isStaff = ['admin', 'teacher', 'hod', 'superadmin', 'super_admin'].includes(userRole);
 
-  // Attendance Metrics State
-  const [metrics, setMetrics] = useState(null);
-  const [selectedSubjectIdForMetrics, setSelectedSubjectIdForMetrics] = useState('');
-  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
-
-  // New Event Modal State
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [eventFormData, setEventFormData] = useState({
-    title: '',
-    description: '',
-    event_type: 'HOLIDAY',
-    start_date: new Date().toLocaleDateString('en-GB'),
-    end_date: '',
-    start_time: '',
-    end_time: '',
-    department: currentUser?.department || ''
-  });
-
-  // Cancel Class Form State
-  const [cancelFormData, setCancelFormData] = useState({
-    subject_id: '',
-    date: new Date().toLocaleDateString('en-GB'),
-    session_time: '09:00 AM',
-    reason: ''
-  });
-  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
-
-  // Substitute Teacher Form State
-  const [substituteFormData, setSubstituteFormData] = useState({
-    subject_id: '',
-    substitute_teacher_id: '',
-    date: new Date().toLocaleDateString('en-GB'),
-    reason: ''
-  });
-  const [isSubmittingSubstitute, setIsSubmittingSubstitute] = useState(false);
-
-  const isStaff = ['admin', 'teacher', 'hod'].includes(currentUser?.role?.toLowerCase());
-
-  // ── Fetch Calendar Events ──────────────────────────────────────────────────
-  const fetchEvents = useCallback(async () => {
-    if (!token) return;
-    setIsLoading(true);
-    setErrorMsg('');
-    try {
-      const data = await calendarApi.fetchEvents(token, eventTypeFilter);
-      const safeList = Array.isArray(data) ? data : (data?.events && Array.isArray(data.events) ? data.events : []);
-      setEvents(safeList);
-    } catch (err) {
-      setErrorMsg(err.message || 'Error connecting to academic calendar engine.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, eventTypeFilter]);
-
-  // ── Fetch Attendance Metrics ────────────────────────────────────────────────
-  const fetchMetrics = useCallback(async (subjectId = '') => {
-    if (!token) return;
-    setIsLoadingMetrics(true);
-    try {
-      const data = await calendarApi.fetchAttendanceMetrics(token, subjectId);
-      if (data && typeof data.json === 'function') {
-        const parsed = await data.json();
-        setMetrics(parsed);
-      } else if (data) {
-        setMetrics(data);
+  const [localRoute, setLocalRoute] = useState(null);
+  const activeRoute = routeView !== undefined && setRouteView ? routeView : localRoute;
+  const activeMode = activeRoute?.mode || null;
+  const navigateRoute = useCallback(
+    (next) => {
+      if (playCyberSound) playCyberSound('click');
+      if (setRouteView) {
+        setRouteView(next);
+      } else {
+        setLocalRoute(next);
       }
-    } catch (err) {
-      console.warn('Metrics fetch skipped or unavailable:', err);
-    } finally {
-      setIsLoadingMetrics(false);
-    }
-  }, [token]);
+    },
+    [playCyberSound, setRouteView]
+  );
 
-  // ── Fetch Metadata (Subjects & Teachers) ────────────────────────────────────
-  useEffect(() => {
-    if (!token) return;
-    // Fetch subjects
-    systemApi.fetchSubjects(token)
-      .then(async res => {
-        const data = res && typeof res.json === 'function' ? (res.ok ? await res.json() : []) : res;
-        if (Array.isArray(data)) {
-          setSubjectsList(data);
-          if (data.length > 0) {
-            setCancelFormData(prev => (prev.subject_id ? prev : { ...prev, subject_id: data[0].id }));
-            setSubstituteFormData(prev => (prev.subject_id ? prev : { ...prev, subject_id: data[0].id }));
+  // Local fallback stores used only when parent doesn't supply/own the dataset
+  const [localEvents, setLocalEvents] = useState(null);
+  const [customMetrics, setCustomMetrics] = useState(null);
+  const [extraSubjects, setExtraSubjects] = useState([]);
+  const [extraTeachers, setExtraTeachers] = useState([]);
+
+  const events = useMemo(() => {
+    const source = Array.isArray(localEvents)
+      ? localEvents
+      : (Array.isArray(eventsData) ? eventsData : []);
+    return sortEventsNewestFirst(source);
+  }, [localEvents, eventsData]);
+
+  const subjectsList = useMemo(
+    () => (Array.isArray(propSubjects) && propSubjects.length > 0 ? propSubjects : extraSubjects),
+    [propSubjects, extraSubjects]
+  );
+
+  const studentsList = useMemo(
+    () => (Array.isArray(propStudents) ? propStudents : []),
+    [propStudents]
+  );
+
+  const teachersList = useMemo(
+    () => (Array.isArray(propTeachers) && propTeachers.length > 0 ? propTeachers : extraTeachers),
+    [propTeachers, extraTeachers]
+  );
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Schedule filter state (0ms client-side)
+  const [scheduleFilter, setScheduleFilter] = useState('ALL');
+  const [scheduleQuery, setScheduleQuery] = useState('');
+
+  // Analytics filter state
+  const [analyticsSubjectId, setAnalyticsSubjectId] = useState('');
+  const [analyticsStudentId, setAnalyticsStudentId] = useState('');
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
+  const metrics = useMemo(() => {
+    if (!analyticsSubjectId && !analyticsStudentId) {
+      return customMetrics || initialMetrics || null;
+    }
+    return customMetrics || null;
+  }, [analyticsSubjectId, analyticsStudentId, customMetrics, initialMetrics]);
+
+  // Create Event state
+  const [newTitle, setNewTitle] = useState('');
+  const [newType, setNewType] = useState('HOLIDAY');
+  const [newStartDate, setNewStartDate] = useState(getLocalTodayIso);
+  const [newEndDate, setNewEndDate] = useState('');
+  const [newStartTime, setNewStartTime] = useState('');
+  const [newEndTime, setNewEndTime] = useState('');
+  const [newSubjectId, setNewSubjectId] = useState('');
+  const [newDepartment, setNewDepartment] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+
+  // Cancel Class form state
+  const [cancelSubjectId, setCancelSubjectId] = useState('');
+  const [cancelDate, setCancelDate] = useState(getLocalTodayIso);
+  const [cancelSessionTime, setCancelSessionTime] = useState(CALENDAR_PERIOD_SLOTS[0]);
+  const [cancelReason, setCancelReason] = useState('');
+
+  // Substitute Delegation form state
+  const [subSubjectId, setSubSubjectId] = useState('');
+  const [subTeacherId, setSubTeacherId] = useState('');
+  const [subDate, setSubDate] = useState(getLocalTodayIso);
+  const [subReason, setSubReason] = useState('');
+
+  const toastTimerRef = useRef(null);
+  const showFeedback = useCallback((type, text) => {
+    setToast({ type, text });
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 4500);
+  }, []);
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
+
+  const commitEventsUpdate = useCallback(
+    (nextEvents) => {
+      const sorted = sortEventsNewestFirst(nextEvents);
+      setLocalEvents(sorted);
+      if (onEventsChange) onEventsChange(sorted);
+      window.dispatchEvent(new Event('academic_calendar_updated'));
+    },
+    [onEventsChange]
+  );
+
+  const fetchEventsFromServer = useCallback(
+    async (forceRefresh = false) => {
+      if (!token) return;
+      try {
+        const list = await calendarApi.fetchEvents(token, null, forceRefresh);
+        const sorted = sortEventsNewestFirst(list);
+        setLocalEvents(sorted);
+        if (onEventsChange) onEventsChange(sorted);
+      } catch (err) {
+        if (forceRefresh) {
+          showFeedback('error', err.message || 'Could not refresh calendar schedule.');
+        }
+      }
+    },
+    [token, onEventsChange, showFeedback]
+  );
+
+  const fetchMetricsFromServer = useCallback(
+    async (forceRefresh = false, subjOverride = undefined, studOverride = undefined) => {
+      if (!token) return;
+      const subjVal = subjOverride !== undefined ? subjOverride : analyticsSubjectId;
+      const studVal = studOverride !== undefined ? studOverride : analyticsStudentId;
+      try {
+        const data = await calendarApi.fetchAttendanceMetrics(
+          token,
+          subjVal ? Number(subjVal) : null,
+          isStaff && studVal ? Number(studVal) : null,
+          forceRefresh
+        );
+        if (data) {
+          setCustomMetrics(data);
+          if (!subjVal && !studVal && onMetricsChange) {
+            onMetricsChange(data);
           }
         }
-      })
-      .catch(() => {});
+      } catch {
+        /* keep existing cached metrics on transient error */
+      }
+    },
+    [token, analyticsSubjectId, analyticsStudentId, isStaff, onMetricsChange]
+  );
 
-    // If staff, fetch teachers
-    if (isStaff) {
-      teacherApi.listTeachers(token, 'teacher')
-        .then(async res => {
-          const data = res && typeof res.json === 'function' ? (res.ok ? await res.json() : []) : res;
-          if (Array.isArray(data)) {
-            setTeachersList(data);
-            if (data.length > 0) {
-              setSubstituteFormData(prev => (prev.substitute_teacher_id ? prev : { ...prev, substitute_teacher_id: data[0].id }));
+  const fetchSupportRosters = useCallback(async () => {
+    if (!token) return;
+    const tasks = [];
+    if (subjectsList.length === 0) {
+      tasks.push(
+        apiGet('/subjects', { token })
+          .then(async (res) => {
+            if (res && res.ok) {
+              const data = await res.json();
+              if (Array.isArray(data)) setExtraSubjects(data);
             }
-          }
-        })
-        .catch(() => {});
+          })
+          .catch(() => {})
+      );
     }
-  }, [token, isStaff]);
+    if (isStaff && teachersList.length === 0) {
+      tasks.push(
+        teacherApi
+          .listTeachers(token, userRole === 'teacher' ? 'teacher' : null)
+          .then(async (res) => {
+            if (res && res.ok) {
+              const data = await res.json();
+              if (Array.isArray(data)) setExtraTeachers(data);
+            }
+          })
+          .catch(() => {})
+      );
+    }
+    if (tasks.length > 0) await Promise.allSettled(tasks);
+  }, [token, isStaff, userRole, subjectsList.length, teachersList.length]);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    if (!token) return undefined;
+    let cancelled = false;
+    void (async () => {
+      const ops = [];
+      if (!hasLoadedData || events.length === 0) ops.push(fetchEventsFromServer(false));
+      if (!metrics) ops.push(fetchMetricsFromServer(false));
+      ops.push(fetchSupportRosters());
+      await Promise.allSettled(ops);
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, hasLoadedData, events.length, metrics, fetchEventsFromServer, fetchMetricsFromServer, fetchSupportRosters]);
 
   useEffect(() => {
-    if (activeTab === 'metrics') fetchMetrics(selectedSubjectIdForMetrics);
-  }, [activeTab, fetchMetrics, selectedSubjectIdForMetrics]);
+    if (!activeMode || !token) return undefined;
+    let cancelled = false;
+    void (async () => {
+      if (activeMode === 'analytics') {
+        await fetchMetricsFromServer(false);
+      }
+      if (['cancel', 'substitute', 'new', 'analytics'].includes(activeMode)) {
+        await fetchSupportRosters();
+      }
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeMode, token, fetchMetricsFromServer, fetchSupportRosters]);
 
-  // ── Handle Create Event ────────────────────────────────────────────────────
-  const handleCreateEvent = async (e) => {
-    e.preventDefault();
-    if (!eventFormData.title.trim()) {
-      setErrorMsg('Please specify an event title.');
+  const handleRefreshAll = async () => {
+    if (playCyberSound) playCyberSound('click');
+    setIsRefreshing(true);
+    try {
+      await Promise.allSettled([
+        fetchEventsFromServer(true),
+        fetchMetricsFromServer(true),
+        fetchSupportRosters(),
+      ]);
+      showFeedback('success', 'Academic calendar synced with server.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleMetricsFilterChange = async (nextSubj, nextStud) => {
+    setAnalyticsSubjectId(nextSubj);
+    setAnalyticsStudentId(nextStud);
+    setMetricsLoading(true);
+    try {
+      await fetchMetricsFromServer(true, nextSubj, nextStud);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (onCloseSubView) {
+      onCloseSubView();
       return;
     }
-    setIsLoading(true);
+    if (activeMode === 'detail') {
+      navigateRoute({ mode: 'schedule' });
+      return;
+    }
+    navigateRoute(null);
+  };
+
+  const activeTeachersForDelegate = useMemo(() => {
+    const active = (teachersList || []).filter(
+      (t) => String(t?.role || '').toLowerCase() === 'teacher' && t?.is_active !== false
+    );
+    if (userRole === 'teacher' && currentUserId) {
+      const peers = active.filter((t) => Number(t.id) !== Number(currentUserId));
+      if (peers.length > 0) return peers;
+    }
+    return active;
+  }, [teachersList, userRole, currentUserId]);
+
+  const cancelledEvents = useMemo(
+    () => events.filter((e) => String(e?.event_type || '').toUpperCase() === 'CLASS_CANCELLED'),
+    [events]
+  );
+
+  const substituteEvents = useMemo(
+    () => events.filter((e) => isSubstitutionType(e?.event_type)),
+    [events]
+  );
+
+  const filteredScheduleEvents = useMemo(() => {
+    const q = scheduleQuery.trim().toLowerCase();
+    return events.filter((evt) => {
+      const evtType = String(evt?.event_type || 'EVENT').toUpperCase();
+      if (scheduleFilter !== 'ALL') {
+        if (scheduleFilter === 'TEACHER_SUBSTITUTION') {
+          if (!isSubstitutionType(evtType)) return false;
+        } else if (evtType !== scheduleFilter) {
+          return false;
+        }
+      }
+      if (!q) return true;
+      const hay = [
+        evt.title,
+        evt.description,
+        evt.subject_name,
+        evt.subject_code,
+        evt.department,
+        evt.teacher_name,
+        evt.substitute_teacher_name,
+        evt.start_date,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [events, scheduleFilter, scheduleQuery]);
+
+  const resolvedDetailEvent = useMemo(() => {
+    if (activeRoute?.mode !== 'detail') return null;
+    return (
+      activeRoute.item ||
+      events.find((e) => String(e.id) === String(activeRoute.id)) ||
+      null
+    );
+  }, [activeRoute, events]);
+
+  const openEventDetail = (evt) => {
+    navigateRoute({ mode: 'detail', id: evt.id, item: evt });
+  };
+
+  const canDeleteEvent = (evt) => {
+    if (!isStaff || !evt) return false;
+    if (['admin', 'hod', 'superadmin', 'super_admin'].includes(userRole)) {
+      return true;
+    }
+    return (
+      !evt.teacher_id ||
+      Number(evt.teacher_id) === Number(currentUserId) ||
+      Number(evt.substitute_teacher_id) === Number(currentUserId) ||
+      (evt.created_by && evt.created_by === currentUserEmail)
+    );
+  };
+
+  const handleDeleteEvent = async (evt, returnToSchedule = false) => {
+    if (!evt?.id) return;
+    setDeletingId(evt.id);
     try {
-      await calendarApi.createEvent(token, eventFormData);
-      playCyberSound('success');
-      setSuccessMsg(`Event "${eventFormData.title}" scheduled successfully.`);
-      setShowCreateModal(false);
-      setEventFormData({
-        title: '',
-        description: '',
-        event_type: 'HOLIDAY',
-        start_date: new Date().toLocaleDateString('en-GB'),
-        end_date: '',
-        start_time: '',
-        end_time: '',
-        department: currentUser?.department || ''
+      await calendarApi.deleteEvent(token, evt.id);
+      if (playCyberSound) playCyberSound('click');
+      const next = events.filter((e) => String(e.id) !== String(evt.id));
+      commitEventsUpdate(next);
+      showFeedback('success', `Removed "${evt.title}".`);
+      await fetchMetricsFromServer(true);
+      if (returnToSchedule) {
+        navigateRoute({ mode: 'schedule' });
+      }
+    } catch (err) {
+      showFeedback('error', err.message || 'Could not remove calendar event.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleCreateEventSubmit = async (e) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newStartDate) {
+      showFeedback('error', 'Please enter a title and start date.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        title: newTitle.trim(),
+        event_type: newType,
+        start_date: newStartDate,
+        end_date: newEndDate || null,
+        start_time: newStartTime || null,
+        end_time: newEndTime || null,
+        subject_id: newSubjectId ? Number(newSubjectId) : null,
+        department: newDepartment.trim() || null,
+        description: newDescription.trim() || null,
+      };
+      const created = await calendarApi.createEvent(token, payload);
+      if (playCyberSound) playCyberSound('success');
+      commitEventsUpdate([created, ...events.filter((x) => x.id !== created.id)]);
+      setNewTitle('');
+      setNewDescription('');
+      setNewDepartment('');
+      setNewSubjectId('');
+      setNewEndDate('');
+      setNewStartTime('');
+      setNewEndTime('');
+      showFeedback('success', `Scheduled "${created.title}".`);
+      navigateRoute({ mode: 'schedule' });
+    } catch (err) {
+      showFeedback('error', err.message || 'Failed to schedule event.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelClassSubmit = async (e) => {
+    e.preventDefault();
+    if (!cancelSubjectId || !cancelDate || !cancelReason.trim()) {
+      showFeedback('error', 'Select a subject, date, and reason.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const created = await calendarApi.cancelClass(token, {
+        subject_id: Number(cancelSubjectId),
+        date: cancelDate,
+        session_time: cancelSessionTime || CALENDAR_PERIOD_SLOTS[0],
+        reason: cancelReason.trim(),
       });
-      fetchEvents();
-      try {
-        window.dispatchEvent(new CustomEvent('academic_calendar_updated', { detail: { timestamp: Date.now() } }));
-      } catch {}
-      setTimeout(() => setSuccessMsg(''), 4000);
+      if (playCyberSound) playCyberSound('success');
+      commitEventsUpdate([created, ...events.filter((x) => x.id !== created.id)]);
+      setCancelReason('');
+      showFeedback('success', 'Class cancelled and student attendance protected.');
+      await fetchMetricsFromServer(true);
     } catch (err) {
-      setErrorMsg(err.message);
-      playCyberSound('error');
+      showFeedback('error', err.message || 'Failed to cancel class.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  // ── Handle Cancel Class ────────────────────────────────────────────────────
-  const handleCancelClass = async (e) => {
+  const handleSubstituteSubmit = async (e) => {
     e.preventDefault();
-    if (!cancelFormData.reason.trim()) {
-      setErrorMsg('Cancellation reason is required for the audit trail.');
+    if (!subSubjectId || !subTeacherId || !subDate || !subReason.trim()) {
+      showFeedback('error', 'Select subject, substitute teacher, date, and reason.');
       return;
     }
-    setIsSubmittingCancel(true);
-    setErrorMsg('');
+    setIsSubmitting(true);
     try {
-      const payload = {
-        subject_id: parseInt(cancelFormData.subject_id),
-        date: cancelFormData.date,
-        session_time: cancelFormData.session_time,
-        reason: cancelFormData.reason
-      };
-      await calendarApi.cancelClass(token, payload);
-      playCyberSound('success');
-      setSuccessMsg('Class marked cancelled. Student attendance percentage is protected!');
-      setCancelFormData(prev => ({ ...prev, reason: '' }));
-      fetchEvents();
-      fetchMetrics(selectedSubjectIdForMetrics);
-      try {
-        window.dispatchEvent(new CustomEvent('academic_calendar_updated', { detail: { timestamp: Date.now() } }));
-      } catch {}
-      setActiveTab('events');
-      setTimeout(() => setSuccessMsg(''), 5000);
+      const created = await calendarApi.substituteClass(token, {
+        subject_id: Number(subSubjectId),
+        substitute_teacher_id: Number(subTeacherId),
+        date: subDate,
+        reason: subReason.trim(),
+      });
+      if (playCyberSound) playCyberSound('success');
+      commitEventsUpdate([created, ...events.filter((x) => x.id !== created.id)]);
+      setSubReason('');
+      showFeedback('success', `Substitute assigned (${created.substitute_teacher_name || 'Faculty'}).`);
     } catch (err) {
-      setErrorMsg(err.message);
-      playCyberSound('error');
+      showFeedback('error', err.message || 'Failed to assign substitute teacher.');
     } finally {
-      setIsSubmittingCancel(false);
+      setIsSubmitting(false);
     }
   };
 
-  // ── Handle Assign Substitute ───────────────────────────────────────────────
-  const handleAssignSubstitute = async (e) => {
-    e.preventDefault();
-    if (!substituteFormData.reason.trim()) {
-      setErrorMsg('Substitution reason is required.');
-      return;
-    }
-    setIsSubmittingSubstitute(true);
-    setErrorMsg('');
-    try {
-      const payload = {
-        subject_id: parseInt(substituteFormData.subject_id),
-        substitute_teacher_id: parseInt(substituteFormData.substitute_teacher_id),
-        date: substituteFormData.date,
-        reason: substituteFormData.reason
-      };
-      await calendarApi.substituteClass(token, payload);
-      playCyberSound('success');
-      setSuccessMsg('Substitute faculty assigned successfully.');
-      setSubstituteFormData(prev => ({ ...prev, reason: '' }));
-      fetchEvents();
-      try {
-        window.dispatchEvent(new CustomEvent('academic_calendar_updated', { detail: { timestamp: Date.now() } }));
-      } catch {}
-      setActiveTab('events');
-      setTimeout(() => setSuccessMsg(''), 5000);
-    } catch (err) {
-      setErrorMsg(err.message);
-      playCyberSound('error');
-    } finally {
-      setIsSubmittingSubstitute(false);
-    }
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '11px',
+    border: '1px solid #dfd0ae',
+    background: '#fffdf9',
+    color: '#25231f',
+    fontSize: '0.88rem',
+    fontWeight: 500,
+    boxSizing: 'border-box',
   };
 
-  // ── Handle Delete Event ────────────────────────────────────────────────────
-  const handleDeleteEvent = async (eventId, title) => {
-    if (!window.confirm(`Are you sure you want to remove calendar event "${title}"?`)) return;
-    try {
-      await calendarApi.deleteEvent(token, eventId);
-      playCyberSound('click');
-      setSuccessMsg(`Event "${title}" removed.`);
-      fetchEvents();
-      try {
-        window.dispatchEvent(new CustomEvent('academic_calendar_updated', { detail: { timestamp: Date.now() } }));
-      } catch {}
-      setTimeout(() => setSuccessMsg(''), 4000);
-    } catch (err) {
-      setErrorMsg(err.message);
-    }
+  const labelStyle = {
+    display: 'block',
+    fontSize: '0.73rem',
+    fontWeight: 700,
+    color: '#6b5b3e',
+    marginBottom: '5px',
+  };
+
+  const primaryGoldButtonStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '7px',
+    padding: '10px 16px',
+    borderRadius: '12px',
+    border: '1px solid #91671a',
+    background: 'linear-gradient(135deg, #b8892c, #8a6016)',
+    color: '#ffffff',
+    fontSize: '0.84rem',
+    fontWeight: 700,
+    cursor: isSubmitting ? 'wait' : 'pointer',
+    boxShadow: '0 4px 12px rgba(145, 103, 26, 0.2)',
+  };
+
+  const secondaryButtonStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: '8px 14px',
+    borderRadius: '11px',
+    border: '1px solid #dfd0ae',
+    background: '#fffcf5',
+    color: '#4f3a18',
+    fontSize: '0.82rem',
+    fontWeight: 700,
+    cursor: 'pointer',
+  };
+
+  const renderToastBanner = () => {
+    if (!toast) return null;
+    const isErr = toast.type === 'error';
+    return (
+      <div
+        role="status"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '10px',
+          padding: '10px 14px',
+          borderRadius: '12px',
+          background: isErr ? '#fef2f2' : '#ecfdf5',
+          border: `1px solid ${isErr ? '#fecaca' : '#a7f3d0'}`,
+          color: isErr ? '#b91c1c' : '#047857',
+          fontSize: '0.82rem',
+          fontWeight: 700,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          {isErr ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+          <span>{toast.text}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setToast(null)}
+          aria-label="Dismiss message"
+          style={{ border: 0, background: 'transparent', color: 'inherit', fontWeight: 800, cursor: 'pointer' }}
+        >
+          ×
+        </button>
+      </div>
+    );
+  };
+
+  const renderEventRow = (evt, allowQuickDelete = false) => {
+    const meta = getEventMeta(evt.event_type);
+    const subtitleParts = [
+      formatDisplayDate(evt.start_date),
+      evt.subject_name || '',
+      evt.substitute_teacher_name ? `Sub: ${evt.substitute_teacher_name}` : '',
+      evt.department || '',
+    ].filter(Boolean);
+
+    return (
+      <div key={evt.id} className="golden-os-list-row" style={{ gap: '8px' }}>
+        <button
+          type="button"
+          onClick={() => openEventDetail(evt)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            minWidth: 0,
+            flex: 1,
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            textAlign: 'left',
+            cursor: 'pointer',
+          }}
+        >
+          <div
+            className="golden-os-avatar"
+            style={{
+              background: meta.bg,
+              color: meta.color,
+              borderColor: meta.border,
+              fontSize: '0.7rem',
+            }}
+          >
+            {meta.short}
+          </div>
+          <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: '#25231f',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {evt.title}
+            </span>
+            <span
+              style={{
+                fontSize: '0.74rem',
+                color: '#6b5b3e',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {subtitleParts.join(' · ')}
+            </span>
+          </div>
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <span
+            style={{
+              padding: '3px 8px',
+              borderRadius: '999px',
+              fontSize: '0.66rem',
+              fontWeight: 700,
+              background: meta.bg,
+              color: meta.color,
+              border: `1px solid ${meta.border}`,
+            }}
+          >
+            {meta.label}
+          </span>
+          {allowQuickDelete && canDeleteEvent(evt) && (
+            <button
+              type="button"
+              onClick={() => handleDeleteEvent(evt, false)}
+              disabled={deletingId === evt.id}
+              aria-label={`Remove ${evt.title}`}
+              style={{
+                padding: '6px',
+                borderRadius: '9px',
+                border: '1px solid #fecaca',
+                background: '#fff5f5',
+                color: '#b91c1c',
+                cursor: 'pointer',
+                display: 'inline-flex',
+              }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+          <ChevronRight size={16} color="#8c734b" />
+        </div>
+      </div>
+    );
+  };
+
+  // ── 1. CLEAN 4-ITEM LANDING VIEW (#/calendar) ────────────────────────────────
+  if (!activeRoute) {
+    const landingItems = [
+      {
+        id: 'schedule',
+        title: 'Institutional Schedule',
+        subtitle: 'Holidays, exams, notices & lectures',
+        badge: `${events.length} ${events.length === 1 ? 'event' : 'events'}`,
+        Icon: Calendar,
+        bg: '#fcf6e8',
+        color: '#785927',
+        border: '#dfd0ae',
+      },
+      {
+        id: 'analytics',
+        title: 'Attendance Protection Analytics',
+        subtitle: 'Exempt sessions & safe attendance rate',
+        badge: metrics ? `${metrics.attendance_percentage}%` : 'Live',
+        Icon: ShieldCheck,
+        bg: '#ecfdf5',
+        color: '#047857',
+        border: '#a7f3d0',
+      },
+      ...(isStaff
+        ? [
+            {
+              id: 'cancel',
+              title: 'Cancel Class Session',
+              subtitle: 'Mark cancelled & protect student attendance',
+              badge: cancelledEvents.length > 0 ? `${cancelledEvents.length} active` : 'Manage',
+              Icon: CalendarX,
+              bg: '#fff1f2',
+              color: '#be123c',
+              border: '#fecdd3',
+            },
+            {
+              id: 'substitute',
+              title: 'Substitute Faculty Delegation',
+              subtitle: 'Reassign class teacher & notify students',
+              badge: substituteEvents.length > 0 ? `${substituteEvents.length} active` : 'Assign',
+              Icon: UserCheck,
+              bg: '#f0f9ff',
+              color: '#0369a1',
+              border: '#bae6fd',
+            },
+          ]
+        : []),
+    ];
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {renderToastBanner()}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            style={secondaryButtonStyle}
+            onClick={handleRefreshAll}
+            disabled={isRefreshing}
+          >
+            <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
+            <span>{isRefreshing ? 'Syncing' : 'Refresh'}</span>
+          </button>
+          {isStaff && (
+            <button
+              type="button"
+              style={primaryGoldButtonStyle}
+              onClick={() => navigateRoute({ mode: 'new' })}
+            >
+              <Plus size={15} />
+              <span>Add Event</span>
+            </button>
+          )}
+        </div>
+
+        <div className="golden-os-list-shell">
+          {landingItems.map((item) => {
+            const RowIcon = item.Icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="golden-os-list-row"
+                onClick={() => navigateRoute({ mode: item.id })}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  <div
+                    className="golden-os-avatar"
+                    style={{
+                      background: item.bg,
+                      color: item.color,
+                      borderColor: item.border,
+                    }}
+                  >
+                    <RowIcon size={18} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        fontSize: '0.92rem',
+                        fontWeight: 700,
+                        color: '#25231f',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {item.title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#6b5b3e',
+                        fontWeight: 500,
+                        marginTop: '2px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {item.subtitle}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <span className="golden-os-badge-muted">{item.badge}</span>
+                  <ChevronRight size={16} color="#8c734b" />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── 2. DEDICATED WINDOW SHELL FOR ALL SUB-PAGES ──────────────────────────────
+  const windowTitles = {
+    schedule: 'Institutional Schedule',
+    analytics: 'Attendance Protection Analytics',
+    cancel: 'Cancel Class Session',
+    substitute: 'Substitute Faculty Delegation',
+    new: 'Schedule Campus Event',
+    detail: resolvedDetailEvent?.title || 'Event Details',
   };
 
   return (
-    <div className="academic-calendar-container" style={{
-      color: 'var(--color-text-main)',
-      padding: '24px',
-      maxWidth: '1280px',
-      margin: '0 auto',
-      animation: 'fadeIn 0.3s ease-out'
-    }}>
-      <div className="campus-actions">
-          <button
-            onClick={() => { playCyberSound('click'); if (activeTab === 'metrics') fetchMetrics(selectedSubjectIdForMetrics); else fetchEvents(); }}
-            disabled={isLoading}
-          >
-            <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+    <div className="golden-os-page-bottom-safe" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {renderToastBanner()}
 
-          {isStaff && (
-            <button
-              onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Add Event
-            </button>
-          )}
-      </div>
-
-      {/* Notifications */}
-      {successMsg && (
-        <div style={{
-          background: '#ecfdf5',
-          border: '1px solid #a7f3d0',
-          color: '#059669',
-          padding: '14px 18px',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '0.92rem'
-        }}>
-          <CheckCircle2 size={18} />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div style={{
-          background: '#fef2f2',
-          border: '1px solid #fecaca',
-          color: '#dc2626',
-          padding: '14px 18px',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '0.92rem'
-        }}>
-          <AlertTriangle size={18} />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
-      {/* Navigation Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '20px',
-        borderBottom: '1px solid var(--border-subtle)',
-        paddingBottom: '12px',
-        flexWrap: 'wrap'
-      }}>
-        <button
-          onClick={() => { playCyberSound('click'); setActiveTab('events'); }}
-          style={{
-            background: activeTab === 'events' ? 'var(--color-primary)' : '#f4f1eb',
-            border: activeTab === 'events' ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-            color: activeTab === 'events' ? '#ffffff' : 'var(--color-text-secondary)',
-            padding: '8px 18px',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            fontSize: '0.88rem',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-        >
-          <Calendar size={16} />
-          Institutional Schedule ({events.length})
-        </button>
-
-        <button
-          onClick={() => { playCyberSound('click'); setActiveTab('metrics'); }}
-          style={{
-            background: activeTab === 'metrics' ? 'var(--color-primary)' : '#f4f1eb',
-            border: activeTab === 'metrics' ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-            color: activeTab === 'metrics' ? '#ffffff' : 'var(--color-text-secondary)',
-            padding: '8px 18px',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            fontSize: '0.88rem',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-        >
-          <ShieldCheck size={16} />
-          Attendance Protection Analytics
-        </button>
-
-        {isStaff && (
-          <>
-            <button
-              onClick={() => { playCyberSound('click'); setActiveTab('cancel'); }}
-              style={{
-                background: activeTab === 'cancel' ? '#e11d48' : '#f4f1eb',
-                border: activeTab === 'cancel' ? '1px solid #e11d48' : '1px solid var(--border-subtle)',
-                color: activeTab === 'cancel' ? '#ffffff' : 'var(--color-text-secondary)',
-                padding: '8px 18px',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontSize: '0.88rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s'
-              }}
-            >
-              <UserX size={16} />
-              Cancel Class Session
-            </button>
-
-            <button
-              onClick={() => { playCyberSound('click'); setActiveTab('substitute'); }}
-              style={{
-                background: activeTab === 'substitute' ? '#7c3aed' : '#f4f1eb',
-                border: activeTab === 'substitute' ? '1px solid #7c3aed' : '1px solid var(--border-subtle)',
-                color: activeTab === 'substitute' ? '#ffffff' : 'var(--color-text-secondary)',
-                padding: '8px 18px',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontSize: '0.88rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s'
-              }}
-            >
-              <UserCheck size={16} />
-              Substitute Faculty Delegation
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* TAB 1: CALENDAR EVENTS LIST */}
-      {activeTab === 'events' && (
-        <div>
-          {/* Filters Bar */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '20px',
-            overflowX: 'auto',
-            paddingBottom: '6px'
-          }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Filter size={14} /> Filter:
+      <div className="golden-os-window">
+        <div className="golden-os-titlebar">
+          <div className="golden-os-titlebar-left">
+            <div className="golden-os-traffic" aria-hidden="true">
+              <span className="golden-os-dot golden-os-dot-close" />
+              <span className="golden-os-dot golden-os-dot-min" />
+              <span className="golden-os-dot golden-os-dot-zoom" />
+            </div>
+            <span className="golden-os-title-label">{windowTitles[activeRoute.mode] || 'Academic Calendar'}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="golden-os-status-pill is-ready">
+              {userRole === 'student' ? 'Student View' : isStaff ? 'Live Sync' : 'Synced'}
             </span>
-            {['ALL', 'HOLIDAY', 'EXAM', 'CLASS_CANCELLED', 'SPECIAL_CLASS', 'EVENT', 'SUBSTITUTE_CLASS'].map(type => (
-              <button
-                key={type}
-                onClick={() => { playCyberSound('click'); setEventTypeFilter(type); }}
-                style={{
-                  background: eventTypeFilter === type ? 'var(--color-primary)' : '#f4f1eb',
-                  border: eventTypeFilter === type ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-                  color: eventTypeFilter === type ? '#ffffff' : 'var(--color-text-secondary)',
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {type === 'ALL' ? 'All Events' : (EVENT_TYPE_COLORS[type]?.label || type)}
-              </button>
-            ))}
           </div>
-
-          {/* Events Grid */}
-          {events.length === 0 && (isLoading || errorMsg) ? null : events.length === 0 ? (
-            <div style={{
-              background: '#ffffff',
-              border: '1px dashed var(--border-subtle)',
-              borderRadius: '16px',
-              padding: '60px 24px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                background: '#f4f1eb',
-                border: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-text-muted)',
-                marginBottom: '16px'
-              }}>
-                <Calendar size={28} />
-              </div>
-              <h4 style={{ margin: '0 0 8px 0', color: 'var(--color-text-main)', fontSize: '1.15rem', fontWeight: 700 }}>
-                No events scheduled
-              </h4>
-              <p style={{ margin: '0 0 20px 0', fontSize: '0.9rem', color: 'var(--color-text-secondary)', maxWidth: '420px', lineHeight: 1.5 }}>
-                There are no calendar events or holidays matching this filter.
-              </p>
-              {isStaff && (
-                <button
-                  onClick={() => { playCyberSound('click'); setShowCreateModal(true); }}
-                  className="btn-primary"
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '8px',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <Plus size={15} />
-                  Schedule an event
-                </button>
-              )}
-            </div>
-          ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-              gap: '16px'
-            }}>
-              {(Array.isArray(events) ? events : []).map(event => {
-                const badge = EVENT_TYPE_COLORS[event.event_type] || {
-                  bg: '#f4f1eb',
-                  border: 'var(--border-subtle)',
-                  text: 'var(--color-text-secondary)',
-                  label: event.event_type
-                };
-
-                return (
-                  <div
-                    key={event.id}
-                    className="surface-card"
-                    style={{
-                      background: '#ffffff',
-                      border: `1px solid ${badge.border}`,
-                      borderRadius: '14px',
-                      padding: '20px',
-                      boxShadow: 'var(--shadow-card)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      position: 'relative'
-                    }}
-                  >
-                    <div>
-                      {/* Card Top */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                        <span style={{
-                          background: badge.bg,
-                          border: `1px solid ${badge.border}`,
-                          color: badge.text,
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          letterSpacing: '0.04em',
-                          textTransform: 'uppercase'
-                        }}>
-                          {badge.label}
-                        </span>
-
-                        {isStaff && (
-                          <button
-                            onClick={() => handleDeleteEvent(event.id, event.title)}
-                            title="Remove event"
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: 'var(--color-text-muted)',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              borderRadius: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              transition: 'color 0.2s'
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Title & Description */}
-                      <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-main)' }}>
-                        {event.title}
-                      </h3>
-                      {event.description && (
-                        <p style={{ margin: '0 0 14px 0', color: 'var(--color-text-secondary)', fontSize: '0.85rem', lineHeight: 1.45 }}>
-                          {event.description}
-                        </p>
-                      )}
-
-                      {/* Meta Tags */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
-                        {event.subject_name && (
-                          <span style={{
-                            background: '#faf5ea',
-                            border: '1px solid #dfcfaf',
-                            color: 'var(--color-primary)',
-                            fontSize: '0.75rem',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontWeight: 600
-                          }}>
-                            <BookOpen size={12} /> {event.subject_name} ({event.subject_code})
-                          </span>
-                        )}
-
-                        {event.department && (
-                          <span style={{
-                            background: '#f4f1eb',
-                            border: '1px solid var(--border-subtle)',
-                            color: 'var(--color-text-secondary)',
-                            fontSize: '0.75rem',
-                            padding: '3px 8px',
-                            borderRadius: '6px'
-                          }}>
-                            Dept: {event.department}
-                          </span>
-                        )}
-
-                        {event.substitute_teacher_name && (
-                          <span style={{
-                            background: '#f5f3ff',
-                            border: '1px solid #ddd6fe',
-                            color: '#7c3aed',
-                            fontSize: '0.75rem',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontWeight: 600
-                          }}>
-                            <UserCheck size={12} /> Substitute: {event.substitute_teacher_name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Card Footer: Date & Time */}
-                    <div style={{
-                      borderTop: '1px solid var(--border-subtle)',
-                      paddingTop: '12px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '0.8rem',
-                      color: 'var(--color-text-secondary)'
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-text-main)', fontWeight: 500 }}>
-                        <Calendar size={14} style={{ color: 'var(--color-primary)' }} />
-                        {event.start_date}
-                        {event.end_date && event.end_date !== event.start_date && ` → ${event.end_date}`}
-                      </span>
-
-                      {event.start_time && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-secondary)' }}>
-                          <Clock size={13} /> {event.start_time}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
-      )}
 
-      {/* TAB 2: ATTENDANCE PROTECTION METRICS */}
-      {activeTab === 'metrics' && (
-        <div className="surface-card" style={{
-          background: '#ffffff',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: 'var(--shadow-card)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-            <div>
-              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: 'var(--color-text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ShieldCheck size={20} color="var(--color-primary)" />
-                Calendar-Aware Attendance Safety Engine
-              </h3>
-              <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.88rem' }}>
-                Conducted Classes = Scheduled Classes − Cancelled Classes. Students are never penalized for approved cancellations.
-              </p>
-            </div>
-
-            {/* Subject Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Subject:</label>
-              <select
-                value={selectedSubjectIdForMetrics}
-                onChange={e => {
-                  setSelectedSubjectIdForMetrics(e.target.value);
-                }}
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-text-main)',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  fontSize: '0.85rem'
-                }}
-              >
-                <option value="">All Subjects Aggregate</option>
-                {(Array.isArray(subjectsList) ? subjectsList : []).map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {isLoadingMetrics ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-secondary)' }}>
-              <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 12px', color: 'var(--color-primary)' }} />
-              <p>Computing calendar-adjusted metrics...</p>
-            </div>
-          ) : metrics ? (
-            <div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '16px',
-                marginBottom: '24px'
-              }}>
-                <div style={{
-                  background: '#faf9f6',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '12px',
-                  padding: '18px'
-                }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Scheduled Classes</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '6px' }}>
-                    {metrics.scheduled_classes}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Total sessions on timetable</span>
+        <div className="golden-os-body">
+          {activeRoute.mode === 'schedule' && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: '1 1 220px' }}>
+                  <Search
+                    size={15}
+                    style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c734b' }}
+                  />
+                  <input
+                    type="search"
+                    value={scheduleQuery}
+                    onChange={(e) => setScheduleQuery(e.target.value)}
+                    placeholder="Search events, subjects, departments..."
+                    style={{ ...inputStyle, paddingLeft: '36px' }}
+                  />
                 </div>
-
-                <div style={{
-                  background: '#fff1f2',
-                  border: '1px solid #fecdd3',
-                  borderRadius: '12px',
-                  padding: '18px'
-                }}>
-                  <span style={{ fontSize: '0.8rem', color: '#e11d48', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Cancelled / Exempted</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#e11d48', marginTop: '6px' }}>
-                    {metrics.cancelled_classes}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Deducted from denominator</span>
-                </div>
-
-                <div style={{
-                  background: '#faf5ea',
-                  border: '1px solid #dfcfaf',
-                  borderRadius: '12px',
-                  padding: '18px'
-                }}>
-                  <span style={{ fontSize: '0.8rem', color: '#785927', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Conducted Classes</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#785927', marginTop: '6px' }}>
-                    {metrics.conducted_classes}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Effective teaching sessions</span>
-                </div>
-
-                <div style={{
-                  background: '#ecfdf5',
-                  border: '1px solid #a7f3d0',
-                  borderRadius: '12px',
-                  padding: '18px'
-                }}>
-                  <span style={{ fontSize: '0.8rem', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Attended Classes</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#059669', marginTop: '6px' }}>
-                    {metrics.attended_classes}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Present / Late / Excused</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button type="button" style={secondaryButtonStyle} onClick={handleRefreshAll} disabled={isRefreshing}>
+                    <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
+                    <span>Refresh</span>
+                  </button>
+                  {isStaff && (
+                    <button type="button" style={primaryGoldButtonStyle} onClick={() => navigateRoute({ mode: 'new' })}>
+                      <Plus size={14} />
+                      <span>Add Event</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Protection Shield Banner */}
-              <div style={{
-                background: metrics.is_at_risk 
-                  ? '#fff1f2'
-                  : '#ecfdf5',
-                border: metrics.is_at_risk ? '1px solid #fecdd3' : '1px solid #a7f3d0',
-                borderRadius: '14px',
-                padding: '20px 24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '16px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{
-                    background: metrics.is_at_risk ? '#fef2f2' : '#ffffff',
-                    border: metrics.is_at_risk ? '1px solid #fecaca' : '1px solid #a7f3d0',
-                    borderRadius: '50%',
-                    width: '48px',
-                    height: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: metrics.is_at_risk ? '#dc2626' : '#059669'
-                  }}>
-                    {metrics.is_at_risk ? <AlertTriangle size={24} /> : <ShieldCheck size={24} />}
+              <div className="golden-os-pill-row" style={{ flexWrap: 'wrap' }}>
+                {SCHEDULE_FILTER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`golden-os-chip ${scheduleFilter === opt.id ? 'active' : ''}`}
+                    onClick={() => setScheduleFilter(opt.id)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {filteredScheduleEvents.length === 0 ? (
+                <div
+                  className="golden-os-inset-card"
+                  style={{ padding: '32px 16px', textAlign: 'center', alignItems: 'center', gap: '8px' }}
+                >
+                  <Calendar size={28} color="#9c8b6e" />
+                  <div style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>No matching calendar events</div>
+                  <div style={{ fontSize: '0.78rem', color: '#6b5b3e' }}>
+                    {scheduleFilter !== 'ALL' || scheduleQuery
+                      ? 'Clear your active filter or search text to view all events.'
+                      : 'Scheduled holidays, exams, cancellations, and substitutions appear here.'}
+                  </div>
+                </div>
+              ) : (
+                <div className="golden-os-list-shell">
+                  {filteredScheduleEvents.map((evt) => renderEventRow(evt, false))}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeRoute.mode === 'detail' && (
+            <>
+              {!resolvedDetailEvent ? (
+                <div className="golden-os-inset-card" style={{ padding: '28px 16px', textAlign: 'center' }}>
+                  <div style={{ fontWeight: 700, color: '#2b2112' }}>Calendar event not found</div>
+                  <div style={{ fontSize: '0.78rem', color: '#6b5b3e', marginTop: '4px' }}>
+                    It may have been deleted from the schedule.
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="golden-os-list-shell">
+                    {[
+                      { label: 'Category', value: getEventMeta(resolvedDetailEvent.event_type).label },
+                      { label: 'Start Date', value: formatDisplayDate(resolvedDetailEvent.start_date) },
+                      ...(resolvedDetailEvent.end_date
+                        ? [{ label: 'End Date', value: formatDisplayDate(resolvedDetailEvent.end_date) }]
+                        : []),
+                      ...(resolvedDetailEvent.start_time
+                        ? [
+                            {
+                              label: 'Session Window',
+                              value: resolvedDetailEvent.end_time
+                                ? `${resolvedDetailEvent.start_time} – ${resolvedDetailEvent.end_time}`
+                                : resolvedDetailEvent.start_time,
+                            },
+                          ]
+                        : []),
+                      ...(resolvedDetailEvent.subject_name
+                        ? [
+                            {
+                              label: 'Subject',
+                              value: resolvedDetailEvent.subject_code
+                                ? `${resolvedDetailEvent.subject_name} (${resolvedDetailEvent.subject_code})`
+                                : resolvedDetailEvent.subject_name,
+                            },
+                          ]
+                        : []),
+                      ...(resolvedDetailEvent.department
+                        ? [{ label: 'Department', value: resolvedDetailEvent.department }]
+                        : []),
+                      ...(resolvedDetailEvent.teacher_name
+                        ? [{ label: 'Faculty', value: resolvedDetailEvent.teacher_name }]
+                        : []),
+                      ...(resolvedDetailEvent.substitute_teacher_name
+                        ? [{ label: 'Substitute Teacher', value: resolvedDetailEvent.substitute_teacher_name }]
+                        : []),
+                      ...(resolvedDetailEvent.substitute_reason
+                        ? [{ label: 'Delegation Reason', value: resolvedDetailEvent.substitute_reason }]
+                        : []),
+                      ...(resolvedDetailEvent.description
+                        ? [{ label: 'Details', value: resolvedDetailEvent.description }]
+                        : []),
+                      { label: 'Created By', value: resolvedDetailEvent.created_by || 'Campus Administration' },
+                    ].map((row) => (
+                      <div key={row.label} className="golden-os-list-row" style={{ cursor: 'default' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#6b5b3e' }}>{row.label}</span>
+                        <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f', textAlign: 'right' }}>
+                          {row.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                    {canDeleteEvent(resolvedDetailEvent) ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEvent(resolvedDetailEvent, true)}
+                        disabled={deletingId === resolvedDetailEvent.id}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '9px 14px',
+                          borderRadius: '11px',
+                          border: '1px solid #fecaca',
+                          background: '#fef2f2',
+                          color: '#b91c1c',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        <span>{deletingId === resolvedDetailEvent.id ? 'Removing...' : 'Delete Event'}</span>
+                      </button>
+                    ) : (
+                      <span />
+                    )}
+                    <button type="button" style={secondaryButtonStyle} onClick={handleBack}>
+                      Done
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {activeRoute.mode === 'analytics' && (
+            <>
+              <div className="golden-os-form-section">
+                <div className="golden-os-form-section-title">Scope Filters</div>
+                <div className={isStaff ? 'golden-os-fields-2' : ''}>
+                  <div>
+                    <label style={labelStyle} htmlFor="cal-analytics-subject">Subject</label>
+                    <select
+                      id="cal-analytics-subject"
+                      value={analyticsSubjectId}
+                      onChange={(e) => handleMetricsFilterChange(e.target.value, analyticsStudentId)}
+                      style={inputStyle}
+                    >
+                      <option value="">All Accessible Subjects</option>
+                      {subjectsList.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {isStaff && (
+                    <div>
+                      <label style={labelStyle} htmlFor="cal-analytics-student">Student Scope</label>
+                      <select
+                        id="cal-analytics-student"
+                        value={analyticsStudentId}
+                        onChange={(e) => handleMetricsFilterChange(analyticsSubjectId, e.target.value)}
+                        style={inputStyle}
+                      >
+                        <option value="">All Institutional Students</option>
+                        {studentsList.map((st) => (
+                          <option key={st.id} value={st.id}>
+                            {st.name} (Roll {st.roll})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="golden-os-kpi-strip">
+                <div className="golden-os-kpi-tile is-compact">
+                  <div className="golden-os-kpi-value">{metrics?.scheduled_classes ?? 0}</div>
+                  <div className="golden-os-kpi-label">Scheduled</div>
+                </div>
+                <div className="golden-os-kpi-tile is-compact">
+                  <div className="golden-os-kpi-value" style={{ color: '#0369a1' }}>
+                    {metrics?.cancelled_classes ?? 0}
+                  </div>
+                  <div className="golden-os-kpi-label">Cancelled</div>
+                </div>
+                <div className="golden-os-kpi-tile is-compact">
+                  <div className="golden-os-kpi-value">{metrics?.conducted_classes ?? 0}</div>
+                  <div className="golden-os-kpi-label">Conducted</div>
+                </div>
+                <div className="golden-os-kpi-tile is-compact">
+                  <div className="golden-os-kpi-value" style={{ color: '#047857' }}>
+                    {metrics?.attended_classes ?? 0}
+                  </div>
+                  <div className="golden-os-kpi-label">Attended</div>
+                </div>
+              </div>
+
+              <div className="golden-os-form-section">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b5b3e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Protected Attendance Rate {metricsLoading ? '· Refreshing...' : ''}
+                    </div>
+                    <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#25231f', lineHeight: 1.1, marginTop: '4px' }}>
+                      {metrics ? `${metrics.attendance_percentage}%` : '100%'}
+                    </div>
+                  </div>
+                  <span
+                    className={`golden-os-status-pill ${metrics?.is_at_risk ? 'is-pending' : 'is-ready'}`}
+                    style={
+                      metrics?.is_at_risk
+                        ? { background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }
+                        : undefined
+                    }
+                  >
+                    {metrics?.is_at_risk ? 'At Risk · Below 75%' : 'Safe Standing · >= 75%'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#6b5b3e', fontWeight: 500 }}>
+                  Formula: Attended ({metrics?.attended_classes ?? 0}) / (Scheduled ({metrics?.scheduled_classes ?? 0}) − Cancelled ({metrics?.cancelled_classes ?? 0})). Cancelled lectures never reduce percentage.
+                </div>
+              </div>
+
+              <div className="golden-os-form-section">
+                <div className="golden-os-form-section-title">Protected Cancelled Sessions ({cancelledEvents.length})</div>
+                {cancelledEvents.length === 0 ? (
+                  <div style={{ fontSize: '0.82rem', color: '#6b5b3e' }}>No cancelled class exemptions recorded yet.</div>
+                ) : (
+                  <div className="golden-os-list-shell">
+                    {cancelledEvents.slice(0, 8).map((evt) => renderEventRow(evt, false))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeRoute.mode === 'cancel' && (
+            <>
+              <form onSubmit={handleCancelClassSubmit} className="golden-os-form-section">
+                <div className="golden-os-form-section-title">Mark Lecture Cancelled & Safeguard Attendance</div>
+                <div className="golden-os-fields-2">
+                  <div>
+                    <label style={labelStyle} htmlFor="cal-cancel-subject">Subject *</label>
+                    <select
+                      id="cal-cancel-subject"
+                      required
+                      value={cancelSubjectId}
+                      onChange={(e) => setCancelSubjectId(e.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">Select Subject</option>
+                      {subjectsList.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.code})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', color: 'var(--color-text-main)', fontWeight: 700 }}>
-                      Calendar-Adjusted Percentage: {metrics.attendance_percentage}%
-                    </h4>
-                    <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
-                      {metrics.is_at_risk 
-                        ? 'Warning: Attendance is currently below the 75% threshold. Take corrective action.' 
-                        : 'Safe & Protected: Academic standing is in good compliance (≥ 75%).'}
-                    </p>
+                    <label style={labelStyle} htmlFor="cal-cancel-date">Class Date *</label>
+                    <input
+                      id="cal-cancel-date"
+                      type="date"
+                      required
+                      value={cancelDate}
+                      onChange={(e) => setCancelDate(e.target.value)}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle} htmlFor="cal-cancel-period">Period Slot</label>
+                    <select
+                      id="cal-cancel-period"
+                      value={cancelSessionTime}
+                      onChange={(e) => setCancelSessionTime(e.target.value)}
+                      style={inputStyle}
+                    >
+                      {CALENDAR_PERIOD_SLOTS.map((slot) => (
+                        <option key={slot} value={slot}>
+                          {slot}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle} htmlFor="cal-cancel-reason">Cancellation Reason *</label>
+                    <input
+                      id="cal-cancel-reason"
+                      type="text"
+                      required
+                      placeholder="e.g., Faculty seminar / Holiday workshop"
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      style={inputStyle}
+                    />
                   </div>
                 </div>
-
-                <div style={{
-                  fontSize: '0.85rem',
-                  background: '#ffffff',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-text-main)'
-                }}>
-                  Formula: ({metrics.attended_classes} ÷ {metrics.conducted_classes}) × 100 = <strong>{metrics.attendance_percentage}%</strong>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button type="submit" disabled={isSubmitting} style={primaryGoldButtonStyle}>
+                    <CalendarX size={15} />
+                    <span>{isSubmitting ? 'Saving...' : 'Confirm Class Cancellation'}</span>
+                  </button>
                 </div>
+              </form>
+
+              <div className="golden-os-form-section">
+                <div className="golden-os-form-section-title">Active Cancelled Classes ({cancelledEvents.length})</div>
+                {cancelledEvents.length === 0 ? (
+                  <div style={{ fontSize: '0.82rem', color: '#6b5b3e' }}>No active class cancellations.</div>
+                ) : (
+                  <div className="golden-os-list-shell">
+                    {cancelledEvents.map((evt) => renderEventRow(evt, true))}
+                  </div>
+                )}
               </div>
-            </div>
-          ) : (
-            <p style={{ color: 'var(--color-text-muted)' }}>No metrics available for the selected parameters.</p>
+            </>
           )}
-        </div>
-      )}
 
-      {/* TAB 3: CANCEL CLASS FORM (STAFF ONLY) */}
-      {activeTab === 'cancel' && isStaff && (
-        <div className="surface-card" style={{
-          background: '#ffffff',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '16px',
-          padding: '28px',
-          maxWidth: '680px',
-          margin: '0 auto',
-          boxShadow: 'var(--shadow-card)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-            <div style={{
-              background: '#fff1f2',
-              border: '1px solid #fecdd3',
-              borderRadius: '10px',
-              padding: '8px',
-              color: '#e11d48'
-            }}>
-              <UserX size={20} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--color-text-main)', fontWeight: 700 }}>Cancel Class Session</h3>
-              <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
-                Session will be logged in the academic calendar and student absences will be safely purged.
-              </p>
-            </div>
-          </div>
-
-          {/* Guarantee Warning */}
-          <div style={{
-            background: '#faf5ea',
-            border: '1px solid #dfcfaf',
-            borderRadius: '10px',
-            padding: '14px',
-            marginBottom: '20px',
-            fontSize: '0.85rem',
-            color: 'var(--color-primary)',
-            lineHeight: 1.45
-          }}>
-            <strong>Automatic Protection Guarantee:</strong> Existing attendance records for this subject on this date 
-            will be converted to <code>CLASS_CANCELLED</code>. These cancelled hours are excluded from the total conducted count, 
-            so students will not be penalized.
-          </div>
-
-          <form onSubmit={handleCancelClass}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                Subject / Course *
-              </label>
-              <select
-                required
-                value={cancelFormData.subject_id}
-                onChange={e => setCancelFormData({ ...cancelFormData, subject_id: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-text-main)',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.9rem'
-                }}
-              >
-                {(Array.isArray(subjectsList) ? subjectsList : []).map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.code}) — {s.department}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                  Session Date (DD/MM/YYYY) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="DD/MM/YYYY"
-                  value={cancelFormData.date}
-                  onChange={e => setCancelFormData({ ...cancelFormData, date: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: '#ffffff',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--color-text-main)',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    fontSize: '0.9rem'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                  Session Time
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 10:00 AM"
-                  value={cancelFormData.session_time}
-                  onChange={e => setCancelFormData({ ...cancelFormData, session_time: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: '#ffffff',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--color-text-main)',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    fontSize: '0.9rem'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                Reason for Cancellation (Audit Trail) *
-              </label>
-              <textarea
-                required
-                rows={3}
-                placeholder="e.g. Faculty attending institutional symposium; class postponed to next Tuesday"
-                value={cancelFormData.reason}
-                onChange={e => setCancelFormData({ ...cancelFormData, reason: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-text-main)',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.9rem',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmittingCancel}
-              style={{
-                width: '100%',
-                background: '#e11d48',
-                border: 'none',
-                color: '#fff',
-                padding: '12px',
-                borderRadius: '10px',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                cursor: isSubmittingCancel ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(225, 29, 72, 0.25)'
-              }}
-            >
-              {isSubmittingCancel ? (
-                <>
-                  <RefreshCw size={16} className="animate-spin" />
-                  Logging Cancellation...
-                </>
-              ) : (
-                <>
-                  <UserX size={18} />
-                  Confirm Cancellation & Protect Students
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* TAB 4: SUBSTITUTE ASSIGNMENT (STAFF ONLY) */}
-      {activeTab === 'substitute' && isStaff && (
-        <div className="surface-card" style={{
-          background: '#ffffff',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '16px',
-          padding: '28px',
-          maxWidth: '680px',
-          margin: '0 auto',
-          boxShadow: 'var(--shadow-card)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-            <div style={{
-              background: '#f5f3ff',
-              border: '1px solid #ddd6fe',
-              borderRadius: '10px',
-              padding: '8px',
-              color: '#7c3aed'
-            }}>
-              <UserCheck size={20} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--color-text-main)', fontWeight: 700 }}>Assign Substitute Faculty</h3>
-              <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
-                Delegate temporary teaching and attendance authority with institutional audit logs.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleAssignSubstitute}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                Subject / Class *
-              </label>
-              <select
-                required
-                value={substituteFormData.subject_id}
-                onChange={e => setSubstituteFormData({ ...substituteFormData, subject_id: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-text-main)',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.9rem'
-                }}
-              >
-                {(Array.isArray(subjectsList) ? subjectsList : []).map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                Substitute Teacher *
-              </label>
-              <select
-                required
-                value={substituteFormData.substitute_teacher_id}
-                onChange={e => setSubstituteFormData({ ...substituteFormData, substitute_teacher_id: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-text-main)',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.9rem'
-                }}
-              >
-                {(Array.isArray(teachersList) ? teachersList : []).map(t => (
-                  <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                Date (DD/MM/YYYY) *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="DD/MM/YYYY"
-                value={substituteFormData.date}
-                onChange={e => setSubstituteFormData({ ...substituteFormData, date: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-text-main)',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.9rem'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                Reason for Substitution *
-              </label>
-              <textarea
-                required
-                rows={3}
-                placeholder="e.g. Faculty medical leave coverage"
-                value={substituteFormData.reason}
-                onChange={e => setSubstituteFormData({ ...substituteFormData, reason: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-text-main)',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.9rem'
-                }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmittingSubstitute}
-              style={{
-                width: '100%',
-                background: '#7c3aed',
-                border: 'none',
-                color: '#fff',
-                padding: '12px',
-                borderRadius: '10px',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                cursor: isSubmittingSubstitute ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.25)'
-              }}
-            >
-              {isSubmittingSubstitute ? (
-                <>
-                  <RefreshCw size={16} className="animate-spin" />
-                  Assigning...
-                </>
-              ) : (
-                <>
-                  <UserCheck size={18} />
-                  Authorize Substitute Faculty
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* MODAL: CREATE CALENDAR EVENT */}
-      {showCreateModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.5)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px'
-        }}>
-          <div className="surface-card" style={{
-            background: '#ffffff',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '560px',
-            padding: '28px',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
-            position: 'relative'
-          }}>
-            <button
-              onClick={() => setShowCreateModal(false)}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--color-text-muted)',
-                cursor: 'pointer',
-                padding: '4px'
-              }}
-            >
-              <X size={20} />
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <div style={{
-                background: '#faf5ea',
-                borderRadius: '8px',
-                padding: '6px',
-                color: 'var(--color-primary)',
-                display: 'flex'
-              }}>
-                <Calendar size={20} />
-              </div>
-              <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--color-text-main)', fontWeight: 700 }}>Schedule Academic Event</h3>
-            </div>
-
-            <form onSubmit={handleCreateEvent}>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
-                  Event Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Mid-Term Examination / Deepavali Holiday"
-                  value={eventFormData.title}
-                  onChange={e => setEventFormData({ ...eventFormData, title: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: '#ffffff',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--color-text-main)',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.9rem'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
-                    Event Type *
-                  </label>
-                  <select
-                    value={eventFormData.event_type}
-                    onChange={e => setEventFormData({ ...eventFormData, event_type: e.target.value })}
-                    style={{
-                      width: '100%',
-                      background: '#ffffff',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--color-text-main)',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      fontSize: '0.88rem'
-                    }}
-                  >
-                    <option value="HOLIDAY">Holiday</option>
-                    <option value="EXAM">Exam Session</option>
-                    <option value="SPECIAL_CLASS">Special Class</option>
-                    <option value="EVENT">Academic Event</option>
-                    <option value="INSTITUTION_CLOSED">Institution Closed</option>
-                  </select>
+          {activeRoute.mode === 'substitute' && (
+            <>
+              <form onSubmit={handleSubstituteSubmit} className="golden-os-form-section">
+                <div className="golden-os-form-section-title">Assign Substitute Teacher</div>
+                <div className="golden-os-fields-2">
+                  <div>
+                    <label style={labelStyle} htmlFor="cal-sub-subject">Subject *</label>
+                    <select
+                      id="cal-sub-subject"
+                      required
+                      value={subSubjectId}
+                      onChange={(e) => setSubSubjectId(e.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">Select Subject</option>
+                      {subjectsList.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle} htmlFor="cal-sub-teacher">Substitute Teacher *</label>
+                    <select
+                      id="cal-sub-teacher"
+                      required
+                      value={subTeacherId}
+                      onChange={(e) => setSubTeacherId(e.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">Select Faculty Member</option>
+                      {activeTeachersForDelegate.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} ({t.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle} htmlFor="cal-sub-date">Lecture Date *</label>
+                    <input
+                      id="cal-sub-date"
+                      type="date"
+                      required
+                      value={subDate}
+                      onChange={(e) => setSubDate(e.target.value)}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle} htmlFor="cal-sub-reason">Delegation Reason *</label>
+                    <input
+                      id="cal-sub-reason"
+                      type="text"
+                      required
+                      placeholder="e.g., Attending academic board meeting"
+                      value={subReason}
+                      onChange={(e) => setSubReason(e.target.value)}
+                      style={inputStyle}
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
-                    Department (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="All Departments or e.g. CSE"
-                    value={eventFormData.department}
-                    onChange={e => setEventFormData({ ...eventFormData, department: e.target.value })}
-                    style={{
-                      width: '100%',
-                      background: '#ffffff',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--color-text-main)',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem'
-                    }}
-                  />
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button type="submit" disabled={isSubmitting} style={primaryGoldButtonStyle}>
+                    <UserCheck size={15} />
+                    <span>{isSubmitting ? 'Delegating...' : 'Delegate Substitute Faculty'}</span>
+                  </button>
                 </div>
-              </div>
+              </form>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+              <div className="golden-os-form-section">
+                <div className="golden-os-form-section-title">Active Substitutions ({substituteEvents.length})</div>
+                {substituteEvents.length === 0 ? (
+                  <div style={{ fontSize: '0.82rem', color: '#6b5b3e' }}>No substitute delegations assigned yet.</div>
+                ) : (
+                  <div className="golden-os-list-shell">
+                    {substituteEvents.map((evt) => renderEventRow(evt, true))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeRoute.mode === 'new' && (
+            <form onSubmit={handleCreateEventSubmit} className="golden-os-form-section">
+              <div className="golden-os-form-section-title">New Institutional Calendar Entry</div>
+              <div className="golden-os-fields-2">
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
-                    Start Date (DD/MM/YYYY) *
-                  </label>
+                  <label style={labelStyle} htmlFor="cal-new-title">Event Title *</label>
                   <input
+                    id="cal-new-title"
                     type="text"
                     required
-                    placeholder="DD/MM/YYYY"
-                    value={eventFormData.start_date}
-                    onChange={e => setEventFormData({ ...eventFormData, start_date: e.target.value })}
-                    style={{
-                      width: '100%',
-                      background: '#ffffff',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--color-text-main)',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem'
-                    }}
+                    placeholder="e.g., Mid-Semester Examinations"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    style={inputStyle}
                   />
                 </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
-                    End Date (Optional)
-                  </label>
+                  <label style={labelStyle} htmlFor="cal-new-type">Category *</label>
+                  <select
+                    id="cal-new-type"
+                    value={newType}
+                    onChange={(e) => setNewType(e.target.value)}
+                    style={inputStyle}
+                  >
+                    {CREATE_CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="cal-new-start">Start Date *</label>
                   <input
+                    id="cal-new-start"
+                    type="date"
+                    required
+                    value={newStartDate}
+                    onChange={(e) => setNewStartDate(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="cal-new-end">End Date (Optional)</label>
+                  <input
+                    id="cal-new-end"
+                    type="date"
+                    value={newEndDate}
+                    onChange={(e) => setNewEndDate(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="cal-new-subject">Subject Scope (Optional)</label>
+                  <select
+                    id="cal-new-subject"
+                    value={newSubjectId}
+                    onChange={(e) => setNewSubjectId(e.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="">Campus-Wide (All Subjects)</option>
+                    {subjectsList.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="cal-new-dept">Department Scope (Optional)</label>
+                  <input
+                    id="cal-new-dept"
                     type="text"
-                    placeholder="DD/MM/YYYY"
-                    value={eventFormData.end_date}
-                    onChange={e => setEventFormData({ ...eventFormData, end_date: e.target.value })}
-                    style={{
-                      width: '100%',
-                      background: '#ffffff',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--color-text-main)',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem'
-                    }}
+                    placeholder="e.g., CSE(IOT) or leave blank for all"
+                    value={newDepartment}
+                    onChange={(e) => setNewDepartment(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="cal-new-stime">Start Time (Optional)</label>
+                  <input
+                    id="cal-new-stime"
+                    type="time"
+                    value={newStartTime}
+                    onChange={(e) => setNewStartTime(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="cal-new-etime">End Time (Optional)</label>
+                  <input
+                    id="cal-new-etime"
+                    type="time"
+                    value={newEndTime}
+                    onChange={(e) => setNewEndTime(e.target.value)}
+                    style={inputStyle}
                   />
                 </div>
               </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '5px' }}>
-                  Description / Remarks
-                </label>
+              <div>
+                <label style={labelStyle} htmlFor="cal-new-desc">Description / Instructions</label>
                 <textarea
-                  rows={2}
-                  placeholder="Provide context or instructions for students & staff"
-                  value={eventFormData.description}
-                  onChange={e => setEventFormData({ ...eventFormData, description: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: '#ffffff',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--color-text-main)',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.9rem',
-                    resize: 'none'
-                  }}
+                  id="cal-new-desc"
+                  rows={3}
+                  placeholder="Schedule instructions, venue, or notice summary..."
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  style={{ ...inputStyle, resize: 'vertical' }}
                 />
               </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  style={{
-                    background: '#f4f1eb',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--color-text-secondary)',
-                    padding: '10px 18px',
-                    borderRadius: '8px',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" style={secondaryButtonStyle} onClick={handleBack}>
                   Cancel
                 </button>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary"
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    cursor: isLoading ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  Save Event
+                <button type="submit" disabled={isSubmitting} style={primaryGoldButtonStyle}>
+                  <Sparkles size={15} />
+                  <span>{isSubmitting ? 'Publishing...' : 'Publish Calendar Event'}</span>
                 </button>
               </div>
             </form>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

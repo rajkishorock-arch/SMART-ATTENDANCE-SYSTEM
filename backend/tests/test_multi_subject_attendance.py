@@ -717,3 +717,72 @@ def test_future_date_attendance_rejected_on_manual_and_recognize_frame(client_an
     )
     assert r_scan.status_code == 400, r_scan.text
     assert "Future attendance date" in r_scan.json()["detail"]
+
+
+def test_deleted_student_excluded_and_logs_sorted_newest_first(client_and_db):
+    client, db, tokens = client_and_db
+
+    # Create a subject and seed attendance across two dates plus an orphan deleted-student row
+    sub = client.post(
+        "/api/v1/subjects",
+        headers=_auth(tokens["admin"]),
+        json={"name": "Algorithms", "code": "CS301", "department": "Computer Science", "teacher_id": None},
+    ).json()
+
+    # Delete endpoint test: add a second student, log attendance with compound ID, then delete via API
+    deleted_student = models.StudentModel(
+        id=909,
+        institution_id=1,
+        name="Temp Student",
+        roll="TMP909",
+        dep="Computer Science",
+    )
+    db.add(deleted_student)
+    db.add(models.AttendanceModel(
+        id="101", institution_id=1, roll="2026CS01", name="Student 101",
+        department="Computer Science", date="25/11/2026", time="09:05:00",
+        attendance="Present", subject_id=sub["id"], verification_method="FACE_SCAN"
+    ))
+    db.add(models.AttendanceModel(
+        id="101", institution_id=1, roll="2026CS01", name="Student 101",
+        department="Computer Science", date="27/11/2026", time="12:10:00",
+        attendance="Late", subject_id=sub["id"], verification_method="MANUAL_STAFF"
+    ))
+    db.add(models.AttendanceModel(
+        id="909_extra", institution_id=1, roll="TMP909", name="Temp Student",
+        department="Computer Science", date="27/11/2026", time="10:00:00",
+        attendance="Present", subject_id=sub["id"], verification_method="FACE_SCAN"
+    ))
+    db.add(models.AttendanceModel(
+        id="8888", institution_id=1, roll="GHOST88", name="Orphan Deleted",
+        department="Computer Science", date="27/11/2026", time="11:00:00",
+        attendance="Present", subject_id=sub["id"], verification_method="FACE_SCAN"
+    ))
+    db.commit()
+
+    del_res = client.delete("/api/v1/users/students/909", headers=_auth(tokens["admin"]))
+    assert del_res.status_code == 200, del_res.text
+
+    logs_res = client.get("/api/v1/attendance/logs", headers=_auth(tokens["admin"]))
+    assert logs_res.status_code == 200, logs_res.text
+    logs_data = logs_res.json()
+    names = [item["name"] for item in logs_data]
+    assert "Temp Student" not in names
+    assert "Orphan Deleted" not in names
+    assert [item["date"] for item in logs_data[:2]] == ["27/11/2026", "25/11/2026"]
+    assert logs_data[0]["record_id"] is not None
+    assert logs_data[0]["record_id"] != logs_data[1]["record_id"]
+    assert db.query(models.AttendanceModel).filter(models.AttendanceModel.id == "909_extra").count() == 0
+
+    hist_res = client.get(
+        f"/api/v1/attendance/sessions-history?subject_id={sub['id']}",
+        headers=_auth(tokens["admin"]),
+    )
+    assert hist_res.status_code == 200, hist_res.text
+    hist_periods = [(s["date"], s["period"]) for s in hist_res.json()]
+    assert ("27/11/2026", "Period 4") in hist_periods
+    assert ("25/11/2026", "Period 1") in hist_periods
+    # Period 3 belonged only to orphan deleted student and Period 2 to deleted student 909
+    assert ("27/11/2026", "Period 2") not in hist_periods
+    assert ("27/11/2026", "Period 3") not in hist_periods
+

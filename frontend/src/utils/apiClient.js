@@ -29,7 +29,7 @@ function getEndpointTtl(url, options = {}) {
   }
 
   // Frequently queried setting/metadata endpoints
-  if (url.includes('/departments') || url.includes('/institutions') || url.includes('/settings') || url.includes('/premium/status') || url.includes('/schedules')) {
+  if (url.includes('/departments') || url.includes('/institutions') || url.includes('/settings') || url.includes('/premium/status') || url.includes('/schedules') || url.includes('/calendar')) {
     return 45000; // 45 seconds
   }
   if (url.includes('/disputes') || url.includes('/notifications/broadcasts')) {

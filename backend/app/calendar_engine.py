@@ -8,11 +8,23 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 
-from . import models, schemas, security, crud
+from . import models, schemas, security, crud, cache_service
 from .database import get_db
+from .period_utils import normalize_date_str
 
 router = APIRouter()
 IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def _invalidate_calendar_caches(inst_id: Optional[int]):
+    if not inst_id:
+        return
+    try:
+        cache_service.cache_delete_pattern(f"stats:inst_{inst_id}")
+        cache_service.cache_delete_pattern(f"sessions:inst_{inst_id}")
+        cache_service.cache_delete_pattern(f"logs:inst_{inst_id}")
+    except Exception:
+        pass
 
 
 def _parse_flexible_event_date(date_str: Optional[str]):
@@ -25,6 +37,19 @@ def _parse_flexible_event_date(date_str: Optional[str]):
         except ValueError:
             pass
     return None
+
+
+def _date_variants(date_str: Optional[str]) -> set:
+    if not date_str:
+        return set()
+    clean = str(date_str).strip()
+    norm = normalize_date_str(clean)
+    variants = {clean, norm}
+    parsed = _parse_flexible_event_date(clean)
+    if parsed:
+        variants.add(parsed.strftime("%d/%m/%Y"))
+        variants.add(parsed.strftime("%Y-%m-%d"))
+    return {v for v in variants if v}
 
 
 def _format_event(e: models.CalendarEvent, db: Session) -> schemas.CalendarEventResponse:
@@ -84,8 +109,8 @@ def create_calendar_event(
         title=event_in.title,
         description=event_in.description,
         event_type=event_in.event_type.upper(),
-        start_date=event_in.start_date.strip(),
-        end_date=event_in.end_date.strip() if event_in.end_date else None,
+        start_date=normalize_date_str(event_in.start_date.strip()),
+        end_date=normalize_date_str(event_in.end_date.strip()) if event_in.end_date else None,
         start_time=event_in.start_time,
         end_time=event_in.end_time,
         department=event_in.department,
@@ -167,6 +192,7 @@ def create_calendar_event(
     except Exception as notif_err:
         pass
 
+    _invalidate_calendar_caches(inst_id)
     return _format_event(new_event, db)
 
 
@@ -182,28 +208,20 @@ def list_calendar_events(
     identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """List calendar events for the active institution with optional filters."""
-    inst_ids = set()
-    if identity.institution_id:
-        inst_ids.add(identity.institution_id)
-    # Universal fallback: Always include default institution 1
-    inst_ids.add(1)
-
-    # If identity is in default institution (1) or unassigned, include all active institutions
-    if not identity.institution_id or identity.institution_id == 1:
-        try:
-            active_inst_ids = [r[0] for r in db.query(models.Institution.id).filter(models.Institution.is_active == True).all()]
-            inst_ids.update(active_inst_ids)
-        except Exception:
-            pass
+    inst_id = identity.institution_id or 1
 
     query = db.query(models.CalendarEvent).filter(
-        models.CalendarEvent.institution_id.in_(list(inst_ids))
+        models.CalendarEvent.institution_id == inst_id
     )
 
     if status and status != "ALL":
         query = query.filter(models.CalendarEvent.status == status.upper())
     if event_type and event_type != "ALL":
-        query = query.filter(models.CalendarEvent.event_type == event_type.upper())
+        up = event_type.upper()
+        if up in ("SUBSTITUTE_CLASS", "TEACHER_SUBSTITUTION"):
+            query = query.filter(models.CalendarEvent.event_type.in_(["SUBSTITUTE_CLASS", "TEACHER_SUBSTITUTION"]))
+        else:
+            query = query.filter(models.CalendarEvent.event_type == up)
     if department:
         query = query.filter(
             (models.CalendarEvent.department == department) | 
@@ -276,12 +294,13 @@ def update_calendar_event(
         if k == "event_type" and v:
             setattr(event, k, v.upper())
         elif k in ["start_date", "end_date"] and v:
-            setattr(event, k, v.strip())
+            setattr(event, k, normalize_date_str(v.strip()))
         else:
             setattr(event, k, v)
 
     db.commit()
     db.refresh(event)
+    _invalidate_calendar_caches(event.institution_id)
 
     crud.create_audit_log(
         db,
@@ -308,26 +327,37 @@ def delete_calendar_event(
     if current_user.role not in ["admin", "teacher", "hod"]:
         raise HTTPException(status_code=403, detail="Staff access only.")
 
-    inst_ids = {1}
-    if current_user.institution_id:
-        inst_ids.add(current_user.institution_id)
-    if not current_user.institution_id or current_user.institution_id == 1:
-        try:
-            active_ids = [r[0] for r in db.query(models.Institution.id).filter(models.Institution.is_active == True).all()]
-            inst_ids.update(active_ids)
-        except Exception:
-            pass
-
     event = db.query(models.CalendarEvent).filter(
         models.CalendarEvent.id == event_id,
-        models.CalendarEvent.institution_id.in_(list(inst_ids))
+        models.CalendarEvent.institution_id == (current_user.institution_id or 1)
     ).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
+    if (
+        current_user.role == "teacher"
+        and event.teacher_id
+        and event.teacher_id != current_user.id
+        and event.substitute_teacher_id != current_user.id
+        and event.created_by != current_user.email
+    ):
+        raise HTTPException(status_code=403, detail="You can only delete events you created or manage.")
 
     title = event.title
+    inst_id = event.institution_id
+    if event.event_type in ("TEACHER_SUBSTITUTION", "SUBSTITUTE_CLASS") and event.subject_id:
+        sub_q = db.query(models.SubstituteAssignment).filter(
+            models.SubstituteAssignment.institution_id == inst_id,
+            models.SubstituteAssignment.subject_id == event.subject_id,
+            models.SubstituteAssignment.is_active == True,
+        )
+        variants = _date_variants(event.start_date)
+        if variants:
+            sub_q = sub_q.filter(models.SubstituteAssignment.date_str.in_(list(variants)))
+        sub_q.update({models.SubstituteAssignment.is_active: False}, synchronize_session=False)
+
     db.delete(event)
     db.commit()
+    _invalidate_calendar_caches(inst_id)
 
     crud.create_audit_log(
         db,
@@ -367,7 +397,11 @@ def cancel_class_session(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found.")
 
-    clean_date = payload.date.strip()
+    clean_date = normalize_date_str(payload.date.strip())
+    if current_user.role == "teacher" and not crud.teacher_can_access_subject(db, current_user, subject, target_date=clean_date):
+        raise HTTPException(status_code=403, detail="Unauthorized: You can only cancel sessions for your assigned subject.")
+
+    date_opts = list(_date_variants(payload.date) | _date_variants(clean_date))
 
     # 1. Create Calendar Event for Cancellation
     event = models.CalendarEvent(
@@ -390,13 +424,14 @@ def cancel_class_session(
     db.query(models.AttendanceModel).filter(
         models.AttendanceModel.institution_id == current_user.institution_id,
         models.AttendanceModel.subject_id == subject.id,
-        models.AttendanceModel.date == clean_date
+        models.AttendanceModel.date.in_(date_opts)
     ).update(
         {models.AttendanceModel.attendance: "CLASS_CANCELLED"},
         synchronize_session=False
     )
     db.commit()
     db.refresh(event)
+    _invalidate_calendar_caches(current_user.institution_id)
 
     # 3. Immutable Audit Log
     crud.create_audit_log(
@@ -483,13 +518,23 @@ def assign_substitute_teacher(
     if not substitute:
         raise HTTPException(status_code=404, detail="Substitute teacher not found.")
 
-    clean_date = payload.date.strip()
+    clean_date = normalize_date_str(payload.date.strip())
+    if current_user.role == "teacher" and not crud.teacher_can_access_subject(db, current_user, subject, target_date=clean_date):
+        raise HTTPException(status_code=403, detail="Unauthorized: You can only delegate subjects assigned to your account.")
+
+    # Deactivate any prior active substitution on same subject & date so latest delegation wins cleanly
+    db.query(models.SubstituteAssignment).filter(
+        models.SubstituteAssignment.institution_id == current_user.institution_id,
+        models.SubstituteAssignment.subject_id == subject.id,
+        models.SubstituteAssignment.date_str.in_(list(_date_variants(clean_date))),
+        models.SubstituteAssignment.is_active == True,
+    ).update({models.SubstituteAssignment.is_active: False}, synchronize_session=False)
 
     # 1. Create Calendar Event
     event = models.CalendarEvent(
         institution_id=current_user.institution_id,
         title=f"Substitute: {substitute.name} for {subject.name}",
-        description=f"Original teacher: {subject.teacher_id or current_user.email}. Reason: {payload.reason}",
+        description=f"Assigned by {current_user.name}. Reason: {payload.reason}",
         event_type="TEACHER_SUBSTITUTION",
         start_date=clean_date,
         department=subject.department,
@@ -502,7 +547,7 @@ def assign_substitute_teacher(
     )
     db.add(event)
 
-    # 2. Record in substitute_assignments for backward compatibility
+    # 2. Record in substitute_assignments for real-time access delegation
     sub_record = models.SubstituteAssignment(
         institution_id=current_user.institution_id,
         original_teacher_email=current_user.email,
@@ -514,6 +559,33 @@ def assign_substitute_teacher(
     db.add(sub_record)
     db.commit()
     db.refresh(event)
+
+    # Notify substitute teacher and students in real time
+    try:
+        from .notifications import create_notification
+        create_notification(
+            db=db,
+            institution_id=current_user.institution_id,
+            recipient_role="teacher",
+            recipient_id=substitute.id,
+            title=f"Substitute Assignment: {subject.name} ({clean_date})",
+            message=f"You have been delegated temporary attendance & class authority for {subject.name} on {clean_date}. Reason: {payload.reason}",
+            category="ACADEMIC_CALENDAR",
+            action_url="/#/calendar"
+        )
+        create_notification(
+            db=db,
+            institution_id=current_user.institution_id,
+            recipient_role="student",
+            title=f"Substitute Faculty: {subject.name} ({clean_date})",
+            message=f"Prof. {substitute.name} will conduct {subject.name} on {clean_date}.",
+            category="ACADEMIC_CALENDAR",
+            action_url="/#/calendar"
+        )
+    except Exception:
+        pass
+
+    _invalidate_calendar_caches(current_user.institution_id)
 
     crud.create_audit_log(
         db,
@@ -541,88 +613,118 @@ def get_calendar_attendance_metrics(
     identity: security.AuthIdentity = Depends(security.get_current_identity)
 ):
     """
-    Computes calendar-aware attendance statistics.
-    Formula:
+    Computes real calendar-aware attendance statistics for Student, Teacher, or Admin.
     Conducted Classes = Scheduled Classes - Approved Cancelled Classes
-    Attendance % = (Attended Classes / Conducted Classes) * 100
-    Students are never penalized for approved cancelled classes!
     """
-    target_student_id = student_id if (identity.role != "student") else identity.id
-    if not target_student_id and identity.role == "student":
-        target_student_id = identity.id
+    inst_id = identity.institution_id or 1
 
-    if not target_student_id:
-        return schemas.CalendarAttendanceMetrics(
-            scheduled_classes=0,
-            cancelled_classes=0,
-            conducted_classes=0,
-            attended_classes=0,
-            attendance_percentage=100.0,
-            is_at_risk=False
-        )
+    # Active students in institution (excludes deleted student orphans)
+    active_students = db.query(models.StudentModel).filter(
+        models.StudentModel.institution_id == inst_id
+    ).all()
+    active_ids = {str(s.id) for s in active_students}
+    active_rolls = {str(s.roll).strip().casefold() for s in active_students if s.roll and str(s.roll).strip()}
 
-    inst_ids = {1}
-    if identity.institution_id:
-        inst_ids.add(identity.institution_id)
-    if not identity.institution_id or identity.institution_id == 1:
-        try:
-            active_ids = [r[0] for r in db.query(models.Institution.id).filter(models.Institution.is_active == True).all()]
-            inst_ids.update(active_ids)
-        except Exception:
-            pass
-
-    student = db.query(models.StudentModel).filter(
-        models.StudentModel.id == target_student_id,
-        models.StudentModel.institution_id.in_(list(inst_ids))
-    ).first()
-    if not student:
-        student = db.query(models.StudentModel).filter(models.StudentModel.id == target_student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found.")
-
-    # 1. Fetch attendance records
     att_query = db.query(models.AttendanceModel).filter(
-        models.AttendanceModel.institution_id.in_(list(inst_ids)),
-        models.AttendanceModel.roll == student.roll
+        models.AttendanceModel.institution_id == inst_id
     )
-    if subject_id:
-        att_query = att_query.filter(models.AttendanceModel.subject_id == subject_id)
-    records = att_query.all()
-
-    # 2. Query cancelled classes from Academic Calendar for student's department / subject
     cal_query = db.query(models.CalendarEvent).filter(
-        models.CalendarEvent.institution_id.in_(list(inst_ids)),
+        models.CalendarEvent.institution_id == inst_id,
         models.CalendarEvent.event_type == "CLASS_CANCELLED",
         models.CalendarEvent.status == "ACTIVE"
     )
-    if subject_id:
-        cal_query = cal_query.filter(models.CalendarEvent.subject_id == subject_id)
-    elif student.dep:
-        cal_query = cal_query.filter(
-            (models.CalendarEvent.department == student.dep) | (models.CalendarEvent.department == None) | (models.CalendarEvent.department == "")
-        )
-    cancelled_events = cal_query.all()
-    cancelled_dates = {e.start_date for e in cancelled_events}
 
-    # 3. Compute Metrics
+    if identity.role == "student":
+        student = next((s for s in active_students if s.id == identity.id), None)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found.")
+        att_query = att_query.filter(models.AttendanceModel.roll == student.roll)
+        if subject_id:
+            att_query = att_query.filter(models.AttendanceModel.subject_id == subject_id)
+            cal_query = cal_query.filter(models.CalendarEvent.subject_id == subject_id)
+        elif student.dep:
+            cal_query = cal_query.filter(
+                (models.CalendarEvent.department == student.dep) | (models.CalendarEvent.department == None) | (models.CalendarEvent.department == "")
+            )
+    elif student_id:
+        student = next((s for s in active_students if s.id == student_id), None)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found.")
+        att_query = att_query.filter(models.AttendanceModel.roll == student.roll)
+        if subject_id:
+            att_query = att_query.filter(models.AttendanceModel.subject_id == subject_id)
+            cal_query = cal_query.filter(models.CalendarEvent.subject_id == subject_id)
+        elif student.dep:
+            cal_query = cal_query.filter(
+                (models.CalendarEvent.department == student.dep) | (models.CalendarEvent.department == None) | (models.CalendarEvent.department == "")
+            )
+    else:
+        # Admin or Teacher institutional / subject aggregate
+        if identity.role == "teacher":
+            teacher_user = db.query(models.User).filter(models.User.id == identity.id).first()
+            teacher_subs = crud.get_teacher_accessible_subjects(db, teacher_user) if teacher_user else []
+            allowed_ids = [s.id for s in teacher_subs]
+            if subject_id:
+                if allowed_ids and subject_id not in allowed_ids:
+                    raise HTTPException(status_code=403, detail="Unauthorized access to subject metrics.")
+                att_query = att_query.filter(models.AttendanceModel.subject_id == subject_id)
+                cal_query = cal_query.filter(models.CalendarEvent.subject_id == subject_id)
+            elif allowed_ids:
+                att_query = att_query.filter(models.AttendanceModel.subject_id.in_(allowed_ids))
+                cal_query = cal_query.filter(
+                    (models.CalendarEvent.subject_id.in_(allowed_ids)) | (models.CalendarEvent.subject_id == None)
+                )
+        elif subject_id:
+            att_query = att_query.filter(models.AttendanceModel.subject_id == subject_id)
+            cal_query = cal_query.filter(models.CalendarEvent.subject_id == subject_id)
+
+    raw_records = att_query.all()
+    # Keep only active students (excluding orphans)
+    records = []
+    for r in raw_records:
+        raw_id = str(r.id or "").strip()
+        base_id = raw_id.split("_", 1)[0]
+        roll_cf = str(r.roll or "").strip().casefold()
+        if identity.role == "student" or student_id:
+            records.append(r)
+        elif raw_id in active_ids or base_id in active_ids or (roll_cf and roll_cf in active_rolls):
+            records.append(r)
+
+    cancelled_events = cal_query.all()
+    cancelled_keys = {
+        (e.subject_id, normalize_date_str(e.start_date))
+        for e in cancelled_events
+    }
+    cancelled_global_dates = {
+        normalize_date_str(e.start_date)
+        for e in cancelled_events
+        if e.subject_id is None
+    }
+
+    # Compute Metrics
     scheduled_count = 0
     cancelled_count = 0
     attended_count = 0
 
     for r in records:
         scheduled_count += 1
-        # If record is explicitly marked CLASS_CANCELLED or occurs on a cancelled date
-        if r.attendance == "CLASS_CANCELLED" or r.date in cancelled_dates:
+        r_date = normalize_date_str(r.date)
+        is_cancelled_event = (r.subject_id, r_date) in cancelled_keys or r_date in cancelled_global_dates
+        if r.attendance == "CLASS_CANCELLED" or is_cancelled_event:
             cancelled_count += 1
         elif r.attendance in ["Present", "Late", "Excused"]:
             attended_count += 1
 
-    # Conducted classes strictly excludes cancelled classes
+    # Also account for cancelled classes where no attendance rows were logged yet
+    if not records and cancelled_events and (identity.role != "student" and not student_id):
+        cancelled_count = len(cancelled_events)
+        scheduled_count = len(cancelled_events)
+
     conducted_count = max(0, scheduled_count - cancelled_count)
     if conducted_count > 0:
         pct = round((attended_count / conducted_count) * 100, 2)
     else:
-        pct = 100.0  # If no classes were conducted, attendance remains 100%
+        pct = 100.0
 
     return schemas.CalendarAttendanceMetrics(
         scheduled_classes=scheduled_count,

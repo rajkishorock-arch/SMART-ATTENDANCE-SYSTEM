@@ -1,8 +1,5 @@
 import { useState, useMemo } from 'react';
 import {
-  UserCheck,
-  Edit,
-  Shield,
   Key,
   Mail,
   User,
@@ -19,14 +16,43 @@ import {
   LogOut,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   ShieldCheck,
-  BadgeCheck,
-  Calendar,
-  Layers,
   Check,
 } from 'lucide-react';
 import { getApiBaseUrl } from '../../utils/platform';
+
+const getInitials = (name, fallback = 'A') => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return fallback;
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
+const summarizePlatform = () => {
+  if (typeof navigator === 'undefined') return 'Web Browser';
+  const ua = navigator.userAgent || '';
+  const os = /Android/i.test(ua)
+    ? 'Android'
+    : /iPhone|iPad/i.test(ua)
+      ? 'iOS'
+      : /Windows/i.test(ua)
+        ? 'Windows'
+        : /Mac/i.test(ua)
+          ? 'macOS'
+          : /Linux/i.test(ua)
+            ? 'Linux'
+            : 'Device';
+  const browser = /Edg/i.test(ua)
+    ? 'Edge'
+    : /Chrome/i.test(ua)
+      ? 'Chrome'
+      : /Safari/i.test(ua)
+        ? 'Safari'
+        : /Firefox/i.test(ua)
+          ? 'Firefox'
+          : 'Browser';
+  return `${browser} · ${os}`;
+};
 
 export default function AdminProfileSettings({
   currentUser,
@@ -36,7 +62,6 @@ export default function AdminProfileSettings({
   userRole = 'admin',
   playCyberSound = () => {},
   handleLogout = () => {},
-  onNavigate = () => {},
 }) {
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'security' | 'preferences' | 'sessions'
 
@@ -45,12 +70,11 @@ export default function AdminProfileSettings({
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || currentUser?.details?.phone || '');
   const [department, setDepartment] = useState(currentUser?.department || currentUser?.dep || '');
-  const [designation, setDesignation] = useState(
+  const [designation] = useState(
     currentUser?.details?.designation || (userRole === 'admin' ? 'System Administrator' : 'Faculty Member')
   );
 
   // Security Form State
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -77,7 +101,6 @@ export default function AdminProfileSettings({
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Password strength calculation
   const passwordStrength = useMemo(() => {
     if (!newPassword) return 0;
     let score = 0;
@@ -85,7 +108,7 @@ export default function AdminProfileSettings({
     if (newPassword.length >= 8) score += 1;
     if (/[A-Z]/.test(newPassword) && /[0-9]/.test(newPassword)) score += 1;
     if (/[^A-Za-z0-9]/.test(newPassword)) score += 1;
-    return score; // 0 to 4
+    return score;
   }, [newPassword]);
 
   const strengthLabel = useMemo(() => {
@@ -93,17 +116,16 @@ export default function AdminProfileSettings({
     if (passwordStrength <= 1) return 'Weak';
     if (passwordStrength <= 2) return 'Fair';
     if (passwordStrength <= 3) return 'Good';
-    return 'Strong & Secure';
+    return 'Strong';
   }, [passwordStrength]);
 
   const strengthColor = useMemo(() => {
-    if (passwordStrength <= 1) return '#ef4444';
-    if (passwordStrength <= 2) return '#f59e0b';
+    if (passwordStrength <= 1) return '#dc2626';
+    if (passwordStrength <= 2) return '#d97706';
     if (passwordStrength <= 3) return '#916d30';
-    return '#10b981';
+    return '#047857';
   }, [passwordStrength]);
 
-  // Handle Personal Info Update
   const handleSaveInfo = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setSuccessMsg('');
@@ -137,17 +159,15 @@ export default function AdminProfileSettings({
           localStorage.setItem('cached_user', JSON.stringify(updatedUser));
         } catch { /* storage fallback */ }
         setIsSaving(false);
-        setSuccessMsg('Profile information updated successfully!');
+        setSuccessMsg('Profile updated.');
         playCyberSound('success');
-      }, 500);
+      }, 300);
       return;
     }
 
     try {
       const apiBaseUrl = getApiBaseUrl();
-      const payload = {
-        name: name.trim(),
-      };
+      const payload = { name: name.trim() };
       if (email.trim() && email.trim() !== currentUser?.email) {
         payload.email = email.trim().toLowerCase();
       }
@@ -163,7 +183,7 @@ export default function AdminProfileSettings({
 
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d.detail || 'Failed to update profile information.');
+        throw new Error(d.detail || 'Failed to update profile.');
       }
 
       const updated = await res.json();
@@ -188,7 +208,7 @@ export default function AdminProfileSettings({
         localStorage.setItem('cached_user', JSON.stringify(updatedUser));
       } catch { /* storage fallback */ }
 
-      setSuccessMsg('Profile details saved successfully!');
+      setSuccessMsg('Profile saved.');
       playCyberSound('success');
     } catch (err) {
       playCyberSound('error');
@@ -198,7 +218,6 @@ export default function AdminProfileSettings({
     }
   };
 
-  // Handle Password Update
   const handleSavePassword = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setSuccessMsg('');
@@ -209,11 +228,11 @@ export default function AdminProfileSettings({
       return;
     }
     if (newPassword.length < 6) {
-      setErrorMsg('New password must be at least 6 characters.');
+      setErrorMsg('Password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setErrorMsg('New password and confirm password do not match.');
+      setErrorMsg('Passwords do not match.');
       return;
     }
 
@@ -224,26 +243,21 @@ export default function AdminProfileSettings({
         setIsSaving(false);
         setNewPassword('');
         setConfirmPassword('');
-        setCurrentPassword('');
-        setSuccessMsg('Password updated successfully! (Sandbox Simulator)');
+        setSuccessMsg('Password updated.');
         playCyberSound('success');
-      }, 500);
+      }, 300);
       return;
     }
 
     try {
       const apiBaseUrl = getApiBaseUrl();
-      const payload = {
-        password: newPassword,
-      };
-
       const res = await fetch(`${apiBaseUrl}/users/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ password: newPassword }),
       });
 
       if (!res.ok) {
@@ -253,8 +267,7 @@ export default function AdminProfileSettings({
 
       setNewPassword('');
       setConfirmPassword('');
-      setCurrentPassword('');
-      setSuccessMsg('Password changed successfully! Keep your new password secure.');
+      setSuccessMsg('Password updated.');
       playCyberSound('success');
     } catch (err) {
       playCyberSound('error');
@@ -264,18 +277,14 @@ export default function AdminProfileSettings({
     }
   };
 
-  // Handle Sound Toggle
   const toggleSound = (enabled) => {
     setSoundEnabled(enabled);
     try {
       localStorage.setItem('sound_enabled', enabled ? 'true' : 'false');
     } catch { /* storage fallback */ }
-    if (enabled) {
-      playCyberSound('success');
-    }
+    if (enabled) playCyberSound('success');
   };
 
-  // Handle Haptic Toggle
   const toggleHaptic = (enabled) => {
     setHapticEnabled(enabled);
     try {
@@ -286,804 +295,493 @@ export default function AdminProfileSettings({
     }
   };
 
-  // Handle Clear Local Cache
   const handleClearCache = () => {
     playCyberSound('click');
     try {
-      localStorage.removeItem('cached_students');
-      localStorage.removeItem('cached_students_timestamp');
-      localStorage.removeItem('cached_stats');
-      localStorage.removeItem('cached_stats_timestamp');
-      localStorage.removeItem('cached_logs');
-      localStorage.removeItem('cached_logs_timestamp');
-      localStorage.removeItem('cached_departments');
-      localStorage.removeItem('cached_departmentsList');
-      localStorage.removeItem('cached_teachers');
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('cached_') || k.startsWith('sg_')) {
+          localStorage.removeItem(k);
+        }
+      });
     } catch { /* storage fallback */ }
-    setSuccessMsg('Local application cache cleared and telemetry resynchronized.');
+    setSuccessMsg('Local cache cleared.');
     playCyberSound('success');
   };
 
-  const userInitials = (currentUser?.name || userRole || 'A')
-    .split(' ')
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  const userInitials = getInitials(currentUser?.name || userRole || 'A', 'AD');
+  const instName =
+    currentUser?.institution_name ||
+    (currentUser?.institution_slug ? currentUser.institution_slug.toUpperCase() : 'Main Campus');
 
   const tabs = [
-    { id: 'info', label: 'Personal Info', icon: User },
-    { id: 'security', label: 'Security & Password', icon: Lock },
-    { id: 'preferences', label: 'Preferences', icon: Sliders },
-    { id: 'sessions', label: 'Account & Sessions', icon: ShieldCheck },
+    { id: 'info', label: 'Profile', icon: User },
+    { id: 'security', label: 'Password', icon: Lock },
+    { id: 'preferences', label: 'Controls', icon: Sliders },
+    { id: 'sessions', label: 'Session', icon: ShieldCheck },
   ];
 
   return (
-    <div
-      className="surface-card"
-      style={{
-        padding: 'clamp(16px, 4vw, 32px)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-        width: '100%',
-        maxWidth: '100%',
-        boxSizing: 'border-box',
-        overflowX: 'hidden',
-        background: '#ffffff',
-        border: '1px solid #e4dfd5',
-        borderRadius: '16px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      }}
-    >
-      {/* Title & Subtitle */}
-      <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '16px' }}>
-        <h3
-          style={{
-            fontSize: '1.25rem',
-            fontWeight: 800,
-            color: '#25231f',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            margin: 0,
-          }}
-        >
-          <UserCheck size={22} style={{ color: '#785927', flexShrink: 0 }} /> My Profile & Account Settings
-        </h3>
-        <p style={{ color: '#696358', fontSize: '0.85rem', marginTop: '4px', margin: 0, lineHeight: 1.4 }}>
-          Manage your personal identity, login credentials, security keys, and application preferences.
-        </p>
-      </div>
-
-      {/* Global Success / Error Messages */}
-      {successMsg && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 16px',
-            background: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            borderRadius: '10px',
-            color: '#059669',
-            fontSize: '0.86rem',
-            fontWeight: 600,
-          }}
-        >
-          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
-          <span>{successMsg}</span>
-        </div>
-      )}
-      {errorMsg && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 16px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '10px',
-            color: '#dc2626',
-            fontSize: '0.86rem',
-            fontWeight: 600,
-          }}
-        >
-          <AlertCircle size={18} style={{ flexShrink: 0 }} />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
-      {/* Sleek Compact Profile Header Bar */}
+    <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
       <div
+        className="golden-os-window"
         style={{
-          background: '#faf9f6',
-          border: '1px solid #e4dfd5',
-          borderRadius: '12px',
-          padding: '12px 14px',
+          padding: '18px',
           display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
+          flexDirection: 'column',
+          gap: '14px',
           width: '100%',
           boxSizing: 'border-box',
         }}
       >
-        {/* Avatar */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
+        {/* Alerts */}
+        {successMsg && (
           <div
             style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #785927, #916d30)',
-              color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1rem',
+              gap: '8px',
+              padding: '10px 14px',
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              borderRadius: '12px',
+              color: '#047857',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+            }}
+          >
+            <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+            <span>{successMsg}</span>
+          </div>
+        )}
+        {errorMsg && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '12px',
+              color: '#dc2626',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+            }}
+          >
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* Compact Identity Header Row */}
+        <div
+          className="golden-os-form-section"
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            padding: '14px 16px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+            <div className="golden-os-avatar" style={{ width: '44px', height: '44px', fontSize: '0.96rem' }}>
+              {userInitials}
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontSize: '0.98rem',
+                  fontWeight: 800,
+                  color: '#25231f',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {currentUser?.name || (userRole === 'admin' ? 'Administrator' : 'Faculty Member')}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.76rem',
+                  color: '#6b5b3e',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  marginTop: '2px',
+                }}
+              >
+                {currentUser?.email || 'admin@campus.edu'} · {instName}
+              </div>
+            </div>
+          </div>
+
+          <span
+            style={{
+              padding: '4px 10px',
+              borderRadius: '999px',
+              fontSize: '0.68rem',
               fontWeight: 800,
-              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              flexShrink: 0,
+              background: '#faf3e3',
+              color: '#6e4e1c',
+              border: '1px solid #d9be86',
             }}
           >
-            {userInitials}
-          </div>
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: '#10b981',
-              border: '2px solid #ffffff',
-            }}
-            title="Session Active"
-          />
+            {userRole === 'admin' ? 'Admin' : 'Teacher'}
+          </span>
         </div>
 
-        {/* User Info Details */}
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
-              {currentUser?.name || (userRole === 'admin' ? 'Administrator' : 'Faculty Member')}
-            </span>
-            <span
-              style={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                padding: '2px 6px',
-                borderRadius: '6px',
-                background: userRole === 'admin' ? '#faf5ea' : '#f5f3ff',
-                color: userRole === 'admin' ? '#684c20' : '#7c3aed',
-                border: userRole === 'admin' ? '1px solid #dfcfaf' : '1px solid #ddd6fe',
-                textTransform: 'uppercase',
-              }}
-            >
-              {userRole === 'admin' ? 'Admin' : 'Teacher'}
-            </span>
-          </div>
-          <div style={{ fontSize: '0.76rem', color: '#696358', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {currentUser?.email || 'admin@campus.edu'} • <span style={{ color: '#059669', fontWeight: 600 }}>{currentUser?.institution_name || (currentUser?.institution_slug ? currentUser.institution_slug.toUpperCase() : 'MAIN CAMPUS')}</span>
-          </div>
+        {/* Clean Single-Row Golden Gate Segmented Control */}
+        <div className="golden-os-segmented" style={{ width: '100%', boxSizing: 'border-box', justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  playCyberSound('click');
+                  setActiveTab(tab.id);
+                  setSuccessMsg('');
+                  setErrorMsg('');
+                }}
+                className={`golden-os-segmented-btn ${isSelected ? 'active' : ''}`}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '8px 6px',
+                  fontSize: '0.76rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '5px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Icon size={14} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Navigation Sub-Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-          paddingBottom: '2px',
-          width: '100%',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isSelected = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                playCyberSound('click');
-                setActiveTab(tab.id);
-                setSuccessMsg('');
-                setErrorMsg('');
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '9px 16px',
-                borderRadius: '10px',
-                border: isSelected ? '1.5px solid #785927' : '1px solid #e4dfd5',
-                background: isSelected ? '#faf5ea' : '#ffffff',
-                color: isSelected ? '#684c20' : '#696358',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <Icon size={16} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+        {/* TAB 1: PROFILE DETAILS */}
+        {activeTab === 'info' && (
+          <form onSubmit={handleSaveInfo} className="golden-os-form-section" style={{ gap: '12px' }}>
+            <div className="golden-os-form-section-title">Account Identity</div>
 
-      {/* TAB 1: PERSONAL INFORMATION */}
-      {activeTab === 'info' && (
-        <form
-          onSubmit={handleSaveInfo}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '18px',
-            background: '#faf9f6',
-            border: '1px solid #e4dfd5',
-            borderRadius: '14px',
-            padding: 'clamp(14px, 3vw, 24px)',
-            width: '100%',
-            maxWidth: '100%',
-            boxSizing: 'border-box',
-            minWidth: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <User size={18} style={{ color: '#785927' }} /> Personal Details & Contact
-            </h4>
-            <span style={{ fontSize: '0.74rem', color: '#696358' }}>Changes apply immediately to your active session</span>
-          </div>
+            <div className="golden-os-fields-2">
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Full Name</label>
+                <div style={{ position: 'relative' }}>
+                  <User size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: '36px' }}
+                    placeholder="Enter full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '16px',
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            {/* Full Name */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
-                Full Name
-              </label>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <User size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type="text"
-                  className="form-input"
-                  style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', paddingLeft: '36px' }}
-                  placeholder="Enter full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Email Address</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
+                  <input
+                    type="email"
+                    className="form-input"
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: '36px' }}
+                    placeholder="Enter email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Phone</label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
+                  <input
+                    type="tel"
+                    className="form-input"
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: '36px' }}
+                    placeholder="+91 9876543210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Department</label>
+                <div style={{ position: 'relative' }}>
+                  <Building size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: '36px' }}
+                    placeholder="e.g. CSE(IOT)"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Email Address */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
-                Primary Email Address
-              </label>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type="email"
-                  className="form-input"
-                  style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', paddingLeft: '36px' }}
-                  placeholder="Enter email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Phone Number */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
-                Contact Phone
-              </label>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type="tel"
-                  className="form-input"
-                  style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', paddingLeft: '36px' }}
-                  placeholder="e.g. +91 9876543210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Department */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
-                Department / Unit
-              </label>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type="text"
-                  className="form-input"
-                  style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', paddingLeft: '36px' }}
-                  placeholder="e.g. Computer Science / Central Admin"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '6px' }}>
             <button
               type="submit"
               disabled={isSaving}
-              className="bg-gradient-btn hover-elevate active-haptic"
-              style={{
-                padding: '11px 26px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #785927, #916d30)',
-                color: '#ffffff',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
-              }}
+              className="golden-os-primary-action"
+              style={{ justifyContent: 'center', marginTop: '4px', padding: '12px 18px' }}
             >
-              {isSaving ? (
-                <span>Saving changes...</span>
-              ) : (
-                <>
-                  <Check size={16} />
-                  <span>Save Profile Changes</span>
-                </>
-              )}
+              <Check size={16} />
+              <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>
+                {isSaving ? 'Saving...' : 'Save Profile Changes'}
+              </span>
             </button>
-          </div>
-        </form>
-      )}
+          </form>
+        )}
 
-      {/* TAB 2: SECURITY & PASSWORD */}
-      {activeTab === 'security' && (
-        <form
-          onSubmit={handleSavePassword}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '18px',
-            background: '#faf9f6',
-            border: '1px solid #e4dfd5',
-            borderRadius: '14px',
-            padding: 'clamp(14px, 3vw, 24px)',
-            width: '100%',
-            maxWidth: '100%',
-            boxSizing: 'border-box',
-            minWidth: 0,
-          }}
-        >
-          <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '12px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Lock size={18} style={{ color: '#7c3aed' }} /> Change Security Password
-            </h4>
-            <p style={{ color: '#696358', fontSize: '0.8rem', margin: '4px 0 0' }}>
-              Set a strong password containing letters, numbers, and symbols to protect your account.
-            </p>
-          </div>
+        {/* TAB 2: PASSWORD */}
+        {activeTab === 'security' && (
+          <form onSubmit={handleSavePassword} className="golden-os-form-section" style={{ gap: '12px' }}>
+            <div className="golden-os-form-section-title">Update Password</div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '16px',
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            {/* New Password */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
-                New Password
-              </label>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type={showNewPassword ? 'text' : 'password'}
-                  className="form-input"
-                  style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', paddingLeft: '36px', paddingRight: '38px' }}
-                  placeholder="Enter strong password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword((p) => !p)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+            <div className="golden-os-fields-2">
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">New Password</label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    className="form-input"
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: '36px', paddingRight: '38px' }}
+                    placeholder="Minimum 6 characters"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Toggle new password visibility"
+                    onClick={() => setShowNewPassword((p) => !p)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#8c7a5b',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+
+                {newPassword && (
+                  <div style={{ marginTop: '6px' }}>
+                    <div style={{ display: 'flex', gap: '4px', height: '4px', borderRadius: '2px', overflow: 'hidden' }}>
+                      {[1, 2, 3, 4].map((step) => (
+                        <div
+                          key={step}
+                          style={{
+                            flex: 1,
+                            background: passwordStrength >= step ? strengthColor : '#e4d8bd',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: strengthColor, fontWeight: 700, marginTop: '4px' }}>
+                      {strengthLabel}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Password strength meter */}
-              {newPassword && (
-                <div style={{ marginTop: '6px' }}>
-                  <div style={{ display: 'flex', gap: '4px', height: '4px', borderRadius: '2px', overflow: 'hidden' }}>
-                    {[1, 2, 3, 4].map((step) => (
-                      <div
-                        key={step}
-                        style={{
-                          flex: 1,
-                          background: passwordStrength >= step ? strengthColor : '#e4dfd5',
-                          transition: 'all 0.2s ease',
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: strengthColor, fontWeight: 700, marginTop: '4px' }}>
-                    Strength: {strengthLabel}
-                  </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Confirm Password</label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    className="form-input"
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: '36px', paddingRight: '38px' }}
+                    placeholder="Re-enter password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Toggle confirm password visibility"
+                    onClick={() => setShowConfirmPassword((p) => !p)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#8c7a5b',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
-              )}
-            </div>
-
-            {/* Confirm Password */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0, width: '100%' }}>
-              <label className="form-label" style={{ fontWeight: 700, color: '#25231f', fontSize: '0.84rem' }}>
-                Confirm New Password
-              </label>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  className="form-input"
-                  style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', paddingLeft: '36px', paddingRight: '38px' }}
-                  placeholder="Re-enter password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((p) => !p)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <div style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 700, marginTop: '4px' }}>
+                    Passwords do not match
+                  </div>
+                )}
               </div>
-              {confirmPassword && newPassword !== confirmPassword && (
-                <div style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 600, marginTop: '4px' }}>
-                  Passwords do not match
-                </div>
-              )}
             </div>
-          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '6px' }}>
             <button
               type="submit"
               disabled={isSaving}
-              className="bg-gradient-btn hover-elevate active-haptic"
-              style={{
-                padding: '11px 26px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #7c3aed, #9333ea)',
-                color: '#ffffff',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
-              }}
+              className="golden-os-primary-action"
+              style={{ justifyContent: 'center', marginTop: '4px', padding: '12px 18px' }}
             >
               <Key size={16} />
-              <span>Update Password</span>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>Update Password</span>
             </button>
-          </div>
-        </form>
-      )}
+          </form>
+        )}
 
-      {/* TAB 3: PREFERENCES & SOUND */}
-      {activeTab === 'preferences' && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-            background: '#faf9f6',
-            border: '1px solid #e4dfd5',
-            borderRadius: '14px',
-            padding: 'clamp(14px, 3vw, 24px)',
-            width: '100%',
-            maxWidth: '100%',
-            boxSizing: 'border-box',
-            minWidth: 0,
-          }}
-        >
-          <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '12px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sliders size={18} style={{ color: '#059669' }} /> Experience & Audio Controls
-            </h4>
-            <p style={{ color: '#696358', fontSize: '0.8rem', margin: '4px 0 0' }}>
-              Fine-tune sound feedback, button vibrations, and display themes.
-            </p>
-          </div>
-
-          {/* Sound Toggle */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              padding: '14px 16px',
-              background: '#ffffff',
-              border: '1px solid #e4dfd5',
-              borderRadius: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
+        {/* TAB 3: APP CONTROLS */}
+        {activeTab === 'preferences' && (
+          <div className="golden-os-list-shell">
+            <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div className="golden-os-avatar" style={{ width: '36px', height: '36px', borderRadius: '10px' }}>
+                  {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>Audio Feedback</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Toggle audio feedback"
+                onClick={() => toggleSound(!soundEnabled)}
                 style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: soundEnabled ? '#ecfdf5' : '#f4f1eb',
-                  color: soundEnabled ? '#059669' : '#94a3b8',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: '46px',
+                  height: '26px',
+                  borderRadius: '13px',
+                  background: soundEnabled ? '#059669' : '#cfc8ba',
+                  border: 'none',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  flexShrink: 0,
                 }}
               >
-                {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-              </div>
-              <div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>Cyber Audio Sound FX</div>
-                <div style={{ fontSize: '0.74rem', color: '#696358' }}>Play audio confirmation on scans, taps & updates</div>
-              </div>
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: '#ffffff',
+                    position: 'absolute',
+                    top: '3px',
+                    left: soundEnabled ? '23px' : '3px',
+                    transition: 'left 0.18s ease',
+                  }}
+                />
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => toggleSound(!soundEnabled)}
-              style={{
-                width: '46px',
-                height: '26px',
-                borderRadius: '13px',
-                background: soundEnabled ? '#10b981' : '#cfc8ba',
-                border: 'none',
-                position: 'relative',
-                cursor: 'pointer',
-                transition: 'background 0.2s ease',
-              }}
-            >
-              <div
+            <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div className="golden-os-avatar" style={{ width: '36px', height: '36px', borderRadius: '10px' }}>
+                  <Smartphone size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>Haptic Touch</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Toggle haptic touch"
+                onClick={() => toggleHaptic(!hapticEnabled)}
                 style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  position: 'absolute',
-                  top: '3px',
-                  left: soundEnabled ? '23px' : '3px',
-                  transition: 'left 0.2s ease',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                }}
-              />
-            </button>
-          </div>
-
-          {/* Haptic Toggle */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              padding: '14px 16px',
-              background: '#ffffff',
-              border: '1px solid #e4dfd5',
-              borderRadius: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: hapticEnabled ? '#faf5ea' : '#f4f1eb',
-                  color: hapticEnabled ? '#785927' : '#94a3b8',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: '46px',
+                  height: '26px',
+                  borderRadius: '13px',
+                  background: hapticEnabled ? '#785927' : '#cfc8ba',
+                  border: 'none',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  flexShrink: 0,
                 }}
               >
-                <Smartphone size={18} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#25231f' }}>Haptic Touch Vibration</div>
-                <div style={{ fontSize: '0.74rem', color: '#696358' }}>Tactile vibration on button taps and card clicks</div>
-              </div>
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: '#ffffff',
+                    position: 'absolute',
+                    top: '3px',
+                    left: hapticEnabled ? '23px' : '3px',
+                    transition: 'left 0.18s ease',
+                  }}
+                />
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => toggleHaptic(!hapticEnabled)}
-              style={{
-                width: '46px',
-                height: '26px',
-                borderRadius: '13px',
-                background: hapticEnabled ? '#785927' : '#cfc8ba',
-                border: 'none',
-                position: 'relative',
-                cursor: 'pointer',
-                transition: 'background 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  position: 'absolute',
-                  top: '3px',
-                  left: hapticEnabled ? '23px' : '3px',
-                  transition: 'left 0.2s ease',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                }}
-              />
-            </button>
-          </div>
-
-          {/* Audio Test Button */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
-            <button
-              type="button"
-              onClick={() => playCyberSound('success')}
-              className="hover-elevate active-haptic"
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                background: '#ffffff',
-                border: '1px solid #cfc8ba',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                color: '#46423b',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <Volume2 size={15} />
-              <span>Test Audio Feedback</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: SESSIONS & ACCOUNT DANGER ZONE */}
-      {activeTab === 'sessions' && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            background: '#faf9f6',
-            border: '1px solid #e4dfd5',
-            borderRadius: '14px',
-            padding: 'clamp(14px, 3vw, 24px)',
-            width: '100%',
-            maxWidth: '100%',
-            boxSizing: 'border-box',
-            minWidth: 0,
-          }}
-        >
-          <div style={{ borderBottom: '1px solid #e4dfd5', paddingBottom: '12px' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#25231f', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldCheck size={18} style={{ color: '#785927' }} /> Active Sessions & Account Control
-            </h4>
-            <p style={{ color: '#696358', fontSize: '0.8rem', margin: '4px 0 0' }}>
-              Review device connection status, purge local cache, or sign out.
-            </p>
-          </div>
-
-          {/* Session Info Tile */}
-          <div
-            style={{
-              padding: '14px 16px',
-              background: '#ffffff',
-              border: '1px solid #e4dfd5',
-              borderRadius: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#25231f' }}>Current Client Device</span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
-                LIVE NOW
-              </span>
-            </div>
-            <div style={{ fontSize: '0.78rem', color: '#696358', wordBreak: 'break-all', fontFamily: 'monospace' }}>
-              {typeof navigator !== 'undefined' ? navigator.userAgent : 'Web Browser Session'}
-            </div>
-          </div>
-
-          {/* Actions: Clear Cache & Sign Out */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '6px' }}>
             <button
               type="button"
               onClick={handleClearCache}
-              className="hover-elevate active-haptic"
-              style={{
-                flex: 1,
-                minWidth: '180px',
-                padding: '12px 18px',
-                borderRadius: '10px',
-                background: '#ffffff',
-                border: '1px solid #cfc8ba',
-                color: '#46423b',
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
+              className="golden-os-list-row"
             >
-              <RefreshCw size={16} />
-              <span>Clear Offline Cache & Resync</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div className="golden-os-avatar" style={{ width: '36px', height: '36px', borderRadius: '10px' }}>
+                  <RefreshCw size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>Clear Offline Cache</span>
+              </div>
+              <span className="golden-os-badge-muted">Reset</span>
             </button>
+          </div>
+        )}
+
+        {/* TAB 4: SESSION */}
+        {activeTab === 'sessions' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="golden-os-form-section" style={{ gap: '8px' }}>
+              <div className="golden-os-form-section-title">Session Summary</div>
+              {[
+                { label: 'Status', value: 'Active Session' },
+                { label: 'Role', value: userRole === 'admin' ? 'Administrator' : 'Faculty' },
+                { label: 'Campus', value: instName },
+                { label: 'Device', value: summarizePlatform() },
+              ].map((row, idx, arr) => (
+                <div
+                  key={row.label}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '6px 0',
+                    borderBottom: idx < arr.length - 1 ? '1px solid #f2ead9' : 'none',
+                    fontSize: '0.84rem',
+                    gap: '10px',
+                  }}
+                >
+                  <span style={{ color: '#6b5b3e', fontWeight: 600 }}>{row.label}</span>
+                  <span style={{ color: '#25231f', fontWeight: 700, textAlign: 'right' }}>{row.value}</span>
+                </div>
+              ))}
+            </div>
 
             <button
               type="button"
@@ -1091,30 +789,19 @@ export default function AdminProfileSettings({
                 playCyberSound('click');
                 handleLogout();
               }}
-              className="hover-elevate active-haptic"
-              style={{
-                flex: 1,
-                minWidth: '180px',
-                padding: '12px 18px',
-                borderRadius: '10px',
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#dc2626',
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
+              className="golden-os-signout-btn active-haptic"
             >
-              <LogOut size={16} />
-              <span>Sign Out from Campus Session</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                <span className="golden-os-signout-icon">
+                  <LogOut size={16} />
+                </span>
+                <span>Sign Out</span>
+              </span>
+              <span className="golden-os-signout-pill">End Session</span>
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
