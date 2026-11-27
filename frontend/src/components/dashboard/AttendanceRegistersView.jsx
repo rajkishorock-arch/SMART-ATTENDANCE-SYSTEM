@@ -1,20 +1,53 @@
-import { FileSpreadsheet, CheckCircle2, Clock, Search, BookOpen, FileDown, Calendar } from 'lucide-react';
+import { Download, Search, BookOpen, Calendar, ChevronLeft, ChevronRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
 
-export function AttendanceRegistersHeaderAction({ exportToCSV, filteredLogs }) {
-  return (
-    <button 
-      onClick={exportToCSV}
-      className="btn-secondary"
-      style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}
-      disabled={!filteredLogs || filteredLogs.length === 0}
-    >
-      <FileSpreadsheet size={18} />
-      Export to CSV
-    </button>
-  );
+export function AttendanceRegistersHeaderAction() {
+  return null;
 }
+
+const getInitials = (name) => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'ST';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
+const computePeakScanHour = (logs) => {
+  if (!logs || logs.length === 0) return '--';
+  const hours = logs.map(l => {
+    if (!l || !l.time) return null;
+    const t = String(l.time).trim();
+    const pMatch = t.match(/Period\s*(\d+)/i);
+    if (pMatch) {
+      const pNum = parseInt(pMatch[1], 10);
+      if (!Number.isNaN(pNum) && pNum >= 1 && pNum <= 8) return 8 + pNum;
+    }
+    const parts = t.split(':');
+    if (parts.length > 0) {
+      const rawHr = parseInt(parts[0], 10);
+      if (!Number.isNaN(rawHr)) {
+        let hr = rawHr;
+        if (t.toLowerCase().includes('pm') && hr < 12) hr += 12;
+        if (t.toLowerCase().includes('am') && hr === 12) hr = 0;
+        return hr;
+      }
+    }
+    return null;
+  }).filter(h => h !== null && !Number.isNaN(h));
+
+  if (hours.length === 0) return '--';
+  const counts = hours.reduce((acc, curr) => {
+    acc[curr] = (acc[curr] || 0) + 1;
+    return acc;
+  }, {});
+  const peak = Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
+  const peakHourNum = parseInt(peak, 10);
+  if (Number.isNaN(peakHourNum)) return '--';
+  const ampm = peakHourNum >= 12 ? 'PM' : 'AM';
+  const dispHour = peakHourNum % 12 === 0 ? 12 : peakHourNum % 12;
+  return `${dispHour}:00 ${ampm}`;
+};
 
 export default function AttendanceRegistersView({
   logSearch,
@@ -25,754 +58,359 @@ export default function AttendanceRegistersView({
   setLogDateFilter,
   quickFilterStatus,
   setQuickFilterStatus,
-  logsViewMode,
-  setLogsViewMode,
-  selectedLogIds,
-  setSelectedLogIds,
   selectedAuditLog,
   setSelectedAuditLog,
-  filteredLogs,
-  departments,
-  subjects,
+  routeLogId = null,
+  onCloseSubView,
+  filteredLogs = [],
+  departments = [],
+  subjects = [],
   exportToCSV,
   shiftDate,
   getPeriodSlotLabel,
-  isMobileView,
 }) {
   const { userRole, currentUser } = useAuth();
   const { playCyberSound } = useUI();
 
-  // Dynamic stats calculations
+  const resolvedDetailLog =
+    selectedAuditLog ||
+    (routeLogId != null ? filteredLogs.find(l => String(l.id) === String(routeLogId)) : null) ||
+    null;
+
   const totalLogsCount = filteredLogs.length;
-  const presentLogsCount = filteredLogs.filter(l => l.attendance.toLowerCase() === 'present').length;
+  const presentLogsCount = filteredLogs.filter(l => String(l.attendance || '').toLowerCase() === 'present').length;
   const presenceRateLogs = totalLogsCount > 0 ? Math.round((presentLogsCount / totalLogsCount) * 100) : 0;
+  const peakScanHour = computePeakScanHour(filteredLogs);
 
-  // Peak Scan hour math (Safely handles "Period 1", "09:30:00", AM/PM and null values)
-  let peakScanHour = "--";
-  if (filteredLogs && filteredLogs.length > 0) {
-    const hours = filteredLogs.map(l => {
-      if (!l || !l.time) return null;
-      const t = String(l.time).trim();
+  const openLogDetail = (log) => {
+    if (playCyberSound) playCyberSound('click');
+    setSelectedAuditLog(log);
+  };
 
-      // Check for period format e.g. "Period 1", "Period 2"
-      const pMatch = t.match(/Period\s*(\d+)/i);
-      if (pMatch) {
-        const pNum = parseInt(pMatch[1], 10);
-        if (!isNaN(pNum) && pNum >= 1 && pNum <= 8) {
-          return 8 + pNum; // Period 1 -> 9 AM, Period 2 -> 10 AM, etc.
-        }
-      }
-
-      // Check standard HH:MM(:SS) format
-      const parts = t.split(':');
-      if (parts.length > 0) {
-        const rawHr = parseInt(parts[0], 10);
-        if (!isNaN(rawHr)) {
-          let hr = rawHr;
-          if (t.toLowerCase().includes('pm') && hr < 12) hr += 12;
-          if (t.toLowerCase().includes('am') && hr === 12) hr = 0;
-          return hr;
-        }
-      }
-      return null;
-    }).filter(h => h !== null && !isNaN(h));
-
-    if (hours.length > 0) {
-      const counts = hours.reduce((acc, curr) => {
-        acc[curr] = (acc[curr] || 0) + 1;
-        return acc;
-      }, {});
-      const peak = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
-      const peakHourNum = parseInt(peak, 10);
-      if (!isNaN(peakHourNum)) {
-        const ampm = peakHourNum >= 12 ? 'PM' : 'AM';
-        const dispHour = peakHourNum % 12 === 0 ? 12 : peakHourNum % 12;
-        peakScanHour = `${dispHour}:00 ${ampm}`;
-      }
+  const closeDetail = () => {
+    if (onCloseSubView) {
+      onCloseSubView();
+    } else {
+      setSelectedAuditLog(null);
     }
+  };
+
+  /* ===== DEDICATED ATTENDANCE RECORD DETAIL PAGE ===== */
+  if (resolvedDetailLog) {
+    const isPresent = String(resolvedDetailLog.attendance || '').toLowerCase() === 'present';
+    const subjectName =
+      resolvedDetailLog.subject_name ||
+      subjects.find(s => s.id === resolvedDetailLog.subject_id)?.name ||
+      currentUser?.details?.subject_name ||
+      'General Attendance';
+    const methodLabel = resolvedDetailLog.verification_method
+      ? String(resolvedDetailLog.verification_method).replace(/_/g, ' ')
+      : (isPresent ? 'Face Recognition' : 'Unmarked');
+
+    return (
+      <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+        <div className="golden-os-window" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box' }}>
+          {/* Student Identity Card */}
+          <div className="golden-os-form-section" style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 200px' }}>
+              <div className="golden-os-avatar" style={{ width: '44px', height: '44px', fontSize: '0.96rem' }}>
+                {getInitials(resolvedDetailLog.name)}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '1.02rem', fontWeight: 800, color: '#25231f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {resolvedDetailLog.name || 'Student'}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#6b5b3e', fontWeight: 600 }}>
+                  Roll: {resolvedDetailLog.roll || 'N/A'}{resolvedDetailLog.department ? ` · ${resolvedDetailLog.department}` : ''}
+                </div>
+              </div>
+            </div>
+
+            <span style={{
+              padding: '5px 11px',
+              borderRadius: '999px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              background: isPresent ? 'rgba(5, 150, 105, 0.1)' : '#fef2f2',
+              color: isPresent ? '#047857' : '#dc2626',
+              border: `1px solid ${isPresent ? 'rgba(5, 150, 105, 0.25)' : '#fecaca'}`,
+            }}>
+              {isPresent ? 'Present' : (resolvedDetailLog.attendance || 'Absent')}
+            </span>
+          </div>
+
+          {/* Structured Record Details */}
+          <div className="golden-os-form-section" style={{ gap: '8px' }}>
+            <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={13} />
+              <span>Attendance Record Details</span>
+            </div>
+
+            {[
+              { label: 'Record ID', value: `#${resolvedDetailLog.id}`, mono: true },
+              { label: 'Roll Number', value: resolvedDetailLog.roll || '—' },
+              { label: 'Department', value: resolvedDetailLog.department || '—' },
+              { label: 'Subject', value: subjectName },
+              { label: 'Date', value: resolvedDetailLog.date || '—' },
+              { label: 'Time', value: resolvedDetailLog.time || '—' },
+              { label: 'Period', value: getPeriodSlotLabel ? getPeriodSlotLabel(resolvedDetailLog.period || resolvedDetailLog.time) : (resolvedDetailLog.period || '—') },
+              { label: 'Verification', value: methodLabel },
+            ].map((row, idx, arr) => (
+              <div
+                key={row.label}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '6px 0',
+                  borderBottom: idx < arr.length - 1 ? '1px solid #f2ead9' : 'none',
+                  fontSize: '0.85rem',
+                  gap: '10px',
+                }}
+              >
+                <span style={{ color: '#6b5b3e', fontWeight: 600 }}>{row.label}</span>
+                <span style={{
+                  color: '#25231f',
+                  fontWeight: 700,
+                  textAlign: 'right',
+                  fontFamily: row.mono ? 'monospace' : 'inherit',
+                  wordBreak: 'break-word',
+                }}>
+                  {row.value}
+                </span>
+              </div>
+            ))}
+
+            {resolvedDetailLog.fallback_reason && (
+              <div style={{ marginTop: '4px', padding: '10px 12px', borderRadius: '10px', background: '#faf8f2', border: '1px solid #ede4d2', fontSize: '0.82rem', color: '#4a3d28' }}>
+                <strong>Note:</strong> {resolvedDetailLog.fallback_reason}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={closeDetail}
+              className="golden-os-feedback-filter-btn"
+              style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem' }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
+  /* ===== MAIN GOLDEN GATE ATTENDANCE LOGS LIST (1-Line Scannable Rows, Zero Table Scroll) ===== */
   return (
-    <div className="glass-panel mobile-tab-panel logs-panel" style={{ padding: isMobileView ? '12px 10px' : '20px', width: '100%', maxWidth: '100%', boxSizing: 'border-box', animation: 'fadeInUp 0.6s ease both' }}>
-      {/* Logs Metrics Summary cards */}
-      <div 
-        className="keep-horizontal logs-summary-grid"
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', 
-          gap: '8px', 
-          marginBottom: '16px',
-          width: '100%' 
-        }}
-      >
-        <div 
-          style={{ 
-            padding: '10px 12px', 
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e4dfd5',
-            borderLeft: '4px solid var(--color-primary)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '6px'
-          }}
-        >
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <h3 style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Filtered</h3>
-            <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-main)', margin: '2px 0 0 0' }}>{totalLogsCount}</p>
+    <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
+      <div className="golden-os-window" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box' }}>
+        {/* Compact KPI Strip */}
+        <div className="golden-os-kpi-strip">
+          <div className="golden-os-kpi-tile">
+            <span className="golden-os-kpi-value" style={{ color: '#6e4e1c' }}>{totalLogsCount}</span>
+            <span className="golden-os-kpi-label">Records</span>
           </div>
-          <div style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)', width: '32px', height: '32px', minWidth: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <FileSpreadsheet size={15} />
+          <div className="golden-os-kpi-tile">
+            <span className="golden-os-kpi-value" style={{ color: '#047857' }}>{presenceRateLogs}%</span>
+            <span className="golden-os-kpi-label">Presence</span>
           </div>
-        </div>
-        
-        <div 
-          style={{ 
-            padding: '10px 12px', 
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e4dfd5',
-            borderLeft: '4px solid var(--color-success)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '6px'
-          }}
-        >
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <h3 style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Presence</h3>
-            <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-main)', margin: '2px 0 0 0' }}>{presenceRateLogs}%</p>
-          </div>
-          <div style={{ background: 'rgba(5, 150, 105, 0.08)', color: 'var(--color-success)', width: '32px', height: '32px', minWidth: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CheckCircle2 size={15} />
+          <div className="golden-os-kpi-tile">
+            <span className="golden-os-kpi-value" style={{ color: '#4a3d28', fontSize: '0.96rem' }}>{peakScanHour}</span>
+            <span className="golden-os-kpi-label">Peak Hour</span>
           </div>
         </div>
 
-        <div 
-          style={{ 
-            padding: '10px 12px', 
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e4dfd5',
-            borderLeft: '4px solid var(--color-purple)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '6px'
-          }}
-        >
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <h3 style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Peak Hour</h3>
-            <p style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-text-main)', margin: '2px 0 0 0', whiteSpace: 'nowrap' }}>{peakScanHour}</p>
-          </div>
-          <div style={{ background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)', width: '32px', height: '32px', minWidth: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Clock size={15} />
-          </div>
-        </div>
-      </div>
+        {/* Organized Filter Controls */}
+        <div className="golden-os-form-section" style={{ gap: '10px' }}>
+          {/* Row 1: Search + Export CSV */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '150px' }}>
+              <input
+                type="search"
+                className="form-input"
+                aria-label="Search attendance logs"
+                placeholder="Search name or roll..."
+                value={logSearch}
+                onChange={e => setLogSearch(e.target.value)}
+                style={{ paddingLeft: '36px', background: '#ffffff', width: '100%', boxSizing: 'border-box' }}
+              />
+              <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8c7a5b' }} />
+            </div>
 
-      {/* Filter Cockpit Bar */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '10px', 
-          marginBottom: '20px', 
-          width: '100%' 
-        }}
-      >
-        {/* Row 1: Full-width Search Input */}
-        <div style={{ position: 'relative', width: '100%' }}>
-          <input 
-            type="text" 
-            className="form-input" 
-            style={{ 
-              width: '100%', 
-              paddingLeft: '40px', 
-              background: '#ffffff', 
-              border: '1px solid var(--border-subtle)',
-              height: '42px',
-              borderRadius: '10px',
-              boxSizing: 'border-box'
-            }}
-            placeholder="Search by ID, Name or Roll..."
-            value={logSearch}
-            onChange={e => setLogSearch(e.target.value)}
-          />
-          <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-        </div>
-
-        {/* Row 2: Department Select + Date Navigation (Clean 2-Column Responsive Grid) */}
-        <div style={{ display: 'grid', gridTemplateColumns: userRole === 'admin' ? 'repeat(auto-fit, minmax(140px, 1fr))' : '1fr', gap: '8px', alignItems: 'center', width: '100%' }}>
-          {userRole === 'admin' ? (
-            <select 
-              className="form-input" 
-              style={{ 
-                width: '100%',
-                background: '#ffffff', 
-                border: '1px solid var(--border-subtle)', 
-                height: '40px',
+            <button
+              type="button"
+              onClick={() => {
+                if (playCyberSound) playCyberSound('click');
+                exportToCSV();
+              }}
+              disabled={!filteredLogs || filteredLogs.length === 0}
+              className="golden-os-feedback-filter-btn"
+              style={{
+                padding: '10px 14px',
                 borderRadius: '10px',
-                boxSizing: 'border-box'
-              }}
-              value={logDeptFilter}
-              onChange={e => setLogDeptFilter(e.target.value)}
-            >
-              <option value="">All Departments</option>
-              {departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
-          ) : userRole === 'teacher' ? (
-            <div style={{ 
-              padding: '8px 14px', 
-              background: 'rgba(30, 64, 175, 0.08)', 
-              border: '1px solid rgba(30, 64, 175, 0.2)', 
-              borderRadius: '10px', 
-              color: 'var(--color-primary)',
-              fontSize: '0.82rem',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <BookOpen size={14} />
-              <span>{currentUser?.details?.subject_code || 'N/A'}</span>
-            </div>
-          ) : null}
-
-          {/* Date Picker with Prev / Next Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
-            <button
-              type="button"
-              onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, -1, setLogDateFilter); }}
-              style={{
-                background: '#faf9f6',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '8px',
-                color: 'var(--color-text-secondary)',
-                width: '36px',
-                minWidth: '36px',
-                height: '40px',
-                cursor: 'pointer',
-                display: 'flex',
+                fontSize: '0.82rem',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.8rem',
-                flexShrink: 0
+                gap: '6px',
+                opacity: filteredLogs.length > 0 ? 1 : 0.55,
               }}
-              title="Previous Day"
             >
-              ◀
-            </button>
-            <input 
-              type="date" 
-              className="form-input"
-              style={{ 
-                flex: 1, 
-                minWidth: 0, 
-                background: '#ffffff', 
-                border: '1px solid var(--border-subtle)', 
-                height: '40px', 
-                borderRadius: '8px',
-                padding: '0 8px',
-                fontSize: '0.8rem',
-                margin: 0,
-                boxSizing: 'border-box'
-              }}
-              value={logDateFilter}
-              onChange={e => setLogDateFilter(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => { playCyberSound('click'); shiftDate(logDateFilter, 1, setLogDateFilter); }}
-              style={{
-                background: '#faf9f6',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '8px',
-                color: 'var(--color-text-secondary)',
-                width: '36px',
-                minWidth: '36px',
-                height: '40px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.8rem',
-                flexShrink: 0
-              }}
-              title="Next Day"
-            >
-              ▶
+              <Download size={14} />
+              <span>Export CSV</span>
             </button>
           </div>
-        </div>
 
-        {/* Row 3: Status Filters & View Mode Toggles */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
-          <div style={{ display: 'flex', background: '#f4f1eb', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-            {['all', 'present', 'absent'].map(status => (
+          {/* Row 2: Department / Subject + Date Picker */}
+          <div className="golden-os-fields-2" style={{ gap: '8px' }}>
+            {userRole === 'admin' ? (
+              <select
+                className="form-input"
+                aria-label="Filter by department"
+                value={logDeptFilter}
+                onChange={e => setLogDeptFilter(e.target.value)}
+                style={{ background: '#ffffff', height: '40px' }}
+              >
+                <option value="">All Departments</option>
+                {departments.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            ) : (
+              <div style={{
+                padding: '8px 12px',
+                background: '#faf5ea',
+                border: '1px solid #e7dac0',
+                borderRadius: '10px',
+                color: '#6e4e1c',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                height: '40px',
+                boxSizing: 'border-box',
+              }}>
+                <BookOpen size={14} />
+                <span>{currentUser?.details?.subject_code || 'Assigned Subject'}</span>
+              </div>
+            )}
+
+            <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
               <button
-                key={status}
                 type="button"
-                onClick={() => {
-                  playCyberSound('click');
-                  setQuickFilterStatus(status);
-                }}
-                style={{
-                  padding: '5px 12px',
-                  fontSize: '0.72rem',
-                  background: quickFilterStatus === status ? 'var(--color-primary)' : 'transparent',
-                  color: quickFilterStatus === status ? '#ffffff' : 'var(--color-text-muted)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  transition: 'all 0.15s ease'
-                }}
+                aria-label="Previous day"
+                onClick={() => { if (playCyberSound) playCyberSound('click'); shiftDate(logDateFilter, -1, setLogDateFilter); }}
+                className="golden-os-feedback-filter-btn"
+                style={{ width: '36px', minWidth: '36px', height: '40px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}
               >
-                {status}
+                <ChevronLeft size={16} />
               </button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', background: '#f4f1eb', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-            <button
-              type="button"
-              onClick={() => {
-                playCyberSound('click');
-                setLogsViewMode('grid');
-              }}
-              style={{
-                padding: '5px 12px',
-                fontSize: '0.72rem',
-                background: logsViewMode === 'grid' ? 'var(--color-primary)' : 'transparent',
-                color: logsViewMode === 'grid' ? '#ffffff' : 'var(--color-text-muted)',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Grid
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                playCyberSound('click');
-                setLogsViewMode('feed');
-              }}
-              style={{
-                padding: '5px 12px',
-                fontSize: '0.72rem',
-                background: logsViewMode === 'feed' ? 'var(--color-primary)' : 'transparent',
-                color: logsViewMode === 'feed' ? '#ffffff' : 'var(--color-text-muted)',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Feed
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Bulk Action Bar for Logs */}
-      {selectedLogIds.size > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px',
-          background: 'rgba(0, 242, 254, 0.05)', border: '1px solid rgba(0, 242, 254, 0.2)',
-          borderRadius: '12px', marginBottom: '16px', animation: 'fadeInUp 0.3s ease'
-        }}>
-          <span style={{ color: '#00f2fe', fontWeight: 700, fontSize: '0.85rem' }}>
-            {selectedLogIds.size} log{selectedLogIds.size > 1 ? 's' : ''} selected
-          </span>
-          <button
-            onClick={() => setSelectedLogIds(new Set())}
-            style={{
-              padding: '5px 12px', fontSize: '0.75rem', background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8',
-              borderRadius: '6px', cursor: 'pointer'
-            }}
-          >Clear Selection</button>
-          <button
-            onClick={exportToCSV}
-            style={{
-              padding: '5px 14px', fontSize: '0.75rem', background: 'rgba(0,242,254,0.1)',
-              border: '1px solid rgba(0,242,254,0.3)', color: '#00f2fe',
-              borderRadius: '6px', cursor: 'pointer', fontWeight: 700,
-              display: 'flex', alignItems: 'center', gap: '6px'
-            }}
-          >
-            <FileDown size={12} /> Export Selected to CSV
-          </button>
-        </div>
-      )}
-
-      {/* Main Logs View Rendering */}
-      {filteredLogs.length === 0 ? (
-        <div className="flex-center" style={{ padding: '60px 0', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '16px' }}>
-          <Calendar size={44} style={{ color: 'rgba(255,255,255,0.1)' }} />
-          <span style={{ fontWeight: 500 }}>No attendance records found matching filters.</span>
-        </div>
-      ) : logsViewMode === 'grid' ? (
-        /* Grid Table View */
-        <div className="table-container">
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th style={{ width: '40px', textAlign: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={filteredLogs.length > 0 && filteredLogs.every(log => selectedLogIds.has(log.id))}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setSelectedLogIds(new Set(filteredLogs.map(log => log.id)));
-                      } else {
-                        setSelectedLogIds(new Set());
-                      }
-                    }}
-                    style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#00f2fe' }}
-                  />
-                </th>
-                <th style={{ width: '80px' }}>ID</th>
-                <th>Roll Number</th>
-                <th>Name</th>
-                <th>Department</th>
-                <th>Time</th>
-                <th>Date</th>
-                <th style={{ width: '150px' }}>Status</th>
-                <th style={{ width: '100px' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log, idx) => (
-                <tr 
-                  key={idx} 
-                  onClick={() => {
-                    playCyberSound('click');
-                    setSelectedAuditLog(log);
-                  }}
-                  style={{ 
-                    cursor: 'pointer',
-                    background: selectedLogIds.has(log.id) ? 'rgba(30, 64, 175, 0.04)' : undefined 
-                  }}
-                >
-                  <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={selectedLogIds.has(log.id)}
-                      onChange={e => {
-                        const next = new Set(selectedLogIds);
-                        if (e.target.checked) next.add(log.id); else next.delete(log.id);
-                        setSelectedLogIds(next);
-                      }}
-                      style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: 'var(--color-primary)' }}
-                    />
-                  </td>
-                  <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{log.id}</td>
-                  <td style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{log.roll}</td>
-                  <td style={{ fontWeight: 500, color: 'var(--color-text-main)' }}>{log.name}</td>
-                  <td>
-                    <span style={{ color: 'var(--color-purple)', fontWeight: 600 }}>{log.department}</span>
-                  </td>
-                  <td style={{ color: 'var(--color-text-muted)' }}>{log.time}</td>
-                  <td>{log.date}</td>
-                  <td>
-                    <span className={`badge ${log.attendance.toLowerCase() === 'present' ? 'badge-success' : 'badge-danger'}`}>
-                      {log.attendance}
-                    </span>
-                  </td>
-                  <td>
-                    <button 
-                      className="btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '6px' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        playCyberSound('click');
-                        setSelectedAuditLog(log);
-                      }}
-                    >
-                      AUDIT
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        /* Chrono Timeline Feed View */
-        <div className="chrono-feed">
-          {filteredLogs.map((log, idx) => {
-            const isPresent = log.attendance.toLowerCase() === 'present';
-            return (
-              <div 
-                key={idx}
-                onClick={() => {
-                  playCyberSound('click');
-                  setSelectedAuditLog(log);
-                }}
-                className="glass-panel chrono-feed-item" 
-                style={{ 
-                  padding: '20px', 
-                  position: 'relative', 
-                  cursor: 'pointer',
-                  border: '1px solid var(--border-subtle)',
-                  background: '#ffffff',
-                  boxShadow: 'var(--shadow-card)',
-                  borderRadius: '14px',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '16px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = isPresent ? '#10b981' : '#ef4444';
-                  e.currentTarget.style.transform = 'translateX(4px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                  e.currentTarget.style.transform = 'translateX(0)';
-                }}
+              <input
+                type="date"
+                className="form-input flex-input"
+                aria-label="Filter by date"
+                value={logDateFilter}
+                onChange={e => setLogDateFilter(e.target.value)}
+                style={{ flex: 1, minWidth: 0, background: '#ffffff', height: '40px', padding: '0 8px', fontSize: '0.82rem', margin: 0 }}
+              />
+              <button
+                type="button"
+                aria-label="Next day"
+                onClick={() => { if (playCyberSound) playCyberSound('click'); shiftDate(logDateFilter, 1, setLogDateFilter); }}
+                className="golden-os-feedback-filter-btn"
+                style={{ width: '36px', minWidth: '36px', height: '40px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}
               >
-                {/* Timeline Node Point */}
-                <div className="chrono-timeline-node" style={{ 
-                  background: isPresent ? '#10b981' : '#ef4444',
-                  boxShadow: `0 0 10px ${isPresent ? '#10b981' : '#ef4444'}`
-                }} />
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ 
-                    width: '45px', 
-                    height: '45px', 
-                    borderRadius: '10px', 
-                    background: isPresent ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)', 
-                    border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    color: isPresent ? '#10b981' : '#ef4444',
-                    fontSize: '0.85rem',
-                    fontWeight: 'bold',
-                    fontFamily: 'monospace'
-                  }}>
-                    {log.name.substring(0, 2).toUpperCase()}
-                  </div>
-
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text-main)', margin: 0 }}>{log.name}</h4>
-                      <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>({log.roll})</span>
-                      <span style={{ fontSize: '0.75rem', background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{log.department}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <span>📅 {log.date}</span>
-                      <span>⏰ {log.time}</span>
-                      <span style={{ background: 'rgba(30, 64, 175, 0.08)', color: 'var(--color-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem', border: '1px solid rgba(30, 64, 175, 0.2)' }}>
-                        ⏱️ {getPeriodSlotLabel(log.period || log.time)}
-                      </span>
-                      {(log.subject_name || subjects.find(s => s.id === log.subject_id)?.name) && (
-                        <span style={{ background: 'rgba(124, 58, 237, 0.08)', color: 'var(--color-purple)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '0.74rem', border: '1px solid rgba(124, 58, 237, 0.2)' }}>
-                          📚 {log.subject_name || subjects.find(s => s.id === log.subject_id)?.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ 
-                    fontSize: '0.75rem', 
-                    fontFamily: 'monospace',
-                    color: isPresent ? '#10b981' : '#ef4444',
-                    background: isPresent ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    border: `1px solid ${isPresent ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
-                  }}>
-                    {isPresent ? '✓ SIGNATURE VERIFIED' : '✗ ABSENT RECORD'}
-                  </span>
-                  <button 
-                    className="action-btn" 
-                    style={{ padding: '6px 12px', fontSize: '0.75rem', fontFamily: 'monospace' }}
-                  >
-                    AUDIT
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Holographic Biometric Audit Modal Popup */}
-      {selectedAuditLog && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(5, 7, 12, 0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          animation: 'fadeIn 0.3s ease both'
-        }}>
-          <div className="glass-panel" style={{
-            width: '90%',
-            maxWidth: '440px',
-            padding: isMobileView ? '20px 16px' : '32px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            border: '1px solid rgba(0, 242, 254, 0.25)',
-            boxShadow: '0 20px 50px rgba(0, 242, 254, 0.15)',
-            animation: 'zoomIn 0.3s ease both',
-            position: 'relative',
-            boxSizing: 'border-box'
-          }}>
-            {/* Futuristic wireframe scanner borders */}
-            <div style={{ position: 'absolute', top: '15px', left: '15px', width: '15px', height: '15px', borderTop: '2px solid #00f2fe', borderLeft: '2px solid #00f2fe' }} />
-            <div style={{ position: 'absolute', top: '15px', right: '15px', width: '15px', height: '15px', borderTop: '2px solid #00f2fe', borderRight: '2px solid #00f2fe' }} />
-            <div style={{ position: 'absolute', bottom: '15px', left: '15px', width: '15px', height: '15px', borderBottom: '2px solid #00f2fe', borderLeft: '2px solid #00f2fe' }} />
-            <div style={{ position: 'absolute', bottom: '15px', right: '15px', width: '15px', height: '15px', borderBottom: '2px solid #00f2fe', borderRight: '2px solid #00f2fe' }} />
-
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '24px', fontFamily: 'Outfit, sans-serif', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>BIOMETRIC RECORD AUDIT</span>
-              <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#00f2fe' }}>LOG #{selectedAuditLog.id}</span>
-            </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Wireframe Student details profile box */}
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'rgba(8,12,20,0.4)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <div style={{ 
-                  width: '60px', 
-                  height: '60px', 
-                  borderRadius: '12px', 
-                  border: '1.5px dashed #00f2fe', 
-                  background: 'rgba(0, 242, 254, 0.05)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.25rem',
-                  color: '#00f2fe',
-                  fontWeight: 'bold',
-                  fontFamily: 'monospace',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{ 
-                    position: 'absolute',
-                    width: '100%',
-                    height: '2px',
-                    background: '#00f2fe',
-                    top: '50%',
-                    left: 0,
-                    animation: 'scannerLine 2s infinite linear'
-                  }} />
-                  {selectedAuditLog.name.substring(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <h4 style={{ fontWeight: 700, color: '#fff', fontSize: '1.1rem' }}>{selectedAuditLog.name}</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Roll: {selectedAuditLog.roll}</p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-purple)', fontWeight: 600 }}>{selectedAuditLog.department}</p>
-                </div>
-              </div>
-
-              {/* Telemetry data */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>LOG DATE:</span>
-                  <span style={{ color: '#fff', fontWeight: 600 }}>{selectedAuditLog.date}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>LOG TIME:</span>
-                  <span style={{ color: '#fff', fontWeight: 600 }}>{selectedAuditLog.time}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>CLASS PERIOD:</span>
-                  <span style={{ color: '#00f2fe', fontWeight: 'bold' }}>
-                    {getPeriodSlotLabel(selectedAuditLog.period || selectedAuditLog.time)}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>ENROLLED SUBJECT:</span>
-                  <span style={{ color: '#c4b5fd', fontWeight: 'bold' }}>
-                    {selectedAuditLog.subject_name || subjects.find(s => s.id === selectedAuditLog.subject_id)?.name || (currentUser?.details?.subject_name) || 'General Attendance'}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>STATUS STATE:</span>
-                  <span style={{ 
-                    color: selectedAuditLog.attendance.toLowerCase() === 'present' ? '#10b981' : '#ef4444', 
-                    fontWeight: 'bold' 
-                  }}>
-                    {selectedAuditLog.attendance.toUpperCase()}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>VERIFICATION METHOD:</span>
-                  <span style={{ color: '#00f2fe', fontWeight: 'bold' }}>
-                    {selectedAuditLog.attendance.toLowerCase() === 'present' ? 'SFACE ONNX MATCH' : 'AUTO TIMEOUT / UNMARKED'}
-                  </span>
-                </div>
-                {selectedAuditLog.attendance.toLowerCase() === 'present' && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>COSINE SIMILARITY:</span>
-                      <span style={{ color: '#10b981', fontWeight: 'bold' }}>0.914 (THRESHOLD PASS)</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>LIVENESS METRICS:</span>
-                      <span style={{ color: '#10b981', fontWeight: 'bold' }}>SECURE (BLINK VERIFIED)</span>
-                    </div>
-                  </>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>NETWORK NODE:</span>
-                  <span style={{ color: 'var(--color-purple)' }}>NODE_CAMPUS_INTRANET_124</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>SCAN SIGNATURE:</span>
-                  <span style={{ color: '#f59e0b' }}>HEX_8D2B4A9E</span>
-                </div>
-              </div>
-
-              {/* Close buttons */}
-              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    playCyberSound('click');
-                    setSelectedAuditLog(null);
-                  }}
-                  className="action-btn"
-                  style={{ flex: 1, padding: '12px' }}
-                >
-                  DISMISS AUDIT
-                </button>
-              </div>
+                <ChevronRight size={16} />
+              </button>
             </div>
           </div>
+
+          {/* Row 3: Concise Status Pills */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'present', label: 'Present' },
+              { key: 'absent', label: 'Absent' },
+            ].map(st => {
+              const active = quickFilterStatus === st.key;
+              return (
+                <button
+                  key={st.key}
+                  type="button"
+                  onClick={() => {
+                    if (playCyberSound) playCyberSound('click');
+                    setQuickFilterStatus(st.key);
+                  }}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '999px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: active ? '1px solid #785927' : '1px solid #e4d8bd',
+                    background: active ? '#785927' : '#ffffff',
+                    color: active ? '#ffffff' : '#6b5b3e',
+                  }}
+                >
+                  {st.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+
+        {/* 1-Line Scannable Golden Gate Rows */}
+        {filteredLogs.length === 0 ? (
+          <div className="golden-os-inset-card" style={{ padding: '32px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
+            <Calendar size={28} style={{ color: '#9c8b6e' }} />
+            <span style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>No attendance logs found</span>
+          </div>
+        ) : (
+          <div className="golden-os-list-shell">
+            {filteredLogs.map((log, idx) => {
+              const isPresent = String(log.attendance || '').toLowerCase() === 'present';
+              return (
+                <button
+                  key={log.id || idx}
+                  type="button"
+                  className="golden-os-list-row"
+                  onClick={() => openLogDetail(log)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                    <div className="golden-os-avatar">{getInitials(log.name)}</div>
+                    <span style={{
+                      fontSize: '0.94rem',
+                      fontWeight: 700,
+                      color: '#25231f',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {log.name || 'Student'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '999px',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      background: isPresent ? 'rgba(5, 150, 105, 0.1)' : '#fef2f2',
+                      color: isPresent ? '#047857' : '#dc2626',
+                      border: `1px solid ${isPresent ? 'rgba(5, 150, 105, 0.25)' : '#fecaca'}`,
+                    }}>
+                      {isPresent ? 'Present' : (log.attendance || 'Absent')}
+                    </span>
+                    <ChevronRight size={16} color="#8c734b" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

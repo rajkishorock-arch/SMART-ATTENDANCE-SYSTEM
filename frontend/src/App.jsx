@@ -659,33 +659,99 @@ export default function App() {
     return null;
   });
 
-  const [disputesQueue, setDisputesQueue] = useState([]);
-  const [disputesLoaded, setDisputesLoaded] = useState(false);
-  const [broadcastsList, setBroadcastsList] = useState([]);
-  const [broadcastsLoaded, setBroadcastsLoaded] = useState(false);
+  const [sessionHistoryRoute, setSessionHistoryRoute] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'session-history' && parts[1]) {
+        return decodeURIComponent(parts[1]);
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  const [routeLogId, setRouteLogId] = useState(() => {
+    try {
+      const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
+      if (parts[0] === 'logs' && parts[1]) {
+        return decodeURIComponent(parts[1]);
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  const getScopedListKey = useCallback((domain, authToken) => {
+    try {
+      const t = authToken || localStorage.getItem('token') || '';
+      if (!t) return null;
+      const slug = getActiveTenantSlug() || 'default';
+      return `sg_${domain}_v1_${slug}_${String(t).slice(-16)}`;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const readScopedList = useCallback((domain, authToken) => {
+    try {
+      const key = getScopedListKey(domain, authToken);
+      if (!key) return null;
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }, [getScopedListKey]);
+
+  const writeScopedList = useCallback((domain, list, authToken) => {
+    try {
+      const key = getScopedListKey(domain, authToken);
+      if (!key || !Array.isArray(list)) return;
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 150)));
+    } catch { /* ignore quota error */ }
+  }, [getScopedListKey]);
+
+  const [disputesQueue, setDisputesQueue] = useState(() => readScopedList('disputes') || []);
+  const [disputesLoaded, setDisputesLoaded] = useState(() => readScopedList('disputes') !== null);
+  const [broadcastsList, setBroadcastsList] = useState(() => readScopedList('broadcasts') || []);
+  const [broadcastsLoaded, setBroadcastsLoaded] = useState(() => readScopedList('broadcasts') !== null);
 
   const fetchDisputesPrefetch = useCallback(async (authToken, roleVal) => {
     const t = authToken;
     const r = String(roleVal || '').toLowerCase();
     if (!t || !['admin', 'teacher', 'hod'].includes(r)) return;
+    const cached = readScopedList('disputes', t);
+    if (cached) {
+      setDisputesQueue(prev => (prev.length > 0 ? prev : cached));
+      setDisputesLoaded(true);
+    }
     try {
       const res = await disputeApi.fetchDisputeQueue(t, 'ALL');
       if (res.ok) {
         const data = await res.json();
-        setDisputesQueue(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setDisputesQueue(list);
         setDisputesLoaded(true);
+        writeScopedList('disputes', list, t);
       }
     } catch { /* silent background prefetch */ }
-  }, []);
+  }, [readScopedList, writeScopedList]);
 
   const fetchBroadcastsPrefetch = useCallback(async (authToken) => {
     if (!authToken) return;
-    try {
-      const res = await notificationApi.fetchBroadcastHistory(authToken, 100);
-      setBroadcastsList(Array.isArray(res) ? res : []);
+    const cached = readScopedList('broadcasts', authToken);
+    if (cached) {
+      setBroadcastsList(prev => (prev.length > 0 ? prev : cached));
       setBroadcastsLoaded(true);
+    }
+    try {
+      const res = await notificationApi.fetchBroadcastHistory(authToken, 50);
+      const list = Array.isArray(res) ? res : [];
+      setBroadcastsList(list);
+      setBroadcastsLoaded(true);
+      writeScopedList('broadcasts', list, authToken);
     } catch { /* silent background prefetch */ }
-  }, []);
+  }, [readScopedList, writeScopedList]);
 
   // Route Scroll Position Preservation (restores exact scroll position on Back navigation)
   const getRouteScrollKey = (tab, subTab, subSet, subDetail = '') => `${tab || ''}|${subTab || ''}|${subSet || ''}|${subDetail || ''}`;
@@ -726,6 +792,9 @@ export default function App() {
   const settingsDetailRouteRef = useRef(settingsDetailRoute);
   const disputeRouteRef = useRef(disputeRoute);
   const broadcastRouteRef = useRef(broadcastRoute);
+  const sessionHistoryRouteRef = useRef(sessionHistoryRoute);
+  const routeLogIdRef = useRef(routeLogId);
+  const selectedAuditLogRef = useRef(null);
   const scheduleReturnTargetRef = useRef(null);
   const showWebcamModalRef = useRef(false);
   const enrollWebcamBackRef = useRef(null);
@@ -745,6 +814,8 @@ export default function App() {
   useEffect(() => { settingsDetailRouteRef.current = settingsDetailRoute; }, [settingsDetailRoute]);
   useEffect(() => { disputeRouteRef.current = disputeRoute; }, [disputeRoute]);
   useEffect(() => { broadcastRouteRef.current = broadcastRoute; }, [broadcastRoute]);
+  useEffect(() => { sessionHistoryRouteRef.current = sessionHistoryRoute; }, [sessionHistoryRoute]);
+  useEffect(() => { routeLogIdRef.current = routeLogId; }, [routeLogId]);
 
   // Record user scroll position continuously while settled on the current view
   useEffect(() => {
@@ -819,6 +890,13 @@ export default function App() {
       if (activeTab !== 'broadcast') {
         setBroadcastRoute(null);
       }
+      if (activeTab !== 'session-history') {
+        setSessionHistoryRoute(null);
+      }
+      if (activeTab !== 'logs') {
+        setSelectedAuditLog(null);
+        setRouteLogId(null);
+      }
       prevActiveTabRef.current = activeTab;
     }
   }, [activeTab]);
@@ -869,6 +947,15 @@ export default function App() {
         }
         return;
       }
+    }
+    if (activeTabRef.current === 'logs' && (selectedAuditLogRef.current !== null || routeLogIdRef.current !== null)) {
+      setSelectedAuditLog(null);
+      setRouteLogId(null);
+      return;
+    }
+    if (activeTabRef.current === 'session-history' && sessionHistoryRouteRef.current !== null) {
+      setSessionHistoryRoute(null);
+      return;
     }
     if (activeTabRef.current === 'disputes' && disputeRouteRef.current !== null) {
       setDisputeRoute(null);
@@ -2076,6 +2163,10 @@ export default function App() {
   const [selectedAuditLog, setSelectedAuditLog] = useState(null);
   const [quickFilterStatus, setQuickFilterStatus] = useState('all'); // 'all' | 'present' | 'absent'
 
+  useEffect(() => {
+    selectedAuditLogRef.current = selectedAuditLog;
+  }, [selectedAuditLog]);
+
 
   useEffect(() => {
     localStorage.setItem('voicePitch', voicePitch);
@@ -2411,6 +2502,7 @@ export default function App() {
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionDate, setSessionDate] = useState(getLocalDateString());
   const [sessionPeriod, setSessionPeriod] = useState('Period 1');
+  const sessionHistoryRequestRef = useRef(0);
   const [sessionHistory, setSessionHistory] = useState(() => {
     try {
       const cached = localStorage.getItem('cached_session_history');
@@ -2532,6 +2624,12 @@ export default function App() {
   const broadcastScrollKey = activeTab === 'broadcast' && broadcastRoute
     ? `${broadcastRoute.mode}:${broadcastRoute.id ?? ''}`
     : '';
+  const logsScrollKey = activeTab === 'logs' && (selectedAuditLog?.id ?? routeLogId) != null
+    ? `detail:${selectedAuditLog?.id ?? routeLogId}`
+    : '';
+  const sessionHistoryScrollKey = activeTab === 'session-history' && sessionHistoryRoute
+    ? `detail:${sessionHistoryRoute}`
+    : '';
   const activeSubDetailKey = activeTab === 'students'
     ? studentSubScrollKey
     : activeTab === 'teachers'
@@ -2540,7 +2638,11 @@ export default function App() {
         ? settingsDetailScrollKey
         : activeTab === 'disputes'
           ? disputeScrollKey
-          : (activeTab === 'broadcast' ? broadcastScrollKey : '');
+          : activeTab === 'broadcast'
+            ? broadcastScrollKey
+            : activeTab === 'logs'
+              ? logsScrollKey
+              : (activeTab === 'session-history' ? sessionHistoryScrollKey : '');
   const computedRouteKey = getRouteScrollKey(activeTab, activeDashboardSubTab, activeSubSetting, activeSubDetailKey);
 
   useLayoutEffect(() => {
@@ -2917,12 +3019,24 @@ export default function App() {
   // Fetch session history (Instant 0ms retrieval with multi-level local cache)
   const fetchSessionHistory = async (subjId = null, dateVal = null, periodVal = null) => {
     if (isDemoMode) return;
+    const sId = subjId || selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
+    if (!sId && subjects.length > 0) return;
+    const reqId = ++sessionHistoryRequestRef.current;
     try {
-      const sId = subjId || selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
       const dVal = dateVal !== null ? dateVal : historyFilterDate;
       const pVal = periodVal !== null ? periodVal : historyFilterPeriod;
 
-      const data = await attendanceApi.fetchSessionHistory(token, sId, dVal, pVal);
+      const res = await attendanceApi.fetchSessionHistory(token, sId, dVal, pVal);
+      if (reqId !== sessionHistoryRequestRef.current) return;
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(`Session history unavailable (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      if (reqId !== sessionHistoryRequestRef.current) return;
       if (Array.isArray(data)) {
         setSessionHistory(data);
         try {
@@ -2933,6 +3047,7 @@ export default function App() {
         } catch { /* storage fallback */ }
       }
     } catch (err) {
+      if (reqId !== sessionHistoryRequestRef.current) return;
       if (err.status === 401) {
         handleLogout();
         return;
@@ -3045,16 +3160,24 @@ export default function App() {
     try {
       const nextStatus = currentStatus === 'Present' ? 'Absent' : 'Present';
       const sId = selectedHistorySubjectId || selectedSubjectId || selectedTeacherSubjectId;
-      await attendanceApi.toggleSessionStatus(token, {
+      const res = await attendanceApi.toggleSessionStatus(token, {
         student_id: studentId,
         attendance_status: nextStatus,
-        subject_id: sId ? parseInt(sId) : null,
+        subject_id: sId ? parseInt(sId, 10) : null,
         custom_date: dateVal,
         custom_time: periodVal
       });
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Failed to update status (HTTP ${res.status}).`);
+      }
 
       playCyberSound('success');
-      fetchSessionHistory();
+      fetchSessionHistory(sId, historyFilterDate, historyFilterPeriod);
     } catch (err) {
       if (err.status === 401) {
         handleLogout();
@@ -5153,12 +5276,20 @@ export default function App() {
           }
         }
       }
-      const data = await attendanceApi.fetchReport(token, {
+      const res = await attendanceApi.fetchReport(token, {
         start_date: reportStartDate,
         end_date: reportEndDate,
         department: userRole === 'admin' ? reportDeptFilter : null,
         subject_id: queryParams.get('subject_id')
       });
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(`Failed to fetch report (HTTP ${res.status})`);
+      }
+      const data = await res.json();
       if (data && Array.isArray(data.students)) {
         setReportData(data);
       } else {
@@ -5191,7 +5322,15 @@ export default function App() {
           }
         }
       }
-      const data = await attendanceApi.sendAbsenteeAlerts(token, queryParams.get('subject_id'));
+      const res = await attendanceApi.sendAbsenteeAlerts(token, queryParams.get('subject_id'));
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || `Failed to queue absentee alerts (HTTP ${res.status})`);
+      }
       setReportAlertMsg({ type: 'success', text: data.message || "Absentee warning notification alerts queued successfully!" });
       playCyberSound('success');
       setTimeout(() => setReportAlertMsg(null), 5000);
@@ -5916,6 +6055,13 @@ export default function App() {
         if (activeBase !== 'broadcast' && broadcastRouteRef.current !== null) {
           setBroadcastRoute(null);
         }
+        if (activeBase !== 'session-history' && sessionHistoryRouteRef.current !== null) {
+          setSessionHistoryRoute(null);
+        }
+        if (activeBase !== 'logs' && (selectedAuditLogRef.current !== null || routeLogIdRef.current !== null)) {
+          setSelectedAuditLog(null);
+          setRouteLogId(null);
+        }
       };
 
       if (baseHash && isTabValidForRole(baseHash, userRole)) {
@@ -5964,6 +6110,23 @@ export default function App() {
             setBroadcastRoute({ mode: 'edit', id: subHash });
           } else {
             setBroadcastRoute({ mode: 'detail', id: subHash });
+          }
+        } else if (baseHash === 'logs') {
+          if (subHash) {
+            const decodedId = decodeURIComponent(subHash);
+            setRouteLogId(decodedId);
+            if (selectedAuditLogRef.current && String(selectedAuditLogRef.current.id) !== decodedId) {
+              setSelectedAuditLog(null);
+            }
+          } else {
+            if (selectedAuditLogRef.current !== null) setSelectedAuditLog(null);
+            if (routeLogIdRef.current !== null) setRouteLogId(null);
+          }
+        } else if (baseHash === 'session-history') {
+          if (subHash) {
+            setSessionHistoryRoute(decodeURIComponent(subHash));
+          } else if (sessionHistoryRouteRef.current !== null) {
+            setSessionHistoryRoute(null);
           }
         } else if (baseHash === 'students') {
           if (!subHash) {
@@ -6103,7 +6266,11 @@ export default function App() {
                                   ? `#/broadcast/${broadcastRoute.id}/edit`
                                   : activeTab === 'broadcast' && broadcastRoute?.mode === 'detail' && broadcastRoute?.id != null
                                     ? `#/broadcast/${broadcastRoute.id}`
-                                    : `#/${activeTab}`;
+                                    : activeTab === 'logs' && (selectedAuditLog?.id ?? routeLogId) != null
+                                      ? `#/logs/${encodeURIComponent(selectedAuditLog?.id ?? routeLogId)}`
+                                      : activeTab === 'session-history' && sessionHistoryRoute
+                                        ? `#/session-history/${encodeURIComponent(sessionHistoryRoute)}`
+                                        : `#/${activeTab}`;
 
       if (pushedHashStackRef.current.length === 0) {
         const seedHash = window.location.hash || expectedHash;
@@ -6171,6 +6338,9 @@ export default function App() {
     disputeRoute?.id,
     broadcastRoute?.mode,
     broadcastRoute?.id,
+    selectedAuditLog?.id,
+    routeLogId,
+    sessionHistoryRoute,
     token,
     userRole,
   ]);
@@ -6228,6 +6398,9 @@ export default function App() {
     setActiveSubSetting(null);
     setDisputeRoute(null);
     setBroadcastRoute(null);
+    setSessionHistoryRoute(null);
+    setSelectedAuditLog(null);
+    setRouteLogId(null);
     setMobileSidebarOpen(false);
     setMobileControlOpen(false);
     playCyberSound('click');
@@ -6429,6 +6602,7 @@ export default function App() {
         fetchSubjects().then(() => fetchStudents());
         break;
       case 'logs':
+        fetchSubjects();
         fetchLogs();
         break;
       case 'attendance':
@@ -6443,6 +6617,7 @@ export default function App() {
         // Reports are generated on-demand when user clicks "Generate Report"
         break;
       case 'session-history':
+        fetchSubjects();
         fetchSessionHistory();
         break;
       case 'settings':
@@ -6473,6 +6648,7 @@ export default function App() {
         fetchSubjects(token);
         fetchBlueprint(token);
         fetchStudentLeaves(token);
+        fetchBroadcastsPrefetch(token);
         {
           const sDept = currentUser?.details?.dep || currentUser?.department || currentUser?.dep;
           const sId = currentUser?.details?.id || currentUser?.id;
@@ -6895,6 +7071,15 @@ export default function App() {
       setBroadcastsLoaded(false);
       setDisputeRoute(null);
       setBroadcastRoute(null);
+      setSessionHistoryRoute(null);
+      setSessionHistory([]);
+      setSelectedAuditLog(null);
+      setRouteLogId(null);
+      try {
+        Object.keys(localStorage).forEach((k) => {
+          if (k.startsWith('sg_') || k.startsWith('cached_session_history')) localStorage.removeItem(k);
+        });
+      } catch { /* ignore */ }
       setSelectedSubjectId('');
       setManualSubjectId('');
       setSelectedTeacherSubjectId('');
@@ -8591,7 +8776,7 @@ export default function App() {
                 <button 
                   className={`nav-item ${activeTab === 'logs' ? 'active' : ''}`}
                   style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderRadius: '10px' }}
-                  onClick={() => { setActiveTab('logs'); setMobileSidebarOpen(false); playCyberSound('click'); }}
+                  onClick={() => { navigateToTab('logs'); }}
                 >
                   <FileSpreadsheet size={18} />
                   <span>Attendance Logs</span>
@@ -8778,7 +8963,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -8828,10 +9013,17 @@ export default function App() {
                     }
                     return 'Teacher Directory';
                   })()}
-                  {activeTab === 'logs' && 'Attendance Logs'}
+                  {activeTab === 'logs' && (() => {
+                    const activeLog = selectedAuditLog || (routeLogId != null ? filteredLogs.find(l => String(l.id) === String(routeLogId)) : null);
+                    return activeLog?.name || (routeLogId != null ? `Record #${routeLogId}` : 'Attendance Logs');
+                  })()}
                   {activeTab === 'attendance' && 'Take Attendance'}
                   {activeTab === 'reports' && 'Reports & Analytics'}
-                  {activeTab === 'session-history' && 'Session History'}
+                  {activeTab === 'session-history' && (() => {
+                    if (!sessionHistoryRoute) return 'Session History';
+                    const slotPart = sessionHistoryRoute.split('|')[1] || '';
+                    return (getPeriodSlotLabel ? getPeriodSlotLabel(slotPart) : slotPart) || 'Session Register';
+                  })()}
                   {activeTab === 'disputes' && (() => {
                     if (disputeRoute?.mode === 'detail') {
                       return disputeRoute.item?.student_name ||
@@ -8908,7 +9100,7 @@ export default function App() {
                   {activeTab === 'ai-assistant' && 'AI Assistant'}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'broadcast', 'logs', 'session-history'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -9187,7 +9379,15 @@ export default function App() {
               stats={stats}
               scopedDashboardStats={scopedDashboardStats}
               isMobileView={isMobileView}
-              setSelectedAuditLog={setSelectedAuditLog}
+              setSelectedAuditLog={(log) => {
+                if (log) {
+                  navigateToTab('logs');
+                  setSelectedAuditLog(log);
+                } else {
+                  setSelectedAuditLog(null);
+                  setRouteLogId(null);
+                }
+              }}
               setShowFeedbackModal={setShowFeedbackModal}
               liveActivities={liveActivities}
               activeTelemetry={activeTelemetry}
@@ -9312,12 +9512,13 @@ export default function App() {
             setLogDateFilter={setLogDateFilter}
             quickFilterStatus={quickFilterStatus}
             setQuickFilterStatus={setQuickFilterStatus}
-            logsViewMode={logsViewMode}
-            setLogsViewMode={setLogsViewMode}
-            selectedLogIds={selectedLogIds}
-            setSelectedLogIds={setSelectedLogIds}
             selectedAuditLog={selectedAuditLog}
-            setSelectedAuditLog={setSelectedAuditLog}
+            setSelectedAuditLog={(log) => {
+              setSelectedAuditLog(log);
+              setRouteLogId(log ? log.id : null);
+            }}
+            routeLogId={routeLogId}
+            onCloseSubView={handleNavigateBack}
             filteredLogs={filteredLogs}
             departments={departments}
             subjects={subjects}
@@ -9379,6 +9580,9 @@ export default function App() {
             toggleStudentSessionAttendance={toggleStudentSessionAttendance}
             shiftDate={shiftDate}
             getPeriodSlotLabel={getPeriodSlotLabel}
+            routeSessionKey={sessionHistoryRoute}
+            setRouteSessionKey={setSessionHistoryRoute}
+            onCloseSubView={handleNavigateBack}
             isMobileView={isMobileView}
           />
         )}
@@ -9416,6 +9620,7 @@ export default function App() {
             onDisputesChange={(nextList) => {
               setDisputesQueue(nextList);
               setDisputesLoaded(true);
+              writeScopedList('disputes', nextList, token);
             }}
             routeView={disputeRoute}
             setRouteView={setDisputeRoute}
@@ -9488,6 +9693,7 @@ export default function App() {
             onBroadcastsChange={(nextList) => {
               setBroadcastsList(nextList);
               setBroadcastsLoaded(true);
+              writeScopedList('broadcasts', nextList, token);
             }}
             routeView={broadcastRoute}
             setRouteView={setBroadcastRoute}

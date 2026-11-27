@@ -521,7 +521,10 @@ def get_broadcast_history(
 
     records = query.order_by(models.NotificationModel.created_at.desc()).limit(limit * 3).all()
 
-    entries = {x.notification_id: x for x in db.query(BroadcastEntry).filter(BroadcastEntry.notification_id.in_([r.id for r in records])).all()}
+    entries = {
+        x.notification_id: x
+        for x in db.query(BroadcastEntry).filter(BroadcastEntry.notification_id.in_([r.id for r in records])).all()
+    } if records else {}
     # Group records by (title, message, created_at date minute)
     grouped = {}
     for r in records:

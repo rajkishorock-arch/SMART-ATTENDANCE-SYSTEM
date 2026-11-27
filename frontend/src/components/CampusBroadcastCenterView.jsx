@@ -124,7 +124,7 @@ export default function CampusBroadcastCenterView({
     if (!silent) setRefreshing(true);
     setError('');
     try {
-      const res = await notificationApi.fetchBroadcastHistory(token, 100);
+      const res = await notificationApi.fetchBroadcastHistory(token, 50);
       const list = Array.isArray(res) ? res : [];
       setLocalBroadcasts(list);
       setLocalHasLoaded(true);
