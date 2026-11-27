@@ -497,10 +497,6 @@ export default function AttendanceRegistersView({
                 </div>
                 <div className="golden-os-list-shell">
                   {group.items.map(({ log, idx }) => {
-                    const statusText = String(log.attendance || 'Present');
-                    const isPresent = statusText.toLowerCase() === 'present';
-                    const isLate = statusText.toLowerCase() === 'late';
-                    const statusColor = isPresent ? '#047857' : isLate ? '#b45309' : '#dc2626';
                     const periodInfo = log.period || log.time || '';
                     const subMetaParts = [
                       log.roll ? `Roll ${log.roll}` : '',
@@ -525,10 +521,7 @@ export default function AttendanceRegistersView({
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                             }}>
-                              {log.name || 'Student'}{' '}
-                              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: statusColor }}>
-                                · {statusText}
-                              </span>
+                              {log.name || 'Student'}
                             </span>
                             {subMetaParts.length > 0 && (
                               <span style={{

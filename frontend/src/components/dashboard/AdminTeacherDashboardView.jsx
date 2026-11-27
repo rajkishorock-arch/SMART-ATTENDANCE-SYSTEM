@@ -308,35 +308,27 @@ export default function AdminTeacherDashboardView({
 
                         {dashboardRecentLogs && dashboardRecentLogs.length > 0 ? (
                           <div className="golden-os-list-shell">
-                            {dashboardRecentLogs.slice(0, 4).map((log, idx) => {
-                              const st = String(log.attendance || 'Present');
-                              const isPresent = ['present', 'late', 'excused'].includes(st.toLowerCase());
-                              return (
-                                <button
-                                  key={log.id || idx}
-                                  type="button"
-                                  onClick={() => {
-                                    if (playCyberSound) playCyberSound('click');
-                                    setSelectedAuditLog(log);
-                                  }}
-                                  className="golden-os-list-row"
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0, flex: 1 }}>
-                                    <div
-                                      className="golden-os-avatar"
-                                      style={!isPresent ? { background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' } : undefined}
-                                    >
-                                      {getInitials(log.name, 'ST')}
-                                    </div>
-                                    <div style={{ minWidth: 0, flex: 1, fontSize: '0.88rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {log.name} {log.roll ? `(${log.roll})` : ''} ·{' '}
-                                      <span style={{ color: isPresent ? '#047857' : '#b91c1c' }}>{st}</span>
-                                    </div>
+                            {dashboardRecentLogs.slice(0, 4).map((log, idx) => (
+                              <button
+                                key={log.id || idx}
+                                type="button"
+                                onClick={() => {
+                                  if (playCyberSound) playCyberSound('click');
+                                  setSelectedAuditLog(log);
+                                }}
+                                className="golden-os-list-row"
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0, flex: 1 }}>
+                                  <div className="golden-os-avatar">
+                                    {getInitials(log.name, 'ST')}
                                   </div>
-                                  <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
-                                </button>
-                              );
-                            })}
+                                  <div style={{ minWidth: 0, flex: 1, fontSize: '0.88rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {log.name} {log.roll ? `(${log.roll})` : ''}
+                                  </div>
+                                </div>
+                                <ChevronRight size={17} style={{ color: '#8f7b58', flexShrink: 0 }} />
+                              </button>
+                            ))}
                           </div>
                         ) : (
                           <div className="golden-os-inset-card" style={{ textAlign: 'center', padding: '16px 12px', fontSize: '0.8rem', color: '#6b5b3e' }}>
