@@ -12,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import useUI from '../../hooks/useUI';
@@ -73,11 +72,6 @@ export default function LiveScannerSessionHubView({
     return `${y}-${m}-${d}`;
   })();
   const isFutureDateSelected = Boolean(sessionDate && sessionDate > todayYmd);
-  const subjectDisplayName = selectedSubjectObj
-    ? `${selectedSubjectObj.name} (${selectedSubjectObj.code})`
-    : (userRole !== 'admin' && currentUser?.details?.subject_name
-      ? `${currentUser.details.subject_name} (${currentUser.details.subject_code || ''})`
-      : '');
 
   const handleDateChange = (nextDate) => {
     if (nextDate && nextDate > todayYmd) {
@@ -111,8 +105,10 @@ export default function LiveScannerSessionHubView({
     {
       id: 'manual',
       title: 'Manual Register',
-      hint: 'Tick Present, Late or Absent one by one',
       icon: ClipboardCheck,
+      iconBg: '#ecfdf5',
+      iconColor: '#059669',
+      iconBorder: '#a7f3d0',
       onClick: () =>
         requireSubjectSelected(
           'Please select an active subject first to use Manual Register.',
@@ -130,8 +126,10 @@ export default function LiveScannerSessionHubView({
     {
       id: 'virtual-id',
       title: 'Scan Virtual ID Card',
-      hint: 'Scan student digital QR / ID pass',
       icon: QrCode,
+      iconBg: '#faf5ea',
+      iconColor: '#785927',
+      iconBorder: '#eadbc0',
       onClick: () =>
         requireSubjectSelected(
           'Please select an active subject first to scan Virtual ID Card.',
@@ -144,8 +142,10 @@ export default function LiveScannerSessionHubView({
     {
       id: 'kiosk',
       title: 'Launch Kiosk Mode',
-      hint: 'Hands-free classroom self check-in',
       icon: Monitor,
+      iconBg: '#f5f3ff',
+      iconColor: '#7c3aed',
+      iconBorder: '#ddd6fe',
       onClick: () =>
         requireSubjectSelected(
           'Please select an active subject first to launch Classroom Kiosk Mode.',
@@ -162,231 +162,169 @@ export default function LiveScannerSessionHubView({
   return (
     <>
       {!sessionActive ? (
-        <div className="scanner-session-setup" style={{ maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+        <div className="golden-os-page-bottom-safe">
           <div className="golden-os-window">
-            <div className="golden-os-body">
-              {/* Clear Purpose Header */}
-              <div className="golden-os-hero">
-                <div className="golden-os-app-icon">
-                  <Camera size={25} strokeWidth={2.2} />
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <h3 style={{ fontSize: '1.28rem', fontWeight: 800, color: '#2b2112', margin: 0, lineHeight: 1.2 }}>
-                    Take Class Attendance
-                  </h3>
-                  <p style={{ color: '#6b5b3e', fontSize: '0.84rem', margin: '4px 0 0', lineHeight: 1.4 }}>
-                    Select your class, date and period below, then choose Face Scan or Manual Register to mark attendance.
-                  </p>
-                </div>
-              </div>
-
-              {/* Live Session Summary Chips */}
-              <div className="golden-os-pill-row" aria-label="Selected attendance summary">
-                <span className={`golden-os-chip ${!subjectDisplayName ? 'is-empty' : ''}`}>
-                  <BookOpen size={13} />
-                  <span>{subjectDisplayName || 'Subject: Not selected'}</span>
-                </span>
-                <span className="golden-os-chip">
-                  <Calendar size={13} />
-                  <span>{formattedSessionDate}</span>
-                </span>
-                <span className="golden-os-chip">
-                  <Clock size={13} />
-                  <span>{sessionPeriod}</span>
-                </span>
-              </div>
-
-              {/* Step 1: Class & Period Setup */}
-              <div>
-                <div className="golden-os-section-label">
-                  <span>Step 1 · Class &amp; Period Setup</span>
+            <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Clean Class & Period Setup */}
+              <div className="golden-os-form-section">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <label className="golden-os-field-label" style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <BookOpen size={14} style={{ color: '#8b6525' }} />
+                    <span>{userRole === 'admin' ? 'Subject' : 'Assigned Subject'}</span>
+                  </label>
                   {selectedSubjectObj?.department && (
-                    <span style={{ color: '#6b4c18', fontWeight: 700, textTransform: 'none', letterSpacing: 0 }}>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      color: '#6b4c18',
+                      background: '#faf4e6',
+                      border: '1px solid #e5d5b0',
+                      padding: '2px 8px',
+                      borderRadius: '999px'
+                    }}>
                       {selectedSubjectObj.department}
                     </span>
                   )}
                 </div>
 
-                <div className="golden-os-inset-card">
-                  {/* Subject Selection */}
-                  <div className="form-group" style={{ textAlign: 'left', marginBottom: 0 }}>
-                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#47371a', fontWeight: 700, fontSize: '0.82rem' }}>
-                      <BookOpen size={14} style={{ color: '#8b6525' }} /> {userRole === 'admin' ? 'Select Active Subject' : 'Select Assigned Subject'}
-                    </label>
-                    {selectableSubjects.length > 0 ? (
-                      <select
-                        className="form-input"
-                        value={effectiveSelectedSubjectId}
-                        onChange={e => { setSelectedSubjectId(e.target.value); setValidationError(''); }}
-                        required
-                        style={{
-                          background: '#fffdf8',
-                          border: effectiveSelectedSubjectId ? '1px solid #c9ab6f' : '1px solid #d9b56c',
-                          borderRadius: '11px',
-                          fontWeight: 600,
-                          color: '#2b2112',
-                        }}
-                      >
-                        {userRole === 'admin' && <option value="">-- Select Subject --</option>}
-                        {selectableSubjects.map(s => (
-                          <option key={s.id} value={s.id.toString()}>
-                            {s.name} ({s.code}) - {s.department}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div style={{ fontSize: '0.84rem', color: '#6b5b3e', padding: '10px 12px', background: '#faf6ec', border: '1px solid #e4d9be', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                        <span>
-                          {subjectLoadState === 'loading' ? 'Loading subjects…' :
-                            subjectLoadState === 'error' ? 'Could not load subjects.' :
-                            userRole === 'admin' ? 'No subjects have been added.' : 'No subjects assigned to this account.'}
-                        </span>
-                        {subjectLoadState !== 'loading' && (
-                          <button type="button" onClick={reloadSubjects} style={{ background: '#fff', border: '1px solid #ceb47c', color: '#6b4c18', borderRadius: '8px', padding: '4px 10px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
-                            Refresh subjects
-                          </button>
-                        )}
-                      </div>
+                {selectableSubjects.length > 0 ? (
+                  <select
+                    aria-label="Select Subject"
+                    className="golden-os-input"
+                    value={effectiveSelectedSubjectId}
+                    onChange={e => { setSelectedSubjectId(e.target.value); setValidationError(''); }}
+                    required
+                    style={{
+                      borderColor: effectiveSelectedSubjectId ? '#86c9a2' : '#c9973b',
+                      boxShadow: effectiveSelectedSubjectId
+                        ? '0 0 0 2px rgba(16, 185, 129, 0.08)'
+                        : '0 0 0 2px rgba(201, 151, 59, 0.14)',
+                      fontWeight: 600
+                    }}
+                  >
+                    {userRole === 'admin' && <option value="">Select Subject</option>}
+                    {selectableSubjects.map(s => (
+                      <option key={s.id} value={s.id.toString()}>
+                        {s.name} ({s.code})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div style={{ fontSize: '0.84rem', color: '#6b5b3e', padding: '10px 12px', background: '#faf6ec', border: '1px solid #e4d9be', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>
+                      {subjectLoadState === 'loading' ? 'Loading subjects…' :
+                        subjectLoadState === 'error' ? 'Could not load subjects.' :
+                        userRole === 'admin' ? 'No subjects configured yet.' : 'No subjects assigned to this account.'}
+                    </span>
+                    {subjectLoadState !== 'loading' && (
+                      <button type="button" onClick={reloadSubjects} className="golden-os-feedback-filter-btn">
+                        Refresh
+                      </button>
                     )}
                   </div>
+                )}
 
-                  {/* Date & Period Row */}
-                  <div className="golden-os-grid-2">
-                    <div className="form-group" style={{ textAlign: 'left', marginBottom: 0 }}>
-                      <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#47371a', fontWeight: 700, fontSize: '0.82rem' }}>
-                        <Calendar size={14} style={{ color: '#8b6525' }} /> Class Date
-                      </label>
-                      <div className="date-picker-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
-                        <button
-                          type="button"
-                          onClick={() => { playCyberSound('click'); shiftDate(sessionDate, -1, setSessionDate); }}
-                          style={{
-                            background: '#faf5e8',
-                            border: '1px solid #dfd1b1',
-                            borderRadius: '10px',
-                            color: '#5a431b',
-                            width: '38px',
-                            minWidth: '38px',
-                            height: '42px',
-                            flexShrink: 0,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          title="Previous Day"
-                          aria-label="Previous Day"
-                        >
-                          <ChevronLeft size={16} />
-                        </button>
-                        <input
-                          type="date"
-                          max={todayYmd}
-                          className="form-input date-input-field flex-input"
-                          value={sessionDate}
-                          onChange={e => handleDateChange(e.target.value)}
-                          required
-                          style={{ background: '#fffdf8', border: '1px solid #dfd1b1', borderRadius: '10px', height: '42px', margin: 0, flex: 1, minWidth: 0, boxSizing: 'border-box', fontWeight: 600 }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!sessionDate || sessionDate >= todayYmd) {
-                              setValidationError('Future dates cannot be selected — this date has not arrived yet.');
-                              if (playCyberSound) playCyberSound('error');
-                              return;
-                            }
-                            setValidationError('');
-                            playCyberSound('click');
-                            shiftDate(sessionDate, 1, setSessionDate, todayYmd);
-                          }}
-                          style={{
-                            background: '#faf5e8',
-                            border: '1px solid #dfd1b1',
-                            borderRadius: '10px',
-                            color: '#5a431b',
-                            opacity: sessionDate >= todayYmd ? 0.55 : 1,
-                            width: '38px',
-                            minWidth: '38px',
-                            height: '42px',
-                            flexShrink: 0,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          title="Next Day"
-                          aria-label="Next Day"
-                        >
-                          <ChevronRight size={16} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="form-group" style={{ textAlign: 'left', marginBottom: 0 }}>
-                      <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#47371a', fontWeight: 700, fontSize: '0.82rem' }}>
-                        <Clock size={14} style={{ color: '#8b6525' }} /> Period / Time Slot
-                      </label>
-                      <select
-                        className="form-input"
-                        value={sessionPeriod}
-                        onChange={e => setSessionPeriod(e.target.value)}
-                        required
-                        style={{ background: '#fffdf8', border: '1px solid #dfd1b1', borderRadius: '10px', height: '42px', fontWeight: 600 }}
+                <div className="golden-os-grid-2">
+                  <div>
+                    <label className="golden-os-field-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Calendar size={13} style={{ color: '#8b6525' }} />
+                      <span>Date</span>
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                      <button
+                        type="button"
+                        onClick={() => { playCyberSound('click'); shiftDate(sessionDate, -1, setSessionDate); }}
+                        style={{
+                          background: '#faf5e8',
+                          border: '1px solid #dfd1b1',
+                          borderRadius: '10px',
+                          color: '#5a431b',
+                          width: '38px',
+                          minWidth: '38px',
+                          height: '42px',
+                          flexShrink: 0,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        title="Previous Day"
+                        aria-label="Previous Day"
                       >
-                        <option value="Period 1">Period 1 (09:00 - 10:00 AM)</option>
-                        <option value="Period 2">Period 2 (10:00 - 11:00 AM)</option>
-                        <option value="Period 3">Period 3 (11:00 - 12:00 PM)</option>
-                        <option value="Period 4">Period 4 (12:00 - 01:00 PM)</option>
-                        <option value="Period 5">Period 5 (01:00 - 02:00 PM)</option>
-                        <option value="Period 6">Period 6 (02:00 - 03:00 PM)</option>
-                        <option value="Period 7">Period 7 (03:00 - 04:00 PM)</option>
-                        <option value="Period 8">Period 8 (04:00 - 05:00 PM)</option>
-                      </select>
+                        <ChevronLeft size={16} />
+                      </button>
+                      <input
+                        type="date"
+                        max={todayYmd}
+                        className="golden-os-input"
+                        value={sessionDate}
+                        onChange={e => handleDateChange(e.target.value)}
+                        required
+                        style={{ height: '42px', flex: 1, minWidth: 0, fontWeight: 600 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!sessionDate || sessionDate >= todayYmd) {
+                            setValidationError('Future dates cannot be selected — this date has not arrived yet.');
+                            if (playCyberSound) playCyberSound('error');
+                            return;
+                          }
+                          setValidationError('');
+                          playCyberSound('click');
+                          shiftDate(sessionDate, 1, setSessionDate, todayYmd);
+                        }}
+                        style={{
+                          background: '#faf5e8',
+                          border: '1px solid #dfd1b1',
+                          borderRadius: '10px',
+                          color: '#5a431b',
+                          opacity: sessionDate >= todayYmd ? 0.55 : 1,
+                          width: '38px',
+                          minWidth: '38px',
+                          height: '42px',
+                          flexShrink: 0,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        title="Next Day"
+                        aria-label="Next Day"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Selected Subject Detail Strip */}
-                  {(selectedSubjectObj || (userRole !== 'admin' && currentUser?.details?.subject_name)) && (
-                    <div style={{
-                      background: 'linear-gradient(135deg, #fbf6ea, #f5ecd6)',
-                      border: '1px solid #e2d1aa',
-                      borderRadius: '12px',
-                      padding: '10px 14px',
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '0.8rem',
-                    }}>
-                      <span style={{ color: '#4d3a19', fontWeight: 700 }}>
-                        {selectedSubjectObj?.name || currentUser?.details?.subject_name} ({selectedSubjectObj?.code || currentUser?.details?.subject_code || 'N/A'})
-                      </span>
-                      <span style={{ color: '#785927', fontWeight: 700 }}>
-                        {selectedSubjectObj?.department || currentUser?.details?.subject_department || 'N/A'}
-                      </span>
-                    </div>
-                  )}
+                  <div>
+                    <label className="golden-os-field-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Clock size={13} style={{ color: '#8b6525' }} />
+                      <span>Period</span>
+                    </label>
+                    <select
+                      className="golden-os-input"
+                      value={sessionPeriod}
+                      onChange={e => setSessionPeriod(e.target.value)}
+                      required
+                      style={{ height: '42px', fontWeight: 600 }}
+                    >
+                      <option value="Period 1">Period 1 (09:00 - 10:00 AM)</option>
+                      <option value="Period 2">Period 2 (10:00 - 11:00 AM)</option>
+                      <option value="Period 3">Period 3 (11:00 - 12:00 PM)</option>
+                      <option value="Period 4">Period 4 (12:00 - 01:00 PM)</option>
+                      <option value="Period 5">Period 5 (01:00 - 02:00 PM)</option>
+                      <option value="Period 6">Period 6 (02:00 - 03:00 PM)</option>
+                      <option value="Period 7">Period 7 (03:00 - 04:00 PM)</option>
+                      <option value="Period 8">Period 8 (04:00 - 05:00 PM)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {/* Validation Warning Alert */}
               {validationError && (
-                <div style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  color: '#b91c1c',
-                  fontSize: '0.83rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
-                  animation: 'fadeInUp 0.2s ease'
-                }}>
+                <div className="feedback-banner error" role="alert" style={{ justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <AlertCircle size={16} />
                     <span>{validationError}</span>
@@ -401,77 +339,63 @@ export default function LiveScannerSessionHubView({
                 </div>
               )}
 
-              {/* Step 2: Attendance Marking Actions */}
-              <div>
-                <div className="golden-os-section-label">
-                  <span>Step 2 · Choose How to Mark Attendance</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#80602c', textTransform: 'none', letterSpacing: 0 }}>
-                    <Sparkles size={12} /> AI Ready
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {/* Hero Primary Action: Start Face Scanner */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (sessionDate && sessionPeriod) {
-                        requireSubjectSelected(
-                          'Please select an active subject from the dropdown above before starting.',
-                          () => {
-                            setSessionActive(true);
-                            setShowScannerModal(true);
-                          }
-                        );
+              {/* Highlighted Primary Scanner CTA */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (sessionDate && sessionPeriod) {
+                    requireSubjectSelected(
+                      'Please select a subject above before starting.',
+                      () => {
+                        setSessionActive(true);
+                        setShowScannerModal(true);
                       }
-                    }}
-                    className="golden-os-primary-action"
-                  >
-                    <span className="golden-os-primary-left">
-                      <span className="golden-os-primary-icon">
-                        <Camera size={20} />
-                      </span>
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: '1rem', fontWeight: 800, lineHeight: 1.2 }}>
-                          Start Face Scanner
-                        </span>
-                        <span style={{ display: 'block', fontSize: '0.76rem', color: '#fff2d1', opacity: 0.92, marginTop: '2px' }}>
-                          Live camera recognition · Fastest for full class
-                        </span>
-                      </span>
-                    </span>
-                    <span className="golden-os-primary-badge">
-                      Recommended <ArrowRight size={13} />
-                    </span>
-                  </button>
+                    );
+                  }
+                }}
+                className="golden-os-primary-action"
+              >
+                <span className="golden-os-primary-left">
+                  <span className="golden-os-primary-icon">
+                    <Camera size={20} />
+                  </span>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>
+                    Start Face Scanner
+                  </span>
+                </span>
+                <ArrowRight size={17} color="#ffffff" />
+              </button>
 
-                  {/* Unified Golden OS Alternative Modes */}
-                  <div className="golden-os-mode-grid">
-                    {secondaryAttendanceModes.map((mode) => {
-                      const ModeIcon = mode.icon;
-                      return (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          onClick={mode.onClick}
-                          className="golden-os-mode-card active-haptic"
-                        >
-                          <span className="golden-os-mode-icon">
-                            <ModeIcon size={17} />
-                          </span>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#2b2112', lineHeight: 1.25 }}>
-                              {mode.title}
-                            </div>
-                            <div style={{ fontSize: '0.73rem', color: '#6b5b3e', marginTop: '2px', lineHeight: 1.35 }}>
-                              {mode.hint}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+              {/* Clean Secondary Methods List */}
+              <div className="golden-os-list-shell">
+                {secondaryAttendanceModes.map((mode) => {
+                  const ModeIcon = mode.icon;
+                  return (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={mode.onClick}
+                      className="golden-os-list-row"
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                        <div className="golden-os-avatar" style={{
+                          background: mode.iconBg,
+                          color: mode.iconColor,
+                          borderColor: mode.iconBorder,
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px'
+                        }}>
+                          <ModeIcon size={17} />
+                        </div>
+                        <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f' }}>
+                          {mode.title}
+                        </span>
+                      </div>
+                      <ChevronRight size={16} color="#9c9384" />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -8308,7 +8308,9 @@ button:active:not(:disabled),
   opacity: 1 !important;
 }
 .golden-os-window {
-  background: linear-gradient(160deg, rgba(255, 253, 248, 0.98) 0%, rgba(248, 242, 228, 0.95) 100%);
+  background: linear-gradient(160deg, rgba(255, 253, 248, 0.92) 0%, rgba(248, 242, 228, 0.88) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border: 1px solid #dfd0ae;
   border-radius: 22px;
   box-shadow:

@@ -292,6 +292,7 @@ import TeachersDirectoryView from './components/dashboard/TeachersDirectoryView'
 import AttendanceRegistersView, { AttendanceRegistersHeaderAction } from './components/dashboard/AttendanceRegistersView';
 import AttendanceReportsView, { AttendanceReportsHeaderAction } from './components/dashboard/AttendanceReportsView';
 import LiveScannerSessionHubView from './components/dashboard/LiveScannerSessionHubView';
+import ManualAttendanceRegisterView from './components/dashboard/ManualAttendanceRegisterView';
 import SessionHistoryView from './components/dashboard/SessionHistoryView';
 import StudentAttendanceDashboardView from './components/dashboard/StudentAttendanceDashboardView';
 import StudentProfileView from './components/dashboard/StudentProfileView';
@@ -1330,6 +1331,10 @@ export default function App() {
     }
     if (activeTabRef.current === 'payroll' && payrollRouteRef.current !== null) {
       setPayrollRoute(null);
+      return;
+    }
+    if (activeTabRef.current === 'manual-register') {
+      setActiveTab(manualReturnTab.current || 'attendance');
       return;
     }
     if (activeTabRef.current === 'broadcast' && broadcastRouteRef.current !== null) {
@@ -9850,7 +9855,7 @@ export default function App() {
         <header className={`flex-between header-container ${activeTab === 'ai-assistant' ? 'hide-on-mobile' : ''}`} style={{ marginBottom: activeTab === 'ai-assistant' ? '8px' : '16px' }}>
           <div className="header-title-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'student-profile' && profileSection !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports', 'about', 'notifications'].includes(activeTab)) && (
+              {((tabHistoryRef.current.length > 0 && activeTab !== 'dashboard' && activeTab !== 'student-attendance') || ((activeTab === 'student-attendance' || (activeTab === 'dashboard' && userRole === 'student')) && studentRoute !== null) || (activeTab === 'student-profile' && profileSection !== null) || (activeTab === 'settings' && activeSubSetting !== null) || (activeTab === 'dashboard' && activeDashboardSubTab !== null) || (activeTab === 'students' && (showAddModal || showEditStudentModal)) || (activeTab === 'teachers' && (teacherFormView !== 'list' || subjectFormView !== 'list' || showScheduleForm)) || (activeTab === 'logs' && (selectedAuditLog !== null || routeLogId !== null)) || ['face-review', 'disputes', 'devices', 'calendar', 'interventions', 'lms', 'payroll', 'session-history', 'broadcast', 'logs', 'reports', 'about', 'notifications', 'manual-register'].includes(activeTab)) && (
                 <button
                   type="button"
                   onClick={handleNavigateBack}
@@ -9909,6 +9914,7 @@ export default function App() {
                     return activeLog?.name || (routeLogId != null ? `Record #${routeLogId}` : 'Attendance Logs');
                   })()}
                   {activeTab === 'attendance' && 'Take Attendance'}
+                  {activeTab === 'manual-register' && 'Manual Register'}
                   {activeTab === 'reports' && (() => {
                     if (reportRoute?.mode === 'controls') return 'Report Controls & Exports';
                     if (reportRoute?.mode === 'detail') {
@@ -10043,7 +10049,7 @@ export default function App() {
                   {activeTab === 'notifications' && (notificationRoute === 'preferences' ? 'Notification Preferences' : 'Notifications')}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications', 'devices', 'interventions', 'lms', 'payroll'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications', 'devices', 'interventions', 'lms', 'payroll', 'attendance', 'manual-register'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -10516,6 +10522,38 @@ export default function App() {
             setManualSearchQuery={setManualSearchQuery}
             stopAttendanceCam={stopAttendanceCam}
             shiftDate={shiftDate}
+          />
+        )}
+
+        {isManualAttendanceOpen && (
+          <ManualAttendanceRegisterView
+            subjects={subjects}
+            students={students}
+            manualSubjectId={manualSubjectId}
+            setManualSubjectId={setManualSubjectId}
+            setSelectedSubjectId={setSelectedSubjectId}
+            manualDate={manualDate}
+            setManualDate={setManualDate}
+            setSessionDate={setSessionDate}
+            manualPeriod={manualPeriod}
+            setManualPeriod={setManualPeriod}
+            setSessionPeriod={setSessionPeriod}
+            manualAttendanceData={manualAttendanceData}
+            setManualAttendanceData={setManualAttendanceData}
+            manualSearchQuery={manualSearchQuery}
+            setManualSearchQuery={setManualSearchQuery}
+            manualFeedback={manualFeedback}
+            setManualFeedback={setManualFeedback}
+            isSubmittingManual={isSubmittingManual}
+            onSubmitRegister={handleSubmitManualAttendance}
+            onCancel={() => setIsManualAttendanceOpen(false)}
+            onOpenQrScanner={() => {
+              setIsManualAttendanceOpen(false);
+              setShowQrScannerModal(true);
+            }}
+            departmentsMatch={departmentsMatch}
+            getLocalDateString={getLocalDateString}
+            playCyberSound={playCyberSound}
           />
         )}
 
@@ -11738,308 +11776,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ===== MANUAL ATTENDANCE MODAL ===== */}
-      {isManualAttendanceOpen && (
-        <div className="register-page">
-          <div className="register-sheet">
-            {manualFeedback && <p role="status" className="register-feedback">{manualFeedback}</p>}
-            {/* Modal Header */}
-            <div style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid #e4dfd5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#faf9f6',
-              flexShrink: 0
-            }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#25231f', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  ✋ Manual Attendance Register
-                </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#696358', lineHeight: 1.4 }}>
-                  Subject: <strong style={{ color: 'var(--color-primary)' }}>{subjects.find(s => s.id === parseInt(manualSubjectId))?.name || (subjects && subjects[0]?.name) || 'General Attendance'}</strong> • Slot: <strong>{manualPeriod}</strong> • Date: <strong>{manualDate}</strong>
-                </p>
-              </div>
-              <button
-                onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
-                style={{ background: 'transparent', border: 'none', color: '#696358', fontSize: '1.5rem', cursor: 'pointer', flexShrink: 0 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#25231f'}
-                onMouseLeave={e => e.currentTarget.style.color = '#696358'}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Quick Session Selectors: Subject, Slot, Date */}
-            <div style={{
-              padding: '10px 16px',
-              background: '#f4f1eb',
-              borderBottom: '1px solid #e4dfd5',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-              gap: '8px',
-              alignItems: 'center'
-            }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#696358', textTransform: 'uppercase', marginBottom: '2px' }}>
-                  Subject / Class
-                </label>
-                <select
-                  value={manualSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '')}
-                  onChange={e => {
-                    setManualSubjectId(e.target.value);
-                    setSelectedSubjectId(e.target.value);
-                    setManualFeedback('');
-                  }}
-                  className="form-input"
-                  style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px' }}
-                >
-                  {subjects && subjects.length > 0 ? (
-                    subjects.map(s => (
-                      <option key={s.id} value={String(s.id)}>{s.name} ({s.code || s.id})</option>
-                    ))
-                  ) : (
-                    <option value="">No subjects configured</option>
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#696358', textTransform: 'uppercase', marginBottom: '2px' }}>
-                  Timetable Slot
-                </label>
-                <select
-                  value={manualPeriod}
-                  onChange={e => {
-                    setManualPeriod(e.target.value);
-                    setSessionPeriod(e.target.value);
-                    setManualFeedback('');
-                  }}
-                  className="form-input"
-                  style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px' }}
-                >
-                  <option value="Period 1">Period 1 (09:00 - 10:00)</option>
-                  <option value="Period 2">Period 2 (10:00 - 11:00)</option>
-                  <option value="Period 3">Period 3 (11:15 - 12:15)</option>
-                  <option value="Period 4">Period 4 (12:15 - 01:15)</option>
-                  <option value="Period 5">Period 5 (02:00 - 03:00)</option>
-                  <option value="Period 6">Period 6 (03:00 - 04:00)</option>
-                  <option value="Period 7">Period 7 (04:00 - 05:00)</option>
-                  <option value="Period 8">Period 8 (05:00 - 06:00)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#696358', textTransform: 'uppercase', marginBottom: '2px' }}>
-                  Session Date
-                </label>
-                <input
-                  type="date"
-                  max={getLocalDateString()}
-                  value={manualDate}
-                  onChange={e => {
-                    const nextDate = e.target.value;
-                    const todayStr = getLocalDateString();
-                    if (nextDate && nextDate > todayStr) {
-                      setManualDate(todayStr);
-                      setSessionDate(todayStr);
-                      setManualFeedback('Future date cannot be selected — this date has not arrived yet.');
-                      playCyberSound('error');
-                      return;
-                    }
-                    setManualDate(nextDate);
-                    setSessionDate(nextDate);
-                    setManualFeedback('');
-                  }}
-                  className="form-input"
-                  style={{ width: '100%', height: '36px', background: '#ffffff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, padding: '0 8px', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-
-            {/* Search input & Scan Virtual ID Button */}
-            <div style={{ padding: '16px 28px 8px', flexShrink: 0, display: 'flex', gap: '10px', flexWrap: 'wrap', background: '#ffffff' }}>
-              <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="🔍 Search student name or roll number..."
-                  value={manualSearchQuery}
-                  onChange={e => setManualSearchQuery(e.target.value)}
-                  style={{ background: '#ffffff', border: '1.5px solid #e4dfd5', color: '#25231f', paddingLeft: '16px', width: '100%', borderRadius: '10px' }}
-                />
-              </div>
-              <button
-                onClick={() => {
-                  setIsManualAttendanceOpen(false);
-                  setShowQrScannerModal(true);
-                  playCyberSound('click');
-                }}
-                type="button"
-                className="btn-secondary active-haptic"
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  border: '1px solid #dfcfaf',
-                  color: '#785927',
-                  background: '#faf5ea',
-                  cursor: 'pointer'
-                }}
-              >
-                🪪 Scan Virtual ID
-              </button>
-            </div>
-
-            {/* Students Register List */}
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 28px 16px', minHeight: 0, background: '#ffffff' }}>
-              {(() => {
-                const activeManualSubId = manualSubjectId || (subjects && subjects.length > 0 ? String(subjects[0].id) : '');
-                const selectedSubject = subjects.find(sub => sub.id === parseInt(activeManualSubId, 10));
-                const subjectDept = selectedSubject ? selectedSubject.department : '';
-                const classStudents = students.filter(s => {
-                  const matchesDept = !subjectDept || departmentsMatch(s.dep || s.department, subjectDept);
-                  const matchesSearch = !manualSearchQuery ||
-                    s.name.toLowerCase().includes(manualSearchQuery.toLowerCase()) ||
-                    s.roll.toLowerCase().includes(manualSearchQuery.toLowerCase());
-                  return matchesDept && matchesSearch;
-                });
-
-                if (classStudents.length === 0) {
-                  return (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: '#696358' }}>
-                      No students found {subjectDept ? `in department: ${subjectDept}` : ''}.
-                    </div>
-                  );
-                }
-
-                return classStudents.map((student, idx) => {
-                  const stateData = manualAttendanceData[student.id] || { status: 'Present', remarks: '' };
-                  const statusColor = stateData.status === 'Present' ? '#10b981' : stateData.status === 'Late' ? '#f59e0b' : '#ef4444';
-                  return (
-                    <div key={student.id} style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px',
-                      background: '#ffffff',
-                      border: '1px solid #e4dfd5',
-                      borderLeft: `4px solid ${statusColor}`,
-                      borderRadius: '10px',
-                      padding: '10px 14px',
-                      animation: `fadeInUp 0.25s ease both ${idx * 20}ms`
-                    }}>
-                      {/* Name & Roll */}
-                      <div style={{ flex: '1', minWidth: '160px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#25231f' }}>{student.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#696358', fontFamily: 'monospace' }}>Roll: {student.roll} • {student.dep}</div>
-                      </div>
-
-                      {/* Status Toggle buttons */}
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {['Present', 'Late', 'Absent'].map(status => {
-                          const isSelected = stateData.status === status;
-                          let selectedStyle = {};
-                          if (isSelected) {
-                            if (status === 'Present') selectedStyle = { background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' };
-                            else if (status === 'Late') selectedStyle = { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' };
-                            else selectedStyle = { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' };
-                          }
-                          return (
-                            <button
-                              key={status}
-                              type="button"
-                              onClick={() => {
-                                setManualAttendanceData(prev => ({
-                                  ...prev,
-                                  [student.id]: { ...stateData, status }
-                                }));
-                              }}
-                              style={{
-                                padding: '5px 12px',
-                                borderRadius: '6px',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                transition: 'all 0.15s',
-                                background: '#faf9f6',
-                                color: '#696358',
-                                border: '1px solid #e4dfd5',
-                                ...(isSelected ? selectedStyle : {})
-                              }}
-                            >
-                              {status}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Remarks Input */}
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Note (optional)"
-                        value={stateData.remarks}
-                        onChange={e => {
-                          setManualAttendanceData(prev => ({
-                            ...prev,
-                            [student.id]: { ...stateData, remarks: e.target.value }
-                          }));
-                        }}
-                        style={{
-                          background: '#ffffff',
-                          padding: '6px 10px',
-                          fontSize: '0.75rem',
-                          width: '160px',
-                          minWidth: '120px',
-                          border: '1px solid #cfc8ba',
-                          color: '#25231f',
-                          borderRadius: '6px'
-                        }}
-                      />
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderTop: '1px solid #e4dfd5', background: '#faf9f6', flexShrink: 0 }}>
-              <span style={{ fontSize: '0.75rem', color: '#696358' }}>
-                Default status is <strong style={{ color: '#10b981' }}>Present</strong> — change per student as needed.
-              </span>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => { playCyberSound('click'); setIsManualAttendanceOpen(false); }}
-                  className="btn-secondary active-haptic"
-                  style={{ padding: '10px 20px', borderRadius: '10px', fontSize: '0.85rem' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={isSubmittingManual}
-                  onClick={handleSubmitManualAttendance}
-                  className="bg-gradient-btn active-haptic"
-                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '0.85rem', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', minWidth: '160px' }}
-                >
-                  {isSubmittingManual ? 'Submitting...' : '✅ Submit Register'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-
       {/* Full-screen Notifications & Preferences render inline at #/notifications */}
 
       {/* Accessibility & Display Controls Modal */}
@@ -12071,7 +11807,7 @@ export default function App() {
       />
 
       {/* Quick Actions Dock for Staff & Admin */}
-      {token && userRole !== 'student' && activeTab !== 'control' && activeTab !== 'all-features' && activeTab !== 'ai-assistant' && activeTab !== 'notifications' && activeTab !== 'about' && (
+      {token && userRole !== 'student' && !['control', 'all-features', 'ai-assistant', 'notifications', 'about', 'manual-register'].includes(activeTab) && (
         <QuickActionsDock
           onScan={() => { setActiveTab('attendance'); playCyberSound('click'); }}
           onManual={() => { setIsManualAttendanceOpen(true); playCyberSound('click'); }}
