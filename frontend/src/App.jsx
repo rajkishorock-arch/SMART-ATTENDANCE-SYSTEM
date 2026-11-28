@@ -804,8 +804,8 @@ export default function App() {
   const [settingsDetailRoute, setSettingsDetailRoute] = useState(() => {
     try {
       const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
-      if (parts[0] === 'settings' && ['departments', 'leave_management', 'multitenant', 'admins', 'app_version', 'release_updates'].includes(parts[1]) && parts[2]) {
-        if (parts[2] === 'register' && !['leave_management', 'app_version', 'release_updates'].includes(parts[1])) {
+      if (parts[0] === 'settings' && ['departments', 'leave_management', 'multitenant', 'admins', 'app_version', 'release_updates', 'geofencing', 'advanced'].includes(parts[1]) && parts[2]) {
+        if (parts[2] === 'register' && !['leave_management', 'app_version', 'release_updates', 'geofencing', 'advanced'].includes(parts[1])) {
           return { sub: parts[1], mode: 'register' };
         }
         return { sub: parts[1], mode: 'detail', id: parts[2] };
@@ -6756,8 +6756,8 @@ export default function App() {
           if (targetSub !== activeSubSettingRef.current) {
             setActiveSubSetting(targetSub);
           }
-          if (['departments', 'leave_management', 'multitenant', 'admins', 'app_version', 'release_updates'].includes(targetSub) && subHash2) {
-            if (subHash2 === 'register' && !['leave_management', 'app_version', 'release_updates'].includes(targetSub)) {
+          if (['departments', 'leave_management', 'multitenant', 'admins', 'app_version', 'release_updates', 'geofencing', 'advanced'].includes(targetSub) && subHash2) {
+            if (subHash2 === 'register' && !['leave_management', 'app_version', 'release_updates', 'geofencing', 'advanced'].includes(targetSub)) {
               setSettingsDetailRoute({ sub: targetSub, mode: 'register' });
             } else {
               setSettingsDetailRoute({ sub: targetSub, mode: 'detail', id: subHash2 });
@@ -10070,10 +10070,26 @@ export default function App() {
                         };
                         return relTitles[settingsDetailRoute.id] || 'Release Console';
                       }
+                      if (activeSubSetting === 'geofencing') {
+                        const geoTitles = {
+                          gps: 'GPS Geofence',
+                          ip: 'Wi-Fi / IP Gate',
+                          lockdown: 'Campus Lockdown',
+                        };
+                        return geoTitles[settingsDetailRoute.id] || 'Campus Security';
+                      }
+                      if (activeSubSetting === 'advanced') {
+                        const bioTitles = {
+                          matching: 'Face Match Threshold',
+                          liveness: 'Liveness & Blink',
+                          diagnostics: 'AI & Diagnostics',
+                        };
+                        return bioTitles[settingsDetailRoute.id] || 'Face & Biometrics';
+                      }
                     }
                     const subTitles = {
-                      geofencing: 'Security Perimeter & Geofence',
-                      advanced: 'Face Recognition & Biometrics',
+                      geofencing: 'Campus Security',
+                      advanced: 'Face & Biometrics',
                       profile: 'My Profile & Credentials',
                       admins: 'Staff & Administrator Accounts',
                       departments: 'Departments & Branches',
@@ -10098,7 +10114,7 @@ export default function App() {
                   {activeTab === 'notifications' && (notificationRoute === 'preferences' ? 'Notification Preferences' : 'Notifications')}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications', 'devices', 'interventions', 'lms', 'payroll', 'attendance', 'manual-register'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile', 'app_version', 'release_updates'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications', 'devices', 'interventions', 'lms', 'payroll', 'attendance', 'manual-register'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'geofencing', 'advanced', 'profile', 'app_version', 'release_updates'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -10839,6 +10855,8 @@ export default function App() {
                     setSettingsError={setSettingsError}
                     addDiagnosticLog={addDiagnosticLog}
                     playCyberSound={playCyberSound}
+                    routeView={settingsDetailRoute?.sub === 'geofencing' ? settingsDetailRoute : null}
+                    setRouteView={setSettingsDetailRoute}
                   />
                 )}
 
@@ -11031,6 +11049,8 @@ export default function App() {
                   strict_liveness: !livenessBypass,
                   confidence_filter: biometricConfidenceFilterEnabled
                 })}
+                routeView={settingsDetailRoute?.sub === 'advanced' ? settingsDetailRoute : null}
+                setRouteView={setSettingsDetailRoute}
               />
             )}
 

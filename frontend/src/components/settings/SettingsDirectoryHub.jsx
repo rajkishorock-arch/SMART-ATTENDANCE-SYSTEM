@@ -29,7 +29,7 @@ export default function SettingsDirectoryHub({
     // 1. Security Perimeter
     {
       id: 'geofencing',
-      label: 'Security Perimeter & Geofence',
+      label: 'Campus Security & Geofence',
       icon: ShieldCheck,
       iconColor: '#684c20',
       iconBg: '#faf5ea',
@@ -47,7 +47,7 @@ export default function SettingsDirectoryHub({
     // 2. Biometric Security
     {
       id: 'advanced',
-      label: 'Face Recognition & Biometrics',
+      label: 'Face & Biometrics',
       icon: Sliders,
       iconColor: '#059669',
       iconBg: '#ecfdf5',

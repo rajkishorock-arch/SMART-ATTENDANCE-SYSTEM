@@ -1,4 +1,14 @@
-import { Sliders, Eye, Shield, Cpu, Download, CheckCircle2, AlertCircle, Save } from 'lucide-react';
+import { useState } from 'react';
+import {
+  ScanFace,
+  Eye,
+  Cpu,
+  Download,
+  Save,
+  ChevronRight,
+  CheckCircle2,
+  Sliders
+} from 'lucide-react';
 
 export default function AdvancedBiometricSettings({
   biometricConfidenceFilterEnabled,
@@ -14,288 +24,391 @@ export default function AdvancedBiometricSettings({
   diagnosticLevel,
   setDiagnosticLevel,
   userRole,
-  playCyberSound,
-  savingPolicy = false,
-  policyMessage = '',
+  playCyberSound = () => {},
+  savingPolicy,
+  policyMessage,
   onSavePolicy,
+  routeView = null,
+  setRouteView = null
 }) {
-  const canEdit = userRole === 'admin' || userRole === 'teacher';
-  const isErrorMsg = /fail|error|timeout|sign in|could not/i.test(policyMessage || '');
+  const [localSubMode, setLocalSubMode] = useState(null);
+  const [exportStatus, setExportStatus] = useState('');
+
+  const subMode = setRouteView
+    ? (routeView?.sub === 'advanced' ? routeView.id : null)
+    : localSubMode;
+
+  const openSubPage = (id) => {
+    playCyberSound('click');
+    if (setRouteView) {
+      setRouteView({ sub: 'advanced', mode: 'detail', id });
+      window.location.hash = `#/settings/advanced/${id}`;
+    } else {
+      setLocalSubMode(id);
+    }
+  };
 
   const handleExportDiagnostics = () => {
-    if (playCyberSound) playCyberSound('success');
-    const logsData = {
-      system: 'Smart Attendance System - Core Security Diagnostics',
-      timestamp: new Date().toISOString(),
-      biometricMatchThreshold,
-      biometricFilterEnabled: biometricConfidenceFilterEnabled,
-      antiSpoofingThreshold,
-      livenessBypass,
-      aiCognitiveLevel,
-      diagnosticLevel,
+    playCyberSound('click');
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      userRole,
+      settings: {
+        biometricConfidenceFilterEnabled,
+        biometricMatchThreshold,
+        antiSpoofingThreshold,
+        livenessBypass,
+        aiCognitiveLevel,
+        diagnosticLevel
+      }
     };
-    const blob = new Blob([JSON.stringify(logsData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `system_diagnostics_${Date.now()}.json`;
-    document.body.appendChild(a);
+    a.download = `biometric-diagnostics-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    setExportStatus('Diagnostics JSON downloaded.');
   };
 
-  return (
-    <div className="golden-os-page-bottom-safe" style={{ width: '100%' }}>
-      <div className="golden-os-window" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', boxSizing: 'border-box' }}>
-      {/* Live Policy KPI Summary Strip */}
-      <div className="golden-os-kpi-strip">
-        <div className="golden-os-kpi-tile">
-          <span className="golden-os-kpi-value" style={{ color: '#6e4e1c' }}>
-            {biometricConfidenceFilterEnabled ? `${Math.round(biometricMatchThreshold * 100)}%` : 'Off'}
-          </span>
-          <span className="golden-os-kpi-label">Confidence</span>
+  const renderPolicySaveFooter = () => (
+    <>
+      {policyMessage && (
+        <div className="feedback-banner success" role="status">
+          <CheckCircle2 size={16} />
+          <span>{policyMessage}</span>
         </div>
-        <div className="golden-os-kpi-tile">
-          <span className="golden-os-kpi-value" style={{ color: '#047857' }}>
-            {antiSpoofingThreshold.toFixed(2)}
-          </span>
-          <span className="golden-os-kpi-label">Blink EAR</span>
-        </div>
-        <div className="golden-os-kpi-tile">
-          <span className="golden-os-kpi-value" style={{ color: livenessBypass ? '#b45309' : '#047857', fontSize: '0.96rem' }}>
-            {livenessBypass ? 'Bypassed' : 'Active'}
-          </span>
-          <span className="golden-os-kpi-label">Liveness</span>
-        </div>
-      </div>
-
-      {/* 1. Face Matching & Confidence */}
-      <div className="golden-os-form-section">
-        <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Sliders size={13} />
-          <span>Face Matching &amp; Threshold</span>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', columnGap: '12px' }}>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#2b2112' }}>Match Confidence Filter</div>
-            <div style={{ fontSize: '0.76rem', color: '#6b5b3e', marginTop: '2px' }}>
-              {biometricConfidenceFilterEnabled
-                ? 'Requires minimum cosine similarity score to mark present'
-                : 'Disabled: accepts closest face match for testing'}
-            </div>
-          </div>
-
-          <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px', flexShrink: 0, cursor: canEdit ? 'pointer' : 'not-allowed' }}>
-            <input
-              type="checkbox"
-              checked={biometricConfidenceFilterEnabled}
-              disabled={!canEdit}
-              onChange={(e) => {
-                setBiometricConfidenceFilterEnabled(e.target.checked);
-                if (playCyberSound) playCyberSound('click');
-              }}
-              style={{ opacity: 0, width: 0, height: 0 }}
-            />
-            <span style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: biometricConfidenceFilterEnabled ? '#80602c' : '#d6ccb8',
-              borderRadius: '999px',
-              transition: 'background-color 0.2s ease',
-            }}>
-              <span style={{
-                position: 'absolute',
-                height: '18px',
-                width: '18px',
-                left: biometricConfidenceFilterEnabled ? '25px' : '3px',
-                bottom: '3px',
-                backgroundColor: '#ffffff',
-                borderRadius: '50%',
-                transition: 'left 0.2s ease',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-              }} />
-            </span>
-          </label>
-        </div>
-
-        {biometricConfidenceFilterEnabled && (
-          <div style={{ background: '#faf6ec', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e7dac0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <span style={{ color: '#5c4b30', fontSize: '0.78rem', fontWeight: 600 }}>Required Similarity</span>
-              <span style={{ fontSize: '0.96rem', fontWeight: 800, color: '#6e4e1c', fontFamily: 'monospace' }}>
-                {Math.round(biometricMatchThreshold * 100)}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0.80"
-              max="0.99"
-              step="0.01"
-              value={biometricMatchThreshold}
-              disabled={!canEdit}
-              onChange={(e) => setBiometricMatchThreshold(parseFloat(e.target.value))}
-              style={{ width: '100%', accentColor: '#80602c', cursor: canEdit ? 'pointer' : 'not-allowed' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#78674b', fontSize: '0.7rem', fontWeight: 600, marginTop: '4px' }}>
-              <span>80% Permissive</span>
-              <span>90% Balanced</span>
-              <span>99% Strict</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 2. Anti-Spoofing & Liveness */}
-      <div className="golden-os-form-section">
-        <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Shield size={13} />
-          <span>Liveness &amp; Anti-Spoofing</span>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ minWidth: '180px', flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#2b2112' }}>Eye-Blink Verification</div>
-            <div style={{ fontSize: '0.76rem', color: '#6b5b3e', marginTop: '2px' }}>
-              {livenessBypass
-                ? 'Instant detection active without waiting for blink'
-                : 'Requires live blink to block photos and screen replays'}
-            </div>
-          </div>
+      )}
+      {userRole === 'admin' && typeof onSavePolicy === 'function' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
-            disabled={!canEdit}
+            className="golden-os-primary-action"
+            style={{ justifyContent: 'center' }}
             onClick={() => {
-              setLivenessBypass(prev => !prev);
-              if (playCyberSound) playCyberSound('click');
+              playCyberSound('click');
+              onSavePolicy();
             }}
-            style={{
-              padding: '7px 13px',
-              borderRadius: '999px',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              cursor: canEdit ? 'pointer' : 'not-allowed',
-              background: livenessBypass ? '#fffbeb' : 'rgba(5, 150, 105, 0.1)',
-              color: livenessBypass ? '#b45309' : '#047857',
-              border: `1px solid ${livenessBypass ? '#fde68a' : 'rgba(5, 150, 105, 0.3)'}`,
-              flexShrink: 0,
-            }}
+            disabled={savingPolicy}
           >
-            {livenessBypass ? 'Bypassed (Instant)' : 'Active (Blink Required)'}
+            <Save size={15} />
+            <span>{savingPolicy ? 'Saving...' : 'Save campus biometric settings'}</span>
           </button>
         </div>
+      )}
+    </>
+  );
 
-        <div style={{ background: '#faf6ec', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e7dac0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <span style={{ color: '#5c4b30', fontSize: '0.78rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-              <Eye size={13} /> Blink EAR Sensitivity
-            </span>
-            <span style={{ fontSize: '0.96rem', fontWeight: 800, color: '#047857', fontFamily: 'monospace' }}>
-              {antiSpoofingThreshold.toFixed(2)} EAR
-            </span>
-          </div>
-          <input
-            type="range"
-            min="0.15"
-            max="0.30"
-            step="0.01"
-            value={antiSpoofingThreshold}
-            disabled={!canEdit}
-            onChange={(e) => setAntiSpoofingThreshold(parseFloat(e.target.value))}
-            style={{ width: '100%', accentColor: '#047857', cursor: canEdit ? 'pointer' : 'not-allowed' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#78674b', fontSize: '0.7rem', fontWeight: 600, marginTop: '4px' }}>
-            <span>0.15 Fast</span>
-            <span>0.22 Standard</span>
-            <span>0.30 Strict</span>
+  // ── SUBPAGE 1: FACE MATCH THRESHOLD ───────────────────────────────────────
+  if (subMode === 'matching') {
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-inset-card" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#25231f' }}>
+                  Match Confidence Filter
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#696358' }}>
+                  {biometricConfidenceFilterEnabled
+                    ? `Reject matches below ${Math.round(biometricMatchThreshold * 100)}%`
+                    : 'Disabled — uses closest match'}
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Toggle match confidence filter"
+                className={biometricConfidenceFilterEnabled ? 'golden-os-feedback-filter-btn active' : 'golden-os-feedback-filter-btn'}
+                onClick={() => {
+                  const val = !biometricConfidenceFilterEnabled;
+                  setBiometricConfidenceFilterEnabled(val);
+                  localStorage.setItem('biometric_confidence_filter', val ? 'true' : 'false');
+                  playCyberSound('click');
+                }}
+              >
+                {biometricConfidenceFilterEnabled ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+
+            {biometricConfidenceFilterEnabled && (
+              <div className="golden-os-form-section">
+                <div className="golden-os-form-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Similarity Cutoff</span>
+                  <span style={{ color: '#059669', fontFamily: 'monospace' }}>
+                    {(biometricMatchThreshold * 100).toFixed(0)}% Match
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  aria-label="Similarity cutoff percentage"
+                  min="0.40"
+                  max="0.80"
+                  step="0.05"
+                  value={biometricMatchThreshold}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setBiometricMatchThreshold(val);
+                    localStorage.setItem('biometric_threshold', val.toString());
+                  }}
+                  style={{ width: '100%', accentColor: '#785927', cursor: 'pointer' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#787166', marginTop: '6px' }}>
+                  <span>40% Relaxed</span>
+                  <span>55% Balanced</span>
+                  <span>80% Strict</span>
+                </div>
+              </div>
+            )}
+
+            {renderPolicySaveFooter()}
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* 3. AI Copilot & Telemetry Logging */}
-      <div className="golden-os-form-section">
-        <div className="golden-os-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Cpu size={13} />
-          <span>AI Copilot &amp; Diagnostics</span>
-        </div>
+  // ── SUBPAGE 2: LIVENESS & BLINK VERIFICATION ──────────────────────────────
+  if (subMode === 'liveness') {
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-inset-card" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#25231f' }}>
+                  Eye-Blink Verification
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#696358' }}>
+                  {livenessBypass
+                    ? 'Instant scan without blink wait'
+                    : 'Requires blink to block photo spoofs'}
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Toggle eye-blink liveness gate"
+                className={!livenessBypass ? 'golden-os-feedback-filter-btn active' : 'golden-os-feedback-filter-btn'}
+                onClick={() => {
+                  const next = !livenessBypass;
+                  setLivenessBypass(next);
+                  localStorage.setItem('liveness_bypass', next ? 'true' : 'false');
+                  playCyberSound('click');
+                }}
+              >
+                {livenessBypass ? 'Bypassed' : 'Active'}
+              </button>
+            </div>
 
-        <div className="golden-os-fields-2">
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">AI Copilot Analysis Mode</label>
-            <select
-              className="form-input"
-              value={aiCognitiveLevel}
-              disabled={!canEdit}
-              onChange={(e) => {
-                setAiCognitiveLevel(e.target.value);
-                if (playCyberSound) playCyberSound('click');
-              }}
-            >
-              <option value="standard">Standard Mode (Fast Responses)</option>
-              <option value="hyper">Deep Analytics Mode</option>
-            </select>
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Blink EAR Sensitivity</span>
+                <span style={{ color: '#059669', fontFamily: 'monospace' }}>
+                  {antiSpoofingThreshold.toFixed(2)} EAR
+                </span>
+              </div>
+              <input
+                type="range"
+                aria-label="Blink EAR sensitivity"
+                min="0.15"
+                max="0.30"
+                step="0.01"
+                value={antiSpoofingThreshold}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setAntiSpoofingThreshold(val);
+                  localStorage.setItem('antispoofing_threshold', val.toString());
+                }}
+                style={{ width: '100%', accentColor: '#785927', cursor: 'pointer' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#787166', marginTop: '6px' }}>
+                <span>0.15 Fast</span>
+                <span>0.22 Standard</span>
+                <span>0.30 Strict</span>
+              </div>
+            </div>
+
+            {renderPolicySaveFooter()}
           </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Diagnostics Log Level</label>
-            <select
-              className="form-input"
-              value={diagnosticLevel}
-              disabled={!canEdit}
-              onChange={(e) => {
-                setDiagnosticLevel(e.target.value);
-                if (playCyberSound) playCyberSound('click');
-              }}
-            >
-              <option value="NONE">NONE (Minimal Logs)</option>
-              <option value="INFO">INFO (Important Events)</option>
-              <option value="DEBUG">DEBUG (Standard Logs)</option>
-              <option value="TRACE">TRACE (Full Telemetry)</option>
-            </select>
-          </div>
         </div>
-
-        <button
-          type="button"
-          disabled={!canEdit}
-          onClick={handleExportDiagnostics}
-          className="golden-os-feedback-filter-btn"
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            fontSize: '0.82rem',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            alignSelf: 'flex-start',
-          }}
-        >
-          <Download size={14} />
-          <span>Export Diagnostics JSON</span>
-        </button>
       </div>
+    );
+  }
 
-      {policyMessage && (
-        <div role="status" className={`feedback-banner ${isErrorMsg ? 'is-error' : 'is-success'}`}>
-          {isErrorMsg ? <AlertCircle size={16} style={{ flexShrink: 0 }} /> : <CheckCircle2 size={16} style={{ flexShrink: 0 }} />}
-          <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{policyMessage}</span>
+  // ── SUBPAGE 3: AI COPILOT & DIAGNOSTICS ───────────────────────────────────
+  if (subMode === 'diagnostics') {
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title">Assistant &amp; Telemetry Settings</div>
+              <div className="golden-os-fields-2">
+                <div>
+                  <label className="golden-os-field-label" htmlFor="ai-cognitive-select">AI Copilot Analysis Mode</label>
+                  <select
+                    id="ai-cognitive-select"
+                    className="golden-os-input"
+                    value={aiCognitiveLevel}
+                    onChange={(e) => {
+                      setAiCognitiveLevel(e.target.value);
+                      localStorage.setItem('ai_cognitive_level', e.target.value);
+                      playCyberSound('click');
+                    }}
+                  >
+                    <option value="Standard">Standard Mode (Fast Responses)</option>
+                    <option value="Deep Analytics">Deep Analytics (Detailed Insights)</option>
+                    <option value="Minimalist">Concise Mode (Summary Only)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="golden-os-field-label" htmlFor="diagnostic-level-select">Diagnostics Log Level</label>
+                  <select
+                    id="diagnostic-level-select"
+                    className="golden-os-input"
+                    value={diagnosticLevel}
+                    onChange={(e) => {
+                      setDiagnosticLevel(e.target.value);
+                      localStorage.setItem('diagnostic_level', e.target.value);
+                      playCyberSound('click');
+                    }}
+                  >
+                    <option value="VERBOSE">VERBOSE (Full Trace)</option>
+                    <option value="DEBUG">DEBUG (Standard Logs)</option>
+                    <option value="PRODUCTION">PRODUCTION (Errors Only)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className="golden-os-feedback-filter-btn"
+                  onClick={handleExportDiagnostics}
+                >
+                  <Download size={14} />
+                  <span>Export Diagnostics JSON</span>
+                </button>
+              </div>
+            </div>
+
+            {exportStatus && (
+              <div className="feedback-banner success" role="status">
+                <CheckCircle2 size={16} />
+                <span>{exportStatus}</span>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {userRole === 'admin' && onSavePolicy && (
-        <button
-          type="button"
-          onClick={onSavePolicy}
-          disabled={savingPolicy}
-          className="golden-os-primary-action"
-          style={{ width: '100%', justifyContent: 'center', padding: '12px 18px', borderRadius: '12px', fontSize: '0.84rem', fontWeight: 700, gap: '8px' }}
-        >
-          <Save size={15} />
-          <span>{savingPolicy ? 'Saving...' : 'Save campus biometric settings'}</span>
-        </button>
-      )}
+  // ── MAIN SCREEN: CLEAN ORGANIZED FACE & BIOMETRICS DIRECTORY ──────────────
+  return (
+    <div className="golden-os-page-bottom-safe">
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="golden-os-inset-card" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+            <Sliders size={15} color="#785927" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#25231f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Confidence: {biometricConfidenceFilterEnabled ? `${(biometricMatchThreshold * 100).toFixed(0)}%` : 'Off'} • EAR: {antiSpoofingThreshold.toFixed(2)} • {livenessBypass ? 'Instant' : 'Strict'}
+            </span>
+          </div>
+
+          <div className="golden-os-list-shell">
+            <button
+              type="button"
+              className="golden-os-list-row"
+              onClick={() => openSubPage('matching')}
+            >
+              <span className="golden-os-avatar" style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#059669' }}>
+                <ScanFace size={17} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
+                  Face Match Threshold
+                </span>
+                <span style={{ display: 'block', fontSize: '0.76rem', color: '#696358' }}>
+                  Minimum cosine similarity score &amp; confidence filter
+                </span>
+              </span>
+              <span style={{
+                background: biometricConfidenceFilterEnabled ? '#ecfdf5' : '#f4f0e8',
+                border: `1px solid ${biometricConfidenceFilterEnabled ? '#a7f3d0' : '#ddd6c7'}`,
+                color: biometricConfidenceFilterEnabled ? '#059669' : '#696358',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                padding: '3px 9px',
+                borderRadius: '999px'
+              }}>
+                {biometricConfidenceFilterEnabled ? `${(biometricMatchThreshold * 100).toFixed(0)}%` : 'Off'}
+              </span>
+              <ChevronRight size={16} color="#9e9689" />
+            </button>
+
+            <button
+              type="button"
+              className="golden-os-list-row"
+              onClick={() => openSubPage('liveness')}
+            >
+              <span className="golden-os-avatar" style={{ background: '#faf5ea', border: '1px solid #dfcfaf', color: '#785927' }}>
+                <Eye size={17} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
+                  Liveness &amp; Blink Verification
+                </span>
+                <span style={{ display: 'block', fontSize: '0.76rem', color: '#696358' }}>
+                  Anti-spoofing eye-blink gate &amp; EAR sensitivity
+                </span>
+              </span>
+              <span style={{
+                background: livenessBypass ? '#fffbeb' : '#ecfdf5',
+                border: `1px solid ${livenessBypass ? '#fde68a' : '#a7f3d0'}`,
+                color: livenessBypass ? '#d97706' : '#059669',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                padding: '3px 9px',
+                borderRadius: '999px'
+              }}>
+                {livenessBypass ? 'Instant' : `${antiSpoofingThreshold.toFixed(2)} EAR`}
+              </span>
+              <ChevronRight size={16} color="#9e9689" />
+            </button>
+
+            <button
+              type="button"
+              className="golden-os-list-row"
+              onClick={() => openSubPage('diagnostics')}
+            >
+              <span className="golden-os-avatar" style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#7c3aed' }}>
+                <Cpu size={17} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, color: '#25231f' }}>
+                  AI Copilot &amp; Diagnostics
+                </span>
+                <span style={{ display: 'block', fontSize: '0.76rem', color: '#696358' }}>
+                  Analysis mode, log verbosity &amp; JSON export
+                </span>
+              </span>
+              <span style={{
+                background: '#f5f3ff',
+                border: '1px solid #ddd6fe',
+                color: '#7c3aed',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                padding: '3px 9px',
+                borderRadius: '999px'
+              }}>
+                {diagnosticLevel}
+              </span>
+              <ChevronRight size={16} color="#9e9689" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
