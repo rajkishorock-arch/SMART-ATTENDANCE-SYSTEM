@@ -1,9 +1,8 @@
-import React from 'react';
-import { 
-  ShieldCheck, 
-  UserCheck, 
-  UserPlus, 
-  BookOpen, 
+import {
+  ShieldCheck,
+  UserCheck,
+  UserPlus,
+  BookOpen,
   ArrowUpCircle,
   FileCheck2,
   Building2,
@@ -19,7 +18,6 @@ export default function SettingsDirectoryHub({
   userRole,
   currentUser,
   getActiveTenantSlug,
-  handleManualCheck,
   fetchAdminLeaves,
   adminLeaveRequests = [],
   appVersion = '1.0.18'
@@ -150,7 +148,7 @@ export default function SettingsDirectoryHub({
     // 7. System Version & Updates
     {
       id: 'app_version',
-      label: 'System Version & Build',
+      label: 'App Version',
       icon: ArrowUpCircle,
       iconColor: '#684c20',
       iconBg: '#faf5ea',
@@ -163,7 +161,6 @@ export default function SettingsDirectoryHub({
       onClick: () => {
         setActiveSubSetting('app_version');
         if (playCyberSound) playCyberSound('click');
-        if (handleManualCheck) handleManualCheck();
       }
     },
     // 8. Multi-Tenant Registry

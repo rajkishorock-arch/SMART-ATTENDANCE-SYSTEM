@@ -93,16 +93,44 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 );
 
-// Register Service Worker for seamless offline PWA web access
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/service-worker.js')
-      .then((reg) => {
-        console.log('[ServiceWorker] Registered with scope:', reg.scope);
-      })
-      .catch((err) => {
-        console.warn('[ServiceWorker] Registration failed:', err);
-      });
+// Register Service Worker & auto-sync live production deployments silently without version popups
+if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.()) {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/service-worker.js', { updateViaCache: 'none' })
+        .then((reg) => {
+          reg.update().catch(() => {});
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+              reg.update().catch(() => {});
+            }
+          });
+        })
+        .catch(() => {});
+    });
+  }
+
+  // Silently detect new deployed JS bundle hash on resume/focus and apply immediately
+  let lastLiveSyncCheck = 0;
+  const syncLiveWebBundle = async () => {
+    const now = Date.now();
+    if (now - lastLiveSyncCheck < 25000 || !navigator.onLine) return;
+    lastLiveSyncCheck = now;
+    try {
+      const activeScript = document.querySelector('script[type="module"][src*="/assets/"]')?.getAttribute('src');
+      if (!activeScript) return;
+      const res = await originalFetch(`/index.html?t=${now}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const html = await res.text();
+      const match = html.match(/src="(\/assets\/index-[^"]+\.js)"/);
+      if (match && match[1] && match[1] !== activeScript && !sessionStorage.getItem(`ota_reloaded_${match[1]}`)) {
+        sessionStorage.setItem(`ota_reloaded_${match[1]}`, '1');
+        window.location.reload();
+      }
+    } catch { /* offline or preview server */ }
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncLiveWebBundle();
   });
 }

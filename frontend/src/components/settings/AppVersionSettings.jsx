@@ -1,5 +1,10 @@
-import { ArrowUpCircle, Smartphone, Rocket, CheckCircle2 } from 'lucide-react';
-import VersionBadge from '../VersionBadge';
+import {
+  Smartphone,
+  RefreshCw,
+  CheckCircle2,
+  Rocket,
+  ChevronRight
+} from 'lucide-react';
 import {
   APP_VERSION,
   acknowledgeUpdateVersion,
@@ -14,147 +19,216 @@ export default function AppVersionSettings({
   handleManualCheck,
   setUpdateAvailable,
   setUpdateDismissed,
-  playCyberSound,
-  setActiveSubSetting
+  playCyberSound = () => {},
+  setActiveSubSetting,
+  routeView = null,
+  setRouteView = null
 }) {
-  return (
-    <div className="surface-card" style={{
-      padding: '32px',
-      borderRadius: '20px',
-      background: '#ffffff',
-      border: '1px solid #e4dfd5',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '24px',
-      color: '#25231f'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid #e4dfd5', paddingBottom: '18px' }}>
-        <div style={{
-          width: '46px',
-          height: '46px',
-          borderRadius: '12px',
-          background: '#e0f2fe',
-          border: '1px solid #bae6fd',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#80602c'
-        }}>
-          <Smartphone size={24} />
-        </div>
-        <div>
-          <h3 style={{
-            color: '#25231f',
-            margin: 0,
-            fontSize: '1.35rem',
-            fontWeight: 800
-          }}>
-            App Version & Update Status Console
-          </h3>
-          <p style={{ color: '#696358', fontSize: '0.85rem', margin: '4px 0 0' }}>
-            Monitor production releases, mobile APK updates, and server synchronization
-          </p>
+  const canManageReleases =
+    userRole === 'admin' ||
+    currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com';
+
+  const hasPendingManualRelease =
+    Boolean(updateActiveFlag) &&
+    Boolean(serverLatestVersion) &&
+    serverLatestVersion !== APP_VERSION;
+
+  const subMode = routeView?.sub === 'app_version' ? routeView.id : null;
+
+  // ── SUBPAGE 1: VERSION & SYNC STATUS ────────────────────────────────────────
+  if (subMode === 'status') {
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-inset-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
+                  Installed Version v{APP_VERSION}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#696358' }}>
+                  {hasPendingManualRelease
+                    ? `Manual release v${serverLatestVersion} is ready`
+                    : 'Running latest synced build'}
+                </div>
+              </div>
+
+              <span style={{
+                background: hasPendingManualRelease ? '#fffbeb' : '#ecfdf5',
+                border: `1px solid ${hasPendingManualRelease ? '#fde68a' : '#a7f3d0'}`,
+                color: hasPendingManualRelease ? '#d97706' : '#059669',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: '999px'
+              }}>
+                {hasPendingManualRelease ? `v${serverLatestVersion} Available` : 'Up to Date'}
+              </span>
+            </div>
+
+            <div className="golden-os-list-shell">
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Current Version</span>
+                <strong style={{ color: '#25231f', fontSize: '0.86rem' }}>v{APP_VERSION}</strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Server Published Version</span>
+                <strong style={{ color: '#25231f', fontSize: '0.86rem' }}>
+                  {serverLatestVersion ? `v${serverLatestVersion}` : `v${APP_VERSION}`}
+                </strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Web &amp; Mobile Live Sync</span>
+                <strong style={{ color: '#059669', fontSize: '0.86rem' }}>Active on Push</strong>
+              </div>
+              <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                <span style={{ color: '#58534a', fontSize: '0.84rem' }}>Version Bump Policy</span>
+                <strong style={{ color: '#785927', fontSize: '0.86rem' }}>Manual Only</strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="golden-os-feedback-filter-btn"
+                onClick={() => {
+                  playCyberSound('click');
+                  window.location.reload();
+                }}
+              >
+                <RefreshCw size={14} />
+                <span>Reload Latest Assets</span>
+              </button>
+              <button
+                type="button"
+                className="golden-os-action-pill"
+                onClick={() => {
+                  playCyberSound('click');
+                  if (handleManualCheck) handleManualCheck();
+                }}
+              >
+                <RefreshCw size={14} />
+                <span>Check for Manual Release</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <VersionBadge
-        serverLatest={serverLatestVersion}
-        updateActive={updateActiveFlag}
-        onCheckUpdate={handleManualCheck}
-      />
-
-      {(userRole === 'admin' || currentUser?.email?.trim()?.toLowerCase() === 'rajkishorock@gmail.com') && (
-        <div style={{
-          padding: '20px 24px',
-          borderRadius: '16px',
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-          flexWrap: 'wrap'
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <Rocket size={18} color="#166534" />
-              <h4 style={{ margin: 0, color: '#166534', fontSize: '1.05rem', fontWeight: 700 }}>
-                Admin Release Management Console
-              </h4>
+  // ── SUBPAGE 2: CONFIRM INSTALLED VERSION ────────────────────────────────────
+  if (subMode === 'confirm') {
+    return (
+      <div className="golden-os-page-bottom-safe">
+        <div className="golden-os-window">
+          <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="golden-os-form-section">
+              <div className="golden-os-form-section-title">Build Confirmation</div>
+              <div style={{ fontSize: '0.86rem', color: '#46423b', lineHeight: 1.5 }}>
+                Confirm version <strong>v{APP_VERSION}</strong> is installed on this device and clear any pending update alert banner until the next manual release.
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="golden-os-action-pill"
+                  onClick={() => {
+                    markCurrentVersionInstalled();
+                    if (serverLatestVersion) acknowledgeUpdateVersion(serverLatestVersion);
+                    if (setUpdateAvailable) setUpdateAvailable(null);
+                    if (setUpdateDismissed) setUpdateDismissed(true);
+                    playCyberSound('success');
+                    if (setRouteView) setRouteView(null);
+                  }}
+                >
+                  <CheckCircle2 size={15} />
+                  <span>Confirm v{APP_VERSION} Installed</span>
+                </button>
+              </div>
             </div>
-            <p style={{ margin: 0, color: '#58534a', fontSize: '0.85rem', lineHeight: 1.4 }}>
-              Publish a new system version, trigger GitHub Actions automated APK builds, and control the live update download banner for all users.
-            </p>
           </div>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => {
-              if (playCyberSound) playCyberSound('click');
-              if (setActiveSubSetting) setActiveSubSetting('release_updates');
-            }}
-            style={{
-              padding: '10px 22px',
-              borderRadius: '10px',
-              fontSize: '0.85rem',
-              background: '#059669',
-              border: 'none',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            <ArrowUpCircle size={16} /> Open Release Console →
-          </button>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      <div style={{
-        padding: '20px',
-        borderRadius: '16px',
-        background: '#faf9f6',
-        border: '1px solid #e4dfd5',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px'
-      }}>
-        <div style={{ color: '#46423b', fontSize: '0.85rem', lineHeight: 1.5 }}>
-          💡 <strong>Installation Confirmation:</strong> After installing a new APK or deploying an update, tap the button below to confirm installation and dismiss update alerts until the next release.
+  // ── MAIN SCREEN: CLEAN GOLDEN GATE NAVIGATION LIST ──────────────────────────
+  return (
+    <div className="golden-os-page-bottom-safe">
+      <div className="golden-os-window">
+        <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Compact Status Strip */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#58534a' }}>
+              Version <strong style={{ color: '#25231f' }}>v{APP_VERSION}</strong> •{' '}
+              <span style={{ color: hasPendingManualRelease ? '#d97706' : '#059669' }}>
+                {hasPendingManualRelease ? `Release v${serverLatestVersion} Ready` : 'Synced'}
+              </span>
+            </div>
+          </div>
+
+          <div className="golden-os-list-shell">
+            <button
+              type="button"
+              onClick={() => {
+                playCyberSound('click');
+                if (setRouteView) setRouteView({ sub: 'app_version', mode: 'detail', id: 'status' });
+              }}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar" style={{ background: '#faf5ea', color: '#785927', borderColor: '#eadbc0' }}>
+                  <Smartphone size={16} />
+                </div>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f' }}>
+                  Version &amp; Sync Status
+                </span>
+              </div>
+              <ChevronRight size={16} color="#9c9384" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playCyberSound('click');
+                if (setRouteView) setRouteView({ sub: 'app_version', mode: 'detail', id: 'confirm' });
+              }}
+              className="golden-os-list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div className="golden-os-avatar" style={{ background: '#ecfdf5', color: '#059669', borderColor: '#a7f3d0' }}>
+                  <CheckCircle2 size={16} />
+                </div>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f' }}>
+                  Confirm Installed Version
+                </span>
+              </div>
+              <ChevronRight size={16} color="#9c9384" />
+            </button>
+
+            {canManageReleases && (
+              <button
+                type="button"
+                onClick={() => {
+                  playCyberSound('click');
+                  if (setRouteView) setRouteView(null);
+                  if (setActiveSubSetting) setActiveSubSetting('release_updates');
+                }}
+                className="golden-os-list-row"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  <div className="golden-os-avatar" style={{ background: '#f5f3ff', color: '#7c3aed', borderColor: '#ddd6fe' }}>
+                    <Rocket size={16} />
+                  </div>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#25231f' }}>
+                    Release Console
+                  </span>
+                </div>
+                <ChevronRight size={16} color="#9c9384" />
+              </button>
+            )}
+          </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            markCurrentVersionInstalled();
-            if (serverLatestVersion) acknowledgeUpdateVersion(serverLatestVersion);
-            if (setUpdateAvailable) setUpdateAvailable(null);
-            if (setUpdateDismissed) setUpdateDismissed(true);
-            if (playCyberSound) playCyberSound('success');
-            alert(`✅ Version v${APP_VERSION} confirmed installed!`);
-          }}
-          style={{
-            alignSelf: 'flex-start',
-            padding: '12px 22px',
-            borderRadius: '10px',
-            background: '#80602c',
-            border: 'none',
-            color: '#ffffff',
-            fontWeight: 700,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <CheckCircle2 size={16} /> Confirm Installed & Dismiss Banner (v{APP_VERSION})
-        </button>
       </div>
     </div>
   );

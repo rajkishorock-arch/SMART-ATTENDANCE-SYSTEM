@@ -24,7 +24,7 @@ export default function useUpdateChecker(currentUser) {
       let hasNewUpdate = false;
       let isOwnerBeta = false;
 
-      // 1. Check backend /health/update-check
+      // 1. Check backend /health/update-check (only manually activated admin releases trigger banners)
       try {
         const resp = await fetch(
           `${apiBaseUrl}/health/update-check?client_version=${encodeURIComponent(APP_VERSION)}${ownerEmail ? `&user_email=${ownerEmail}` : ''}`,
@@ -35,34 +35,14 @@ export default function useUpdateChecker(currentUser) {
           latestVersion = (data.latest_version || '').replace(/^v/i, '');
           downloadUrl = data.update_download_url || '';
           isOwnerBeta = !!data.is_owner_beta;
-          setUpdateActiveFlag(!!data.update_active || !!data.update_beta_active);
-          if (data.update_available || isUpdateNewer(latestVersion, APP_VERSION)) {
+          const releaseEnabled = !!data.update_active || (!!data.is_owner_beta && !!data.update_beta_active);
+          setUpdateActiveFlag(releaseEnabled);
+          if (releaseEnabled && data.update_available && isUpdateNewer(latestVersion, APP_VERSION)) {
             hasNewUpdate = true;
           }
         }
       } catch (backendErr) {
         console.warn('Backend update check skipped:', backendErr);
-      }
-
-      // 2. Direct GitHub Releases Check (Guarantees instant update whenever GitHub Actions builds on git push)
-      try {
-        const ghResp = await fetch(
-          'https://api.github.com/repos/rajkishorock-arch/SMART-ATTENDANCE-SYSTEM/releases/latest',
-          { cache: 'no-store' }
-        );
-        if (ghResp.ok) {
-          const ghData = await ghResp.json();
-          const ghTag = (ghData.tag_name || '').replace(/^v/i, '');
-          if (isUpdateNewer(ghTag, APP_VERSION)) {
-            latestVersion = ghTag;
-            const apkAsset = ghData.assets?.find(a => a.name && a.name.endsWith('.apk'));
-            downloadUrl = apkAsset?.browser_download_url || `https://github.com/rajkishorock-arch/SMART-ATTENDANCE-SYSTEM/releases/download/v${ghTag}/app-release.apk`;
-            hasNewUpdate = true;
-            setUpdateActiveFlag(true);
-          }
-        }
-      } catch (ghErr) {
-        console.warn('GitHub releases fetch skipped:', ghErr);
       }
 
       if (latestVersion) {

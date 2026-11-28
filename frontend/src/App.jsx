@@ -804,8 +804,8 @@ export default function App() {
   const [settingsDetailRoute, setSettingsDetailRoute] = useState(() => {
     try {
       const parts = window.location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
-      if (parts[0] === 'settings' && ['departments', 'leave_management', 'multitenant', 'admins'].includes(parts[1]) && parts[2]) {
-        if (parts[2] === 'register' && parts[1] !== 'leave_management') {
+      if (parts[0] === 'settings' && ['departments', 'leave_management', 'multitenant', 'admins', 'app_version', 'release_updates'].includes(parts[1]) && parts[2]) {
+        if (parts[2] === 'register' && !['leave_management', 'app_version', 'release_updates'].includes(parts[1])) {
           return { sub: parts[1], mode: 'register' };
         }
         return { sub: parts[1], mode: 'detail', id: parts[2] };
@@ -985,6 +985,8 @@ export default function App() {
 
   const [disputesQueue, setDisputesQueue] = useState(() => readScopedList('disputes') || []);
   const [disputesLoaded, setDisputesLoaded] = useState(() => readScopedList('disputes') !== null);
+  const [faceReviewQueue, setFaceReviewQueue] = useState(() => readScopedList('face_review') || []);
+  const [faceReviewLoaded, setFaceReviewLoaded] = useState(() => readScopedList('face_review') !== null);
   const [broadcastsList, setBroadcastsList] = useState(() => readScopedList('broadcasts') || []);
   const [broadcastsLoaded, setBroadcastsLoaded] = useState(() => readScopedList('broadcasts') !== null);
   const [calendarEvents, setCalendarEvents] = useState(() => readScopedList('cal_events') || []);
@@ -1020,6 +1022,29 @@ export default function App() {
       }
     } catch { /* silent background prefetch */ }
   }, [readScopedList, writeScopedList]);
+
+  const fetchFaceReviewPrefetch = useCallback(async (authToken, roleVal) => {
+    const t = authToken;
+    const r = String(roleVal || '').toLowerCase();
+    if (!t || t === 'guest-demo-token' || !['admin', 'teacher', 'hod'].includes(r)) return;
+    const cached = readScopedList('face_review', t);
+    if (cached) {
+      setFaceReviewQueue(prev => (prev.length > 0 ? prev : cached));
+      setFaceReviewLoaded(true);
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/review-queue?status=ALL`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setFaceReviewQueue(list);
+        setFaceReviewLoaded(true);
+        writeScopedList('face_review', list, t);
+      }
+    } catch { /* silent background prefetch */ }
+  }, [readScopedList, writeScopedList, API_BASE_URL]);
 
   const fetchBroadcastsPrefetch = useCallback(async (authToken) => {
     if (!authToken || authToken === 'guest-demo-token') return;
@@ -6063,6 +6088,7 @@ export default function App() {
           fetchStats(tokenVal);
           fetchLogs(tokenVal);
           fetchDisputesPrefetch(tokenVal, data.role);
+          fetchFaceReviewPrefetch(tokenVal, data.role);
           fetchBroadcastsPrefetch(tokenVal);
         } else {
           fetchStudentLogs(tokenVal);
@@ -6730,8 +6756,8 @@ export default function App() {
           if (targetSub !== activeSubSettingRef.current) {
             setActiveSubSetting(targetSub);
           }
-          if (['departments', 'leave_management', 'multitenant', 'admins'].includes(targetSub) && subHash2) {
-            if (subHash2 === 'register' && targetSub !== 'leave_management') {
+          if (['departments', 'leave_management', 'multitenant', 'admins', 'app_version', 'release_updates'].includes(targetSub) && subHash2) {
+            if (subHash2 === 'register' && !['leave_management', 'app_version', 'release_updates'].includes(targetSub)) {
               setSettingsDetailRoute({ sub: targetSub, mode: 'register' });
             } else {
               setSettingsDetailRoute({ sub: targetSub, mode: 'detail', id: subHash2 });
@@ -7322,6 +7348,7 @@ export default function App() {
           Promise.allSettled([
             fetchDepartments(token),
             fetchDisputesPrefetch(token, userRole),
+            fetchFaceReviewPrefetch(token, userRole),
             fetchBroadcastsPrefetch(token),
             fetchCalendarPrefetch(token),
             fetchLogs(token, { limit: 400 }),
@@ -7340,6 +7367,9 @@ export default function App() {
           if (!isMounted) return;
           Promise.allSettled([
             fetchSessionHistory(),
+            fetchDisputesPrefetch(token, userRole),
+            fetchFaceReviewPrefetch(token, userRole),
+            fetchBroadcastsPrefetch(token),
             fetchCalendarPrefetch(token),
             fetchReport(false, token),
             fetchLogs(token, { limit: 1000 }),
@@ -7410,12 +7440,16 @@ export default function App() {
       case 'control':
       case 'all-features':
         fetchDisputesPrefetch(token, userRole);
+        fetchFaceReviewPrefetch(token, userRole);
         fetchBroadcastsPrefetch(token);
         fetchCalendarPrefetch(token);
         fetchReport(false, token);
         break;
       case 'disputes':
         fetchDisputesPrefetch(token, userRole);
+        break;
+      case 'face-review':
+        fetchFaceReviewPrefetch(token, userRole);
         break;
       case 'broadcast':
         fetchBroadcastsPrefetch(token);
@@ -7869,6 +7903,7 @@ export default function App() {
         Promise.allSettled([
           fetchDepartments(newToken),
           fetchDisputesPrefetch(newToken, meData.role),
+          fetchFaceReviewPrefetch(newToken, meData.role),
           fetchBroadcastsPrefetch(newToken),
           fetchCalendarPrefetch(newToken),
           fetchLogs(newToken, { limit: 400 }),
@@ -7890,6 +7925,7 @@ export default function App() {
         fetchSchedules(newToken),
         fetchAdminLeaves(newToken),
         fetchDisputesPrefetch(newToken, meData.role),
+        fetchFaceReviewPrefetch(newToken, meData.role),
         fetchBroadcastsPrefetch(newToken),
         fetchCalendarPrefetch(newToken),
         fetchReport(false, newToken),
@@ -10021,6 +10057,19 @@ export default function App() {
                           teachers.find(u => u.role === 'admin' && String(u.id) === String(settingsDetailRoute.id))?.name ||
                           'Administrator Details';
                       }
+                      if (activeSubSetting === 'app_version') {
+                        const avTitles = { status: 'Version & Sync Status', confirm: 'Confirm Installed Version' };
+                        return avTitles[settingsDetailRoute.id] || 'App Version';
+                      }
+                      if (activeSubSetting === 'release_updates') {
+                        const relTitles = {
+                          beta: 'Owner Beta Rollout',
+                          public: 'Public Update Banner',
+                          publish: 'Build & Publish Version',
+                          info: 'Current Release & Links',
+                        };
+                        return relTitles[settingsDetailRoute.id] || 'Release Console';
+                      }
                     }
                     const subTitles = {
                       geofencing: 'Security Perimeter & Geofence',
@@ -10029,9 +10078,9 @@ export default function App() {
                       admins: 'Staff & Administrator Accounts',
                       departments: 'Departments & Branches',
                       leave_management: 'Leave Management',
-                      app_version: 'System Version & Build',
+                      app_version: 'App Version',
                       multitenant: 'Campus & Institution Registry',
-                      release_updates: 'Release Updates',
+                      release_updates: 'Release Console',
                       features_folder: 'Advanced Features',
                       enterprise: 'Enterprise Configuration',
                       extreme: 'Extreme Security Settings',
@@ -10049,7 +10098,7 @@ export default function App() {
                   {activeTab === 'notifications' && (notificationRoute === 'preferences' ? 'Notification Preferences' : 'Notifications')}
                   {(activeTab === 'control' || activeTab === 'all-features') && 'Control Center'}
                 </h1>
-                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications', 'devices', 'interventions', 'lms', 'payroll', 'attendance', 'manual-register'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile'].includes(activeSubSetting))) && (
+                {userRole !== 'student' && userRole !== 'teacher' && !['disputes', 'face-review', 'broadcast', 'logs', 'session-history', 'calendar', 'reports', 'student-profile', 'about', 'ai-assistant', 'notifications', 'devices', 'interventions', 'lms', 'payroll', 'attendance', 'manual-register'].includes(activeTab) && !(activeTab === 'settings' && (settingsDetailRoute?.sub === activeSubSetting || ['departments', 'leave_management', 'multitenant', 'admins', 'advanced', 'profile', 'app_version', 'release_updates'].includes(activeSubSetting))) && (
                   <p style={{ color: '#696358', fontSize: '0.84rem', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {activeTab === 'dashboard' && (() => {
                       if (activeDashboardSubTab) return 'Detailed analytics and operational telemetry';
@@ -10636,7 +10685,15 @@ export default function App() {
           <LowConfidenceReviewQueue
             token={token}
             currentUser={currentUser}
+            isDemoMode={isDemoMode}
             playCyberSound={playCyberSound}
+            reviewsData={faceReviewQueue}
+            hasLoadedData={faceReviewLoaded}
+            onReviewsChange={(nextList) => {
+              setFaceReviewQueue(nextList);
+              setFaceReviewLoaded(true);
+              writeScopedList('face_review', nextList, token);
+            }}
             routeView={faceReviewRoute}
             setRouteView={setFaceReviewRoute}
             onCloseSubView={handleNavigateBack}
@@ -10944,6 +11001,8 @@ export default function App() {
                 setUpdateDismissed={setUpdateDismissed}
                 playCyberSound={playCyberSound}
                 setActiveSubSetting={setActiveSubSetting}
+                routeView={settingsDetailRoute?.sub === 'app_version' ? settingsDetailRoute : null}
+                setRouteView={setSettingsDetailRoute}
               />
             )}
 
@@ -11058,6 +11117,8 @@ export default function App() {
                 isDemoMode={isDemoMode}
                 playCyberSound={playCyberSound}
                 addDiagnosticLog={addDiagnosticLog}
+                routeView={settingsDetailRoute?.sub === 'release_updates' ? settingsDetailRoute : null}
+                setRouteView={setSettingsDetailRoute}
               />
             )}
 

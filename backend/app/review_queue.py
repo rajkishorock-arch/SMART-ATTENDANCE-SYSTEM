@@ -21,8 +21,11 @@ SNAPSHOT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 os.makedirs(SNAPSHOT_DIR, exist_ok=True)
 
 
-def _format_review(r: models.LowConfidenceReview, db: Session) -> schemas.LowConfidenceReviewResponse:
-    sub = db.query(models.Subject).filter(models.Subject.id == r.subject_id).first() if r.subject_id else None
+def _format_review(r: models.LowConfidenceReview, db: Session, subject_name: Optional[str] = None) -> schemas.LowConfidenceReviewResponse:
+    resolved_subject_name = subject_name
+    if resolved_subject_name is None and r.subject_id:
+        sub = db.query(models.Subject).filter(models.Subject.id == r.subject_id).first()
+        resolved_subject_name = sub.name if sub else None
     return schemas.LowConfidenceReviewResponse(
         id=r.id,
         institution_id=r.institution_id,
@@ -34,7 +37,7 @@ def _format_review(r: models.LowConfidenceReview, db: Session) -> schemas.LowCon
         date=r.date,
         session_time=r.session_time,
         subject_id=r.subject_id,
-        subject_name=sub.name if sub else None,
+        subject_name=resolved_subject_name,
         device_id=r.device_id,
         status=r.status,
         reviewed_by=r.reviewed_by,
@@ -72,12 +75,15 @@ def get_low_confidence_queue(
     if date:
         query = query.filter(models.LowConfidenceReview.date == date.strip())
 
+    # Pre-fetch institution subjects once to avoid N+1 SQL lookups when formatting rows
+    inst_subjects = db.query(models.Subject.id, models.Subject.name, models.Subject.teacher_id).filter(
+        models.Subject.institution_id == current_user.institution_id
+    ).all()
+    subject_name_map = {s.id: s.name for s in inst_subjects}
+
     # If regular teacher, filter to their assigned subjects
     if current_user.role == "teacher" and not current_user.is_department_head:
-        teacher_subject_ids = [s.id for s in db.query(models.Subject.id).filter(
-            models.Subject.institution_id == current_user.institution_id,
-            models.Subject.teacher_id == current_user.id
-        ).all()]
+        teacher_subject_ids = [s.id for s in inst_subjects if s.teacher_id == current_user.id]
         if teacher_subject_ids:
             query = query.filter(
                 (models.LowConfidenceReview.subject_id.in_(teacher_subject_ids)) |
@@ -85,7 +91,7 @@ def get_low_confidence_queue(
             )
 
     items = query.order_by(models.LowConfidenceReview.created_at.desc()).all()
-    return [_format_review(i, db) for i in items]
+    return [_format_review(i, db, subject_name_map.get(i.subject_id, "")) if i.subject_id in subject_name_map else _format_review(i, db) for i in items]
 
 
 @router.post("/stage", response_model=schemas.LowConfidenceReviewResponse)

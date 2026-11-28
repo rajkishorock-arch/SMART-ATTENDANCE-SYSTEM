@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to build (e.g. 1.0.3 - leave blank to use package.json version)'
+        description: 'Explicit version to release (e.g. 1.0.125 - leave blank to keep current package.json version)'
         required: false
         type: string
         default: ''
@@ -22,13 +22,6 @@ on:
         type: string
         default: ''
   push:
-    branches:
-      - main
-      - master
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
-      - '.gitignore'
     tags:
       - 'v*.*.*'
 
@@ -57,8 +50,9 @@ jobs:
           INPUT_VER="${{ github.event.inputs.version }}"
           if [ -n "$INPUT_VER" ]; then
             python update_version.py "$INPUT_VER"
-          else
-            python update_version.py
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG_VER="${GITHUB_REF_NAME#v}"
+            python update_version.py "$TAG_VER"
           fi
           RESOLVED_VER=$(node -p "require('./package.json').version")
           echo "build_version=$RESOLVED_VER" >> $GITHUB_ENV
@@ -129,13 +123,13 @@ jobs:
           download_url="https://github.com/${{ github.repository }}/releases/download/${version_tag}/app-release.apk"
           echo "download_url=$download_url" >> $GITHUB_ENV
 
-      - name: Commit Auto-Bumped Version to Repository
-        if: success() && github.ref == 'refs/heads/main'
+      - name: Commit Manual Release Version to Repository
+        if: success() && github.event.inputs.version != '' && github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add frontend/package.json frontend/android/app/build.gradle
-          git diff --staged --quiet || (git commit -m "chore(release): auto-bump version to v${{ env.build_version }} [skip ci]" && git push origin main) || true
+          git diff --staged --quiet || (git commit -m "chore(release): publish version v${{ env.build_version }} [skip ci]" && git push origin main) || true
 
       - name: Send Success Callback to Backend
         if: success() && github.event.inputs.callback_url != ''

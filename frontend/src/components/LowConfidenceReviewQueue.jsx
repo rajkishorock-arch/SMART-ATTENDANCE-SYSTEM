@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ScanFace,
   UserCheck,
@@ -22,56 +22,97 @@ const STATUS_TABS = [
   { key: 'ALL', label: 'All' },
 ];
 
+const DEMO_REVIEWS = [
+  {
+    id: 1,
+    candidate_student_id: 104,
+    candidate_roll: '2023CSE08',
+    candidate_name: 'Riya Gupta',
+    similarity_score: 0.46,
+    date: '2026-11-28',
+    session_time: 'Period 1',
+    subject_name: 'Internet of Things',
+    status: 'PENDING',
+  },
+];
+
 export default function LowConfidenceReviewQueue({
   token,
+  isDemoMode = false,
   playCyberSound = () => {},
+  reviewsData = [],
+  hasLoadedData = false,
+  onReviewsChange = null,
   routeView = null,
   setRouteView = null,
   onCloseSubView = null,
 }) {
-  const [reviews, setReviews] = useState([]);
+  const [localReviews, setLocalReviews] = useState(Array.isArray(reviewsData) ? reviewsData : []);
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Inline Reassign Panel State (inside dedicated detail page)
   const [showReassignForm, setShowReassignForm] = useState(false);
   const [reassignRoll, setReassignRoll] = useState('');
   const [reassignComment, setReassignComment] = useState('');
   const [isSubmittingReassign, setIsSubmittingReassign] = useState(false);
-
   const [resolvingId, setResolvingId] = useState(null);
 
-  const fetchQueue = useCallback(async () => {
-    if (!token) return;
-    setIsLoading(true);
+  const isSandbox = isDemoMode || token === 'guest-demo-token';
+  const reviews = isSandbox
+    ? DEMO_REVIEWS
+    : (Array.isArray(reviewsData) && (hasLoadedData || reviewsData.length > 0) ? reviewsData : localReviews);
+
+  const reviewsCountRef = useRef(reviews.length);
+  useEffect(() => {
+    reviewsCountRef.current = reviews.length;
+  }, [reviews.length]);
+
+  const fetchQueue = useCallback(async ({ showSpinner = false } = {}) => {
+    if (!token || isSandbox) return;
+
+    const shouldSpin = showSpinner && reviewsCountRef.current === 0 && !hasLoadedData;
+    if (shouldSpin) setIsLoading(true);
     setErrorMsg('');
+
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 12000);
     try {
-      const url = statusFilter === 'ALL'
-        ? `${API_BASE_URL}/review-queue`
-        : `${API_BASE_URL}/review-queue?status=${statusFilter}`;
-      const res = await fetch(url, {
+      const res = await fetch(`${API_BASE_URL}/review-queue?status=ALL`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(`Queue fetch failed (${res.status})`);
       const data = await res.json();
-      setReviews(Array.isArray(data) ? data : []);
+      const normalized = Array.isArray(data) ? data : [];
+      setLocalReviews(normalized);
+      if (onReviewsChange) onReviewsChange(normalized);
     } catch (err) {
-      setErrorMsg(err.message || 'Error loading face match review queue.');
+      if (err?.name === 'AbortError') {
+        setErrorMsg('Server took too long to respond. Tap Refresh to retry.');
+      } else if (reviewsCountRef.current === 0) {
+        setErrorMsg(err.message || 'Error loading face match review queue.');
+      }
     } finally {
+      clearTimeout(timerId);
       setIsLoading(false);
     }
-  }, [token, statusFilter]);
+  }, [token, isSandbox, hasLoadedData, onReviewsChange]);
 
   useEffect(() => {
-    let ignore = false;
-    const run = async () => {
-      if (!ignore) await fetchQueue();
-    };
-    run();
-    return () => { ignore = true; };
-  }, [fetchQueue]);
+    if (!token || isSandbox) return undefined;
+    const t = setTimeout(() => {
+      fetchQueue({ showSpinner: !hasLoadedData });
+    }, 0);
+    return () => clearTimeout(t);
+  }, [fetchQueue, hasLoadedData, token, isSandbox]);
+
+  // 0ms client-side tab filtering over cached/prefetched queue
+  const filteredReviews = useMemo(() => {
+    if (statusFilter === 'ALL') return reviews;
+    return reviews.filter(r => String(r.status || 'PENDING').toUpperCase() === statusFilter);
+  }, [reviews, statusFilter]);
 
   const selectedItem = useMemo(() => {
     if (!routeView || routeView.mode !== 'detail' || routeView.id == null) return null;
@@ -87,7 +128,20 @@ export default function LowConfidenceReviewQueue({
     else if (setRouteView) setRouteView(null);
   };
 
+  const applyLocalUpdate = (updatedItem) => {
+    const nextList = reviews.map(r => (String(r.id) === String(updatedItem.id) ? updatedItem : r));
+    setLocalReviews(nextList);
+    if (onReviewsChange) onReviewsChange(nextList);
+  };
+
   const handleResolve = async (reviewId, action, comment = '') => {
+    if (isSandbox) {
+      playCyberSound(action === 'CONFIRM' ? 'success' : 'click');
+      setSuccessMsg(`Sandbox preview: Match ${action.toLowerCase()}ed.`);
+      closeDetail();
+      setTimeout(() => setSuccessMsg(''), 3000);
+      return;
+    }
     setResolvingId(reviewId);
     setErrorMsg('');
     try {
@@ -103,13 +157,15 @@ export default function LowConfidenceReviewQueue({
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.detail || 'Resolution failed.');
       }
+      const updated = await res.json().catch(() => null);
+      if (updated && updated.id) applyLocalUpdate(updated);
       playCyberSound(action === 'CONFIRM' ? 'success' : 'click');
       setSuccessMsg(
         action === 'CONFIRM'
           ? 'Match confirmed and attendance marked.'
           : 'Detection rejected as false match.'
       );
-      await fetchQueue();
+      fetchQueue({ showSpinner: false });
       setTimeout(() => setSuccessMsg(''), 3500);
       closeDetail();
     } catch (err) {
@@ -124,6 +180,13 @@ export default function LowConfidenceReviewQueue({
     e.preventDefault();
     if (!selectedItem || !reassignRoll.trim()) {
       setErrorMsg('Target student roll number is required.');
+      return;
+    }
+    if (isSandbox) {
+      playCyberSound('success');
+      setSuccessMsg(`Sandbox preview: Reassigned to roll ${reassignRoll.trim()}.`);
+      closeDetail();
+      setTimeout(() => setSuccessMsg(''), 3000);
       return;
     }
     setIsSubmittingReassign(true);
@@ -145,9 +208,11 @@ export default function LowConfidenceReviewQueue({
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.detail || 'Reassignment failed.');
       }
+      const updated = await res.json().catch(() => null);
+      if (updated && updated.id) applyLocalUpdate(updated);
       playCyberSound('success');
       setSuccessMsg(`Attendance reassigned to roll ${reassignRoll.trim()}.`);
-      await fetchQueue();
+      fetchQueue({ showSpinner: false });
       setTimeout(() => setSuccessMsg(''), 3500);
       closeDetail();
     } catch (err) {
@@ -186,13 +251,12 @@ export default function LowConfidenceReviewQueue({
         <div className="golden-os-window">
           <div className="golden-os-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {errorMsg && (
-              <div role="alert" className="feedback-banner is-error">
+              <div role="alert" className="feedback-banner error">
                 <AlertTriangle size={16} style={{ flexShrink: 0 }} />
                 <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{errorMsg}</span>
               </div>
             )}
 
-            {/* Candidate Header Summary */}
             <div className="golden-os-form-section" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
                 <div className="golden-os-avatar" style={{ width: '46px', height: '46px', fontSize: '0.96rem' }}>
@@ -209,7 +273,6 @@ export default function LowConfidenceReviewQueue({
               </div>
             </div>
 
-            {/* Organized Inspection Details */}
             <div className="golden-os-form-section" style={{ gap: '8px' }}>
               <div className="golden-os-form-section-title">Detection Metadata</div>
               {[
@@ -248,7 +311,6 @@ export default function LowConfidenceReviewQueue({
               )}
             </div>
 
-            {/* Organized Controls for Pending Items */}
             {st === 'PENDING' && (
               <div className="golden-os-form-section" style={{ gap: '12px' }}>
                 <div className="golden-os-form-section-title">Review Controls</div>
@@ -355,8 +417,7 @@ export default function LowConfidenceReviewQueue({
                       <button
                         type="submit"
                         disabled={isSubmittingReassign}
-                        className="golden-os-primary-action"
-                        style={{ width: 'auto', padding: '9px 16px', borderRadius: '10px', fontSize: '0.82rem' }}
+                        className="golden-os-action-pill"
                       >
                         <span>{isSubmittingReassign ? 'Saving...' : 'Confirm Reassignment'}</span>
                       </button>
@@ -409,42 +470,40 @@ export default function LowConfidenceReviewQueue({
               type="button"
               onClick={() => {
                 playCyberSound('click');
-                fetchQueue();
+                fetchQueue({ showSpinner: false });
               }}
-              disabled={isLoading}
               className="golden-os-feedback-filter-btn"
-              style={{ padding: '8px 12px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}
+              style={{ flexShrink: 0 }}
             >
               <RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} />
-              <span>{isLoading ? 'Syncing' : 'Refresh'}</span>
+              <span>{isLoading ? 'Loading' : 'Refresh'}</span>
             </button>
           </div>
 
           {successMsg && (
-            <div role="status" className="feedback-banner is-success">
+            <div role="status" className="feedback-banner success">
               <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{successMsg}</span>
             </div>
           )}
 
           {errorMsg && (
-            <div role="alert" className="feedback-banner is-error">
+            <div role="alert" className="feedback-banner error">
               <AlertTriangle size={16} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{errorMsg}</span>
             </div>
           )}
 
-          {/* Crisp Single-Line Match List */}
-          {reviews.length === 0 ? (
+          {filteredReviews.length === 0 ? (
             <div className="golden-os-inset-card" style={{ padding: '32px 16px', alignItems: 'center', textAlign: 'center', gap: '8px' }}>
               <ScanFace size={30} style={{ color: '#9c8b6e' }} />
               <span style={{ fontWeight: 700, color: '#2b2112', fontSize: '0.92rem' }}>
-                {statusFilter === 'PENDING' ? 'No pending face reviews' : 'No matching records'}
+                {isLoading ? 'Loading face reviews...' : (statusFilter === 'PENDING' ? 'No pending face reviews' : 'No matching records')}
               </span>
             </div>
           ) : (
             <div className="golden-os-list-shell">
-              {reviews.map(item => (
+              {filteredReviews.map(item => (
                 <button
                   key={item.id}
                   type="button"
