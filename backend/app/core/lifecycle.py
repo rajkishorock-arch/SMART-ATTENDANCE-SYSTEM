@@ -47,23 +47,32 @@ def update_schema():
     db = SessionLocal()
     try:
         inspector = inspect(engine)
+        existing_tables = set(inspector.get_table_names())
+        table_columns_cache = {}
+
+        def _get_table_cols(table_name):
+            if table_name not in table_columns_cache:
+                table_columns_cache[table_name] = {
+                    c['name'].lower() for c in inspector.get_columns(table_name)
+                }
+            return table_columns_cache[table_name]
 
         def safe_add_column(table_name, column_name, col_def):
             try:
-                fresh_inspector = inspect(engine)
-                if table_name not in fresh_inspector.get_table_names():
+                if table_name not in existing_tables:
                     return
-                cols = [c['name'].lower() for c in fresh_inspector.get_columns(table_name)]
+                cols = _get_table_cols(table_name)
                 if column_name.lower() not in cols:
                     print(f"Adding {column_name} column to {table_name} table...")
                     db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {col_def}"))
                     db.commit()
+                    cols.add(column_name.lower())
                     print(f"Column {column_name} added successfully to {table_name} table.")
             except Exception as ex:
                 db.rollback()
                 err_msg = str(ex).lower()
                 if "already exists" in err_msg or "duplicate column" in err_msg or "duplicate key" in err_msg:
-                    pass
+                    table_columns_cache.setdefault(table_name, set()).add(column_name.lower())
                 else:
                     print(f"Skip {table_name}.{column_name}: {ex}")
 
@@ -118,30 +127,34 @@ def update_schema():
         safe_add_column('attendence', 'fallback_reason', 'VARCHAR(255) NULL')
         safe_add_column('attendence', 'session_key', 'VARCHAR(255) NULL')
 
-        # Phase 1B: Backfill session_key & Deduplicate legacy rows
+        # Phase 1B: Backfill session_key only if any rows still lack one
         try:
             from app import models
             from app.period_utils import generate_session_key
-            all_attendance = db.query(models.AttendanceModel).all()
-            key_groups = {}
-            for rec in all_attendance:
-                s_key = generate_session_key(rec.institution_id, rec.id, rec.date, rec.time, rec.subject_id)
-                if not rec.session_key or rec.session_key != s_key:
-                    rec.session_key = s_key
-                key_groups.setdefault(s_key, []).append(rec)
-            db.commit()
-
-            # Stage C: Clean up legacy duplicate rows if any exist
-            deleted_dups_count = 0
-            for s_key, rec_list in key_groups.items():
-                if len(rec_list) > 1:
-                    rec_list.sort(key=lambda r: (r.date or "", r.time or ""))
-                    for dup_rec in rec_list[1:]:
-                        db.delete(dup_rec)
-                        deleted_dups_count += 1
-            if deleted_dups_count > 0:
+            needs_backfill = db.query(models.AttendanceModel.record_id).filter(
+                (models.AttendanceModel.session_key == None) | (models.AttendanceModel.session_key == "")
+            ).first()
+            if needs_backfill:
+                all_attendance = db.query(models.AttendanceModel).all()
+                key_groups = {}
+                for rec in all_attendance:
+                    s_key = generate_session_key(rec.institution_id, rec.id, rec.date, rec.time, rec.subject_id)
+                    if not rec.session_key or rec.session_key != s_key:
+                        rec.session_key = s_key
+                    key_groups.setdefault(s_key, []).append(rec)
                 db.commit()
-                print(f"Phase 1B Migration: Cleaned up {deleted_dups_count} duplicate legacy attendance rows.")
+
+                # Stage C: Clean up legacy duplicate rows if any exist
+                deleted_dups_count = 0
+                for s_key, rec_list in key_groups.items():
+                    if len(rec_list) > 1:
+                        rec_list.sort(key=lambda r: (r.date or "", r.time or ""))
+                        for dup_rec in rec_list[1:]:
+                            db.delete(dup_rec)
+                            deleted_dups_count += 1
+                if deleted_dups_count > 0:
+                    db.commit()
+                    print(f"Phase 1B Migration: Cleaned up {deleted_dups_count} duplicate legacy attendance rows.")
         except Exception as bfk_err:
             db.rollback()
             print("Phase 1B Backfill warning:", bfk_err)
@@ -763,14 +776,8 @@ def ensure_primary_admin(db: Session):
                 print(f"Error seeding student '{s_info['name']}': {student_err}")
 
 
-def _background_startup_init():
-    """Background startup task executed on normal application launch."""
-    try:
-        create_db_and_tables()
-        update_schema()
-    except Exception as db_err:
-        print("Warning: background db/schema init error:", db_err)
-
+def _deferred_heavy_warmup():
+    """Run ONNX model downloads/warmup, dispute sync, and legacy embedding backfill after login path is free."""
     try:
         from app.face_utils import download_onnx_models
         download_onnx_models()
@@ -779,16 +786,34 @@ def _background_startup_init():
     except Exception as e:
         print("Error initializing/warming up ONNX models at startup:", e)
 
-    from app.database import SessionLocal
-    from app.crud import get_user_by_email, create_user, get_system_settings
-    from app.schemas import UserCreate
-    from app import models
     db = SessionLocal()
     try:
         from app.disputes import sync_all_approved_disputes
         sync_all_approved_disputes(db)
     except Exception as disp_err:
         print("Dispute startup sync notice:", disp_err)
+
+    try:
+        migrate_existing_student_embeddings(db)
+    except Exception as emb_err:
+        print("Embedding migration startup notice:", emb_err)
+    finally:
+        db.close()
+
+
+def _background_startup_init():
+    """Background startup task executed on normal application launch."""
+    try:
+        create_db_and_tables()
+        update_schema()
+    except Exception as db_err:
+        print("Warning: background db/schema init error:", db_err)
+
+    from app.database import SessionLocal
+    from app.crud import get_user_by_email, create_user, get_system_settings
+    from app.schemas import UserCreate
+    from app import models
+    db = SessionLocal()
 
     try:
         migrate_multi_tenant_seed(db)
@@ -851,7 +876,6 @@ def _background_startup_init():
 
         ensure_primary_admin(db)
         get_system_settings(db)
-        migrate_existing_student_embeddings(db)
 
         from app import scheduler
         scheduler.start()
@@ -859,6 +883,11 @@ def _background_startup_init():
         print("Error during background initialization:", e)
     finally:
         db.close()
+
+    # Schedule heavy ONNX/dispute/embedding tasks after initial HTTP login path is uncontested
+    t = threading.Timer(4.0, _deferred_heavy_warmup)
+    t.daemon = True
+    t.start()
 
 
 def on_startup():

@@ -144,6 +144,7 @@ def _issue_user_login_response(
     raw_password: str,
     rate_key: str,
     client_ip: Optional[str] = None,
+    preloaded_inst: Optional[models.Institution] = None,
 ) -> dict:
     """Upgrade legacy password hash if needed and build User JWT login response."""
     if security.needs_rehash(user.password_hash):
@@ -158,7 +159,7 @@ def _issue_user_login_response(
     access_token = security.create_access_token(
         data={"sub": user.email, "role": user.role, "institution_id": user.institution_id}
     )
-    inst = db.query(models.Institution).filter(models.Institution.id == user.institution_id).first()
+    inst = preloaded_inst if (preloaded_inst and preloaded_inst.id == user.institution_id) else db.query(models.Institution).filter(models.Institution.id == user.institution_id).first()
     inst_name = inst.name if inst else "Smart Attendance System"
     inst_slug = inst.slug if inst else "default"
     user_info = _build_user_session_payload(db, user, user.institution_id, inst_name, inst_slug)
@@ -171,6 +172,7 @@ def _issue_student_login_response(
     raw_password: str,
     rate_key: str,
     client_ip: Optional[str] = None,
+    preloaded_inst: Optional[models.Institution] = None,
 ) -> dict:
     """Upgrade legacy password hash if needed and build Student JWT login response."""
     if student.password_hash and security.needs_rehash(student.password_hash):
@@ -185,7 +187,7 @@ def _issue_student_login_response(
     access_token = security.create_access_token(
         data={"sub": student.email, "role": "student", "institution_id": student.institution_id}
     )
-    inst = db.query(models.Institution).filter(models.Institution.id == student.institution_id).first()
+    inst = preloaded_inst if (preloaded_inst and preloaded_inst.id == student.institution_id) else db.query(models.Institution).filter(models.Institution.id == student.institution_id).first()
     inst_name = inst.name if inst else "Smart Attendance System"
     inst_slug = inst.slug if inst else "default"
     student_info = {
@@ -299,8 +301,8 @@ def login_for_access_token(
                     )
                 institution_id = inst.id
             else:
-                inst = db.query(models.Institution).filter(models.Institution.id == 1).first()
-                institution_id = inst.id if inst else 1
+                inst = None
+                institution_id = 1
 
             # For Default/System institution (id==1):
             # - ADMIN logins are restricted to System Owner only
@@ -324,7 +326,7 @@ def login_for_access_token(
 
                 if not is_restricted_default_admin and security.verify_password(form_data.password, user.password_hash):
                     return _issue_user_login_response(
-                        db, user, form_data.password, rate_key, client_ip=client_ip
+                        db, user, form_data.password, rate_key, client_ip=client_ip, preloaded_inst=inst
                     )
 
                 # When no explicit tenant code was supplied, fall back to a matching active tenant account
@@ -370,7 +372,7 @@ def login_for_access_token(
             if student:
                 if _verify_student_password(db, student, form_data.password):
                     return _issue_student_login_response(
-                        db, student, form_data.password, rate_key, client_ip=client_ip
+                        db, student, form_data.password, rate_key, client_ip=client_ip, preloaded_inst=inst
                     )
 
                 if not is_explicit_tenant:

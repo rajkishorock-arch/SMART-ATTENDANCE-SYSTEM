@@ -589,6 +589,7 @@ export default function App() {
     setIsLoading,
     serverWarmingUp,
     setServerWarmingUp,
+    isWakingOnSubmit,
     activeTelemetry,
     setActiveTelemetry,
     handleLogin: authHandleLogin,
@@ -7265,7 +7266,7 @@ export default function App() {
 
   const checkServerConnection = async () => {
     try {
-      const ok = await wakeBackend(API_BASE_URL);
+      const ok = await wakeBackend(API_BASE_URL, 10000);
       if (ok) {
         setServerWarmingUp(false);
         return true;
@@ -7280,30 +7281,28 @@ export default function App() {
     return false;
   };
 
-  // Eager server warmup on mount (pre-login)
+  // Silent pre-warm on mount; only surface warming state if a ping fails after 10s
   useEffect(() => {
     let isMounted = true;
+    let intervalId = null;
     const warmup = async () => {
       const isConnected = await checkServerConnection();
-      if (!isConnected) {
-        if (!isMounted) return;
+      if (!isConnected && isMounted) {
         setServerWarmingUp(true);
-        // Start polling retry check
-        const intervalId = setInterval(async () => {
+        intervalId = setInterval(async () => {
           const success = await checkServerConnection();
           if (success) {
             clearInterval(intervalId);
-            if (isMounted) {
-              setServerWarmingUp(false);
-            }
+            intervalId = null;
+            if (isMounted) setServerWarmingUp(false);
           }
         }, 5000);
-        return () => clearInterval(intervalId);
       }
     };
     warmup();
     return () => {
       isMounted = false;
+      if (intervalId) clearInterval(intervalId);
     };
   }, []);
 
@@ -9069,10 +9068,10 @@ export default function App() {
         onClearAuthError={() => setAuthError('')}
         onTenantSwitch={switchTenant}
         isLoading={isLoading}
+        isWakingOnSubmit={isWakingOnSubmit}
         serverWarmingUp={serverWarmingUp}
         onWakeServer={async () => {
-          setServerWarmingUp(true);
-          const ok = await wakeBackend(API_BASE_URL);
+          const ok = await wakeBackend(API_BASE_URL, 15000);
           if (ok) setServerWarmingUp(false);
         }}
         onSubmit={handleLogin}

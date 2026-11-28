@@ -145,18 +145,39 @@ export function estimateFaceBox(landmarks, canvasW, canvasH) {
   };
 }
 
-export async function wakeBackend(apiBaseUrl, timeoutMs = 3000) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${apiBaseUrl}/health/ping`, {
-      signal: controller.signal,
-      headers: { 'Cache-Control': 'no-cache' },
-    });
-    clearTimeout(t);
-    return res.ok;
-  } catch {
-    clearTimeout(t);
+let _inFlightWakePromise = null;
+
+export async function wakeBackend(apiBaseUrl, timeoutMs = 12000) {
+  if (!apiBaseUrl) return false;
+  if (_inFlightWakePromise) return _inFlightWakePromise;
+
+  _inFlightWakePromise = (async () => {
+    const deadline = Date.now() + Math.max(timeoutMs, 2500);
+    while (Date.now() < deadline) {
+      const remaining = deadline - Date.now();
+      const attemptTimeout = Math.min(remaining, 9000);
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), attemptTimeout);
+      try {
+        const res = await fetch(`${apiBaseUrl}/health/ping`, {
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        clearTimeout(t);
+        if (res.ok) return true;
+      } catch {
+        clearTimeout(t);
+      }
+      if (Date.now() + 1200 >= deadline) break;
+      await new Promise((r) => setTimeout(r, 1200));
+    }
     return false;
+  })();
+
+  try {
+    return await _inFlightWakePromise;
+  } finally {
+    _inFlightWakePromise = null;
   }
 }

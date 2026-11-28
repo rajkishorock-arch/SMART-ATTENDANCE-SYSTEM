@@ -16,33 +16,35 @@ import {
   Check,
   Copy,
   Building2,
+  RefreshCw,
   X
 } from 'lucide-react';
 import { getApiBaseUrl } from '../utils/platform';
 
 const ROLES = [
-  {
-    id: 'student',
-    label: 'Student',
-    icon: GraduationCap,
-    color: '#10b981',
-    description: 'Track attendance, view schedules & profiles'
-  },
-  {
-    id: 'teacher',
-    label: 'Teacher',
-    icon: UserCog,
-    color: '#916d30',
-    description: 'Mark attendance, manage logs & sessions'
-  },
-  {
-    id: 'admin',
-    label: 'Admin',
-    icon: Crown,
-    color: '#8b5cf6',
-    description: 'Full institution administration & reports'
-  }
+  { id: 'student', label: 'Student', icon: GraduationCap },
+  { id: 'teacher', label: 'Teacher', icon: UserCog },
+  { id: 'admin', label: 'Admin', icon: Crown }
 ];
+
+const SIGNUP_ROLES = [
+  { id: 'admin', label: 'New Institution', icon: Crown },
+  { id: 'student', label: 'Student', icon: GraduationCap },
+  { id: 'teacher', label: 'Teacher', icon: UserCog }
+];
+
+const inputStyleBase = {
+  width: '100%',
+  padding: '11px 14px',
+  borderRadius: '11px',
+  background: '#ffffff',
+  border: '1px solid #d9d0be',
+  color: '#25231f',
+  fontSize: '0.88rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.16s ease, box-shadow 0.16s ease'
+};
 
 export default function LoginPortal({
   loginRole,
@@ -57,18 +59,17 @@ export default function LoginPortal({
   onClearAuthError,
   onTenantSwitch,
   isLoading,
+  isWakingOnSubmit = false,
   onSubmit,
   serverWarmingUp,
   onWakeServer,
   onExploreGuest,
 }) {
-  // UI Controls
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isRegister, setIsRegister] = useState(false);
-  const [regStep, setRegStep] = useState(1); // 1, 2, 3
+  const [regStep, setRegStep] = useState(1);
 
-  // Registration Form States
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -79,21 +80,16 @@ export default function LoginPortal({
   const [regInstSlug, setRegInstSlug] = useState('');
   const [regRoll, setRegRoll] = useState('');
   const [regDep, setRegDep] = useState('');
-  const [regCourse] = useState('');
-  const [regYear] = useState('1st Year');
-  const [regSemester] = useState('Sem 1');
-  const [regGender] = useState('Male');
   const [regPhone, setRegPhone] = useState('');
   const [regConsent, setRegConsent] = useState(true);
 
   const [regError, setRegError] = useState('');
-  const [regSuccessMsg, setRegSuccessMsg] = useState('');
   const [regSuccessData, setRegSuccessData] = useState(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [showPostRegFaceEnroll, setShowPostRegFaceEnroll] = useState(false);
   const [publicDeptState, setPublicDeptState] = useState({
-    status: 'idle', // 'idle' | 'loading' | 'found' | 'not-found' | 'error'
+    status: 'idle',
     slug: '',
     institutionName: '',
     departments: []
@@ -152,7 +148,6 @@ export default function LoginPortal({
     ? { status: 'idle', slug: '', institutionName: '', departments: [] }
     : publicDeptState;
 
-  // Forgot Password Recovery Modal States
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSubmitted, setForgotSubmitted] = useState(false);
@@ -163,7 +158,6 @@ export default function LoginPortal({
     setForgotSubmitted(true);
   };
 
-  // Step 1 Validation
   const validateStep1 = () => {
     setRegError('');
     if (!regName.trim()) {
@@ -177,16 +171,15 @@ export default function LoginPortal({
     return true;
   };
 
-  // Step 2 Validation
   const validateStep2 = () => {
     setRegError('');
     if (loginRole === 'admin') {
       if (!regInstName.trim()) {
-        setRegError('Please enter your Institution / Organization Name.');
+        setRegError('Please enter your Institution Name.');
         return false;
       }
       if (!regInstSlug.trim()) {
-        setRegError('Please choose a short Institution Code or Identifier (e.g. dps-delhi).');
+        setRegError('Please choose a short Institution Code (e.g. dps-delhi).');
         return false;
       }
     } else {
@@ -195,11 +188,11 @@ export default function LoginPortal({
         return false;
       }
       if (effectivePublicDeptState.status === 'loading') {
-        setRegError('Verifying institution branches… please wait a moment.');
+        setRegError('Verifying institution branches… please wait.');
         return false;
       }
       if (effectivePublicDeptState.status === 'not-found') {
-        setRegError(`No active institution found for code "${regInstitutionCode.trim()}". Please check your Institution Code.`);
+        setRegError(`No active institution found for "${regInstitutionCode.trim()}".`);
         return false;
       }
       const hasRegisteredBranches = effectivePublicDeptState.status === 'found' && effectivePublicDeptState.departments.length > 0;
@@ -209,12 +202,12 @@ export default function LoginPortal({
           return false;
         }
         if (!regDep.trim()) {
-          setRegError(hasRegisteredBranches ? 'Please select a registered Academic Department from your institution.' : 'Please enter your Academic Department.');
+          setRegError(hasRegisteredBranches ? 'Please select your registered Academic Department.' : 'Please enter your Academic Department.');
           return false;
         }
       } else if (loginRole === 'teacher' || loginRole === 'hod') {
         if (!regDep.trim()) {
-          setRegError(hasRegisteredBranches ? 'Please select a registered Teaching Department from your institution.' : 'Please enter your Teaching Department.');
+          setRegError(hasRegisteredBranches ? 'Please select your registered Teaching Department.' : 'Please enter your Teaching Department.');
           return false;
         }
       }
@@ -222,13 +215,12 @@ export default function LoginPortal({
     return true;
   };
 
-  // Step 3 Validation & Submit
   const handleRegisterSubmit = async (e) => {
     if (e) e.preventDefault();
     setRegError('');
 
     if (regPassword.length < 6) {
-      setRegError('Password must be at least 6 characters long.');
+      setRegError('Password must be at least 6 characters.');
       return;
     }
     if (regPassword !== regConfirmPassword) {
@@ -236,7 +228,7 @@ export default function LoginPortal({
       return;
     }
     if (!regConsent) {
-      setRegError('Please accept the biometric & data processing consent.');
+      setRegError('Please accept consent to continue.');
       return;
     }
 
@@ -245,8 +237,8 @@ export default function LoginPortal({
     const isInstitution = loginRole === 'admin';
     const isStudent = loginRole === 'student';
 
-    let endpoint = '/auth/register/student';
-    let payload = {};
+    let endpoint;
+    let payload;
 
     if (isInstitution) {
       endpoint = '/auth/register/institution';
@@ -269,10 +261,10 @@ export default function LoginPortal({
         institution_code: regInstitutionCode.trim(),
         roll: regRoll.trim(),
         dep: regDep.trim(),
-        course: regCourse || 'General',
-        year: regYear,
-        semester: regSemester,
-        gender: regGender,
+        course: 'General',
+        year: '1st Year',
+        semester: 'Sem 1',
+        gender: 'Male',
         phone: regPhone || null
       };
     } else {
@@ -337,243 +329,235 @@ export default function LoginPortal({
   };
 
   const activeRole = ROLES.find((r) => r.id === loginRole) || ROLES[0];
+  const activeErrorMessage = regError || (authError === 'Unauthorized' ? 'Email or password is incorrect.' : authError);
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       width: '100%',
-      background: 'var(--bg-canvas)',
+      background: 'linear-gradient(155deg, #fbf8f1 0%, #f3ecdc 55%, #f9f6ef 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px 16px',
+      padding: '16px 14px',
       fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
       color: '#25231f',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      overflowY: 'auto'
     }}>
-      <div 
-        className="auth-card-motion"
+      <div
+        className="golden-os-window auth-card-motion"
         style={{
           width: '100%',
-          maxWidth: '480px',
-          background: '#ffffff',
-          border: '1px solid var(--border-color)',
-          borderRadius: '20px',
-          boxShadow: '0 20px 50px rgba(15, 23, 42, 0.08)',
+          maxWidth: '430px',
+          borderRadius: '22px',
+          border: '1px solid #dfd4be',
+          boxShadow: '0 22px 48px rgba(72, 56, 26, 0.10)',
           overflow: 'hidden',
-          display: 'grid',
-          gridTemplateColumns: '1fr'
+          margin: 'auto 0'
         }}
       >
-        {/* Form Column */}
         <div style={{
-          padding: 'clamp(20px, 4vw, 40px) clamp(14px, 3.5vw, 36px)',
+          padding: 'clamp(18px, 4vw, 28px) clamp(16px, 4vw, 28px)',
           display: 'flex',
           flexDirection: 'column',
+          gap: '14px',
           width: '100%',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          overflowX: 'hidden'
+          boxSizing: 'border-box'
         }}>
-          
-          {/* Header Mobile Brand */}
-          {(
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+          {/* Top Brand Bar + Mode Switch */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
               <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '9px',
                 background: 'linear-gradient(145deg, #8a6836, #554020)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
               }}>
-                <ShieldCheck size={20} color="#ffffff" />
+                <ShieldCheck size={17} color="#ffffff" />
               </div>
-              <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#25231f', margin: 0 }}>
-                  Smart Attendance
-                </h3>
-              </div>
+              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#25231f', letterSpacing: '-0.01em' }}>
+                Smart Attendance
+              </span>
             </div>
-          )}
 
-          {/* Login / Register Toggle Header */}
-          <div style={{ marginBottom: '24px' }}>
-            <h1 style={{ fontSize: 'clamp(1.65rem, 4vw, 2rem)', fontWeight: 650, color: '#25231f', margin: 0, letterSpacing: '-0.02em' }}>
-              {isRegister ? 'Create Your Account' : 'Welcome back'}
-            </h1>
-            <p style={{ fontSize: '0.85rem', color: '#696358', margin: '4px 0 0' }}>
-              {isRegister 
-                ? 'Join your institutional workspace in 3 quick steps'
-                : 'Sign in to access your attendance workspace'}
-            </p>
-          </div>
-
-          {/* Server Warming Warning */}
-          {serverWarmingUp && !isRegister && (
-            <div style={{
-              padding: '12px 16px',
-              borderRadius: '12px',
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              color: '#f59e0b',
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>
-                  Server is waking up. Please try again in a moment.
-                </span>
-              </div>
+            {!regSuccessData && !showPostRegFaceEnroll && (
               <button
                 type="button"
-                onClick={onWakeServer}
+                onClick={() => {
+                  setRegError('');
+                  onClearAuthError?.();
+                  setIsRegister(!isRegister);
+                  setRegStep(1);
+                }}
                 style={{
-                  padding: '4px 10px',
-                  background: 'rgba(245, 158, 11, 0.2)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: '#fbbf24',
-                  fontSize: '0.75rem',
+                  padding: '5px 11px',
+                  borderRadius: '999px',
+                  background: '#faf5ea',
+                  border: '1px solid #dfd3b8',
+                  color: '#6e5225',
+                  fontSize: '0.74rem',
                   fontWeight: 700,
                   cursor: 'pointer'
                 }}
               >
-                Reconnect
+                {isRegister ? 'Sign In' : 'Sign Up'}
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Error Message Alert */}
-          {(authError || regError) && (
-            <div 
+          {/* Crisp Single-Line Title */}
+          <div>
+            <h1 style={{
+              fontSize: 'clamp(1.45rem, 3.8vw, 1.75rem)',
+              fontWeight: 800,
+              color: '#25231f',
+              margin: 0,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2
+            }}>
+              {isRegister ? 'Create Account' : 'Welcome back'}
+            </h1>
+          </div>
+
+          {/* Single Unified Error / Connection Notice (Never Dual Stacked Boxes) */}
+          {activeErrorMessage ? (
+            <div
               className="auth-error-shake"
+              role="alert"
               style={{
-                padding: '12px 16px',
-                borderRadius: '12px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#ef4444',
-                marginBottom: '20px',
+                padding: '10px 12px',
+                borderRadius: '11px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
-                fontSize: '0.82rem',
-                fontWeight: 600
+                gap: '9px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                lineHeight: 1.35
               }}
             >
               <AlertCircle size={16} style={{ flexShrink: 0 }} />
-              <span>{regError || (authError === 'Unauthorized' ? 'Email or password is incorrect.' : authError)}</span>
+              <span style={{ flex: 1 }}>{activeErrorMessage}</span>
             </div>
-          )}
-
-          {/* Registration Success Notification Banner */}
-          {regSuccessMsg && (
-            <div 
+          ) : serverWarmingUp && !isRegister && !isLoading ? (
+            <div
               style={{
-                padding: '14px 18px',
-                borderRadius: '12px',
-                background: '#ecfdf5',
-                border: '1px solid #a7f3d0',
-                color: '#065f46',
-                marginBottom: '20px',
+                padding: '8px 12px',
+                borderRadius: '11px',
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                color: '#92400e',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: '10px',
-                fontSize: '0.84rem',
-                fontWeight: 600,
-                lineHeight: 1.4
+                fontSize: '0.78rem',
+                fontWeight: 600
               }}
             >
-              <CheckCircle2 size={18} color="#059669" style={{ flexShrink: 0 }} />
-              <span>{regSuccessMsg}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <RefreshCw size={14} style={{ flexShrink: 0 }} />
+                <span>Connecting to server...</span>
+              </span>
+              {typeof onWakeServer === 'function' && (
+                <button
+                  type="button"
+                  onClick={onWakeServer}
+                  style={{
+                    padding: '4px 10px',
+                    background: '#fef3c7',
+                    border: '1px solid #fcd34d',
+                    borderRadius: '7px',
+                    color: '#78350f',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Retry
+                </button>
+              )}
             </div>
-          )}
+          ) : null}
 
-          {/* Registration Success / Guided Post-Signup Step */}
+          {/* Registration Success Views */}
           {regSuccessData ? (
-            <div style={{
-              padding: '24px',
-              borderRadius: '16px',
-              background: '#faf9f6',
-              border: '1.5px solid #cfc8ba',
-              boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
-              marginBottom: '20px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CheckCircle2 size={22} color="#059669" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="golden-os-inset-card" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CheckCircle2 size={20} color="#059669" />
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#25231f' }}>
-                    Institution Workspace Provisioned!
-                  </h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#696358' }}>
-                    Your multi-tenant workspace is live and isolated.
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ background: '#ffffff', border: '1px solid #e4dfd5', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.82rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '8px' }}>
-                  <span style={{ color: '#696358', fontWeight: 600 }}>Institution Name:</span>
-                  <span style={{ color: '#25231f', fontWeight: 700 }}>{regSuccessData.institution_name}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '8px' }}>
-                  <span style={{ color: '#696358', fontWeight: 600 }}>Institution code:</span>
-                  <span style={{ color: '#80602c', fontWeight: 800, fontFamily: 'monospace' }}>{regSuccessData.institution_code}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f1eb', paddingBottom: '8px' }}>
-                  <span style={{ color: '#696358', fontWeight: 600 }}>Admin Login Email:</span>
-                  <span style={{ color: '#25231f', fontWeight: 600 }}>{regSuccessData.admin_email}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '10px', padding: '10px 14px' }}>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.72rem', color: '#be123c', fontWeight: 700, textTransform: 'uppercase' }}>
-                      Workspace Master Key
-                    </span>
-                    <span style={{ fontFamily: 'Consolas, monospace', fontSize: '1.05rem', fontWeight: 800, color: '#9f1239', letterSpacing: '1px' }}>
-                      {regSuccessData.master_key}
-                    </span>
+                <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#25231f' }}>
+                    Workspace Created
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(regSuccessData.master_key);
-                      setCopiedKey(true);
-                      setTimeout(() => setCopiedKey(false), 2000);
-                    }}
-                    style={{
-                      background: copiedKey ? '#059669' : '#e11d48',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '8px 14px',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}
-                  >
-                    {copiedKey ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{copiedKey ? 'Copied!' : 'Copy Key'}</span>
-                  </button>
+                  <div style={{ fontSize: '0.76rem', color: '#696358' }}>
+                    Save your master recovery key below
+                  </div>
                 </div>
               </div>
 
-              <p style={{ margin: '12px 0 16px', fontSize: '0.75rem', color: '#58534a', lineHeight: 1.45 }}>
-                🔒 <strong>Please note down this Master Key!</strong> It is required to approve critical administrative actions (reset operations, student deletions, and master password modifications). A copy has also been sent to your email.
-              </p>
+              <div className="golden-os-list-shell">
+                <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                  <span style={{ color: '#696358', fontSize: '0.82rem' }}>Institution</span>
+                  <strong style={{ color: '#25231f', fontSize: '0.84rem' }}>{regSuccessData.institution_name}</strong>
+                </div>
+                <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                  <span style={{ color: '#696358', fontSize: '0.82rem' }}>Code</span>
+                  <strong style={{ color: '#785927', fontFamily: 'monospace', fontSize: '0.86rem' }}>{regSuccessData.institution_code}</strong>
+                </div>
+                <div className="golden-os-list-row" style={{ cursor: 'default' }}>
+                  <span style={{ color: '#696358', fontSize: '0.82rem' }}>Admin Email</span>
+                  <strong style={{ color: '#25231f', fontSize: '0.82rem' }}>{regSuccessData.admin_email}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '10px 12px' }}>
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.68rem', color: '#be123c', fontWeight: 700, textTransform: 'uppercase' }}>
+                    Master Key
+                  </span>
+                  <span style={{ fontFamily: 'Consolas, monospace', fontSize: '0.98rem', fontWeight: 800, color: '#9f1239' }}>
+                    {regSuccessData.master_key}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(regSuccessData.master_key);
+                    setCopiedKey(true);
+                    setTimeout(() => setCopiedKey(false), 2000);
+                  }}
+                  style={{
+                    background: copiedKey ? '#059669' : '#e11d48',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '7px 12px',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  {copiedKey ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copiedKey ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
 
               <button
                 type="button"
+                className="golden-os-primary-action"
+                style={{ justifyContent: 'center' }}
                 onClick={() => {
                   const code = regSuccessData?.institution_code;
                   if (code) setLoginWorkspaceSlug?.(code);
@@ -583,105 +567,85 @@ export default function LoginPortal({
                   onClearAuthError?.();
                   setRegSuccessData(null);
                 }}
-                style={{
-                  width: '100%',
-                  padding: '11px 16px',
-                  borderRadius: '10px',
-                  background: 'var(--color-primary)',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
               >
                 Proceed to Login
               </button>
             </div>
           ) : showPostRegFaceEnroll ? (
-            <div style={{ padding: '28px', borderRadius: '16px', background: '#ecfdf5', border: '1px solid #a7f3d0', textAlign: 'center' }}>
-              <CheckCircle2 size={44} color="#059669" style={{ margin: '0 auto 12px auto' }} />
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46', margin: 0 }}>Account Created Successfully!</h3>
-              <p style={{ fontSize: '0.84rem', color: '#46423b', margin: '8px 0 20px 0', lineHeight: 1.5 }}>
-                You can now log in using your credentials. Face enrollment is recommended for biometric attendance scanning.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'center', padding: '8px 0' }}>
+              <CheckCircle2 size={42} color="#059669" style={{ margin: '0 auto' }} />
+              <div style={{ fontSize: '1.08rem', fontWeight: 800, color: '#065f46' }}>Account Created</div>
+              <p style={{ fontSize: '0.82rem', color: '#58534a', margin: 0, lineHeight: 1.45 }}>
+                Your account is ready. Sign in now to complete face enrollment.
               </p>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRegError('');
-                    onClearAuthError?.();
-                    setShowPostRegFaceEnroll(false);
-                    setIsRegister(false);
-                  }}
-                  style={{
-                    padding: '10px 22px',
-                    borderRadius: '10px',
-                    background: '#059669',
-                    border: 'none',
-                    color: '#ffffff',
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Proceed to Login
-                </button>
-              </div>
+              <button
+                type="button"
+                className="golden-os-primary-action"
+                style={{ justifyContent: 'center' }}
+                onClick={() => {
+                  setRegError('');
+                  onClearAuthError?.();
+                  setShowPostRegFaceEnroll(false);
+                  setIsRegister(false);
+                }}
+              >
+                Proceed to Login
+              </button>
             </div>
           ) : !isRegister ? (
-            /* ================= LOGIN FORM ================= */
+            /* ================= ORGANIZED GOLDEN GATE LOGIN ================= */
             <>
-              {/* Role Selection Tabs (Student, Teacher, Admin) */}
+              {/* Segmented Role Tabs */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '6px',
+                gap: '5px',
                 padding: '4px',
                 borderRadius: '12px',
-                background: '#f4f1eb',
-                border: '1px solid #e4dfd5',
-                marginBottom: '20px',
+                background: '#f1ebe0',
+                border: '1px solid #e2d8c5',
                 width: '100%',
                 boxSizing: 'border-box'
               }}>
-                {ROLES.map(role => (
-                  <button
-                    key={role.id}
-                    type="button"
-                    aria-pressed={loginRole === role.id}
-                    onClick={() => setLoginRole(role.id)}
-                    style={{
-                      width: '100%',
-                      padding: '9px 4px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: loginRole === role.id ? '#ffffff' : 'transparent',
-                      color: loginRole === role.id ? '#25231f' : '#696358',
-                      fontSize: '0.82rem',
-                      fontWeight: loginRole === role.id ? 700 : 500,
-                      boxShadow: loginRole === role.id ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '5px',
-                      transition: 'all 0.15s ease',
-                      boxSizing: 'border-box',
-                      minWidth: 0
-                    }}
-                  >
-                    <role.icon size={15} color={loginRole === role.id ? 'var(--color-primary)' : '#696358'} style={{ flexShrink: 0 }} />
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{role.label}</span>
-                  </button>
-                ))}
+                {ROLES.map(role => {
+                  const selected = loginRole === role.id;
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setLoginRole(role.id)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 4px',
+                        borderRadius: '9px',
+                        border: 'none',
+                        background: selected ? '#ffffff' : 'transparent',
+                        color: selected ? '#25231f' : '#696358',
+                        fontSize: '0.8rem',
+                        fontWeight: selected ? 700 : 600,
+                        boxShadow: selected ? '0 1px 4px rgba(72, 56, 26, 0.09)' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        minWidth: 0
+                      }}
+                    >
+                      <role.icon size={15} color={selected ? '#785927' : '#696358'} style={{ flexShrink: 0 }} />
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{role.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Institution / Workspace Code (Optional) */}
+              <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Institution Code (Optional) */}
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                    Institution Code <span style={{ color: '#94a3b8', fontWeight: 400 }}>(e.g. rit — optional)</span>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <span>Institution Code</span>
+                    <span style={{ color: '#8c8374', fontWeight: 500 }}>Optional</span>
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -697,27 +661,16 @@ export default function LoginPortal({
                         }
                         onClearAuthError?.();
                       }}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px 12px 40px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#25231f',
-                        fontSize: '0.88rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        transition: 'border-color 0.15s ease'
-                      }}
+                      style={{ ...inputStyleBase, paddingLeft: '38px' }}
                     />
-                    <Building2 size={16} color="#696358" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <Building2 size={15} color="#787166" style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   </div>
                 </div>
 
                 {/* Email / Roll / Username */}
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                    {loginRole === 'student' ? 'Student Roll No. or Email' : 'Email or Username'}
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
+                    {loginRole === 'student' ? 'Roll No. or Email' : 'Email or Username'}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -725,29 +678,21 @@ export default function LoginPortal({
                       className="form-input-touch"
                       placeholder={loginRole === 'student' ? 'e.g. 7 or student@institution.edu' : 'e.g. user@institution.edu'}
                       value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
+                      onChange={(e) => {
+                        setLoginEmail(e.target.value);
+                        if (authError) onClearAuthError?.();
+                      }}
                       onFocus={() => { if (typeof onWakeServer === 'function') onWakeServer(); }}
                       required
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px 12px 40px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#25231f',
-                        fontSize: '0.88rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        transition: 'border-color 0.15s ease'
-                      }}
+                      style={{ ...inputStyleBase, paddingLeft: '38px' }}
                     />
-                    <Mail size={16} color="#696358" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <Mail size={15} color="#787166" style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   </div>
                 </div>
 
-                {/* Password with Eye Toggle */}
+                {/* Password */}
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
                     Password
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -756,28 +701,22 @@ export default function LoginPortal({
                       className="form-input-touch"
                       placeholder="••••••••"
                       value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
+                      onChange={(e) => {
+                        setLoginPassword(e.target.value);
+                        if (authError) onClearAuthError?.();
+                      }}
                       onFocus={() => { if (typeof onWakeServer === 'function') onWakeServer(); }}
                       required
-                      style={{
-                        width: '100%',
-                        padding: '12px 40px 12px 40px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#25231f',
-                        fontSize: '0.88rem',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ ...inputStyleBase, paddingLeft: '38px', paddingRight: '38px' }}
                     />
-                    <Lock size={16} color="#696358" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <Lock size={15} color="#787166" style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                     <button
                       type="button"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                       onClick={() => setShowPassword(!showPassword)}
                       style={{
                         position: 'absolute',
-                        right: '12px',
+                        right: '10px',
                         top: '50%',
                         transform: 'translateY(-50%)',
                         background: 'none',
@@ -794,9 +733,9 @@ export default function LoginPortal({
                   </div>
                 </div>
 
-                {/* Remember Me & Forgot Password Row */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#58534a', cursor: 'pointer' }}>
+                {/* Remember Me & Forgot Password */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#58534a', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={rememberMe}
@@ -809,74 +748,57 @@ export default function LoginPortal({
                   <button
                     type="button"
                     onClick={() => { setShowForgotPasswordModal(true); setForgotSubmitted(false); setForgotEmail(loginEmail || ''); }}
-                    style={{ background: 'none', border: 'none', color: '#80602c', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ background: 'none', border: 'none', color: '#785927', cursor: 'pointer', fontWeight: 700, padding: 0 }}
                   >
                     Forgot password?
                   </button>
                 </div>
 
-                {/* Sign In Button */}
+                {/* Primary Sign In CTA */}
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="btn-touch-target"
+                  className="golden-os-primary-action btn-touch-target"
                   style={{
-                    marginTop: '8px',
+                    marginTop: '4px',
                     width: '100%',
-                    padding: '12px 20px',
-                    borderRadius: '10px',
-                    background: 'var(--color-primary)',
-                    border: 'none',
-                    color: '#ffffff',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    cursor: isLoading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
+                    minHeight: '44px',
                     justifyContent: 'center',
-                    gap: '8px',
-                    opacity: isLoading ? 0.7 : 1,
-                    transition: 'all 0.15s ease'
+                    opacity: isLoading ? 0.8 : 1
                   }}
                 >
-                  {isLoading ? 'Signing you in...' : `Sign In as ${activeRole.label}`}
+                  <span>
+                    {isLoading
+                      ? (isWakingOnSubmit ? 'Waking server...' : 'Signing in...')
+                      : `Sign In as ${activeRole.label}`}
+                  </span>
                 </button>
               </form>
 
-              {/* Divider & SSO Option */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0 16px 0' }}>
-                <div style={{ flex: 1, height: '1px', background: '#e4dfd5' }} />
-                <span style={{ fontSize: '0.72rem', color: '#696358', fontWeight: 600, textTransform: 'uppercase' }}>or continue with</span>
-                <div style={{ flex: 1, height: '1px', background: '#e4dfd5' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '2px 0' }}>
+                <div style={{ flex: 1, height: '1px', background: '#e6dfd0' }} />
+                <span style={{ fontSize: '0.68rem', color: '#8c8374', fontWeight: 700, textTransform: 'uppercase' }}>or</span>
+                <div style={{ flex: 1, height: '1px', background: '#e6dfd0' }} />
               </div>
 
-              {/* Guest / SSO Quick Action */}
               <button
                 type="button"
+                className="golden-os-feedback-filter-btn"
                 onClick={() => onExploreGuest(loginRole)}
                 style={{
                   width: '100%',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  background: '#faf9f6',
-                  border: '1px solid #cfc8ba',
-                  color: '#46423b',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  padding: '10px 14px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600
                 }}
               >
-                <Sparkles size={15} color="#80602c" />
+                <Sparkles size={14} color="#785927" />
                 <span>Explore Guest Demo Mode</span>
               </button>
 
-              {/* Signup Link Footer */}
-              <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.82rem', color: '#696358' }}>
-                Don't have an account or onboarding a new school?{' '}
+              <div style={{ textAlign: 'center', fontSize: '0.78rem', color: '#696358' }}>
+                New user or institution?{' '}
                 <button
                   type="button"
                   onClick={() => {
@@ -885,77 +807,90 @@ export default function LoginPortal({
                     setIsRegister(true);
                     setRegStep(1);
                   }}
-                  style={{ background: 'none', border: 'none', color: '#80602c', cursor: 'pointer', fontWeight: 700, padding: 0 }}
+                  style={{ background: 'none', border: 'none', color: '#785927', cursor: 'pointer', fontWeight: 700, padding: 0 }}
                 >
                   Sign up now
                 </button>
               </div>
             </>
           ) : (
-            /* ================= 3-STEP SIGNUP WIZARD ================= */
-            <div>
-              {/* Wizard Progress Bar */}
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#80602c', marginBottom: '8px' }}>
+            /* ================= ORGANIZED 3-STEP SIGNUP WIZARD ================= */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Compact Stepper Header */}
+              <div style={{ background: '#f5f0e4', border: '1px solid #e4dccb', borderRadius: '12px', padding: '10px 12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 700, color: '#785927', marginBottom: '7px' }}>
                   <span>Step {regStep} of 3</span>
-                  <span>{regStep === 1 ? 'Personal Details' : regStep === 2 ? (loginRole === 'admin' ? 'Institution Info' : 'Academic Info') : 'Security & Consent'}</span>
+                  <span style={{ color: '#46423b' }}>
+                    {regStep === 1 ? 'Account Details' : regStep === 2 ? (loginRole === 'admin' ? 'Institution Setup' : 'Campus & Branch') : 'Password & Consent'}
+                  </span>
                 </div>
-                <div style={{ width: '100%', height: '4px', background: '#e4dfd5', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${(regStep / 3) * 100}%`, height: '100%', background: 'var(--color-primary)', transition: 'width 0.25s ease' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '5px' }}>
+                  {[1, 2, 3].map(step => (
+                    <div
+                      key={step}
+                      style={{
+                        height: '4px',
+                        borderRadius: '999px',
+                        background: step <= regStep ? '#785927' : '#dfd6c5',
+                        transition: 'background 0.2s ease'
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
 
-              {/* STEP 1: Personal Details & Role */}
+              {/* STEP 1: Role + Identity */}
               {regStep === 1 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                      Registering As
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                      Account Type
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                      {[
-                        { id: 'admin', label: 'New Institution', icon: Crown, color: '#8b5cf6' },
-                        { id: 'student', label: 'Student', icon: GraduationCap, color: '#10b981' },
-                        { id: 'teacher', label: 'Teacher', icon: UserCog, color: '#80602c' }
-                      ].map(role => (
-                        <button
-                          key={role.id}
-                          type="button"
-                          aria-pressed={loginRole === role.id}
-                    onClick={() => setLoginRole(role.id)}
-                          style={{
-                            padding: '10px 6px',
-                            borderRadius: '10px',
-                            border: loginRole === role.id ? `2px solid ${role.color}` : '1px solid #cfc8ba',
-                            background: loginRole === role.id ? '#faf9f6' : '#ffffff',
-                            color: loginRole === role.id ? '#25231f' : '#696358',
-                            fontSize: '0.8rem',
-                            fontWeight: loginRole === role.id ? 700 : 500,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            transition: 'all 0.15s ease',
-                            boxShadow: loginRole === role.id ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
-                          }}
-                        >
-                          <role.icon size={18} color={role.color} />
-                          <span style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{role.label}</span>
-                        </button>
-                      ))}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '5px',
+                      padding: '4px',
+                      borderRadius: '12px',
+                      background: '#f1ebe0',
+                      border: '1px solid #e2d8c5'
+                    }}>
+                      {SIGNUP_ROLES.map(role => {
+                        const selected = loginRole === role.id;
+                        return (
+                          <button
+                            key={role.id}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => setLoginRole(role.id)}
+                            style={{
+                              padding: '8px 4px',
+                              borderRadius: '9px',
+                              border: 'none',
+                              background: selected ? '#ffffff' : 'transparent',
+                              color: selected ? '#25231f' : '#696358',
+                              fontSize: '0.76rem',
+                              fontWeight: selected ? 700 : 600,
+                              boxShadow: selected ? '0 1px 4px rgba(72, 56, 26, 0.09)' : 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <role.icon size={15} color={selected ? '#785927' : '#696358'} />
+                            <span style={{ textAlign: 'center', lineHeight: 1.15 }}>{role.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    {loginRole === 'admin' && (
-                      <p style={{ margin: '8px 0 0', fontSize: '0.74rem', color: '#6d28d9', background: '#f5f3ff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd6fe', lineHeight: 1.4 }}>
-                        🏫 <strong>New School / College / Org:</strong> Automatically provisions an isolated multi-tenant organization database space and your primary Administrator account.
-                      </p>
-                    )}
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                      {loginRole === 'admin' ? 'Administrator Full Name' : 'Full Name'}
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
+                      {loginRole === 'admin' ? 'Administrator Name' : 'Full Name'}
                     </label>
                     <input
                       type="text"
@@ -963,23 +898,13 @@ export default function LoginPortal({
                       placeholder={loginRole === 'admin' ? 'e.g. Dr. Rajesh Sharma' : 'e.g. Rajkishor Rock'}
                       value={regName}
                       onChange={(e) => setRegName(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#25231f',
-                        fontSize: '0.88rem',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
+                      style={inputStyleBase}
                     />
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                      {loginRole === 'admin' ? 'Administrator Work Email' : 'Email Address'}
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
+                      {loginRole === 'admin' ? 'Work Email' : 'Email Address'}
                     </label>
                     <input
                       type="email"
@@ -987,61 +912,37 @@ export default function LoginPortal({
                       placeholder={loginRole === 'admin' ? 'admin@institution.edu' : 'name@institution.edu'}
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#25231f',
-                        fontSize: '0.88rem',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
+                      style={inputStyleBase}
                     />
                   </div>
 
                   <button
                     type="button"
+                    className="golden-os-primary-action"
+                    style={{ width: '100%', justifyContent: 'center', marginTop: '2px' }}
                     onClick={() => {
                       if (validateStep1()) setRegStep(2);
                     }}
-                    style={{
-                      marginTop: '8px',
-                      width: '100%',
-                      padding: '12px 20px',
-                      borderRadius: '10px',
-                      background: 'var(--color-primary)',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontSize: '0.88rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
                   >
                     <span>{loginRole === 'admin' ? 'Continue to Institution Info' : 'Continue to Academic Info'}</span>
-                    <ArrowRight size={16} />
+                    <ArrowRight size={15} />
                   </button>
                 </div>
               )}
 
-              {/* STEP 2: Academic & Institution Details */}
+              {/* STEP 2: Campus & Academic Info */}
               {regStep === 2 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {loginRole === 'admin' ? (
                     <>
                       <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                          Institution / Organization Name
+                        <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
+                          Institution Name
                         </label>
                         <input
                           type="text"
                           className="form-input-touch"
-                          placeholder="e.g. Delhi Public School or Apex Engineering"
+                          placeholder="e.g. Apex Engineering College"
                           value={regInstName}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -1051,50 +952,28 @@ export default function LoginPortal({
                               setRegInstSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30));
                             }
                           }}
-                          style={{
-                            width: '100%',
-                            padding: '12px 14px',
-                            borderRadius: '10px',
-                            background: '#ffffff',
-                            border: '1px solid #cfc8ba',
-                            color: '#25231f',
-                            fontSize: '0.88rem',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
+                          style={inputStyleBase}
                         />
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                          Unique Institution Code / Slug
+                        <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
+                          Unique Institution Code
                         </label>
                         <input
                           type="text"
                           className="form-input-touch"
-                          placeholder="e.g. dps-delhi"
+                          placeholder="e.g. apex-eng"
                           value={regInstSlug}
                           onChange={(e) => setRegInstSlug(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
-                          style={{
-                            width: '100%',
-                            padding: '12px 14px',
-                            borderRadius: '10px',
-                            background: '#ffffff',
-                            border: '1px solid #cfc8ba',
-                            color: '#25231f',
-                            fontSize: '0.88rem',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
+                          style={inputStyleBase}
                         />
-                        <span style={{ fontSize: '0.72rem', color: '#696358', display: 'block', marginTop: '4px' }}>
-                          This unique identifier scopes your data and gives your staff and students a clean portal access code.
-                        </span>
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                          Primary Contact Phone (Optional)
+                        <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                          <span>Contact Phone</span>
+                          <span style={{ color: '#8c8374', fontWeight: 500 }}>Optional</span>
                         </label>
                         <input
                           type="tel"
@@ -1102,24 +981,14 @@ export default function LoginPortal({
                           placeholder="e.g. +91 9876543210"
                           value={regPhone}
                           onChange={(e) => setRegPhone(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '12px 14px',
-                            borderRadius: '10px',
-                            background: '#ffffff',
-                            border: '1px solid #cfc8ba',
-                            color: '#25231f',
-                            fontSize: '0.88rem',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
+                          style={inputStyleBase}
                         />
                       </div>
                     </>
                   ) : (
                     <>
                       <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
                           Institution Code
                         </label>
                         <input
@@ -1128,22 +997,12 @@ export default function LoginPortal({
                           placeholder="e.g. default or your school code"
                           value={regInstitutionCode}
                           onChange={(e) => setRegInstitutionCode(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '12px 14px',
-                            borderRadius: '10px',
-                            background: '#ffffff',
-                            border: '1px solid #cfc8ba',
-                            color: '#25231f',
-                            fontSize: '0.88rem',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
+                          style={inputStyleBase}
                         />
                         {regInstitutionCode.trim() && (
                           <div style={{
-                            marginTop: '6px',
-                            fontSize: '0.74rem',
+                            marginTop: '5px',
+                            fontSize: '0.73rem',
                             fontWeight: 600,
                             color: effectivePublicDeptState.status === 'found'
                               ? '#059669'
@@ -1151,10 +1010,10 @@ export default function LoginPortal({
                                 ? '#dc2626'
                                 : '#696358'
                           }}>
-                            {effectivePublicDeptState.status === 'loading' && 'Checking institution & registered branches…'}
-                            {effectivePublicDeptState.status === 'found' && `✓ ${effectivePublicDeptState.institutionName} • ${effectivePublicDeptState.departments.length} registered branch${effectivePublicDeptState.departments.length === 1 ? '' : 'es'}`}
-                            {effectivePublicDeptState.status === 'not-found' && `No active institution matches "${regInstitutionCode.trim()}". Check the institution code.`}
-                            {effectivePublicDeptState.status === 'error' && 'Could not look up branches online — you can enter the department name below.'}
+                            {effectivePublicDeptState.status === 'loading' && 'Checking institution & branches…'}
+                            {effectivePublicDeptState.status === 'found' && `✓ ${effectivePublicDeptState.institutionName} (${effectivePublicDeptState.departments.length} branch${effectivePublicDeptState.departments.length === 1 ? '' : 'es'})`}
+                            {effectivePublicDeptState.status === 'not-found' && `No active institution matches "${regInstitutionCode.trim()}".`}
+                            {effectivePublicDeptState.status === 'error' && 'Could not fetch branches — enter department below.'}
                           </div>
                         )}
                       </div>
@@ -1169,20 +1028,9 @@ export default function LoginPortal({
                             aria-label={fieldLabel}
                             value={regDep}
                             onChange={(e) => setRegDep(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '12px 14px',
-                              borderRadius: '10px',
-                              background: '#ffffff',
-                              border: '1px solid #cfc8ba',
-                              color: regDep ? '#25231f' : '#696358',
-                              fontSize: '0.88rem',
-                              outline: 'none',
-                              boxSizing: 'border-box',
-                              cursor: 'pointer'
-                            }}
+                            style={{ ...inputStyleBase, cursor: 'pointer', color: regDep ? '#25231f' : '#696358' }}
                           >
-                            <option value="">Select a registered branch ({effectivePublicDeptState.departments.length} available)</option>
+                            <option value="">Select registered branch ({effectivePublicDeptState.departments.length})</option>
                             {effectivePublicDeptState.departments.map(dept => (
                               <option key={dept.id || dept.name} value={dept.name}>
                                 {dept.code ? `${dept.name} (${dept.code})` : dept.name}
@@ -1195,59 +1043,31 @@ export default function LoginPortal({
                             aria-label={fieldLabel}
                             disabled
                             value=""
-                            style={{
-                              width: '100%',
-                              padding: '12px 14px',
-                              borderRadius: '10px',
-                              background: '#f5f2eb',
-                              border: '1px solid #dfd8ca',
-                              color: '#696358',
-                              fontSize: '0.86rem',
-                              outline: 'none',
-                              boxSizing: 'border-box',
-                              cursor: 'not-allowed'
-                            }}
+                            style={{ ...inputStyleBase, background: '#f4f0e6', color: '#696358', cursor: 'not-allowed' }}
                           >
                             <option value="">
                               {!regInstitutionCode.trim()
-                                ? 'Enter Institution Code above to load registered branches'
-                                : 'Enter a valid Institution Code to load branches'}
+                                ? 'Enter Institution Code first'
+                                : 'Enter a valid Institution Code'}
                             </option>
                           </select>
                         ) : (
-                          <>
-                            <input
-                              type="text"
-                              className="form-input-touch"
-                              placeholder={loginRole === 'student' ? 'e.g. Mechanical Engineering' : 'e.g. Computer Science'}
-                              value={regDep}
-                              onChange={(e) => setRegDep(e.target.value)}
-                              style={{
-                                width: '100%',
-                                padding: '12px 14px',
-                                borderRadius: '10px',
-                                background: '#ffffff',
-                                border: '1px solid #cfc8ba',
-                                color: '#25231f',
-                                fontSize: '0.88rem',
-                                outline: 'none',
-                                boxSizing: 'border-box'
-                              }}
-                            />
-                            {effectivePublicDeptState.status === 'found' && effectivePublicDeptState.departments.length === 0 && (
-                              <span style={{ fontSize: '0.72rem', color: '#696358', display: 'block', marginTop: '4px' }}>
-                                No pre-registered branches found for {effectivePublicDeptState.institutionName}; enter your department name manually.
-                              </span>
-                            )}
-                          </>
+                          <input
+                            type="text"
+                            className="form-input-touch"
+                            placeholder={loginRole === 'student' ? 'e.g. Mechanical Engineering' : 'e.g. Computer Science'}
+                            value={regDep}
+                            onChange={(e) => setRegDep(e.target.value)}
+                            style={inputStyleBase}
+                          />
                         );
 
                         if (loginRole === 'student') {
                           return (
                             <>
                               <div>
-                                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
-                                  Student Roll Number / ID
+                                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
+                                  Roll Number
                                 </label>
                                 <input
                                   type="text"
@@ -1255,22 +1075,12 @@ export default function LoginPortal({
                                   placeholder="e.g. 2026CSE01"
                                   value={regRoll}
                                   onChange={(e) => setRegRoll(e.target.value)}
-                                  style={{
-                                    width: '100%',
-                                    padding: '12px 14px',
-                                    borderRadius: '10px',
-                                    background: '#ffffff',
-                                    border: '1px solid #cfc8ba',
-                                    color: '#25231f',
-                                    fontSize: '0.88rem',
-                                    outline: 'none',
-                                    boxSizing: 'border-box'
-                                  }}
+                                  style={inputStyleBase}
                                 />
                               </div>
 
                               <div>
-                                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
                                   {fieldLabel}
                                 </label>
                                 {deptControl}
@@ -1281,7 +1091,7 @@ export default function LoginPortal({
 
                         return (
                           <div>
-                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                            <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
                               {fieldLabel}
                             </label>
                             {deptControl}
@@ -1291,53 +1101,27 @@ export default function LoginPortal({
                     </>
                   )}
 
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                     <button
                       type="button"
+                      className="golden-os-feedback-filter-btn"
                       onClick={() => setRegStep(1)}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#58534a',
-                        fontSize: '0.88rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
+                      style={{ flex: 1, justifyContent: 'center', padding: '11px 14px' }}
                     >
-                      <ArrowLeft size={16} />
+                      <ArrowLeft size={15} />
                       <span>Back</span>
                     </button>
 
                     <button
                       type="button"
+                      className="golden-os-primary-action"
                       onClick={() => {
                         if (validateStep2()) setRegStep(3);
                       }}
-                      style={{
-                        flex: 2,
-                        padding: '12px 20px',
-                        borderRadius: '10px',
-                        background: 'var(--color-primary)',
-                        border: 'none',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                      }}
+                      style={{ flex: 2, justifyContent: 'center' }}
                     >
-                      <span>Continue to Security</span>
-                      <ArrowRight size={16} />
+                      <span>Continue</span>
+                      <ArrowRight size={15} />
                     </button>
                   </div>
                 </div>
@@ -1345,9 +1129,9 @@ export default function LoginPortal({
 
               {/* STEP 3: Password & Consent */}
               {regStep === 3 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
                       Password
                     </label>
                     <div style={{ position: 'relative' }}>
@@ -1357,24 +1141,14 @@ export default function LoginPortal({
                         placeholder="At least 6 characters"
                         value={regPassword}
                         onChange={(e) => setRegPassword(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '12px 40px 12px 14px',
-                          borderRadius: '10px',
-                          background: '#ffffff',
-                          border: '1px solid #cfc8ba',
-                          color: '#25231f',
-                          fontSize: '0.88rem',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
+                        style={{ ...inputStyleBase, paddingRight: '38px' }}
                       />
                       <button
                         type="button"
                         onClick={() => setShowRegPassword(!showRegPassword)}
                         style={{
                           position: 'absolute',
-                          right: '12px',
+                          right: '10px',
                           top: '50%',
                           transform: 'translateY(-50%)',
                           background: 'none',
@@ -1389,7 +1163,7 @@ export default function LoginPortal({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#46423b', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>
                       Confirm Password
                     </label>
                     <input
@@ -1398,93 +1172,53 @@ export default function LoginPortal({
                       placeholder="Repeat password"
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#25231f',
-                        fontSize: '0.88rem',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
+                      style={inputStyleBase}
                     />
                   </div>
 
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.78rem', color: '#58534a', cursor: 'pointer', marginTop: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '0.76rem', color: '#58534a', cursor: 'pointer', lineHeight: 1.4 }}>
                     <input
                       type="checkbox"
                       checked={regConsent}
                       onChange={(e) => setRegConsent(e.target.checked)}
-                      style={{ accentColor: '#80602c', width: '16px', height: '16px', marginTop: '2px' }}
+                      style={{ accentColor: '#80602c', width: '15px', height: '15px', marginTop: '2px' }}
                     />
                     <span>
-                      {loginRole === 'admin'
-                        ? 'I agree to institutional administrative policies, secure workspace provisioning, and data governance terms.'
-                        : 'I consent to biometric attendance verification and institutional data processing policies.'}
+                      I agree to biometric verification and institutional data policies.
                     </span>
                   </label>
 
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                     <button
                       type="button"
+                      className="golden-os-feedback-filter-btn"
                       onClick={() => setRegStep(2)}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1px solid #cfc8ba',
-                        color: '#58534a',
-                        fontSize: '0.88rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
+                      style={{ flex: 1, justifyContent: 'center', padding: '11px 14px' }}
                     >
-                      <ArrowLeft size={16} />
+                      <ArrowLeft size={15} />
                       <span>Back</span>
                     </button>
 
                     <button
                       type="button"
+                      className="golden-os-primary-action"
                       onClick={handleRegisterSubmit}
                       disabled={isSubmittingReg}
-                      style={{
-                        flex: 2,
-                        padding: '12px 20px',
-                        borderRadius: '10px',
-                        background: '#059669',
-                        border: 'none',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                        fontWeight: 700,
-                        cursor: isSubmittingReg ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        opacity: isSubmittingReg ? 0.7 : 1
-                      }}
+                      style={{ flex: 2, justifyContent: 'center', background: '#059669' }}
                     >
                       <span>
                         {isSubmittingReg
-                          ? (loginRole === 'admin' ? 'Provisioning Workspace...' : 'Creating Account...')
-                          : (loginRole === 'admin' ? 'Register Institution & Admin' : 'Complete Registration')}
+                          ? 'Creating...'
+                          : (loginRole === 'admin' ? 'Register Institution' : 'Complete Registration')}
                       </span>
-                      <Check size={16} />
+                      <Check size={15} />
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Back to Login */}
-              <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.82rem', color: '#696358' }}>
-                Already registered?{' '}
+              <div style={{ textAlign: 'center', fontSize: '0.78rem', color: '#696358' }}>
+                Already have an account?{' '}
                 <button
                   type="button"
                   onClick={() => {
@@ -1492,7 +1226,7 @@ export default function LoginPortal({
                     onClearAuthError?.();
                     setIsRegister(false);
                   }}
-                  style={{ background: 'none', border: 'none', color: '#80602c', cursor: 'pointer', fontWeight: 700, padding: 0 }}
+                  style={{ background: 'none', border: 'none', color: '#785927', cursor: 'pointer', fontWeight: 700, padding: 0 }}
                 >
                   Sign in
                 </button>
@@ -1502,90 +1236,86 @@ export default function LoginPortal({
         </div>
       </div>
 
-      {/* Forgot Password Recovery Modal */}
+      {/* Forgot Password Modal */}
       {showForgotPasswordModal && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(6px)',
+          background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(6px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
         }}>
-          <div style={{
-            maxWidth: '440px', width: '100%', background: '#ffffff',
-            borderRadius: '16px', border: '1px solid #e4dfd5', padding: '28px',
-            boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)',
-            animation: 'fadeInUp 0.25s ease'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', color: '#80602c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Lock size={20} />
+          <div
+            className="golden-os-window"
+            style={{
+              maxWidth: '410px',
+              width: '100%',
+              borderRadius: '18px',
+              border: '1px solid #dfd4be',
+              padding: '22px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: '#faf5ea', border: '1px solid #dfcfaf', color: '#785927', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock size={17} />
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#25231f' }}>Password Recovery</h3>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#696358' }}>Account credentials assistance</p>
-                </div>
+                <h3 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 800, color: '#25231f' }}>Password Recovery</h3>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => { setShowForgotPasswordModal(false); setForgotSubmitted(false); setForgotEmail(''); }}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                style={{ background: 'none', border: 'none', color: '#696358', cursor: 'pointer', padding: '4px' }}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             {forgotSubmitted ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'center', padding: '12px 0' }}>
-                <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
-                  <CheckCircle2 size={28} />
-                </div>
-                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#25231f' }}>Reset Request Dispatched</h4>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#58534a', lineHeight: 1.5 }}>
-                  If an account associated with <strong>{forgotEmail}</strong> exists in this workspace, password reset instructions and institutional admin notification have been generated.
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'center', padding: '6px 0' }}>
+                <CheckCircle2 size={38} color="#059669" style={{ margin: '0 auto' }} />
+                <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#25231f' }}>Reset Request Generated</div>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#58534a', lineHeight: 1.45 }}>
+                  If <strong>{forgotEmail}</strong> is registered, contact your institution administrator if you do not receive instructions.
                 </p>
-                <div style={{ background: '#faf9f6', border: '1px solid #e4dfd5', borderRadius: '10px', padding: '12px', fontSize: '0.78rem', color: '#696358', textAlign: 'left' }}>
-                  💡 <strong>Tip for Students & Teachers:</strong> You can also request a temporary access token directly from your Department HOD or College Admin office.
-                </div>
                 <button
                   type="button"
+                  className="golden-os-primary-action"
+                  style={{ justifyContent: 'center' }}
                   onClick={() => { setShowForgotPasswordModal(false); setForgotSubmitted(false); setForgotEmail(''); }}
-                  style={{
-                    padding: '10px 16px', background: 'var(--color-primary)', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', marginTop: '4px'
-                  }}
                 >
                   Return to Sign In
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleForgotPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#58534a', lineHeight: 1.5 }}>
-                  Enter your registered institutional email address. We will verify your workspace membership and assist with resetting your password.
+              <form onSubmit={handleForgotPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#58534a', lineHeight: 1.45 }}>
+                  Enter your registered email address to request credential assistance.
                 </p>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#25231f' }}>Registered Email Address</label>
+                <div>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#46423b', display: 'block', marginBottom: '5px' }}>Email Address</label>
                   <input
                     type="email"
-                    className="form-input"
-                    placeholder="e.g. yourname@college.edu"
+                    placeholder="name@institution.edu"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     required
-                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    style={inputStyleBase}
                   />
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button
                     type="button"
+                    className="golden-os-feedback-filter-btn"
                     onClick={() => setShowForgotPasswordModal(false)}
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', background: '#faf9f6', border: '1px solid #cfc8ba', color: '#58534a', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    style={{ flex: 1, justifyContent: 'center', padding: '10px' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    style={{ flex: 1.5, padding: '10px', borderRadius: '8px', background: 'var(--color-primary)', border: 'none', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                    className="golden-os-primary-action"
+                    style={{ flex: 1.5, justifyContent: 'center' }}
                   >
-                    Request Password Reset
+                    Request Reset
                   </button>
                 </div>
               </form>

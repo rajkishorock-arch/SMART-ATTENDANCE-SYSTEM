@@ -58,6 +58,7 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [serverWarmingUp, setServerWarmingUp] = useState(false);
+  const [isWakingOnSubmit, setIsWakingOnSubmit] = useState(false);
   const [activeTelemetry, setActiveTelemetry] = useState({ total_active: 0, students: 0, teachers: 0, admins: 0 });
 
   // Play sound helper
@@ -182,21 +183,24 @@ export function AuthProvider({ children }) {
     }
   }, [handleLogout]);
 
-  // Pre-warm backend when on login screen so cold-sleeping instances wake before Sign In is clicked
+  // Pre-warm backend silently when on login screen so cold-sleeping instances wake before Sign In is clicked
   useEffect(() => {
     if (!token) {
       const API_BASE_URL = getApiBaseUrl();
-      wakeBackend(API_BASE_URL, 20000).catch(() => {});
+      wakeBackend(API_BASE_URL, 15000).then((ok) => {
+        if (ok) setServerWarmingUp(false);
+      }).catch(() => {});
     }
   }, [token]);
 
-  // Handle Login submission with Render cold-start wake & automatic retry logic
+  // Handle Login submission cleanly without false "server waking up" flashes
   const handleLogin = useCallback(async (e, onSuccess) => {
     if (e && e.preventDefault) e.preventDefault();
     playSound('click');
     setAuthError('');
     setIsLoading(true);
-    setServerWarmingUp(true);
+    setIsWakingOnSubmit(false);
+    setServerWarmingUp(false);
 
     const API_BASE_URL = getApiBaseUrl();
 
@@ -221,9 +225,12 @@ export function AuthProvider({ children }) {
     if (!navigator.onLine) {
       setAuthError('You are offline. Reconnect to sign in.');
       setIsLoading(false);
-      setServerWarmingUp(false);
       return;
     }
+
+    const slowTimer = setTimeout(() => {
+      setIsWakingOnSubmit(true);
+    }, 4500);
 
     const executeLoginRequest = async (timeoutMs) => {
       const controller = new AbortController();
@@ -240,20 +247,24 @@ export function AuthProvider({ children }) {
       }
     };
 
-    let timedOutOrWaking = false;
     try {
       let res;
       try {
-        res = await executeLoginRequest(25000);
+        res = await executeLoginRequest(28000);
         if (res.status >= 502 && res.status <= 504) {
-          await wakeBackend(API_BASE_URL, 25000).catch(() => {});
-          res = await executeLoginRequest(35000);
+          setIsWakingOnSubmit(true);
+          const woke = await wakeBackend(API_BASE_URL, 35000).catch(() => false);
+          if (!woke) {
+            throw new Error('Server is starting up. Please try again in a few seconds.');
+          }
+          res = await executeLoginRequest(25000);
         }
       } catch (firstErr) {
         if (!navigator.onLine) throw firstErr;
-        // Cold start on Render can exceed 25s; wake /health/ping cleanly and retry once
-        await wakeBackend(API_BASE_URL, 30000).catch(() => {});
-        res = await executeLoginRequest(35000);
+        setIsWakingOnSubmit(true);
+        const woke = await wakeBackend(API_BASE_URL, 35000).catch(() => false);
+        if (!woke) throw firstErr;
+        res = await executeLoginRequest(25000);
       }
 
       let data = {};
@@ -261,7 +272,7 @@ export function AuthProvider({ children }) {
       try {
         data = raw ? JSON.parse(raw) : {};
       } catch {
-        throw new Error('Server returned invalid response. Backend may still be starting.');
+        throw new Error('Invalid server response. Please try signing in again.');
       }
 
       if (res.ok && data.access_token) {
@@ -285,8 +296,6 @@ export function AuthProvider({ children }) {
         if (meData.role !== loginRole) {
           playSound('error');
           setAuthError(getRoleMismatchMessage(loginRole, meData.role));
-          setIsLoading(false);
-          setServerWarmingUp(false);
           return;
         }
 
@@ -304,7 +313,6 @@ export function AuthProvider({ children }) {
         setToken(data.access_token);
         setUserRole(meData.role);
         setCurrentUser(meData);
-        setIsLoading(false);
 
         if (typeof onSuccess === 'function') {
           onSuccess({ token: data.access_token, userRole: meData.role, currentUser: meData });
@@ -318,25 +326,21 @@ export function AuthProvider({ children }) {
         : (detail || 'Incorrect email or password');
       playSound('error');
       setAuthError(msg);
-      setIsLoading(false);
-      setServerWarmingUp(false);
       return;
     } catch (err) {
       playSound('error');
       if (!navigator.onLine) {
         setAuthError('You are offline. Reconnect to sign in.');
       } else if (err.name === 'AbortError') {
-        timedOutOrWaking = true;
-        setAuthError('Server is taking longer than expected to wake up. Please wait 10 seconds and tap Sign In again.');
+        setAuthError('Connection timed out while contacting the server. Please tap Sign In again.');
       } else {
-        timedOutOrWaking = true;
         setAuthError(err?.message || 'Could not reach the sign-in service. Check your connection and try again.');
       }
     } finally {
+      clearTimeout(slowTimer);
+      setIsWakingOnSubmit(false);
       setIsLoading(false);
-      if (!timedOutOrWaking) {
-        setServerWarmingUp(false);
-      }
+      setServerWarmingUp(false);
     }
   }, [loginEmail, loginPassword, loginRole, loginWorkspaceSlug]);
 
@@ -433,6 +437,7 @@ export function AuthProvider({ children }) {
     setIsLoading,
     serverWarmingUp,
     setServerWarmingUp,
+    isWakingOnSubmit,
     activeTelemetry,
     setActiveTelemetry,
     handleLogin,
